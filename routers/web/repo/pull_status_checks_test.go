@@ -44,4 +44,5 @@ func TestBuildStatusCheckGroupsSeparatesUnfinishedStates(t *testing.T) {
 	assert.Equal(t, 3, groups[1].Count())
 	assert.Equal(t, 1, summaryCounts[StatusCheckGroupInProgress])
 	assert.Equal(t, 1, summaryCounts[StatusCheckGroupQueued])
+	assert.Equal(t, "repo.pulls.status_checks_group_failed", groups[0].LocaleKey())
 }

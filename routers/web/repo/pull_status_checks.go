@@ -45,6 +45,11 @@ func (g *StatusCheckGroup) Count() int {
 	return len(g.CommitStatuses) + len(g.MissingRequiredChecks)
 }
 
+// LocaleKey returns the translated group title's locale key.
+func (g *StatusCheckGroup) LocaleKey() string {
+	return statusCheckGroupLocaleKey[g.Kind]
+}
+
 // statusCheckSectionOrder is the fixed display order of sections, most-attention-worthy first.
 var statusCheckSectionOrder = []StatusCheckGroupKind{
 	StatusCheckGroupFailed,
@@ -130,6 +135,14 @@ var statusCheckSummaryLocaleKey = map[StatusCheckGroupKind]string{
 	StatusCheckGroupInProgress: "repo.pulls.status_checks_summary_in_progress",
 	StatusCheckGroupSkipped:    "repo.pulls.status_checks_summary_skipped",
 	StatusCheckGroupSuccess:    "repo.pulls.status_checks_summary_success",
+}
+
+var statusCheckGroupLocaleKey = map[StatusCheckGroupKind]string{
+	StatusCheckGroupFailed:     "repo.pulls.status_checks_group_failed",
+	StatusCheckGroupPending:    "repo.pulls.status_checks_group_pending",
+	StatusCheckGroupInProgress: "repo.pulls.status_checks_group_in_progress",
+	StatusCheckGroupSkipped:    "repo.pulls.status_checks_group_skipped",
+	StatusCheckGroupSuccess:    "repo.pulls.status_checks_group_success",
 }
 
 // Summary renders the "N pending, M queued, ... checks" line shown under the checks widget's headline.

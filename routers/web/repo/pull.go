@@ -476,6 +476,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 	statusCheckData.MissingRequiredChecks = missingRequiredChecks
 	statusCheckData.Groups, statusCheckData.SummaryCounts = buildStatusCheckGroups(commitStatuses, actionsStatusMap, missingRequiredChecks)
+	statusCheckData.ActionsStatuses = actionsStatusMap
 
 	statusCheckData.IsContextRequired = func(context string) bool {
 		for _, c := range requiredContexts {
@@ -523,6 +524,7 @@ type PullCommitStatusCheckData struct {
 	RequiredChecksState     commitstatus.CommitStatusState
 	Groups                  []*StatusCheckGroup          // commit statuses grouped for display, see buildStatusCheckGroups
 	SummaryCounts           map[StatusCheckGroupKind]int // fine-grained per-kind counts, used by Summary()
+	ActionsStatuses         actions_module.CommitActionsStatusMap
 
 	pullCommitStatusState commitstatus.CommitStatusState
 	PullCommitStatuses    []*git_model.CommitStatus

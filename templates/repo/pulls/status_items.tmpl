@@ -4,7 +4,7 @@
 * MissingRequiredChecks: optional, list of required check names with no matching commit status
 */}}
 {{$statusCheckData := $.StatusCheckData}}
-{{$commitActionsStatuses :=  ctx.ActionsUtils.CommitStatusesToActionsStatuses $.CommitStatuses}}
+{{$commitActionsStatuses := $.CommitActionsStatuses}}
 {{range $cs := $.CommitStatuses}}
 	<div class="item commit-status-item">
 		<div class="flex-text-block tw-flex-1">

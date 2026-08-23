@@ -4,13 +4,13 @@
 {{$statusCheckData := $.StatusCheckData}}
 {{if $statusCheckData}}
 	<details class="item tw-p-0 commit-status-widget" open>
-	<summary class="commit-status-header flex-text-block">
+	<summary class="commit-status-header flex-text-block tw-px-4 tw-py-3">
 		<span class="commit-status-summary-icon{{if $statusCheckData.HasPendingChecks}} is-pending{{end}}"></span>
-		<div class="tw-flex-1 gt-ellipsis">
+		<span class="tw-flex-1 tw-min-w-0">
 			<strong>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</strong>
 			{{$summary := $statusCheckData.Summary ctx.Locale}}
-			{{if $summary}}<p class="tw-text-text-light-2">{{$summary}}</p>{{end}}
-		</div>
+			{{if $summary}}<span class="tw-block tw-text-text-light-2">{{$summary}}</span>{{end}}
+		</span>
 		{{svg "octicon-chevron-down" 16 "commit-status-widget-chevron"}}
 	</summary>
 	<div class="commit-status-widget-body">
@@ -33,16 +33,11 @@
 		{{range $group := $statusCheckData.Groups}}
 			<details class="commit-status-group"{{if eq $group.Kind "failed" "pending"}} open{{end}}>
 				<summary class="flex-text-block">
-					{{if eq $group.Kind "failed"}}{{ctx.Locale.Tr "repo.pulls.status_checks_group_failed" $group.Count}}
-					{{else if eq $group.Kind "pending"}}{{ctx.Locale.Tr "repo.pulls.status_checks_group_pending" $group.Count}}
-					{{else if eq $group.Kind "in_progress"}}{{ctx.Locale.Tr "repo.pulls.status_checks_group_in_progress" $group.Count}}
-					{{else if eq $group.Kind "skipped"}}{{ctx.Locale.Tr "repo.pulls.status_checks_group_skipped" $group.Count}}
-					{{else if eq $group.Kind "success"}}{{ctx.Locale.Tr "repo.pulls.status_checks_group_success" $group.Count}}
-					{{end}}
+					{{ctx.Locale.Tr $group.LocaleKey $group.Count}}
 					{{svg "octicon-chevron-right" 12 "commit-status-group-chevron"}}
 				</summary>
 				<div class="commit-status-group-items flex-divided-list items-px-default">
-					{{template "repo/pulls/status_items" (dict "CommitStatuses" $group.CommitStatuses "StatusCheckData" $statusCheckData "MissingRequiredChecks" $group.MissingRequiredChecks)}}
+					{{template "repo/pulls/status_items" (dict "CommitStatuses" $group.CommitStatuses "CommitActionsStatuses" $statusCheckData.ActionsStatuses "StatusCheckData" $statusCheckData "MissingRequiredChecks" $group.MissingRequiredChecks)}}
 				</div>
 			</details>
 		{{end}}

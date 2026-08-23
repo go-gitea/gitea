@@ -10,7 +10,7 @@
 	{{end}}
 	<div class="tippy-target">
 		<div class="commit-status-list flex-divided-list items-px-default">
-			{{template "repo/pulls/status_items" (dict "CommitStatuses" .Statuses)}}
+			{{template "repo/pulls/status_items" (dict "CommitStatuses" .Statuses "CommitActionsStatuses" (ctx.ActionsUtils.CommitStatusesToActionsStatuses .Statuses))}}
 		</div>
 	</div>
 {{end}}
