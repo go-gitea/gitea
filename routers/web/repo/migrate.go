@@ -14,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -106,7 +107,13 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
 	default:
-		ctx.ServerError(name, util.SanitizeErrorCredentialURLs(err))
+		err = util.SanitizeErrorCredentialURLs(err)
+		if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
+			ctx.Data["Err_CloneAddr"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
+		} else {
+			ctx.ServerError(name, err)
+		}
 	}
 }
 

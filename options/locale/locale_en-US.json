@@ -1116,6 +1116,7 @@
   "repo.migrate.permission_denied_blocked": "You cannot import from disallowed hosts. Please ask the admin to check ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS settings.",
   "repo.migrate.invalid_local_path": "The local path is invalid. It doesn't exist or is not a directory.",
   "repo.migrate.invalid_lfs_endpoint": "The LFS endpoint is not valid.",
+  "repo.migrate.failed": "Migration failed: %v",
   "repo.migrate.migrate_items_options": "Access Token is required to migrate additional items",
   "repo.migrated_from": "Migrated from <a href=\"%[1]s\">%[2]s</a>",
   "repo.migrated_from_fake": "Migrated From %[1]s",

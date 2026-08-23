@@ -246,12 +246,11 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		_, fromGit := gitcmd.ErrorAsStderr(err)
-		switch {
-		case migrations.IsAuthenticationError(err):
+		if migrations.IsAuthenticationError(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Authentication failed: %v.", err))
-		case fromGit:
+		} else if fromGit {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Migration failed: %v.", err))
-		default:
+		} else {
 			ctx.APIErrorInternal(err)
 		}
 	}
