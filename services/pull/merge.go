@@ -296,6 +296,12 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return err
 	}
 
+	// git ignores the post-receive exit code, so a hook that failed to record the
+	// merge still looks like a successful push and must not be reported as merged
+	if !pr.HasMerged {
+		return fmt.Errorf("pull request %d was pushed to %q but the post-receive hook did not record the merge", pr.Index, pr.BaseBranch)
+	}
+
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue %-v: %v", pr, err)
 	}
