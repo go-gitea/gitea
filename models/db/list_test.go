@@ -18,6 +18,10 @@ type mockListOptions struct {
 	db.ListOptions
 }
 
+func (opts mockListOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts mockListOptions) IsListAll() bool {
 	return true
 }

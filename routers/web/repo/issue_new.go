@@ -351,11 +351,6 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
-	if util.IsEmptyString(form.Title) {
-		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
-		return
-	}
-
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
 		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {

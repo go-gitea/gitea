@@ -11,7 +11,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {performFetchActionTrigger} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 
@@ -206,9 +206,7 @@ async function onLocationHashChange() {
 
   const targetElementId = currentHash.substring(1);
   while (currentHash === window.location.hash) {
-    // use getElementById to avoid querySelector throws an error when the hash is invalid
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(targetElementId);
+    const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();

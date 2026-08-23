@@ -54,14 +54,14 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if purge {
-			err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
-			if err != nil {
-				return err
-			}
+	// outside the transaction below, because each repository deletion owns one and deletes storage after committing
+	if purge {
+		if err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser()); err != nil {
+			return err
 		}
+	}
 
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Check ownership of repository.
 		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
 		if err != nil {
