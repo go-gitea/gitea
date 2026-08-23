@@ -44,7 +44,7 @@ func CreateOrg(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateOrgOption)
+	form := web.GetForm[*api.CreateOrgOption](ctx)
 
 	visibility := api.VisibleTypePublic
 	if form.Visibility != "" {

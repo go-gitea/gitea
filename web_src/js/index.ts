@@ -38,7 +38,7 @@ import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
-import {initRepoWikiForm} from './features/repo-wiki.ts';
+import {initRepoWiki} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActions} from './features/repo-actions.ts';
@@ -55,7 +55,7 @@ import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
-import {initGlobalFetchAction} from './features/common-fetch-action.ts';
+import {initGlobalFetchAction} from './modules/fetch-action.ts';
 import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
 import {initGlobalButtonClickOnEnter, initGlobalButtons} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
@@ -65,6 +65,8 @@ import {initActionsPermissionsForm} from './features/common-actions-permissions.
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
+import {initRepoWatch} from './features/repo-watch.ts';
+import {initPackagesView} from './features/packages.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -102,6 +104,7 @@ const initPerformanceTracer = callInitFunctions([
   initTableSort,
   initRepoFileSearch,
   initCopyContent,
+  initPackagesView,
 
   initAdminCommon,
   initAdminUserListSearchForm,
@@ -134,13 +137,14 @@ const initPerformanceTracer = callInitFunctions([
   initRepoReleaseNew,
   initRepoTopicBar,
   initRepoViewFileTree,
-  initRepoWikiForm,
+  initRepoWiki,
   initRepository,
   initRepositoryActions,
   initRepositorySearch,
   initRepoContributors,
   initRepoCodeFrequency,
   initRepoRecentCommits,
+  initRepoWatch,
 
   initCommitStatuses,
   initAvatarStackPopup,

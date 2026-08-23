@@ -7,7 +7,9 @@ package git
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/git/foreachref"
 	"gitea.dev/modules/git/gitcmd"
@@ -113,7 +115,7 @@ func (repo *Repository) GetTagWithID(ctx context.Context, idStr, name string) (*
 func (repo *Repository) GetTagInfos(ctx context.Context, page, pageSize int) ([]*Tag, int, error) {
 	// Generally, refname:short should be equal to refname:lstrip=2 except core.warnAmbiguousRefs is used to select the strict abbreviation mode.
 	// https://git-scm.com/docs/git-for-each-ref#Documentation/git-for-each-ref.txt-refname
-	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:lstrip=2", "object", "objectname", "creator", "contents", "contents:signature")
+	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:lstrip=2", "object", "objectname", "creator", "contents", "contents:signature", "committerdate:unix", "*committerdate:unix")
 
 	var tags []*Tag
 	var tagsTotal int
@@ -144,7 +146,7 @@ func (repo *Repository) GetTagInfos(ctx context.Context, page, pageSize int) ([]
 			sortTagsByTime(tags)
 			tagsTotal = len(tags)
 			if page != 0 {
-				tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
+				tags = util.PaginateSlice(tags, page, pageSize)
 			}
 			return nil
 		}).
@@ -178,6 +180,15 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 
 	tag.Tagger = parseSignatureFromCommitLine(ref["creator"])
 	tag.MessageRaw = ref["contents"]
+
+	// a lightweight tag reports the commit date directly, an annotated one only behind the dereferencing "*"
+	if committerDate := util.IfZero(ref["*committerdate:unix"], ref["committerdate:unix"]); committerDate != "" {
+		seconds, err := strconv.ParseInt(committerDate, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parse committerdate '%s': %w", committerDate, err)
+		}
+		tag.CommitDate = time.Unix(seconds, 0)
+	}
 
 	// strip any signature if present in contents field
 	_, tag.MessageRaw, _ = parsePayloadSignature(util.UnsafeStringToBytes(tag.MessageRaw), 0)

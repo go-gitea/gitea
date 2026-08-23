@@ -106,8 +106,7 @@ func parseToken(req *http.Request) (string, bool) {
 }
 
 // userFromToken returns the user corresponding to the OAuth token.
-// It will set 'IsApiToken' to true if the token is an API token and
-// set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
+// It will set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
 func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataStore) (*user_model.User, error) {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
@@ -121,7 +120,6 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 		// Otherwise, check if this is an OAuth access token
 		accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
 		if uid != 0 {
-			store.GetData()["IsApiToken"] = true
 			store.GetData()["ApiTokenScope"] = accessTokenScope
 		}
 		return user_model.GetUserByID(ctx, uid)
@@ -142,7 +140,6 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
-	store.GetData()["IsApiToken"] = true
 	store.GetData()["ApiTokenScope"] = t.Scope
 	return user_model.GetUserByID(ctx, t.UID)
 }

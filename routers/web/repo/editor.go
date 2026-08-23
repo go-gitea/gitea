@@ -112,7 +112,7 @@ func (f *preparedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage stri
 }
 
 func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *preparedEditorCommitForm[T] {
-	form := web.GetForm(ctx).(T)
+	form := web.GetForm[T](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return nil

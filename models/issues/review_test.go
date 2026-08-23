@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,6 +27,15 @@ func TestGetReviewByID(t *testing.T) {
 	_, err = issues_model.GetReviewByID(t.Context(), 23892)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewNotExist(err), "IsErrReviewNotExist")
+}
+
+func TestReview_HTMLURL(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 1})
+	assert.Equal(t, setting.AppURL+"user2/repo1/pulls/2#pullrequestreview-1", review.HTMLURL(t.Context()))
+
+	pendingReview := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 4})
+	assert.Empty(t, pendingReview.HTMLURL(t.Context()))
 }
 
 func TestReview_LoadAttributes(t *testing.T) {

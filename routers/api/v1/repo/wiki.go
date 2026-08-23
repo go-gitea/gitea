@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -55,13 +54,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
-
-	if util.IsEmptyString(form.Title) {
-		ctx.APIError(http.StatusBadRequest, "title is required")
-		return
-	}
-
+	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 	wikiName := wiki_service.UserTitleToWebPath("", form.Title)
 
 	if len(form.Message) == 0 {
@@ -133,7 +126,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
+	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
 	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)

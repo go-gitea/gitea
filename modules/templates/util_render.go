@@ -42,6 +42,10 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 	return &RenderUtils{ctx: ctx, avatarUtils: NewAvatarUtils(ctx)}
 }
 
+func (ut *RenderUtils) locale() translation.Locale {
+	return ut.ctx.Value(translation.ContextKey).(translation.Locale) //nolint:forcetypeassert // the render context always carries a locale
+}
+
 // RenderCommitMessage renders commit message title (only title)
 func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
 	msgLine := strings.TrimSpace(msg)
@@ -58,7 +62,7 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, re
 	msgLine, _, _ = strings.Cut(msgLine, "\n")
 	msgLine = strings.TrimSpace(msgLine)
 	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
-	rendered := markup.PostProcessCommitMessageSubject(rctx, urlDefault, htmlutil.EscapeString(msgLine))
+	rendered := markup.PostProcessCommitMessageSubject(rctx, urlDefault, msgLine)
 	return renderCodeBlock(rendered)
 }
 
@@ -98,7 +102,7 @@ func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
 }
 
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
-	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	locale := ut.locale()
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
 	labelScope := label.ExclusiveScope()
@@ -223,7 +227,7 @@ func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink strin
 		if label == nil {
 			continue
 		}
-		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteFormatf(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
 		htmlCode.WriteHTML(ut.RenderLabel(label))
 		htmlCode.WriteHTML("</a>")
 	}
@@ -279,7 +283,7 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.Esc
 	if escapeStatus == nil || !escapeStatus.Escaped {
 		return ""
 	}
-	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	locale := ut.locale()
 	var title template.HTML
 	if escapeStatus.HasAmbiguous {
 		title += locale.Tr("repo.ambiguous_runes_line")
@@ -343,7 +347,7 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 	var b htmlutil.HTMLBuilder
 	b.WriteHTML(`<span class="avatar-stack">`)
 	if overflow > 0 {
-		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+		b.WriteFormatf(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
 	}
 
 	// FIXME: such "backward" breaks a11y like screen readers
@@ -357,9 +361,9 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, data *user_model.AvatarStackData, participant *user_model.CommitParticipant) {
 	avatar := ut.participantAvatar(participant)
 	if href := ut.participantHref(data, participant); href != "" {
-		b.WriteFormat(`<a href="%s">%s</a>`, href, avatar)
+		b.WriteFormatf(`<a href="%s">%s</a>`, href, avatar)
 	} else {
-		b.WriteFormat(`<span>%s</span>`, avatar)
+		b.WriteFormatf(`<span>%s</span>`, avatar)
 	}
 }
 
@@ -376,7 +380,7 @@ func (ut *RenderUtils) AvatarStackPushCommit(pushCommit *repository.PushCommit) 
 
 // AvatarStackWithNames renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
 func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) template.HTML {
-	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	locale := ut.locale()
 	participants := data.Participants
 
 	var b htmlutil.HTMLBuilder
@@ -388,10 +392,10 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 		b.WriteHTML(ut.participantNameLink(data, participants[0]))
 	case 2:
 		b.WriteHTML(ut.participantNameLink(data, participants[0]))
-		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
+		b.WriteFormatf(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
 		b.WriteHTML(ut.participantNameLink(data, participants[1]))
 	default:
-		b.WriteFormat(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
+		b.WriteFormatf(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
 			locale.Tr("repo.commits.avatar_stack_people", len(participants)))
 		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
 		for _, participant := range participants {

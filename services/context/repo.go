@@ -22,7 +22,9 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	code_indexer "gitea.dev/modules/indexer/code"
@@ -192,8 +194,8 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 
 	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, doer, targetGitRepo, refName.String())
 	wontSignReason := ""
-	if asymkey_service.IsErrWontSign(err) {
-		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
+	if errWontSign, ok := err.(*asymkey_service.ErrWontSign); ok {
+		wontSignReason = string(errWontSign.Reason)
 	} else if err != nil {
 		return nil, err
 	}
@@ -252,16 +254,17 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 }
 
 // GetCommitGraphsCount returns cached commit count for current view
-func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, branches, files []string) (int64, error) {
-	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
-
+func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, refs, files []string) (int64, error) {
+	refFileKey := strings.Join(refs, "\x00") + "\x00\x00" + strings.Join(files, "\x00")
+	refFileKey = base.EncodeSha256(refFileKey)
+	cacheKey := cache.SafeCacheKey(fmt.Sprintf("git-commits-graph-count:%d:%v", r.Repository.ID, hidePRRefs), refFileKey)
 	return cache.GetInt64(cacheKey, func() (int64, error) {
-		if len(branches) == 0 {
+		if len(refs) == 0 {
 			return git.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
 		}
 		return git.CommitsCount(ctx, r.Repository,
 			git.CommitsCountOptions{
-				Revision: branches,
+				Revision: refs,
 				RelPath:  files,
 			})
 	})
@@ -424,6 +427,10 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
+	}
+	// publish it so code resolving the same permission later in this request reuses it
+	if c := cache.GetContextCache(ctx); c != nil {
+		c.Put(cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, ctx.Doer), ctx.Repo.Permission)
 	}
 
 	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
@@ -637,7 +644,12 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	}
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
+		watch, err := repo_model.GetWatch(ctx, ctx.Doer.ID, repo.ID)
+		if err != nil {
+			ctx.ServerError("GetWatch", err)
+			return
+		}
+		ctx.Data["RepoWatch"] = watch
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
 	}
 
@@ -956,7 +968,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			ctx.Repo.RefFullName = repoRefFullName(refType, refShortName)
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
 			if isRenamedBranch && has {
-				renamedBranchName := ctx.Data["RenamedBranchName"].(string)
+				renamedBranchName := ctx.Data["RenamedBranchName"].(string) //nolint:forcetypeassert // must exist
 				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refShortName, renamedBranchName))
 				link := setting.AppSubURL + strings.Replace(ctx.Req.URL.EscapedPath(), util.PathEscapeSegments(refShortName), util.PathEscapeSegments(renamedBranchName), 1)
 				ctx.Redirect(link)

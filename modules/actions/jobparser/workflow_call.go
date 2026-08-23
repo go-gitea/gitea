@@ -9,11 +9,12 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 
-	"gitea.com/gitea/runner/act/exprparser"
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -62,7 +63,7 @@ func ParseWorkflowCallSpec(content []byte) (*WorkflowCallSpec, error) {
 	var doc struct {
 		On yaml.Node `yaml:"on"`
 	}
-	if err := yaml.Unmarshal(content, &doc); err != nil {
+	if err := decodeResolved(content, &doc); err != nil {
 		return nil, fmt.Errorf("parse workflow yaml: %w", err)
 	}
 
@@ -185,7 +186,7 @@ func EvaluateCallerWith(
 		matrix = matrixes[0]
 	}
 
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 
 	out := make(map[string]any, len(job.With))
 	for k, raw := range job.With {
@@ -260,7 +261,7 @@ func MatchCallerInputsAgainstSpec(spec *WorkflowCallSpec, evaluated map[string]a
 func parseWorkflowCallInput(name string, typ InputType, v any) (any, error) {
 	switch typ {
 	case InputTypeString:
-		return coerceToString(v), nil
+		return exprparser.CoerceToString(v), nil
 	case InputTypeBoolean:
 		// strict type matching: a boolean input only accepts a native bool, not a "true"/"false" string
 		if b, ok := v.(bool); ok {
@@ -361,11 +362,11 @@ func EvaluateWorkflowCallOutputs(spec *WorkflowCallSpec, gitCtx *model.GithubCon
 		Vars:   vars,
 		Inputs: inputs,
 	}
-	evaluator := NewExpressionEvaluator(exprparser.NewInterpeter(env, exprparser.Config{}))
+	evaluator := expreval.New(exprparser.NewInterpeter(env, exprparser.Config{}).Evaluate)
 
 	out := make(map[string]string, len(spec.Outputs))
 	for name, o := range spec.Outputs {
-		v, err := evaluator.interpolate(o.Value)
+		v, err := evaluator.Interpolate(o.Value)
 		if err != nil {
 			return nil, fmt.Errorf("workflow_call output %q: %w", name, err)
 		}

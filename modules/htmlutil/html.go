@@ -149,7 +149,7 @@ func (b *HTMLBuilder) WriteHTML(s template.HTML) *HTMLBuilder {
 	return b
 }
 
-func (b *HTMLBuilder) WriteFormat(fmt template.HTML, args ...any) *HTMLBuilder {
+func (b *HTMLBuilder) WriteFormatf(fmt template.HTML, args ...any) *HTMLBuilder {
 	_, _ = HTMLPrintf(&b.sb, fmt, args...)
 	return b
 }

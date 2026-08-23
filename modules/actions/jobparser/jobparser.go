@@ -4,15 +4,16 @@
 package jobparser
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"slices"
 	"sort"
 	"strings"
 
-	"gitea.com/gitea/runner/act/exprparser"
-	"gitea.com/gitea/runner/act/model"
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
+
 	"github.com/rhysd/actionlint"
 	"go.yaml.in/yaml/v4"
 )
@@ -41,7 +42,7 @@ func rawMatrixReadsNeeds(node *yaml.Node) bool {
 // a scalar), neither of which describes the one job the payload stands for.
 func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, *Job, error) {
 	swf := &SingleWorkflow{}
-	if err := yaml.Unmarshal(payload, swf); err != nil {
+	if err := decodeResolved(payload, swf); err != nil {
 		return nil, nil, fmt.Errorf("unmarshal single workflow: %w", err)
 	}
 	id, job := swf.Job()
@@ -72,15 +73,7 @@ func ExpressionReadsMatrix(ifValue string) bool {
 // the status functions that run a job whatever its needs did rather than under the implicit success().
 // Keep in sync with act's exprparser, which owns the same list for the evaluation itself.
 func ExpressionIgnoresNeedResults(ifValue string) bool {
-	return expressionCallsFunction(asIfExpression(ifValue), "always", "failure", "cancelled")
-}
-
-// expressionCallsFunction reports whether any ${{ }} expression in value calls one of the functions.
-func expressionCallsFunction(value string, names ...string) bool {
-	return expressionsMatch(value, func(node actionlint.ExprNode) bool {
-		call, ok := node.(*actionlint.FuncCallNode)
-		return ok && slices.Contains(names, strings.ToLower(call.Callee))
-	})
+	return expreval.CallsFunction(asIfExpression(ifValue), "always", "failure", "cancelled")
 }
 
 // asIfExpression wraps an `if:` that omits the `${{ }}`, which GitHub evaluates as one expression anyway.
@@ -95,49 +88,28 @@ func asIfExpression(ifValue string) string {
 
 // expressionReadsContext reports whether value holds a ${{ }} expression reading the named context.
 func expressionReadsContext(value, contextName string) bool {
-	return expressionsMatch(value, func(node actionlint.ExprNode) bool {
+	return expreval.Match(value, func(node actionlint.ExprNode) bool {
 		variable, ok := node.(*actionlint.VariableNode)
 		return ok && strings.EqualFold(variable.Name, contextName)
 	})
 }
 
-// expressionsMatch reports whether any ${{ }} expression in value holds a node the predicate accepts.
-func expressionsMatch(value string, match func(node actionlint.ExprNode) bool) bool {
-	parts, err := splitSubExpressions(value)
-	if err != nil {
-		return true // unparseable here, let the expansion report it against the real values
-	}
-	for _, part := range parts {
-		if !part.isExpr {
-			continue
-		}
-		// The lexer needs the closing `}}` that the scanner strips.
-		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(part.text + "}}"))
-		if err != nil {
-			return true // unparseable here, let the expansion report it against the real values
-		}
-		matched := false
-		actionlint.VisitExprNode(expr, func(node, _ actionlint.ExprNode, entering bool) {
-			if entering && match(node) {
-				matched = true
-			}
-		})
-		if matched {
-			return true
-		}
-	}
-	return false
-}
-
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
-	origin, err := model.ReadWorkflow(bytes.NewReader(content))
+	// The workflow is split into one document per job below, which would strand an alias whose
+	// anchor lands in another one.
+	doc, err := resolveYamlAliases(content)
 	if err != nil {
-		return nil, fmt.Errorf("model.ReadWorkflow: %w", err)
+		return nil, fmt.Errorf("resolve aliases: %w", err)
+	}
+
+	origin, err := readWorkflowDoc(doc)
+	if err != nil {
+		return nil, fmt.Errorf("read workflow: %w", err)
 	}
 
 	workflow := &SingleWorkflow{}
-	if err := yaml.Unmarshal(content, workflow); err != nil {
-		return nil, fmt.Errorf("yaml.Unmarshal: %w", err)
+	if err := decodeYamlDoc(doc, workflow); err != nil {
+		return nil, fmt.Errorf("decode workflow: %w", err)
 	}
 
 	pc := &parseContext{}
@@ -162,8 +134,8 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		return nil, fmt.Errorf("invalid jobs: %w", err)
 	}
 
-	evaluator := NewExpressionEvaluator(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}))
-	if workflow.RunName, err = evaluator.interpolate(workflow.RunName); err != nil {
+	evaluator := expreval.New(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}).Evaluate)
+	if workflow.RunName, err = evaluator.Interpolate(workflow.RunName); err != nil {
 		return nil, fmt.Errorf("interpolate run-name: %w", err)
 	}
 
@@ -230,7 +202,7 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	}}
 
 	// Resolve fromJson(needs.*.outputs.*) and friends into concrete matrix values.
-	if err := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs)).
+	if err := expreval.New(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs).Evaluate).
 		EvaluateYamlNode(&actJob.Strategy.RawMatrix); err != nil {
 		return nil, fmt.Errorf("evaluate matrix: %w", err)
 	}
@@ -253,7 +225,6 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 // matrixesOf is this package's only entry to act's GetMatrixes, so that every caller is covered by
 // the filter check below. A deferred placeholder is the first thing carrying a raw matrix this far,
 // and the emitter reads its `if:` before expanding it.
-// TODO: drop the check once gitea.com/gitea/runner validates the shape itself.
 func matrixesOf(job *model.Job) ([]map[string]any, error) {
 	if err := validateMatrixFilters(job); err != nil {
 		return nil, err
@@ -265,9 +236,9 @@ func matrixesOf(job *model.Job) ([]map[string]any, error) {
 	return matrixes, nil
 }
 
-// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings. act asserts
-// that shape without checking, so anything else panics there; an unevaluated ${{ }} expression, which
-// is still a scalar, is the usual way to reach it.
+// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings, so that the
+// usual way to get there, an unevaluated ${{ }} expression that is still a scalar, is named as such
+// instead of surfacing from the middle of the expansion.
 func validateMatrixFilters(job *model.Job) error {
 	if job.Strategy == nil || job.Strategy.RawMatrix.Kind != yaml.MappingNode {
 		return nil
@@ -283,9 +254,6 @@ func validateMatrixFilters(job *model.Job) error {
 			entries = value.Content
 		}
 		for _, entry := range entries {
-			if entry.Kind == yaml.AliasNode {
-				entry = entry.Alias
-			}
 			if entry.Kind != yaml.MappingNode {
 				return fmt.Errorf("matrix %s must be a list of mappings", name)
 			}
@@ -306,13 +274,13 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob
 			combo.Name = jobID
 		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
-		evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
+		evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs).Evaluate)
 		if combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator); err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
 		runsOn := slices.Clone(srcRunsOn)
 		for i := range runsOn {
-			if runsOn[i], err = evaluator.interpolate(runsOn[i]); err != nil {
+			if runsOn[i], err = evaluator.Interpolate(runsOn[i]); err != nil {
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
 		}
@@ -386,7 +354,7 @@ func encodeRunsOn(runsOn []string) yaml.Node {
 	return node
 }
 
-func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluator) (string, error) {
+func nameWithMatrix(name string, m map[string]any, evaluator expreval.Evaluator) (string, error) {
 	if len(m) == 0 {
 		return name, nil
 	}
@@ -395,7 +363,7 @@ func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluato
 		return name + " " + matrixName(m), nil
 	}
 
-	return evaluator.interpolate(name)
+	return evaluator.Interpolate(name)
 }
 
 func matrixName(m map[string]any) string {

@@ -5,7 +5,6 @@
 package forms
 
 import (
-	"net/http"
 	"strings"
 
 	issues_model "gitea.dev/models/issues"
@@ -13,22 +12,21 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
 	"gitea.dev/services/webhook"
-
-	"gitea.com/go-chi/binding"
 )
 
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
+	middleware.FormDefaultValidator
 	UID           int64  `binding:"Required"`
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Private       bool
 	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
-	Gitignores    string
+	Gitignores    string `binding:"MaxSize(1024)"`
 	IssueLabels   string `binding:"MaxSize(255)"`
 	License       string `binding:"MaxSize(100)"`
 	Readme        string `binding:"MaxSize(255)"`
@@ -47,15 +45,10 @@ type CreateRepoForm struct {
 	ObjectFormatName string
 }
 
-// Validate validates the fields
-func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // MigrateRepoForm form for migrating repository
 // this is used to interact with web ui
 type MigrateRepoForm struct {
+	middleware.FormDefaultValidator
 	// required: true
 	CloneAddr    string                 `json:"clone_addr" binding:"Required"`
 	Service      structs.GitServiceType `json:"service"`
@@ -83,14 +76,9 @@ type MigrateRepoForm struct {
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
 
-// Validate validates the fields
-func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
+	middleware.FormDefaultValidator
 	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Description            string `binding:"MaxSize(2048)"`
 	Website                string `binding:"ValidUrl;MaxSize(1024)"`
@@ -160,14 +148,9 @@ type RepoSettingForm struct {
 	RequestReindexType string
 }
 
-// Validate validates the fields
-func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
+	middleware.FormDefaultValidator
 	RuleName                      string `binding:"Required"`
 	RuleID                        int64
 	EnablePush                    string
@@ -202,14 +185,9 @@ type ProtectBranchForm struct {
 	BlockAdminMergeOverride       bool
 }
 
-// Validate validates the fields
-func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // WebhookForm form for changing web hook
 type WebhookForm struct {
+	middleware.FormDefaultValidator
 	Name                     string `binding:"MaxSize(255)"`
 	Events                   string
 	Create                   bool
@@ -259,29 +237,19 @@ func (f WebhookForm) ChooseEvents() bool {
 
 // NewWebhookForm form for creating web hook
 type NewWebhookForm struct {
+	middleware.FormDefaultValidator
 	PayloadURL  string `binding:"Required;ValidUrl"`
 	HTTPMethod  string `binding:"Required;In(POST,GET)"`
 	ContentType int    `binding:"Required"`
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewWebhookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // NewGogshookForm form for creating gogs hook
 type NewGogshookForm struct {
+	middleware.FormDefaultValidator
 	PayloadURL  string `binding:"Required;ValidUrl"`
 	ContentType int    `binding:"Required"`
 	WebhookForm
-}
-
-// Validate validates the fields
-func (f *NewGogshookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewSlackHookForm form for creating slack hook
@@ -294,126 +262,81 @@ type NewSlackHookForm struct {
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
+func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
-		errs = append(errs, binding.Error{
-			FieldNames:     []string{"Channel"},
-			Classification: "",
-			Message:        ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"),
-		})
+		errs = middleware.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
 	}
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return errs
 }
 
 // NewDiscordHookForm form for creating discord hook
 type NewDiscordHookForm struct {
+	middleware.FormDefaultValidator
 	PayloadURL string `binding:"Required;ValidUrl"`
 	Username   string
 	IconURL    string
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewDiscordHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // NewDingtalkHookForm form for creating dingtalk hook
 type NewDingtalkHookForm struct {
+	middleware.FormDefaultValidator
 	PayloadURL string `binding:"Required;ValidUrl"`
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // NewTelegramHookForm form for creating telegram hook
 type NewTelegramHookForm struct {
+	middleware.FormDefaultValidator
 	BotToken string `binding:"Required"`
 	ChatID   string `binding:"Required"`
 	ThreadID string
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewTelegramHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // NewMatrixHookForm form for creating Matrix hook
 type NewMatrixHookForm struct {
+	middleware.FormDefaultValidator
 	HomeserverURL string `binding:"Required;ValidUrl"`
 	RoomID        string `binding:"Required"`
 	MessageType   int
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewMatrixHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // NewMSTeamsHookForm form for creating MS Teams hook
 type NewMSTeamsHookForm struct {
+	middleware.FormDefaultValidator
 	PayloadURL string `binding:"Required;ValidUrl"`
 	WebhookForm
-}
-
-// Validate validates the fields
-func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewFeishuHookForm form for creating feishu hook
 type NewFeishuHookForm struct {
+	middleware.FormDefaultValidator
 	PayloadURL string `binding:"Required;ValidUrl"`
 	WebhookForm
-}
-
-// Validate validates the fields
-func (f *NewFeishuHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // NewWechatWorkHookForm form for creating wechatwork hook
 type NewWechatWorkHookForm struct {
+	middleware.FormDefaultValidator
 	PayloadURL string `binding:"Required;ValidUrl"`
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // NewPackagistHookForm form for creating packagist hook
 type NewPackagistHookForm struct {
+	middleware.FormDefaultValidator
 	Username   string `binding:"Required"`
 	APIToken   string `binding:"Required"`
 	PackageURL string `binding:"Required;ValidUrl"`
 	WebhookForm
 }
 
-// Validate validates the fields
-func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
-	Title               string `binding:"Required;MaxSize(255)"`
+	middleware.FormDefaultValidator
+	Title               string `binding:"TrimSpace;Required;MaxSize(255)"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
@@ -423,49 +346,29 @@ type CreateIssueForm struct {
 	AllowMaintainerEdit bool
 }
 
-// Validate validates the fields
-func (f *CreateIssueForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // CreateCommentForm form for creating comment
 type CreateCommentForm struct {
+	middleware.FormDefaultValidator
 	Content string
 	Status  string `binding:"OmitEmpty;In(reopen,close)"`
 	Files   []string
 }
 
-// Validate validates the fields
-func (f *CreateCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // ReactionForm form for adding and removing reaction
 type ReactionForm struct {
+	middleware.FormDefaultValidator
 	Content string `binding:"Required"`
-}
-
-// Validate validates the fields
-func (f *ReactionForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // IssueLockForm form for locking an issue
 type IssueLockForm struct {
+	middleware.FormDefaultValidator
 	Reason string `binding:"Required"`
-}
-
-// Validate validates the fields
-func (i *IssueLockForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, i, ctx.Locale)
 }
 
 // CreateProjectForm form for creating a project
 type CreateProjectForm struct {
+	middleware.FormDefaultValidator
 	Title        string `binding:"Required;MaxSize(100)"`
 	Content      string
 	TemplateType project_model.TemplateType
@@ -474,6 +377,7 @@ type CreateProjectForm struct {
 
 // EditProjectColumnForm is a form for editing a project column
 type EditProjectColumnForm struct {
+	middleware.FormDefaultValidator
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
 	Color   string `binding:"MaxSize(7)"`
@@ -481,19 +385,15 @@ type EditProjectColumnForm struct {
 
 // CreateMilestoneForm form for creating milestone
 type CreateMilestoneForm struct {
+	middleware.FormDefaultValidator
 	Title    string `binding:"Required;MaxSize(50)"`
 	Content  string
 	Deadline string
 }
 
-// Validate validates the fields
-func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // CreateLabelForm form for creating label
 type CreateLabelForm struct {
+	middleware.FormDefaultValidator
 	ID             int64
 	Title          string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
 	Exclusive      bool   `form:"exclusive"`
@@ -503,26 +403,16 @@ type CreateLabelForm struct {
 	Color          string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
 
-// Validate validates the fields
-func (f *CreateLabelForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // InitializeLabelsForm form for initializing labels
 type InitializeLabelsForm struct {
+	middleware.FormDefaultValidator
 	TemplateName string `binding:"Required"`
-}
-
-// Validate validates the fields
-func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // MergePullRequestForm form for merging Pull Request
 // swagger:model MergePullRequestOption
 type MergePullRequestForm struct {
+	middleware.FormDefaultValidator
 	// required: true
 	// enum: ["merge","rebase","rebase-merge","squash","fast-forward-only","manually-merged"]
 	Do                     string `json:"do" binding:"Required;In(merge,rebase,rebase-merge,squash,fast-forward-only,manually-merged)"`
@@ -568,14 +458,9 @@ func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Validate validates the fields
-func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // CodeCommentForm form for adding code comments for PRs
 type CodeCommentForm struct {
+	middleware.FormDefaultValidator
 	Origin         string `binding:"Required;In(timeline,diff)"`
 	Content        string `binding:"Required"`
 	Side           string `binding:"Required;In(previous,proposed)"`
@@ -587,24 +472,13 @@ type CodeCommentForm struct {
 	Files          []string
 }
 
-// Validate validates the fields
-func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
+	middleware.FormDefaultValidator
 	Content  string
 	Type     string
 	CommitID string
 	Files    []string
-}
-
-// Validate validates the fields
-func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ReviewType will return the corresponding ReviewType for type
@@ -633,12 +507,14 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 
 // DismissReviewForm for dismissing stale review by repo admin
 type DismissReviewForm struct {
+	middleware.FormDefaultValidator
 	ReviewID int64 `binding:"Required"`
 	Message  string
 }
 
 // UpdateAllowEditsForm form for changing if PR allows edits from maintainers
 type UpdateAllowEditsForm struct {
+	middleware.FormDefaultValidator
 	AllowMaintainerEdit bool
 }
 
@@ -651,6 +527,7 @@ type UpdateAllowEditsForm struct {
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
+	middleware.FormDefaultValidator
 	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
 	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
 	Title      string `binding:"MaxSize(255)"`
@@ -662,81 +539,40 @@ type NewReleaseForm struct {
 	Files      []string
 }
 
-// Validate validates the fields
-func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // GenerateReleaseNotesForm retrieves release notes recommendations.
 type GenerateReleaseNotesForm struct {
+	middleware.FormDefaultValidator
 	TagName     string `form:"tag_name" binding:"Required;GitRefName;MaxSize(255)"`
 	TagTarget   string `form:"tag_target" binding:"MaxSize(255)"`
 	PreviousTag string `form:"previous_tag" binding:"MaxSize(255)"`
 }
 
-// Validate validates the fields
-func (f *GenerateReleaseNotesForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // EditReleaseForm form for changing release
 type EditReleaseForm struct {
-	Title      string `form:"title" binding:"Required;MaxSize(255)"`
+	middleware.FormDefaultValidator
+	Title      string `form:"title" binding:"TrimSpace;Required;MaxSize(255)"`
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
 	Files      []string
 }
 
-// Validate validates the fields
-func (f *EditReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-//  __      __.__ __   .__
-// /  \    /  \__|  | _|__|
-// \   \/\/   /  |  |/ /  |
-//  \        /|  |    <|  |
-//   \__/\  / |__|__|_ \__|
-//        \/          \/
-
-// NewWikiForm form for creating wiki
-type NewWikiForm struct {
-	Title   string `binding:"Required"`
-	Content string `binding:"Required"`
+type WikiEditForm struct {
+	middleware.FormDefaultValidator
+	Title   string `binding:"TrimSpace;Required"`
+	Content string
 	Message string
 }
 
-// Validate validates the fields
-// FIXME: use code generation to generate this method.
-func (f *NewWikiForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// ___________.__                 ___________                     __
-// \__    ___/|__| _____   ____   \__    ___/___________    ____ |  | __ ___________
-// |    |   |  |/     \_/ __ \    |    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
-// |    |   |  |  Y Y  \  ___/    |    |   |  | \// __ \\  \___|    <\  ___/|  | \/
-// |____|   |__|__|_|  /\___  >   |____|   |__|  (____  /\___  >__|_ \\___  >__|
-// \/     \/                        \/     \/     \/    \/
-
 // AddTimeManuallyForm form that adds spent time manually.
 type AddTimeManuallyForm struct {
+	middleware.FormDefaultValidator
 	Hours   int `binding:"Range(0,1000)"`
 	Minutes int `binding:"Range(0,1000)"`
 }
 
-// Validate validates the fields
-func (f *AddTimeManuallyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // SaveTopicForm form for save topics for repository
 type SaveTopicForm struct {
+	middleware.FormDefaultValidator
 	Topics []string `binding:"topics;Required;"`
 }

@@ -43,6 +43,13 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["OrgName"] = ctx.Repo.Repository.OwnerName
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
 	ctx.Data["Units"] = unit_model.Units
+	if ctx.Repo.Owner.IsOrganization() {
+		ctx.Data["CanChangeRepoTeamAccess"], err = organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("CanChangeRepoTeamAccess", err)
+			return
+		}
+	}
 
 	ctx.HTML(http.StatusOK, tplCollaboration)
 }
@@ -118,13 +125,19 @@ func CollaborationPost(ctx *context.Context) {
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
-	if err := repo_model.ChangeCollaborationAccessMode(
-		ctx,
-		ctx.Repo.Repository,
-		ctx.FormInt64("uid"),
-		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
-		log.Error("ChangeCollaborationAccessMode: %v", err)
+	// the frontend initRepoSettingsCollaboration logic: it only checks "resp.ok"
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+	if err != nil {
+		ctx.Status(http.StatusBadRequest)
+		return
 	}
+	mode := perm.AccessMode(ctx.FormInt("mode"))
+	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, u, mode); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		log.Error("AddOrUpdateCollaborator: %v", err)
+		return
+	}
+	ctx.JSONOK()
 }
 
 // DeleteCollaboration delete a collaboration for a repository
@@ -149,9 +162,7 @@ func DeleteCollaboration(ctx *context.Context) {
 
 // AddTeamPost response for adding a team to a repository
 func AddTeamPost(ctx *context.Context) {
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
-		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+	if !canChangeRepoTeamAccess(ctx) {
 		return
 	}
 
@@ -195,9 +206,7 @@ func AddTeamPost(ctx *context.Context) {
 
 // DeleteTeam response for deleting a team from a repository
 func DeleteTeam(ctx *context.Context) {
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
-		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+	if !canChangeRepoTeamAccess(ctx) {
 		return
 	}
 
@@ -214,4 +223,17 @@ func DeleteTeam(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
+}
+
+func canChangeRepoTeamAccess(ctx *context.Context) bool {
+	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("CanChangeRepoTeamAccess", err)
+		return false
+	}
+	if !canChange {
+		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+	}
+	return canChange
 }

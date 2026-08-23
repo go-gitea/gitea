@@ -70,14 +70,10 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		for key := range commitStatuses {
-			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
-		}
-	}
 
 	commitStatus := make(map[string]*git_model.CommitStatus)
 	for commitID, cs := range commitStatuses {
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, cs)
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
@@ -176,7 +172,7 @@ func jsonRedirectBranches(ctx *context.Context) {
 
 // CreateBranch creates new branch in repository
 func CreateBranch(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewBranchForm)
+	form := web.GetForm[*forms.NewBranchForm](ctx)
 	if !ctx.Repo.CanCreateBranch() {
 		ctx.NotFound(nil)
 		return
@@ -208,8 +204,7 @@ func CreateBranch(ctx *context.Context) {
 			return
 		}
 
-		if release_service.IsErrTagAlreadyExists(err) {
-			e := err.(release_service.ErrTagAlreadyExists)
+		if e, ok := err.(release_service.ErrTagAlreadyExists); ok {
 			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
@@ -219,14 +214,12 @@ func CreateBranch(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
-		if git_model.IsErrBranchNameConflict(err) {
-			e := err.(git_model.ErrBranchNameConflict)
+		if e, ok := err.(git_model.ErrBranchNameConflict); ok {
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
-		if git.IsErrPushRejected(err) {
-			e := err.(*git.ErrPushRejected)
+		if e, ok := err.(*git.ErrPushRejected); ok {
 			if len(e.Message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
 			} else {

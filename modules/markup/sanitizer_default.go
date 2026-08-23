@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 
+	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/setting"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -33,19 +34,18 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Line numbers on codepreview
 	policy.AllowAttrs("data-line-number").OnElements("span")
 
-	// Custom URL-Schemes
+	// HINT: CUSTOM-URL-SCHEMES-ALLOW: setting custom means also allow them besides http/https, no custom means "allow all"
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
 	} else {
 		policy.AllowURLSchemesMatching(st.allowAllRegex)
-
 		// Even if every scheme is allowed, these three are blocked for security reasons
 		disallowScheme := func(*url.URL) bool {
 			return false
 		}
-		policy.AllowURLSchemeWithCustomPolicy("javascript", disallowScheme)
-		policy.AllowURLSchemeWithCustomPolicy("vbscript", disallowScheme)
-		policy.AllowURLSchemeWithCustomPolicy("data", disallowScheme)
+		for _, scheme := range common.GlobalVars().DisallowedSchemes {
+			policy.AllowURLSchemeWithCustomPolicy(scheme, disallowScheme)
+		}
 	}
 
 	// Allow classes for org mode list item status.
@@ -135,8 +135,8 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 }
 
 // Sanitize use default sanitizer policy to sanitize a string
-func Sanitize(s string) template.HTML {
-	return template.HTML(GetDefaultSanitizer().defaultPolicy.Sanitize(s))
+func Sanitize[T string | template.HTML](s T) template.HTML {
+	return template.HTML(GetDefaultSanitizer().defaultPolicy.Sanitize(string(s)))
 }
 
 // SanitizeReader sanitizes a Reader

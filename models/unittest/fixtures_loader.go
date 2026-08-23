@@ -34,7 +34,8 @@ type FixtureItem struct {
 
 type fixturesLoaderInternal struct {
 	xormEngine       *xorm.Engine
-	tableSyncMap     sync.Map
+	tableSyncMu      sync.Mutex
+	tableSynced      map[string]bool
 	db               *sql.DB
 	dbType           schemas.DBType
 	fixtures         map[string]*FixtureItem
@@ -152,32 +153,35 @@ func (f *fixturesLoaderInternal) Load() error {
 
 	ctx := context.WithValue(context.Background(), db.ContextKeyTestFixtures, true)
 
+	f.tableSyncMu.Lock()
+	defer f.tableSyncMu.Unlock()
+
 	for _, fixture := range f.fixtures {
-		synced, existing := f.tableSyncMap.Load(fixture.tableName)
-		if synced == true || !existing {
+		synced, existing := f.tableSynced[fixture.tableName]
+		if synced || !existing {
 			continue
 		}
 		if err := f.loadFixtures(tx, fixture); err != nil {
 			return fmt.Errorf("failed to load fixtures from %s: %w", fixture.fileFullPath, err)
 		}
-		f.tableSyncMap.Store(fixture.tableName, true)
+		f.tableSynced[fixture.tableName] = true
 	}
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	f.tableSyncMap.Range(func(k, v any) bool {
-		tableName, synced := k.(string), v.(bool)
+	for tableName, synced := range f.tableSynced {
 		if !synced && f.fixtures[tableName] == nil {
 			_, _ = f.xormEngine.Context(ctx).Exec("DELETE FROM `" + tableName + "`")
 		}
-		f.tableSyncMap.Store(tableName, true)
-		return true
-	})
+		f.tableSynced[tableName] = true
+	}
 	return nil
 }
 
 func (f *fixturesLoaderInternal) MarkTableChanged(tableName string) {
-	f.tableSyncMap.Store(tableName, false)
+	f.tableSyncMu.Lock()
+	defer f.tableSyncMu.Unlock()
+	f.tableSynced[tableName] = false
 }
 
 func FixturesFileFullPaths(dir string, files []string) (map[string]*FixtureItem, error) {
@@ -212,7 +216,7 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 		return nil, fmt.Errorf("failed to get fixtures files: %w", err)
 	}
 
-	f := &fixturesLoaderInternal{xormEngine: x, db: x.DB().DB, dbType: x.Dialect().URI().DBType, fixtures: fixtureItems}
+	f := &fixturesLoaderInternal{xormEngine: x, db: x.DB().DB, dbType: x.Dialect().URI().DBType, fixtures: fixtureItems, tableSynced: map[string]bool{}}
 	switch f.dbType {
 	case schemas.SQLITE:
 		f.quoteObject = func(s string) string { return fmt.Sprintf(`"%s"`, s) }
@@ -233,7 +237,7 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 	xormBeans, _ := db.NamesToBean()
 	for _, bean := range xormBeans {
 		beanTableName := x.TableName(bean)
-		f.tableSyncMap.Store(trimTableNameQuotes(beanTableName), false)
+		f.tableSynced[trimTableNameQuotes(beanTableName)] = false
 	}
 	return f, nil
 }

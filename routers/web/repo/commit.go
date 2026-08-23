@@ -17,7 +17,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/fileicon"
@@ -116,21 +115,26 @@ func Graph(ctx *context.Context) {
 	hidePRRefs := ctx.FormBool("hide-pr-refs")
 	ctx.Data["HidePRRefs"] = hidePRRefs
 	branches := ctx.FormStrings("branch")
-	realBranches := make([]string, len(branches))
-	copy(realBranches, branches)
-	for i, branch := range realBranches {
-		if strings.HasPrefix(branch, "--") {
-			realBranches[i] = git.BranchPrefix + branch
-		}
-	}
-	ctx.Data["SelectedBranches"] = realBranches
-	files := ctx.FormStrings("file")
+	ctx.Data["SelectedBranches"] = branches
 
-	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
+	branchRefs := make([]string, 0, len(branches))
+	for _, branchName := range branches {
+		branchRef := branchName
+		if !strings.HasPrefix(branchRef, "refs/") {
+			branchRef = git.BranchPrefix + branchRef
+		}
+		branchRefs = append(branchRefs, branchRef)
+	}
+
+	files := ctx.FormStrings("file")
+	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, branchRefs, files)
 	if err != nil {
-		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
-		realBranches = []string{}
-		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
+		if len(branchRefs) > 0 {
+			// maybe: "fatal: bad revision '.....'" if a ref doesn't exist
+			// maybe it's better to show a 404 page instead of the unclear retry, anyway, a retry isn't harmful, so keep the old behavior
+			branchRefs = nil
+			graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, branchRefs, files)
+		}
 		if err != nil {
 			ctx.ServerError("GetCommitGraphsCount", err)
 			return
@@ -138,8 +142,7 @@ func Graph(ctx *context.Context) {
 	}
 
 	page := ctx.FormInt("page")
-
-	graph, err := gitgraph.GetCommitGraph(ctx, ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
+	graph, err := gitgraph.GetCommitGraph(ctx, ctx.Repo.GitRepo, page, 0, hidePRRefs, branchRefs, files)
 	if err != nil {
 		ctx.ServerError("GetCommitGraph", err)
 		return
@@ -384,9 +387,7 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, statuses)
-	}
+	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
@@ -399,7 +400,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-		return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+		return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)
 	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
 		return
@@ -462,14 +463,6 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-		for _, commit := range commits {
-			if commit.Status == nil {
-				continue
-			}
-			commit.Status.HideActionsURL(ctx)
-			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
-		}
-	}
+	git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, commits)
 	return commits, nil
 }
