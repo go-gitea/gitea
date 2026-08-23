@@ -656,18 +656,12 @@ func SearchRepositoryIDsByCondition(ctx context.Context, cond builder.Cond) ([]i
 		Find(&repoIDs)
 }
 
-func userAllPublicRepoCond(cond builder.Cond, orgVisibilityLimit []structs.VisibleType) builder.Cond {
+func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.VisibleType) builder.Cond {
 	return cond.Or(builder.And(
 		builder.Eq{"`repository`.is_private": false},
+		// Exclude owners who are not visible to the caller.
 		builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
-			builder.Or(
-				builder.And(
-					builder.Eq{"type": user_model.UserTypeOrganization},
-					builder.In("visibility", orgVisibilityLimit)),
-				builder.And(
-					builder.Neq{"type": user_model.UserTypeOrganization},
-					builder.Neq{"visibility": structs.VisibleTypePublic}),
-			),
+			builder.In("visibility", ownerVisibilityLimit),
 		))))
 }
 
