@@ -50,7 +50,7 @@ func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer
 	repoExists := err == nil
 	var perms access_model.Permission
 	if repoExists {
-		perms, err = access_model.GetDoerRepoPermission(ctx, repo, doer)
+		perms, err = access_model.GetIndividualUserRepoPermission(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 		}
