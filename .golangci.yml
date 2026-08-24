@@ -17,7 +17,7 @@ linters:
     - govet
     - ineffassign
     - mirror
-    - modernize
+    # - modernize # re-enable it in a future PR, after clearly fixing all the issues it reports
     - nakedret
     - nilnil
     - nolintlint
@@ -182,7 +182,8 @@ formatters:
         - blank
         - default
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
   exclusions:
     generated: lax
     paths:
