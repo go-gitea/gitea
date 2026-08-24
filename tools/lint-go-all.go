@@ -13,17 +13,17 @@ import (
 	"regexp"
 	"strings"
 
-	"gitea.dev/modules/json"
+	"golang.org/x/mod/modfile"
 )
 
 // goModIgnoredDirs returns the go.mod "ignore" directories, which the go tool skips but a filesystem walk does not.
 func goModIgnoredDirs() (map[string]bool, error) {
-	out, err := exec.Command("go", "mod", "edit", "-json").Output()
+	data, err := os.ReadFile("go.mod")
 	if err != nil {
 		return nil, err
 	}
-	var mod struct{ Ignore []struct{ Path string } }
-	if err = json.Unmarshal(out, &mod); err != nil {
+	mod, err := modfile.Parse("go.mod", data, nil)
+	if err != nil {
 		return nil, err
 	}
 	dirs := make(map[string]bool, len(mod.Ignore))
@@ -47,11 +47,10 @@ func lintGoHeader() bool {
 			return err
 		}
 		if d.IsDir() {
-			rel, _ := filepath.Rel(root, path)
-			if rel == "." {
+			if path == root {
 				return nil
 			}
-			if skipDirs[filepath.ToSlash(rel)] || strings.HasPrefix(d.Name(), ".") {
+			if skipDirs[filepath.ToSlash(path)] || strings.HasPrefix(d.Name(), ".") {
 				return fs.SkipDir
 			}
 			return nil
