@@ -1210,12 +1210,13 @@ func MergePullRequest(ctx *context.Context) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
+	// FIXME: calling it here is wrong.
+	// 1. the ctx might have been canceled ("Merge" might take a very long time and the user closes their browser)
+	// 2. it is inconsistent with API/AutoMerge which all miss the call
 	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
 		ctx.ServerError("stopTimerIfAvailable", err)
 		return
 	}
-
-	log.Trace("Pull request merged: %d", pr.ID)
 
 	if deleteBranchAfterMerge {
 		deleteBranchAfterMergeAndFlashMessage(ctx, pr.ID)
