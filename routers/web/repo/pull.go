@@ -1316,7 +1316,7 @@ func PullsNewRedirect(ctx *context.Context) {
 			return
 		}
 		redirectRepo = repo.BaseRepo
-		branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
+		branch = context.CompareHeadRef(repo, branch)
 	}
 	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))
 }
