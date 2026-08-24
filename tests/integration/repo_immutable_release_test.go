@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -29,16 +28,13 @@ func TestImmutableRelease(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 		base := fmt.Sprintf("/api/v1/repos/%s/%s", owner.Name, repo.Name)
 
-		setImmutable := func(enabled bool) {
-			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
-				ImmutableReleases: &enabled,
-			}).AddTokenAuth(token), http.StatusOK)
-		}
 		publish := func(tagName string) *api.Release {
 			return createNewReleaseUsingAPI(t, token, owner, repo, tagName, "master", tagName, "")
 		}
 
-		setImmutable(true)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
+			ImmutableReleases: new(true),
+		}).AddTokenAuth(token), http.StatusOK)
 		rel := publish("imm-1")
 		assert.True(t, rel.IsImmutable)
 
@@ -52,8 +48,8 @@ func TestImmutableRelease(t *testing.T) {
 
 			relURL := fmt.Sprintf("%s/releases/%d", base, rel.ID)
 
-			MakeRequest(t, NewRequestWithBody(t, "POST", relURL+"/assets?name=a.txt",
-				strings.NewReader("content")).AddTokenAuth(token), http.StatusUnprocessableEntity)
+			// the guard rejects the upload before the body is read
+			MakeRequest(t, NewRequest(t, "POST", relURL+"/assets?name=a.txt").AddTokenAuth(token), http.StatusUnprocessableEntity)
 
 			// the tag is locked, the title stays editable
 			MakeRequest(t, NewRequestWithJSON(t, "PATCH", relURL, &api.EditReleaseOption{

@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
@@ -18,12 +17,11 @@ func AddImmutableReleases(_ context.Context, x base.EngineMigration) error {
 	}
 
 	type ImmutableTag struct {
-		ID            int64              `xorm:"pk autoincr"`
-		RepoID        int64              `xorm:"INDEX(r) NOT NULL"`
-		OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
-		LowerTagName  string             `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+		ID            int64  `xorm:"pk autoincr"`
+		RepoID        int64  `xorm:"UNIQUE(r) NOT NULL"`
+		OwnerID       int64  `xorm:"INDEX(s) NOT NULL"`
+		LowerRepoName string `xorm:"INDEX(s) NOT NULL"`
+		LowerTagName  string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"`
 	}
 
 	if err := x.Sync(new(ImmutableTag)); err != nil {

@@ -9,7 +9,6 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
-	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -20,34 +19,38 @@ func (repo *Repository) IsImmutableReleasesEnabled(ctx context.Context) bool {
 }
 
 // ImmutableTag records a tag name used by an immutable release. It outlives the release, the tag and
-// the repository itself, so the name can never back another release or be pushed again.
-// The repository is recorded twice: by id so the lock follows renames and transfers, and by owner
-// and name so a repository recreated at the same path inherits it. Matching either one is enough.
+// the repository itself, so the name can never back another release or be pushed again. The repository
+// is recorded twice, by id and by path, and matching either claims the name: the id covers renames and
+// transfers while the repository lives, the path covers one recreated where it used to be.
 type ImmutableTag struct {
-	ID            int64              `xorm:"pk autoincr"`
-	RepoID        int64              `xorm:"INDEX(r) NOT NULL"`
-	OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
-	LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
-	LowerTagName  string             `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	ID            int64  `xorm:"pk autoincr"`
+	RepoID        int64  `xorm:"UNIQUE(r) NOT NULL"`
+	OwnerID       int64  `xorm:"INDEX(s) NOT NULL"`
+	LowerRepoName string `xorm:"INDEX(s) NOT NULL"`
+	LowerTagName  string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"`
 }
 
 func init() {
 	db.RegisterModel(new(ImmutableTag))
 }
 
-// AddImmutableTag locks a tag name permanently, locking an already locked name is a no-op.
+// AddImmutableTag claims a tag name permanently.
 func AddImmutableTag(ctx context.Context, repo *Repository, tagName string) error {
-	immutable, err := IsTagImmutable(ctx, repo, tagName)
-	if err != nil || immutable {
-		return err
-	}
 	return db.Insert(ctx, &ImmutableTag{
 		RepoID:        repo.ID,
 		OwnerID:       repo.OwnerID,
 		LowerRepoName: repo.LowerName,
 		LowerTagName:  strings.ToLower(tagName),
 	})
+}
+
+// StampImmutableTagPath refreshes the path recorded at claim time, which rename and transfer leave
+// stale. Only deletion needs it, because until then the repository id claims the name.
+func StampImmutableTagPath(ctx context.Context, repo *Repository) error {
+	_, err := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).
+		Cols("owner_id", "lower_repo_name").
+		Update(&ImmutableTag{OwnerID: repo.OwnerID, LowerRepoName: repo.LowerName})
+	return err
 }
 
 // IsTagImmutable reports whether the tag name was used by an immutable release of this repository

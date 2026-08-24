@@ -103,16 +103,21 @@ func TestImmutableTag(t *testing.T) {
 
 	assert.False(t, isImmutable(repo, "v1.1"))
 	assert.NoError(t, AddImmutableTag(t.Context(), repo, "V1.1")) // names are matched case insensitively
-	assert.NoError(t, AddImmutableTag(t.Context(), repo, "v1.1"))
 	assert.True(t, isImmutable(repo, "v1.1"))
 
-	// the lock follows a rename, so it cannot be shaken off
-	renamed := &Repository{ID: repo.ID, OwnerID: repo.OwnerID, Name: "renamed", LowerName: "renamed"}
+	// the claim follows a rename, so it cannot be shaken off
+	renamed := &Repository{ID: repo.ID, OwnerID: repo.OwnerID, LowerName: "renamed"}
 	assert.True(t, isImmutable(renamed, "v1.1"))
 
 	// and a different repository recreated at the original path inherits it
-	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, Name: repo.Name, LowerName: repo.LowerName}
+	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: repo.LowerName}
 	assert.True(t, isImmutable(successor, "v1.1"))
+
+	// stamping moves the path claim to wherever the repository ended up, so a successor
+	// there inherits it once the repository itself is gone
+	assert.NoError(t, StampImmutableTagPath(t.Context(), renamed))
+	assert.True(t, isImmutable(&Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: "renamed"}, "v1.1"))
+	assert.False(t, isImmutable(successor, "v1.1"))
 
 	// but an unrelated repository is unaffected
 	other := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2})

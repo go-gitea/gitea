@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -481,6 +482,16 @@ func TestRelease_Immutable(t *testing.T) {
 		}
 		assert.NoError(t, CreateRelease(t.Context(), gitRepo, draft, nil, ""))
 		assert.False(t, draft.IsImmutable)
+
+		// a claim appearing after the draft was created still blocks it, the name is unchanged
+		// so only the publish transition can catch this
+		assert.NoError(t, repo_model.AddImmutableTag(t.Context(), &repo_model.Repository{
+			ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: repo.LowerName,
+		}, "v9.5"))
+		published := *draft
+		published.IsDraft = false
+		assert.ErrorIs(t, UpdateRelease(t.Context(), user, gitRepo, &published, nil, nil, nil), ErrImmutableTag)
+		assert.NoError(t, db.DeleteBeans(t.Context(), &repo_model.ImmutableTag{RepoID: repo.ID + 9999}))
 
 		draft.IsDraft = false
 		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, draft, nil, nil, nil))

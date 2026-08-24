@@ -266,7 +266,8 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		}
 
 		for _, tag := range updates {
-			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
+			// an immutable release keeps the commit it was published at, even if upstream moves the tag
+			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ? AND is_immutable = ?", repo.ID, strings.ToLower(tag.Name), false).
 				Cols("sha1", "created_unix", "published_unix").
 				Update(&repo_model.Release{
 					Sha1:          tag.Object.String(),

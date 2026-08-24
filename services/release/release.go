@@ -76,7 +76,6 @@ func errImmutableField(field string) error {
 // would be created, moved or deleted.
 var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was used by an immutable release")
 
-// assertTagMutable rejects tag names that an immutable release used before.
 func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName string) error {
 	immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 	if err != nil || !immutable {
@@ -85,8 +84,7 @@ func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName 
 	return ErrImmutableTag
 }
 
-// lockRelease locks a release being published and claims its tag name forever.
-// Must run inside the transaction that writes the release.
+// lockRelease must run inside the transaction that writes the release, so the row and its claim commit together.
 func lockRelease(ctx context.Context, rel *repo_model.Release) error {
 	if rel.IsDraft || rel.IsTag || !rel.Repo.IsImmutableReleasesEnabled(ctx) {
 		return nil
@@ -324,6 +322,9 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		rel.PublishedUnix = timeutil.TimeStampNow()
 	}
 
+	rel.IsImmutable = oldRelease.IsImmutable // server owned, a stale request must never clear it
+	isBeingPublished := !rel.IsDraft && !rel.IsTag && (oldRelease.IsDraft || oldRelease.IsTag)
+
 	if oldRelease.IsImmutable && !oldRelease.IsTag { // the release owns its immutable tag name
 		switch {
 		case rel.TagName != oldRelease.TagName:
@@ -335,7 +336,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		case len(addAttachmentUUIDs) > 0 || len(delAttachmentUUIDs) > 0 || len(editAttachments) > 0:
 			return errImmutableField("assets")
 		}
-	} else if isConvertedFromTag || rel.TagName != oldRelease.TagName {
+	} else if isConvertedFromTag || isBeingPublished || rel.TagName != oldRelease.TagName {
 		if err := assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 			return err
 		}
@@ -347,7 +348,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	isBeingPublished := oldRelease.IsDraft || oldRelease.IsTag
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if isBeingPublished {
 			if err = lockRelease(ctx, rel); err != nil {

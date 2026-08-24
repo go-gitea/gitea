@@ -78,7 +78,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 		&git_model.RenamedBranch{RepoID: 1, From: "old-name", To: "new-name"},
 		&git_model.CommitStatusSummary{RepoID: 1, SHA: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", State: "success"},
 		&repo_model.RepoTransfer{RepoID: 1, DoerID: 2, RecipientID: 3},
-		&repo_model.ImmutableTag{RepoID: 1, OwnerID: 2, LowerRepoName: "repo1", LowerTagName: "v1.0.0"},
+		&repo_model.ImmutableTag{RepoID: 1, OwnerID: 2, LowerRepoName: "before-rename", LowerTagName: "v1.0.0"},
 	))
 	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 
@@ -92,7 +92,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{RepoID: 1})
 
-	// locked tag names must outlive the repository, otherwise one recreated at the
-	// same path could reuse them
-	unittest.AssertExistsAndLoadBean(t, &repo_model.ImmutableTag{RepoID: 1})
+	// claimed tag names must outlive the repository, stamped with the path it ended at,
+	// otherwise one recreated there could reuse them
+	unittest.AssertExistsAndLoadBean(t, &repo_model.ImmutableTag{RepoID: 1, OwnerID: 2, LowerRepoName: "repo1"})
 }

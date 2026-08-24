@@ -21,8 +21,6 @@ import (
 	release_service "gitea.dev/services/release"
 )
 
-// checkReleaseAssetsMutable reports whether the release exists and its assets may still be changed,
-// it writes the response when it returns false.
 func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64) bool {
 	release := checkReleaseMatchRepo(ctx, releaseID)
 	if release == nil {
@@ -35,7 +33,7 @@ func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64) bool {
 	return true
 }
 
-// checkReleaseMatchRepo returns the release, or nil when a response has already been written.
+// checkReleaseMatchRepo returns nil once it has written the response itself.
 func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) *repo_model.Release {
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
@@ -147,22 +145,8 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	releaseID := ctx.PathParamInt64("id")
-	release, err := repo_model.GetReleaseByID(ctx, releaseID)
-	if err != nil {
-		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.APIErrorNotFound()
-			return
-		}
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if release.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIErrorNotFound()
-		return
-	}
-	if release.IsDraft && !canAccessReleaseDraft(ctx) {
-		ctx.APIErrorNotFound()
+	release := checkReleaseMatchRepo(ctx, ctx.PathParamInt64("id"))
+	if release == nil {
 		return
 	}
 	if err := release.LoadAttributes(ctx); err != nil {
@@ -276,6 +260,14 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		}
 
 		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// the release may have been published while the upload was streaming
+	if !checkReleaseAssetsMutable(ctx, releaseID) {
+		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
+			log.Error("DeleteAttachment %s: %v", attach.UUID, err)
+		}
 		return
 	}
 
