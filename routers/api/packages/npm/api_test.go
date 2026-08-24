@@ -46,9 +46,6 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 	assert.Equal(t, []string{"gitea"}, result.Keywords)
 	assert.Equal(t, []string{"gitea"}, result.Versions["1.0.0"].Keywords)
 	assert.Equal(t, []npm_module.User{{Name: "alice"}}, result.Versions["1.0.0"].Maintainers)
-	// url.QueryEscape would emit a tarball URL with bare '@' on scoped
-	// packages, breaking npm install; url.PathEscape yields the
-	// RFC 3986 path-segment-safe '@scope%2Ftest' form.
 	assert.Equal(t,
 		"https://gitea.dev/api/packages/alice/npm/@scope%2Ftest/-/1.0.0/test-1.0.0.tgz",
 		result.Versions["1.0.0"].Dist.Tarball,
