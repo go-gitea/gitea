@@ -235,6 +235,23 @@ func (err ErrInvalidMergeStyle) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
+func addTestPullRequestTaskAfterWebOperation(pr *issues_model.PullRequest, doer *user_model.User) {
+	// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
+	// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
+	// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
+	// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
+	// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
+	go AddTestPullRequestTask(TestPullRequestOptions{
+		RepoID:      pr.BaseRepo.ID,
+		Doer:        doer,
+		Branch:      pr.BaseBranch,
+		IsSync:      false,
+		IsForcePush: false,
+		OldCommitID: "",
+		NewCommitID: "",
+	})
+}
+
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
@@ -260,39 +277,20 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
-	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
-	if err != nil {
-		log.Error("lock.Lock(): %v", err)
-		return fmt.Errorf("lock.Lock: %w", err)
-	}
-	defer releaser()
-	// "pr" is reloaded below, so the task must not read it after it may have been replaced
-	baseRepoID, baseBranch := pr.BaseRepo.ID, pr.BaseBranch
-	defer func() {
-		// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
-		// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
-		// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
-		// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
-		// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
-		go AddTestPullRequestTask(TestPullRequestOptions{
-			RepoID:      baseRepoID,
-			Doer:        doer,
-			Branch:      baseBranch,
-			IsSync:      false,
-			IsForcePush: false,
-			OldCommitID: "",
-			NewCommitID: "",
-		})
-	}()
-
-	_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
-	releaser()
-	if err != nil {
+	err = globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
+		_, err := doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
 		return err
+	})
+	defer addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
+	if err != nil {
+		return fmt.Errorf("doMergeAndPush: %w", err)
 	}
+	return handleMergePostProcess(ctx, pr.ID, doer, wasAutoMerged)
+}
 
+func handleMergePostProcess(ctx context.Context, prID int64, doer *user_model.User, wasAutoMerged bool) error {
 	// reload pull request because it has been updated by post receive hook
-	pr, err = issues_model.GetPullRequestByID(ctx, pr.ID)
+	pr, err := issues_model.GetPullRequestByID(ctx, prID)
 	if err != nil {
 		return err
 	}
