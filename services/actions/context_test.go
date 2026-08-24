@@ -325,6 +325,74 @@ func TestFindTaskNeeds(t *testing.T) {
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
 }
 
+func TestGenerateGiteaContextReusableChildPreservesTriggerEvent(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	require.NoError(t, repo.LoadOwner(ctx))
+	actor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	run := &actions_model.ActionRun{
+		RepoID:        repo.ID,
+		Repo:          repo,
+		OwnerID:       repo.OwnerID,
+		TriggerUserID: actor.ID,
+		TriggerUser:   actor,
+		WorkflowID:    "caller.yml",
+		Index:         99601,
+		Ref:           "refs/heads/main",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		EventPayload:  "{}",
+		Status:        actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+
+	payload, err := json.Marshal(api.WorkflowCallPayload{
+		Inputs: map[string]any{
+			"message": "hello",
+		},
+	})
+	require.NoError(t, err)
+
+	caller := &actions_model.ActionRunJob{
+		RunID:       run.ID,
+		RepoID:      repo.ID,
+		OwnerID:     repo.OwnerID,
+		CommitSHA:   run.CommitSHA,
+		Name:        "caller",
+		JobID:       "caller",
+		Attempt:     1,
+		Status:      actions_model.StatusWaiting,
+		CallPayload: string(payload),
+	}
+	require.NoError(t, db.Insert(ctx, caller))
+
+	child := &actions_model.ActionRunJob{
+		RunID:       run.ID,
+		RepoID:      repo.ID,
+		OwnerID:     repo.OwnerID,
+		CommitSHA:   run.CommitSHA,
+		Name:        "child",
+		JobID:       "child",
+		Attempt:     1,
+		Status:      actions_model.StatusWaiting,
+		ParentJobID: caller.ID,
+	}
+	require.NoError(t, db.Insert(ctx, child))
+
+	gitCtx := GenerateGiteaContext(ctx, run, nil, child)
+
+	assert.Equal(t, "push", gitCtx["event_name"])
+
+	event, ok := gitCtx["event"].(map[string]any)
+	require.True(t, ok)
+	assert.NotContains(t, event, "inputs")
+}
+
 func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
 	payload := api.PullRequestPayload{
 		PullRequest: &api.PullRequest{
