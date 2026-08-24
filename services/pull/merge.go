@@ -289,8 +289,9 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 	// * something wrong happens (e.g.: out of sync?)
 	//   * maybe this is the reason that why the duplicate AddTestPullRequestTask is called in defer func above
 	if err != nil {
-		return fmt.Errorf("doMergeAndPush: %w", err)
+		return err
 	}
+	// TODO: it is questionable whether it should return error here, the "merge" operation has succeeded
 	return handleMergePostProcess(ctx, pr.ID, doer, wasAutoMerged)
 }
 
