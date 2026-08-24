@@ -194,7 +194,9 @@ func GetAccessScope(store DataStore) auth_model.AccessTokenScope {
 	case BasicMethodName, AccessTokenMethodName:
 		return auth_model.AccessTokenScopeAll
 	case ActionTokenMethodName:
-		fallthrough
+		// let the automatic Actions token pass the registry token-mint gate; the real
+		// per-owner read/write enforcement happens via the package AccessMode check
+		return auth_model.AccessTokenScopeReadPackage + "," + auth_model.AccessTokenScopeWritePackage
 	default:
 		return ""
 	}
