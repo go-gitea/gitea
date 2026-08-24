@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/modules/private"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/services/context"
 )
@@ -17,28 +16,22 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	keyID := ctx.PathParamInt64("id")
 	repoID := ctx.PathParamInt64("repoid")
 	if err := asymkey_model.UpdatePublicKeyUpdated(ctx, keyID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
 
-	deployKey, err := asymkey_model.GetDeployKeyByRepo(ctx, keyID, repoID)
+	deployKey, err := asymkey_model.GetDeployKeyByRepoPublicKey(ctx, repoID, keyID)
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			ctx.PlainText(http.StatusOK, "success")
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
 	deployKey.UpdatedUnix = timeutil.TimeStampNow()
 	if err = asymkey_model.UpdateDeployKeyCols(ctx, deployKey, "updated_unix"); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
 
@@ -52,18 +45,13 @@ func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 
 	publicKey, err := asymkey_model.SearchPublicKeyByContent(ctx, content)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
 
 	authorizedString, err := asymkey_model.AuthorizedStringForKey(publicKey)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err:     err.Error(),
-			UserMsg: "invalid public key",
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
 	ctx.PlainText(http.StatusOK, authorizedString)

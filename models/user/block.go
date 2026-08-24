@@ -66,6 +66,10 @@ type FindBlockingOptions struct {
 	BlockeeID int64
 }
 
+func (opts *FindBlockingOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts *FindBlockingOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.BlockerID != 0 {

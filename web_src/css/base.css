@@ -269,7 +269,6 @@ relative-time::part(root)::selection {
 .lines-commit .blame-info,
 .ellipsis-button {
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -302,9 +301,7 @@ a.silenced,
 }
 
 a:hover,
-a.suppressed:hover,
 a.muted:hover,
-a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
 }

@@ -14,6 +14,18 @@
   max-width: calc(100vw - 32px);
 }
 
+/* opt-in via createTippy's "limitSizeToViewport" */
+[data-tippy-limit-size] .tippy-box {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--tippy-max-width, none);
+  max-height: var(--tippy-max-height, none);
+}
+
+[data-tippy-limit-size] .tippy-content {
+  overflow: auto;
+}
+
 .tippy-box {
   position: relative;
   background-color: var(--color-menu);
@@ -91,12 +103,16 @@
   background: var(--color-hover);
 }
 
-.tippy-box[data-theme="menu"] .item:focus {
+.tippy-box[data-theme="menu"] .item:focus-visible {
   background: var(--color-hover);
 }
 
 .tippy-box[data-theme="menu"] .item.active {
   background: var(--color-active);
+}
+
+.tippy-box[data-theme="menu"] .divider {
+  margin: 4px 0; /* fit the menu's vertical padding */
 }
 
 /* box-with-header theme to look like .ui.attached.segment. can contain .ui.attached.header */
