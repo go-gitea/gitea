@@ -251,7 +251,8 @@ func TestPackageRubyGems(t *testing.T) {
 		assert.NoError(t, err)
 		b, err := io.ReadAll(r)
 		assert.NoError(t, err)
-		assert.Contains(t, string(b), "RubyGems package test") // the content is from rubygems_module.NewMarshalEncoder
+		expected := "\x04\bu:\x17Gem::Specification\x01\xc3\x04\b[\x18I\"\n3.2.3\x06:\x06ETi\tI\"\ngitea\x06;\x00TU:\x11Gem::Version[\x06I\"\n1.0.5\x06;\x00T0I\"\x12Gitea package\x06;\x00T00I\"\truby\x06;\x00T[\x000I\"\x00\x06;\x00T[\x06I\"\nGitea\x06;\x00TI\"\x1aRubyGems package test\x06;\x00TI\"\x16https://gitea.io/\x06;\x00TTI\"\truby\x06;\x00T0[\x06I\"\bMIT\x06;\x00T"
+		assert.Contains(t, expected, string(b)) // the content is from rubygems_module.NewMarshalEncoder
 
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
