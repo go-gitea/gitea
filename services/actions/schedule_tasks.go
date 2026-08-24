@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"time"
@@ -55,43 +56,11 @@ func startTasks(ctx context.Context) error {
 			return fmt.Errorf("LoadRepos: %w", err)
 		}
 
-		// Loop through each spec and create a schedule task for it
+		// Loop through each spec and create a schedule task for it.
+		// One failing spec must not abort the pass, otherwise a single broken workflow stops every other schedule.
 		for _, row := range specs {
-			if row.Repo.IsArchived {
-				// Skip if the repo is archived
-				continue
-			}
-
-			cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
-			if err != nil {
-				if repo_model.IsErrUnitTypeNotExist(err) {
-					// Skip the actions unit of this repo is disabled.
-					continue
-				}
-				return fmt.Errorf("GetUnit: %w", err)
-			}
-			if cfg.ActionsConfig().IsWorkflowDisabled(row.Schedule.WorkflowID) {
-				continue
-			}
-
-			if err := CreateScheduleTask(ctx, row); err != nil {
-				log.Error("CreateScheduleTask: %v", err)
-				return err
-			}
-
-			// Parse the spec
-			schedule, err := row.Parse()
-			if err != nil {
-				log.Error("Parse: %v", err)
-				return err
-			}
-
-			// Update the spec's next run time and previous run time
-			row.Prev = row.Next
-			row.Next = timeutil.TimeStamp(schedule.Next(now.Add(1 * time.Minute)).Unix())
-			if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
-				log.Error("UpdateScheduleSpec: %v", err)
-				return err
+			if err := startTask(ctx, row, now); err != nil {
+				log.Error("start schedule spec %d (repo %d, schedule %d): %v", row.ID, row.RepoID, row.ScheduleID, err)
 			}
 		}
 
@@ -102,6 +71,46 @@ func startTasks(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// startTask creates the run for one due spec and moves the spec to its next occurrence.
+// The spec is always advanced, even when the run could not be created, so a workflow that
+// keeps failing is retried on its own schedule instead of on every pass.
+func startTask(ctx context.Context, row *actions_model.ActionScheduleSpec, now time.Time) error {
+	if row.Repo == nil || row.Schedule == nil || row.Repo.IsArchived {
+		return nil
+	}
+
+	cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
+	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			// Skip if the actions unit of this repo is disabled.
+			return nil
+		}
+		return fmt.Errorf("GetUnit: %w", err)
+	}
+	if cfg.ActionsConfig().IsWorkflowDisabled(row.Schedule.WorkflowID) {
+		return nil
+	}
+
+	createErr := CreateScheduleTask(ctx, row)
+	if createErr != nil {
+		createErr = fmt.Errorf("CreateScheduleTask: %w", createErr)
+	}
+
+	schedule, err := row.Parse()
+	if err != nil {
+		return errors.Join(createErr, fmt.Errorf("Parse: %w", err))
+	}
+
+	// Update the spec's next run time and previous run time
+	row.Prev = row.Next
+	row.Next = timeutil.TimeStamp(schedule.Next(now.Add(1 * time.Minute)).Unix())
+	if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
+		return errors.Join(createErr, fmt.Errorf("UpdateScheduleSpec: %w", err))
+	}
+
+	return createErr
 }
 
 // CreateScheduleTask creates a scheduled task from a cron action schedule spec.
