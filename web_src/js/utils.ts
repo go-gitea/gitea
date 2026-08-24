@@ -13,12 +13,11 @@ export function basename(path: string): string {
   return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
-/** transform /path/to/file.ext to .ext */
+/** transform /path/to/file.ext to .ext, dotfiles like /path/to/.gitignore have no extension */
 export function extname(path: string): string {
-  const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
-  if (lastSlashIndex > lastPointIndex) return '';
-  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
+  if (lastPointIndex <= path.lastIndexOf('/') + 1) return '';
+  return path.substring(lastPointIndex);
 }
 
 /** test whether a variable is an object */
