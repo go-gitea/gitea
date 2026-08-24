@@ -4879,7 +4879,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -6134,7 +6139,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -11685,6 +11695,81 @@
           }
         },
         "summary": "List all organizations",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/packages": {
+      "get": {
+        "operationId": "adminListPackages",
+        "parameters": [
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "package type filter",
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "enum": [
+                "alpine",
+                "cargo",
+                "chef",
+                "composer",
+                "conan",
+                "conda",
+                "container",
+                "cran",
+                "debian",
+                "generic",
+                "go",
+                "helm",
+                "maven",
+                "npm",
+                "nuget",
+                "pub",
+                "pypi",
+                "rpm",
+                "rubygems",
+                "swift",
+                "terraform",
+                "vagrant"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "name filter",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PackageList"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          }
+        },
+        "summary": "List all packages",
         "tags": [
           "admin"
         ]
@@ -32249,6 +32334,9 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           },
@@ -32345,6 +32433,9 @@
         "responses": {
           "204": {
             "$ref": "#/components/responses/empty"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

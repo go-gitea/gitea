@@ -38,7 +38,7 @@ const (
 // PublicKey represents a user or deploy SSH public key.
 type PublicKey struct {
 	ID            int64           `xorm:"pk autoincr"`
-	OwnerID       int64           `xorm:"INDEX NOT NULL"`
+	OwnerID       int64           `xorm:"INDEX NOT NULL"` // deploy-key doesn't have owner
 	Name          string          `xorm:"NOT NULL"`
 	Fingerprint   string          `xorm:"INDEX NOT NULL"`
 	Content       string          `xorm:"MEDIUMTEXT NOT NULL"`
@@ -73,7 +73,7 @@ func (key *PublicKey) OmitEmail() string {
 	return strings.Join(fields[:2], " ")
 }
 
-func addKey(ctx context.Context, key *PublicKey) (err error) {
+func addPublicKey(ctx context.Context, key *PublicKey) (err error) {
 	if len(key.Fingerprint) == 0 {
 		key.Fingerprint, err = CalcFingerprint(key.Content)
 		if err != nil {
@@ -123,7 +123,7 @@ func AddPublicKey(ctx context.Context, ownerID int64, name, content string, auth
 			LoginSourceID: authSourceID,
 			Verified:      verified,
 		}
-		if err = addKey(ctx, key); err != nil {
+		if err = addPublicKey(ctx, key); err != nil {
 			return nil, fmt.Errorf("addKey: %w", err)
 		}
 
@@ -182,6 +182,10 @@ type FindPublicKeyOptions struct {
 	KeyTypes      []KeyType
 	NotKeytype    KeyType
 	LoginSourceID int64
+}
+
+func (opts FindPublicKeyOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts FindPublicKeyOptions) ToConds() builder.Cond {

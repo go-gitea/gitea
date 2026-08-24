@@ -24,6 +24,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	code_indexer "gitea.dev/modules/indexer/code"
@@ -63,11 +64,15 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 	return can
 }
 
+// CompareHeadRef formats the head side of a compare link, "owner/repo:branch" is only needed when a fork can share its base repo's owner
+func CompareHeadRef(headRepo *repo_model.Repository, headBranch string) string {
+	return util.Iif(setting.Repository.AllowForkIntoSameOwner, headRepo.FullName(), headRepo.OwnerName) + ":" + headBranch
+}
+
 func (prc *PullRequestContext) MakeDefaultCompareLink(headBranch string) string {
 	return prc.baseRepo.Link() + "/compare/" +
 		util.PathEscapeSegments(prc.DefaultTargetBranch()) + "..." +
-		util.Iif(prc.SameRepo(), "", util.PathEscapeSegments(prc.headRepo.OwnerName)+":") +
-		util.PathEscapeSegments(headBranch)
+		util.PathEscapeSegments(util.Iif(prc.SameRepo(), headBranch, CompareHeadRef(prc.headRepo, headBranch)))
 }
 
 func (prc *PullRequestContext) DefaultTargetBranch() string {
@@ -426,6 +431,10 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
+	}
+	// publish it so code resolving the same permission later in this request reuses it
+	if c := cache.GetContextCache(ctx); c != nil {
+		c.Put(cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, ctx.Doer), ctx.Repo.Permission)
 	}
 
 	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {

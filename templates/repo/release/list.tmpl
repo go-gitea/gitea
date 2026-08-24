@@ -59,11 +59,11 @@
 								Ghost
 							{{end}}
 							</span>
-							<span class="released">
-								{{ctx.Locale.Tr "repo.released_this"}}
-							</span>
-							{{if $release.CreatedUnix}}
-								<span class="time">{{DateUtils.TimeSince $release.CreatedUnix}}</span>
+							{{if not $release.IsDraft}}
+								<span class="released">
+									{{ctx.Locale.Tr "repo.released_this"}}
+								</span>
+								<span class="time">{{DateUtils.TimeSince $release.PublishedUnix}}</span>
 							{{end}}
 							{{if $release.IsImmutable}}
 								| <span data-tooltip-content="{{ctx.Locale.Tr "repo.release.immutable_tooltip"}}">{{svg "octicon-lock" 16 "tw-mr-1 tw-align-text-bottom"}}{{ctx.Locale.Tr "repo.release.immutable"}}</span>

@@ -88,6 +88,7 @@ type Release struct {
 	IsImmutable      bool               `xorm:"NOT NULL DEFAULT false"` // stays true after the release is deleted, the row is then a locked tag
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	PublishedUnix    timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -485,7 +486,7 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("lower_tag_name", lowerTags).
-		Cols("is_draft", "num_commits", "sha1").
+		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{
 			IsDraft: true,
 		}); err != nil {

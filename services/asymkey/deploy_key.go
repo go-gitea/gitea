@@ -34,7 +34,7 @@ func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) er
 	}
 
 	// Check if this is the last reference to same key content.
-	has, err := asymkey_model.IsDeployKeyExistByKeyID(ctx, key.KeyID)
+	has, err := asymkey_model.IsDeployKeyExistByPublicKeyID(ctx, key.KeyID)
 	if err != nil {
 		return err
 	} else if !has {
@@ -50,18 +50,13 @@ func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) er
 // Permissions check should be done outside.
 func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64) error {
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		key, err := asymkey_model.GetDeployKeyByID(ctx, id)
+		key, err := asymkey_model.GetDeployKeyByID(ctx, repo.ID, id)
 		if err != nil {
 			if asymkey_model.IsErrDeployKeyNotExist(err) {
 				return nil
 			}
 			return fmt.Errorf("GetDeployKeyByID: %w", err)
 		}
-
-		if key.RepoID != repo.ID {
-			return fmt.Errorf("deploy key %d does not belong to repository %d", id, repo.ID)
-		}
-
 		return deleteDeployKeyFromDB(ctx, key)
 	}); err != nil {
 		return err

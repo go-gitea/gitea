@@ -752,7 +752,7 @@ func writeFlushPktLine(ctx context.Context, out io.Writer) error {
 func writeDataPktLine(ctx context.Context, out io.Writer, data []byte) error {
 	hexchar := []byte("0123456789abcdef")
 	hex := func(n uint64) byte {
-		return hexchar[(n)&15]
+		return hexchar[n&15]
 	}
 
 	length := uint64(len(data) + 4)

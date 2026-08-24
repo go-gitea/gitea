@@ -7,32 +7,23 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/setting"
 
-	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func AddImmutableReleases(_ context.Context, x base.EngineMigration) error {
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
+func ExpandActionScheduleContent(ctx context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil
 	}
 
-	type ImmutableTag struct {
-		ID            int64              `xorm:"pk autoincr"`
-		RepoID        int64              `xorm:"INDEX(r) NOT NULL"`
-		OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
-		LowerTagName  string             `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-	}
-
-	if err := x.Sync(new(ImmutableTag)); err != nil {
-		return err
-	}
-
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Release))
-	return err
+	return base.ModifyColumn(ctx, x, "action_schedule", &schemas.Column{
+		Name: "content",
+		SQLType: schemas.SQLType{
+			Name: "LONGBLOB",
+		},
+		Length:         0,
+		Nullable:       true,
+		DefaultIsEmpty: true,
+	})
 }

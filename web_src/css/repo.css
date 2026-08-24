@@ -511,18 +511,22 @@ td .commit-summary {
   margin-left: -16px;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line {
+.comment-text-line {
   color: var(--color-text-light);
   flex: 1;
   min-width: 0;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
+.comment-text-line .ui.label {
   line-height: 1.5; /* label has background, so it can't use parent's line-height */
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line a {
+.comment-text-line a {
   color: inherit;
+}
+
+.comment-text-line a:hover {
+  color: var(--color-primary);
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list {
@@ -718,6 +722,12 @@ td .commit-summary {
 
 .repository.branches .commit-divergence .bar.bar-ahead {
   left: 0;
+}
+
+@media (forced-colors: active) {
+  .repository.branches .commit-divergence .bar {
+    background: CanvasText;
+  }
 }
 
 .repository.commits .header .search input {
@@ -1539,27 +1549,38 @@ tbody.commit-list {
 
 #diff-container {
   display: flex;
+  padding-top: 4px; /* for box-shadow from .diff-file-box */
   gap: var(--page-spacing);
 }
 
-#diff-file-boxes {
+#diff-boxes-column {
   flex: 1;
-  max-width: 100%;
+  min-width: 0;
+}
+
+#diff-file-boxes {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 #diff-file-tree {
-  flex: 0 0 20%;
-  max-width: 380px;
+  flex: 0 0 256px;
+  min-width: 0;
   line-height: inherit;
   position: sticky;
   padding-top: 0;
   top: 47px;
   max-height: calc(100vh - 47px);
   height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1201px) {
+  #diff-file-tree {
+    flex-basis: 320px;
+  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -1826,7 +1847,7 @@ tbody.commit-list {
   width: 100%;
 }
 
-.commit-status-item { /* the item can be used at 2 places: PR's merge box (commit-status-list), commit's status popup (no commit-status-list) */
+.commit-status-item { /* the item is used in the PR merge box and the commit status popup, both are commit-status-list */
   height: 40px;
   padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
   padding-bottom: 0 !important;

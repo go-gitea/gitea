@@ -432,9 +432,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 	data.hasRequiredStatusContexts = len(requiredContexts) > 0
 
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
-	}
+	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, commitStatuses)
 	combinedCommitStatus := git_model.CalcCommitStatus(commitStatuses)
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 	statusCheckData.PullCommitStatuses = commitStatuses
@@ -1310,7 +1308,7 @@ func PullsNewRedirect(ctx *context.Context) {
 			return
 		}
 		redirectRepo = repo.BaseRepo
-		branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
+		branch = context.CompareHeadRef(repo, branch)
 	}
 	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))
 }
@@ -1350,11 +1348,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
-	if util.IsEmptyString(form.Title) {
-		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 

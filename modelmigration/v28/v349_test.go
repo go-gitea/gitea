@@ -4,35 +4,44 @@
 package v28
 
 import (
+	"bytes"
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddImmutableReleases(t *testing.T) {
-	type ImmutableTag struct {
-		ID            int64  `xorm:"pk autoincr"`
-		RepoID        int64  `xorm:"INDEX NOT NULL"`
-		OwnerID       int64  `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerTagName  string `xorm:"UNIQUE(s) NOT NULL"`
+func TestExpandActionScheduleContent(t *testing.T) {
+	if !setting.Database.Type.IsMySQL() {
+		t.Skip("Only MySQL limits BLOB columns to 65,535 bytes")
 	}
 
-	x, deferable := migrationtest.PrepareTestEnv(t, 0)
+	type ActionSchedule struct {
+		ID      int64  `xorm:"pk autoincr"`
+		Content []byte `xorm:"BLOB"`
+	}
+
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionSchedule))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	require.NoError(t, AddImmutableReleases(t.Context(), x))
+	require.NoError(t, ExpandActionScheduleContent(t.Context(), x))
 
-	_, err := x.Insert(&ImmutableTag{RepoID: 1, OwnerID: 1, LowerRepoName: "r", LowerTagName: "v1.0"})
+	tables := migrationtest.LoadTableSchemasMap(t, x)
+	assert.Equal(t, "LONGBLOB", tables["action_schedule"].GetColumn("content").SQLType.Name)
+
+	content := bytes.Repeat([]byte("x"), 65_536)
+	_, err := x.Insert(&ActionSchedule{Content: content})
 	require.NoError(t, err)
 
-	// the unique index must be created by the migration, not only on fresh installs
-	_, err = x.Insert(&ImmutableTag{RepoID: 1, OwnerID: 1, LowerRepoName: "r", LowerTagName: "v1.0"})
-	assert.Error(t, err)
+	var stored ActionSchedule
+	has, err := x.Get(&stored)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Equal(t, content, stored.Content)
 }

@@ -55,7 +55,7 @@ import {initRepositorySearch} from './features/repo-search.ts';
 import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
-import {initGlobalFetchAction} from './features/common-fetch-action.ts';
+import {initGlobalFetchAction} from './modules/fetch-action.ts';
 import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
 import {initGlobalButtonClickOnEnter, initGlobalButtons} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
@@ -66,6 +66,7 @@ import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
 import {initRepoWatch} from './features/repo-watch.ts';
+import {initPackagesView} from './features/packages.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -103,6 +104,7 @@ const initPerformanceTracer = callInitFunctions([
   initTableSort,
   initRepoFileSearch,
   initCopyContent,
+  initPackagesView,
 
   initAdminCommon,
   initAdminUserListSearchForm,
