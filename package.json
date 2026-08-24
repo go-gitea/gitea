@@ -104,7 +104,7 @@
     "stylelint": "17.14.1",
     "stylelint-config-recommended": "18.0.0",
     "stylelint-declaration-block-no-ignored-properties": "3.0.0",
-    "stylelint-declaration-strict-value": "1.11.1",
+    "stylelint-declaration-strict-value": "1.12.0",
     "stylelint-value-no-unknown-custom-properties": "6.1.1",
     "svgo": "4.0.2",
     "typescript": "6.0.3",
