@@ -64,6 +64,9 @@ func Update(pr *issues_model.PullRequest, doer *user_model.User, message string,
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
 
+	// TODO: The code is from https://github.com/go-gitea/gitea/pull/9784,
+	// it seems a simple copy-paste from https://github.com/go-gitea/gitea/pull/7082 without a real reason.
+	// TODO: DUPLICATE-PR-TASK: search and see another TODO comment for more details
 	defer addTestPullRequestTaskAfterWebOperation(pr, doer)
 
 	if rebase {
