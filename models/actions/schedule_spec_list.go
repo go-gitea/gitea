@@ -49,32 +49,20 @@ func (specs SpecList) GetRepoIDs() []int64 {
 	})
 }
 
-func (specs SpecList) LoadRepos(ctx context.Context) error {
-	repoIDs := specs.GetRepoIDs()
-	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
-	if err != nil {
-		return err
-	}
-	for _, spec := range specs {
-		spec.Repo = repos[spec.RepoID]
-	}
-	return nil
-}
-
 type FindSpecOptions struct {
 	db.ListOptions
-	RepoID int64
-	Next   int64
+	Next     int64
+	BeforeID int64
 }
 
 func (opts FindSpecOptions) ToConds() builder.Cond {
-	cond := builder.NewCond()
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
-	}
+	cond := builder.NewCond().And(builder.Gt{"next": 0}) // an unsatisfiable spec stores a negative "next" and would stay due forever
 
 	if opts.Next > 0 {
 		cond = cond.And(builder.Lte{"next": opts.Next})
+	}
+	if opts.BeforeID > 0 {
+		cond = cond.And(builder.Lt{"id": opts.BeforeID})
 	}
 
 	return cond

@@ -80,12 +80,10 @@ func TestWithScheduleInEventPayload(t *testing.T) {
 	})
 }
 
-func TestStartTasksSkipsFailingSpec(t *testing.T) {
+func TestStartTasks(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	_, err := db.Exec(t.Context(), "DELETE FROM action_schedule_spec")
-	require.NoError(t, err)
 
-	insertSchedule := func(repoID, ownerID int64, workflowID, content string) *actions_model.ActionScheduleSpec {
+	insertSchedule := func(repoID, ownerID int64, workflowID, cronSpec, content string, next timeutil.TimeStamp) *actions_model.ActionScheduleSpec {
 		schedule := &actions_model.ActionSchedule{
 			Title:         workflowID,
 			RepoID:        repoID,
@@ -99,37 +97,29 @@ func TestStartTasksSkipsFailingSpec(t *testing.T) {
 			Content:       []byte(content),
 		}
 		require.NoError(t, db.Insert(t.Context(), schedule))
-		spec := &actions_model.ActionScheduleSpec{
-			RepoID:     repoID,
-			ScheduleID: schedule.ID,
-			Spec:       "@every 1m",
-			Next:       timeutil.TimeStamp(time.Now().Add(-time.Minute).Unix()),
-		}
+		spec := &actions_model.ActionScheduleSpec{RepoID: repoID, ScheduleID: schedule.ID, Spec: cronSpec, Next: next}
 		require.NoError(t, db.Insert(t.Context(), spec))
 		return spec
 	}
 
-	// specs are processed by descending id, so the broken one runs first and used to abort the whole pass
-	valid := insertSchedule(4, 1, "valid.yml", `name: valid
-on:
-  schedule:
-    - cron: '@every 1m'
-jobs:
-  job:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo hi
-`)
-	broken := insertSchedule(1, 2, "broken.yml", "this: [is: not: a: workflow")
+	due := timeutil.TimeStamp(time.Now().Add(-time.Minute).Unix())
+	validWorkflow := "jobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: true\n"
 
-	require.NoError(t, startTasks(t.Context()))
+	// specs are processed by descending id, so the broken one runs first and used to abort the whole pass
+	valid := insertSchedule(4, 5, "valid.yml", "@every 1m", validWorkflow, due)
+	broken := insertSchedule(1, 2, "broken.yml", "@every 1m", "this: [is: not: a: workflow", due)
+	never := insertSchedule(4, 5, "never.yml", "0 0 30 2 *", validWorkflow, timeutil.TimeStamp(time.Time{}.Unix()))
+
+	require.ErrorContains(t, startTasks(t.Context()), "1 schedule(s) could not be started")
 
 	assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: 4, WorkflowID: "valid.yml"}))
 	assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: 1, WorkflowID: "broken.yml"}))
+	assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: 4, WorkflowID: "never.yml"}))
 
-	// both specs move on, so the broken one does not fail again on every pass
+	// the broken spec moves on too, so it does not fail again on every pass
 	for _, spec := range []*actions_model.ActionScheduleSpec{valid, broken} {
 		updated := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{ID: spec.ID})
 		assert.Greater(t, updated.Next, spec.Next)
 	}
+	assert.Equal(t, never.Next, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{ID: never.ID}).Next)
 }

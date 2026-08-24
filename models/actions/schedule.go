@@ -74,13 +74,16 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 					ScheduleID: row.ID,
 					Spec:       spec,
 				}
-				// Parse the spec and check for errors
 				schedule, err := specRow.Parse()
 				if err != nil {
-					continue // skip to the next spec if there's an error
+					continue
 				}
 
-				specRow.Next = timeutil.TimeStamp(schedule.Next(now).Unix())
+				next := schedule.Next(now)
+				if next.IsZero() {
+					continue // the spec parses but can never occur, like "0 0 30 2 *"
+				}
+				specRow.Next = timeutil.TimeStamp(next.Unix())
 
 				// Insert the new schedule spec row
 				if err = db.Insert(ctx, specRow); err != nil {

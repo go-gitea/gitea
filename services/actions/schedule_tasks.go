@@ -30,61 +30,67 @@ func StartScheduleTasks(ctx context.Context) error {
 	return startTasks(ctx)
 }
 
-// startTasks retrieves specifications in pages, creates a schedule task for each specification,
-// and updates the specification's next run time and previous run time.
-// The function returns an error if there's an issue with finding or updating the specifications.
+// startTasks starts every due spec and returns an error if any of them failed.
 func startTasks(ctx context.Context) error {
-	// Set the page size
-	pageSize := 50
+	const pageSize = 50
 
-	// Retrieve specs in pages until all specs have been retrieved
 	now := time.Now()
-	for page := 1; ; page++ {
-		// Retrieve the specs for the current page
+	var failed int
+	var beforeID int64
+	for {
 		specs, _, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: pageSize,
-			},
-			Next: now.Unix(),
+			ListOptions: db.ListOptions{Page: 1, PageSize: pageSize},
+			Next:        now.Unix(),
+			BeforeID:    beforeID,
 		})
 		if err != nil {
 			return fmt.Errorf("find specs: %w", err)
 		}
 
-		if err := specs.LoadRepos(ctx); err != nil {
-			return fmt.Errorf("LoadRepos: %w", err)
-		}
-
-		// Loop through each spec and create a schedule task for it.
-		// One failing spec must not abort the pass, otherwise a single broken workflow stops every other schedule.
 		for _, row := range specs {
+			// one failing spec must not abort the pass, or a single broken workflow stops every other schedule
 			if err := startTask(ctx, row, now); err != nil {
+				failed++
 				log.Error("start schedule spec %d (repo %d, schedule %d): %v", row.ID, row.RepoID, row.ScheduleID, err)
 			}
 		}
 
-		// Stop if all specs have been retrieved
 		if len(specs) < pageSize {
 			break
 		}
+		beforeID = specs[len(specs)-1].ID // keyset, because advanced specs drop out of the "next <= now" filter
 	}
 
+	// surfaces as an admin notice through the cron task, once per occurrence rather than once per pass
+	if failed > 0 {
+		return fmt.Errorf("%d schedule(s) could not be started", failed)
+	}
 	return nil
 }
 
-// startTask creates the run for one due spec and moves the spec to its next occurrence.
-// The spec is always advanced, even when the run could not be created, so a workflow that
-// keeps failing is retried on its own schedule instead of on every pass.
+// startTask advances the spec to its next occurrence before creating the run, so a failing workflow
+// retries on its own schedule instead of on every pass, and a failed update cannot duplicate the run.
 func startTask(ctx context.Context, row *actions_model.ActionScheduleSpec, now time.Time) error {
-	if row.Repo == nil || row.Schedule == nil || row.Repo.IsArchived {
+	schedule, err := row.Parse()
+	if err != nil {
+		return fmt.Errorf("parse %q: %w", row.Spec, err)
+	}
+	row.Prev = row.Next
+	row.Next = timeutil.TimeStamp(schedule.Next(now.Add(time.Minute)).Unix())
+	if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
+		return fmt.Errorf("update spec: %w", err)
+	}
+
+	if row.Repo == nil || row.Schedule == nil {
+		return errors.New("repo or schedule row is gone")
+	}
+	if row.Repo.IsArchived {
 		return nil
 	}
 
 	cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
 	if err != nil {
 		if repo_model.IsErrUnitTypeNotExist(err) {
-			// Skip if the actions unit of this repo is disabled.
 			return nil
 		}
 		return fmt.Errorf("GetUnit: %w", err)
@@ -93,24 +99,10 @@ func startTask(ctx context.Context, row *actions_model.ActionScheduleSpec, now t
 		return nil
 	}
 
-	createErr := CreateScheduleTask(ctx, row)
-	if createErr != nil {
-		createErr = fmt.Errorf("CreateScheduleTask: %w", createErr)
+	if err := CreateScheduleTask(ctx, row); err != nil {
+		return fmt.Errorf("create run for %s workflow %q: %w", row.Repo.FullName(), row.Schedule.WorkflowID, err)
 	}
-
-	schedule, err := row.Parse()
-	if err != nil {
-		return errors.Join(createErr, fmt.Errorf("Parse: %w", err))
-	}
-
-	// Update the spec's next run time and previous run time
-	row.Prev = row.Next
-	row.Next = timeutil.TimeStamp(schedule.Next(now.Add(1 * time.Minute)).Unix())
-	if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
-		return errors.Join(createErr, fmt.Errorf("UpdateScheduleSpec: %w", err))
-	}
-
-	return createErr
+	return nil
 }
 
 // CreateScheduleTask creates a scheduled task from a cron action schedule spec.
