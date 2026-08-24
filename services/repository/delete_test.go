@@ -92,7 +92,6 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{RepoID: 1})
 
-	// claimed tag names must outlive the repository, stamped with the path it ended at,
-	// otherwise one recreated there could reuse them
+	// claims outlive the repository, stamped with the path it ended at, so a successor there inherits them
 	unittest.AssertExistsAndLoadBean(t, &repo_model.ImmutableTag{RepoID: 1, OwnerID: 2, LowerRepoName: "repo1"})
 }

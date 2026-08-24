@@ -113,13 +113,11 @@ func TestImmutableTag(t *testing.T) {
 	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: repo.LowerName}
 	assert.True(t, isImmutable(successor, "v1.1"))
 
-	// stamping moves the path claim to wherever the repository ended up, so a successor
-	// there inherits it once the repository itself is gone
+	// stamping moves the claim to the path the repository ended at, freeing the one it left
 	assert.NoError(t, StampImmutableTagPath(t.Context(), renamed))
 	assert.True(t, isImmutable(&Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: "renamed"}, "v1.1"))
 	assert.False(t, isImmutable(successor, "v1.1"))
 
-	// but an unrelated repository is unaffected
 	other := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2})
 	assert.False(t, isImmutable(other, "v1.1"))
 

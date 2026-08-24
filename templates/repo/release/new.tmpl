@@ -82,24 +82,25 @@
 				)}}
 			</div>
 
+			{{$assetsMutable := not .IsImmutable}}
 			{{range .attachments}}
 				<div class="field flex-text-block" id="attachment-{{.ID}}">
 					<div class="flex-text-block tw-flex-1">
-						<input class="tw-max-w-[48em]" value="{{.Name}}" {{if $.IsImmutable}}readonly{{else}}name="attachment-edit-{{.UUID}}" required{{end}}>
-						{{if not $.IsImmutable}}<input name="attachment-del-{{.UUID}}" type="hidden" value="false">{{end}}
+						<input class="tw-max-w-[48em]" value="{{.Name}}" {{if $assetsMutable}}name="attachment-edit-{{.UUID}}" required{{else}}readonly{{end}}>
+						{{if $assetsMutable}}<input name="attachment-del-{{.UUID}}" type="hidden" value="false">{{end}}
 						<span class="tw-text-text-light tw-flex-shrink-0">{{.Size | FileSize}}</span>
 						<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
 							{{svg "octicon-info"}}
 						</span>
 					</div>
-					{{if not $.IsImmutable}}
+					{{if $assetsMutable}}
 						<a class="ui mini compact red button" data-global-click="onReleaseEditAttachmentDelete"  data-id="{{.ID}}" data-uuid="{{.UUID}}">
 							{{ctx.Locale.Tr "remove"}}
 						</a>
 					{{end}}
 				</div>
 			{{end}}
-			{{if and .IsAttachmentEnabled (not .IsImmutable)}}
+			{{if and .IsAttachmentEnabled $assetsMutable}}
 				<div class="field">
 					{{template "repo/upload" .}}
 				</div>

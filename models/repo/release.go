@@ -214,7 +214,8 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
 		}
 
-		if attachments[i].ReleaseID != 0 {
+		// an issue or comment keeps its own mutation routes, so it must not also own a release asset
+		if attachments[i].ReleaseID != 0 || attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
 			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID

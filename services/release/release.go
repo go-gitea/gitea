@@ -72,8 +72,7 @@ func errImmutableField(field string) error {
 	return util.ErrorWrap(ErrImmutableRelease, "%s cannot be changed when release is immutable", field)
 }
 
-// ErrImmutableTag is returned when a tag name that an immutable release used
-// would be created, moved or deleted.
+// ErrImmutableTag is returned when a claimed tag name would be created, moved or deleted.
 var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was used by an immutable release")
 
 func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName string) error {
@@ -84,13 +83,14 @@ func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName 
 	return ErrImmutableTag
 }
 
-// lockRelease must run inside the transaction that writes the release, so the row and its claim commit together.
-func lockRelease(ctx context.Context, rel *repo_model.Release) error {
-	if rel.IsDraft || rel.IsTag || !rel.Repo.IsImmutableReleasesEnabled(ctx) {
+// LockRelease claims the tag name of a release becoming published, when the repository locks releases.
+// Must run inside the transaction that writes the release, so the row and its claim commit together.
+func LockRelease(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release) error {
+	if rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
 		return nil
 	}
 	rel.IsImmutable = true
-	return repo_model.AddImmutableTag(ctx, rel.Repo, rel.TagName)
+	return repo_model.AddImmutableTag(ctx, repo, rel.TagName)
 }
 
 func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) (bool, error) {
@@ -218,7 +218,7 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err := lockRelease(ctx, rel); err != nil {
+		if err := LockRelease(ctx, rel.Repo, rel); err != nil {
 			return err
 		}
 		if err := db.Insert(ctx, rel); err != nil {
@@ -350,7 +350,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if isBeingPublished {
-			if err = lockRelease(ctx, rel); err != nil {
+			if err = LockRelease(ctx, rel.Repo, rel); err != nil {
 				return err
 			}
 		}

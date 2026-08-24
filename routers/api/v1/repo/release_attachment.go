@@ -35,17 +35,13 @@ func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64) bool {
 
 // checkReleaseMatchRepo returns nil once it has written the response itself.
 func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) *repo_model.Release {
-	release, err := repo_model.GetReleaseByID(ctx, releaseID)
+	release, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, releaseID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.APIErrorNotFound()
-			return nil
+		} else {
+			ctx.APIErrorInternal(err)
 		}
-		ctx.APIErrorInternal(err)
-		return nil
-	}
-	if release.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIErrorNotFound()
 		return nil
 	}
 	if release.IsDraft && !canAccessReleaseDraft(ctx) {

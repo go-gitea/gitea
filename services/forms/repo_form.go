@@ -116,9 +116,8 @@ type RepoSettingForm struct {
 	EnableProjects bool
 	ProjectsMode   string
 
+	EnableReleases          bool
 	EnableImmutableReleases bool
-
-	EnableReleases bool
 
 	EnablePackages bool
 

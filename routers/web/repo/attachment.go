@@ -113,9 +113,11 @@ func DeleteAttachment(ctx *context.Context) {
 				ctx.HTTPError(http.StatusForbidden)
 				return
 			}
-		} else if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
-			ctx.HTTPError(http.StatusForbidden)
-			return
+		} else {
+			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
+				ctx.HTTPError(http.StatusForbidden)
+				return
+			}
 		}
 	}
 

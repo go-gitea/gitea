@@ -25,6 +25,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
+	release_service "gitea.dev/services/release"
 )
 
 // pushQueue represents a queue to handle update pull request tests
@@ -403,7 +404,12 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.Note = note
 				rel.PublishedUnix = publishedUnix
 			} else {
-				rel.IsDraft = false
+				if rel.IsDraft { // pushing the tag publishes the draft, so it locks like any other publication
+					rel.IsDraft = false
+					if err = release_service.LockRelease(ctx, repo, rel); err != nil {
+						return fmt.Errorf("LockRelease: %w", err)
+					}
+				}
 				if rel.PublishedUnix.IsZero() {
 					rel.PublishedUnix = timeutil.TimeStampNow()
 				}

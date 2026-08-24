@@ -86,6 +86,23 @@ func TestImmutableRelease(t *testing.T) {
 			MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("%s/releases/%d", base, pushed.ID)).AddTokenAuth(token), http.StatusNoContent)
 			_, _, err = gitcmd.NewCommand("push", "origin", ":refs/tags/imm-push").WithDir(dstPath).RunStdString(t.Context())
 			assert.NoError(t, err)
+
+			// pushing the tag of a draft publishes it, which must lock it like any other publication
+			var draft api.Release
+			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "POST", base+"/releases", &api.CreateReleaseOption{
+				TagName: "imm-draft", Target: "master", Title: "draft", IsDraft: true,
+			}).AddTokenAuth(token), http.StatusCreated), &draft)
+			assert.False(t, draft.IsImmutable)
+
+			_, _, err = gitcmd.NewCommand("tag", "imm-draft").WithDir(dstPath).RunStdString(t.Context())
+			require.NoError(t, err)
+			_, _, err = gitcmd.NewCommand("push", "origin", "refs/tags/imm-draft").WithDir(dstPath).RunStdString(t.Context())
+			require.NoError(t, err)
+
+			var published api.Release
+			DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("%s/releases/%d", base, draft.ID)).AddTokenAuth(token), http.StatusOK), &published)
+			assert.False(t, published.IsDraft)
+			assert.True(t, published.IsImmutable)
 		})
 	})
 }
