@@ -277,6 +277,9 @@ require (
 ignore (
 	./.venv
 	./node_modules
+	./public
+	./vendor
+	./web_src
 )
 
 // When doing "go get -u ./...", Golang will try to update all dependencies

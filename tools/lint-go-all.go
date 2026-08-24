@@ -41,9 +41,6 @@ func lintGoHeader() bool {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		return false
 	}
-	for _, dir := range []string{"public", "vendor", "web_src"} {
-		skipDirs[dir] = true
-	}
 	root, bad := ".", 0
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
