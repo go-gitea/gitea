@@ -122,8 +122,8 @@ func TestPackageNpm(t *testing.T) {
 		  }`
 	}
 
-	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
-	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.QueryEscape(packageName))
+	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.PathEscape(packageName))
+	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.PathEscape(packageName))
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
@@ -443,7 +443,7 @@ func TestPackageNpm(t *testing.T) {
 		// authoritative tarball scan must overrule the claim.
 		claimPackageName := "@scope/test-shrinkwrap-claim"
 		claimVersion := "1.0.0"
-		claimRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(claimPackageName))
+		claimRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.PathEscape(claimPackageName))
 		body := `{
 			"_id": "` + claimPackageName + `",
 			"name": "` + claimPackageName + `",
