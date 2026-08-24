@@ -4,6 +4,7 @@
 package repo_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -195,6 +196,51 @@ func TestSearchRepository(t *testing.T) {
 	t.Run("SearchRepositoryWithInDescription", testSearchRepositoryWithInDescription)
 	t.Run("SearchRepositoryNotInDescription", testSearchRepositoryNotInDescription)
 	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
+}
+
+func TestSearchRepositoryPrioritizesExactMatch(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	insertRepo := func(name string) int64 {
+		repo := &repo_model.Repository{
+			OwnerID:          owner.ID,
+			OwnerName:        owner.Name,
+			LowerName:        name,
+			Name:             name,
+			DefaultBranch:    "master",
+			IsFsckEnabled:    true,
+			ObjectFormatName: "sha1",
+		}
+		require.NoError(t, db.Insert(t.Context(), repo))
+		t.Cleanup(func() {
+			_, err := db.DeleteByID[repo_model.Repository](context.Background(), repo.ID)
+			assert.NoError(t, err)
+		})
+		return repo.ID
+	}
+
+	insertRepo("afoo")
+	exactID := insertRepo("foo")
+
+	assertExactFirst := func(t *testing.T, keyword string) {
+		repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{Page: 1, PageSize: 10},
+			OwnerID:     owner.ID,
+			Keyword:     keyword,
+			Collaborate: optional.Some(false),
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, repos)
+		assert.Equal(t, exactID, repos[0].ID)
+	}
+
+	t.Run("name", func(t *testing.T) {
+		assertExactFirst(t, "foo")
+	})
+	t.Run("owner/name", func(t *testing.T) {
+		assertExactFirst(t, owner.Name+"/foo")
+	})
 }
 
 func testSearchRepositoryPublic(t *testing.T) {
