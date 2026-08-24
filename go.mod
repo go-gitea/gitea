@@ -36,11 +36,8 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/dlclark/regexp2/v2 v2.7.1
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
-	github.com/dustin/go-humanize v1.0.1
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.4
 	github.com/emersion/go-imap v1.2.1
-	github.com/emirpasic/gods v1.18.1
-	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.5
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/getkin/kin-openapi v0.147.0
@@ -92,7 +89,6 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.16
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.11.0
@@ -174,7 +170,9 @@ require (
 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6 // indirect
+	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/git-lfs/pktline v0.0.0-20230103162542-ca444d533ef1 // indirect
