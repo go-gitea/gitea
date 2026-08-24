@@ -282,6 +282,12 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		return err
 	})
 	defer addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
+	// TODO: the "merge" operation has finished, there could still be some edge cases:
+	// * if the post-process hook isn't executed correctly:
+	//   * the commit has been merged into target branch
+	//   * the PR's status is still "open (unmerged)"
+	// * something wrong happens (e.g.: out of sync?)
+	//   * maybe this is the reason that why the duplicate AddTestPullRequestTask is called in defer func above
 	if err != nil {
 		return fmt.Errorf("doMergeAndPush: %w", err)
 	}

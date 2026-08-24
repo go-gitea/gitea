@@ -86,6 +86,13 @@ func Update(pr *issues_model.PullRequest, doer *user_model.User, message string,
 	}
 
 	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
+	// TODO: the "update" (merge target branch to PR head branch) operation has finished, there could still be some edge cases:
+	// * the database was already out of sync: the target branch was already in head branch:
+	//   * so no post-receive hook is really executed, no PR status update
+	//   * then the PR status is stuck in "behind the target branch" (a new push can be used as a workaround)
+	// * "merge" operation does finish, but the post-receive hook isn't correctly executed due to other reasons:
+	//   * although the target branch is merged into head branch by this "update" (head branch receives new commits)
+	//   * but database isn't updated, so the PR status is still "behind the target branch"
 	return err
 }
 
