@@ -17,7 +17,7 @@ linters:
     - govet
     - ineffassign
     - mirror
-    # - modernize # re-enable it in a future PR, after clearly fixing all the issues it reports
+    - modernize
     - nakedret
     - nilnil
     - nolintlint
@@ -62,6 +62,9 @@ linters:
               desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
             - pkg: gitea.dev/modules/structs
               desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
+    modernize:
+      disable:
+        - embedlit
     nolintlint:
       allow-unused: false
       require-explanation: true
