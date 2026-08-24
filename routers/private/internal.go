@@ -13,12 +13,12 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
 )
 
 func authInternal(next http.Handler) http.Handler {
@@ -42,11 +42,14 @@ func authInternal(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind[T any](_ T) any {
+func bind[T any](tmpl T) any {
 	return func(ctx *context.PrivateContext) {
-		theObj := new(T) // create a new form obj for every request but not use obj directly
-		binding.Bind(ctx.Req, theObj)
-		web.SetForm(ctx, theObj)
+		form, errs := middleware.BindFormAny(ctx.Req, validation.Binder(), tmpl)
+		if len(errs) > 0 {
+			errMsg, _, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
+			ctx.PrivateInternalErrorf("invalid request: %v", errMsg)
+		}
+		web.SetForm(ctx, form)
 	}
 }
 

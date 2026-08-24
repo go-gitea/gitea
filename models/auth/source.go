@@ -259,6 +259,10 @@ type FindSourcesOptions struct {
 	LoginType Type
 }
 
+func (opts FindSourcesOptions) ToOrders() string {
+	return "name"
+}
+
 func (opts FindSourcesOptions) ToConds() builder.Cond {
 	conds := builder.NewCond()
 	if opts.IsActive.Has() {

@@ -5,7 +5,6 @@
 package convert
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,7 +15,6 @@ import (
 	"strconv"
 	"time"
 
-	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	asymkey_model "gitea.dev/models/asymkey"
@@ -31,6 +29,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
@@ -170,7 +169,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	return &api.BranchProtection{
-		BranchName:                    branchName,
+		BranchName:                    branchName, //nolint:staticcheck // deprecated but useful to API response
 		RuleName:                      bp.RuleName,
 		Priority:                      bp.Priority,
 		EnablePush:                    bp.CanPush,
@@ -566,7 +565,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	content, err := actions.GetContentFromEntry(ctx, gitRepo, entry)
 	name := entry.Name()
 	if err == nil {
-		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		workflow, err := jobparser.ReadWorkflow(content)
 		if err == nil {
 			// Only use the name when specified in the workflow file
 			if workflow.Name != "" {
@@ -848,17 +847,20 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 }
 
 // ToDeployKey convert asymkey_model.DeployKey to api.DeployKey
-func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
-	return &api.DeployKey{
-		ID:          key.ID,
-		KeyID:       key.KeyID,
-		Key:         key.Content,
-		Fingerprint: key.Fingerprint,
-		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
-		Title:       key.Name,
-		Created:     key.CreatedUnix.AsTime(),
-		ReadOnly:    key.Mode == perm.AccessModeRead, // All deploy keys are read-only.
+func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *asymkey_model.DeployKey) *api.DeployKey {
+	k := &api.DeployKey{
+		ID:       deployKey.ID,
+		KeyID:    deployKey.KeyID,
+		URL:      repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
+		Title:    deployKey.Name,
+		Created:  deployKey.CreatedUnix.AsTime(),
+		ReadOnly: deployKey.Mode == perm.AccessModeRead, // All deploy keys are read-only.
 	}
+	if err := deployKey.LoadPublicKey(ctx); err == nil {
+		k.Key = deployKey.PublicKey.Content
+		k.Fingerprint = deployKey.PublicKey.Fingerprint
+	}
+	return k
 }
 
 // ToOrganization convert user_model.User to api.Organization

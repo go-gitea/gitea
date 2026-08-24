@@ -11,18 +11,10 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
-
-// ________                .__                 ____  __.
-// \______ \   ____ ______ |  |   ____ ___.__.|    |/ _|____ ___.__.
-//  |    |  \_/ __ \\____ \|  |  /  _ <   |  ||      <_/ __ <   |  |
-//  |    `   \  ___/|  |_> >  |_(  <_> )___  ||    |  \  ___/\___  |
-// /_______  /\___  >   __/|____/\____// ____||____|__ \___  > ____|
-//         \/     \/|__|               \/             \/   \/\/
-//
-// This file contains functions specific to DeployKeys
 
 // DeployKey represents deploy key information and its relation with repository.
 type DeployKey struct {
@@ -31,30 +23,29 @@ type DeployKey struct {
 	RepoID      int64 `xorm:"UNIQUE(s) INDEX"`
 	Name        string
 	Fingerprint string
-	Content     string `xorm:"-"`
 
 	Mode perm.AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
-	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
-	HasRecentActivity bool               `xorm:"-"`
-	HasUsed           bool               `xorm:"-"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+
+	PublicKey *PublicKey `xorm:"-"`
 }
 
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (key *DeployKey) AfterLoad() {
-	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
+func (key *DeployKey) HasUsed() bool {
+	return key.UpdatedUnix > key.CreatedUnix
 }
 
-// GetContent gets associated public key content.
-func (key *DeployKey) GetContent(ctx context.Context) error {
-	pkey, err := GetPublicKeyByID(ctx, key.KeyID)
-	if err != nil {
-		return err
+func (key *DeployKey) HasRecentActivity() bool {
+	return key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
+}
+
+func (key *DeployKey) LoadPublicKey(ctx context.Context) (err error) {
+	if key.PublicKey != nil {
+		return nil
 	}
-	key.Content = pkey.Content
-	return nil
+	key.PublicKey, err = GetPublicKeyByID(ctx, key.KeyID)
+	return err
 }
 
 // IsReadOnly checks if the key can only be used for read operations, used by template
@@ -66,57 +57,39 @@ func init() {
 	db.RegisterModel(new(DeployKey))
 }
 
-func checkDeployKey(ctx context.Context, keyID, repoID int64, name string) error {
+func checkDeployKey(ctx context.Context, repoID, publicKeyID int64, name string) error {
 	// Note: We want error detail, not just true or false here.
 	has, err := db.GetEngine(ctx).
-		Where("key_id = ? AND repo_id = ?", keyID, repoID).
+		Where("repo_id=? AND (key_id=? OR name=?)", repoID, publicKeyID, name).
 		Get(new(DeployKey))
 	if err != nil {
 		return err
 	} else if has {
-		return ErrDeployKeyAlreadyExist{keyID, repoID}
+		return ErrDeployKeyAlreadyExist{publicKeyID, repoID}
 	}
-
-	has, err = db.GetEngine(ctx).
-		Where("repo_id = ? AND name = ?", repoID, name).
-		Get(new(DeployKey))
-	if err != nil {
-		return err
-	} else if has {
-		return ErrDeployKeyNameAlreadyUsed{repoID, name}
-	}
-
 	return nil
 }
 
 // addDeployKey adds new key-repo relation.
-func addDeployKey(ctx context.Context, keyID, repoID int64, name, fingerprint string, mode perm.AccessMode) (*DeployKey, error) {
-	if err := checkDeployKey(ctx, keyID, repoID, name); err != nil {
+func addDeployKey(ctx context.Context, repoID, publicKeyID int64, name, fingerprint string, mode perm.AccessMode) (*DeployKey, error) {
+	if err := checkDeployKey(ctx, repoID, publicKeyID, name); err != nil {
 		return nil, err
 	}
 
-	key := &DeployKey{
-		KeyID:       keyID,
-		RepoID:      repoID,
-		Name:        name,
-		Fingerprint: fingerprint,
-		Mode:        mode,
-	}
+	key := &DeployKey{KeyID: publicKeyID, RepoID: repoID, Name: name, Fingerprint: fingerprint, Mode: mode}
 	return key, db.Insert(ctx, key)
 }
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
-func AddDeployKey(ctx context.Context, repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
+func AddDeployKey(ctx context.Context, repoID int64, name, content string, accessMode perm.AccessMode) (*DeployKey, error) {
 	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
 
-	accessMode := perm.AccessModeRead
-	if !readOnly {
-		accessMode = perm.AccessModeWrite
+	if accessMode != perm.AccessModeRead && accessMode != perm.AccessModeWrite {
+		return nil, util.NewInvalidArgumentErrorf("invalid access mode")
 	}
-
 	return db.WithTx2(ctx, func(ctx context.Context) (*DeployKey, error) {
 		pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
 		if err != nil {
@@ -126,52 +99,46 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 				return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
 			}
 		} else {
-			// First time use this deploy key.
+			// First time use this deploy key, add a shared public key
 			pkey = &PublicKey{
-				Fingerprint: fingerprint,
-				Mode:        accessMode,
+				Mode:        perm.AccessModeNone,
 				Type:        KeyTypeDeploy,
+				Name:        "(DeployKey)",
 				Content:     content,
-				Name:        name,
+				Fingerprint: fingerprint,
 			}
-			if err = addKey(ctx, pkey); err != nil {
-				return nil, fmt.Errorf("addKey: %w", err)
+			if err = addPublicKey(ctx, pkey); err != nil {
+				return nil, fmt.Errorf("addPublicKey: %w", err)
 			}
 		}
-
-		key, err := addDeployKey(ctx, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
-		if err != nil {
-			return nil, err
-		}
-
-		return key, nil
+		return addDeployKey(ctx, repoID, pkey.ID, name, fingerprint, accessMode)
 	})
 }
 
 // GetDeployKeyByID returns deploy key by given ID.
-func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
-	key, exist, err := db.GetByID[DeployKey](ctx, id)
+func GetDeployKeyByID(ctx context.Context, repoID, deployKeyID int64) (*DeployKey, error) {
+	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"id": deployKeyID, "repo_id": repoID})
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, ErrDeployKeyNotExist{id, 0, 0}
+		return nil, ErrDeployKeyNotExist{deployKeyID, 0, repoID}
 	}
 	return key, nil
 }
 
-// GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
-func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, error) {
-	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": keyID, "repo_id": repoID})
+// GetDeployKeyByRepoPublicKey returns deploy key by given public key ID and repository ID.
+func GetDeployKeyByRepoPublicKey(ctx context.Context, repoID, publicKeyID int64) (*DeployKey, error) {
+	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": publicKeyID, "repo_id": repoID})
 	if err != nil {
 		return nil, err
 	} else if !exist {
-		return nil, ErrDeployKeyNotExist{0, keyID, repoID}
+		return nil, ErrDeployKeyNotExist{0, publicKeyID, repoID}
 	}
 	return key, nil
 }
 
-// IsDeployKeyExistByKeyID return true if there is at least one deploykey with the key id
-func IsDeployKeyExistByKeyID(ctx context.Context, keyID int64) (bool, error) {
+// IsDeployKeyExistByPublicKeyID return true if there is at least one deploy-key with the key id
+func IsDeployKeyExistByPublicKeyID(ctx context.Context, keyID int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where("key_id = ?", keyID).
 		Get(new(DeployKey))
@@ -191,11 +158,13 @@ type ListDeployKeysOptions struct {
 	Fingerprint string
 }
 
+func (opt ListDeployKeysOptions) ToOrders() string {
+	return "name"
+}
+
 func (opt ListDeployKeysOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	if opt.RepoID != 0 {
-		cond = cond.And(builder.Eq{"repo_id": opt.RepoID})
-	}
+	cond = cond.And(builder.Eq{"repo_id": opt.RepoID}) // repo ID must be used
 	if opt.KeyID != 0 {
 		cond = cond.And(builder.Eq{"key_id": opt.KeyID})
 	}
