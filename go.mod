@@ -60,7 +60,6 @@ require (
 	github.com/google/go-github/v89 v89.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3
-	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/hashicorp/go-version v1.9.0
@@ -194,6 +193,7 @@ require (
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
@@ -276,6 +276,9 @@ require (
 ignore (
 	./.venv
 	./node_modules
+	./public
+	./vendor
+	./web_src
 )
 
 // When doing "go get -u ./...", Golang will try to update all dependencies
