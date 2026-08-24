@@ -55,7 +55,7 @@
 				</div>
 
 				{{if not .User.IsTypeBot}}
-					<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
+					<div class="required js-non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
 						<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 						<input id="login_name" name="login_name" value="{{.User.LoginName}}">
 					</div>
@@ -69,7 +69,7 @@
 					<input id="email" name="email" type="email" value="{{.User.Email}}" required>
 				</div>
 				{{if not .User.IsTypeBot}}
-					<div class="local field {{if .Err_Password}}error{{end}} {{if not (or .User.IsLocal .User.IsOAuth2)}}tw-hidden{{end}}">
+					<div class="js-local field {{if .Err_Password}}error{{end}} {{if not (or .User.IsLocal .User.IsOAuth2)}}tw-hidden{{end}}">
 						<label for="password">{{ctx.Locale.Tr "password"}}</label>
 						<input id="password" name="password" type="password" autocomplete="new-password">
 						<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>

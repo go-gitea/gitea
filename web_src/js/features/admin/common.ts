@@ -77,10 +77,10 @@ function initAdminUserNew() {
     // login_type "0" is LoginNoType — a local account with no auth source; anything else is an OAuth/SSO source
     const isLocal = !isBot && elLoginType.value.startsWith('0');
 
-    toggleElem('.non-bot', !isBot);
-    if (!isBot) { // fields hidden as ".non-bot" must not be shown again by the local/non-local state
-      toggleElem('.local', isLocal);
-      toggleElem('.non-local', !isLocal);
+    toggleElem('.js-non-bot', !isBot);
+    if (!isBot) { // fields hidden as ".js-non-bot" must not be shown again by the js-local/js-non-local state
+      toggleElem('.js-local', isLocal);
+      toggleElem('.js-non-local', !isLocal);
     }
     elLoginName.toggleAttribute('required', !isBot && !isLocal);
     elPassword.toggleAttribute('required', isLocal);
@@ -101,8 +101,8 @@ function initAdminUserEdit() {
 
   elLoginType.addEventListener('change', () => {
     const isLocal = elLoginType.value.startsWith('0');
-    toggleElem('.local', isLocal);
-    toggleElem('.non-local', !isLocal);
+    toggleElem('.js-local', isLocal);
+    toggleElem('.js-non-local', !isLocal);
     elUserName.toggleAttribute('disabled', !isLocal); // only local accounts can be renamed here
     elLoginName.toggleAttribute('required', !isLocal);
     (isLocal ? elUserName : elLoginName).focus();
