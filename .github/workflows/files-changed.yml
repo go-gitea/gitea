@@ -97,7 +97,6 @@ jobs:
 
             templates:
               - "tools/lint-templates-*.ts"
-              - "tools/lint-templates*.go"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
               - "uv.lock"

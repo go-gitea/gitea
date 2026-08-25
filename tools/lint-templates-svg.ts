@@ -9,6 +9,8 @@ for (const file of readdirSync(new URL('../public/assets/img/svg', import.meta.u
   knownSvgs.add(parse(file).name);
 }
 
+const conflictMarkerRE = /^(<{7}|={7}|>{7})(\s|$)/;
+
 const rootPath = fileURLToPath(new URL('..', import.meta.url));
 let hadErrors = false;
 
@@ -17,6 +19,12 @@ for (const file of globSync(fileURLToPath(new URL('../templates/**/*.tmpl', impo
   for (const [_, name] of content.matchAll(/svg ["'`]([^"'`]+)["'`]/g)) {
     if (!knownSvgs.has(name)) {
       console.info(`SVG "${name}" not found, used in ${relative(rootPath, file)}`);
+      hadErrors = true;
+    }
+  }
+  for (const [lineIndex, line] of content.split(/\r?\n/).entries()) {
+    if (conflictMarkerRE.test(line)) {
+      console.info(`Unresolved conflict marker in ${relative(rootPath, file)}:${lineIndex + 1}`);
       hadErrors = true;
     }
   }

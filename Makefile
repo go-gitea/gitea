@@ -354,7 +354,6 @@ lint-shell: ## lint shell scripts
 lint-templates: .venv node_modules ## lint template files
 	@node tools/lint-templates-svg.ts
 	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
-	@$(GO) run ./tools/lint-templates.go
 
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
