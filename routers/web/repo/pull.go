@@ -1307,18 +1307,19 @@ func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *is
 }
 
 func PullsNewRedirect(ctx *context.Context) {
-	branch := ctx.PathParam("*")
-	redirectRepo := ctx.Repo.Repository
-	repo := ctx.Repo.Repository
-	if repo.IsFork {
-		if err := repo.GetBaseRepo(ctx); err != nil {
+	branchName := ctx.PathParam("*")
+	baseRepo, headRepo := ctx.Repo.Repository, ctx.Repo.Repository
+	if headRepo.IsFork {
+		if err := headRepo.GetBaseRepo(ctx); err != nil {
 			ctx.ServerError("GetBaseRepo", err)
 			return
 		}
-		redirectRepo = repo.BaseRepo
-		branch = context.CompareHeadRef(repo, branch)
+		baseRepo = headRepo.BaseRepo
 	}
-	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))
+	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", baseRepo.Link(),
+		util.PathEscapeSegments(baseRepo.DefaultBranch),
+		util.PathEscapeSegments(context.CompareHeadRef(baseRepo, headRepo, branchName)),
+	))
 }
 
 // CompareAndPullRequestPost response for creating pull request
