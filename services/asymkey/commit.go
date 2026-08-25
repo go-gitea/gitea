@@ -70,12 +70,10 @@ func getInstanceCommitSignSettings(fmt string) *git.CommitSignSettings {
 	if slices.Contains([]string{"", "default", "none"}, setting.Repository.Signing.SigningKey) {
 		return nil
 	}
-	// OK we should try the default key
 	return &git.CommitSignSettings{
-		Sign:  true,
-		Name:  setting.Repository.Signing.SigningName,
-		Email: setting.Repository.Signing.SigningEmail,
-
+		Sign:   true,
+		Name:   setting.Repository.Signing.SigningName,
+		Email:  setting.Repository.Signing.SigningEmail,
 		Format: fmt,
 		KeyID:  setting.Repository.Signing.SigningKey,
 	}
@@ -171,16 +169,16 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 		}
 	}
 
-	if commitSignSettings := getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP); commitSignSettings != nil {
-		if commitVerification := verifyCommitSignByGPGSettings(ctx, commitSignSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+	if instanceSettings := getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP); instanceSettings != nil {
+		if commitVerification := verifyCommitSignByGPGSettings(ctx, instanceSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason != asymkey_model.BadSignature {
 				return commitVerification
 			}
 			defaultReason = commitVerification.Reason
 		}
 	}
-	if commitSignSettings := getGitGlobalCommitSignSettings(git.SigningKeyFormatOpenPGP); commitSignSettings != nil {
-		if commitVerification := verifyCommitSignByGPGSettings(ctx, commitSignSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+	if globalSettings := getGitGlobalCommitSignSettings(git.SigningKeyFormatOpenPGP); globalSettings != nil {
+		if commitVerification := verifyCommitSignByGPGSettings(ctx, globalSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason != asymkey_model.BadSignature {
 				return commitVerification
 			}
@@ -303,6 +301,7 @@ func verifyCommitSignByGPGSettings(ctx context.Context, gpgSettings *git.CommitS
 	pubKeyContent, err := gpgSettings.PublicKeyContent()
 	if err != nil {
 		log.Error("gpgSettings.PublicKeyContent: %v", err)
+		return nil
 	}
 	ekeys, err := asymkey_model.CheckArmoredGPGKeyString(pubKeyContent)
 	if err != nil {
@@ -420,13 +419,13 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 	}
 
 	// Try the configured instance-wide SSH public key
-	if commitSignSettings := getInstanceCommitSignSettings(git.SigningKeyFormatSSH); commitSignSettings != nil {
-		pubKeyContent, err := commitSignSettings.PublicKeyContent()
+	if instanceSettings := getInstanceCommitSignSettings(git.SigningKeyFormatSSH); instanceSettings != nil {
+		pubKeyContent, err := instanceSettings.PublicKeyContent()
 		if err != nil {
 			log.Error("commitSignSettings.PublicKeyContent: %v", err)
 		} else {
-			signerUser := &user_model.User{Name: commitSignSettings.Name, Email: commitSignSettings.Email}
-			commitVerification := verifyCommitSignBySSHSettings(c, committerUser, signerUser, commitSignSettings.Email, pubKeyContent)
+			signerUser := &user_model.User{Name: instanceSettings.Name, Email: instanceSettings.Email}
+			commitVerification := verifyCommitSignBySSHSettings(c, committerUser, signerUser, instanceSettings.Email, pubKeyContent)
 			if commitVerification != nil && commitVerification.Verified {
 				return commitVerification
 			}

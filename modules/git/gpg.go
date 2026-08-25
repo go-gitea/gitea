@@ -62,6 +62,7 @@ var GlobalCommitSignSettings = util.OnceValue[*CommitSignSettings]{
 
 		signingKey, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.signingkey").RunStdString(ctx)
 		css.KeyID = strings.TrimSpace(signingKey)
+		css.Sign = css.Sign && css.KeyID != ""
 
 		format, _, _ := gitcmd.NewCommand("config", "--global", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx)
 		css.Format = strings.TrimSpace(format)
