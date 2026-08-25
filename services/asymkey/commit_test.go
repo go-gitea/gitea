@@ -28,6 +28,8 @@ func TestCommitSignSettings(t *testing.T) {
 		css := getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP)
 		assert.NotNil(t, css)
 		assert.Equal(t, git.SigningKeyFormatOpenPGP, css.Format)
+		css = getInstanceCommitSignSettings(git.SigningKeyFormatSSH)
+		assert.Nil(t, css)
 
 		setting.Repository.Signing.SigningFormat = git.SigningKeyFormatOpenPGP
 		css = getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP)
@@ -38,12 +40,16 @@ func TestCommitSignSettings(t *testing.T) {
 		css = getInstanceCommitSignSettings(git.SigningKeyFormatSSH)
 		assert.NotNil(t, css)
 		assert.Equal(t, git.SigningKeyFormatSSH, css.Format)
+		css = getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP)
+		assert.Nil(t, css)
 	})
 
 	t.Run("GitGlobalSettings", func(t *testing.T) {
 		css := getGitGlobalCommitSignSettings(git.SigningKeyFormatOpenPGP)
 		assert.NotNil(t, css)
 		assert.Equal(t, git.SigningKeyFormatOpenPGP, css.Format)
+		css = getGitGlobalCommitSignSettings(git.SigningKeyFormatSSH)
+		assert.Nil(t, css)
 	})
 }
 
