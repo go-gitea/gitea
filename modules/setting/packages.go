@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math"
 
-	"gitea.dev/modules/util"
+	"github.com/dustin/go-humanize"
 )
 
 // Package registry settings
@@ -100,7 +100,7 @@ func mustBytes(section ConfigSection, key string) int64 {
 	if value == noLimit {
 		return -1
 	}
-	bytes, err := util.ParseBytes(value)
+	bytes, err := humanize.ParseBytes(value)
 	if err != nil || bytes > math.MaxInt64 {
 		return -1
 	}
