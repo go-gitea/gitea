@@ -2597,6 +2597,8 @@
   "repo.diff.file_byte_size": "Taille",
   "repo.diff.file_suppressed": "Fichier diff supprimé car celui-ci est trop grand",
   "repo.diff.file_suppressed_line_too_long": "Diff de fichier supprimé car une ou plusieurs lignes sont trop longues",
+  "repo.diff.show_more": "Voir plus",
+  "repo.diff.load": "Voir la Diff",
   "repo.diff.generated": "Générée",
   "repo.diff.vendored": "Externe",
   "repo.diff.comment.add_line_comment": "Commenter cette ligne",
