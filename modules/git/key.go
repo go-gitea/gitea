@@ -36,7 +36,6 @@ func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
 	}
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
-		// Can ignore the error here as it means that commit.gpgsign is not set
 		commitSignSettings := GlobalCommitSignSettings.Value()
 		if !commitSignSettings.Sign {
 			return nil, nil
