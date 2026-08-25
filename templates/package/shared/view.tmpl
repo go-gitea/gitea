@@ -73,7 +73,7 @@
 			{{template "package/metadata/terraform" .}}
 			{{template "package/metadata/vagrant" .}}
 			{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
-			<div class="item">{{svg "octicon-database"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
+			<div class="item">{{svg "octicon-database"}} {{FormatBytes .PackageDescriptor.CalculateBlobSize}}</div>
 			{{end}}
 		</div>
 		{{if not (eq .PackageDescriptor.Package.Type "container")}}
@@ -83,7 +83,7 @@
 			{{range .PackageDescriptor.Files}}
 			<div class="item">
 				<a href="{{$packageVersionLink}}/files/{{.File.ID}}">{{.File.Name}}</a>
-				<span class="tw-text-xs tw-whitespace-nowrap">{{FileSize .Blob.Size}}</span>
+				<span class="tw-text-xs tw-whitespace-nowrap">{{FormatBytes .Blob.Size}}</span>
 			</div>
 			{{end}}
 		</div>

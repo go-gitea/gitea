@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/packages"
 	"gitea.dev/models/repo"
 	"gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/log"
 	packages_module "gitea.dev/modules/packages"
 	"gitea.dev/modules/setting"
@@ -70,10 +71,10 @@ func commonCheckStorage(logger log.Logger, autofix bool, opts *commonStorageChec
 			}
 			logger.Info("Deleted %d/%d orphaned %s(s)", deletedNum, orphanedCount, opts.name)
 		} else {
-			logger.Warn("Found %d/%d (%s/%s) orphaned %s(s)", orphanedCount, totalCount, util.FormatBytes(orphanedSize), util.FormatBytes(totalSize), opts.name)
+			logger.Warn("Found %d/%d (%s/%s) orphaned %s(s)", orphanedCount, totalCount, base.FileSize(orphanedSize), base.FileSize(totalSize), opts.name)
 		}
 	} else {
-		logger.Info("Found %d (%s) %s(s)", totalCount, util.FormatBytes(totalSize), opts.name)
+		logger.Info("Found %d (%s) %s(s)", totalCount, base.FileSize(totalSize), opts.name)
 	}
 	return nil
 }

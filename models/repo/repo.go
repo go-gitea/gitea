@@ -19,6 +19,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/htmlutil"
@@ -264,7 +265,7 @@ func (repo *Repository) SizeDetailsString() string {
 	var str strings.Builder
 	sizeDetails := repo.SizeDetails()
 	for _, detail := range sizeDetails {
-		fmt.Fprintf(&str, "%s: %s, ", detail.Name, util.FormatBytes(detail.Size))
+		fmt.Fprintf(&str, "%s: %s, ", detail.Name, base.FileSize(detail.Size))
 	}
 	return strings.TrimSuffix(str.String(), ", ")
 }
