@@ -351,8 +351,8 @@ lint-shell: ## lint shell scripts
 	@SHELLCHECK_IMAGE=$(SHELLCHECK_IMAGE) CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/lint-shell.sh $$(git ls-files '*.sh')
 
 .PHONY: lint-templates
-lint-templates: .venv node_modules ## lint template files
-	@node tools/lint-templates-svg.ts
+lint-templates: .venv ## lint template files
+	@$(GO) run ./tools/lint-templates.go
 	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
