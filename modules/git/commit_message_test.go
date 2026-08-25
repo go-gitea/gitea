@@ -126,6 +126,17 @@ func TestCommitMessageParticipants(t *testing.T) {
 				},
 				[]*CommitIdentity{idt("b", "", roleCoAuthor), idt("c", "", roleCoAuthor)},
 			},
+			{
+				"CoAuthorNameNotAnEmailAddress", // names net/mail rejects, e.g. bots and names with a comma
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>\nCo-authored-by: Smith, John <j@m.com>"},
+				},
+				[]*CommitIdentity{
+					idt("dependabot[bot]", "49699333+dependabot[bot]@users.noreply.github.com", roleCoAuthor),
+					idt("Smith, John", "j@m.com", roleCoAuthor),
+				},
+			},
 		}
 		for _, c := range cases {
 			assert.Equal(t, c.identities, c.commit.CoAuthorIdentities(), "case: %s", c.name)
