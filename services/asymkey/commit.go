@@ -174,12 +174,18 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 	// an SSH instance key can never verify an OpenPGP signature, and exporting its path through gpg would only yield an empty key
 	if commitSignSettings := getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP); commitSignSettings != nil {
 		if commitVerification := verifyCommitSignByGPGSettings(ctx, commitSignSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
-			return commitVerification
+			if commitVerification.Reason != asymkey_model.BadSignature {
+				return commitVerification
+			}
+			defaultReason = commitVerification.Reason
 		}
 	}
 	if commitSignSettings := getGitGlobalCommitSignSettings(git.SigningKeyFormatOpenPGP); commitSignSettings != nil {
 		if commitVerification := verifyCommitSignByGPGSettings(ctx, commitSignSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
-			return commitVerification
+			if commitVerification.Reason != asymkey_model.BadSignature {
+				return commitVerification
+			}
+			defaultReason = commitVerification.Reason
 		}
 	}
 
@@ -414,7 +420,7 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 		}
 	}
 
-	if commitSignSettings := getInstanceCommitSignSettings(git.SigningKeyFormatOpenPGP); commitSignSettings != nil {
+	if commitSignSettings := getInstanceCommitSignSettings(git.SigningKeyFormatSSH); commitSignSettings != nil {
 		pubKeyContent, err := commitSignSettings.PublicKeyContent()
 		if err != nil {
 			log.Error("commitSignSettings.PublicKeyContent: %v", err)
