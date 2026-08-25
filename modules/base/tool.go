@@ -90,11 +90,6 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 	return code
 }
 
-// FileSize calculates the file size and generate user-friendly string.
-func FileSize(s int64) string {
-	return util.FormatBytes(uint64(s))
-}
-
 // StringsToInt64s converts a slice of string to a slice of int64.
 func StringsToInt64s(strs []string) ([]int64, error) {
 	if strs == nil {

@@ -88,7 +88,7 @@ func mailBodyFuncMap() template.FuncMap {
 
 		// time / number / format
 		"ShortSha": base.ShortSha,
-		"FileSize": base.FileSize,
+		"FileSize": util.FormatBytes,
 
 		// setting
 		"AppName": func() string {

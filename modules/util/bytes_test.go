@@ -11,8 +11,8 @@ import (
 )
 
 func TestBytes(t *testing.T) {
-	for value, expected := range map[uint64]string{
-		0: "0 B", 1023: "1023 B", 1 << 10: "1.0 KiB", 1<<20 - 1: "1024 KiB",
+	for value, expected := range map[int64]string{
+		-5: "-5 B", 0: "0 B", 1023: "1023 B", 1 << 10: "1.0 KiB", 1<<20 - 1: "1024 KiB",
 		5.5 * (1 << 30): "5.5 GiB", 1 << 60: "1.0 EiB",
 	} {
 		assert.Equal(t, expected, FormatBytes(value), value)

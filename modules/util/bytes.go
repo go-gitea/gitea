@@ -21,7 +21,7 @@ var bytesSizeTable = map[string]uint64{
 	"e": 1e18, "eb": 1e18, "ei": 1 << 60, "eib": 1 << 60,
 }
 
-func FormatBytes(size uint64) string {
+func FormatBytes(size int64) string {
 	if size < 10 {
 		return fmt.Sprintf("%d B", size)
 	}

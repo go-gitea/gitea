@@ -57,7 +57,7 @@ func newFuncMapWebPage() template.FuncMap {
 		// -----------------------------------------------------------------
 		// time / number / format
 		"ShortSha": base.ShortSha,
-		"FileSize": base.FileSize,
+		"FileSize": util.FormatBytes,
 		"CountFmt": countFmt,
 		"Sec2Hour": util.SecToHours,
 
