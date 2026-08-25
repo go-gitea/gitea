@@ -71,6 +71,11 @@ func CompareHeadRef(baseRepo, headRepo *repo_model.Repository, headBranch string
 	} else if baseRepo.OwnerID == headRepo.OwnerID /* same owner */ {
 		return headRepo.FullName() + ":" + headBranch
 	}
+	// not the same owner: if there can be multiple forks in one owner, we still need the full name
+	if setting.Repository.AllowForkIntoSameOwner {
+		return headRepo.FullName() + ":" + headBranch
+	}
+	// if there is only one fork in the different owner, we only need the owner's name for the head ref
 	return headRepo.OwnerName + ":" + headBranch
 }
 
