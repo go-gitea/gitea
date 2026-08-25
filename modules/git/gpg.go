@@ -54,11 +54,12 @@ func (css *CommitSignSettings) PublicKeyContent() (string, error) {
 var GlobalCommitSignSettings = util.OnceValue[*CommitSignSettings]{
 	Func: func() *CommitSignSettings {
 		ctx := context.Background()
-		css := &CommitSignSettings{Sign: true}
+		css := &CommitSignSettings{}
 
 		// all errors are ignored because the keys might not exist
-		value, _, _ := gitcmd.NewCommand("config", "--global", "--get", "commit.gpgsign").RunStdString(ctx)
-		css.Sign, _ = ParseBool(strings.TrimSpace(value))
+		// "--type=bool" resolves a valueless "commit.gpgsign" to true
+		value, _, _ := gitcmd.NewCommand("config", "--global", "--default", "false", "--type=bool", "--get", "commit.gpgsign").RunStdString(ctx)
+		css.Sign = strings.TrimSpace(value) == "true"
 
 		signingKey, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.signingkey").RunStdString(ctx)
 		css.KeyID = strings.TrimSpace(signingKey)
