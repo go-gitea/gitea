@@ -66,7 +66,7 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 
 // CompareHeadRef formats the head side of a compare link, "owner/repo:branch" is only needed when a fork can share its base repo's owner
 func CompareHeadRef(headRepo *repo_model.Repository, headBranch string) string {
-	return util.Iif(setting.Repository.AllowForkIntoSameOwner, headRepo.FullName(), headRepo.OwnerName) + ":" + headBranch
+	return headRepo.FullName() + ":" + headBranch
 }
 
 func (prc *PullRequestContext) MakeDefaultCompareLink(headBranch string) string {
