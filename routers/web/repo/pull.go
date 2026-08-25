@@ -31,7 +31,6 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
-	"gitea.dev/modules/graceful"
 	issue_template "gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -1158,7 +1157,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if pull_service.IsErrMergeConflicts(err) {
@@ -1225,12 +1224,13 @@ func MergePullRequest(ctx *context.Context) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
+	// FIXME: calling it here is wrong.
+	// 1. the ctx might have been canceled ("Merge" might take a very long time and the user closes their browser)
+	// 2. it is inconsistent with API/AutoMerge which all miss the call
 	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
 		ctx.ServerError("stopTimerIfAvailable", err)
 		return
 	}
-
-	log.Trace("Pull request merged: %d", pr.ID)
 
 	if deleteBranchAfterMerge {
 		deleteBranchAfterMergeAndFlashMessage(ctx, pr.ID)
