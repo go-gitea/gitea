@@ -27,13 +27,12 @@
 		data-preview-context="{{$previewContext}}"
 		{{if $mentionsLink}}data-mentions-url="{{$mentionsLink}}"{{end}}
 >
-	{{if ne $previewMode "none"}}
+
 	<div class="ui top tabular menu">
+		{{if ne $previewMode "none"}}
 		<a class="active item" data-tab-for="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
 		<a class="item" data-tab-for="markdown-previewer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "preview")}}</a>
-	</div>
-	{{end}}
-	<div class="ui tab active" data-tab-panel="markdown-writer">
+		{{end}}
 		<markdown-toolbar>
 			<div class="markdown-toolbar-group">
 				<md-header class="markdown-toolbar-button" level="1" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
@@ -69,6 +68,8 @@
 				{{end}}
 			</div>
 		</markdown-toolbar>
+	</div>
+	<div class="ui tab active" data-tab-panel="markdown-writer">
 		<text-expander keys=": @ #" multiword="#" suffix="">
 			<textarea class="markdown-text-editor"
 				{{if .TextareaName}}name="{{.TextareaName}}"{{end}} {{if .TextareaMaxLength}}maxlength="{{.TextareaMaxLength}}"{{end}}
