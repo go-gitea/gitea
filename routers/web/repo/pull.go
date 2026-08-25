@@ -1010,7 +1010,7 @@ func UpdatePullRequest(ctx *context.Context) {
 
 	// The update process should not be canceled by the user
 	// so we set the context to be a background context
-	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), issue.PullRequest, ctx.Doer, message, rebase); err != nil {
+	if err = pull_service.Update(issue.PullRequest, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
 			conflictError := err.(pull_service.ErrMergeConflicts)
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
