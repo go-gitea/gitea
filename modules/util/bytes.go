@@ -32,26 +32,18 @@ func FormatBytes(size int64) string {
 }
 
 func ParseBytes(value string) (uint64, error) {
-	lastDigit := strings.IndexFunc(value, func(r rune) bool {
-		return !unicode.IsDigit(r) && r != '.' && r != ','
-	})
-	if lastDigit < 0 {
-		lastDigit = len(value)
-	}
-
+	i := strings.IndexFunc(value, func(r rune) bool { return !unicode.IsDigit(r) && r != '.' && r != ',' })
+	lastDigit := Iif(i < 0, len(value), i)
 	parsed, err := strconv.ParseFloat(strings.ReplaceAll(value[:lastDigit], ",", ""), 64)
 	if err != nil {
 		return 0, err
 	}
-
-	suffix := strings.ToLower(strings.TrimSpace(value[lastDigit:]))
-	multiplier, ok := bytesSizeTable[suffix]
+	multiplier, ok := bytesSizeTable[strings.ToLower(strings.TrimSpace(value[lastDigit:]))]
 	if !ok {
-		return 0, fmt.Errorf("unhandled size name: %v", suffix)
+		return 0, fmt.Errorf("unhandled size name in %q", value)
 	}
-	parsed *= float64(multiplier)
-	if parsed >= math.MaxUint64 {
-		return 0, fmt.Errorf("too large: %v", value)
+	if parsed *= float64(multiplier); parsed >= math.MaxUint64 {
+		return 0, fmt.Errorf("size too large: %q", value)
 	}
 	return uint64(parsed), nil
 }

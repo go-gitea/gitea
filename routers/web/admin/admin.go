@@ -14,7 +14,6 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/httplib"
@@ -23,6 +22,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/updatechecker"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/cron"
@@ -91,31 +91,31 @@ func updateSystemStatus() {
 	runtime.ReadMemStats(m)
 	sysStatus.NumGoroutine = runtime.NumGoroutine()
 
-	sysStatus.MemAllocated = base.FileSize(int64(m.Alloc))
-	sysStatus.MemTotal = base.FileSize(int64(m.TotalAlloc))
-	sysStatus.MemSys = base.FileSize(int64(m.Sys))
+	sysStatus.MemAllocated = util.FormatBytes(int64(m.Alloc))
+	sysStatus.MemTotal = util.FormatBytes(int64(m.TotalAlloc))
+	sysStatus.MemSys = util.FormatBytes(int64(m.Sys))
 	sysStatus.Lookups = m.Lookups
 	sysStatus.MemMallocs = m.Mallocs
 	sysStatus.MemFrees = m.Frees
 
-	sysStatus.HeapAlloc = base.FileSize(int64(m.HeapAlloc))
-	sysStatus.HeapSys = base.FileSize(int64(m.HeapSys))
-	sysStatus.HeapIdle = base.FileSize(int64(m.HeapIdle))
-	sysStatus.HeapInuse = base.FileSize(int64(m.HeapInuse))
-	sysStatus.HeapReleased = base.FileSize(int64(m.HeapReleased))
+	sysStatus.HeapAlloc = util.FormatBytes(int64(m.HeapAlloc))
+	sysStatus.HeapSys = util.FormatBytes(int64(m.HeapSys))
+	sysStatus.HeapIdle = util.FormatBytes(int64(m.HeapIdle))
+	sysStatus.HeapInuse = util.FormatBytes(int64(m.HeapInuse))
+	sysStatus.HeapReleased = util.FormatBytes(int64(m.HeapReleased))
 	sysStatus.HeapObjects = m.HeapObjects
 
-	sysStatus.StackInuse = base.FileSize(int64(m.StackInuse))
-	sysStatus.StackSys = base.FileSize(int64(m.StackSys))
-	sysStatus.MSpanInuse = base.FileSize(int64(m.MSpanInuse))
-	sysStatus.MSpanSys = base.FileSize(int64(m.MSpanSys))
-	sysStatus.MCacheInuse = base.FileSize(int64(m.MCacheInuse))
-	sysStatus.MCacheSys = base.FileSize(int64(m.MCacheSys))
-	sysStatus.BuckHashSys = base.FileSize(int64(m.BuckHashSys))
-	sysStatus.GCSys = base.FileSize(int64(m.GCSys))
-	sysStatus.OtherSys = base.FileSize(int64(m.OtherSys))
+	sysStatus.StackInuse = util.FormatBytes(int64(m.StackInuse))
+	sysStatus.StackSys = util.FormatBytes(int64(m.StackSys))
+	sysStatus.MSpanInuse = util.FormatBytes(int64(m.MSpanInuse))
+	sysStatus.MSpanSys = util.FormatBytes(int64(m.MSpanSys))
+	sysStatus.MCacheInuse = util.FormatBytes(int64(m.MCacheInuse))
+	sysStatus.MCacheSys = util.FormatBytes(int64(m.MCacheSys))
+	sysStatus.BuckHashSys = util.FormatBytes(int64(m.BuckHashSys))
+	sysStatus.GCSys = util.FormatBytes(int64(m.GCSys))
+	sysStatus.OtherSys = util.FormatBytes(int64(m.OtherSys))
 
-	sysStatus.NextGC = base.FileSize(int64(m.NextGC))
+	sysStatus.NextGC = util.FormatBytes(int64(m.NextGC))
 	sysStatus.LastGCTime = time.Unix(0, int64(m.LastGC)).Format(time.RFC3339)
 	sysStatus.PauseTotalNs = fmt.Sprintf("%.1fs", float64(m.PauseTotalNs)/1000/1000/1000)
 	sysStatus.PauseNs = fmt.Sprintf("%.3fs", float64(m.PauseNs[(m.NumGC+255)%256])/1000/1000/1000)
