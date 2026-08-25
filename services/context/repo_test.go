@@ -11,6 +11,6 @@ import (
 )
 
 func TestCompareHeadRef(t *testing.T) {
-	headRepo := \&repo_model.Repository{OwnerName: "user", Name: "fork"}
+	headRepo := &repo_model.Repository{OwnerName: "user", Name: "fork"}
 	assert.Equal(t, "user/fork:my-branch", CompareHeadRef(headRepo, "my-branch"))
 }
