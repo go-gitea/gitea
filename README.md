@@ -14,7 +14,7 @@
 ## Purpose
 
 The goal of Gitea is to make the easiest, fastest, and most painless way of
-setting up a self-hosted all-in-one software development service,
+setting up  self-hosted all-in-one software development service,
 including Git hosting, code management, code review, issue tracking, project kanban, wiki,
 team collaboration, package registry and CI/CD which can reuse GitHub Actions.
 
