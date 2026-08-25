@@ -20659,7 +20659,7 @@
         "tags": [
           "search"
         ],
-        "summary": "Search for repositories",
+        "summary": "Search for code",
         "operationId": "GlobalSearch",
         "parameters": [
           {
@@ -20669,9 +20669,12 @@
             "in": "query"
           },
           {
-            "type": "string",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "collectionFormat": "multi",
-            "description": "multiple repository names to search in",
+            "description": "search only in the repositories with the given full names",
             "name": "repo",
             "in": "query"
           },
@@ -20683,13 +20686,12 @@
               "regexp"
             ],
             "type": "string",
-            "description": "include search of keyword within repository description",
+            "description": "search mode",
             "name": "mode",
             "in": "query"
           },
           {
-            "type": "integer",
-            "format": "int64",
+            "type": "string",
             "description": "filter by programming language",
             "name": "language",
             "in": "query"
@@ -26251,14 +26253,9 @@
     "CodeSearchResult": {
       "type": "object",
       "properties": {
-        "Color": {
-          "type": "string"
-        },
-        "Lines": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/CodeSearchResultLine"
-          }
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
         },
         "html_url": {
           "type": "string",
@@ -26267,6 +26264,13 @@
         "language": {
           "type": "string",
           "x-go-name": "Language"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultLine"
+          },
+          "x-go-name": "Lines"
         },
         "name": {
           "type": "string",
@@ -26288,24 +26292,27 @@
           "x-go-name": "URL"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
+      "x-go-package": "gitea.dev/modules/structs"
     },
     "CodeSearchResultLanguage": {
       "description": "CodeSearchResultLanguage result of top languages count in search results",
       "type": "object",
       "properties": {
-        "Color": {
-          "type": "string"
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
         },
-        "Count": {
+        "count": {
           "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "x-go-name": "Count"
         },
-        "Language": {
-          "type": "string"
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
+      "x-go-package": "gitea.dev/modules/structs"
     },
     "CodeSearchResultLine": {
       "type": "object",
@@ -26320,7 +26327,7 @@
           "x-go-name": "RawContent"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
+      "x-go-package": "gitea.dev/modules/structs"
     },
     "CodeSearchResults": {
       "type": "object",
@@ -26345,7 +26352,7 @@
           "x-go-name": "TotalCount"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
+      "x-go-package": "gitea.dev/modules/structs"
     },
     "CombinedStatus": {
       "description": "CombinedStatus holds the combined state of several statuses for a single commit",

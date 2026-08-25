@@ -228,6 +228,16 @@
           }
         }
       },
+      "CodeSearchResults": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CodeSearchResults"
+            }
+          }
+        },
+        "description": "CodeSearchResults"
+      },
       "CombinedStatus": {
         "content": {
           "application/json": {
@@ -3199,6 +3209,112 @@
             "description": "The status of the file change (added, modified, deleted, etc.)",
             "type": "string",
             "x-go-name": "Status"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchResult": {
+        "properties": {
+          "color": {
+            "type": "string",
+            "x-go-name": "Color"
+          },
+          "html_url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "HTMLURL"
+          },
+          "language": {
+            "type": "string",
+            "x-go-name": "Language"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/CodeSearchResultLine"
+            },
+            "type": "array",
+            "x-go-name": "Lines"
+          },
+          "name": {
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "path": {
+            "type": "string",
+            "x-go-name": "Path"
+          },
+          "repository": {
+            "$ref": "#/components/schemas/Repository"
+          },
+          "sha": {
+            "type": "string",
+            "x-go-name": "Sha"
+          },
+          "url": {
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchResultLanguage": {
+        "description": "CodeSearchResultLanguage result of top languages count in search results",
+        "properties": {
+          "color": {
+            "type": "string",
+            "x-go-name": "Color"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Count"
+          },
+          "language": {
+            "type": "string",
+            "x-go-name": "Language"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchResultLine": {
+        "properties": {
+          "line_number": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "LineNumber"
+          },
+          "raw_content": {
+            "type": "string",
+            "x-go-name": "RawContent"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchResults": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CodeSearchResult"
+            },
+            "type": "array",
+            "x-go-name": "Items"
+          },
+          "languages": {
+            "items": {
+              "$ref": "#/components/schemas/CodeSearchResultLanguage"
+            },
+            "type": "array",
+            "x-go-name": "Languages"
+          },
+          "total_count": {
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "TotalCount"
           }
         },
         "type": "object",
@@ -33312,6 +33428,82 @@
         "summary": "Get a repository by id",
         "tags": [
           "repository"
+        ]
+      }
+    },
+    "/search/code": {
+      "get": {
+        "operationId": "GlobalSearch",
+        "parameters": [
+          {
+            "description": "keyword",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "search only in the repositories with the given full names",
+            "in": "query",
+            "name": "repo",
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "search mode",
+            "in": "query",
+            "name": "mode",
+            "schema": {
+              "enum": [
+                "exact",
+                "words",
+                "fuzzy",
+                "regexp"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "filter by programming language",
+            "in": "query",
+            "name": "language",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CodeSearchResults"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Search for code",
+        "tags": [
+          "search"
         ]
       }
     },

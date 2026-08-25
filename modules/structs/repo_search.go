@@ -5,9 +5,9 @@ package structs
 
 // CodeSearchResultLanguage result of top languages count in search results
 type CodeSearchResultLanguage struct {
-	Language string
-	Color    string
-	Count    int
+	Language string `json:"language"`
+	Color    string `json:"color"`
+	Count    int    `json:"count"`
 }
 
 type CodeSearchResultLine struct {
@@ -16,15 +16,15 @@ type CodeSearchResultLine struct {
 }
 
 type CodeSearchResult struct {
-	Name       string `json:"name"`
-	Path       string `json:"path"`
-	Language   string `json:"language"`
-	Color      string
-	Lines      []CodeSearchResultLine
-	Sha        string      `json:"sha"`
-	URL        string      `json:"url"`
-	HTMLURL    string      `json:"html_url"`
-	Repository *Repository `json:"repository"`
+	Name       string                 `json:"name"`
+	Path       string                 `json:"path"`
+	Language   string                 `json:"language"`
+	Color      string                 `json:"color"`
+	Lines      []CodeSearchResultLine `json:"lines"`
+	Sha        string                 `json:"sha"`
+	URL        string                 `json:"url"`
+	HTMLURL    string                 `json:"html_url"`
+	Repository *Repository            `json:"repository"`
 }
 
 type CodeSearchResults struct {

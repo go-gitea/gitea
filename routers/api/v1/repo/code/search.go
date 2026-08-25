@@ -8,27 +8,26 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"slices"
 
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/indexer/code"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // GlobalSearch search codes in all accessible repositories with the given keyword.
 func GlobalSearch(ctx *context.APIContext) {
 	// swagger:operation GET /search/code search GlobalSearch
 	// ---
-	// summary: Search for repositories
+	// summary: Search for code
 	// produces:
 	// - application/json
 	// parameters:
@@ -38,19 +37,20 @@ func GlobalSearch(ctx *context.APIContext) {
 	//   type: string
 	// - name: repo
 	//   in: query
-	//   description: multiple repository names to search in
-	//   type: string
+	//   description: search only in the repositories with the given full names
+	//   type: array
 	//   collectionFormat: multi
+	//   items:
+	//     type: string
 	// - name: mode
 	//   in: query
-	//   description: include search of keyword within repository description
+	//   description: search mode
 	//   type: string
 	//   enum: [exact, words, fuzzy, regexp]
 	// - name: language
 	//   in: query
 	//   description: filter by programming language
-	//   type: integer
-	//   format: int64
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -76,18 +76,17 @@ func GlobalSearch(ctx *context.APIContext) {
 		return
 	}
 
-	var (
-		accessibleRepoIDs []int64
-		err               error
-		isAdmin           bool
-	)
-	if ctx.Doer != nil {
-		isAdmin = ctx.Doer.IsAdmin
+	searchUser := ctx.Doer
+	if ctx.PublicOnly {
+		searchUser = nil
 	}
+	isAdmin := searchUser != nil && searchUser.IsAdmin
 
 	// guest user or non-admin user
-	if ctx.Doer == nil || !isAdmin {
-		accessibleRepoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
+	var accessibleRepoIDs []int64
+	var err error
+	if !isAdmin {
+		accessibleRepoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, searchUser)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -95,25 +94,33 @@ func GlobalSearch(ctx *context.APIContext) {
 	}
 
 	repoNames := ctx.FormStrings("repo")
-	searchRepoIDs := make([]int64, 0, len(repoNames))
 	if len(repoNames) > 0 {
-		var err error
-		searchRepoIDs, err = repo_model.GetRepositoriesIDsByFullNames(ctx, repoNames)
+		searchRepoIDs, err := repo_model.GetRepositoriesIDsByFullNames(ctx, repoNames)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-	}
-	if len(searchRepoIDs) > 0 {
-		for i := 0; i < len(searchRepoIDs); i++ {
-			if !slices.Contains(accessibleRepoIDs, searchRepoIDs[i]) {
-				searchRepoIDs = append(searchRepoIDs[:i], searchRepoIDs[i+1:]...)
-				i--
+
+		if !isAdmin {
+			accessibleSet := make(container.Set[int64], len(accessibleRepoIDs))
+			for _, repoID := range accessibleRepoIDs {
+				accessibleSet.Add(repoID)
 			}
+			filteredRepoIDs := make([]int64, 0, len(searchRepoIDs))
+			for _, repoID := range searchRepoIDs {
+				if accessibleSet.Contains(repoID) {
+					filteredRepoIDs = append(filteredRepoIDs, repoID)
+				}
+			}
+			searchRepoIDs = filteredRepoIDs
 		}
-	}
-	if len(searchRepoIDs) > 0 {
+
 		accessibleRepoIDs = searchRepoIDs
+	}
+	if !isAdmin && len(accessibleRepoIDs) == 0 {
+		ctx.SetTotalCountHeader(0)
+		ctx.JSON(http.StatusOK, structs.CodeSearchResults{Items: []structs.CodeSearchResult{}})
+		return
 	}
 
 	searchMode := indexer.SearchModeType(ctx.FormString("mode"))
@@ -158,7 +165,7 @@ func GlobalSearch(ctx *context.APIContext) {
 
 	permissions := make(map[int64]access_model.Permission)
 	for _, repo := range repos {
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, repo, searchUser)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -182,6 +189,7 @@ func GlobalSearch(ctx *context.APIContext) {
 			URL:        apiURL,
 			HTMLURL:    htmlURL,
 			Language:   result.Language,
+			Color:      result.Color,
 			Repository: convert.ToRepo(ctx, repo, permissions[repo.ID]),
 		}
 		for _, line := range result.Lines {

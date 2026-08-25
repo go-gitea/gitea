@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	code_indexer "gitea.dev/modules/indexer/code"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,4 +54,97 @@ func TestAPISearchCodeNotLogin(t *testing.T) {
 	assert.Len(t, apiCodeSearchResults.Languages, 1)
 	assert.Equal(t, "Markdown", apiCodeSearchResults.Languages[0].Language)
 	assert.Equal(t, 1, apiCodeSearchResults.Languages[0].Count)
+}
+
+func TestAPISearchCodeRepoFilter(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	assert.NoError(t, err)
+	repo2, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo2")
+	assert.NoError(t, err)
+	code_indexer.UpdateRepoIndexer(repo1)
+	code_indexer.UpdateRepoIndexer(repo2)
+
+	req := NewRequest(t, "GET", "/api/v1/search/code?q=Description&repo=user2/repo1")
+	resp := MakeRequest(t, req, http.StatusOK)
+	var results api.CodeSearchResults
+	DecodeJSON(t, resp, &results)
+	assert.Equal(t, int64(1), results.TotalCount)
+	assert.Len(t, results.Items, 1)
+	assert.Equal(t, "README.md", results.Items[0].Path)
+
+	req = NewRequest(t, "GET", "/api/v1/search/code?q=Description&repo=user2/repo2")
+	resp = MakeRequest(t, req, http.StatusOK)
+	results = api.CodeSearchResults{}
+	DecodeJSON(t, resp, &results)
+	assert.Zero(t, results.TotalCount)
+	assert.Empty(t, results.Items)
+
+	req = NewRequest(t, "GET", "/api/v1/search/code?q=Description&repo=user2/repo1&repo=user2/repo2")
+	resp = MakeRequest(t, req, http.StatusOK)
+	results = api.CodeSearchResults{}
+	DecodeJSON(t, resp, &results)
+	assert.Equal(t, int64(1), results.TotalCount)
+	assert.Len(t, results.Items, 1)
+
+	req = NewRequest(t, "GET", "/api/v1/search/code?q=Description&repo=invalid")
+	resp = MakeRequest(t, req, http.StatusOK)
+	results = api.CodeSearchResults{}
+	DecodeJSON(t, resp, &results)
+	assert.Zero(t, results.TotalCount)
+	assert.Empty(t, results.Items)
+}
+
+func TestAPISearchCodeAdminRepoFilter(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	assert.NoError(t, err)
+	repo2, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo2")
+	assert.NoError(t, err)
+	code_indexer.UpdateRepoIndexer(repo1)
+	code_indexer.UpdateRepoIndexer(repo2)
+
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadRepository)
+	req := NewRequest(t, "GET", "/api/v1/search/code?q=Description&repo=user2/repo2").
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var results api.CodeSearchResults
+	DecodeJSON(t, resp, &results)
+	assert.Zero(t, results.TotalCount)
+	assert.Empty(t, results.Items)
+}
+
+func TestAPISearchCodePublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	assert.NoError(t, err)
+	repo2, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo2")
+	assert.NoError(t, err)
+	code_indexer.UpdateRepoIndexer(repo1)
+	code_indexer.UpdateRepoIndexer(repo2)
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	req := NewRequest(t, "GET", "/api/v1/search/code?q=home+page").
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var results api.CodeSearchResults
+	DecodeJSON(t, resp, &results)
+	assert.Equal(t, int64(1), results.TotalCount)
+	assert.Len(t, results.Items, 1)
+	assert.Equal(t, "Home.md", results.Items[0].Path)
+
+	publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", "/api/v1/search/code?q=home+page").
+		AddTokenAuth(publicOnlyToken)
+	resp = MakeRequest(t, req, http.StatusOK)
+
+	results = api.CodeSearchResults{}
+	DecodeJSON(t, resp, &results)
+	assert.Zero(t, results.TotalCount)
+	assert.Empty(t, results.Items)
 }

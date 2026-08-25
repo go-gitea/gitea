@@ -28,7 +28,7 @@ type Result struct {
 type ResultLine struct {
 	Num        int
 	RawContent string // Raw content of the line
-	// FormattedContent is the HTML formatted content of the line, it will only be set if Hightlight is true
+	// FormattedContent is the HTML formatted content of the line, it will only be set if Highlight is true
 	FormattedContent template.HTML
 }
 

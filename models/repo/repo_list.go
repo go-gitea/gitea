@@ -838,12 +838,17 @@ func GetRepositoriesIDsByFullNames(ctx context.Context, fullRepoNames []string) 
 	}
 
 	cond := builder.NewCond()
+	hasValidRepoName := false
 	for _, name := range fullRepoNames {
 		ownerName, repoName, ok := strings.Cut(name, "/")
 		if !ok {
 			continue
 		}
+		hasValidRepoName = true
 		cond = cond.Or(builder.Eq{"name": repoName, "owner_name": ownerName})
+	}
+	if !hasValidRepoName {
+		return []int64{}, nil
 	}
 
 	repoIDs := make([]int64, 0, len(fullRepoNames))
