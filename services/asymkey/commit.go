@@ -71,6 +71,7 @@ func getInstanceCommitSignSettings(fmt string) *git.CommitSignSettings {
 		return nil
 	}
 	return &git.CommitSignSettings{
+		Sign:   true,
 		Name:   setting.Repository.Signing.SigningName,
 		Email:  setting.Repository.Signing.SigningEmail,
 		Format: fmt,
