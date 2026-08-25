@@ -38,7 +38,6 @@ import (
 	"gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
 	feed_service "gitea.dev/services/feed"
-	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
@@ -581,8 +580,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
-
-	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.FormString("RepoLink"))
 
 	if err := issues.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("issues.LoadAttributes", err)

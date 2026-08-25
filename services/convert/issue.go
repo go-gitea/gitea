@@ -54,7 +54,6 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Title:       issue.Title,
 		Body:        issue.Content,
 		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
-		Ref:         issue.Ref,
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
 		Comments:    issue.NumComments,

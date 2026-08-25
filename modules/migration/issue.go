@@ -14,7 +14,6 @@ type Issue struct {
 	PosterEmail  string            `yaml:"poster_email" json:"poster_email"`
 	Title        string            `json:"title"`
 	Content      string            `json:"content"`
-	Ref          string            `json:"ref"`
 	Milestone    string            `json:"milestone"`
 	State        string            `json:"state"` // closed, open
 	IsLocked     bool              `yaml:"is_locked" json:"is_locked"`

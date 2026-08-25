@@ -15,7 +15,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/references"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
@@ -215,34 +214,6 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 			return fmt.Errorf("createComment: %w", err)
 		}
 		return issue.AddCrossReferences(ctx, doer, true)
-	})
-}
-
-// ChangeIssueRef changes the branch of this issue, as the given user.
-func ChangeIssueRef(ctx context.Context, issue *Issue, doer *user_model.User, oldRef string) (err error) {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err = UpdateIssueCols(ctx, issue, "ref"); err != nil {
-			return fmt.Errorf("updateIssueCols: %w", err)
-		}
-
-		if err = issue.LoadRepo(ctx); err != nil {
-			return fmt.Errorf("loadRepo: %w", err)
-		}
-		oldRefFriendly := strings.TrimPrefix(oldRef, git.BranchPrefix)
-		newRefFriendly := strings.TrimPrefix(issue.Ref, git.BranchPrefix)
-
-		opts := &CreateCommentOptions{
-			Type:   CommentTypeChangeIssueRef,
-			Doer:   doer,
-			Repo:   issue.Repo,
-			Issue:  issue,
-			OldRef: oldRefFriendly,
-			NewRef: newRefFriendly,
-		}
-		if _, err = CreateComment(ctx, opts); err != nil {
-			return fmt.Errorf("createComment: %w", err)
-		}
-		return nil
 	})
 }
 

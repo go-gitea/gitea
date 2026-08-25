@@ -1347,7 +1347,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/deadline", repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
-				m.Post("/ref", repo.UpdateIssueRef)
 				m.Post("/pin", reqRepoAdmin, repo.IssuePinOrUnpin)
 				m.Post("/viewed-files", repo.UpdateViewedFiles)
 				m.Group("/dependency", func() {

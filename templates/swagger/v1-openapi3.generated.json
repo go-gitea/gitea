@@ -4211,10 +4211,6 @@
             "type": "array",
             "x-go-name": "Projects"
           },
-          "ref": {
-            "type": "string",
-            "x-go-name": "Ref"
-          },
           "title": {
             "type": "string",
             "x-go-name": "Title"
@@ -5592,10 +5588,6 @@
             },
             "type": "array",
             "x-go-name": "Projects"
-          },
-          "ref": {
-            "type": "string",
-            "x-go-name": "Ref"
           },
           "state": {
             "type": "string",
@@ -7215,10 +7207,6 @@
           "pull_request": {
             "$ref": "#/components/schemas/PullRequestMeta"
           },
-          "ref": {
-            "type": "string",
-            "x-go-name": "Ref"
-          },
           "repository": {
             "$ref": "#/components/schemas/RepositoryMeta"
           },
@@ -7437,10 +7425,6 @@
           "name": {
             "type": "string",
             "x-go-name": "Name"
-          },
-          "ref": {
-            "type": "string",
-            "x-go-name": "Ref"
           },
           "title": {
             "type": "string",

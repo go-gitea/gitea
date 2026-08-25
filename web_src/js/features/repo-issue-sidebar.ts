@@ -9,33 +9,6 @@ import {showTemporaryTooltip} from '../modules/tippy.ts';
 
 const {appSubUrl} = window.config;
 
-function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
-  // TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
-  const elSelectBranch = elSidebar.querySelector('.ui.dropdown.select-branch.branch-selector-dropdown');
-  if (!elSelectBranch) return;
-  const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
-  const elBranchMenu = elSelectBranch.querySelector('.reference-list-menu')!;
-  queryElems(elBranchMenu, '.item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
-    e.preventDefault();
-    const selectedValue = this.getAttribute('data-id')!; // eg: "refs/heads/my-branch"
-    const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
-    if (urlUpdateIssueRef) {
-      // for existing issue, send request to update issue ref, and reload page
-      try {
-        await POST(urlUpdateIssueRef, {data: new URLSearchParams({ref: selectedValue})});
-        window.location.reload();
-      } catch (error) {
-        console.error(error);
-      }
-    } else {
-      // for new issue, only update UI&form, do not send request/reload
-      const selectedHiddenSelector = this.getAttribute('data-id-selector')!;
-      document.querySelector<HTMLInputElement>(selectedHiddenSelector)!.value = selectedValue;
-      elSelectBranch.querySelector('.text-branch-name')!.textContent = selectedText;
-    }
-  }));
-}
-
 function initRepoIssueDue(elSidebar: HTMLElement) {
   const form = elSidebar.querySelector<HTMLFormElement>('.issue-due-form');
   if (!form) return;
@@ -108,7 +81,6 @@ export function initRepoPullRequestAllowMaintainerEdit(elSidebar: HTMLElement) {
 
 export function initRepoIssueSidebar() {
   registerGlobalInitFunc('initRepoIssueSidebar', (elSidebar) => {
-    initRepoIssueBranchSelector(elSidebar);
     initRepoIssueDue(elSidebar);
     initRepoIssueSidebarDependency(elSidebar);
     initRepoPullRequestAllowMaintainerEdit(elSidebar);

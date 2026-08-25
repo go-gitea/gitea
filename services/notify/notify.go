@@ -258,13 +258,6 @@ func IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_
 	}
 }
 
-// IssueChangeRef notifies change reference to notifiers
-func IssueChangeRef(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldRef string) {
-	for _, notifier := range notifiers {
-		notifier.IssueChangeRef(ctx, doer, issue, oldRef)
-	}
-}
-
 // IssueChangeLabels notifies change labels to notifiers
 func IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,

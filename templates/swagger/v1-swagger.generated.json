@@ -27178,10 +27178,6 @@
           },
           "x-go-name": "Projects"
         },
-        "ref": {
-          "type": "string",
-          "x-go-name": "Ref"
-        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -28582,10 +28578,6 @@
             "format": "int64"
           },
           "x-go-name": "Projects"
-        },
-        "ref": {
-          "type": "string",
-          "x-go-name": "Ref"
         },
         "state": {
           "type": "string",
@@ -30214,10 +30206,6 @@
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
-        "ref": {
-          "type": "string",
-          "x-go-name": "Ref"
-        },
         "repository": {
           "$ref": "#/definitions/RepositoryMeta"
         },
@@ -30440,10 +30428,6 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
-        },
-        "ref": {
-          "type": "string",
-          "x-go-name": "Ref"
         },
         "title": {
           "type": "string",
