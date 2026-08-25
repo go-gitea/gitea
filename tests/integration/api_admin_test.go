@@ -204,28 +204,16 @@ func TestAPIEditUser(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.Equal(t, fullNameToChange, user2.FullName)
 
-	empty := ""
-	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		LoginName: "user2",
-		SourceID:  0,
-		Email:     &empty,
-	}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{SourceID: 0, Email: new("")}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusBadRequest)
 
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
-	assert.Equal(t, "e-mail invalid [email: ]", errMap["message"].(string))
+	assert.Equal(t, "e-mail invalid [email: ]", errMap["message"])
 
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.False(t, user2.IsRestricted)
-	bTrue := true
-	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		// required
-		LoginName: "user2",
-		SourceID:  0,
-		// to change
-		Restricted: &bTrue,
-	}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{Restricted: new(true)}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.True(t, user2.IsRestricted)
@@ -301,10 +289,10 @@ func TestAPICron(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, "29", resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, "30", resp.Header().Get("X-Total-Count"))
 
 		crons := DecodeJSON(t, resp, []api.Cron{})
-		assert.Len(t, crons, 29)
+		assert.Len(t, crons, 30)
 	})
 
 	t.Run("Execute", func(t *testing.T) {
@@ -361,24 +349,14 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 
 	adminUsername := "user1"
 	token := getUserToken(t, adminUsername, auth_model.AccessTokenScopeWriteAdmin)
-	urlStr := "/api/v1/admin/users/" + "user2"
+	urlStr := "/api/v1/admin/users/user2"
 
-	newEmail := "user2@example1.com"
-	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		LoginName: "user2",
-		SourceID:  0,
-		Email:     &newEmail,
-	}).AddTokenAuth(token)
+	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{Email: new("user2@example1.com")}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusBadRequest)
 	errMap := make(map[string]string)
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &errMap))
 	assert.Equal(t, "the domain of user email user2@example1.com conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", errMap["message"])
 
-	originalEmail := "user2@example.org"
-	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
-		LoginName: "user2",
-		SourceID:  0,
-		Email:     &originalEmail,
-	}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{Email: new("user2@example.org")}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 }

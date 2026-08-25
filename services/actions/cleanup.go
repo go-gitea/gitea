@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -54,7 +53,7 @@ func cleanExpiredArtifacts(taskCtx context.Context) error {
 	if err != nil {
 		return err
 	}
-	log.Info("Found %d expired artifacts", len(artifacts))
+	log.Info("Found %d expired Actions artifacts", len(artifacts))
 	for _, artifact := range artifacts {
 		if err := actions_model.SetArtifactExpired(taskCtx, artifact.ID); err != nil {
 			log.Error("Cannot set artifact %d expired: %v", artifact.ID, err)
@@ -64,7 +63,7 @@ func cleanExpiredArtifacts(taskCtx context.Context) error {
 			log.Error("Cannot delete artifact %d: %v", artifact.ID, err)
 			// go on
 		}
-		log.Info("Artifact %d is deleted (due to expiration)", artifact.ID)
+		log.Info("Actions artifact %d is deleted (due to expiration)", artifact.ID)
 	}
 	return nil
 }
@@ -78,7 +77,7 @@ func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
 		if err != nil {
 			return err
 		}
-		log.Info("Found %d artifacts pending deletion", len(artifacts))
+		log.Info("Found %d Actions artifacts pending deletion", len(artifacts))
 		for _, artifact := range artifacts {
 			if err := actions_model.SetArtifactDeleted(taskCtx, artifact.ID); err != nil {
 				log.Error("Cannot set artifact %d deleted: %v", artifact.ID, err)
@@ -88,10 +87,10 @@ func cleanNeedDeleteArtifacts(taskCtx context.Context) error {
 				log.Error("Cannot delete artifact %d: %v", artifact.ID, err)
 				// go on
 			}
-			log.Info("Artifact %d is deleted (due to pending deletion)", artifact.ID)
+			log.Info("Actions artifact %d is deleted (due to pending deletion)", artifact.ID)
 		}
 		if len(artifacts) < deleteArtifactBatchSize {
-			log.Debug("No more artifacts pending deletion")
+			log.Debug("No more Actions artifacts pending deletion")
 			break
 		}
 	}
@@ -109,6 +108,10 @@ func removeTaskLog(ctx context.Context, task *actions_model.ActionTask) {
 
 // CleanupExpiredLogs removes logs which are older than the configured retention time
 func CleanupExpiredLogs(ctx context.Context) error {
+	if setting.Actions.LogRetentionDays <= 0 {
+		return nil
+	}
+
 	olderThan := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.LogRetentionDays) * 24 * time.Hour)
 
 	count := 0
@@ -134,7 +137,7 @@ func CleanupExpiredLogs(ctx context.Context) error {
 		}
 	}
 
-	log.Info("Removed %d logs", count)
+	log.Info("Removed %d expired Actions logs", count)
 	return nil
 }
 
@@ -146,13 +149,8 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 		Where(builder.Eq{"`action_runner`.`ephemeral`": true}).
 		And(builder.NotIn("`action_task`.`status`", actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked, actions_model.StatusCancelling))
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
-	res, err := db.GetEngine(ctx).Exec(b)
-	if err != nil {
-		return fmt.Errorf("find runners: %w", err)
-	}
-	affected, _ := res.RowsAffected()
-	log.Info("Removed %d runners", affected)
-	return nil
+	_, err := db.GetEngine(ctx).Exec(b)
+	return err
 }
 
 // CleanupEphemeralRunnersByPickedTaskOfRepo removes all ephemeral runners that have active/finished tasks on the given repository
@@ -162,19 +160,15 @@ func CleanupEphemeralRunnersByPickedTaskOfRepo(ctx context.Context, repoID int64
 		Join("INNER", "`action_task`", "`action_task`.`runner_id` = `action_runner`.`id`").
 		Where(builder.And(builder.Eq{"`action_runner`.`ephemeral`": true}, builder.Eq{"`action_task`.`repo_id`": repoID}))
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
-	res, err := db.GetEngine(ctx).Exec(b)
-	if err != nil {
-		return fmt.Errorf("find runners: %w", err)
-	}
-	affected, _ := res.RowsAffected()
-	log.Info("Removed %d runners", affected)
-	return nil
+	_, err := db.GetEngine(ctx).Exec(b)
+	return err
 }
 
 // DeleteRun deletes workflow run, including all logs and artifacts.
 func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	if !run.Status.IsDone() {
-		return errors.New("run is not done")
+		// callers guarantee a terminal status, but in production delete it anyway
+		setting.PanicInDevOrTesting("DeleteRun called on non-terminal run %d with status %s", run.ID, run.Status)
 	}
 
 	repoID := run.RepoID
@@ -239,10 +233,10 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// TODO: Deleting task records could break current ephemeral runner implementation. This is a temporary workaround suggested by ChristopherHX.
-		// Since you delete potentially the only task an ephemeral act_runner has ever run, please delete the affected runners first.
+		// Since you delete potentially the only task an ephemeral runner has ever run, please delete the affected runners first.
 		// one of
 		//    call cleanup ephemeral runners first
-		//    delete affected ephemeral act_runners
+		//    delete affected ephemeral runners
 		//    I would make ephemeral runners fully delete directly before formally finishing the task
 		//
 		// See also: https://github.com/go-gitea/gitea/pull/34337#issuecomment-2862222788
@@ -262,9 +256,70 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	}
 	for _, art := range artifacts {
 		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
+			// don't return any error since the database records have been deleted
 			log.Error("remove artifact file %q: %v", art.StoragePath, err)
 		}
 	}
 
 	return nil
+}
+
+var cleanupOldRunsBatchSize = 50
+
+// CleanupOldRuns deletes completed runs older than RUN_RETENTION_DAYS, along with everything under them.
+func CleanupOldRuns(ctx context.Context) error {
+	if setting.Actions.RunRetentionDays <= 0 {
+		return nil
+	}
+
+	olderThan := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.RunRetentionDays) * 24 * time.Hour)
+
+	doneStatuses := []actions_model.Status{
+		actions_model.StatusSuccess,
+		actions_model.StatusFailure,
+		actions_model.StatusCancelled,
+		actions_model.StatusSkipped,
+	}
+
+	total, err := cleanupOldRuns(ctx, olderThan, doneStatuses, DeleteRun)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Deleted %d old Actions runs before %s", total, olderThan.Format(time.RFC3339))
+	return nil
+}
+
+func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatuses []actions_model.Status, deleteRun func(context.Context, *actions_model.ActionRun) error) (int, error) {
+	total := 0
+	failed := container.Set[int64]{} // skipping these stops the outer loop refetching them forever
+	for {
+		runs, err := actions_model.FindOldestRuns(ctx, doneStatuses, olderThan, cleanupOldRunsBatchSize)
+		if err != nil {
+			return total, fmt.Errorf("FindOldestRuns: %w", err)
+		}
+
+		realDeleted := 0
+		for _, run := range runs {
+			if failed.Contains(run.ID) {
+				continue
+			}
+			if err := deleteRun(ctx, run); err != nil {
+				setting.PanicInDevOrTesting("failed to delete old action run %d: %v", run.ID, err)
+				failed.Add(run.ID)
+				continue
+			}
+			total++
+			realDeleted++
+			log.Trace("Deleted old action run %d (created at %s)", run.ID, run.Created.AsTime())
+		}
+
+		if realDeleted == 0 {
+			if len(runs) != 0 {
+				log.Error("Too many actions runs are unable to delete, please figure out and fix the failures")
+			}
+			break
+		}
+	}
+	return total, nil
 }

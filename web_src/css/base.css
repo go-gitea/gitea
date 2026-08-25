@@ -224,6 +224,16 @@ progress::-moz-progress-bar {
   background-color: var(--color-accent);
 }
 
+@media (forced-colors: active) {
+  progress {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  progress::-webkit-progress-value {
+    background: CanvasText;
+  }
+}
+
 * {
   caret-color: var(--color-caret);
 }
@@ -259,7 +269,6 @@ relative-time::part(root)::selection {
 .lines-commit .blame-info,
 .ellipsis-button {
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -273,12 +282,10 @@ a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-line: none;
-  text-decoration-skip-ink: all;
 }
 
 a:hover {
   text-decoration-line: underline;
-  text-underline-position: under; /* necessary for CJK fonts, otherwise, default "auto" makes the underline cross-over the CJK text bottom */
 }
 
 /* a = always colored, underlined on hover */
@@ -294,9 +301,7 @@ a.silenced,
 }
 
 a:hover,
-a.suppressed:hover,
 a.muted:hover,
-a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
 }

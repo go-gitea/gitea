@@ -7,11 +7,6 @@
   padding: 0 10px;
 }
 
-/* When notification message is present after navbar, hide border to avoid double border */
-#navbar:has(+ .ui.message) {
-  border-bottom: none;
-}
-
 #navbar .navbar-left,
 #navbar .navbar-right {
   display: flex;
@@ -144,8 +139,9 @@
 
 #navbar .item .navbar-admin-badge {
   position: absolute;
-  bottom: calc(100% - 29px);
-  left: calc(100% - 18px);
+  left: auto;
+  right: -7px;
+  bottom: -5px;
   padding: 1.5px;
 }
 

@@ -24,15 +24,16 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/references"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates/vars"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	issue_service "gitea.dev/services/issue"
@@ -67,17 +68,15 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
-		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
 		commit, err := baseGitRepo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 		if err != nil {
 			return "", "", err
 		}
-		templateContent, err := commit.GetFileContent(ctx, baseGitRepo, templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+		templateContent, err := resolveMergeMessageTemplate(ctx, baseGitRepo, commit, mergeStyle)
 		if err != nil {
-			if !git.IsErrNotExist(err) {
-				return "", "", err
-			}
-		} else {
+			return "", "", err
+		}
+		if templateContent != "" {
 			vars := map[string]string{
 				"BaseRepoOwnerName":      pr.BaseRepo.OwnerName,
 				"BaseRepoName":           pr.BaseRepo.Name,
@@ -147,14 +146,32 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), body, nil
 }
 
-func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
+// resolveMergeMessageTemplate returns the content of the merge message template for the given
+// merge style. It first looks for a style-specific template ({STYLE}_TEMPLATE.md), and falls back
+// to the generic DEFAULT_TEMPLATE.md if the style-specific one is not found.
+func resolveMergeMessageTemplate(ctx context.Context, baseGitRepo *git.Repository, commit *git.Commit, mergeStyle repo_model.MergeStyle) (string, error) {
+	templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
+	templateContent, err := commit.GetFileContent(ctx, baseGitRepo, templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+	if err == nil {
+		return templateContent, nil
+	}
+	if !git.IsErrNotExist(err) {
+		return "", err
+	}
+	templateContent, err = commit.GetFileContent(ctx, baseGitRepo, ".gitea/default_merge_message/DEFAULT_TEMPLATE.md", setting.Repository.PullRequest.DefaultMergeMessageSize)
+	if err == nil || git.IsErrNotExist(err) {
+		return templateContent, nil
+	}
+	return "", err
+}
+
+func expandDefaultMergeMessage(template string, varsMap map[string]string) (message, body string) {
 	message = strings.TrimSpace(template)
 	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
 		message = splits[0]
 		body = strings.TrimSpace(splits[1])
 	}
-	mapping := func(s string) string { return vars[s] }
-	return os.Expand(message, mapping), os.Expand(body, mapping)
+	return vars.ExpandShellLike(message, varsMap), vars.ExpandShellLike(body, varsMap)
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request
@@ -218,9 +235,28 @@ func (err ErrInvalidMergeStyle) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
+func addTestPullRequestTaskAfterWebOperation(pr *issues_model.PullRequest, doer *user_model.User) {
+	// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
+	// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
+	// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
+	// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
+	// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
+	go AddTestPullRequestTask(TestPullRequestOptions{
+		RepoID:      pr.BaseRepo.ID,
+		Doer:        doer,
+		Branch:      pr.BaseBranch,
+		IsSync:      false,
+		IsForcePush: false,
+		OldCommitID: "",
+		NewCommitID: "",
+	})
+}
+
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
+
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repo: %v", err)
 		return fmt.Errorf("unable to load base repo: %w", err)
@@ -241,37 +277,27 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
 	}
 
-	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
-	if err != nil {
-		log.Error("lock.Lock(): %v", err)
-		return fmt.Errorf("lock.Lock: %w", err)
-	}
-	defer releaser()
-	defer func() {
-		// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
-		// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
-		// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
-		// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
-		// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
-		go AddTestPullRequestTask(TestPullRequestOptions{
-			RepoID:      pr.BaseRepo.ID,
-			Doer:        doer,
-			Branch:      pr.BaseBranch,
-			IsSync:      false,
-			IsForcePush: false,
-			OldCommitID: "",
-			NewCommitID: "",
-		})
-	}()
-
-	_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
-	releaser()
+	err = globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
+		_, err := doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
+		return err
+	})
+	defer addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
+	// TODO: the "merge" operation has finished, there could still be some edge cases:
+	// * if the post-process hook isn't executed correctly:
+	//   * the commit has been merged into target branch
+	//   * the PR's status is still "open (unmerged)"
+	// * something wrong happens (e.g.: out of sync?)
+	//   * maybe this is the reason that why the duplicate AddTestPullRequestTask is called in defer func above
 	if err != nil {
 		return err
 	}
+	// TODO: it is questionable whether it should return error here, the "merge" operation has succeeded
+	return handleMergePostProcess(ctx, pr.ID, doer, wasAutoMerged)
+}
 
+func handleMergePostProcess(ctx context.Context, prID int64, doer *user_model.User, wasAutoMerged bool) error {
 	// reload pull request because it has been updated by post receive hook
-	pr, err = issues_model.GetPullRequestByID(ctx, pr.ID)
+	pr, err := issues_model.GetPullRequestByID(ctx, prID)
 	if err != nil {
 		return err
 	}
@@ -294,8 +320,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 
 	// Reset cached commit count
-	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
+	git.RemoveCommitsCountCache(pr.Issue.Repo, git.RefNameFromBranch(pr.BaseBranch))
 	return handleCloseCrossReferences(ctx, pr, doer)
 }
 
@@ -600,6 +625,10 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 
 	if issues_model.MergeBlockedByOutdatedBranch(pb, pr) {
 		return util.ErrorWrap(ErrNotReadyToMerge, "The head branch is behind the base branch")
+	}
+
+	if !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pr) {
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are missing code owner reviews")
 	}
 
 	if skipProtectedFilesCheck {

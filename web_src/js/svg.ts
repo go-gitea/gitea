@@ -1,6 +1,5 @@
-import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
-import {html, htmlRaw} from './utils/html.ts';
+import {htmlRaw} from './utils/html.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
@@ -23,6 +22,7 @@ import octiconClock from '../../public/assets/img/svg/octicon-clock.svg';
 import octiconCode from '../../public/assets/img/svg/octicon-code.svg';
 import octiconColumns from '../../public/assets/img/svg/octicon-columns.svg';
 import octiconCopy from '../../public/assets/img/svg/octicon-copy.svg';
+import octiconDash from '../../public/assets/img/svg/octicon-dash.svg';
 import octiconDiffAdded from '../../public/assets/img/svg/octicon-diff-added.svg';
 import octiconDiffModified from '../../public/assets/img/svg/octicon-diff-modified.svg';
 import octiconDiffRemoved from '../../public/assets/img/svg/octicon-diff-removed.svg';
@@ -51,6 +51,7 @@ import octiconHistory from '../../public/assets/img/svg/octicon-history.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconHome from '../../public/assets/img/svg/octicon-home.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
+import octiconInfo from '../../public/assets/img/svg/octicon-info.svg';
 import octiconIssueClosed from '../../public/assets/img/svg/octicon-issue-closed.svg';
 import octiconIssueOpened from '../../public/assets/img/svg/octicon-issue-opened.svg';
 import octiconItalic from '../../public/assets/img/svg/octicon-italic.svg';
@@ -112,6 +113,7 @@ const svgs = {
   'octicon-code': octiconCode,
   'octicon-columns': octiconColumns,
   'octicon-copy': octiconCopy,
+  'octicon-dash': octiconDash,
   'octicon-diff-added': octiconDiffAdded,
   'octicon-diff-modified': octiconDiffModified,
   'octicon-diff-removed': octiconDiffRemoved,
@@ -140,6 +142,7 @@ const svgs = {
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-home': octiconHome,
   'octicon-image': octiconImage,
+  'octicon-info': octiconInfo,
   'octicon-issue-closed': octiconIssueClosed,
   'octicon-issue-opened': octiconIssueOpened,
   'octicon-italic': octiconItalic,
@@ -222,36 +225,3 @@ export function svgParseOuterInner(name: SvgName) {
   const svgOuter = svgDoc.firstChild as SVGElement;
   return {svgOuter, svgInnerHtml};
 }
-
-export const SvgIcon = defineComponent({
-  name: 'SvgIcon',
-  props: {
-    name: {type: String as PropType<SvgName>, required: true},
-    size: {type: Number, default: 16},
-    symbolId: {type: String},
-  },
-  render() {
-    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
-    // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
-    // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
-    const attrs: Record<string, any> = {};
-    for (const attr of svgOuter.attributes) {
-      if (attr.name === 'class') continue;
-      attrs[`^${attr.name}`] = attr.value;
-    }
-    attrs[`^width`] = this.size;
-    attrs[`^height`] = this.size;
-
-    const classes = Array.from(svgOuter.classList);
-    if (this.symbolId) {
-      classes.push('tw-hidden', 'svg-symbol-container');
-      svgInnerHtml = html`<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${htmlRaw(svgInnerHtml)}</symbol>`;
-    }
-    // create VNode
-    return h('svg', {
-      ...attrs,
-      class: classes,
-      innerHTML: svgInnerHtml,
-    });
-  },
-});

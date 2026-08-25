@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	db_model "gitea.dev/models/db"
@@ -859,6 +859,20 @@ func Test_WebhookRepository(t *testing.T) {
 		assert.Equal(t, "org3", payloads[0].Organization.UserName)
 		assert.Equal(t, "repo_new", payloads[0].Repository.Name)
 		assert.Equal(t, "org3/repo_new", payloads[0].Repository.FullName)
+
+		// 4. rename the repository and validate the webhook is triggered again
+		newName := "repo_renamed"
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/repo_new", &api.EditRepoOption{
+			Name: &newName,
+		}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository))
+		MakeRequest(t, req, http.StatusOK)
+
+		require.Len(t, payloads, 2)
+		assert.Equal(t, api.HookRepoRenamed, payloads[1].Action)
+		assert.Equal(t, newName, payloads[1].Repository.Name)
+		assert.Equal(t, "org3/"+newName, payloads[1].Repository.FullName)
+		require.NotNil(t, payloads[1].Changes.Name)
+		assert.Equal(t, "repo_new", payloads[1].Changes.Name.From)
 	})
 }
 

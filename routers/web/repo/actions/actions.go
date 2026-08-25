@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"bytes"
 	stdCtx "context"
 	"errors"
 	"fmt"
@@ -14,12 +13,14 @@ import (
 	"slices"
 	"strings"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -33,7 +34,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -220,7 +220,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""
 		}
-		wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
+		wf, err := jobparser.ReadWorkflow(content)
 		if err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
@@ -390,7 +390,7 @@ func loadScopedWorkflowModel(ctx *context.Context, repo *repo_model.Repository, 
 	if content == nil {
 		return nil // the workflow does not exist on the source's default branch
 	}
-	wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
+	wf, err := jobparser.ReadWorkflow(content)
 	if err != nil {
 		return nil
 	}
@@ -758,6 +758,10 @@ type WorkflowDispatchInput struct {
 	Default     string   `yaml:"default"`
 	Type        string   `yaml:"type"`
 	Options     []string `yaml:"options"`
+}
+
+func (i WorkflowDispatchInput) IsDefaultTrue() bool {
+	return util.ParseYamlBool(i.Default)
 }
 
 type WorkflowDispatch struct {

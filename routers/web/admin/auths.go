@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/ldap"
@@ -210,13 +209,13 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 }
 
 func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi.Source, error) {
-	if util.IsEmptyString(form.SSPISeparatorReplacement) {
+	if form.SSPISeparatorReplacement == "" {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
-		return nil, errors.New(ctx.Locale.TrString("form.SSPISeparatorReplacement") + ctx.Locale.TrString("form.require_error"))
+		return nil, errors.New(ctx.Locale.TrString("form.require_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
 	}
 	if separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
-		return nil, errors.New(ctx.Locale.TrString("form.SSPISeparatorReplacement") + ctx.Locale.TrString("form.alpha_dash_dot_error"))
+		return nil, errors.New(ctx.Locale.TrString("form.alpha_dash_dot_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
 	}
 
 	if form.SSPIDefaultLanguage != "" && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
@@ -235,7 +234,7 @@ func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi
 
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
+	form := *web.GetForm[*forms.AuthenticationForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdminAuthentications"] = true
 
@@ -268,8 +267,8 @@ func NewAuthSourcePost(ctx *context.Context) {
 			EmailDomain: form.PAMEmailDomain,
 		}
 	case auth.OAuth2:
-		config = parseOAuth2Config(form)
-		oauth2Config := config.(*oauth2.Source)
+		oauth2Config := parseOAuth2Config(form)
+		config = oauth2Config
 		if oauth2Config.Provider == "openidConnect" {
 			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
 			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
@@ -310,13 +309,12 @@ func NewAuthSourcePost(ctx *context.Context) {
 		TwoFactorPolicy: form.TwoFactorPolicy,
 		Cfg:             config,
 	}); err != nil {
-		if auth.IsErrSourceAlreadyExist(err) {
+		if errExist, ok := errors.AsType[auth.ErrSourceAlreadyExist](err); ok {
 			ctx.Data["Err_Name"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
-		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", errExist.Name), tplAuthNew, form)
+		} else if errInit, ok := err.(oauth2.ErrOpenIDConnectInitialize); ok {
 			ctx.Data["Err_DiscoveryURL"] = true
-			unwrapped := err.(oauth2.ErrOpenIDConnectInitialize).Unwrap()
-			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.unable_to_initialize_openid", unwrapped), tplAuthNew, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.unable_to_initialize_openid", errInit.Unwrap()), tplAuthNew, form)
 		} else {
 			ctx.ServerError("auth.CreateSource", err)
 		}
@@ -348,12 +346,9 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["HasTLS"] = source.HasTLS()
 
 	if source.IsOAuth2() {
-		type Named interface {
-			Name() string
-		}
-
+		oauth2Source := auth.MustSourceCfg[*oauth2.Source](source)
 		for _, provider := range oauth2providers {
-			if provider.Name() == source.Cfg.(Named).Name() {
+			if provider.Name() == oauth2Source.Name() {
 				ctx.Data["CurrentOAuth2Provider"] = provider
 				break
 			}
@@ -365,7 +360,7 @@ func EditAuthSource(ctx *context.Context) {
 
 // EditAuthSourcePost response for editing auth source
 func EditAuthSourcePost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
+	form := *web.GetForm[*forms.AuthenticationForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdminAuthentications"] = true
 
@@ -398,8 +393,8 @@ func EditAuthSourcePost(ctx *context.Context) {
 			EmailDomain: form.PAMEmailDomain,
 		}
 	case auth.OAuth2:
-		config = parseOAuth2Config(form)
-		oauth2Config := config.(*oauth2.Source)
+		oauth2Config := parseOAuth2Config(form)
+		config = oauth2Config
 		if oauth2Config.Provider == "openidConnect" {
 			discoveryURL, err := url.Parse(oauth2Config.OpenIDConnectAutoDiscoveryURL)
 			if err != nil || (discoveryURL.Scheme != "http" && discoveryURL.Scheme != "https") {
@@ -425,9 +420,9 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.Cfg = config
 	source.TwoFactorPolicy = form.TwoFactorPolicy
 	if err := auth.UpdateSource(ctx, source); err != nil {
-		if auth.IsErrSourceAlreadyExist(err) {
+		if errExist, ok := errors.AsType[auth.ErrSourceAlreadyExist](err); ok {
 			ctx.Data["Err_Name"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", errExist.Name), tplAuthEdit, form)
 		} else if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
 			ctx.Data["Err_DiscoveryURL"] = true

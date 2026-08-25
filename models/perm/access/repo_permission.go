@@ -658,6 +658,16 @@ func PermissionNoAccess() Permission {
 	return Permission{AccessMode: perm_model.AccessModeNone}
 }
 
+// RepoUserPermissionCacheKey is the cachegroup.RepoUserPermission key of a doer's
+// permission on a repository. Producers and consumers must agree on it, so it lives here.
+func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+	return fmt.Sprintf("%d-%d", repoID, doerID)
+}
+
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
 func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Repository, run *actions_model.ActionRun) (bool, error) {
 	if err := run.LoadRepo(ctx); err != nil {
@@ -675,7 +685,7 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 	// logs in a publicly visible run; requiring a private caller keeps private content flowing private -> private.
 	// This is intentionally stricter than GitHub, which gates on the target repo's access setting (introduced in #32562):
 	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
-	if run.Repo.IsPrivate {
+	if run.Repo.IsPrivate && !run.IsForkPullRequest {
 		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
 			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
 				return true, nil

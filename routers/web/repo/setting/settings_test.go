@@ -5,6 +5,7 @@ package setting
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
@@ -27,53 +28,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddReadOnlyDeployKey(t *testing.T) {
-	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
+func TestAddDeployKey(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
-
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadRepo(t, ctx, 2)
-
-	addKeyForm := forms.AddKeyForm{
-		Title:   "read-only",
-		Content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
-	}
-	web.SetForm(ctx, &addKeyForm)
-	DeployKeysPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-
-	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
-		Name:    addKeyForm.Title,
-		Content: addKeyForm.Content,
-		Mode:    perm.AccessModeRead,
+	t.Run("ReadOnly", func(t *testing.T) {
+		const testKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf\n"
+		ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/keys")
+		contexttest.MockRequestPostForm(ctx.Req, url.Values{"title": {"read-only"}, "content": {testKey}})
+		contexttest.LoadRepo(t, ctx, 2)
+		DeployKeysPost(ctx)
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{Name: "read-only", Mode: perm.AccessModeRead})
 	})
-}
-
-func TestAddReadWriteOnlyDeployKey(t *testing.T) {
-	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
-
-	unittest.PrepareTestEnv(t)
-
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
-
-	contexttest.LoadUser(t, ctx, 2)
-	contexttest.LoadRepo(t, ctx, 2)
-
-	addKeyForm := forms.AddKeyForm{
-		Title:      "read-write",
-		Content:    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
-		IsWritable: true,
-	}
-	web.SetForm(ctx, &addKeyForm)
-	DeployKeysPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-
-	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
-		Name:    addKeyForm.Title,
-		Content: addKeyForm.Content,
-		Mode:    perm.AccessModeWrite,
+	t.Run("ReadWrite", func(t *testing.T) {
+		const testKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEHjnNEfE88W1pvBLdV3otv28x760gdmPao3lVD5uAt9\n"
+		ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/keys")
+		contexttest.MockRequestPostForm(ctx.Req, url.Values{"title": {"read-write"}, "content": {testKey}, "is_writable": {"on"}})
+		contexttest.LoadRepo(t, ctx, 2)
+		DeployKeysPost(ctx)
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{Name: "read-write", Mode: perm.AccessModeWrite})
 	})
 }
 
@@ -240,40 +213,27 @@ func TestAddTeamPost(t *testing.T) {
 
 func TestAddTeamPost_NotAllowed(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "org26/repo43")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+	require.NoError(t, repo.LoadOwner(t.Context()))
+	adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
+	targetTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	require.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, repo))
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	repoContext := &context.Repository{Owner: repo.Owner, Repository: repo}
+	renderCtx, _ := contexttest.MockContext(t, repo.Link()+"/settings/collaboration")
+	renderCtx.Repo = repoContext
+	renderCtx.Doer = doer
+	Collaboration(renderCtx)
+	assert.Equal(t, false, renderCtx.Data["CanChangeRepoTeamAccess"])
 
-	ctx.Req.Form.Set("team", "team11")
-
-	org := &user_model.User{
-		LowerName: "org26",
-		Type:      user_model.UserTypeOrganization,
-	}
-
-	team := &organization.Team{
-		ID:    11,
-		OrgID: 26,
-	}
-
-	re := &repo_model.Repository{
-		ID:      43,
-		Owner:   org,
-		OwnerID: 26,
-	}
-
-	repo := &context.Repository{
-		Owner: &user_model.User{
-			ID:                        26,
-			LowerName:                 "org26",
-			RepoAdminChangeTeamAccess: false,
-		},
-		Repository: re,
-	}
-
-	ctx.Repo = repo
+	ctx, _ := contexttest.MockContext(t, repo.Link()+"/settings/collaboration")
+	ctx.Req.Form.Set("team", targetTeam.Name)
+	ctx.Repo = repoContext
+	ctx.Doer = doer
 
 	AddTeamPost(ctx)
 
-	assert.False(t, repo_service.HasRepository(t.Context(), team, re.ID))
+	assert.False(t, repo_service.HasRepository(t.Context(), targetTeam, repo.ID))
 	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }

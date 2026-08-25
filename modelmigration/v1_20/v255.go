@@ -4,11 +4,13 @@
 package v1_20
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddArchivedUnixToRepository(x base.EngineMigration) error {
+func AddArchivedUnixToRepository(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 	}

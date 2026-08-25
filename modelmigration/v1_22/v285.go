@@ -4,6 +4,7 @@
 package v1_22
 
 import (
+	"context"
 	"time"
 
 	"gitea.dev/modelmigration/base"
@@ -11,7 +12,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddPreviousDurationToActionRun(x base.EngineMigration) error {
+func AddPreviousDurationToActionRun(_ context.Context, x base.EngineMigration) error {
 	type ActionRun struct {
 		PreviousDuration time.Duration
 	}

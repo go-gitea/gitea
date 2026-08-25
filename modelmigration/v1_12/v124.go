@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddUserRepoMissingColumns(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddUserRepoMissingColumns(_ context.Context, x base.EngineMigration) error {
 	type VisibleType int
 	type User struct {
 		PasswdHashAlgo string      `xorm:"NOT NULL DEFAULT 'pbkdf2'"`

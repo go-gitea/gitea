@@ -278,7 +278,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
+	form := web.GetForm[*api.EditAttachmentOptions](ctx)
 	if form.Name != "" {
 		attach.Name = form.Name
 	}

@@ -4,6 +4,7 @@
 package v1_26
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -91,7 +92,7 @@ type commitSHAAndRuns struct {
 // Only rows whose resolved run ID is below legacyURLIDThreshold are rewritten.
 // This is because smaller legacy run indexes are more likely to collide with run ID URLs during runtime resolution,
 // so this migration prioritizes that lower range and leaves the remaining legacy target URLs to the web compatibility logic.
-func FixCommitStatusTargetURLToUseRunAndJobID(x base.EngineMigration) error {
+func FixCommitStatusTargetURLToUseRunAndJobID(_ context.Context, x base.EngineMigration) error {
 	jobsByRunIDCache := make(map[int64][]int64)
 	repoLinkCache := make(map[int64]string)
 	groups, err := loadLegacyMigrationRunGroups(x)

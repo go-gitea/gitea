@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
@@ -23,7 +24,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-const RequiredVersion = "2.13.0" // the minimum Git version required
+const RequiredVersion = "2.18.0" // the minimum Git version required
 
 type Features struct {
 	gitVersion *version.Version
@@ -191,6 +192,7 @@ func RunGitTests(m interface{ Run() int }) {
 }
 
 func runGitTests(m interface{ Run() int }) int {
+	_ = cache.Init()
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
 		return testlogger.MainErrorf("unable to create temp dir: %v", err)

@@ -128,13 +128,13 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return false
 		}
 
-		avatarStackData := gituser.BuildAvatarStackData(ctx, latestCommit.AllParticipantIdentities(), nil)
+		avatarStackData := gituser.BuildAvatarStackData(ctx, latestCommit.AllAuthorIdentities(), nil)
 		avatarStackData.SearchByEmailLink = gituser.RepoCommitSearchByEmailLink(ctx.Repo.RepoLink, ctx.Repo.RefFullName)
 		ctx.Data["LatestCommitAvatarStackData"] = avatarStackData
 		ctx.Data["LatestCommitVerification"] = verification
@@ -143,9 +143,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
-		if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-			git_model.CommitStatusesHideActionsURL(ctx, statuses)
-		}
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses

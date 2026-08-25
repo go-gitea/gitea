@@ -22,7 +22,6 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -404,7 +403,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := *web.GetForm(ctx).(*api.CreatePullRequestOption)
+	form := *web.GetForm[*api.CreatePullRequestOption](ctx)
 	if form.Head == form.Base {
 		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: There are no changes between the head and the base")
 		return
@@ -628,7 +627,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.EditPullRequestOption)
+	form := web.GetForm[*api.EditPullRequestOption](ctx)
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
@@ -922,7 +921,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
+	form := web.GetForm[*forms.MergePullRequestForm](ctx)
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
@@ -1041,24 +1040,20 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
-		} else if pull_service.IsErrMergeConflicts(err) {
-			conflictError := err.(pull_service.ErrMergeConflicts)
+		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
 			ctx.JSON(http.StatusConflict, conflictError)
-		} else if pull_service.IsErrRebaseConflicts(err) {
-			conflictError := err.(pull_service.ErrRebaseConflicts)
+		} else if conflictError, ok := err.(pull_service.ErrRebaseConflicts); ok {
 			ctx.JSON(http.StatusConflict, conflictError)
-		} else if pull_service.IsErrMergeUnrelatedHistories(err) {
-			conflictError := err.(pull_service.ErrMergeUnrelatedHistories)
+		} else if conflictError, ok := err.(pull_service.ErrMergeUnrelatedHistories); ok {
 			ctx.JSON(http.StatusConflict, conflictError)
 		} else if git.IsErrPushOutOfDate(err) {
 			ctx.APIError(http.StatusConflict, "merge push out of date")
 		} else if pull_service.IsErrSHADoesNotMatch(err) {
 			ctx.APIError(http.StatusConflict, "head out of date")
-		} else if git.IsErrPushRejected(err) {
-			errPushRej := err.(*git.ErrPushRejected)
+		} else if errPushRej, ok := err.(*git.ErrPushRejected); ok {
 			if len(errPushRej.Message) == 0 {
 				ctx.APIError(http.StatusConflict, "PushRejected without remote error message")
 			} else {
@@ -1096,6 +1091,10 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	case err != nil:
 		ctx.APIErrorInternal(err)
+		return nil, nil
+	}
+	if !ctx.TokenCanAccessRepo(headRepo) {
+		ctx.APIErrorNotFound()
 		return nil, nil
 	}
 
@@ -1275,7 +1274,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
 
-	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), pr, ctx.Doer, message, rebase); err != nil {
+	if err = pull_service.Update(pr, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
 			ctx.APIError(http.StatusConflict, "merge failed because of conflict")
 			return

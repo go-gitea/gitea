@@ -5,6 +5,7 @@ package v1_14
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -106,8 +107,8 @@ func FixPublisherIDforTagReleases(ctx context.Context, x base.EngineMigration) e
 
 			commit, err := gitRepo.GetTagCommit(ctx, release.TagName)
 			if err != nil {
-				if git.IsErrNotExist(err) {
-					log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)
+				if errNotExist, ok := errors.AsType[git.ErrNotExist](err); ok {
+					log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", errNotExist.ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)
 					continue
 				}
 				log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %v", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
@@ -118,8 +119,8 @@ func FixPublisherIDforTagReleases(ctx context.Context, x base.EngineMigration) e
 				log.Warn("Tag: %s in Repo[%d]%s/%s does not have a tagger.", release.TagName, repo.ID, repo.OwnerName, repo.Name)
 				commit, err = gitRepo.GetCommit(ctx, commit.ID.String())
 				if err != nil {
-					if git.IsErrNotExist(err) {
-						log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)
+					if errNotExist, ok := errors.AsType[git.ErrNotExist](err); ok {
+						log.Warn("Unable to find commit %s for Tag: %s in [%d]%s/%s. Cannot update publisher ID.", errNotExist.ID, release.TagName, repo.ID, repo.OwnerName, repo.Name)
 						continue
 					}
 					log.Error("Error whilst getting commit for Tag: %s in [%d]%s/%s. Error: %v", release.TagName, repo.ID, repo.OwnerName, repo.Name, err)
