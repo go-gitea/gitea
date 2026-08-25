@@ -62,6 +62,9 @@ linters:
               desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
             - pkg: gitea.dev/modules/structs
               desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
+    modernize:
+      disable:
+        - embedlit
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -182,7 +185,8 @@ formatters:
         - blank
         - default
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
   exclusions:
     generated: lax
     paths:

@@ -71,19 +71,16 @@ export function initGlobalDropdown() {
         action: 'hide',
         onShow() {
           // hide associated tooltip while dropdown is open
-          this._tippy?.hide();
-          this._tippy?.disable();
+          el._tippy?.hide();
+          el._tippy?.disable();
         },
         onHide() {
-          this._tippy?.enable();
-          // eslint-disable-next-line unicorn/no-this-assignment
-          const elDropdown = this;
+          el._tippy?.enable();
 
-          // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+          // hide all tippy elements of items after a while, in case some items have tooltip popup.
           setTimeout(() => {
-            const $dropdown = fomanticQuery(elDropdown);
             if ($dropdown.dropdown('is hidden')) {
-              queryElems(elDropdown, '.menu > .item', (el) => el._tippy?.hide());
+              queryElems(el, '.menu > .item', (item) => item._tippy?.hide());
             }
           }, 2000);
         },

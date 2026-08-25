@@ -4,7 +4,7 @@ import {confirmModal} from './comp/ConfirmModal.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {performFetchAction} from './common-fetch-action.ts';
+import {performFetchAction} from '../modules/fetch-action.ts';
 import type {SortableEvent} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
