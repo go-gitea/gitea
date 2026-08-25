@@ -1,4 +1,3 @@
-import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
 import {toggleElemClass, toggleElem} from './utils/dom.ts';
 
@@ -14,12 +13,11 @@ export function basename(path: string): string {
   return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
-/** transform /path/to/file.ext to .ext */
+/** transform /path/to/file.ext to .ext, dotfiles like /path/to/.gitignore have no extension */
 export function extname(path: string): string {
-  const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
-  if (lastSlashIndex > lastPointIndex) return '';
-  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
+  if (lastPointIndex <= path.lastIndexOf('/') + 1) return '';
+  return path.substring(lastPointIndex);
 }
 
 /** test whether a variable is an object */
@@ -49,15 +47,6 @@ export function stripTags(text: string): string {
     text = text.replace(/<[^>]*>?/g, '');
   }
   return text;
-}
-
-export function urlQueryEscape(s: string) {
-  // See "TestQueryEscape" in backend
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
-  return encodeURIComponent(s).replace(
-    /[!'()*]/g,
-    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
 }
 
 export function parseIssueHref(href: string): IssuePathInfo {
@@ -152,22 +141,9 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
   });
 }
 
-export function toAbsoluteUrl(url: string): string {
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  if (url.startsWith('//')) {
-    return `${window.location.protocol}${url}`; // it's also a somewhat absolute URL (with the current scheme)
-  }
-  if (url && !url.startsWith('/')) {
-    throw new Error('unsupported url, it should either start with / or http(s)://');
-  }
-  return `${window.location.origin}${url}`;
-}
-
 /** Encode an Uint8Array into a URLEncoded base64 string. */
 export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
-  return encode(uint8Array)
+  return btoa(Array.from(uint8Array, (byte) => String.fromCharCode(byte)).join(''))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
@@ -175,9 +151,7 @@ export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
 
 /** Decode a URLEncoded base64 to an Uint8Array. */
 export function decodeURLEncodedBase64(base64url: string): Uint8Array {
-  return decode(base64url
-    .replace(/_/g, '/')
-    .replace(/-/g, '+'));
+  return Uint8Array.from(atob(base64url.replace(/_/g, '/').replace(/-/g, '+')), (ch) => ch.charCodeAt(0));
 }
 
 const domParser = new DOMParser();
@@ -201,6 +175,17 @@ export function isImageFile({name, type}: {name?: string, type?: string}): boole
 
 export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
   return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
+}
+
+const byteUnits = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+
+export function formatBytes(num: number, precision = 2): string {
+  if (!Number.isFinite(num) || num < 0) return `0 ${byteUnits[0]}`;
+  if (num < 1024) return `${num} ${byteUnits[0]}`;
+  const exp = Math.min(Math.floor(Math.log2(num) / 10), byteUnits.length - 1);
+  const value = num / (1024 ** exp);
+  const digits = Math.max(0, precision - 1 - Math.floor(Math.log10(value)));
+  return `${value.toFixed(digits)} ${byteUnits[exp]}`;
 }
 
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {

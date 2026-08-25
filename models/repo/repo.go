@@ -11,26 +11,26 @@ import (
 	"maps"
 	"net"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
-	giturl "code.gitea.io/gitea/modules/git/url"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -225,22 +225,6 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func RelativePath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
-}
-
-// RelativePath should be an unix style path like username/reponame.git
-func (repo *Repository) RelativePath() string {
-	return RelativePath(repo.OwnerName, repo.Name)
-}
-
-type StorageRepo string
-
-// RelativePath should be an unix style path like username/reponame.git
-func (sr StorageRepo) RelativePath() string {
-	return string(sr)
-}
-
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
@@ -376,19 +360,9 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 }
 
 // APIURL returns the repository API URL
-func (repo *Repository) APIURL() string {
-	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
-}
-
-// GetCommitsCountCacheKey returns cache key used for commits count caching.
-func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
-	var prefix string
-	if isRef {
-		prefix = "ref"
-	} else {
-		prefix = "commit"
-	}
-	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
+func (repo *Repository) APIURL(ctxOpt ...context.Context) string {
+	ctx := util.OptionalArg(ctxOpt, context.TODO())
+	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+url.PathEscape(repo.OwnerName)+"/"+url.PathEscape(repo.Name))
 }
 
 // LoadUnits loads repo units into repo.Units
@@ -578,16 +552,6 @@ func (repo *Repository) IsGenerated() bool {
 	return repo.TemplateID != 0
 }
 
-// RepoPath returns repository path by given user and repository name.
-func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
-}
-
-// RepoPath returns the repository path
-func (repo *Repository) RepoPath() string {
-	return RepoPath(repo.OwnerName, repo.Name)
-}
-
 // Link returns the repository relative url
 func (repo *Repository) Link() string {
 	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
@@ -640,16 +604,15 @@ func (repo *Repository) CanContentChange() bool {
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
-	desc, err := markup.PostProcessDescriptionHTML(markup.NewRenderContext(ctx), repo.Description)
-	if err != nil {
-		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
-		return template.HTML(markup.SanitizeDescription(repo.Description))
-	}
-	return template.HTML(markup.SanitizeDescription(desc))
+	return markup.PostProcessDescriptionHTML(markup.NewRenderContext(ctx), htmlutil.EscapeString(repo.Description))
 }
 
 // CloneLink represents different types of clone URLs of repository.
 type CloneLink struct {
+	IsWikiRepo   bool
+	SupportSSH   bool
+	SupportHTTPS bool
+
 	SSH   string
 	HTTPS string
 	Tea   string
@@ -701,9 +664,12 @@ func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
 	return &CloneLink{
-		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
-		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
-		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+		IsWikiRepo:   strings.HasSuffix(repoPathName, ".wiki"),
+		SupportHTTPS: !setting.Repository.DisableHTTPGit,
+		SupportSSH:   !setting.SSH.Disabled && (doer != nil || setting.SSH.ExposeAnonymous),
+		SSH:          ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS:        ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
+		Tea:          ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
 
@@ -852,9 +818,9 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 }
 
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	return db.GetEngine(ctx).Get(&Repository{
-		OwnerID:   u.ID,
-		LowerName: strings.ToLower(repoName),
+	return db.Exist[Repository](ctx, builder.Eq{
+		"owner_id":   u.ID,
+		"lower_name": strings.ToLower(repoName),
 	})
 }
 

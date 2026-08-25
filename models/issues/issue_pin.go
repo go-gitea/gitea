@@ -8,10 +8,10 @@ import (
 	"errors"
 	"sort"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type IssuePin struct {
@@ -163,27 +163,6 @@ func MovePin(ctx context.Context, issue *Issue, newPosition int) error {
 			})
 		return err
 	})
-}
-
-func GetPinnedIssueIDs(ctx context.Context, repoID int64, isPull bool) ([]int64, error) {
-	var issuePins []IssuePin
-	if err := db.GetEngine(ctx).
-		Table("issue_pin").
-		Where("repo_id = ?", repoID).
-		And("is_pull = ?", isPull).
-		Find(&issuePins); err != nil {
-		return nil, err
-	}
-
-	sort.Slice(issuePins, func(i, j int) bool {
-		return issuePins[i].PinOrder < issuePins[j].PinOrder
-	})
-
-	var ids []int64
-	for _, pin := range issuePins {
-		ids = append(ids, pin.IssueID)
-	}
-	return ids, nil
 }
 
 func GetIssuePinsByRepoID(ctx context.Context, repoID int64, isPull bool) ([]*IssuePin, error) {

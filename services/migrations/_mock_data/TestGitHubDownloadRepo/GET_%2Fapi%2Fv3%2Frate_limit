@@ -1,0 +1,22 @@
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset
+Cache-Control: no-cache
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json; charset=utf-8
+Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+Vary: Accept-Encoding, Accept, X-Requested-With
+X-Accepted-Github-Permissions: allows_permissionless_access=true
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+X-Github-Api-Version-Selected: 2022-11-28
+X-Github-Media-Type: github.v3; format=json
+X-Github-Request-Id: C4F6:A93E1:6A2E9E:5B1BA1:69AF24E6
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4937
+X-Ratelimit-Reset: 1773089427
+X-Ratelimit-Resource: core
+X-Ratelimit-Used: 63
+X-Xss-Protection: 0
+
+{"resources":{"core":{"limit":5000,"used":63,"remaining":4937,"reset":1773089427},"search":{"limit":30,"used":0,"remaining":30,"reset":1773085986},"graphql":{"limit":5000,"used":40,"remaining":4960,"reset":1773087278},"integration_manifest":{"limit":5000,"used":0,"remaining":5000,"reset":1773089526},"source_import":{"limit":100,"used":0,"remaining":100,"reset":1773085986},"code_scanning_upload":{"limit":5000,"used":63,"remaining":4937,"reset":1773089427},"code_scanning_autofix":{"limit":10,"used":0,"remaining":10,"reset":1773085986},"actions_runner_registration":{"limit":10000,"used":0,"remaining":10000,"reset":1773089526},"scim":{"limit":15000,"used":0,"remaining":15000,"reset":1773089526},"dependency_snapshots":{"limit":100,"used":0,"remaining":100,"reset":1773085986},"dependency_sbom":{"limit":100,"used":0,"remaining":100,"reset":1773085986},"audit_log":{"limit":1750,"used":0,"remaining":1750,"reset":1773089526},"audit_log_streaming":{"limit":15,"used":0,"remaining":15,"reset":1773089526},"code_search":{"limit":10,"used":0,"remaining":10,"reset":1773085986}},"rate":{"limit":5000,"used":63,"remaining":4937,"reset":1773089427}}

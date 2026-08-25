@@ -15,19 +15,18 @@ import (
 	"testing"
 	"time"
 
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	git_module "code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/context"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	git_module "gitea.dev/modules/git"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/context"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -105,6 +104,12 @@ func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, 
 	return ctx, resp
 }
 
+func MockRequestPostForm(req *http.Request, formData url.Values) {
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.PostForm = formData
+	maps.Copy(req.Form, formData)
+}
+
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 	var doer *user_model.User
@@ -141,7 +146,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
+	gitRepo, err := git_module.OpenRepository(ctx, repo.Repository)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		gitRepo.Close()
@@ -152,7 +157,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	if repo.RefFullName.IsPull() {
 		repo.BranchName = repo.RefFullName.ShortName()
 	}
-	repo.Commit, err = gitRepo.GetCommit(repo.RefFullName.String())
+	repo.Commit, err = gitRepo.GetCommit(ctx, repo.RefFullName.String())
 	require.NoError(t, err)
 }
 
@@ -185,7 +190,7 @@ func LoadGitRepo(t *testing.T, ctx gocontext.Context) {
 	}
 	assert.NoError(t, repo.Repository.LoadOwner(ctx))
 	var err error
-	repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo.Repository)
+	repo.GitRepo, err = git_module.OpenRepository(ctx, repo.Repository)
 	assert.NoError(t, err)
 }
 

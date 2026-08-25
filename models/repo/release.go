@@ -13,13 +13,13 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -87,6 +87,7 @@ type Release struct {
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	PublishedUnix    timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -216,8 +217,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 // GetRelease returns release by given ID.
 func GetRelease(ctx context.Context, repoID int64, tagName string) (*Release, error) {
-	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
-	has, err := db.GetEngine(ctx).Get(rel)
+	rel, has, err := db.Get[Release](ctx, builder.Eq{"repo_id": repoID, "lower_tag_name": strings.ToLower(tagName)})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -267,6 +267,7 @@ type FindReleasesOptions struct {
 	TagNames      []string
 	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
 	NamePattern   optional.Option[string]
+	TagFilter     string
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -298,7 +299,14 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
 		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
 	}
-
+	if opts.TagFilter != "" {
+		pattern := strings.ToLower(opts.TagFilter)
+		pattern = strings.ReplaceAll(pattern, "\\", "\\\\")
+		pattern = strings.ReplaceAll(pattern, "_", "\\_")
+		pattern = strings.ReplaceAll(pattern, "%", "\\%")
+		pattern = strings.ReplaceAll(pattern, "*", "%")
+		cond = cond.And(builder.Like{"lower_tag_name", pattern})
+	}
 	return cond
 }
 
@@ -466,7 +474,7 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("lower_tag_name", lowerTags).
-		Cols("is_draft", "num_commits", "sha1").
+		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{
 			IsDraft: true,
 		}); err != nil {

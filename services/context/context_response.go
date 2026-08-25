@@ -16,13 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web/middleware"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
 )
 
 // RedirectToUser redirect to a differently-named user
@@ -103,20 +104,6 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 	}
 }
 
-// JSONTemplate renders the template as JSON response
-// keep in mind that the template is processed in HTML context, so JSON things should be handled carefully, e.g.: use JSEscape
-func (ctx *Context) JSONTemplate(tmpl templates.TplName) {
-	t, err := ctx.Render.TemplateLookup(string(tmpl), nil)
-	if err != nil {
-		ctx.ServerError("unable to find template", err)
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json")
-	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
-		ctx.ServerError("unable to execute template", err)
-	}
-}
-
 // RenderToHTML renders the template content to a HTML string
 func (ctx *Context) RenderToHTML(name templates.TplName, data any) (template.HTML, error) {
 	var buf strings.Builder
@@ -143,11 +130,9 @@ func (ctx *Context) NotFound(logErr error) {
 }
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
+	// TODO: it's safe to show the error message to end users if the error is fully controlled by our error system
 	if logErr != nil {
 		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
-		if !setting.IsProd {
-			ctx.Data["ErrorMsg"] = logErr
-		}
 	}
 
 	// response simple message if Accept isn't text/html
@@ -166,11 +151,17 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
+	ctx.Data["ErrorMsg"] = "" // FIXME: the template never renders this message, need to fix in the future (and show safe messages to end users)
 	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.
+// If the error is controlled by our error system, a related 404 page can be displayed instead.
 func (ctx *Context) ServerError(logMsg string, logErr error) {
+	if errors.Is(logErr, util.ErrNotExist) {
+		ctx.notFoundInternal(logMsg, logErr)
+		return
+	}
 	ctx.serverErrorInternal(logMsg, logErr)
 }
 

@@ -1,8 +1,6 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build goexperiment.jsonv2
-
 package json
 
 import (
@@ -13,8 +11,6 @@ import (
 	"io"
 )
 
-// JSONv2 implements Interface via encoding/json/v2
-// Requires GOEXPERIMENT=jsonv2 to be set at build time
 type JSONv2 struct {
 	marshalOptions                  jsonv2.Options
 	marshalKeepOptionalEmptyOptions jsonv2.Options
@@ -51,6 +47,10 @@ func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 
 func (j *JSONv2) Marshal(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, j.marshalOptions)
+}
+
+func (j *JSONv2) MarshalWrite(w io.Writer, v any) error {
+	return jsonv2.MarshalWrite(w, v, j.marshalOptions)
 }
 
 func (j *JSONv2) Unmarshal(data []byte, v any) error {

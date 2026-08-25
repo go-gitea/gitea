@@ -6,13 +6,13 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,11 +67,11 @@ func TestWatchRepo(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, WatchRepo(t.Context(), user, repo, true))
+	assert.NoError(t, WatchRepoAuto(t.Context(), user, repo, true))
 	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 
-	assert.NoError(t, WatchRepo(t.Context(), user, repo, false))
+	assert.NoError(t, WatchRepoAuto(t.Context(), user, repo, false))
 	unittest.AssertNotExistsBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 }

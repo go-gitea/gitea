@@ -8,15 +8,15 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	org_service "code.gitea.io/gitea/services/org"
+	"gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	org_service "gitea.dev/services/org"
 )
 
 const (
@@ -31,16 +31,19 @@ func Members(ctx *context.Context) {
 	ctx.Data["PageIsOrgMembers"] = true
 
 	page := max(ctx.FormInt("page"), 1)
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
 
 	opts := &organization.FindOrgMembersOpts{
-		Doer:  ctx.Doer,
-		OrgID: org.ID,
+		Doer:    ctx.Doer,
+		OrgID:   org.ID,
+		Keyword: keyword,
 	}
 
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "IsOrgMember")
+			ctx.ServerError("IsOrgMember", err)
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -49,7 +52,7 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "CountOrgMembers")
+		ctx.ServerError("CountOrgMembers", err)
 		return
 	}
 
@@ -58,9 +61,11 @@ func Members(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(total, setting.UI.MembersPagingNum, page, 5)
-	opts.ListOptions.Page = page
-	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
+	pageSize := setting.UI.MembersPagingNum
+	pager := context.NewPagination(total, pageSize, page, 5)
+	pager.AddParamFromRequest(ctx.Req)
+	opts.ListOptions.Page = pager.Paginater.Current()
+	opts.ListOptions.PageSize = pageSize
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)

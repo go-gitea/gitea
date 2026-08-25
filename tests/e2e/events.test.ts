@@ -1,53 +1,109 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiDeleteUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, timeoutFactor, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCancelStopwatch, apiCloseIssue, randomString} from './utils.ts';
 
-// These tests rely on a short EVENT_SOURCE_UPDATE_TIME in the e2e server config.
+// The /-/ws WebSocket pipeline is push-only: every event is fired by the server
+// immediately on the DB write. These tests exercise that each event type
+// (notification-count, stopwatches, logout) reaches a connected tab.
 test.describe('events', () => {
-  test('notification count', async ({page, request}) => {
+  test('notification count increases on new notification', async ({page, request}) => {
     const owner = `ev-notif-owner-${randomString(8)}`;
     const commenter = `ev-notif-commenter-${randomString(8)}`;
     const repoName = `ev-notif-${randomString(8)}`;
 
     await Promise.all([apiCreateUser(request, owner), apiCreateUser(request, commenter)]);
 
-    // Create repo and login in parallel — repo is needed for the issue, login for the event stream
     await Promise.all([
-      apiCreateRepo(request, {name: repoName, headers: apiUserHeaders(owner)}),
+      apiCreateRepo(request, {name: repoName, autoInit: false, headers: apiUserHeaders(owner)}),
       loginUser(page, owner),
     ]);
+    await page.goto('/');
     const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeHidden();
 
-    // Create issue as another user — this generates a notification delivered via server push
-    await apiCreateIssue(request, owner, repoName, {title: 'events notification test', headers: apiUserHeaders(commenter)});
+    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
-    // Wait for the notification badge to appear via server event
-    await expect(badge).toBeVisible({timeout: 15000 * timeoutFactor});
-
-    // Cleanup
-    await Promise.all([apiDeleteUser(request, commenter), apiDeleteUser(request, owner)]);
+    await apiCreateIssue(request, {owner, repo: repoName, title: 'events-notif', headers: apiUserHeaders(commenter)});
+    await expect(badge).toBeVisible();
   });
 
-  test('stopwatch', async ({page, request}) => {
-    const name = `ev-sw-${randomString(8)}`;
+  test('stopwatch appears and hides via real-time push', async ({page, request}) => {
+    const name = `ev-sw-push-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
     await apiCreateUser(request, name);
-
-    // Create repo, issue, and start stopwatch before login
-    await apiCreateRepo(request, {name, headers});
-    await apiCreateIssue(request, name, name, {title: 'events stopwatch test', headers});
-    await apiStartStopwatch(request, name, name, 1, {headers});
-
-    // Login — page renders with the active stopwatch element
-    await loginUser(page, name);
-
-    // Verify stopwatch is visible and links to the correct issue
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch push test', headers});
+      })(),
+    ]);
+    // Page loads before the stopwatch starts — the icon is hidden in the rendered HTML
+    await page.goto('/');
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    // Element must exist in the DOM (just hidden); otherwise the push has nothing to reveal.
+    await expect(stopwatch).toHaveCount(1);
+    await expect(stopwatch).toBeHidden();
+
+    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
+
+    // Drive both directions from outside this tab; each push must reach it
+    await apiStartStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeVisible();
 
-    // Cleanup
-    await apiDeleteUser(request, name);
+    await apiCancelStopwatch(request, name, name, 1, {headers});
+    await expect(stopwatch).toBeHidden();
+  });
+
+  // Closing an issue stops the timer away from any stopwatch route handler.
+  test('stopwatch renders when already active and hides when the issue is closed', async ({page, request}) => {
+    const name = `ev-sw-close-${randomString(8)}`;
+    const headers = apiUserHeaders(name);
+
+    await apiCreateUser(request, name);
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, autoInit: false, headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch close test', headers});
+        await apiStartStopwatch(request, name, name, 1, {headers});
+      })(),
+    ]);
+    await page.goto('/');
+    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    await expect(stopwatch).toBeVisible();
+    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
+
+    await apiCloseIssue(request, name, name, 1, {headers});
+    await expect(stopwatch).toBeHidden();
+  });
+
+  // Repro for https://github.com/go-gitea/gitea/pull/36965#issuecomment-4321282667:
+  // clicking the sidebar "Start timer" button reportedly produced a blank page.
+  // Drives the actual UI button (not the API) so the link-action → JSONRedirect("")
+  // → fetchActionDoRedirect("") path is exercised end-to-end.
+  test('sidebar start timer button starts stopwatch without blanking the page', async ({page, request}) => {
+    const name = `ev-sw-ui-${randomString(8)}`;
+    const headers = apiUserHeaders(name);
+
+    await apiCreateUser(request, name);
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'sidebar start timer test', headers});
+      })(),
+    ]);
+    await page.goto(`/${name}/${name}/issues/1`);
+
+    await page.getByRole('button', {name: 'Start timer'}).click();
+
+    // After the click the page reloads; the sidebar should now show the Stop/Discard
+    // controls and the navbar stopwatch icon should appear. If the page blanked,
+    // neither of these would be present.
+    await expect(page.getByRole('button', {name: 'Stop timer'})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Discard timer'})).toBeVisible();
+    await expect(page.locator('.active-stopwatch.not-mobile')).toBeVisible();
   });
 
   test('logout propagation', async ({browser, request}) => {
@@ -67,6 +123,9 @@ test.describe('events', () => {
 
     // Verify page2 is logged in
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
+    // Wait until page2's event stream is connected, otherwise the logout event
+    // can race the connection and be silently dropped.
+    await expect(page2.locator('html[data-user-events-connected]')).toBeAttached();
 
     // Logout from page1 — this sends a logout event to all tabs
     await page1.goto('/user/logout');
@@ -75,8 +134,5 @@ test.describe('events', () => {
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeVisible();
 
     await context.close();
-
-    // Cleanup
-    await apiDeleteUser(request, name);
   });
 });

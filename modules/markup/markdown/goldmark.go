@@ -6,9 +6,11 @@ package markdown
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/internal"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/internal"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -41,8 +43,8 @@ func (g *ASTTransformer) applyElementDir(n ast.Node) {
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
-	rc := pc.Get(renderConfigKey).(*RenderConfig)
+	ctx := pc.Get(renderContextKey).(*markup.RenderContext) //nolint:forcetypeassert // the renderer always seeds this key before parsing
+	rc := pc.Get(renderConfigKey).(*RenderConfig)           //nolint:forcetypeassert // the renderer always seeds this key before parsing
 
 	tocMode := ""
 	if rc.yamlNode != nil {
@@ -119,16 +121,36 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
+	reg.Register(ast.KindCodeBlock, r.renderCodeBlock)
 	reg.Register(KindAttention, r.renderAttention)
 	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 	reg.Register(KindRawHTML, r.renderRawHTML)
 }
 
-func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.Document)
+// renderCodeBlock wraps indented code blocks like the fenced renderer
+func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes("") // no language
+		opening := r.renderInternal.ProtectSafeAttrs(htmlutil.HTMLFormat(`<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs))
+		if _, err := w.WriteString(string(opening)); err != nil {
+			return ast.WalkStop, err
+		}
+		lines := n.Lines()
+		for i := 0; i < lines.Len(); i++ {
+			line := lines.At(i)
+			r.Writer.RawWrite(w, line.Value(source))
+		}
+	} else {
+		if _, err := w.WriteString("</code></pre></div>"); err != nil {
+			return ast.WalkStop, err
+		}
+	}
+	return ast.WalkContinue, nil
+}
 
-	if val, has := n.AttributeString("lang"); has {
+func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if val, has := node.AttributeString("lang"); has {
 		var err error
 		if entering {
 			_, err = w.WriteString("<div")
@@ -188,7 +210,7 @@ func (r *HTMLRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.N
 	if !entering {
 		return ast.WalkContinue, nil
 	}
-	n := node.(*RawHTML)
+	n := node.(*RawHTML) //nolint:forcetypeassert // registered for KindRawHTML only
 	_, err := w.WriteString(string(r.renderInternal.ProtectSafeAttrs(n.rawHTML)))
 	if err != nil {
 		return ast.WalkStop, err

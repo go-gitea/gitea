@@ -9,35 +9,33 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"uuid"
 
-	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/optional"
-	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
-	arch_module "code.gitea.io/gitea/modules/packages/arch"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	debian_module "code.gitea.io/gitea/modules/packages/debian"
-	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
-	terraform_module "code.gitea.io/gitea/modules/packages/terraform"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	packages_service "code.gitea.io/gitea/services/packages"
-	container_service "code.gitea.io/gitea/services/packages/container"
-
-	"github.com/google/uuid"
+	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	packages_model "gitea.dev/models/packages"
+	container_model "gitea.dev/models/packages/container"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/optional"
+	alpine_module "gitea.dev/modules/packages/alpine"
+	arch_module "gitea.dev/modules/packages/arch"
+	container_module "gitea.dev/modules/packages/container"
+	rpm_module "gitea.dev/modules/packages/rpm"
+	terraform_module "gitea.dev/modules/packages/terraform"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	packages_helper "gitea.dev/routers/api/packages/helper"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	packages_service "gitea.dev/services/packages"
+	container_service "gitea.dev/services/packages/container"
 )
 
 const (
@@ -245,27 +243,6 @@ func ViewPackageVersion(ctx *context.Context) {
 
 		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
-	case packages_model.TypeDebian:
-		distributions := make(container.Set[string])
-		components := make(container.Set[string])
-		architectures := make(container.Set[string])
-
-		for _, f := range pd.Files {
-			for _, pp := range f.Properties {
-				switch pp.Name {
-				case debian_module.PropertyDistribution:
-					distributions.Add(pp.Value)
-				case debian_module.PropertyComponent:
-					components.Add(pp.Value)
-				case debian_module.PropertyArchitecture:
-					architectures.Add(pp.Value)
-				}
-			}
-		}
-
-		ctx.Data["Distributions"] = util.Sorted(distributions.Values())
-		ctx.Data["Components"] = util.Sorted(components.Values())
-		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeRpm:
 		groups := make(container.Set[string])
 		architectures := make(container.Set[string])
@@ -318,12 +295,15 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["LatestVersions"] = pvs
 	ctx.Data["TotalVersionCount"] = pvsTotal
-	ctx.Data["PackageVersionViewData"], err = packages_service.GetSpecManager().Get(pd.Package.Type).GetViewPackageVersionData(ctx, pd)
+	pkgSpec := packages_service.GetSpecManager().Get(pd.Package.Type)
+	viewData, err := pkgSpec.GetViewPackageVersionData(ctx, pd)
 	if err != nil {
 		ctx.ServerError("GetViewPackageVersionData", err)
 		return
 	}
 
+	ctx.Data["PackageVersionViewData"] = viewData
+	ctx.Data["PackageVersionSetupManual"] = pkgSpec.RenderSetupManual(ctx, pd, viewData)
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	hasRepositoryAccess := false
@@ -455,7 +435,7 @@ func PackageSettings(ctx *context.Context) {
 
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.PackageSettingForm)
+	form := web.GetForm[*forms.PackageSettingForm](ctx)
 	switch form.Action {
 	case "link":
 		packageSettingsPostActionLink(ctx, form)
@@ -566,7 +546,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	packages_helper.ServePackageFile(ctx, s, u, pf)
+	packages_helper.ServePackageFile(ctx, s, u, pf, httplib.ServeHeaderOptions{
+		Filename:           pf.Name,
+		LastModified:       pf.CreatedUnix.AsLocalTime(),
+		ContentDisposition: httplib.ContentDispositionAttachment,
+	})
 }
 
 // ActionPackageTerraformLock locks a terraform state

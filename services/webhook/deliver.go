@@ -19,27 +19,24 @@ import (
 	"sync"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/hostmatcher"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	user_model "gitea.dev/models/user"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/proxy"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (req *http.Request, body []byte, err error) {
 	switch w.HTTPMethod {
-	case "":
-		log.Info("HTTP Method for %s webhook %s [ID: %d] is not set, defaulting to POST", w.Type, w.URL, w.ID)
-		fallthrough
-	case http.MethodPost:
+	case "", http.MethodPost:
 		switch w.ContentType {
 		case webhook_model.ContentTypeJSON:
 			req, err = http.NewRequest(http.MethodPost, w.URL, strings.NewReader(t.PayloadContent))
@@ -311,20 +308,14 @@ func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) 
 // Init starts the hooks delivery thread
 func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
+	allowedHostMatcher := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Webhook.AllowedHostList)
 
-	allowedHostListValue := setting.Webhook.AllowedHostList
-	if allowedHostListValue == "" {
-		allowedHostListValue = hostmatcher.MatchBuiltinExternal
-	}
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", allowedHostListValue)
-
+	// NewHTTPTransport enforces the allow-list on direct connections; when webhookProxy routes a request
+	// through a configured proxy, restricting the proxied target is the proxy server's responsibility.
 	webhookHTTPClient = &http.Client{
 		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           webhookProxy(allowedHostMatcher),
-			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
-		},
+		Transport: hostmatcher.NewHTTPTransport("webhook", allowedHostMatcher, nil, webhookProxy(allowedHostMatcher), setting.Webhook.ProxyURLFixed,
+			&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify}),
 	}
 
 	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)

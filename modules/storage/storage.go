@@ -11,34 +11,17 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // ErrURLNotSupported represents url is not supported
 var ErrURLNotSupported = errors.New("url method not supported")
-
-// ErrInvalidConfiguration is called when there is invalid configuration for a storage
-type ErrInvalidConfiguration struct {
-	cfg any
-	err error
-}
-
-func (err ErrInvalidConfiguration) Error() string {
-	if err.err != nil {
-		return fmt.Sprintf("Invalid Configuration Argument: %v: Error: %v", err.cfg, err.err)
-	}
-	return fmt.Sprintf("Invalid Configuration Argument: %v", err.cfg)
-}
-
-// IsErrInvalidConfiguration checks if an error is an ErrInvalidConfiguration
-func IsErrInvalidConfiguration(err error) bool {
-	_, ok := err.(ErrInvalidConfiguration)
-	return ok
-}
 
 type Type = setting.StorageType
 
@@ -156,6 +139,23 @@ func SaveFrom(objStorage ObjectStorage, path string, callback func(w io.Writer) 
 
 	_, err := objStorage.Save(path, pr, -1)
 	return err
+}
+
+func buildObjectStorePath(base, p string) string {
+	p = strings.TrimPrefix(util.PathJoinRelX(base, p), "/") // object store doesn't use slash for root path
+	if p == "." {
+		p = "" // object store doesn't use dot as relative path
+	}
+	return p
+}
+
+func buildObjectStorePathPrefix(base, p string) string {
+	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+	p = buildObjectStorePath(base, p) + "/"
+	if p == "/" {
+		p = "" // object store doesn't use slash for root path
+	}
+	return p
 }
 
 var (

@@ -15,42 +15,42 @@
 		{{template "repo/issue/filters" .}}
 
 		<!-- milestone list -->
-		<div class="milestone-list">
+		<div class="flex-divided-list milestone-list">
 			{{range .Milestones}}
-				<li class="milestone-card">
-					<div class="milestone-header">
-						<h3 class="flex-text-block tw-m-0">
+				<div class="item flex-relaxed-list">
+					<div class="flex-left-right">
+						<span class="list-item-large-title">
 							{{svg "octicon-milestone" 16}}
 							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
-						</h3>
-						<div class="tw-flex tw-items-center">
-							<span class="tw-mr-2">{{.Completeness}}%</span>
-							<progress value="{{.Completeness}}" max="100"></progress>
+						</span>
+						<div class="flex-text-inline">
+							<span>{{.Completeness}}%</span>
+							<progress class="list-item-title-progress" value="{{.Completeness}}" max="100"></progress>
 						</div>
 					</div>
-					<div class="milestone-toolbar">
-						<div class="group">
-							<div class="flex-text-block">
+					<div class="list-item-secondary-bar">
+						<div class="flex-text-block tw-flex-wrap">
+							<div class="flex-text-inline">
 								{{svg "octicon-issue-opened" 14}}
 								{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 							</div>
-							<div class="flex-text-block">
+							<div class="flex-text-inline">
 								{{svg "octicon-check" 14}}
 								{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 							</div>
 							{{if .TotalTrackedTime}}
-								<div class="flex-text-block">
+								<div class="flex-text-inline">
 									{{svg "octicon-clock"}}
 									{{.TotalTrackedTime|Sec2Hour}}
 								</div>
 							{{end}}
 							{{if .UpdatedUnix}}
-								<div class="flex-text-block">
+								<div class="flex-text-inline">
 									{{svg "octicon-clock"}}
 									{{ctx.Locale.Tr "repo.milestones.update_ago" (DateUtils.TimeSince .UpdatedUnix)}}
 								</div>
 							{{end}}
-							<div class="flex-text-block">
+							<div class="flex-text-inline">
 								{{if .IsClosed}}
 									{{$closedDate:= DateUtils.TimeSince .ClosedDateUnix}}
 									{{svg "octicon-clock" 14}}
@@ -69,7 +69,7 @@
 							</div>
 						</div>
 						{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
-							<div class="group">
+							<div class="flex-text-block tw-flex-wrap">
 								<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 								{{if .IsClosed}}
 									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>
@@ -83,7 +83,7 @@
 					{{if .Content}}
 						<div class="render-content markup">{{.RenderedContent}}</div>
 					{{end}}
-				</li>
+				</div>
 			{{end}}
 
 			{{template "base/paginate" .}}

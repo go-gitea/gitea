@@ -9,25 +9,25 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	user_setting "code.gitea.io/gitea/routers/web/user/setting"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	org_service "code.gitea.io/gitea/services/org"
-	user_service "code.gitea.io/gitea/services/user"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	shared_user "gitea.dev/routers/web/shared/user"
+	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	org_service "gitea.dev/services/org"
+	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -58,7 +58,7 @@ func Settings(ctx *context.Context) {
 
 // SettingsPost response for settings change submitted
 func SettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateOrgSettingForm)
+	form := web.GetForm[*forms.UpdateOrgSettingForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
@@ -103,7 +103,7 @@ func SettingsPost(ctx *context.Context) {
 
 // SettingsAvatar response for change avatar on settings page
 func SettingsAvatar(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form := web.GetForm[*forms.AvatarForm](ctx)
 	form.Source = forms.AvatarLocal
 	if err := user_setting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -198,7 +198,7 @@ func Labels(ctx *context.Context) {
 
 // SettingsRenamePost response for renaming organization
 func SettingsRenamePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RenameOrgForm)
+	form := web.GetForm[*forms.RenameOrgForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -235,9 +235,10 @@ func SettingsRenamePost(ctx *context.Context) {
 
 // SettingsChangeVisibilityPost response for change organization visibility
 func SettingsChangeVisibilityPost(ctx *context.Context) {
-	visibility, ok := structs.VisibilityModes[ctx.FormString("visibility")]
+	visibilityStr := ctx.FormString("visibility")
+	visibility, ok := structs.VisibilityModes[structs.VisibilityString(visibilityStr)]
 	if !ok {
-		ctx.Flash.Error(ctx.Tr("invalid_data", visibility))
+		ctx.Flash.Error(ctx.Tr("invalid_data", visibilityStr))
 		ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
 		return
 	}

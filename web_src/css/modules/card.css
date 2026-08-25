@@ -122,14 +122,3 @@ a.ui.card:hover {
   color: var(--color-text);
   border-top-color: var(--color-secondary-light-1) !important;
 }
-
-.ui.three.cards {
-  margin-left: -1em;
-  margin-right: -1em;
-}
-
-.ui.three.cards > .card {
-  width: calc(33.33333333333333% - 2em);
-  margin-left: 1em;
-  margin-right: 1em;
-}

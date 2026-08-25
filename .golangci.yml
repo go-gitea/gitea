@@ -11,9 +11,9 @@ linters:
     - dupl
     - errcheck
     - forbidigo
+    - forcetypeassert
     - gocheckcompilerdirectives
     - gocritic
-    - goheader
     - govet
     - ineffassign
     - mirror
@@ -44,7 +44,7 @@ linters:
               desc: use os or io instead
             - pkg: golang.org/x/exp
               desc: it's experimental and unreliable
-            - pkg: code.gitea.io/gitea/modules/git/internal
+            - pkg: gitea.dev/modules/git/internal
               desc: do not use the internal package, use AddXxx function instead
             - pkg: gopkg.in/ini.v1
               desc: do not use the ini package, use gitea's config system instead
@@ -52,14 +52,19 @@ linters:
               desc: do not use the go-chi cache package, use gitea's cache system
             - pkg: github.com/pkg/errors
               desc: use builtin errors package instead
+            - pkg: gitea.com/go-chi/binding
+              desc: use our wrapper
         migrations:
           files:
-            - '**/models/migrations/**/*.go'
+            - '**/modelmigration/**/*.go'
           deny:
-            - pkg: code.gitea.io/gitea/models$
-              desc: migrations must not depend on the models package
-            - pkg: code.gitea.io/gitea/modules/structs
-              desc: migrations must not depend on modules/structs (API structures change over time)
+            - pkg: gitea.dev/models
+              desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
+            - pkg: gitea.dev/modules/structs
+              desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
+    modernize:
+      disable:
+        - embedlit
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -88,6 +93,11 @@ linters:
         - name: increment-decrement
         - name: modifies-value-receiver
         - name: package-comments
+        - name: package-naming
+          arguments:
+            - convention-name-check-regex: '^[a-z][a-z0-9_]*$' # underscores are used by migration packages
+              skip-default-bad-name-check: true
+              skip-collision-with-common-std: true
         - name: redefines-builtin-id
         - name: superfluous-else
         - name: time-naming
@@ -97,7 +107,7 @@ linters:
           arguments:
             - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
             - [] # DenyList
-            - - skip-package-name-checks: true # supress errors from underscore in migration packages
+            - - skip-initialism-name-checks: true
     staticcheck:
       checks:
         - all
@@ -108,6 +118,7 @@ linters:
         - -QF1008
     testifylint:
       disable:
+        - empty
         - go-require
         - require-error
     usetesting:
@@ -118,11 +129,6 @@ linters:
       enable:
         - nilness
         - unusedwrite
-    goheader:
-      values:
-        regexp:
-          HEADER: '((Copyright [^\n]+|All rights reserved\.)\n)*Copyright \d{4} (The (Gogs|Gitea) Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?(\n(Copyright [^\n]+|All rights reserved\.))*\nSPDX-License-Identifier: [\w.-]+'
-      template: '{{ HEADER }}'
   exclusions:
     generated: lax
     presets:
@@ -139,8 +145,7 @@ linters:
         path: _test\.go
       - linters:
           - dupl
-          - errcheck
-        path: models/migrations/v
+        path: modelmigration/v
       - linters:
           - forbidigo
         path: cmd
@@ -160,13 +165,10 @@ linters:
           - gocritic
         text: '(?i)exitAfterDefer:'
     paths:
-      - node_modules
-      - .venv
-      - public
-      - web_src
-      - third_party$
-      - builtin$
-      - examples$
+      - ^node_modules/
+      - ^\.venv/
+      - ^public/
+      - ^web_src/
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -179,18 +181,19 @@ formatters:
       custom-order: true
       sections:
         - standard
-        - prefix(code.gitea.io/gitea)
+        - prefix(gitea.dev)
         - blank
         - default
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
   exclusions:
     generated: lax
     paths:
-      - node_modules
-      - .venv
-      - public
-      - web_src
+      - ^node_modules/
+      - ^\.venv/
+      - ^public/
+      - ^web_src/
 
 run:
   timeout: 10m

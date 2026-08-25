@@ -11,28 +11,27 @@ import (
 	"strings"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/indexer"
-	path_filter "code.gitea.io/gitea/modules/indexer/code/bleve/token/path"
-	"code.gitea.io/gitea/modules/indexer/code/internal"
-	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
-	inner_bleve "code.gitea.io/gitea/modules/indexer/internal/bleve"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/analyze"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/indexer"
+	path_filter "gitea.dev/modules/indexer/code/bleve/token/path"
+	"gitea.dev/modules/indexer/code/internal"
+	indexer_internal "gitea.dev/modules/indexer/internal"
+	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
@@ -69,9 +68,8 @@ func (d *RepoIndexerData) Type() string {
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
-	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 9
+	repoIndexerLatestVersion = 10
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -107,8 +105,8 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     letter.Name,
-		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
+		"tokenizer":     codeTokenizerName,
+		"token_filters": []string{unicodeNormalizeName, codeTokenFilterName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -163,7 +161,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return err
 		}
@@ -212,7 +210,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		catfileBatch, err := gitrepo.NewBatch(ctx, repo)
+		catfileBatch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
@@ -331,6 +329,17 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 
 	searchResults := make([]*internal.SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
+		content, okContent := hit.Fields["Content"].(string)
+		language, okLanguage := hit.Fields["Language"].(string)
+		commitID, okCommitID := hit.Fields["CommitID"].(string)
+		updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
+		repoID, okRepoID := hit.Fields["RepoID"].(float64)
+		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
+			hitFieldsJson, _ := json.Marshal(hit.Fields)
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hitFieldsJson))
+			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+		}
+
 		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
 			location := locations[0]
@@ -344,21 +353,20 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			}
 		}
 		if len(hit.Locations["Filename"]) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(hit.Fields["Content"].(string))
+			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
 		}
 
-		language := hit.Fields["Language"].(string)
 		var updatedUnix timeutil.TimeStamp
-		if t, err := time.Parse(time.RFC3339, hit.Fields["UpdatedAt"].(string)); err == nil {
+		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
 			updatedUnix = timeutil.TimeStamp(t.Unix())
 		}
 		searchResults[i] = &internal.SearchResult{
-			RepoID:      int64(hit.Fields["RepoID"].(float64)),
+			RepoID:      int64(repoID),
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,
 			Filename:    internal.FilenameOfIndexerID(hit.ID),
-			Content:     hit.Fields["Content"].(string),
-			CommitID:    hit.Fields["CommitID"].(string),
+			Content:     content,
+			CommitID:    commitID,
 			UpdatedUnix: updatedUnix,
 			Language:    language,
 			Color:       enry.GetColor(language),

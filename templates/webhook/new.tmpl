@@ -2,24 +2,24 @@
 	{{.CustomHeaderTitle}}
 	<div class="ui right type dropdown">
 		<div class="text flex-text-inline">
-			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" .ctxData.HookType)}}
-			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" .ctxData.HookType)}}
+			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" ctx.RootData.HookType)}}
+			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" ctx.RootData.HookType)}}
 		</div>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		{{template "repo/settings/webhook/link_menu" .ctxData}}
+		{{template "repo/settings/webhook/link_menu" ctx.RootData}}
 	</div>
 </h4>
 <div class="ui attached segment">
-	{{template "repo/settings/webhook/gitea" .ctxData}}
-	{{template "repo/settings/webhook/gogs" .ctxData}}
-	{{template "repo/settings/webhook/slack" .ctxData}}
-	{{template "repo/settings/webhook/discord" .ctxData}}
-	{{template "repo/settings/webhook/dingtalk" .ctxData}}
-	{{template "repo/settings/webhook/telegram" .ctxData}}
-	{{template "repo/settings/webhook/msteams" .ctxData}}
-	{{template "repo/settings/webhook/feishu" .ctxData}}
-	{{template "repo/settings/webhook/matrix" .ctxData}}
-	{{template "repo/settings/webhook/wechatwork" .ctxData}}
-	{{template "repo/settings/webhook/packagist" .ctxData}}
+	{{template "repo/settings/webhook/gitea" ctx.RootData}}
+	{{template "repo/settings/webhook/gogs" ctx.RootData}}
+	{{template "repo/settings/webhook/slack" ctx.RootData}}
+	{{template "repo/settings/webhook/discord" ctx.RootData}}
+	{{template "repo/settings/webhook/dingtalk" ctx.RootData}}
+	{{template "repo/settings/webhook/telegram" ctx.RootData}}
+	{{template "repo/settings/webhook/msteams" ctx.RootData}}
+	{{template "repo/settings/webhook/feishu" ctx.RootData}}
+	{{template "repo/settings/webhook/matrix" ctx.RootData}}
+	{{template "repo/settings/webhook/wechatwork" ctx.RootData}}
+	{{template "repo/settings/webhook/packagist" ctx.RootData}}
 </div>
-{{template "repo/settings/webhook/history" .ctxData}}
+{{template "repo/settings/webhook/history" ctx.RootData}}

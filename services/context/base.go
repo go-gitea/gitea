@@ -12,14 +12,14 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
 )
 
 type BaseContextKeyType struct{}
@@ -114,7 +114,7 @@ func (b *Base) HTTPError(status int, contents ...string) {
 func (b *Base) JSON(status int, content any) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
-	if err := json.NewEncoder(b.Resp).Encode(content); err != nil {
+	if err := json.MarshalWrite(b.Resp, content); err != nil {
 		log.Error("Render JSON failed: %v", err)
 	}
 }
@@ -186,6 +186,26 @@ func (b *Base) Tr(msg string, args ...any) template.HTML {
 
 func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
+}
+
+func CspScriptNonce(ctx reqctx.RequestContext) (ret string) {
+	// Generate a random nonce for each request and cache it in the context to make it usable during the whole rendering process.
+	//
+	// Some "<script>" tags are not in the CSP context, so they don't need nonce,
+	// these tags are written as "<script nonce>" to help developers to know that "no script nonce attribute is missing"
+	// (e.g.: when they grep the codebase for "script" tags)
+	ret, _ = ctx.Value("_cspScriptNonce").(string)
+	if ret == "" {
+		ret = util.FastCryptoRandomHex(32) // 16 bytes / 128 bits entropy
+		ctx.SetContextValue("_cspScriptNonce", ret)
+	}
+	return ret
+}
+
+func (b *Base) SetHeaderContentSecurityPolicyGeneral() {
+	if csp := WebContentSecurityPolicy(CspScriptNonce(b)); csp != "" {
+		b.Resp.Header().Set("Content-Security-Policy", csp)
+	}
 }
 
 func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {

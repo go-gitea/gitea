@@ -12,8 +12,6 @@ export function randomString(length: number): string {
   return result;
 }
 
-export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
-
 export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
@@ -47,11 +45,18 @@ export async function apiCreateRepo(requestContext: APIRequestContext, {name, au
   }), 'apiCreateRepo');
 }
 
-export async function apiCreateIssue(requestContext: APIRequestContext, owner: string, repo: string, {title, headers}: {title: string; headers?: Record<string, string>}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
+export async function apiCreateOrg(requestContext: APIRequestContext, name: string, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs`, {
     headers: headers || apiHeaders(),
-    data: {title},
-  }), 'apiCreateIssue');
+    data: {username: name},
+  }), 'apiCreateOrg');
+}
+
+export async function apiCreateTeam(requestContext: APIRequestContext, org: string, name: string, {permission = 'read', units = ['repo.code'], headers}: {permission?: string; units?: Array<string>; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs/${org}/teams`, {
+    headers: headers || apiHeaders(),
+    data: {name, permission, units},
+  }), 'apiCreateTeam');
 }
 
 export async function apiStartStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
@@ -60,18 +65,57 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
-export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
-    headers: apiHeaders(),
-    data: {content: globalThis.btoa(content)},
-  }), 'apiCreateFile');
+/** Commit one or more files in a single API call. */
+export async function apiCreateFiles(requestContext: APIRequestContext, owner: string, repo: string, files: Array<{path: string; content: string}>, {branch, newBranch, headers}: {branch?: string; newBranch?: string; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: headers || apiHeaders(),
+    data: {
+      branch, new_branch: newBranch,
+      files: files.map((file) => ({operation: 'create', path: file.path, content: Buffer.from(file.content, 'utf8').toString('base64')})),
+    },
+  }), 'apiCreateFiles');
 }
 
-export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
+export async function apiCancelStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/delete`, {
+    headers: headers || apiHeaders(),
+  }), 'apiCancelStopwatch');
+}
+
+export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
+    headers: headers || apiHeaders(),
+    data: {state: 'closed'},
+  }), 'apiCloseIssue');
+}
+
+/** Create a PR via API. Returns the PR index for subsequent operations. */
+export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
+  let prIndex = 0;
+  await apiRetry(async () => {
+    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
+      headers: headers || apiHeaders(),
+      data: {head, base, title},
+    });
+    if (response.ok()) prIndex = (await response.json()).number;
+    return response;
+  }, 'apiCreatePR');
+  return prIndex;
+}
+
+/** Create a review on a PR. `event: "COMMENT"` submits immediately without a pending review. */
+export async function apiCreateReview(requestContext: APIRequestContext, owner: string, repo: string, index: number, {event = 'COMMENT', body, comments = [], headers}: {event?: string; body?: string; comments?: Array<{path: string; body: string; new_position?: number; old_position?: number}>; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {
+    headers: headers || apiHeaders(),
+    data: {event, body, comments},
+  }), 'apiCreateReview');
+}
+
+export async function createProjectColumn(requestContext: APIRequestContext, owner: string, repo: string, projectID: string, title: string) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/${owner}/${repo}/projects/${projectID}/columns/new`, {
     headers: apiHeaders(),
-    data: {new_branch_name: newBranch},
-  }), 'apiCreateBranch');
+    form: {title},
+  }), 'createProjectColumn');
 }
 
 export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
@@ -87,7 +131,7 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
 }
 
 /** Password shared by all test users — used for both API user creation and browser login. */
-const testUserPassword = 'e2e-password!aA1';
+export const testUserPassword = 'e2e-password!aA1';
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);
@@ -106,16 +150,74 @@ export async function apiDeleteUser(requestContext: APIRequestContext, username:
   }), 'apiDeleteUser');
 }
 
+export async function createProject(
+  page: Page,
+  {owner, repo, title}: {owner: string; repo: string; title: string},
+): Promise<{id: number}> {
+  // Navigate to new project page
+  await page.goto(`/${owner}/${repo}/projects/new`);
+
+  // Fill in project details
+  await page.getByLabel('Title').fill(title);
+
+  // Submit the form
+  await page.getByRole('button', {name: 'Create Project'}).click();
+
+  // Wait for redirect to projects list
+  await page.waitForURL(new RegExp(`/${owner}/${repo}/projects$`));
+
+  // Extract the project ID from the project link in the list
+  const projectLink = page.locator('.milestone-list > .item').filter({hasText: title}).locator('a').first();
+  const href = await projectLink.getAttribute('href');
+  const match = /\/projects\/(\d+)/.exec(href || '');
+  const id = match ? parseInt(match[1]) : 0;
+
+  return {id};
+}
+
+export async function apiCreateIssue(
+  requestContext: APIRequestContext,
+  {owner, repo, title, body, projects, headers}: {
+    owner: string;
+    repo: string;
+    title: string;
+    body?: string;
+    projects?: number[];
+    headers?: Record<string, string>;
+  },
+): Promise<{index: number}> {
+  let result: {index: number} = {index: 0};
+  await apiRetry(async () => {
+    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
+      headers: headers || apiHeaders(),
+      data: {title, body: body || '', projects: projects || []},
+    });
+    if (response.ok()) {
+      const json = await response.json();
+      // API returns "number" field for the issue index
+      result = {index: json.number};
+    }
+    return response;
+  }, 'apiCreateIssue');
+  return result;
+}
+
+export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
+  await trigger.click();
+  await page.getByText(itemText).click();
+}
+
 export async function loginUser(page: Page, username: string) {
   return login(page, username, testUserPassword);
 }
 
 export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
-  await page.goto('/user/login');
-  await page.getByLabel('Username or Email Address').fill(username);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', {name: 'Sign In'}).click();
-  await expect(page.getByRole('link', {name: 'Sign In'})).toBeHidden();
+  const response = await page.request.post('/user/login', {
+    form: {user_name: username, password},
+    maxRedirects: 0,
+  });
+  const status = response.status();
+  if (status !== 302 && status !== 303) throw new Error(`login as ${username} failed: HTTP ${status}`);
 }
 
 export async function assertNoJsError(page: Page) {

@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"sort"
 
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/container"
 )
 
 func FindIssueDevLinksByIssue(ctx context.Context, issue *issues_model.Issue) (issues_model.IssueDevLinks, error) {

@@ -11,7 +11,7 @@
 	{{end}}
 {{end}}
 <div class="{{TabSizeClass .Editorconfig .FileTreePath}} non-diff-file-content">
-	<h4 class="file-header ui top attached header tw-flex tw-items-center tw-justify-between tw-flex-wrap">
+	<h4 class="file-header ui top attached header flex-left-right">
 		<div class="file-header-left tw-flex tw-items-center tw-py-2 tw-pr-4">
 			{{template "repo/file_info" .}}
 		</div>
@@ -28,7 +28,7 @@
 			</div>
 		</div>
 	</h4>
-	<div class="ui bottom attached table unstackable segment">
+	<div class="ui bottom attached segment file-view-container">
 		<div class="file-view code-view unicode-escaped">
 			{{if .IsFileTooLarge}}
 				{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
@@ -43,7 +43,7 @@
 								<div class="blame-info">
 									<div class="blame-data">
 										<div class="blame-avatar">
-											{{$row.Avatar}}
+											{{if $row.AvatarStackData}}{{ctx.RenderUtils.AvatarStack $row.AvatarStackData}}{{end}}
 										</div>
 										<div class="blame-message muted-links" title="{{$row.CommitMessage}}">
 											{{ctx.RenderUtils.RenderCommitMessageLinkSubject $row.CommitMessage $row.CommitURL $.Repository}}
@@ -79,7 +79,7 @@
 				{{/*FIXME: the "HasSourceRenderedToggle" is never set on blame page, it should mean "whether the file is renderable".
 				If the file is renderable, then it must has the "display=source" parameter to make sure the file view page shows the source code, then line number works. */}}
 				{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-					<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
+					<a class="item ref-in-new-issue" role="menuitem" data-url-issue-new="{{.RepoLink}}/issues/new" data-url-param-body-link="{{.Repository.HTMLURL ctx}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}" rel="nofollow noindex">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</a>
 				{{end}}
 				<a class="item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</a>
 			</div>

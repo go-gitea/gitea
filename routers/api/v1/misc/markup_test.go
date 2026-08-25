@@ -7,32 +7,21 @@ import (
 	go_context "context"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/web"
-	context_service "code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/contexttest"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const AppURL = "http://localhost:3000/"
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		FixtureFiles: []string{"repository.yml", "user.yml"},
-	})
-	os.Exit(m.Run())
-}
 
 func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expectedBody string, expectedCode int) {
 	setting.AppURL = AppURL
@@ -49,13 +38,11 @@ func testRenderMarkup(t *testing.T, mode string, wiki bool, filePath, text, expe
 		FilePath: filePath,
 	}
 	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
-	ctx.Repo = &context_service.Repository{}
-	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	web.SetForm(ctx, &options)
 	Markup(ctx)
 	assert.Equal(t, expectedBody, resp.Body.String())
 	assert.Equal(t, expectedCode, resp.Code)
-	resp.Body.Reset()
+	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "script-src * 'nonce-")
 }
 
 func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody string, responseCode int) {
@@ -76,11 +63,10 @@ func testRenderMarkdown(t *testing.T, mode string, wiki bool, text, responseBody
 	Markdown(ctx)
 	assert.Equal(t, responseBody, resp.Body.String())
 	assert.Equal(t, responseCode, resp.Code)
-	resp.Body.Reset()
+	assert.Contains(t, resp.Header().Get("Content-Security-Policy"), "script-src * 'nonce-")
 }
 
 func TestAPI_RenderGFM(t *testing.T) {
-	unittest.PrepareTestEnv(t)
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx go_context.Context, username string) bool {
 			return username == "r-lyeh"
@@ -177,49 +163,34 @@ Here are some links to the most important topics. You can find the full list of 
 	testRenderMarkup(t, "unknown", false, "", "## Test", "unsupported render mode: unknown\n", http.StatusUnprocessableEntity)
 }
 
-var simpleCases = []string{
-	// Guard wiki sidebar: special syntax
-	`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
-	// rendered
-	`<p>[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]</p>
-`,
-	// special syntax
-	`[[Name|Link]]`,
-	// rendered
-	`<p>[[Name|Link]]</p>
-`,
-	// empty
-	``,
-	// rendered
-	``,
-}
-
 func TestAPI_RenderSimple(t *testing.T) {
 	setting.AppURL = AppURL
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	options := api.MarkdownOption{
-		Mode:    "markdown",
-		Text:    "",
-		Context: "/user2/repo1",
-	}
-	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
-	for i := 0; i < len(simpleCases); i += 2 {
-		options.Text = simpleCases[i]
-		web.SetForm(ctx, &options)
-		Markdown(ctx)
-		assert.Equal(t, simpleCases[i+1], resp.Body.String())
-		resp.Body.Reset()
-	}
-}
 
-func TestAPI_RenderRaw(t *testing.T) {
-	setting.AppURL = AppURL
-	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
-	for i := 0; i < len(simpleCases); i += 2 {
-		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))
-		MarkdownRaw(ctx)
-		assert.Equal(t, simpleCases[i+1], resp.Body.String())
-		resp.Body.Reset()
+	testCases := []struct {
+		in, out string
+		mode    string
+	}{
+		{in: "", out: ""},
+		{in: "[[special-syntax]]", out: "<p>[[special-syntax]]</p>\n", mode: "markdown"},
+		{in: "[[special|syntax]]", out: "<p>[[special|syntax]]</p>\n", mode: "markdown"},
+		{in: "01234567890123456789", out: "<p>01234567890123456789</p>\n", mode: "gfm"}, // commit-like content should not crash the render
 	}
+	t.Run("markdown", func(t *testing.T) {
+		for _, c := range testCases {
+			options := api.MarkdownOption{Mode: c.mode, Text: c.in, Context: "/user2/repo1"}
+			ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
+			web.SetForm(ctx, &options)
+			Markdown(ctx)
+			assert.Equal(t, c.out, resp.Body.String())
+		}
+	})
+	t.Run("markdown-raw", func(t *testing.T) {
+		for _, c := range testCases {
+			ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
+			ctx.Req.Body = io.NopCloser(strings.NewReader(c.in))
+			MarkdownRaw(ctx)
+			assert.Equal(t, c.out, resp.Body.String())
+		}
+	})
 }

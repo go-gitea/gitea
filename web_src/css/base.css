@@ -224,6 +224,16 @@ progress::-moz-progress-bar {
   background-color: var(--color-accent);
 }
 
+@media (forced-colors: active) {
+  progress {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  progress::-webkit-progress-value {
+    background: CanvasText;
+  }
+}
+
 * {
   caret-color: var(--color-caret);
 }
@@ -259,7 +269,6 @@ relative-time::part(root)::selection {
 .lines-commit .blame-info,
 .ellipsis-button {
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -273,7 +282,6 @@ a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-line: none;
-  text-decoration-skip-ink: all;
 }
 
 a:hover {
@@ -293,9 +301,7 @@ a.silenced,
 }
 
 a:hover,
-a.suppressed:hover,
 a.muted:hover,
-a.muted:hover [class*="color-text"],
 .muted-links a:hover {
   color: var(--color-primary);
 }
@@ -303,6 +309,15 @@ a.muted:hover [class*="color-text"],
 a.silenced:hover,
 a.suppressed:hover {
   color: inherit;
+}
+
+/* keyboard focus ring for interactive elements */
+a:focus-visible,
+button:focus-visible,
+.ui.button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 a.silenced:hover {
@@ -341,9 +356,7 @@ a.label,
   width: 16px;
   height: 16px;
   mask-size: cover;
-  -webkit-mask-size: cover;
   mask-image: var(--select-arrows);
-  -webkit-mask-image: var(--select-arrows);
   background: currentcolor;
 }
 
@@ -375,26 +388,8 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-/* styles from removed fomantic transition module */
-.hidden.transition {
-  visibility: hidden;
-  display: none;
-}
-.visible.transition {
-  display: block !important;
-  visibility: visible !important;
-}
-
 .ui.comments .comment .metadata {
   color: var(--color-text-light-2);
-}
-
-img.ui.avatar,
-.ui.avatar img,
-.ui.avatar svg {
-  border-radius: var(--border-radius);
-  object-fit: contain;
-  aspect-ratio: 1;
 }
 
 .full.height {
@@ -431,11 +426,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.ui.message.flash-message pre {
-  white-space: pre-line;
-  margin: 0;
-}
-
 .ui .header > i + .content {
   padding-left: 0.75rem;
   vertical-align: middle;
@@ -462,11 +452,6 @@ img.ui.avatar,
   margin-right: 4px;
 }
 
-.ui.inline.delete-button {
-  padding: 8px 15px;
-  font-weight: var(--font-weight-normal);
-}
-
 .ui .migrate {
   color: var(--color-text-light-2) !important;
 }
@@ -477,10 +462,6 @@ img.ui.avatar,
 
 .ui .migrate a:hover {
   color: var(--color-text) !important;
-}
-
-.ui .border {
-  border: 1px solid;
 }
 
 .user-menu > .item {
@@ -501,10 +482,10 @@ img.ui.avatar,
 }
 
 blockquote.attention-note {
-  border-left-color: var(--color-blue-dark-1);
+  border-left-color: var(--color-info-text);
 }
 strong.attention-note, svg.attention-note {
-  color: var(--color-blue-dark-1);
+  color: var(--color-info-text);
 }
 
 blockquote.attention-tip {
@@ -515,10 +496,10 @@ strong.attention-tip, svg.attention-tip {
 }
 
 blockquote.attention-important {
-  border-left-color: var(--color-violet-dark-1);
+  border-left-color: var(--color-priority-text);
 }
 strong.attention-important, svg.attention-important {
-  color: var(--color-violet-dark-1);
+  color: var(--color-priority-text);
 }
 
 blockquote.attention-warning {
@@ -529,10 +510,10 @@ strong.attention-warning, svg.attention-warning {
 }
 
 blockquote.attention-caution {
-  border-left-color: var(--color-red-dark-1);
+  border-left-color: var(--color-error-text);
 }
 strong.attention-caution, svg.attention-caution {
-  color: var(--color-red-dark-1);
+  color: var(--color-error-text);
 }
 
 /* FIXME: this is a longstanding dirty patch since 2015, it only makes the pages more messy and shouldn't be used */
@@ -544,6 +525,11 @@ overflow-menu {
   border-bottom: 1px solid var(--color-secondary) !important;
   display: flex;
   position: relative;
+}
+
+/* hide until JS has arranged the items, so the un-collapsed menu is never painted */
+overflow-menu:not([data-ready]) {
+  visibility: hidden;
 }
 
 overflow-menu .overflow-menu-popup {
@@ -633,6 +619,12 @@ overflow-menu .overflow-menu-button:hover {
 
 overflow-menu .ui.label {
   margin-left: 7px !important; /* save some space */
+  font-variant-numeric: tabular-nums; /* equal-width digits so counts don't reflow the row */
+}
+
+/* count not loaded yet, keep the reserved space so filling it in does not shift the row */
+overflow-menu .ui.label:empty {
+  visibility: hidden;
 }
 
 .activity-bar-graph {
@@ -782,9 +774,15 @@ tr.top-line-blame:first-of-type {
 
 .color-icon {
   display: inline-block;
+  flex-shrink: 0;
   border-radius: var(--border-radius-full);
   height: 14px;
   width: 14px;
+}
+
+.icon-size-8 {
+  width: 8px;
+  height: 8px;
 }
 
 .rss-icon {
@@ -858,7 +856,8 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: var(--gap-inline);
   vertical-align: middle;
-  min-width: 0; /* make ellipsis work */
+  max-width: 100%; /* the inner part might have "gt-ellipsis" */
+  min-width: 0; /* if it is the top flex container, "max-width" works; but if it is inside another flex container, the parent needs to handle the x-axis and here also needs "min-width" */
 }
 
 .ui.ui.labeled.button {
@@ -866,43 +865,32 @@ table th[data-sortt-desc] .svg {
   align-items: stretch;
 }
 
-/* can be used to replace "ui relaxed list" or "tw-flex tw-flex-col tw-gap-xxx" when we need more flexible layout */
-.flex-relaxed-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-block);
-}
-
-/* TODO: use this to replace all existing "flex + justify-between" (there are quite a lot) */
+/* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.ui.modal .header.flex-left-right,
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--gap-block);
-  min-width: 0;
-}
-
-/* TODO: use this to replace all existing "flex + wrap" and (there are quite a lot of) */
-.flex-center-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--gap-block);
+  max-width: 100%;
   min-width: 0;
 }
 
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
+.ui.vertical.menu .item.flex-text-block,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
   display: flex;
   align-items: center;
   gap: var(--gap-block);
+  max-width: 100%;
   min-width: 0;
 }
 
+.flex-left-right > .ui.button,
 .flex-text-block > .ui.button,
 .flex-text-inline > .ui.button {
   margin: 0; /* fomantic buttons have default margin, when we use them in a flex container with gap, we do not need these margins */

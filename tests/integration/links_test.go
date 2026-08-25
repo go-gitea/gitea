@@ -9,10 +9,10 @@ import (
 	"path"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,6 +31,42 @@ func TestLinks(t *testing.T) {
 	t.Run("NoLoginNotExist", testLinksNoLoginNotExist)
 	t.Run("AsUser", testLinksAsUser)
 	t.Run("RepoCommon", testLinksRepoCommon)
+	t.Run("ApiJson", testLinksApiJson)
+}
+
+func testLinksApiJson(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppVer, "1.2.3")()
+	defer test.MockVariableValue(&setting.AppSubURL)()
+	t.Run("Swagger", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/swagger.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				BasePath string `json:"basePath"`
+				Info     struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.BasePath)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
+	t.Run("OpenAPI3", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/openapi3.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				Servers []struct {
+					URL string `json:"url"`
+				} `json:"servers"`
+				Info struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.Servers[0].URL)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
 }
 
 func testLinksNoLogin(t *testing.T) {
@@ -145,8 +181,7 @@ func testLinksAsUser(t *testing.T) {
 
 	reqAPI := NewRequestf(t, "GET", "/api/v1/users/user2/repos")
 	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
-	var apiRepos []*api.Repository
-	DecodeJSON(t, respAPI, &apiRepos)
+	apiRepos := DecodeJSON(t, respAPI, []*api.Repository{})
 	repoLinks := []string{
 		"",
 		"/issues",

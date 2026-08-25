@@ -12,14 +12,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	swift_module "code.gitea.io/gitea/modules/packages/swift"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	swift_router "code.gitea.io/gitea/routers/api/packages/swift"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	swift_module "gitea.dev/modules/packages/swift"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	swift_router "gitea.dev/routers/api/packages/swift"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -164,8 +164,8 @@ func TestPackageSwift(t *testing.T) {
 		assert.NotNil(t, pd.SemVer)
 		assert.Equal(t, packageID, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
-		assert.IsType(t, &swift_module.Metadata{}, pd.Metadata)
-		metadata := pd.Metadata.(*swift_module.Metadata)
+		metadata, ok := pd.Metadata.(*swift_module.Metadata)
+		require.True(t, ok)
 		assert.Equal(t, packageDescription, metadata.Description)
 		assert.Len(t, metadata.Manifests, 2)
 		assert.Equal(t, contentManifest1, metadata.Manifests[""].Content)
@@ -241,8 +241,8 @@ func TestPackageSwift(t *testing.T) {
 		assert.NotNil(t, pd.SemVer)
 		assert.Equal(t, packageID, pd.Package.Name)
 		assert.Equal(t, packageVersion2, pd.Version.Version)
-		assert.IsType(t, &swift_module.Metadata{}, pd.Metadata)
-		metadata := pd.Metadata.(*swift_module.Metadata)
+		metadata, ok := pd.Metadata.(*swift_module.Metadata)
+		require.True(t, ok)
 		assert.Equal(t, packageDescription, metadata.Description)
 		assert.Len(t, metadata.Manifests, 2)
 		assert.Equal(t, contentManifest1, metadata.Manifests[""].Content)

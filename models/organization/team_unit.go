@@ -6,9 +6,9 @@ package organization
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
 )
 
 // TeamUnit describes all units of a repository
@@ -27,20 +27,4 @@ func (t *TeamUnit) Unit() unit.Unit {
 
 func getUnitsByTeamID(ctx context.Context, teamID int64) (units []*TeamUnit, err error) {
 	return units, db.GetEngine(ctx).Where("team_id = ?", teamID).Find(&units)
-}
-
-// UpdateTeamUnits updates a teams's units
-func UpdateTeamUnits(ctx context.Context, team *Team, units []TeamUnit) (err error) {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err = db.GetEngine(ctx).Where("team_id = ?", team.ID).Delete(new(TeamUnit)); err != nil {
-			return err
-		}
-
-		if len(units) > 0 {
-			if err = db.Insert(ctx, units); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }

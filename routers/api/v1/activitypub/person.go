@@ -6,7 +6,7 @@ package activitypub
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/services/context"
 )
 
 func NotImplemented(ctx *context.APIContext) {

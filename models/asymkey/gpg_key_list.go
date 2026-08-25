@@ -6,7 +6,7 @@ package asymkey
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 type GPGKeyList []*GPGKey

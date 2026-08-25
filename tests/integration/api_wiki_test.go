@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -70,8 +70,7 @@ func TestAPIListWikiPages(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var meta []*api.WikiPageMetaData
-	DecodeJSON(t, resp, &meta)
+	meta := DecodeJSON(t, resp, []*api.WikiPageMetaData{})
 
 	dummymeta := []*api.WikiPageMetaData{
 		{

@@ -7,15 +7,15 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -126,8 +126,7 @@ func GetLFSMetaObjectByOid(ctx context.Context, repoID int64, oid string) (*LFSM
 		return nil, ErrLFSObjectNotExist
 	}
 
-	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
-	has, err := db.GetEngine(ctx).Get(m)
+	m, has, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repository_id": repoID, "oid": oid})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -196,7 +195,10 @@ func LFSObjectAccessible(ctx context.Context, user *user_model.User, oid string)
 		count, err := db.GetEngine(ctx).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return count > 0, err
 	}
-	cond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
+	// LFS objects are repository code content, so authorization must require
+	// Code-unit access; other unit accesses (e.g. Issues) must not authorize
+	// reuse of an existing LFS object across repositories.
+	cond := repo_model.AccessibleRepositoryCondition(user, unit.TypeCode)
 	count, err := db.GetEngine(ctx).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	return count > 0, err
 }
@@ -220,7 +222,7 @@ func LFSAutoAssociate(ctx context.Context, metas []*LFSMetaObject, user *user_mo
 			newMetas := make([]*LFSMetaObject, 0, len(metas))
 			cond := builder.In(
 				"`lfs_meta_object`.repository_id",
-				builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)),
+				builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user, unit.TypeCode)),
 			)
 			if err := db.GetEngine(ctx).Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas); err != nil {
 				return err

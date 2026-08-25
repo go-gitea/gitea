@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 )
 
 // PullRequest defines a standard pull request information

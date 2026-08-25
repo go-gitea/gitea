@@ -9,13 +9,13 @@ import (
 	"net/url"
 	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	user_model "gitea.dev/models/user"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 type linkFormatter = func(string, string) string
@@ -293,6 +293,13 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	return text, issueTitle, color
 }
 
+func getRepoRenamedFrom(p *api.RepositoryPayload) string {
+	if p.Changes == nil || p.Changes.Name == nil {
+		return ""
+	}
+	return p.Changes.Name.From
+}
+
 func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	refLink := linkFormatter(p.Package.HTMLURL, p.Package.Name+":"+p.Package.Version)
 
@@ -404,20 +411,17 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		config["color"] = s.Color
 	}
 
-	authorizationHeader, err := w.HeaderAuthorization()
-	if err != nil {
-		return nil, err
-	}
-
 	return &api.Hook{
-		ID:                  w.ID,
-		Name:                w.Name,
-		Type:                w.Type,
-		URL:                 fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
-		Active:              w.IsActive,
-		Config:              config,
-		Events:              w.EventsArray(),
-		AuthorizationHeader: authorizationHeader,
+		ID:     w.ID,
+		Name:   w.Name,
+		Type:   w.Type,
+		URL:    fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
+		Active: w.IsActive,
+		Config: config,
+		Events: w.EventsArray(),
+		// the stored authorization header is a secret and must never be returned by the API,
+		// consistent with the webhook secret which is also omitted from the response
+		AuthorizationHeader: "",
 		Updated:             w.UpdatedUnix.AsTime(),
 		Created:             w.CreatedUnix.AsTime(),
 		BranchFilter:        w.BranchFilter,

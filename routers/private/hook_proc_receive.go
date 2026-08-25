@@ -7,19 +7,18 @@ import (
 	"errors"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/agit"
-	gitea_context "code.gitea.io/gitea/services/context"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/agit"
+	gitea_context "gitea.dev/services/context"
 )
 
 // HookProcReceive proc-receive hook - only handles agit Proc-Receive requests at present
 func HookProcReceive(ctx *gitea_context.PrivateContext) {
-	opts := web.GetForm(ctx).(*private.HookOptions)
+	opts := web.GetForm[*private.HookOptions](ctx)
 	if !git.DefaultFeatures().SupportProcReceive {
 		ctx.Status(http.StatusNotFound)
 		return
@@ -28,18 +27,11 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, opts)
 	if err != nil {
 		if errors.Is(err, issues_model.ErrMustCollaborator) {
-			ctx.JSON(http.StatusUnauthorized, private.Response{
-				Err: err.Error(), UserMsg: "You must be a collaborator to create pull request.",
-			})
+			ctx.PrivateUserErrorf(http.StatusUnauthorized, "You must be a collaborator to create pull request.")
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.JSON(http.StatusUnauthorized, private.Response{
-				Err: err.Error(), UserMsg: "Cannot create pull request because you are blocked by the repository owner.",
-			})
+			ctx.PrivateUserErrorf(http.StatusUnauthorized, "Cannot create pull request because you are blocked by the repository owner.")
 		} else {
-			log.Error("agit.ProcReceive failed: %v", err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: err.Error(),
-			})
+			ctx.PrivateInternalErrorf("agit.ProcReceive failed: %v", err)
 		}
 
 		return

@@ -9,10 +9,10 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/tailmsg"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/tailmsg"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 func MonitorDiagnosis(ctx *context.Context) {
@@ -70,7 +70,7 @@ func MonitorDiagnosis(ctx *context.Context) {
 	for _, record := range tailmsg.GetManager().GetTraceRecorder().GetRecords() {
 		_, _ = f.Write(util.UnsafeStringToBytes(record.Time.Format(time.RFC3339)))
 		_, _ = f.Write([]byte(" "))
-		_, _ = f.Write(util.UnsafeStringToBytes((record.Content)))
+		_, _ = f.Write(util.UnsafeStringToBytes(record.Content))
 		_, _ = f.Write([]byte("\n\n"))
 	}
 }

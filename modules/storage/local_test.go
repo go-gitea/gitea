@@ -8,11 +8,17 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestLocalStorage(t *testing.T) {
+	objStore, err := NewStorage(setting.LocalStorageType, &setting.Storage{Path: t.TempDir()})
+	require.NoError(t, err)
+	testStorageGeneral(t, objStore)
+}
 
 func TestBuildLocalPath(t *testing.T) {
 	kases := []struct {
@@ -97,8 +103,4 @@ func TestLocalStorageDelete(t *testing.T) {
 	require.NoError(t, st.Delete("dir/sub2/2-a.txt"))
 	assertExists(t, ".", true)
 	assertExists(t, "dir", false)
-}
-
-func TestLocalStorageIterator(t *testing.T) {
-	testStorageIterator(t, setting.LocalStorageType, &setting.Storage{Path: t.TempDir()})
 }

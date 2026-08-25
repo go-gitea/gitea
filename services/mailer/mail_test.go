@@ -16,19 +16,23 @@ import (
 	"testing"
 	texttmpl "text/template"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	activities_model "code.gitea.io/gitea/models/activities"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/services/attachment"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	actions_model "gitea.dev/models/actions"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/asymkey"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/attachment"
+	sender_service "gitea.dev/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -555,4 +559,33 @@ func TestEmbedBase64Images(t *testing.T) {
 		expected = fmt.Sprintf("<html><head></head><body>%s%s</body></html>", att1ImgBase64, att2ImgBase64)
 		assert.Equal(t, expected, string(resultMailBody))
 	})
+}
+
+func TestMailPullRequestPush(t *testing.T) {
+	doer, _, issue, comment := prepareMailerTest(t)
+	mc := &mailComment{
+		Issue:   issue,
+		Comment: comment,
+		Doer:    doer,
+	}
+	issue.IsPull = true
+	issue.PullRequest = &issues_model.PullRequest{BaseRepo: mc.Issue.Repo}
+	mc.Comment.Type = issues_model.CommentTypePullRequestPush
+	mc.Comment.Commits = []*git_model.SignCommitWithStatuses{
+		{
+			SignCommit: &asymkey.SignCommit{
+				UserCommit: &gituser.UserCommit{
+					GitCommit: &git.Commit{
+						CommitMessage: git.CommitMessage{MessageRaw: "test commit msg"},
+						ID:            git.Sha1ObjectFormat.EmptyObjectID(),
+					},
+				},
+			},
+		},
+	}
+
+	msgs, err := composeIssueCommentMessages(t.Context(), mc, "mock", []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}, false, "pull request push")
+	require.NoError(t, err)
+	assert.Contains(t, msgs[0].Body, `<a href="https://try.gitea.io/user2/repo1/commit/0000000000000000000000000000000000000000">0000000000</a> - test commit msg`)
+	assert.Contains(t, msgs[0].Body, `</html>`)
 }

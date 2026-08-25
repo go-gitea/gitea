@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
 )
 
 // Git environment variables
@@ -48,9 +48,7 @@ type SSHLogOption struct {
 
 // HookPostReceiveResult represents an individual result from PostReceive
 type HookPostReceiveResult struct {
-	Results      []HookPostReceiveBranchResult
-	RepoWasEmpty bool
-	Err          string
+	Results []HookPostReceiveBranchResult
 }
 
 // HookPostReceiveBranchResult represents an individual branch result from PostReceive
@@ -109,18 +107,6 @@ func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookO
 func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookProcReceiveResult, ResponseExtra) {
 	req := newInternalRequestAPIForHooks(ctx, "proc-receive", ownerName, repoName, opts)
 	return requestJSONResp(req, &HookProcReceiveResult{})
-}
-
-// SetDefaultBranch will set the default branch to the provided branch for the provided repository
-func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) ResponseExtra {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s/%s",
-		url.PathEscape(ownerName),
-		url.PathEscape(repoName),
-		url.PathEscape(branch),
-	)
-	req := newInternalRequestAPI(ctx, reqURL, "POST")
-	_, extra := requestJSONResp(req, &ResponseText{})
-	return extra
 }
 
 // SSHLog sends ssh error log response

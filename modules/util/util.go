@@ -6,22 +6,24 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	rand2 "math/rand/v2"
 	"slices"
 	"strconv"
-	"strings"
 	"sync"
+
+	"gitea.dev/modules/container"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-// IsEmptyString checks if the provided string is empty
-func IsEmptyString(s string) bool {
-	return len(strings.TrimSpace(s)) == 0
+// ParseYamlBool parses YAML 1.2 boolean values into bool
+func ParseYamlBool(s string) bool {
+	return s == "true" || s == "True" || s == "TRUE"
 }
 
 // NormalizeEOL will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF)
@@ -92,6 +94,10 @@ func CryptoRandomBytes(length int64) []byte {
 	return buf
 }
 
+func CryptoConstTimeEqual[T string | []byte](a, b T) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+}
+
 var chaCha8RandPool = sync.OnceValue(func() *sync.Pool {
 	return &sync.Pool{
 		New: func() any {
@@ -105,7 +111,7 @@ func FastCryptoRandomBytes(length int) []byte {
 	// ChaCha8 is about 20x times faster than system's crypto/rand.
 	// It is suitable for UUIDs, session IDs, etc
 	pool := chaCha8RandPool()
-	chaCha8Rand := pool.Get().(*rand2.ChaCha8)
+	chaCha8Rand := pool.Get().(*rand2.ChaCha8) //nolint:forcetypeassert // the pool's New only ever makes *rand2.ChaCha8
 	defer pool.Put(chaCha8Rand)
 	buf := make([]byte, length)
 	_, _ = chaCha8Rand.Read(buf)
@@ -268,24 +274,51 @@ func OptionalArg[T any](optArg []T, defaultValue ...T) (ret T) {
 }
 
 type EnumConst[T comparable] interface {
+	comparable
 	EnumValues() []T
 }
 
 // EnumValue returns the value if it's in the enum const's values,
 // otherwise returns the first item of enums as default value.
-func EnumValue[T comparable](val EnumConst[T]) (ret T, valid bool) {
+func EnumValue[T EnumConst[T]](val T) (ret T, valid bool) {
 	enums := val.EnumValues()
-	if slices.Contains(enums, val.(T)) {
-		return val.(T), true
+	if slices.Contains(enums, val) {
+		return val, true
 	}
 	return enums[0], false
 }
 
-func ReserveLineBreakForTextarea(input string) string {
+func NormalizeStringEOL(input string) string {
 	// Since the content is from a form which is a textarea, the line endings are \r\n.
 	// It's a standard behavior of HTML.
-	// But we want to store them as \n like what GitHub does.
-	// And users are unlikely to really need to keep the \r.
+	// But in most cases, we only want "\n" for EOL
+	// * Text files: use "\n" by default because "\r\n" sometimes doesn't work in POSIX
+	// * Actions values: store them as "\n" like what GitHub does.
+	// And users are unlikely to really need the "\r".
 	// Other than this, we should respect the original content, even leading or trailing spaces.
-	return strings.ReplaceAll(input, "\r\n", "\n")
+	return UnsafeBytesToString(NormalizeEOL(UnsafeStringToBytes(input)))
+}
+
+func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
+	oldSet := container.SetOf(oldSlice...)
+	newSet := container.SetOf(newSlice...)
+
+	addedSet, removedSet := container.Set[T]{}, container.Set[T]{}
+	for _, v := range newSlice {
+		if !oldSet.Contains(v) && addedSet.Add(v) {
+			added = append(added, v)
+		}
+	}
+	for _, v := range oldSlice {
+		if !newSet.Contains(v) && removedSet.Add(v) {
+			removed = append(removed, v)
+		}
+	}
+	return added, removed
+}
+
+func MustNoError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

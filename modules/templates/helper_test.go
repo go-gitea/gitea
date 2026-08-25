@@ -5,10 +5,11 @@ package templates
 
 import (
 	"html/template"
+	"net/url"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -91,9 +92,12 @@ func TestTemplateEscape(t *testing.T) {
 	}
 
 	t.Run("Golang URL Escape", func(t *testing.T) {
-		// Golang template considers "href", "*src*", "*uri*", "*url*" (and more) ... attributes as contentTypeURL and does auto-escaping
+		// HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: demo cases (html/template/attr.go):
+		// Golang template considers "href", "data-href", "*src*", "*uri*", "*url*" (and more) ... attributes as contentTypeURL and does auto-escaping
 		actual := execTmpl(`<a href="?a={{"%"}}"></a>`)
 		assert.Equal(t, `<a href="?a=%25"></a>`, actual)
+		actual = execTmpl(`<a data-href="?a={{"%"}}"></a>`)
+		assert.Equal(t, `<a data-href="?a=%25"></a>`, actual)
 		actual = execTmpl(`<a data-xxx-url="?a={{"%"}}"></a>`)
 		assert.Equal(t, `<a data-xxx-url="?a=%25"></a>`, actual)
 	})
@@ -101,6 +105,10 @@ func TestTemplateEscape(t *testing.T) {
 		// non-URL content isn't auto-escaped
 		actual := execTmpl(`<a data-link="?a={{"%"}}"></a>`)
 		assert.Equal(t, `<a data-link="?a=%"></a>`, actual)
+		// the attr names like "data-href" and "data-action" are treated as URL (as the "data-" prefix is stripped)
+		// but "data-xxx-href" and "data-xxx-action" are not, so no escaping.
+		actual = execTmpl(`<a data-xxx-href="?a={{"%"}}"></a>`)
+		assert.Equal(t, `<a data-xxx-href="?a=%"></a>`, actual)
 	})
 	t.Run("QueryBuild", func(t *testing.T) {
 		actual := execTmpl(`<a href="{{QueryBuild "?" "a" "%"}}"></a>`)
@@ -169,9 +177,21 @@ func TestQueryBuild(t *testing.T) {
 	})
 }
 
+const queryNonASCII = " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" // all non-letter & non-number chars
+
 func TestQueryEscape(t *testing.T) {
 	// this test is a reference for "urlQueryEscape" in JS
-	in := "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" // all non-letter & non-number chars
-	expected := "%21%22%23%24%25%26%27%28%29%2A%2B%2C-.%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E_%60%7B%7C%7D~"
-	assert.Equal(t, expected, string(queryEscape(in)))
+	// Special case for space encoding:
+	// * RFC 3986: Uniform Resource Identifier (URI): %20
+	// * WHATWG HTML: application/x-www-form-urlencoded: +
+	// * JavaScript: encodeURIComponent() uses "%20". URLSearchParams uses "+"
+	// * Golang: QueryEscape uses "+"
+	expected := "+%21%22%23%24%25%26%27%28%29%2A%2B%2C-.%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E_%60%7B%7C%7D~"
+	assert.Equal(t, expected, url.QueryEscape(queryNonASCII))
+}
+
+func TestPathEscape(t *testing.T) {
+	// this test is a reference for "pathEscape" in JS
+	expected := "%20%21%22%23$%25&%27%28%29%2A+%2C-.%2F:%3B%3C=%3E%3F@%5B%5C%5D%5E_%60%7B%7C%7D~"
+	assert.Equal(t, expected, url.PathEscape(queryNonASCII))
 }

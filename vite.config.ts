@@ -1,6 +1,6 @@
 import {build, defineConfig} from 'vite';
-import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
+import {sharedPlugins, vueDefines} from './tools/shared.ts';
 import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
@@ -29,19 +29,25 @@ for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirnam
   themes[parse(path).name] = join(import.meta.dirname, path);
 }
 
-const webComponents = new Set([
-  // our own, in web_src/js/webcomponents
-  'overflow-menu',
-  'relative-time',
-  // from dependencies
-  'markdown-toolbar',
-  'text-expander',
-]);
+function failOnWarningsPlugin(): Rolldown.Plugin {
+  let warningCount = 0;
+  return {
+    name: 'fail-on-warnings',
+    onLog(level) {
+      if (level === 'warn') warningCount++;
+    },
+    closeBundle() {
+      if (!warningCount) return;
+      throw new Error(`${warningCount} warnings present`);
+    },
+  };
+}
 
 const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
     pluginTimings: false,
   },
+  ...(env.CI && {plugins: [failOnWarningsPlugin()]}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
@@ -86,7 +92,7 @@ function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?:
 }
 
 // Build iife.js as a blocking IIFE bundle. In dev mode, serves it from memory
-// and rebuilds on file changes. In prod mode, writes to disk during closeBundle.
+// and rebuilds on file changes. In prod mode, writes to disk and updates "manifest.json".
 function iifePlugin(sourceFileName: string): Plugin {
   let iifeCode = '', iifeMap = '';
   const iifeModules = new Set<string>();
@@ -143,7 +149,7 @@ function iifePlugin(sourceFileName: string): Plugin {
         }
       });
     },
-    async closeBundle() {
+    async writeBundle() {
       for (const file of globSync(`js/${sourceBaseName}.*.js*`, {cwd: outDir})) unlinkSync(join(outDir, file));
 
       const result = await build(iifeBuildOpts({sourceFileName}));
@@ -152,15 +158,9 @@ function iifePlugin(sourceFileName: string): Plugin {
       if (!entry) throw new Error('IIFE build produced no output');
 
       const manifestPath = join(outDir, '.vite', 'manifest.json');
-      try {
-        const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
-        manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
-        writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
-      } catch {
-        // FIXME: if it throws error here, the real Vite compilation error will be hidden, and makes the debug very difficult
-        // Need to find a correct way to handle errors.
-        console.error(`Failed to update manifest for ${sourceFileName}`);
-      }
+      const manifestData = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      manifestData[`web_src/js/${sourceFileName}`] = {file: entry.fileName, name: sourceBaseName, isEntry: true};
+      writeFileSync(manifestPath, JSON.stringify(manifestData, null, 2));
     },
   };
 }
@@ -173,7 +173,7 @@ function reducedSourcemapPlugin(): Plugin {
     'js/swagger.',
     'js/external-render-frontend.',
     'js/external-render-helper.',
-    'js/eventsource.sharedworker.',
+    'js/user-events.sharedworker.',
   ];
   return {
     name: 'reduced-sourcemap',
@@ -258,11 +258,10 @@ export default defineConfig(commonViteOpts({
     manifest: true,
     rolldownOptions: {
       input: {
-        // FIXME: INCORRECT-VITE-MANIFEST-PARSER: the "css importing" logic in backend is wrong
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
         'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
-        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
+        'user-events.sharedworker': join(import.meta.dirname, 'web_src/js/user-events.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
       },
@@ -297,25 +296,14 @@ export default defineConfig(commonViteOpts({
       ],
     },
   },
-  define: {
-    __VUE_OPTIONS_API__: true,
-    __VUE_PROD_DEVTOOLS__: false,
-    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
-  },
+  define: vueDefines,
   plugins: [
     iifePlugin('iife.ts'),
     iifePlugin('external-render-helper.ts'),
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
-    stringPlugin(),
-    vuePlugin({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => webComponents.has(tag),
-        },
-      },
-    }),
+    ...sharedPlugins(),
     isProduction ? licensePlugin({
       done(deps, context) {
         const line = '-'.repeat(80);

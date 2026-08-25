@@ -8,15 +8,15 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 const (
@@ -40,7 +40,7 @@ func Create(ctx *context.Context) {
 
 // CreatePost response for create organization
 func CreatePost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*forms.CreateOrgForm)
+	form := *web.GetForm[*forms.CreateOrgForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
 	if !ctx.Doer.CanCreateOrganization() {
@@ -63,13 +63,15 @@ func CreatePost(ctx *context.Context) {
 
 	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
 		ctx.Data["Err_OrgName"] = true
+		var errNameReserved db.ErrNameReserved
+		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.org_name_been_taken"), tplCreateOrg, &form)
-		case db.IsErrNameReserved(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_reserved", err.(db.ErrNameReserved).Name), tplCreateOrg, &form)
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplCreateOrg, &form)
+		case errors.As(err, &errNameReserved):
+			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_reserved", errNameReserved.Name), tplCreateOrg, &form)
+		case errors.As(err, &errNamePatternNotAllowed):
+			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplCreateOrg, &form)
 		case organization.IsErrUserNotAllowedCreateOrg(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
 		default:

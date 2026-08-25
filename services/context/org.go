@@ -7,14 +7,14 @@ package context
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 )
 
 // Organization contains organization context
@@ -31,12 +31,12 @@ type Organization struct {
 	Teams []*organization.Team
 }
 
-func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
-	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
+func (org *Organization) CanWriteAnyRepoUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
 }
 
-func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
-	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
+func (org *Organization) CanReadAnyRepoUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
 }
 
 func GetOrganizationByParams(ctx *Context) {
@@ -179,20 +179,28 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			ctx.ServerError("UserShouldSeeAllOrgTeams", err)
 			return
 		}
-		if ctx.Org.IsMember {
-			if shouldSeeAllTeams {
-				ctx.Org.Teams, err = org.LoadTeams(ctx)
-				if err != nil {
-					ctx.ServerError("LoadTeams", err)
-					return
-				}
-			} else {
-				ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("GetUserTeams", err)
-					return
-				}
+		switch {
+		case shouldSeeAllTeams:
+			ctx.Org.Teams, err = org.LoadTeams(ctx)
+			if err != nil {
+				ctx.ServerError("LoadTeams", err)
+				return
 			}
+		case ctx.IsSigned:
+			// Signed-in non-members still see teams whose visibility tier
+			// includes them (public for any signed-in user, plus limited
+			// for org members), and any team they directly belong to.
+			ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+				OrgID:               org.ID,
+				UserID:              ctx.Doer.ID,
+				IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(ctx.Org.IsMember, true),
+			})
+			if err != nil {
+				ctx.ServerError("SearchTeam", err)
+				return
+			}
+		}
+		if ctx.Org.IsMember {
 			ctx.Data["NumTeams"] = len(ctx.Org.Teams)
 		}
 
@@ -203,7 +211,6 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				if strings.EqualFold(team.LowerName, teamName) {
 					teamExists = true
 					ctx.Org.Team = team
-					ctx.Org.IsTeamMember = true
 					ctx.Data["Team"] = ctx.Org.Team
 					break
 				}
@@ -214,13 +221,24 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
+			// Membership in a visible team is not implied by its presence in
+			// ctx.Org.Teams; admins/org owners keep the privileged flag set
+			// earlier in this function.
+			if !ctx.Org.IsOwner {
+				ctx.Org.IsTeamMember, err = organization.IsTeamMember(ctx, org.ID, ctx.Org.Team.ID, ctx.Doer.ID)
+				if err != nil {
+					ctx.ServerError("IsTeamMember", err)
+					return
+				}
+			}
 			ctx.Data["IsTeamMember"] = ctx.Org.IsTeamMember
 			if opts.RequireTeamMember && !ctx.Org.IsTeamMember {
 				ctx.NotFound(err)
 				return
 			}
 
-			ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
+			isTeamOwnerOrAdmin := ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.HasAdminAccess()
+			ctx.Org.IsTeamAdmin = ctx.Org.IsOwner || (ctx.Org.IsTeamMember && isTeamOwnerOrAdmin)
 			ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 			if opts.RequireTeamAdmin && !ctx.Org.IsTeamAdmin {
 				ctx.NotFound(err)
@@ -229,9 +247,9 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		}
 		ctx.Data["ContextUser"] = ctx.ContextUser
 
-		ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
-		ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
-		ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
+		ctx.Data["CanReadProjects"] = ctx.Org.CanReadAnyRepoUnit(ctx, unit.TypeProjects)
+		ctx.Data["CanReadPackages"] = ctx.Org.CanReadAnyRepoUnit(ctx, unit.TypePackages)
+		ctx.Data["CanReadCode"] = ctx.Org.CanReadAnyRepoUnit(ctx, unit.TypeCode)
 
 		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		if len(ctx.ContextUser.Description) != 0 {

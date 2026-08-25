@@ -6,21 +6,21 @@ package repo
 import (
 	"net/http"
 
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	repo_service "code.gitea.io/gitea/services/repository"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	repo_service "gitea.dev/services/repository"
 )
 
 func CreateBranchFromIssue(ctx *context.Context) {
-	if ctx.HasError() { // form binding error check
+	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
@@ -36,9 +36,8 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.NewBranchForm)
+	form := web.GetForm[*forms.NewBranchForm](ctx)
 	repo := ctx.Repo.Repository
-	// if create branch in a forked repository
 	if form.RepoID > 0 && form.RepoID != repo.ID {
 		var err error
 		repo, err = repo_model.GetRepositoryByID(ctx, form.RepoID)
@@ -60,30 +59,38 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_service.CreateNewBranch(ctx, ctx.Doer, repo, form.SourceBranchName, form.NewBranchName); err != nil {
+	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
+	if err != nil {
+		ctx.ServerError("RepositoryFromRequestContextOrOpen", err)
+		return
+	}
+
+	if err := repo_service.CreateNewBranch(ctx, ctx.Doer, repo, gitRepo, form.SourceBranchName, form.NewBranchName); err != nil {
 		switch {
 		case git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err):
 			ctx.JSONError(ctx.Tr("repo.branch.branch_already_exists", form.NewBranchName))
 		case git_model.IsErrBranchNameConflict(err):
-			e := err.(git_model.ErrBranchNameConflict)
-			ctx.JSONError(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
+			if e, ok := err.(git_model.ErrBranchNameConflict); ok {
+				ctx.JSONError(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
+			}
 		case git_model.IsErrBranchNotExist(err):
 			ctx.JSONError(ctx.Tr("repo.branch.branch_not_exist", form.SourceBranchName))
 		case git.IsErrPushRejected(err):
-			e := err.(*git.ErrPushRejected)
-			if len(e.Message) == 0 {
-				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
-			} else {
-				flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-					"Message": ctx.Tr("repo.editor.push_rejected"),
-					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
-					"Details": utils.EscapeFlashErrorString(e.Message),
-				})
-				if err != nil {
-					ctx.ServerError("UpdatePullRequest.HTMLString", err)
-					return
+			if e, ok := err.(*git.ErrPushRejected); ok {
+				if len(e.Message) == 0 {
+					ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
+				} else {
+					flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
+						"Message": ctx.Tr("repo.editor.push_rejected"),
+						"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+						"Details": utils.EscapeFlashErrorString(e.Message),
+					})
+					if err != nil {
+						ctx.ServerError("UpdatePullRequest.HTMLString", err)
+						return
+					}
+					ctx.JSONError(flashError)
 				}
-				ctx.JSONError(flashError)
 			}
 		default:
 			ctx.ServerError("CreateNewBranch", err)
@@ -91,7 +98,7 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		return
 	}
 
-	branch, err := git_model.GetBranch(ctx, repo.ID, form.NewBranchName)
+	branch, err := git_model.GetBranchExisting(ctx, repo.ID, form.NewBranchName)
 	if err != nil {
 		ctx.ServerError("GetBranch", err)
 		return

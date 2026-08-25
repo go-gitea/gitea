@@ -7,14 +7,15 @@
 package git
 
 import (
+	"context"
 	"errors"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
+func (repo *Repository) getTree(_ context.Context, id ObjectID) (*Tree, error) {
 	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id.RawValue()))
 	if err != nil {
 		if errors.Is(err, plumbing.ErrObjectNotFound) {
@@ -25,14 +26,14 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		return nil, err
 	}
 
-	tree := NewTree(repo, id)
+	tree := newTree(id)
 	tree.resolvedGogitTreeObject = gogitTree
 	return tree, nil
 }
 
 // GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +41,8 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != objectFormat.FullLength() {
 		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").
 			AddDynamicArguments(idStr).
-			WithDir(repo.Path).
-			RunStdString(repo.Ctx)
+			WithRepo(repo).
+			RunStdString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -53,15 +54,13 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolvedID := id
 	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id.RawValue()))
 	if err == nil {
 		id = ParseGogitHash(commitObject.TreeHash)
 	}
-	treeObject, err := repo.getTree(id)
+	treeObject, err := repo.getTree(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	treeObject.ResolvedID = resolvedID
 	return treeObject, nil
 }

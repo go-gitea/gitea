@@ -9,21 +9,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/json"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	"code.gitea.io/gitea/services/context"
-	notify_service "code.gitea.io/gitea/services/notify"
-	packages_service "code.gitea.io/gitea/services/packages"
-	rpm_service "code.gitea.io/gitea/services/packages/rpm"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/json"
+	packages_module "gitea.dev/modules/packages"
+	rpm_module "gitea.dev/modules/packages/rpm"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	"gitea.dev/services/context"
+	notify_service "gitea.dev/services/notify"
+	packages_service "gitea.dev/services/packages"
+	rpm_service "gitea.dev/services/packages/rpm"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -220,30 +221,38 @@ func UploadPackageFile(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.PathParam("name")
 	version := ctx.PathParam("version")
+	architecture := ctx.PathParam("architecture")
+	group := ctx.PathParam("group")
 
-	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
-		ctx,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeRpm,
-			Name:        name,
-			Version:     version,
-		},
-		&packages_service.PackageFileInfo{
-			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.PathParam("architecture")),
-			CompositeKey: ctx.PathParam("group"),
-		},
-		ctx.Req.Method,
-	)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
+	openForDownload := func(filename string) (io.ReadSeekCloser, *url.URL, *packages_model.PackageFile, error) {
+		return packages_service.OpenFileForDownloadByPackageNameAndVersion(
+			ctx,
+			&packages_service.PackageInfo{
+				Owner:       ctx.Package.Owner,
+				PackageType: packages_model.TypeRpm,
+				Name:        name,
+				Version:     version,
+			},
+			&packages_service.PackageFileInfo{
+				Filename:     filename,
+				CompositeKey: group,
+			},
+			ctx.Req.Method,
+		)
 	}
 
+	s, u, pf, err := openForDownload(fmt.Sprintf("%s-%s.%s.rpm", name, version, architecture))
+	if errors.Is(err, util.ErrNotExist) && architecture != "noarch" {
+		s, u, pf, err = openForDownload(fmt.Sprintf("%s-%s.%s.rpm", name, version, "noarch"))
+	}
+
+	if errors.Is(err, util.ErrNotExist) {
+		apiError(ctx, http.StatusNotFound, err)
+		return
+	} else if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	helper.ServePackageFile(ctx, s, u, pf)
 }
 

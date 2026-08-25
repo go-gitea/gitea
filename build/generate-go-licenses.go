@@ -29,8 +29,8 @@ var primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
 
 // ignoredNames are LicenseEntry.Name values to exclude from the output.
 var ignoredNames = map[string]bool{
-	"code.gitea.io/gitea":                 true,
-	"code.gitea.io/gitea/options/license": true,
+	"gitea.dev":                 true,
+	"gitea.dev/options/license": true,
 }
 
 var excludedExt = map[string]bool{

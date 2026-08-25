@@ -7,18 +7,20 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	vagrant_module "code.gitea.io/gitea/modules/packages/vagrant"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	vagrant_module "gitea.dev/modules/packages/vagrant"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -52,6 +54,7 @@ func TestPackageVagrant(t *testing.T) {
 	archive.Close()
 	zw.Close()
 	content := buf.Bytes()
+	contentChecksum := sha512.Sum512(content)
 
 	root := fmt.Sprintf("/api/packages/%s/vagrant", user.Name)
 
@@ -152,8 +155,7 @@ func TestPackageVagrant(t *testing.T) {
 			Versions         []*versionMetadata `json:"versions"`
 		}
 
-		var result packageMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &packageMetadata{})
 
 		assert.Equal(t, packageName, result.Name)
 		assert.Equal(t, packageDescription, result.Description)
@@ -165,6 +167,6 @@ func TestPackageVagrant(t *testing.T) {
 		provider := version.Providers[0]
 		assert.Equal(t, packageProvider, provider.Name)
 		assert.Equal(t, "sha512", provider.ChecksumType)
-		assert.Equal(t, "259bebd6160acad695016d22a45812e26f187aaf78e71a4c23ee3201528346293f991af3468a8c6c5d2a21d7d9e1bdc1bf79b87110b2fddfcc5a0d45963c7c30", provider.Checksum)
+		assert.Equal(t, hex.EncodeToString(contentChecksum[:]), provider.Checksum)
 	})
 }
