@@ -30,6 +30,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
 	"gitea.dev/modules/references"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -255,7 +256,9 @@ func addTestPullRequestTaskAfterWebOperation(pr *issues_model.PullRequest, doer 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
-	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
+	// detached from the caller so a canceled request can't abort the merge, but still killable from admin monitoring
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Merge PR[%d]", pr.ID))
+	defer finished()
 
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repo: %v", err)
