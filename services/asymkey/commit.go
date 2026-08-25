@@ -83,7 +83,7 @@ func getInstanceCommitSignSettings(fmt string) *git.CommitSignSettings {
 
 func getGitGlobalCommitSignSettings(fmt string) *git.CommitSignSettings {
 	css := git.GlobalCommitSignSettings.Value()
-	if css.Format != fmt {
+	if css.Format != fmt || !css.Sign {
 		return nil
 	}
 	return css
@@ -420,6 +420,7 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 		}
 	}
 
+	// Try the configured instance-wide SSH public key
 	if commitSignSettings := getInstanceCommitSignSettings(git.SigningKeyFormatSSH); commitSignSettings != nil {
 		pubKeyContent, err := commitSignSettings.PublicKeyContent()
 		if err != nil {
