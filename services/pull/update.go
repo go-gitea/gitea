@@ -18,15 +18,12 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
 	"gitea.dev/modules/repository"
 )
 
 // Update updates pull request with base branch.
 func Update(pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
-	// detached from the caller so a canceled request can't abort the update, but still killable from admin monitoring
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Update PR[%d]", pr.ID))
-	defer finished()
+	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
 	if pr.Flow == issues_model.PullRequestFlowAGit {
 		// TODO: update of agit flow pull request's head branch is unsupported
 		return errors.New("update of agit flow pull request's head branch is unsupported")
