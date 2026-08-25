@@ -1,7 +1,7 @@
 # Task 1 – Gitea Local Setup
 
 ## Overview
-
+TO THE PROJECT 
 This document records my work for Task 1, which involved setting up and running the Gitea project locally without Docker.
 
 ## What I Understood About Gitea
