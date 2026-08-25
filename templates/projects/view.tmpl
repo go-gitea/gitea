@@ -1,10 +1,10 @@
 {{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
 
-<div class="ui container fluid padded projects-view">
+<div class="ui container fluid padded projects-view" data-global-init="initRepoProjectsView">
 	<div class="ui container flex-text-block project-header">
 		<h2>{{.Project.Title}}</h2>
 		<div class="tw-flex-1"></div>
-		<div class="ui secondary menu tw-m-0">
+		<div class="list-header-filters ui secondary menu tw-m-0">
 			{{$queryLink := QueryBuild "?" "labels" .SelectLabels "assignee" $.AssigneeID "milestone" $.MilestoneID "archived_labels" (Iif $.ShowArchivedLabels "true")}}
 			{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 			{{template "repo/issue/filter_item_user_assign" dict
@@ -108,7 +108,7 @@
 									>
 										{{svg "octicon-star"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
-									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}" data-link-action-method="DELETE"
+									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}" data-fetch-method="DELETE"
 										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.delete"}}"
 										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.deletion_desc"}}"
 									>
@@ -134,16 +134,16 @@
 
 {{if $canWriteProject}}
 <div class="ui small modal" id="project-column-modal-edit">
-	<div class="header">edit</div>
+	<div class="header">{{ctx.Locale.Tr "repo.projects.column.edit"}}</div>
 	<div class="content">
 		<form class="ui form ignore-dirty" method="post" data-action-base-link="{{$.Link}}">
 			<input class="project-column-id" type="hidden" name="id">
 			<div class="required field">
-				<label class="project-column-title-label" for="project-column-title-input">title</label>
+				<label class="project-column-title-label" for="project-column-title-input">{{ctx.Locale.Tr "repo.projects.column.edit_title"}}</label>
 				<input id="project-column-title-input" name="title" required>
 			</div>
 			<div class="field">
-				<label class="project-column-color-label" for="project-column-color-input">color</label>
+				<label class="project-column-color-label" for="project-column-color-input">{{ctx.Locale.Tr "repo.projects.column.color"}}</label>
 				<div class="color-picker-combo" data-global-init="initColorPicker">
 					<input maxlength="7" placeholder="#c320f6" id="project-column-color-input" name="color">
 					{{template "repo/issue/label_precolors"}}
@@ -151,7 +151,7 @@
 			</div>
 			<div class="actions">
 				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-				<button type="submit" class="ui primary button project-column-button-save">save</button>
+				<button type="submit" class="ui primary button project-column-button-save">{{ctx.Locale.Tr "save"}}</button>
 			</div>
 		</form>
 	</div>

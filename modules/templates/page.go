@@ -5,6 +5,7 @@ package templates
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -13,10 +14,10 @@ import (
 	"sync"
 	texttemplate "text/template"
 
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type pageRenderer struct {
@@ -24,19 +25,23 @@ type pageRenderer struct {
 }
 
 func (r *pageRenderer) funcMap(ctx context.Context) template.FuncMap {
-	pageFuncMap := NewFuncMap()
+	pageFuncMap := newFuncMapWebPage()
 	pageFuncMap["ctx"] = func() any { return ctx }
 	return pageFuncMap
 }
 
 func (r *pageRenderer) funcMapDummy() template.FuncMap {
-	dummyFuncMap := NewFuncMap()
+	dummyFuncMap := newFuncMapWebPage()
 	dummyFuncMap["ctx"] = func() any { return nil } // for template compilation only, no context available
 	return dummyFuncMap
 }
 
 func (r *pageRenderer) TemplateLookup(tmpl string, templateCtx context.Context) (TemplateExecutor, error) { //nolint:revive // we don't use ctx, only pass it to the template executor
-	return r.tmplRenderer.Templates().Executor(tmpl, r.funcMap(templateCtx))
+	tmpls := r.tmplRenderer.Templates()
+	if tmpls == nil {
+		return nil, fmt.Errorf("no templates defined for %s", tmpl)
+	}
+	return tmpls.Executor(tmpl, r.funcMap(templateCtx))
 }
 
 func (r *pageRenderer) HTML(w io.Writer, status int, tplName TplName, data any, templateCtx context.Context) error { //nolint:revive // we don't use ctx, only pass it to the template executor

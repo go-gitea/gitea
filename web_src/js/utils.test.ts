@@ -1,8 +1,7 @@
 import {
-  dirname, basename, extname, isObject, stripTags, parseIssueHref,
-  parseUrl, translateMonth, translateDay, blobToDataURI,
-  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
-  urlQueryEscape,
+  dirname, basename, extname, formatBytes, isObject, stripTags, parseIssueHref,
+  translateMonth, translateDay, blobToDataURI,
+  encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
 } from './utils.ts';
 
 test('dirname', () => {
@@ -18,6 +17,9 @@ test('basename', () => {
 });
 
 test('extname', () => {
+  expect(extname('.gitignore')).toEqual('');
+  expect(extname('/path/to/.gitignore')).toEqual('');
+  expect(extname('/path/to/.eslintrc.json')).toEqual('.json');
   expect(extname('/path/to/file.js')).toEqual('.js');
   expect(extname('/path/')).toEqual('');
   expect(extname('/path')).toEqual('');
@@ -32,12 +34,6 @@ test('isObject', () => {
 
 test('stripTags', () => {
   expect(stripTags('<a>test</a>')).toEqual('test');
-});
-
-test('urlQueryEscape', () => {
-  const input = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-  const expected = '%21%22%23%24%25%26%27%28%29%2A%2B%2C-.%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E_%60%7B%7C%7D~';
-  expect(urlQueryEscape(input)).toEqual(expected);
 });
 
 test('parseIssueHref', () => {
@@ -68,18 +64,6 @@ test('parseRepoOwnerPathInfo', () => {
   window.config.appSubUrl = '';
 });
 
-test('parseUrl', () => {
-  expect(parseUrl('').pathname).toEqual('/');
-  expect(parseUrl('/path').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').pathname).toEqual('/path');
-  expect(parseUrl('/path?search').search).toEqual('?search');
-  expect(parseUrl('/path?search#hash').hash).toEqual('#hash');
-  expect(parseUrl('https://localhost/path').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
-  expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
-  expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
-});
-
 test('translateMonth', () => {
   const originalLang = document.documentElement.lang;
   document.documentElement.lang = 'en-US';
@@ -107,16 +91,6 @@ test('blobToDataURI', async () => {
   expect(await blobToDataURI(blob)).toEqual('data:application/json;base64,eyJ0ZXN0Ijp0cnVlfQ==');
 });
 
-test('toAbsoluteUrl', () => {
-  expect(toAbsoluteUrl('//host/dir')).toEqual('http://host/dir');
-  expect(toAbsoluteUrl('https://host/dir')).toEqual('https://host/dir');
-
-  expect(toAbsoluteUrl('')).toEqual('http://localhost:3000');
-  expect(toAbsoluteUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
-
-  expect(() => toAbsoluteUrl('path')).toThrowError('unsupported');
-});
-
 test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   const encoder = new TextEncoder();
   const uint8array = encoder.encode.bind(encoder);
@@ -132,6 +106,23 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
   expect(new Uint8Array(decodeURLEncodedBase64('YQ'))).toEqual(uint8array('a'));
   expect(new Uint8Array(decodeURLEncodedBase64('YQ=='))).toEqual(uint8array('a'));
+
+  expect(encodeURLEncodedBase64(uint8array('AA'))).toEqual('QUE'); // standard base64: "QUE="
+  expect(new Uint8Array(decodeURLEncodedBase64('QUE'))).toEqual(uint8array('AA'));
+
+  const allBytes = Uint8Array.from({length: 256}, (_, i) => i);
+  expect(new Uint8Array(decodeURLEncodedBase64(encodeURLEncodedBase64(allBytes)))).toEqual(allBytes);
+});
+
+test('formatBytes', () => {
+  expect(formatBytes(-1)).toBe('0 B');
+  expect(formatBytes(0)).toBe('0 B');
+  expect(formatBytes(512)).toBe('512 B');
+  expect(formatBytes(1024)).toBe('1.0 KiB');
+  expect(formatBytes(1536)).toBe('1.5 KiB');
+  expect(formatBytes(10 * 1024)).toBe('10 KiB');
+  expect(formatBytes(1024 * 1024)).toBe('1.0 MiB');
+  expect(formatBytes(1024 * 1024 * 1024)).toBe('1.0 GiB');
 });
 
 test('file detection', () => {

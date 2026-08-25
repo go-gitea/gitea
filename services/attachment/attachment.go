@@ -11,12 +11,12 @@ import (
 	"io"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context/upload"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context/upload"
 
 	"github.com/google/uuid"
 )
@@ -54,12 +54,17 @@ func NewLimitedUploaderMaxBytesReader(r io.ReadCloser, w http.ResponseWriter) *U
 	return &UploaderFile{rd: r, size: -1, respWriter: w}
 }
 
-func UploadAttachmentGeneralSizeLimit(ctx context.Context, file *UploaderFile, allowedTypes string, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
-	return uploadAttachment(ctx, file, allowedTypes, setting.Attachment.MaxSize<<20, attach)
+type UploadAttachmentFunc func(ctx context.Context, file *UploaderFile, attach *repo_model.Attachment) (*repo_model.Attachment, error)
+
+func UploadAttachmentForIssue(ctx context.Context, file *UploaderFile, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
+	return uploadAttachment(ctx, file, setting.Attachment.AllowedTypes, setting.Attachment.MaxSize<<20, attach)
 }
 
-func UploadAttachmentReleaseSizeLimit(ctx context.Context, file *UploaderFile, allowedTypes string, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
-	return uploadAttachment(ctx, file, allowedTypes, setting.Repository.Release.FileMaxSize<<20, attach)
+func UploadAttachmentForRelease(ctx context.Context, file *UploaderFile, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
+	// FIXME: although the release attachment has different settings from the issue attachment,
+	// it still uses the same attachment table, the same storage and the same upload logic
+	// So if the "issue attachment [attachment]" is not enabled, it will also affect the release attachment, which is not expected.
+	return uploadAttachment(ctx, file, setting.Repository.Release.AllowedTypes, setting.Repository.Release.FileMaxSize<<20, attach)
 }
 
 func uploadAttachment(ctx context.Context, file *UploaderFile, allowedTypes string, maxFileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {

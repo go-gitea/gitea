@@ -8,18 +8,18 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
 )
 
 type issueSidebarMilestoneData struct {
@@ -33,10 +33,18 @@ type issueSidebarAssigneesData struct {
 	CandidateAssignees  []*user_model.User
 }
 
+type issueSidebarProjectCardData struct {
+	Project        *project_model.Project
+	Columns        []*project_model.Column
+	SelectedColumn *project_model.Column
+}
+
 type issueSidebarProjectsData struct {
-	SelectedProjectID int64
-	OpenProjects      []*project_model.Project
-	ClosedProjects    []*project_model.Project
+	SelectedProjectIDs []int64
+	ProjectCards       []*issueSidebarProjectCardData
+
+	OpenProjects   []*project_model.Project
+	ClosedProjects []*project_model.Project
 }
 
 type IssuePageMetaData struct {
@@ -92,12 +100,17 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 		return data
 	}
 
+	data.retrieveProjectData(ctx)
+	if ctx.Written() {
+		return data
+	}
+
 	// TODO: the issue/pull permissions are quite complex and unclear
 	// A reader could create an issue/PR with setting some meta (eg: assignees from issue template, reviewers, target branch)
 	// A reader(creator) could update some meta (eg: target branch), but can't change assignees anymore.
 	// For non-creator users, only writers could update some meta (eg: assignees, milestone, project)
 	// Need to clarify the logic and add some tests in the future
-	data.CanModifyIssueOrPull = ctx.Repo.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
+	data.CanModifyIssueOrPull = ctx.Repo.Permission.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
 	if !data.CanModifyIssueOrPull {
 		return data
 	}
@@ -158,10 +171,80 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 	ctx.Data["Assignees"] = d.AssigneesData.CandidateAssignees
 }
 
-func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
-	if d.Issue != nil && d.Issue.Project != nil {
-		d.ProjectsData.SelectedProjectID = d.Issue.Project.ID
+func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Context) {
+	if err := d.Issue.LoadProjects(ctx); err != nil {
+		ctx.ServerError("LoadProjects", err)
+		return
 	}
+
+	// Load column mappings for all projects
+	projectColumnMap, err := d.Issue.ProjectColumnMap(ctx)
+	if err != nil {
+		ctx.ServerError("ProjectColumnMap", err)
+		return
+	}
+
+	// Build project cards for each project
+	d.ProjectsData.ProjectCards = make([]*issueSidebarProjectCardData, 0, len(d.Issue.Projects))
+	for _, project := range d.Issue.Projects {
+		columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
+		if err != nil {
+			ctx.ServerError("GetColumns", err)
+			return
+		}
+
+		var selectedColumn *project_model.Column
+		columnID := projectColumnMap[project.ID]
+		for _, col := range columns {
+			if col.ID == columnID {
+				selectedColumn = col
+				break
+			}
+		}
+
+		if selectedColumn == nil {
+			selectedColumn, err = project.MustDefaultColumn(ctx)
+			if err != nil {
+				ctx.ServerError("MustDefaultColumn", err)
+				return
+			}
+		}
+		d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, &issueSidebarProjectCardData{
+			Project:        project,
+			Columns:        columns,
+			SelectedColumn: selectedColumn,
+		})
+	}
+	d.ProjectsData.SelectedProjectIDs = make([]int64, 0, len(d.ProjectsData.ProjectCards))
+	for _, card := range d.ProjectsData.ProjectCards {
+		d.ProjectsData.SelectedProjectIDs = append(d.ProjectsData.SelectedProjectIDs, card.Project.ID)
+	}
+}
+
+func (d *IssuePageMetaData) retrieveProjectData(ctx *context.Context) {
+	if d.Issue == nil {
+		return
+	}
+	d.retrieveProjectCardsForExistingIssue(ctx)
+}
+
+func (d *IssuePageMetaData) SetSelectedProjectIDs(ids []int64) {
+	allProjects := map[int64]*project_model.Project{}
+	for _, p := range d.ProjectsData.OpenProjects {
+		allProjects[p.ID] = p
+	}
+	for _, p := range d.ProjectsData.ClosedProjects {
+		allProjects[p.ID] = p
+	}
+	for _, id := range ids {
+		if project, ok := allProjects[id]; ok {
+			d.ProjectsData.ProjectCards = append(d.ProjectsData.ProjectCards, &issueSidebarProjectCardData{Project: project})
+		}
+	}
+	d.ProjectsData.SelectedProjectIDs = ids
+}
+
+func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {
 	d.ProjectsData.OpenProjects, d.ProjectsData.ClosedProjects = retrieveProjectsInternal(ctx, ctx.Repo.Repository)
 }
 
@@ -433,6 +516,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	issues_model.SortLabelsForDisplay(labels)
 	labelsData.RepoLabels = labels
 
 	if repo.Owner.IsOrganization() {
@@ -440,6 +524,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		if err != nil {
 			return
 		}
+		issues_model.SortLabelsForDisplay(orgLabels)
 		labelsData.OrgLabels = orgLabels
 	}
 	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)

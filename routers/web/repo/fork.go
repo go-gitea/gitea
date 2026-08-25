@@ -8,21 +8,21 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	repo_service "gitea.dev/services/repository"
 )
 
 const (
@@ -135,7 +135,7 @@ func Fork(ctx *context.Context) {
 
 // ForkPost response for forking a repository
 func ForkPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateRepoForm)
+	form := web.GetForm[*forms.CreateRepoForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
 	ctxUser := checkContextUser(ctx, form.UID)
@@ -205,6 +205,8 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 	repo, err := repo_service.ForkRepository(ctx, ctx.Doer, owner, forkOpts)
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
+		var errNameReserved db.ErrNameReserved
+		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 		switch {
 		case repo_model.IsErrReachLimitOfRepo(err):
 			maxCreationLimit := owner.MaxCreationLimit()
@@ -223,10 +225,10 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 			default:
 				ctx.JSONError(ctx.Tr("form.repository_files_already_exist"))
 			}
-		case db.IsErrNameReserved(err):
-			ctx.JSONError(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name))
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.JSONError(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern))
+		case errors.As(err, &errNameReserved):
+			ctx.JSONError(ctx.Tr("repo.form.name_reserved", errNameReserved.Name))
+		case errors.As(err, &errNamePatternNotAllowed):
+			ctx.JSONError(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern))
 		case errors.Is(err, user_model.ErrBlockedUser):
 			ctx.JSONError(ctx.Tr("repo.fork.blocked_user"))
 		default:

@@ -1,0 +1,3 @@
+Content-Type: application/json; charset=UTF-8
+
+[{"id":1,"name":"bug","color":"ee0701"},{"id":2,"name":"duplicate","color":"cccccc"},{"id":3,"name":"enhancement","color":"84b6eb"},{"id":4,"name":"help wanted","color":"128a0c"},{"id":5,"name":"invalid","color":"e6e6e6"},{"id":6,"name":"question","color":"cc317c"},{"id":7,"name":"wontfix","color":"ffffff"}]

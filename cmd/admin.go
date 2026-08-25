@@ -8,46 +8,50 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	// CmdAdmin represents the available admin sub-command.
-	CmdAdmin = &cli.Command{
+func newAdminCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "admin",
 		Usage: "Perform common administrative operations",
 		Commands: []*cli.Command{
-			subcmdUser,
-			subcmdRepoSyncReleases,
-			subcmdRegenerate,
-			subcmdAuth,
-			subcmdSendMail,
+			newUserCommand(),
+			newRepoSyncReleasesCommand(),
+			newRegenerateCommand(),
+			newAuthCommand(),
+			newSendMailCommand(),
 		},
 	}
+}
 
-	subcmdRepoSyncReleases = &cli.Command{
+func newRepoSyncReleasesCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
 		Action: runRepoSyncReleases,
 	}
+}
 
-	subcmdRegenerate = &cli.Command{
+func newRegenerateCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "regenerate",
 		Usage: "Regenerate specific files",
 		Commands: []*cli.Command{
-			microcmdRegenHooks,
-			microcmdRegenKeys,
+			newRegenerateHooksCommand(),
+			newRegenerateKeysCommand(),
 		},
 	}
+}
 
-	subcmdAuth = &cli.Command{
+func newAuthCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
 		Commands: []*cli.Command{
@@ -59,12 +63,14 @@ var (
 			microcmdAuthUpdateLdapSimpleAuth(),
 			microcmdAuthAddSMTP(),
 			microcmdAuthUpdateSMTP(),
-			microcmdAuthList,
-			microcmdAuthDelete,
+			newAuthListCommand(),
+			newAuthDeleteCommand(),
 		},
 	}
+}
 
-	subcmdSendMail = &cli.Command{
+func newSendMailCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "sendmail",
 		Usage:  "Send a message to all users",
 		Action: runSendMail,
@@ -86,7 +92,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func idFlag() *cli.Int64Flag {
 	return &cli.Int64Flag{
@@ -121,8 +127,8 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RelativePath())
-			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+			log.Trace("Synchronizing repo %s", repo.FullName())
+			gitRepo, err := git.OpenRepository(ctx, repo)
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue

@@ -16,36 +16,36 @@ import (
 	"strings"
 	"time"
 
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
-
-	activities_model "code.gitea.io/gitea/models/activities"
-	admin_model "code.gitea.io/gitea/models/admin"
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	activities_model "gitea.dev/models/activities"
+	admin_model "gitea.dev/models/admin"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 
 	_ "golang.org/x/image/bmp"  // for processing bmp images
 	_ "golang.org/x/image/webp" // for processing webp images
+	_ "image/gif"               // for processing gif images
+	_ "image/jpeg"              // for processing jpeg images
+	_ "image/png"               // for processing png images
 )
 
 const (
@@ -70,7 +70,7 @@ func (fi *fileInfo) isLFSFile() bool {
 }
 
 func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []byte, dataRc io.ReadCloser, fi *fileInfo, err error) {
-	dataRc, err = blob.DataAsync()
+	dataRc, err = blob.DataAsync(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -81,7 +81,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	fi = &fileInfo{blobOrLfsSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
+	fi = &fileInfo{blobOrLfsSize: blob.Size(ctx), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
 	if !fi.st.IsText() || !setting.LFS.StartServer {
@@ -128,21 +128,22 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return false
 		}
+
+		avatarStackData := gituser.BuildAvatarStackData(ctx, latestCommit.AllAuthorIdentities(), nil)
+		avatarStackData.SearchByEmailLink = gituser.RepoCommitSearchByEmailLink(ctx.Repo.RepoLink, ctx.Repo.RefFullName)
+		ctx.Data["LatestCommitAvatarStackData"] = avatarStackData
 		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(ctx, latestCommit)
 
 		statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptionsAll)
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
-		if !ctx.Repo.CanRead(unit_model.TypeActions) {
-			git_model.CommitStatusesHideActionsURL(ctx, statuses)
-		}
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses
@@ -159,7 +160,7 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 	go func() {
 		sb := &strings.Builder{}
 		if markup.RendererNeedPostProcess(renderer) {
-			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.EscapeOptionsForView())
 		} else {
 			escaped = &charset.EscapeStatus{}
 			_, _ = io.Copy(sb, markupRd)
@@ -175,12 +176,11 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
-	if ctx.Repo.HasUnits() {
+	if ctx.Repo.Permission.HasUnits() {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := admin_model.GetMigratingTask(ctx, ctx.Repo.Repository.ID)
 			if err != nil {
 				if admin_model.IsErrTaskDoesNotExist(err) {
-					ctx.Data["Repo"] = ctx.Repo
 					ctx.Data["CloneAddr"] = ""
 					ctx.Data["Failed"] = true
 					ctx.HTML(http.StatusOK, tplMigrating)
@@ -195,7 +195,6 @@ func checkHomeCodeViewable(ctx *context.Context) {
 				return
 			}
 
-			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"], _ = util.SanitizeURL(cfg.CloneAddr)
 			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
@@ -259,7 +258,7 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
 		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
-		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, fullPath, f.Entry)
 		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
@@ -267,11 +266,11 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 }
 
-func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.TreeEntry, git.Entries) {
+	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.SubTree", err)
-		return nil
+		return nil, nil
 	}
 
 	// TODO: LAST-COMMIT-ASYNC-LOADING: search this keyword to see more details
@@ -279,44 +278,39 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LastCommitLoaderURL"] = lastCommitLoaderURL + "?refSubUrl=" + url.QueryEscape(ctx.Repo.RefTypeNameSubURL())
 
 	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
-		return nil
+		return nil, nil
 	}
 
 	if !entry.IsDir() {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
-		return nil
+		return nil, nil
 	}
 
-	allEntries, err := tree.ListEntries()
+	subEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
-		return nil
+		return nil, nil
 	}
-	allEntries.CustomSort(base.NaturalSortCompare)
+	subEntries.CustomSort(base.NaturalSortCompare)
 
-	commitInfoCtx := gocontext.Context(ctx)
-	if timeout > 0 {
-		var cancel gocontext.CancelFunc
-		commitInfoCtx, cancel = gocontext.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := subEntries.GetCommitsInfo(ctx, timeout, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
-		return nil
+		return nil, nil
 	}
 
-	{
+	{ // this block is for testing purpose only
 		if timeout != 0 && !setting.IsProd && !setting.IsInTesting {
 			log.Debug("first call to get directory file commit info")
 			clearFilesCommitInfo := func() {
 				log.Warn("clear directory file commit info to force async loading on frontend")
 				for i := range files {
-					files[i].Commit = nil
+					if i%2 == 0 { // for testing purpose, only clear half of the files' commit info
+						files[i].Commit = nil
+					}
 				}
 			}
 			_ = clearFilesCommitInfo
@@ -325,6 +319,9 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	ctx.Data["Files"] = files
+	ctx.Data["GetSubJumpablePathName"] = func(entry *git.TreeEntry) string {
+		return entry.GetSubJumpablePathName(ctx, ctx.Repo.GitRepo)
+	}
 	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
 		if f.Commit == nil {
@@ -334,9 +331,9 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	if !loadLatestCommitData(ctx, latestCommit) {
-		return nil
+		return nil, nil
 	}
-	return allEntries
+	return entry, subEntries
 }
 
 // RenderUserCards render a page show users according the input template

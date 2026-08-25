@@ -9,7 +9,16 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
+)
+
+const (
+	// some of the values are from GitHub defaults
+	defaultMaxRerunAttempts       = 50
+	defaultMaxConcurrentTaskPicks = 16
+	defaultArtifactRetentionDays  = 90
+	defaultLogRetentionDays       = 365
+	defaultRunRetentionDays       = 400
 )
 
 // Actions settings
@@ -21,17 +30,30 @@ var (
 		LogCompression        logCompression    `ini:"LOG_COMPRESSION"`
 		ArtifactStorage       *Storage          // how the created artifacts should be stored
 		ArtifactRetentionDays int64             `ini:"ARTIFACT_RETENTION_DAYS"`
+		RunRetentionDays      int64             `ini:"RUN_RETENTION_DAYS"`
 		DefaultActionsURL     defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
 		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
 		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
 		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
 		SkipWorkflowStrings   []string          `ini:"SKIP_WORKFLOW_STRINGS"`
 		WorkflowDirs          []string          `ini:"WORKFLOW_DIRS"`
+		ScopedWorkflowDirs    []string          `ini:"SCOPED_WORKFLOW_DIRS"`
+		MaxRerunAttempts      int64             `ini:"MAX_RERUN_ATTEMPTS"`
+		// MaxConcurrentTaskPicks bounds how many runners may run the task-assignment
+		// transaction at once per Gitea instance, to avoid a thundering herd when many
+		// runners poll together. It is a per-process limit, not a cluster-wide one.
+		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
 	}{
-		Enabled:             true,
-		DefaultActionsURL:   defaultActionsURLGitHub,
-		SkipWorkflowStrings: []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
-		WorkflowDirs:        []string{".gitea/workflows", ".github/workflows"},
+		Enabled:                true,
+		DefaultActionsURL:      defaultActionsURLGitHub,
+		SkipWorkflowStrings:    []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
+		WorkflowDirs:           []string{".gitea/workflows", ".github/workflows"},
+		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
+		MaxRerunAttempts:       defaultMaxRerunAttempts,
+		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
+		LogRetentionDays:       defaultLogRetentionDays,
+		ArtifactRetentionDays:  defaultArtifactRetentionDays,
+		RunRetentionDays:       defaultRunRetentionDays,
 	}
 )
 
@@ -97,21 +119,12 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if err != nil {
 		return err
 	}
-	// default to 1 year
-	if Actions.LogRetentionDays <= 0 {
-		Actions.LogRetentionDays = 365
-	}
 
 	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
 
 	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
 	if err != nil {
 		return err
-	}
-
-	// default to 90 days in Github Actions
-	if Actions.ArtifactRetentionDays <= 0 {
-		Actions.ArtifactRetentionDays = 90
 	}
 
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
@@ -122,20 +135,39 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)
 	}
 
-	workflowDirs := make([]string, 0, len(Actions.WorkflowDirs))
-	for _, dir := range Actions.WorkflowDirs {
+	workflowDirs := normalizeWorkflowDirs(Actions.WorkflowDirs)
+	if len(workflowDirs) == 0 {
+		return errors.New("[actions] WORKFLOW_DIRS must contain at least one entry")
+	}
+	Actions.WorkflowDirs = workflowDirs
+
+	// SCOPED_WORKFLOW_DIRS may be empty (feature disabled), but it must not overlap with WORKFLOW_DIRS:
+	// a scoped dir nested in (or equal to) a workflow dir would make the same file run both repo-level and scope-level.
+	Actions.ScopedWorkflowDirs = normalizeWorkflowDirs(Actions.ScopedWorkflowDirs)
+	for _, scopedDir := range Actions.ScopedWorkflowDirs {
+		for _, workflowDir := range Actions.WorkflowDirs {
+			if scopedDir == workflowDir ||
+				strings.HasPrefix(scopedDir, workflowDir+"/") ||
+				strings.HasPrefix(workflowDir, scopedDir+"/") {
+				return fmt.Errorf("[actions] SCOPED_WORKFLOW_DIRS entry %q overlaps with WORKFLOW_DIRS entry %q", scopedDir, workflowDir)
+			}
+		}
+	}
+
+	return nil
+}
+
+// normalizeWorkflowDirs trims, normalizes separators and drops empty/trailing-slash entries.
+func normalizeWorkflowDirs(dirs []string) []string {
+	normalized := make([]string, 0, len(dirs))
+	for _, dir := range dirs {
 		dir = strings.TrimSpace(dir)
 		if dir == "" {
 			continue
 		}
 		dir = strings.ReplaceAll(dir, `\`, `/`)
 		dir = strings.TrimRight(dir, "/")
-		workflowDirs = append(workflowDirs, dir)
+		normalized = append(normalized, dir)
 	}
-	if len(workflowDirs) == 0 {
-		return errors.New("[actions] WORKFLOW_DIRS must contain at least one entry")
-	}
-	Actions.WorkflowDirs = workflowDirs
-
-	return nil
+	return normalized
 }

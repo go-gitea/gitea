@@ -8,6 +8,7 @@ package json
 import (
 	"bytes"
 	jsonv1 "encoding/json"    //nolint:depguard // this package wraps it
+	"encoding/json/jsontext"  //nolint:depguard // this package wraps it
 	jsonv2 "encoding/json/v2" //nolint:depguard // this package wraps it
 	"io"
 )
@@ -52,6 +53,10 @@ func (j *JSONv2) Marshal(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, j.marshalOptions)
 }
 
+func (j *JSONv2) MarshalWrite(w io.Writer, v any) error {
+	return jsonv2.MarshalWrite(w, v, j.marshalOptions)
+}
+
 func (j *JSONv2) Unmarshal(data []byte, v any) error {
 	return jsonv2.Unmarshal(data, v, j.unmarshalOptions)
 }
@@ -90,3 +95,5 @@ func (d *jsonV2Decoder) Decode(v any) error {
 func NewDecoderCaseInsensitive(reader io.Reader) Decoder {
 	return &jsonV2Decoder{reader: reader, opts: jsonV2.unmarshalCaseInsensitiveOptions}
 }
+
+type Value = jsontext.Value

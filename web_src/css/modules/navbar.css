@@ -63,6 +63,7 @@
   }
   #navbar .navbar-mobile-right {
     display: flex;
+    align-items: center;
     margin: 0 0 0 auto;
     width: auto;
   }
@@ -92,7 +93,6 @@
   }
   #navbar.navbar-menu-open .navbar-left .navbar-mobile-right {
     justify-content: flex-end;
-    width: 50%;
     min-height: 49px;
   }
   #navbar #mobile-stopwatch-icon,
@@ -139,8 +139,9 @@
 
 #navbar .item .navbar-admin-badge {
   position: absolute;
-  bottom: calc(100% - 29px);
-  left: calc(100% - 18px);
+  left: auto;
+  right: -7px;
+  bottom: -5px;
   padding: 1.5px;
 }
 

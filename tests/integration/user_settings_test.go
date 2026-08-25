@@ -5,11 +5,15 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -68,7 +72,7 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		AssertHTMLElement(t, doc, "#password", true)
 		AssertHTMLElement(t, doc, "#email", true)
-		AssertHTMLElement(t, doc, "#delete-form", true)
+		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
 	})
 
 	t.Run("credentials disabled", func(t *testing.T) {
@@ -85,7 +89,7 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		AssertHTMLElement(t, doc, "#password", false)
 		AssertHTMLElement(t, doc, "#email", false)
-		AssertHTMLElement(t, doc, "#delete-form", true)
+		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
 	})
 
 	t.Run("deletion disabled", func(t *testing.T) {
@@ -281,6 +285,25 @@ func TestUserSettingsApplications(t *testing.T) {
 		assertNavbar(t, doc)
 	})
 
+	t.Run("RegenerateAccessToken", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user2")
+
+		before := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 3, UID: 2})
+
+		req := NewRequestWithValues(t, "POST", "/user/settings/applications/regenerate", map[string]string{
+			"id": "3",
+		})
+		session.MakeRequest(t, req, http.StatusOK)
+
+		after := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 3, UID: 2})
+		assert.Equal(t, before.Name, after.Name)
+		assert.Equal(t, before.Scope, after.Scope)
+		assert.NotEqual(t, before.TokenHash, after.TokenHash)
+		assert.NotEqual(t, before.TokenSalt, after.TokenSalt)
+	})
+
 	t.Run("OAuth2", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -309,17 +332,23 @@ func TestUserSettingsApplications(t *testing.T) {
 				})
 				resp := session.MakeRequest(t, req, http.StatusOK)
 				doc := NewHTMLParser(t, resp.Body)
-
-				msg := doc.Find(".flash-error p").Text()
-				assert.Equal(t, `form.RedirectURIs"ftp://127.0.0.1" is not a valid URL.`, msg)
+				msg := strings.TrimSpace(doc.Find(".ui.message.flash-message").Text())
+				assert.Equal(t, `RedirectURIs: "ftp://127.0.0.1" is not a valid URL.`, msg)
 			})
 
 			t.Run("OK", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-
+				defer test.MockVariableValue(&setting.OAuth2.CustomSchemes, []string{"my-app"})()
 				req := NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
 					"application_name":    "Test native app",
 					"redirect_uris":       "http://127.0.0.1",
+					"confidential_client": "false",
+				})
+				session.MakeRequest(t, req, http.StatusSeeOther)
+
+				req = NewRequestWithValues(t, "POST", "/user/settings/applications/oauth2/2", map[string]string{
+					"application_name":    "Test native app",
+					"redirect_uris":       "my-app://127.0.0.1",
 					"confidential_client": "false",
 				})
 				session.MakeRequest(t, req, http.StatusSeeOther)

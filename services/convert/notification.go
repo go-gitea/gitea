@@ -7,10 +7,10 @@ import (
 	"context"
 	"net/url"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
+	activities_model "gitea.dev/models/activities"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
 )
 
 // ToNotificationThread convert a Notification to api.NotificationThread
@@ -24,19 +24,22 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 	}
 
 	// since user only get notifications when he has access to use minimal access mode
-	if n.Repository != nil {
-		perm, err := access_model.GetUserRepoPermission(ctx, n.Repository, n.User)
-		if err != nil {
-			log.Error("GetUserRepoPermission failed: %v", err)
-			return result
-		}
-		if perm.HasAnyUnitAccessOrPublicAccess() { // if user has been revoked access to repo, do not show repo info
-			result.Repository = ToRepo(ctx, n.Repository, perm)
-			// This permission is not correct and we should not be reporting it
-			for repository := result.Repository; repository != nil; repository = repository.Parent {
-				repository.Permissions = nil
-			}
-		}
+	if n.Repository == nil {
+		return result
+	}
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, n.Repository, n.User)
+	if err != nil {
+		log.Error("GetIndividualUserRepoPermission failed: %v", err)
+		return result
+	}
+	// if the user has been revoked access to the repo, do not leak repo or subject info
+	if !perm.HasAnyUnitAccessOrPublicAccess() {
+		return result
+	}
+	result.Repository = ToRepo(ctx, n.Repository, perm)
+	// This permission is not correct and we should not be reporting it
+	for repository := result.Repository; repository != nil; repository = repository.Parent {
+		repository.Permissions = nil
 	}
 
 	// handle Subject
@@ -47,7 +50,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL(ctx)
 			result.Subject.HTMLURL = n.Issue.HTMLURL(ctx)
-			result.Subject.State = n.Issue.State()
+			result.Subject.State = api.NotifySubjectStateType(n.Issue.State())
 			comment, err := n.Issue.GetLastComment(ctx)
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL(ctx)
@@ -60,7 +63,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL(ctx)
 			result.Subject.HTMLURL = n.Issue.HTMLURL(ctx)
-			result.Subject.State = n.Issue.State()
+			result.Subject.State = api.NotifySubjectStateType(n.Issue.State())
 			comment, err := n.Issue.GetLastComment(ctx)
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL(ctx)
@@ -70,7 +73,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			if err := n.Issue.LoadPullRequest(ctx); err == nil &&
 				n.Issue.PullRequest != nil &&
 				n.Issue.PullRequest.HasMerged {
-				result.Subject.State = "merged"
+				result.Subject.State = api.NotifySubjectStateMerged
 			}
 		}
 	case activities_model.NotificationSourceCommit:

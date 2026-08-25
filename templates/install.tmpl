@@ -117,7 +117,7 @@
 						<input id="lfs_root_path" name="lfs_root_path" value="{{.lfs_root_path}}">
 						<span class="help">{{ctx.Locale.Tr "install.lfs_path_helper"}}</span>
 					</div>
-					<div class="inline required field {{if .Err_RunUser}}error{{end}}">
+					<div class="inline field">
 						<label for="run_user">{{ctx.Locale.Tr "install.run_user"}}</label>
 						<input id="run_user" name="run_user" value="{{.run_user}}" readonly>
 						<span class="help">{{ctx.Locale.Tr "install.run_user_helper"}}</span>

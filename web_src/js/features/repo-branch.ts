@@ -1,5 +1,6 @@
 import {toggleElem} from '../utils/dom.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {trString} from '../modules/i18n.ts';
 
 export function initRepoBranchButton() {
   initRepoCreateBranchButton();
@@ -18,7 +19,7 @@ function initRepoCreateBranchButton() {
       const fromSpanName = el.getAttribute('data-modal-from-span') || '#modal-create-branch-from-span';
       document.querySelector(fromSpanName)!.textContent = el.getAttribute('data-branch-from');
 
-      fomanticQuery(el.getAttribute('data-modal')!).modal('show');
+      showFomanticModal(document.querySelector(el.getAttribute('data-modal')!));
     });
   }
 }
@@ -36,7 +37,7 @@ function initRepoRenameBranchButton() {
       toggleElem(warn, el.getAttribute('data-is-default-branch') === 'true');
 
       const text = modal.querySelector('[data-rename-branch-to]')!;
-      text.textContent = text.getAttribute('data-rename-branch-to')!.replace('%s', oldBranchName);
+      text.textContent = trString(text.getAttribute('data-rename-branch-to')!, oldBranchName);
     });
   }
 }

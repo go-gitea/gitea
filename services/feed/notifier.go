@@ -9,16 +9,16 @@ import (
 	"path"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
+	activities_model "gitea.dev/models/activities"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/util"
+	notify_service "gitea.dev/services/notify"
 )
 
 type actionNotifier struct {
@@ -327,7 +327,7 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 
 	opType := activities_model.ActionCommitRepo
 
-	// Check it's tag push or branch.
+	// Check its tag push or branch.
 	if opts.RefFullName.IsTag() {
 		opType = activities_model.ActionPushTag
 		if opts.IsDelRef() {
@@ -337,6 +337,11 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 		opType = activities_model.ActionDeleteBranch
 	}
 
+	// HINT: USER-ACTIVITY-PUSH-COMMITS: it's said that the time of push commits (for user activity display) is designed this way,
+	// it doesn't use git commit's time, it only uses the doer's action time.
+	// ref: https://github.com/go-gitea/gitea/pull/36469#issuecomment-3901955347
+	// ref: https://github.com/go-gitea/gitea/issues/14051
+	// ref: https://github.com/go-gitea/gitea/issues/11861#issuecomment-643162143
 	if err = NotifyWatchers(ctx, &activities_model.Action{
 		ActUserID: pusher.ID,
 		ActUser:   pusher,

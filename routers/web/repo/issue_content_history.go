@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/avatars"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/avatars"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/templates"
+	"gitea.dev/services/context"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -88,7 +88,7 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue
 	history *issues_model.ContentHistory,
 ) (canSoftDelete bool) {
 	// CanWrite means the doer can manage the issue/PR list
-	if ctx.Repo.IsOwner() || ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+	if ctx.Repo.Permission.IsOwner() || ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
 		canSoftDelete = true
 	} else if ctx.Doer != nil {
 		// for read-only users, they could still post issues or comments,

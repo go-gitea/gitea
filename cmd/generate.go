@@ -6,54 +6,99 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
-	"code.gitea.io/gitea/modules/generate"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/ssh"
 
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	// CmdGenerate represents the available generate sub-command.
-	CmdGenerate = &cli.Command{
+func newGenerateCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "generate",
 		Usage: "Generate Gitea's secrets/keys/tokens",
 		Commands: []*cli.Command{
-			subcmdSecret,
+			newGenerateSecretCommand(),
+			newGenerateSSHCommand(),
 		},
 	}
+}
 
-	subcmdSecret = &cli.Command{
+func newGenerateSecretCommand() *cli.Command {
+	return &cli.Command{
 		Name:  "secret",
 		Usage: "Generate a secret token",
 		Commands: []*cli.Command{
-			microcmdGenerateInternalToken,
-			microcmdGenerateLfsJwtSecret,
-			microcmdGenerateSecretKey,
+			newGenerateInternalTokenCommand(),
+			newGenerateLfsJWTSecretCommand(),
+			newGenerateSecretKeyCommand(),
 		},
 	}
+}
 
-	microcmdGenerateInternalToken = &cli.Command{
+func newGenerateSSHCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "ssh",
+		Usage: "Generate ssh keys",
+		Commands: []*cli.Command{
+			newGenerateSSHKeyCommand(),
+			newGenerateSSHHostKeysCommand(),
+		},
+	}
+}
+
+func newGenerateInternalTokenCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "INTERNAL_TOKEN",
 		Usage:  "Generate a new INTERNAL_TOKEN",
 		Action: runGenerateInternalToken,
 	}
+}
 
-	microcmdGenerateLfsJwtSecret = &cli.Command{
+func newGenerateLfsJWTSecretCommand() *cli.Command {
+	return &cli.Command{
 		Name:    "JWT_SECRET",
 		Aliases: []string{"LFS_JWT_SECRET"},
 		Usage:   "Generate a new JWT_SECRET",
 		Action:  runGenerateLfsJwtSecret,
 	}
+}
 
-	microcmdGenerateSecretKey = &cli.Command{
+func newGenerateSecretKeyCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "SECRET_KEY",
 		Usage:  "Generate a new SECRET_KEY",
 		Action: runGenerateSecretKey,
 	}
-)
+}
+
+func newGenerateSSHKeyCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "key",
+		Usage: "Generate a new ssh key",
+		Flags: []cli.Flag{
+			&cli.IntFlag{Name: "bits", Aliases: []string{"b"}, Usage: "Number of bits in the key, ignored when key is ed25519"},
+			&cli.StringFlag{Name: "type", Aliases: []string{"t"}, Value: "ed25519", Usage: "Specifies the type of key to create."},
+			&cli.StringFlag{Name: "file", Aliases: []string{"f"}, Usage: "Specifies the path or base directory for the key file", Required: true},
+		},
+		Action: runGenerateKeyPair,
+	}
+}
+
+func newGenerateSSHHostKeysCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "host-keys",
+		Usage: "Generate host keys of all default key types (rsa, ecdsa, and ed25519) if they do not already exist.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "dir", Aliases: []string{"d"}, Usage: "Specifies the base directory for the key files", Required: true},
+		},
+		Action: runGenerateHostKey,
+	}
+}
 
 func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 	internalToken, err := generate.NewInternalToken()
@@ -71,11 +116,7 @@ func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 }
 
 func runGenerateLfsJwtSecret(_ context.Context, c *cli.Command) error {
-	_, jwtSecretBase64, err := generate.NewJwtSecretWithBase64()
-	if err != nil {
-		return err
-	}
-
+	_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
 	fmt.Printf("%s", jwtSecretBase64)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
@@ -99,4 +140,42 @@ func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 	}
 
 	return nil
+}
+
+func runGenerateHostKey(_ context.Context, c *cli.Command) error {
+	file := c.String("dir")
+	info, err := os.Stat(file)
+	if errors.Is(err, os.ErrNotExist) {
+		if err = os.MkdirAll(file, 0o644); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	} else if !info.IsDir() {
+		return errors.New("file already exists and is not a directory")
+	}
+	fmt.Fprintf(c.Writer, "Generating host keys in %s\n", file)
+	_, err = ssh.InitDefaultHostKeys(file)
+	return err
+}
+
+func runGenerateKeyPair(_ context.Context, c *cli.Command) error {
+	file := c.String("file")
+	keyType := c.String("type")
+
+	fmt.Fprintf(c.Writer, "Generating public/private %s key pair.\n", keyType)
+
+	// Check if file exists to prevent overwriting
+	if _, err := os.Stat(file); err == nil {
+		if !confirm(c.Reader, c.Writer, "%s already exists.\nOverwrite (y/n)? ", file) {
+			fmt.Println("Aborting")
+			return nil
+		}
+	}
+	bits := c.Int("bits")
+	err := ssh.GenKeyPair(file, generate.SSHKeyType(keyType), bits)
+	if err == nil {
+		fmt.Printf("Your SSH key has been saved in %s\n", file)
+	}
+	return err
 }

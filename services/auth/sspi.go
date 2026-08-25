@@ -10,15 +10,15 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/auth/source/sspi"
-	gitea_context "code.gitea.io/gitea/services/context"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/services/auth/source/sspi"
+	gitea_context "gitea.dev/services/context"
 
 	gouuid "github.com/google/uuid"
 )
@@ -121,7 +121,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 
 	if s.CreateSession {
-		handleSignIn(w, req, sess, user)
+		handleSignInNonInteractive(w, req, sess, user)
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)
@@ -143,7 +143,7 @@ func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
 	if len(sources) > 1 {
 		return nil, errors.New("more than one active login source of type SSPI found")
 	}
-	return sources[0].Cfg.(*sspi.Source), nil
+	return auth.MustSourceCfg[*sspi.Source](sources[0]), nil
 }
 
 func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {

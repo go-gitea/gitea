@@ -15,17 +15,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/install"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers"
+	"gitea.dev/routers/install"
 
 	"github.com/felixge/fgprof"
 	"github.com/urfave/cli/v3"
@@ -34,42 +34,43 @@ import (
 // PIDFile could be set from build tag
 var PIDFile = "/run/gitea.pid"
 
-// CmdWeb represents the available web sub-command.
-var CmdWeb = &cli.Command{
-	Name:  "web",
-	Usage: "Start Gitea web server",
-	Description: `Gitea web server is the only thing you need to run,
+func newWebCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "web",
+		Usage: "Start Gitea web server",
+		Description: `Gitea web server is the only thing you need to run,
 and it takes care of all the other things for you`,
-	Before: PrepareConsoleLoggerLevel(log.INFO),
-	Action: runWeb,
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:    "port",
-			Aliases: []string{"p"},
-			Value:   "3000",
-			Usage:   "Temporary port number to prevent conflict",
+		Before: PrepareConsoleLoggerLevel(log.INFO),
+		Action: runWeb,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "port",
+				Aliases: []string{"p"},
+				Value:   "3000",
+				Usage:   "Temporary port number to prevent conflict",
+			},
+			&cli.StringFlag{
+				Name:  "install-port",
+				Value: "3000",
+				Usage: "Temporary port number to run the install page on to prevent conflict",
+			},
+			&cli.StringFlag{
+				Name:    "pid",
+				Aliases: []string{"P"},
+				Value:   PIDFile,
+				Usage:   "Custom pid file path",
+			},
+			&cli.BoolFlag{
+				Name:    "quiet",
+				Aliases: []string{"q"},
+				Usage:   "Only display Fatal logging errors until logging is set-up",
+			},
+			&cli.BoolFlag{
+				Name:  "verbose",
+				Usage: "Set initial logging to TRACE level until logging is properly set-up",
+			},
 		},
-		&cli.StringFlag{
-			Name:  "install-port",
-			Value: "3000",
-			Usage: "Temporary port number to run the install page on to prevent conflict",
-		},
-		&cli.StringFlag{
-			Name:    "pid",
-			Aliases: []string{"P"},
-			Value:   PIDFile,
-			Usage:   "Custom pid file path",
-		},
-		&cli.BoolFlag{
-			Name:    "quiet",
-			Aliases: []string{"q"},
-			Usage:   "Only display Fatal logging errors until logging is set-up",
-		},
-		&cli.BoolFlag{
-			Name:  "verbose",
-			Usage: "Set initial logging to TRACE level until logging is properly set-up",
-		},
-	},
+	}
 }
 
 func runHTTPRedirector() {
@@ -149,7 +150,7 @@ func serveInstall(cmd *cli.Command) error {
 	c := install.Routes()
 	err := listen(c, false)
 	if err != nil {
-		log.Critical("Unable to open listener for installer. Is Gitea already running?")
+		log.Error("Unable to open listener for installer. Is Gitea already running?")
 		graceful.GetManager().DoGracefulShutdown()
 	}
 	select {
@@ -243,7 +244,8 @@ func servePprof() {
 	_, _, finished := process.GetManager().AddTypedContext(context.TODO(), "Web: PProf Server", process.SystemProcessType, true)
 	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment, it's not worth introducing a configurable option for it.
 	log.Info("Starting pprof server on localhost:6060")
-	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", mux))
+	server := &http.Server{Addr: "localhost:6060", Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+	log.Info("Stopped pprof server: %v", server.ListenAndServe())
 	finished()
 }
 
@@ -374,7 +376,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
 	if err != nil {
-		log.Critical("Failed to start server: %v", err)
+		log.Error("Failed to start server: %v", err)
 	}
 	log.Info("HTTP Listener: %s Closed", listenAddr)
 	return err

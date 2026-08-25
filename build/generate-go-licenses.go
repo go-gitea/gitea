@@ -19,6 +19,7 @@ import (
 
 // regexp is based on go-license, excluding README and NOTICE
 // https://github.com/google/go-licenses/blob/master/licenses/find.go
+// also defined in vite.config.ts
 var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
 
 // primaryLicenseRe matches exact primary license filenames without suffixes.
@@ -28,8 +29,8 @@ var primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
 
 // ignoredNames are LicenseEntry.Name values to exclude from the output.
 var ignoredNames = map[string]bool{
-	"code.gitea.io/gitea":                 true,
-	"code.gitea.io/gitea/options/license": true,
+	"gitea.dev":                 true,
+	"gitea.dev/options/license": true,
 }
 
 var excludedExt = map[string]bool{

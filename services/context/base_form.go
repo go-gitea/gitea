@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/util"
 )
 
 // FormString returns the first value matching the provided key in the form as a string
@@ -33,6 +34,11 @@ func (b *Base) FormStrings(key string) []string {
 		return v
 	}
 	return nil
+}
+
+func (b *Base) FormStringInt64s(key string) []int64 {
+	vals, _ := base.StringsToInt64s(strings.Split(b.FormString(key), ","))
+	return vals
 }
 
 // FormTrim returns the first value for the provided key in the form as a space trimmed string
@@ -63,17 +69,20 @@ func (b *Base) FormBool(key string) bool {
 // FormOptionalBool returns an optional.Some(true) or optional.Some(false) if the value
 // for the provided key exists in the form else it returns optional.None[bool]()
 func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
-	value := b.Req.FormValue(key)
-	if len(value) == 0 {
+	s := b.Req.FormValue(key)
+	if s == "" {
 		return optional.None[bool]()
 	}
-	s := b.Req.FormValue(key)
 	v, _ := strconv.ParseBool(s)
 	v = v || strings.EqualFold(s, "on")
 	return optional.Some(v)
 }
 
-func (b *Base) SetFormString(key, value string) {
-	_ = b.Req.FormValue(key) // force parse form
-	b.Req.Form.Set(key, value)
+func (b *Base) FormOptionalInt64(key string) optional.Option[int64] {
+	s := b.Req.FormValue(key)
+	v, err := strconv.ParseInt(s, 10, 64)
+	if s == "" || err != nil {
+		return optional.None[int64]()
+	}
+	return optional.Some(v)
 }

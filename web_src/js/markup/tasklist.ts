@@ -4,6 +4,23 @@ import {showErrorToast} from '../modules/toast.ts';
 const preventListener = (e: Event) => e.preventDefault();
 
 /**
+ * Toggle a task list checkbox in markdown content.
+ * `position` is the byte offset of the space or `x` character inside `[ ]`.
+ * Returns the updated content, or null if the position is invalid.
+ */
+export function toggleTasklistCheckbox(content: string, position: number, checked: boolean): string | null {
+  const buffer = new TextEncoder().encode(content);
+  // Indexes may fall off the ends and return undefined.
+  if (buffer[position - 1] !== '['.charCodeAt(0) ||
+    buffer[position] !== ' '.charCodeAt(0) && buffer[position] !== 'x'.charCodeAt(0) ||
+    buffer[position + 1] !== ']'.charCodeAt(0)) {
+    return null;
+  }
+  buffer[position] = checked ? 'x'.charCodeAt(0) : ' '.charCodeAt(0);
+  return new TextDecoder().decode(buffer);
+}
+
+/**
  * Attaches `input` handlers to markdown rendered tasklist checkboxes in comments.
  *
  * When a checkbox value changes, the corresponding [ ] or [x] in the markdown string
@@ -23,24 +40,17 @@ export function initMarkupTasklist(elMarkup: HTMLElement): void {
 
     checkbox.setAttribute('data-editable', 'true');
     checkbox.addEventListener('input', async () => {
-      const checkboxCharacter = checkbox.checked ? 'x' : ' ';
       const position = parseInt(checkbox.getAttribute('data-source-position')!) + 1;
 
       const rawContent = container.querySelector('.raw-content')!;
       const oldContent = rawContent.textContent;
 
-      const encoder = new TextEncoder();
-      const buffer = encoder.encode(oldContent);
-      // Indexes may fall off the ends and return undefined.
-      if (buffer[position - 1] !== '['.codePointAt(0) ||
-        buffer[position] !== ' '.codePointAt(0) && buffer[position] !== 'x'.codePointAt(0) ||
-        buffer[position + 1] !== ']'.codePointAt(0)) {
-        // Position is probably wrong.  Revert and don't allow change.
+      const newContent = toggleTasklistCheckbox(oldContent, position, checkbox.checked);
+      if (newContent === null) {
+        // Position is probably wrong. Revert and don't allow change.
         checkbox.checked = !checkbox.checked;
         throw new Error(`Expected position to be space or x and surrounded by brackets, but it's not: position=${position}`);
       }
-      buffer.set(encoder.encode(checkboxCharacter), position);
-      const newContent = new TextDecoder().decode(buffer);
 
       if (newContent === oldContent) {
         return;

@@ -1,0 +1,28 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"b12dae3f9a06df734eaeea56b1becb28"
+Gitlab-Lb: haproxy-main-09-lb-gprd
+Gitlab-Sv: api-gke-us-east1-d
+Link: <https://gitlab.com/api/v4/projects/15578026/issues?id=15578026&order_by=created_at&page=2&per_page=2&sort=asc&state=all&with_labels_details=false>; rel="next", <https://gitlab.com/api/v4/projects/15578026/issues?id=15578026&order_by=created_at&page=1&per_page=2&sort=asc&state=all&with_labels_details=false>; rel="first", <https://gitlab.com/api/v4/projects/15578026/issues?id=15578026&order_by=created_at&page=2&per_page=2&sort=asc&state=all&with_labels_details=false>; rel="last"
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 8
+Ratelimit-Remaining: 1992
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee7f8c9ac27f-VIE","version":"1"}
+X-Next-Page: 2
+X-Page: 1
+X-Per-Page: 2
+X-Prev-Page: 
+X-Runtime: 0.141229
+X-Total: 3
+X-Total-Pages: 2
+
+[{"id":27687675,"iid":1,"project_id":15578026,"title":"Please add an animated gif icon to the merge button","description":"I just want the merge button to hurt my eyes a little. :stuck_out_tongue_closed_eyes:","state":"closed","created_at":"2019-11-28T08:43:35.459Z","updated_at":"2019-11-28T08:46:23.304Z","closed_at":"2019-11-28T08:46:23.275Z","closed_by":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"labels":["bug","discussion"],"milestone":{"id":1082926,"iid":1,"project_id":15578026,"title":"1.0.0","description":"","state":"closed","created_at":"2019-11-28T08:42:30.301Z","updated_at":"2019-11-28T15:57:52.401Z","due_date":null,"start_date":null,"expired":false,"web_url":"https://gitlab.com/gitea/test_repo/-/milestones/1"},"assignees":[],"author":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"type":"ISSUE","assignee":null,"user_notes_count":0,"merge_requests_count":0,"upvotes":1,"downvotes":0,"start_date":null,"due_date":null,"confidential":false,"discussion_locked":null,"issue_type":"issue","web_url":"https://gitlab.com/gitea/test_repo/-/work_items/1","time_stats":{"time_estimate":0,"total_time_spent":0,"human_time_estimate":null,"human_total_time_spent":null},"task_completion_status":{"count":0,"completed_count":0},"blocking_issues_count":0,"has_tasks":true,"task_status":"0 of 0 checklist items completed","_links":{"self":"https://gitlab.com/api/v4/projects/15578026/issues/1","notes":"https://gitlab.com/api/v4/projects/15578026/issues/1/notes","award_emoji":"https://gitlab.com/api/v4/projects/15578026/issues/1/award_emoji","project":"https://gitlab.com/api/v4/projects/15578026","closed_as_duplicate_of":null},"references":{"short":"#1","relative":"#1","full":"gitea/test_repo#1"},"severity":"UNKNOWN","moved_to_id":null,"imported":false,"imported_from":"none","service_desk_reply_to":null},{"id":27687706,"iid":2,"project_id":15578026,"title":"Test issue","description":"This is test issue 2, do not touch!","state":"closed","created_at":"2019-11-28T08:44:46.277Z","updated_at":"2019-11-28T08:45:44.987Z","closed_at":"2019-11-28T08:45:44.959Z","closed_by":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"labels":["duplicate"],"milestone":{"id":1082927,"iid":2,"project_id":15578026,"title":"1.1.0","description":"","state":"active","created_at":"2019-11-28T08:42:44.575Z","updated_at":"2019-11-28T08:42:44.575Z","due_date":null,"start_date":null,"expired":false,"web_url":"https://gitlab.com/gitea/test_repo/-/milestones/2"},"assignees":[],"author":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"type":"ISSUE","assignee":null,"user_notes_count":2,"merge_requests_count":0,"upvotes":1,"downvotes":1,"start_date":null,"due_date":null,"confidential":false,"discussion_locked":null,"issue_type":"issue","web_url":"https://gitlab.com/gitea/test_repo/-/work_items/2","time_stats":{"time_estimate":0,"total_time_spent":0,"human_time_estimate":null,"human_total_time_spent":null},"task_completion_status":{"count":0,"completed_count":0},"blocking_issues_count":0,"has_tasks":true,"task_status":"0 of 0 checklist items completed","_links":{"self":"https://gitlab.com/api/v4/projects/15578026/issues/2","notes":"https://gitlab.com/api/v4/projects/15578026/issues/2/notes","award_emoji":"https://gitlab.com/api/v4/projects/15578026/issues/2/award_emoji","project":"https://gitlab.com/api/v4/projects/15578026","closed_as_duplicate_of":null},"references":{"short":"#2","relative":"#2","full":"gitea/test_repo#2"},"severity":"UNKNOWN","moved_to_id":null,"imported":false,"imported_from":"none","service_desk_reply_to":null}]

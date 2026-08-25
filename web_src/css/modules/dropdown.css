@@ -80,6 +80,10 @@
   border-top-width: 0;
 }
 
+.ui.dropdown .menu .hidden { /* for hidden items and dividers */
+  display: none;
+}
+
 .ui.dropdown .menu > .header {
   margin: 1rem 0 0.75rem;
   padding: 0 1.14285714rem;
@@ -209,7 +213,6 @@ select.ui.dropdown {
   overflow-x: hidden;
   overflow-y: auto;
   backface-visibility: hidden;
-  -webkit-overflow-scrolling: touch;
   border-top-width: 0 !important;
   outline: none;
   margin: 0 -1px;
@@ -268,13 +271,14 @@ select.ui.dropdown {
 }
 
 .ui.selection.dropdown:hover {
-  border-color: var(--color-input-border-hover);
   box-shadow: none;
 }
 
 .ui.selection.active.dropdown {
   border-color: var(--color-primary);
   box-shadow: 0 6px 18px var(--color-shadow);
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
 }
 
 .ui.selection.active.dropdown .menu {
@@ -310,11 +314,6 @@ select.ui.dropdown {
 .ui.active.selection.dropdown > .dropdown.icon,
 .ui.visible.selection.dropdown > .dropdown.icon {
   z-index: 3;
-}
-
-.ui.active.selection.dropdown {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
 }
 
 .ui.active.empty.selection.dropdown {
@@ -383,7 +382,6 @@ select.ui.dropdown {
   overflow-x: hidden;
   overflow-y: auto;
   backface-visibility: hidden;
-  -webkit-overflow-scrolling: touch;
 }
 
 @media only screen and (max-width: 767.98px) {
@@ -443,12 +441,16 @@ select.ui.dropdown {
 }
 
 .ui.multiple.dropdown > .label {
-  display: inline-block;
   white-space: normal;
   font-size: 1em;
   padding: 0.35714286em 0.78571429em;
   margin: 0.14285714rem 0.28571429rem 0.14285714rem 0;
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
+}
+
+.ui.multiple.dropdown > .label img {
+  width: auto;
+  max-height: 20px;
 }
 
 /* Text */
@@ -657,7 +659,6 @@ select.ui.dropdown {
   overflow-x: hidden;
   overflow-y: auto;
   backface-visibility: hidden;
-  -webkit-overflow-scrolling: touch;
   min-width: 100% !important;
   width: auto !important;
 }
@@ -936,6 +937,10 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
 .ui.dropdown .menu.flex-items-menu > .item img,
 .ui.dropdown .menu.flex-items-menu > .item svg {
   margin: 0;
+}
+
+.ui.dropdown .menu.items-width-limit .item {
+  max-width: min(500px, calc(100vw - 2em));
 }
 
 .ui.dropdown.ellipsis-text-items {

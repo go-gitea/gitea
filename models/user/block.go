@@ -6,10 +6,10 @@ package user
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -66,6 +66,10 @@ type FindBlockingOptions struct {
 	BlockeeID int64
 }
 
+func (opts *FindBlockingOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts *FindBlockingOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.BlockerID != 0 {
@@ -90,7 +94,7 @@ func GetBlocking(ctx context.Context, blockerID, blockeeID int64) (*Blocking, er
 		return nil, err
 	}
 	if len(blocks) == 0 {
-		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
+		return nil, util.NewNotExistErrorf("blocking record doesn't exist")
 	}
 	return blocks[0], nil
 }

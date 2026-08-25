@@ -10,14 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	pull_model "code.gitea.io/gitea/models/pull"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
+	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -547,6 +549,43 @@ index 0000000..6bb8f39
 	}
 }
 
+func TestParsePatchExactLineLimit(t *testing.T) {
+	for _, test := range []struct {
+		name, hunk   string
+		limit, lines int
+		incomplete   bool
+	}{
+		{name: "zero", limit: 0, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "one", limit: 1, lines: 1, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N plus one", limit: 2, lines: 2, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N", limit: 3, lines: 3, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n"},
+		{name: "addition", limit: 1, lines: 1, hunk: "@@ -0,0 +1 @@\n+one\n"},
+		{name: "deletion", limit: 1, lines: 1, hunk: "@@ -1 +0,0 @@\n-one\n"},
+		{name: "marker has no cost", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n line\n\\ No newline at end of file\n"},
+		{name: "hunk at capacity", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n one\n@@ -3 +3 @@\n three\n", incomplete: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			patch := "diff --git a/file b/file\n--- a/file\n+++ b/file\n" + test.hunk
+			diff, err := ParsePatch(t.Context(), test.limit, 5000, 10, strings.NewReader(patch), "")
+			require.NoError(t, err)
+			require.Len(t, diff.Files, 1)
+			diffFile := diff.Files[0]
+			if test.limit == 0 {
+				require.Len(t, diffFile.Sections, 0)
+			} else {
+				require.Len(t, diffFile.Sections, 1)
+				diffSection := diffFile.Sections[0]
+				lineSecCount := 0
+				for _, line := range diffSection.Lines {
+					lineSecCount += util.Iif(line.Type == DiffLineSection, 1, 0)
+				}
+				assert.Equal(t, test.lines, len(diffSection.Lines)-lineSecCount) // actual diff lines
+				assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
+			}
+		})
+	}
+}
+
 func setupDefaultDiff() *Diff {
 	return &Diff{
 		Files: []*DiffFile{
@@ -600,8 +639,18 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 	assert.Equal(t, "proposed", (&DiffLine{Comments: []*issues_model.Comment{{Line: 3}}}).GetCommentSide())
 }
 
+func TestDiffLine_GetLineTypeMarker(t *testing.T) {
+	assert.Equal(t, "", (&DiffLine{Content: ""}).GetLineTypeMarker())
+	assert.Equal(t, "+", (&DiffLine{Content: "+added line"}).GetLineTypeMarker())
+	assert.Equal(t, "-", (&DiffLine{Content: "-deleted line"}).GetLineTypeMarker())
+	assert.Equal(t, " ", (&DiffLine{Content: " unchanged line"}).GetLineTypeMarker())
+	// for a real diff line (including hunk header) from diff output, "Content" should always have a prefix char in [" ", "+", "-"].
+	// for other cases, e.g.: a diff line constructed by our code without real diff output, it is undefined behavior at the moment.
+	assert.Equal(t, "", (&DiffLine{Content: "any-content"}).GetLineTypeMarker())
+}
+
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
@@ -1109,6 +1158,15 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 	}
 }
 
+func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
+	t.Run("Section", func(t *testing.T) {
+		diffLine := &DiffLine{Type: DiffLineSection, Content: "@@ -1,3 +1,3 @@ func \u202ename() <b>"}
+		diffInline := (&DiffSection{}).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.True(t, diffInline.EscapeStatus.Escaped)
+		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
+	})
+}
+
 func TestHighlightCodeLines(t *testing.T) {
 	t.Run("CharsetDetecting", func(t *testing.T) {
 		diffFile := &DiffFile{
@@ -1140,8 +1198,21 @@ func TestHighlightCodeLines(t *testing.T) {
 		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\nb\n"))
 		assert.Equal(t, map[int]template.HTML{
 			0: `<span class="n">a</span>` + nl,
-			1: `<span class="n">b</span>`,
+			1: `<span class="n">b</span>` + nl,
 		}, ret)
+	})
+	t.Run("CharCR", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name: "a.txt",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}},
+				},
+			},
+		}
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\rb\r\nc"))
+		assert.Equal(t, "a␍b\n", string(ret[0]))
+		assert.Equal(t, `c`, string(ret[1]))
 	})
 }
 
@@ -1173,9 +1244,9 @@ revert
 from :2
 D test2.txt
 D test10.txt`
-	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(pull.BaseRepo.RepoPath()).WithStdinBytes([]byte(stdin)).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithRepo(pull.BaseRepo).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 
-	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

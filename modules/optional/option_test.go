@@ -6,7 +6,7 @@ package optional_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 )

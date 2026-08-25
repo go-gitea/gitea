@@ -10,8 +10,8 @@ import (
 	"html/template"
 	"slices"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 )
 
 // This file implements the static LocaleStore that will not watch for changes
@@ -72,12 +72,16 @@ func (store *localeStore) AddLocaleByJSON(langName, langDesc string, source, mor
 				l.idxToMsgMap[idx] = v
 			case map[string]any:
 				for key, val := range v {
+					valStr, ok := val.(string)
+					if !ok {
+						return fmt.Errorf("unsupported value type %T for key %q", val, trKey+"."+key)
+					}
 					idx, ok := store.trKeyToIdxMap[trKey+"."+key]
 					if !ok {
 						idx = len(store.trKeyToIdxMap)
 						store.trKeyToIdxMap[trKey+"."+key] = idx
 					}
-					l.idxToMsgMap[idx] = val.(string)
+					l.idxToMsgMap[idx] = valStr
 				}
 			default:
 				return fmt.Errorf("unsupported value type %T for key %q", v, trKey)
@@ -173,5 +177,8 @@ func (l *locale) HasKey(trKey string) bool {
 		return false
 	}
 	_, ok = l.idxToMsgMap[idx]
+	if !ok {
+		_, ok = l.store.localeMap[l.store.defaultLang]
+	}
 	return ok
 }

@@ -8,16 +8,13 @@ package private
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/services/context"
 )
 
 // Restart is not implemented for Windows based servers as they can't fork
 func Restart(ctx *context.PrivateContext) {
-	ctx.JSON(http.StatusNotImplemented, private.Response{
-		UserMsg: "windows servers cannot be gracefully restarted - shutdown and restart manually",
-	})
+	ctx.PrivateUserErrorf(http.StatusNotImplemented, "windows servers cannot be gracefully restarted - shutdown and restart manually")
 }
 
 // Shutdown causes the server to perform a graceful shutdown

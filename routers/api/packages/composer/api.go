@@ -8,8 +8,11 @@ import (
 	"net/url"
 	"time"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	composer_module "code.gitea.io/gitea/modules/packages/composer"
+	packages_model "gitea.dev/models/packages"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/modules/log"
+	composer_module "gitea.dev/modules/packages/composer"
+	"gitea.dev/services/context"
 )
 
 // ServiceIndexResponse contains registry endpoints
@@ -47,7 +50,7 @@ func createSearchResultResponse(total int64, pds []*packages_model.PackageDescri
 	for _, pd := range pds {
 		results = append(results, &SearchResult{
 			Name:        pd.Package.Name,
-			Description: pd.Metadata.(*composer_module.Metadata).Description,
+			Description: packages_model.DescriptorMetadata[*composer_module.Metadata](pd).Description,
 			Downloads:   pd.Version.DownloadCount,
 		})
 	}
@@ -91,7 +94,7 @@ type Source struct {
 	Reference string `json:"reference"`
 }
 
-func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *PackageMetadataResponse {
+func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds []*packages_model.PackageDescriptor) *PackageMetadataResponse {
 	versions := make([]*PackageVersionMetadata, 0, len(pds))
 
 	for _, pd := range pds {
@@ -108,7 +111,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			Version:  pd.Version.Version,
 			Type:     packageType,
 			Created:  pd.Version.CreatedUnix.AsLocalTime(),
-			Metadata: pd.Metadata.(*composer_module.Metadata),
+			Metadata: packages_model.DescriptorMetadata[*composer_module.Metadata](pd),
 			Dist: Dist{
 				Type:     "zip",
 				URL:      fmt.Sprintf("%s/files/%s/%s/%s", registryURL, url.PathEscape(pd.Package.LowerName), url.PathEscape(pd.Version.LowerVersion), url.PathEscape(pd.Files[0].File.LowerName)),
@@ -116,10 +119,15 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			},
 		}
 		if pd.Repository != nil {
-			pkg.Source = Source{
-				URL:       pd.Repository.HTMLURL(),
-				Type:      "git",
-				Reference: pd.Version.Version,
+			permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
+			if err != nil {
+				log.Error("GetDoerRepoPermission[%d]: %v", pd.Repository.ID, err)
+			} else if permission.HasAnyUnitAccessOrPublicAccess() {
+				pkg.Source = Source{
+					URL:       pd.Repository.HTMLURL(),
+					Type:      "git",
+					Reference: pd.Version.Version,
+				}
 			}
 		}
 

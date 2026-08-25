@@ -8,10 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
 
 	gouuid "github.com/google/uuid"
 )
@@ -117,9 +118,10 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 		}
 	}
 
-	if r.CreateSession {
-		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
-			handleSignIn(w, req, sess, user)
+	if r.CreateSession && sess != nil {
+		sessionUID, ok := sess.Get(session.KeyUID).(int64)
+		if !ok || sessionUID != user.ID {
+			handleSignInNonInteractive(w, req, sess, user)
 		}
 	}
 	store.GetData()["IsReverseProxy"] = true

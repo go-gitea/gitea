@@ -7,8 +7,8 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
 )
 
 // ActionTaskStep represents a step of ActionTask
@@ -28,7 +28,7 @@ type ActionTaskStep struct {
 }
 
 func (step *ActionTaskStep) Duration() time.Duration {
-	return calculateDuration(step.Started, step.Stopped, step.Status)
+	return calculateDuration(step.Started, step.Stopped, step.Status, step.Updated)
 }
 
 func init() {

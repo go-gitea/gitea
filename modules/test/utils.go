@@ -5,15 +5,25 @@ package test
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"regexp"
+	"slices"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
+
+	"golang.org/x/net/html"
 )
 
 // RedirectURL returns the redirect URL of a http response.
@@ -39,6 +49,14 @@ func RedirectURL(resp http.ResponseWriter) string {
 func ParseJSONError(buf []byte) (ret struct {
 	ErrorMessage string `json:"errorMessage"`
 	RenderFormat string `json:"renderFormat"`
+},
+) {
+	_ = json.Unmarshal(buf, &ret)
+	return ret
+}
+
+func ParseJSONRedirect(buf []byte) (ret struct {
+	Redirect *string `json:"redirect"`
 },
 ) {
 	_ = json.Unmarshal(buf, &ret)
@@ -85,21 +103,26 @@ func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {
 	return content, nil
 }
 
+func WriteZipArchive(files map[string]string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	zw := zip.NewWriter(buf)
+	for name, content := range files {
+		w, _ := zw.Create(name)
+		_, _ = w.Write([]byte(content))
+	}
+	_ = zw.Close()
+	return buf
+}
+
 func WriteTarArchive(files map[string]string) *bytes.Buffer {
 	return WriteTarCompression(func(w io.Writer) io.WriteCloser { return util.NopCloser{Writer: w} }, files)
 }
 
-func WriteTarCompression[F func(io.Writer) io.WriteCloser | func(io.Writer) (io.WriteCloser, error)](compression F, files map[string]string) *bytes.Buffer {
+func WriteTarCompression[WC io.WriteCloser, F func(io.Writer) WC](compression F, files map[string]string) *bytes.Buffer {
+	// TODO: to support xz.NewWriter which returns (*Writer, error), it needs a separate function due to the limit of Golang generic
 	buf := &bytes.Buffer{}
-	var cw io.WriteCloser
-	switch compressFunc := any(compression).(type) {
-	case func(io.Writer) io.WriteCloser:
-		cw = compressFunc(buf)
-	case func(io.Writer) (io.WriteCloser, error):
-		cw, _ = compressFunc(buf)
-	}
+	cw := compression(buf)
 	tw := tar.NewWriter(cw)
-
 	for name, content := range files {
 		hdr := &tar.Header{
 			Name: name,
@@ -120,4 +143,108 @@ func CompressGzip(content string) *bytes.Buffer {
 	_, _ = cw.Write([]byte(content))
 	_ = cw.Close()
 	return buf
+}
+
+var AllowSkipExternalService = sync.OnceValue(func() bool {
+	isLocalTesting := os.Getenv("CI") == ""
+	ciSkipExternal, _ := strconv.ParseBool(os.Getenv("GITEA_TEST_CI_SKIP_EXTERNAL"))
+	return isLocalTesting || ciSkipExternal
+})
+
+type TestingT interface {
+	Cleanup(func())
+	Context() context.Context
+	Errorf(format string, args ...any)
+	Fatalf(format string, args ...any)
+	Helper()
+	Skipf(format string, args ...any)
+	TempDir() string
+}
+
+var externalServiceCheckResult sync.Map
+
+func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
+	t.Helper()
+	extSvc := util.IfZero(os.Getenv(envVarName), def)
+	if extSvc == "" {
+		if AllowSkipExternalService() {
+			t.Skipf("skipping test because %s is not set", envVarName)
+		} else {
+			t.Fatalf("%s is not set, but skipping is not allowed in CI", envVarName)
+		}
+	}
+
+	// only need to check once, if there are saved check result, just use it
+	lastCheckErrAny, lastCheckExists := externalServiceCheckResult.Load(extSvc)
+	var lastCheckErr error
+	if !lastCheckExists {
+		{
+			// minio's endpoint is "host:port" pattern
+			testURL := util.Iif(strings.Contains(extSvc, "://"), extSvc, "http://"+extSvc)
+			// do a quick check with short timeout
+			client := &http.Client{Timeout: 2 * time.Second}
+			resp, err := client.Get(testURL)
+			if err == nil {
+				_ = resp.Body.Close()
+			}
+			lastCheckErr = err
+		}
+		externalServiceCheckResult.Store(extSvc, lastCheckErr)
+	} else {
+		lastCheckErr, _ = lastCheckErrAny.(error)
+	}
+
+	if lastCheckErr != nil {
+		if AllowSkipExternalService() {
+			t.Skipf("skipping test because %s is not ready", extSvc)
+		} else {
+			t.Fatalf("%s is not ready, but skipping is not allowed in CI", extSvc)
+		}
+	}
+	return extSvc
+}
+
+var normalizeHTMLSpacesRegexp = sync.OnceValue(func() (ret struct {
+	afterRt, beforeLt *regexp.Regexp
+},
+) {
+	ret.afterRt = regexp.MustCompile(`>\s*`)
+	ret.beforeLt = regexp.MustCompile(`\s*<`)
+	return ret
+})
+
+func NormalizeHTMLSpaces(s string) string {
+	vars := normalizeHTMLSpacesRegexp()
+	s = vars.afterRt.ReplaceAllString(s, ">\n")
+	s = vars.beforeLt.ReplaceAllString(s, "\n<")
+	return strings.TrimSpace(s)
+}
+
+func NormalizeHTMLAttributes(t TestingT, s string) string {
+	nodes, err := html.Parse(strings.NewReader(s))
+	if err != nil {
+		t.Errorf("failed to parse expected HTML: %v", err)
+		return ""
+	}
+
+	var normalize func(n *html.Node)
+	normalize = func(n *html.Node) {
+		slices.SortFunc(n.Attr, func(a, b html.Attribute) int {
+			if cmp := strings.Compare(a.Namespace, b.Namespace); cmp != 0 {
+				return cmp
+			}
+			if cmp := strings.Compare(a.Key, b.Key); cmp != 0 {
+				return cmp
+			}
+			return strings.Compare(a.Val, b.Val)
+		})
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			normalize(c)
+		}
+	}
+	var sb strings.Builder
+	if err = html.Render(&sb, nodes); err != nil {
+		t.Errorf("failed to render HTML: %v", err)
+	}
+	return sb.String()
 }

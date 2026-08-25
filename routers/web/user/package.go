@@ -8,33 +8,35 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"time"
 
-	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
-	arch_module "code.gitea.io/gitea/modules/packages/arch"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	debian_module "code.gitea.io/gitea/modules/packages/debian"
-	rpm_module "code.gitea.io/gitea/modules/packages/rpm"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	packages_helper "code.gitea.io/gitea/routers/api/packages/helper"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	packages_service "code.gitea.io/gitea/services/packages"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	packages_model "gitea.dev/models/packages"
+	container_model "gitea.dev/models/packages/container"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/optional"
+	alpine_module "gitea.dev/modules/packages/alpine"
+	arch_module "gitea.dev/modules/packages/arch"
+	container_module "gitea.dev/modules/packages/container"
+	rpm_module "gitea.dev/modules/packages/rpm"
+	terraform_module "gitea.dev/modules/packages/terraform"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	packages_helper "gitea.dev/routers/api/packages/helper"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	packages_service "gitea.dev/services/packages"
+	container_service "gitea.dev/services/packages/container"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -84,9 +86,9 @@ func ListPackages(ctx *context.Context) {
 			continue
 		}
 
-		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		repositoryAccessMap[pd.Repository.ID] = permission.HasAnyUnitAccess()
@@ -242,27 +244,6 @@ func ViewPackageVersion(ctx *context.Context) {
 
 		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
-	case packages_model.TypeDebian:
-		distributions := make(container.Set[string])
-		components := make(container.Set[string])
-		architectures := make(container.Set[string])
-
-		for _, f := range pd.Files {
-			for _, pp := range f.Properties {
-				switch pp.Name {
-				case debian_module.PropertyDistribution:
-					distributions.Add(pp.Value)
-				case debian_module.PropertyComponent:
-					components.Add(pp.Value)
-				case debian_module.PropertyArchitecture:
-					architectures.Add(pp.Value)
-				}
-			}
-		}
-
-		ctx.Data["Distributions"] = util.Sorted(distributions.Values())
-		ctx.Data["Components"] = util.Sorted(components.Values())
-		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeRpm:
 		groups := make(container.Set[string])
 		architectures := make(container.Set[string])
@@ -315,14 +296,22 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["LatestVersions"] = pvs
 	ctx.Data["TotalVersionCount"] = pvsTotal
+	pkgSpec := packages_service.GetSpecManager().Get(pd.Package.Type)
+	viewData, err := pkgSpec.GetViewPackageVersionData(ctx, pd)
+	if err != nil {
+		ctx.ServerError("GetViewPackageVersionData", err)
+		return
+	}
 
+	ctx.Data["PackageVersionViewData"] = viewData
+	ctx.Data["PackageVersionSetupManual"] = pkgSpec.RenderSetupManual(ctx, pd, viewData)
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	hasRepositoryAccess := false
 	if pd.Repository != nil {
-		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
+			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
 		hasRepositoryAccess = permission.HasAnyUnitAccess()
@@ -447,7 +436,7 @@ func PackageSettings(ctx *context.Context) {
 
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.PackageSettingForm)
+	form := web.GetForm[*forms.PackageSettingForm](ctx)
 	switch form.Action {
 	case "link":
 		packageSettingsPostActionLink(ctx, form)
@@ -491,20 +480,52 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 }
 
 func packageSettingsPostActionDelete(ctx *context.Context) {
-	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
-	if err != nil {
-		log.Error("Error deleting package: %v", err)
-		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
+	pd := ctx.Package.Descriptor
+
+	if ctx.FormString("package_name") != pd.Package.Name {
+		ctx.Flash.Error(ctx.Tr("packages.settings.delete.invalid_package_name"))
+		ctx.Redirect(pd.PackageSettingsLink())
+		return
+	}
+	if err := packages_service.RemovePackage(ctx, ctx.Doer, pd.Package); err != nil {
+		errTr := util.ErrorAsTranslatable(err)
+		if errTr == nil {
+			ctx.ServerError("RemovePackage", err)
+			return
+		}
+		ctx.Flash.Error(errTr.Translate(ctx.Locale))
+		ctx.Redirect(pd.PackageSettingsLink())
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+	ctx.Redirect(ctx.Package.Owner.HomeLink() + "/-/packages")
+}
+
+// PackageVersionDelete deletes a package version
+func PackageVersionDelete(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
+	if pd.Version == nil {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pd.Version); err != nil {
+		errTr := util.ErrorAsTranslatable(err)
+		if errTr == nil {
+			ctx.ServerError("RemovePackageVersion", err)
+			return
+		}
+		ctx.Flash.Error(errTr.Translate(ctx.Locale))
 	} else {
-		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+		ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
 	}
 
-	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
 	// redirect to the package if there are still versions available
-	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
-		redirectURL = ctx.Package.Descriptor.PackageWebLink()
+	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
+	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: pd.Package.ID, IsInternal: optional.Some(false)}); has {
+		redirectURL = pd.PackageWebLink()
 	}
-
 	ctx.Redirect(redirectURL)
 }
 
@@ -512,7 +533,7 @@ func packageSettingsPostActionDelete(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.PathParamInt64("fileid"))
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			ctx.NotFound(err)
 		} else {
 			ctx.ServerError("GetFileForVersionByID", err)
@@ -526,5 +547,62 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	packages_helper.ServePackageFile(ctx, s, u, pf)
+	packages_helper.ServePackageFile(ctx, s, u, pf, httplib.ServeHeaderOptions{
+		Filename:           pf.Name,
+		LastModified:       pf.CreatedUnix.AsLocalTime(),
+		ContentDisposition: httplib.ContentDispositionAttachment,
+	})
+}
+
+// ActionPackageTerraformLock locks a terraform state
+func ActionPackageTerraformLock(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
+	if pd.Package.Type != packages_model.TypeTerraformState {
+		ctx.NotFound(nil)
+		return
+	}
+
+	existingLock, err := terraform_module.GetLock(ctx, pd.Package.ID)
+	if err != nil {
+		ctx.ServerError("GetLock", err)
+		return
+	}
+	if existingLock.IsLocked() {
+		ctx.Flash.Error(ctx.Tr("packages.terraform.lock.error.already_locked"))
+		ctx.Redirect(pd.VersionWebLink())
+		return
+	}
+
+	lockID := uuid.New().String()
+	lockInfo := &terraform_module.LockInfo{
+		ID:        lockID,
+		Operation: "Manual UI Lock",
+		Who:       ctx.Doer.Name,
+		Created:   time.Now(),
+	}
+
+	if err := terraform_module.SetLock(ctx, pd.Package.ID, lockInfo); err != nil {
+		ctx.ServerError("SetLock", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.terraform.lock.success"))
+	ctx.Redirect(pd.VersionWebLink())
+}
+
+// ActionPackageTerraformUnlock unlocks a terraform state
+func ActionPackageTerraformUnlock(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
+	if pd.Package.Type != packages_model.TypeTerraformState {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if err := terraform_module.RemoveLock(ctx, pd.Package.ID); err != nil {
+		ctx.ServerError("RemoveLock", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.terraform.unlock.success"))
+	ctx.Redirect(pd.VersionWebLink())
 }

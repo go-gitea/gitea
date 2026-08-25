@@ -1,0 +1,43 @@
+{{$canNotForkOwn := and $.IsSigned (not $.CanSignedUserFork) (not $.UserAndOrgForks)}}
+{{$forkHref := printf "%s/fork" $.RepoLink}}
+{{if not $.IsSigned}}
+	{{$forkHref = printf "%s/user/login" AppSubUrl}}
+{{else if $.ShowForkModal}}{{/* see backend comment for this logic */}}
+	{{$forkHref = "#"}}
+{{else if eq (len $.UserAndOrgForks) 1}}
+	{{$forkHref = printf "%s/%s" AppSubUrl (index $.UserAndOrgForks 0).FullName}}
+{{else if $canNotForkOwn}}
+	{{$forkHref = "#"}}
+{{end}}
+<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}" href="{{$forkHref}}"
+	{{if and $.IsSigned $.ShowForkModal}}data-modal="#fork-repo-modal"{{end}}
+	{{if not $.IsSigned}}
+		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
+	{{else if $canNotForkOwn}}
+		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
+	{{end}}
+>
+	{{svg "octicon-repo-forked"}}
+	<span class="not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
+	<span class="ui small label">{{CountFmt $.Repository.NumForks}}</span>
+</a>
+{{if $.ShowForkModal}}
+<div class="ui small modal" id="fork-repo-modal">
+	<div class="header">
+		{{ctx.Locale.Tr "repo.already_forked" $.Repository.Name}}
+	</div>
+	<div class="content">
+		<div class="ui relaxed list">
+			{{range $.UserAndOrgForks}}
+				<div class="item">
+					<a class="flex-text-block" href="{{.Link}}">{{svg "octicon-repo-forked"}}{{.FullName}}</a>
+				</div>
+			{{end}}
+		</div>
+		{{if $.CanSignedUserFork}}
+		<div class="divider"></div>
+		<a href="{{$.RepoLink}}/fork">{{ctx.Locale.Tr "repo.fork_to_different_account"}}</a>
+		{{end}}
+	</div>
+</div>
+{{end}}

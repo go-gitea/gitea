@@ -6,9 +6,9 @@ package organization
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
 
 	"xorm.io/builder"
 )
@@ -52,7 +52,6 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 
 // GetTeamsWithAccessToAnyRepoUnit returns all teams in an organization that have given access level to the repository special unit.
 // This function is only used for finding some teams that can be used as branch protection allowlist or reviewers, it isn't really used for access control.
-// FIXME: TEAM-UNIT-PERMISSION this logic is not complete, search the fixme keyword to see more details
 func GetTeamsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (teams []*Team, err error) {
 	teamIDs, err := getTeamIDsWithAccessToAnyRepoUnit(ctx, orgID, repoID, mode, unitType, unitTypesMore...)
 	if err != nil {

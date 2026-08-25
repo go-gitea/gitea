@@ -1,5 +1,6 @@
-import {html, htmlEscape} from '../utils/html.ts';
-import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
+import {errorMessage} from '../modules/errors.ts';
+import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
+import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
   createElementFromHTML,
@@ -10,49 +11,15 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
-
-export function initRepoIssueSidebarDependency() {
-  const elDropdown = document.querySelector('#new-dependency-drop-list');
-  if (!elDropdown) return;
-
-  const issuePageInfo = parseIssuePageInfo();
-  const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
-  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
-  if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
-  }
-  fomanticQuery(elDropdown).dropdown({
-    fullTextSearch: true,
-    apiSettings: {
-      cache: false,
-      rawResponse: true,
-      url: issueSearchUrl,
-      onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
-        const currIssueId = elDropdown.getAttribute('data-issue-id');
-        // Parse the response from the api to work with our dropdown
-        for (const issue of response) {
-          // Don't list current issue in the dependency list.
-          if (String(issue.id) === currIssueId) continue;
-          filteredResponse.results.push({
-            value: issue.id,
-            name: html`<div class="gt-ellipsis">#${issue.number} ${issue.title}</div><div class="text small tw-break-anywhere">${issue.repository.full_name}</div>`,
-          });
-        }
-        return filteredResponse;
-      },
-    },
-  });
-}
 
 function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const url = new URL(window.location.href);
@@ -60,7 +27,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const queryLabels = url.searchParams.get('labels') || '';
   const selectedLabelIds = new Set<string>();
   for (const id of queryLabels ? queryLabels.split(',') : []) {
-    selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
+    selectedLabelIds.add(String(Math.abs(parseInt(id)))); // "labels" contains negative ids, which are excluded
   }
 
   const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
@@ -162,9 +129,9 @@ export function initRepoIssueCommentDelete() {
           // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
           if (lineType) {
             if (lineType === 'same') {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`)!.classList.remove('tw-invisible');
+              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
             } else {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`)!.classList.remove('tw-invisible');
+              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-side="${CSS.escape(String(side))}"][data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
             }
           }
           conversationHolder.remove();
@@ -193,32 +160,6 @@ export function initRepoIssueCodeCommentCancel() {
       showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
       form.closest('.comment-code-cloud')?.remove();
-    }
-  });
-}
-
-export function initRepoPullRequestAllowMaintainerEdit() {
-  const wrapper = document.querySelector('#allow-edits-from-maintainers')!;
-  if (!wrapper) return;
-  const checkbox = wrapper.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
-  checkbox.addEventListener('input', async () => {
-    const url = `${wrapper.getAttribute('data-url')}/set_allow_maintainer_edit`;
-    wrapper.classList.add('is-loading');
-    try {
-      const resp = await POST(url, {data: new URLSearchParams({
-        allow_maintainer_edit: String(checkbox.checked),
-      })});
-      if (!resp.ok) {
-        throw new Error('Failed to update maintainer edit permission');
-      }
-      const data = await resp.json();
-      checkbox.checked = data.allow_maintainer_edit;
-    } catch (error) {
-      checkbox.checked = !checkbox.checked;
-      console.error(error);
-      showTemporaryTooltip(wrapper, wrapper.getAttribute('data-prompt-error')!);
-    } finally {
-      wrapper.classList.remove('is-loading');
     }
   });
 }
@@ -256,8 +197,9 @@ export async function handleReply(el: HTMLElement) {
 }
 
 export function initRepoPullRequestReview() {
-  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
-    const commentDiv = document.querySelector(window.location.hash);
+  const currentHash = window.location.hash;
+  if (currentHash.startsWith('#issuecomment-') || currentHash.startsWith('#pullrequestreview-')) {
+    const commentDiv = document.querySelector(currentHash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
@@ -332,15 +274,13 @@ export function initRepoPullRequestReview() {
 
     let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
-      ntr = createElementFromHTML(`
-        <tr class="add-comment" data-line-type="${htmlEscape(lineType)}">
-          ${isSplit ? `
-            <td class="add-comment-left" colspan="4"></td>
-            <td class="add-comment-right" colspan="4"></td>
-          ` : `
-            <td class="add-comment-left add-comment-right" colspan="5"></td>
-          `}
-        </tr>`);
+      const tdSplit = html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>`;
+      const tdUnified = html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
+      ntr = createElementFromHTML(html`
+        <tr class="add-comment" data-line-type="${lineType}">
+          ${isSplit ? htmlRaw(tdSplit) : htmlRaw(tdUnified)}
+        </tr>
+      `);
       tr.after(ntr);
     }
     const td = ntr.querySelector(`.add-comment-${side}`)!;
@@ -364,8 +304,6 @@ export function initRepoIssueReferenceIssue() {
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      cache: false,
-      rawResponse: true,
       url: `${appSubUrl}/repo/search?q={query}&limit=20`,
       onResponse(response: any) {
         const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
@@ -389,12 +327,12 @@ export function initRepoIssueReferenceIssue() {
     const target = el.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = el.getAttribute('data-poster-username');
-    const reference = toAbsoluteUrl(el.getAttribute('data-reference')!);
+    const reference = el.getAttribute('data-reference')!;
     const modalSelector = el.getAttribute('data-modal')!;
     const modal = document.querySelector(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;
     textarea.value = `${content}\n\n_Originally posted by @${poster} in ${reference}_`;
-    fomanticQuery(modal).modal('show');
+    showFomanticModal(modal);
   });
 }
 
@@ -485,7 +423,7 @@ export function initRepoIssueTitleEdit() {
       window.location.reload();
     } catch (error) {
       console.error(error);
-      showErrorToast(error.message);
+      showErrorToast(errorMessage(error));
     }
   });
 }
@@ -566,6 +504,8 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
 }
 
 export function initRepoCommentFormAndSidebar() {
+  initRepoIssueSidebar();
+
   const commentForm = document.querySelector<HTMLFormElement>('.comment.form');
   if (!commentForm) return;
 
@@ -576,6 +516,4 @@ export function initRepoCommentFormAndSidebar() {
     // it's quite unclear about the "comment form" elements, sometimes it's for issue comment, sometimes it's for file editor/uploader message
     initSingleCommentEditor(commentForm);
   }
-
-  initRepoIssueSidebar();
 }
