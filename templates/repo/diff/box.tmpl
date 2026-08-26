@@ -17,7 +17,7 @@
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
 			{{end}}
-			{{if and (not .DiffNotAvailable) (not .PageIsDiff)}}
+			{{if .ShowDiffSummaryInToolbar}}
 				<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap">
 					{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .DiffShortStat.NumFiles .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
 				</div>
