@@ -271,6 +271,7 @@
   "form.CommitMessage": "Framlagsskilaboð",
   "form.CommitChoice": "Framlagsval",
   "form.TreeName": "Skráarslóð",
+  "form.Title": "Heiti",
   "form.Content": "Innihald",
   "form.SSPISeparatorReplacement": "Aðgreinir",
   "form.SSPIDefaultLanguage": "Sjálfgefið Tungumál",

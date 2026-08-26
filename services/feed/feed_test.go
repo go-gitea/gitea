@@ -155,7 +155,7 @@ func TestRepoActions(t *testing.T) {
 			OpType:    activities_model.ActionCommentIssue,
 		})
 	}
-	count, _ := db.Count[activities_model.Action](t.Context(), &db.ListOptions{})
+	count, _ := db.Count[activities_model.Action](t.Context(), nil)
 	assert.EqualValues(t, 3, count)
 	actions, _, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedRepo: repo,

@@ -1,10 +1,10 @@
-import {GET, request} from '../modules/fetch.ts';
-import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
+import {GET, request} from './fetch.ts';
+import {hideToastsAll, showErrorToast} from './toast.ts';
 import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
-import {errorMessage, errorName} from '../modules/errors.ts';
-import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
+import {errorMessage, errorName} from './errors.ts';
+import {confirmModal, createConfirmModal} from '../features/comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {registerGlobalSelectorFunc} from './observer.ts';
 import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
 import {html} from '../utils/html.ts';
@@ -233,9 +233,8 @@ export async function submitFormFetchAction(elForm: HTMLFormElement, opts: Submi
 async function confirmFetchAction(el: HTMLElement) {
   let elModal: HTMLElement | null = null;
   const dataModalConfirm = el.getAttribute('data-modal-confirm') || '';
-  if (dataModalConfirm.startsWith('#')) {
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    elModal = document.getElementById(dataModalConfirm.substring(1));
+  if (dataModalConfirm.startsWith('#') && dataModalConfirm.length > 1) {
+    elModal = document.querySelector<HTMLElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
     if (elModal) {
       elModal = createElementFromHTML(elModal.outerHTML);
       elModal.removeAttribute('id');
@@ -350,8 +349,7 @@ async function fetchActionReloadOutdatedElements() {
   const newPageHtml = await resp.text();
   const newPageDom = parseDom(newPageHtml, 'text/html');
   for (const oldEl of outdatedElems) {
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    const newEl = newPageDom.getElementById(oldEl.id);
+    const newEl = newPageDom.querySelector<HTMLElement>(`#${CSS.escape(oldEl.id)}`);
     if (newEl) {
       oldEl.replaceWith(newEl);
     } else {
