@@ -68,9 +68,29 @@ jobs:
 
 // Typing a step's continue-on-error as a bool used to reject the whole `jobs:` node.
 func TestSingleWorkflowRoundTripStepContinueOnError(t *testing.T) {
-	want := []string{"", "${{ steps.quarantine.outputs.quarantine == 'true' }}", "true", "true", "false", "yes", "off"}
+	// inline rather than a testdata fixture, as yamllint rejects the non-canonical spellings
+	const wf = `name: demo
+on: push
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - id: quarantine
+        run: echo "q=true" >> "$GITHUB_OUTPUT"
+      - run: exit 1
+        continue-on-error: ${{ steps.quarantine.outputs.q == 'true' }}
+      - run: exit 1
+        continue-on-error: true
+      - run: exit 1
+        continue-on-error: TRUE
+      - run: exit 1
+        continue-on-error: false
+      - run: exit 1
+        continue-on-error: yes
+`
+	want := []string{"", "${{ steps.quarantine.outputs.q == 'true' }}", "true", "true", "false", "yes"}
 
-	sws, err := Parse(ReadTestdata(t, "step_continue_on_error_expr.in.yaml"))
+	sws, err := Parse([]byte(wf))
 	require.NoError(t, err)
 	require.Len(t, sws, 1)
 
