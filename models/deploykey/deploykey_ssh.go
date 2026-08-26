@@ -8,9 +8,35 @@ import (
 
 	"gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
+
+// AddDeployKeySSH add new deploy-key to database and authorized_keys file.
+func AddDeployKeySSH(ctx context.Context, repoID int64, name, content string, accessMode perm.AccessMode) (*DeployKey, error) {
+	if accessMode != perm.AccessModeRead && accessMode != perm.AccessModeWrite {
+		return nil, util.NewInvalidArgumentErrorf("invalid access mode")
+	}
+	return db.WithTx2(ctx, func(ctx context.Context) (*DeployKey, error) {
+		pkey, err := asymkey.FindOrAddDeployPublicKey(ctx, content)
+		if err != nil {
+			return nil, err
+		}
+		if has, err := db.Exist[DeployKey](ctx, builder.Eq{"repo_id": repoID, "key_id": pkey.ID}); err != nil {
+			return nil, err
+		} else if has {
+			return nil, ErrDeployKeyAlreadyExist{pkey.ID, repoID}
+		}
+		if err := checkDeployKeyName(ctx, repoID, name); err != nil {
+			return nil, err
+		}
+
+		key := &DeployKey{KeyID: pkey.ID, RepoID: repoID, KeyType: KeyTypeSSH, Name: name, Fingerprint: pkey.Fingerprint, Mode: accessMode}
+		return key, db.Insert(ctx, key)
+	})
+}
 
 func (key *DeployKey) LoadPublicKey(ctx context.Context) (err error) {
 	if key.PublicKey != nil {

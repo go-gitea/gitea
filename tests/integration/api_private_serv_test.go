@@ -10,6 +10,7 @@ import (
 
 	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/perm"
+	"gitea.dev/models/user"
 	"gitea.dev/modules/private"
 
 	"github.com/stretchr/testify/assert"
@@ -88,13 +89,14 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Can pull from repo we're a deploy-key for
+		deployKeyUser := user.NewDeployKeyUser()
 		results, extra = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", perm.AccessModeRead, "git-upload-pack", "")
 		assert.NoError(t, extra.Error)
 		assert.False(t, results.IsWiki)
 		assert.NotEmpty(t, results.UserExtDoerData)
 		assert.Equal(t, deployKey.KeyID, results.PublicKeyID)
-		assert.Equal(t, "user15", results.UserName)
-		assert.Equal(t, int64(15), results.UserID)
+		assert.Equal(t, deployKeyUser.Name, results.UserName)
+		assert.Equal(t, deployKeyUser.ID, results.UserID)
 		assert.Equal(t, "user15", results.OwnerName)
 		assert.Equal(t, "big_test_private_1", results.RepoName)
 		assert.Equal(t, int64(19), results.RepoID)
@@ -130,8 +132,8 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.False(t, results.IsWiki)
 		assert.NotEmpty(t, results.UserExtDoerData)
 		assert.Equal(t, deployKey.KeyID, results.PublicKeyID)
-		assert.Equal(t, "user15", results.UserName)
-		assert.Equal(t, int64(15), results.UserID)
+		assert.Equal(t, deployKeyUser.Name, results.UserName)
+		assert.Equal(t, deployKeyUser.ID, results.UserID)
 		assert.Equal(t, "user15", results.OwnerName)
 		assert.Equal(t, "big_test_private_2", results.RepoName)
 		assert.Equal(t, int64(20), results.RepoID)
@@ -142,8 +144,8 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.False(t, results.IsWiki)
 		assert.NotEmpty(t, results.UserExtDoerData)
 		assert.Equal(t, deployKey.KeyID, results.PublicKeyID)
-		assert.Equal(t, "user15", results.UserName)
-		assert.Equal(t, int64(15), results.UserID)
+		assert.Equal(t, deployKeyUser.Name, results.UserName)
+		assert.Equal(t, deployKeyUser.ID, results.UserID)
 		assert.Equal(t, "user15", results.OwnerName)
 		assert.Equal(t, "big_test_private_2", results.RepoName)
 		assert.Equal(t, int64(20), results.RepoID)
