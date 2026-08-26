@@ -24,20 +24,24 @@ const (
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
-	OldCommitIDs                    []string
-	NewCommitIDs                    []string
-	RefFullNames                    []git.RefName
-	UserID                          int64
-	UserName                        string
+	IsWiki bool
+
+	OldCommitIDs []string
+	NewCommitIDs []string
+	RefFullNames []git.RefName
+
 	GitObjectDirectory              string
 	GitAlternativeObjectDirectories string
 	GitQuarantinePath               string
 	GitPushOptions                  GitPushOptions
-	PullRequestID                   int64
-	PushTrigger                     repository.PushTrigger
-	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
-	IsWiki                          bool
-	ActionsTaskID                   int64 // if the pusher is an Actions user, the task ID
+
+	PullRequestID int64
+	PushTrigger   repository.PushTrigger
+
+	UserID        int64
+	UserName      string
+	ActionsTaskID int64 // if the pusher is an Actions user, the task ID
+	DeployKeyID   int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 }
 
 // SSHLogOption ssh log options

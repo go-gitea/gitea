@@ -27,23 +27,18 @@ import (
 
 type preReceiveContext struct {
 	*gitea_context.PrivateContext
+	env  []string
+	opts *private.HookOptions
 
+	// TODO: user "doer" permission to refactor the code
 	user                *user_model.User // the "pusher", it's the org user if a DeployKey is used
 	userPerm            access_model.Permission
 	deployKeyAccessMode perm_model.AccessMode
 
-	canCreatePullRequest        bool
-	checkedCanCreatePullRequest bool
-
-	protectedTags    []*git_model.ProtectedTag
-	gotProtectedTags bool
-
-	env []string
-
-	opts *private.HookOptions
-
 	// this context should only contain shared variables, mutable variables like "current branch name" shouldn't be put here
 	canWriteCodeUnitCached *bool
+	canCreatePullRequest   *bool
+	protectedTags          []*git_model.ProtectedTag
 }
 
 func (ctx *preReceiveContext) canWriteCodeUnit() bool {
@@ -84,11 +79,10 @@ func (ctx *preReceiveContext) assertCanWriteRef(refFullName git.RefName) bool {
 
 // CanCreatePullRequest returns true if pusher can create pull requests
 func (ctx *preReceiveContext) CanCreatePullRequest() bool {
-	if !ctx.checkedCanCreatePullRequest {
-		ctx.canCreatePullRequest = ctx.userPerm.CanRead(unit.TypePullRequests)
-		ctx.checkedCanCreatePullRequest = true
+	if ctx.canCreatePullRequest == nil {
+		ctx.canCreatePullRequest = new(ctx.userPerm.CanRead(unit.TypePullRequests))
 	}
-	return ctx.canCreatePullRequest
+	return *ctx.canCreatePullRequest
 }
 
 // AssertCreatePullRequest returns true if can create pull requests
@@ -341,14 +335,14 @@ func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
 
 	tagName := refFullName.TagName()
 
-	if !ctx.gotProtectedTags {
+	if ctx.protectedTags == nil {
 		var err error
 		ctx.protectedTags, err = git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.PrivateInternalErrorf("Unable to get protected tags: %v", err)
 			return
 		}
-		ctx.gotProtectedTags = true
+		ctx.protectedTags = util.SliceNilAsEmpty(ctx.protectedTags)
 	}
 
 	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, ctx.protectedTags, tagName, ctx.opts.UserID)
