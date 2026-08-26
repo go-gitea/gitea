@@ -96,7 +96,7 @@ jobs:
               - "Makefile"
 
             templates:
-              - "tools/lint-templates*.go"
+              - "tools/lint-templates*.ts"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
               - "uv.lock"
