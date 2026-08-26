@@ -16,7 +16,7 @@
 								{{ShortSha .Oid}}
 							</a>
 						</td>
-						<td>{{FormatBytes .Size}}</td>
+						<td>{{FormatByteSize .Size}}</td>
 						<td>{{DateUtils.TimeSince .CreatedUnix}}</td>
 						<td class="tw-text-right">
 							<a class="ui primary button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>

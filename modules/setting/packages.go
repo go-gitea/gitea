@@ -100,7 +100,7 @@ func mustBytes(section ConfigSection, key string) int64 {
 	if value == noLimit {
 		return -1
 	}
-	bytes, err := util.ParseBytes(value)
+	bytes, err := util.ParseByteSize(value)
 	if err != nil || bytes > math.MaxInt64 {
 		return -1
 	}

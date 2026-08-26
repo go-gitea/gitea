@@ -2,8 +2,8 @@
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.packages.package_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .TotalCount}},
-			{{ctx.Locale.Tr "admin.packages.total_size" (FormatBytes .TotalBlobSize)}},
-			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FormatBytes .TotalUnreferencedBlobSize)}})
+			{{ctx.Locale.Tr "admin.packages.total_size" (FormatByteSize .TotalBlobSize)}},
+			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FormatByteSize .TotalUnreferencedBlobSize)}})
 			<div class="ui right">
 				<form method="post" action="{{AppSubUrl}}/-/admin/packages/cleanup">
 					<button class="ui primary tiny button">{{ctx.Locale.Tr "admin.packages.cleanup"}}</button>
@@ -69,7 +69,7 @@
 								<a href="{{.Repository.Link}}">{{.Repository.Name}}</a>
 							{{end}}
 							</td>
-							<td>{{FormatBytes .CalculateBlobSize}}</td>
+							<td>{{FormatByteSize .CalculateBlobSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 							<td>
 								<a class="tw-text-red show-modal" href data-modal="#admin-package-delete-modal"

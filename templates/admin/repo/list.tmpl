@@ -80,8 +80,8 @@
 							<td>{{.NumStars}}</td>
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
-							<td>{{FormatBytes .GitSize}}</td>
-							<td>{{FormatBytes .LFSSize}}</td>
+							<td>{{FormatByteSize .GitSize}}</td>
+							<td>{{FormatByteSize .LFSSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td>

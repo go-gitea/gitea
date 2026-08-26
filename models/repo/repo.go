@@ -264,7 +264,7 @@ func (repo *Repository) SizeDetailsString() string {
 	var str strings.Builder
 	sizeDetails := repo.SizeDetails()
 	for _, detail := range sizeDetails {
-		fmt.Fprintf(&str, "%s: %s, ", detail.Name, util.FormatBytes(detail.Size))
+		fmt.Fprintf(&str, "%s: %s, ", detail.Name, util.FormatByteSize(detail.Size))
 	}
 	return strings.TrimSuffix(str.String(), ", ")
 }

@@ -6,10 +6,10 @@
 package git
 
 import (
-	"container/heap"
 	"context"
 	"path"
 
+	"github.com/emirpasic/gods/trees/binaryheap"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
@@ -21,33 +21,6 @@ type commitAndPaths struct {
 	paths []string
 	// Set of hashes for the paths
 	hashes map[string]plumbing.Hash
-}
-
-type commitAndPathsHeap []*commitAndPaths
-
-func (h commitAndPathsHeap) Len() int { return len(h) }
-
-func (h commitAndPathsHeap) Less(i, j int) bool {
-	return h[i].commit.CommitTime().After(h[j].commit.CommitTime())
-}
-
-func (h commitAndPathsHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-
-func (h *commitAndPathsHeap) Push(value any) {
-	item, ok := value.(*commitAndPaths)
-	if !ok {
-		panic("commitAndPathsHeap only accepts *commitAndPaths")
-	}
-	*h = append(*h, item)
-}
-
-func (h *commitAndPathsHeap) Pop() any {
-	old := *h
-	last := len(old) - 1
-	item := old[last]
-	old[last] = nil
-	*h = old[:last]
-	return item
 }
 
 func getCommitTree(c cgobject.CommitNode, treePath string) (*object.Tree, error) {
@@ -108,7 +81,12 @@ func getLastCommitForPathsByCommitNode(ctx context.Context, gitRepo *Repository,
 	refSha := c.ID().String()
 
 	// We do a tree traversal with nodes sorted by commit time
-	var commitHeap commitAndPathsHeap
+	heap := binaryheap.NewWith(func(a, b any) int {
+		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) { //nolint:forcetypeassert // this heap only ever holds *commitAndPaths
+			return 1
+		}
+		return -1
+	})
 
 	resultNodes := make(map[string]cgobject.CommitNode)
 	initialHashes, err := getFileHashes(c, treePath, paths)
@@ -117,7 +95,7 @@ func getLastCommitForPathsByCommitNode(ctx context.Context, gitRepo *Repository,
 	}
 
 	// Start search from the root commit and with full set of paths
-	heap.Push(&commitHeap, &commitAndPaths{c, paths, initialHashes})
+	heap.Push(&commitAndPaths{c, paths, initialHashes})
 heaploop:
 	for {
 		select {
@@ -128,11 +106,11 @@ heaploop:
 			return nil, ctx.Err()
 		default:
 		}
-		if len(commitHeap) == 0 {
+		cIn, ok := heap.Pop()
+		if !ok {
 			break
 		}
-		current := commitHeap[0]
-		heap.Pop(&commitHeap)
+		current := cIn.(*commitAndPaths) //nolint:forcetypeassert // this heap only ever holds *commitAndPaths
 
 		// Load the parent commits for the one we are currently examining
 		numParents := current.commit.NumParents()
@@ -204,7 +182,7 @@ heaploop:
 				}
 
 				if remainingPathsForParent != nil {
-					heap.Push(&commitHeap, &commitAndPaths{parent, remainingPathsForParent, parentHashes[j]})
+					heap.Push(&commitAndPaths{parent, remainingPathsForParent, parentHashes[j]})
 				}
 
 				if len(newRemainingPaths) == 0 {
