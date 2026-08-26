@@ -300,30 +300,6 @@ func UpdateIssueTitle(ctx *context.Context) {
 	})
 }
 
-// UpdateIssueRef change issue's ref (branch)
-func UpdateIssueRef(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
-		ctx.HTTPError(http.StatusForbidden)
-		return
-	}
-
-	ref := ctx.FormTrim("ref")
-
-	if err := issue_service.ChangeIssueRef(ctx, issue, ctx.Doer, ref); err != nil {
-		ctx.ServerError("ChangeRef", err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, map[string]any{
-		"ref": ref,
-	})
-}
-
 // UpdateIssueContent change issue's content
 func UpdateIssueContent(ctx *context.Context) {
 	issue := GetActionIssue(ctx)

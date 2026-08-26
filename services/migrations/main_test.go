@@ -89,7 +89,6 @@ func assertIssueEqual(t *testing.T, expected, actual *base.Issue) {
 	assert.Equal(t, expected.PosterEmail, actual.PosterEmail)
 	assert.Equal(t, expected.Title, actual.Title)
 	assert.Equal(t, expected.Content, actual.Content)
-	assert.Equal(t, expected.Ref, actual.Ref)
 	assert.Equal(t, expected.Milestone, actual.Milestone)
 	assert.Equal(t, expected.State, actual.State)
 	assert.Equal(t, expected.IsLocked, actual.IsLocked)

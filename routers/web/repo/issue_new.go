@@ -22,7 +22,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
 	issue_template "gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -84,13 +83,6 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 			}
 		}
 		metaData.AssigneesData.SelectedAssigneeIDs = strings.Join(selectedAssigneeIDStrings, ",")
-
-		if template.Ref != "" && !strings.HasPrefix(template.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
-			template.Ref = git.BranchPrefix + template.Ref
-		}
-
-		ctx.Data["Reference"] = template.Ref
-		ctx.Data["RefEndName"] = git.RefName(template.Ref).ShortName()
 		return true, templateErrs
 	}
 	return false, templateErrs
@@ -126,13 +118,6 @@ func NewIssue(ctx *context.Context) {
 	if len(pageMetaData.ProjectsData.SelectedProjectIDs) == 1 {
 		ctx.Data["redirect_after_creation"] = "project"
 	}
-
-	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetTagNamesByRepoID", err)
-		return
-	}
-	ctx.Data["Tags"] = tags
 
 	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates, pageMetaData)
@@ -366,7 +351,6 @@ func NewIssuePost(ctx *context.Context) {
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
 		Content:     content,
-		Ref:         form.Ref,
 	}
 
 	if err := issue_service.NewIssue(ctx, repo, issue, labelIDs, attachments, assigneeIDs, projectIDs); err != nil {

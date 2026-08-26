@@ -87,13 +87,6 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 		return data
 	}
 
-	// it sets "Branches" template data,
-	// it is used to render the "edit PR target branches" dropdown, and the "branch selector" in the issue's sidebar.
-	PrepareBranchList(ctx)
-	if ctx.Written() {
-		return data
-	}
-
 	// it sets the "Assignees" template data, and the data is also used to "mention" users.
 	data.retrieveAssigneesData(ctx)
 	if ctx.Written() {

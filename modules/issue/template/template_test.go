@@ -467,7 +467,6 @@ title: Title
 about: About
 labels: ["label1", "label2"]
 assignees: ["user1", "user2"]
-ref: Ref
 body:
   - type: markdown
     id: id1
@@ -529,7 +528,6 @@ body:
 				About:     "About",
 				Labels:    []string{"label1", "label2"},
 				Assignees: []string{"user1", "user2"},
-				Ref:       "Ref",
 				Fields: []*api.IssueFormField{
 					{
 						Type: "markdown",
@@ -616,7 +614,6 @@ name: Name
 title: Title
 about: About
 labels: label1
-ref: Ref
 body:
   - type: markdown
     id: id1
@@ -633,7 +630,6 @@ body:
 				Title:  "Title",
 				About:  "About",
 				Labels: []string{"label1"},
-				Ref:    "Ref",
 				Fields: []*api.IssueFormField{
 					{
 						Type: "markdown",
@@ -663,7 +659,6 @@ name: Name
 title: Title
 about: About
 labels: label1,label2,,label3 ,,
-ref: Ref
 body:
   - type: markdown
     id: id1
@@ -675,7 +670,6 @@ body:
 				Title:  "Title",
 				About:  "About",
 				Labels: []string{"label1", "label2", "label3"},
-				Ref:    "Ref",
 				Fields: []*api.IssueFormField{
 					{
 						Type: "markdown",
@@ -697,7 +691,6 @@ name: Name
 title: Title
 about: About
 labels: ''
-ref: Ref
 body:
   - type: markdown
     id: id1
@@ -709,7 +702,6 @@ body:
 				Title:  "Title",
 				About:  "About",
 				Labels: nil,
-				Ref:    "Ref",
 				Fields: []*api.IssueFormField{
 					{
 						Type: "markdown",
@@ -732,7 +724,6 @@ name: Name
 title: Title
 about: About
 labels: label1,label2,,label3 ,,
-ref: Ref
 ---
 Content
 `,
@@ -741,7 +732,6 @@ Content
 				Title:    "Title",
 				About:    "About",
 				Labels:   []string{"label1", "label2", "label3"},
-				Ref:      "Ref",
 				Fields:   nil,
 				Content:  "Content\n",
 				FileName: "test.md",
@@ -787,7 +777,6 @@ name: Name
 title: Title
 about: About
 labels: ["label1", "label2"]
-ref: Ref
 body:
   - type: markdown
     id: id1
