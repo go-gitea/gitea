@@ -73,7 +73,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   const accepts = dropzoneEl.getAttribute('data-accepts')!;
   const opts: Dropzone.DropzoneOptions = {
     url: dropzoneEl.getAttribute('data-upload-url')!,
-    // omitted when everything is accepted, so dropzone's own "acceptedFiles: null" default applies
+    // omitted so dropzone's own "acceptedFiles: null" default applies, undefined would break it
     ...(!['*/*', ''].includes(accepts) && {acceptedFiles: accepts}),
     addRemoveLinks: true,
     dictDefaultMessage: dropzoneEl.getAttribute('data-default-message')!,

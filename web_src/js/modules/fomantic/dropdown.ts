@@ -113,9 +113,8 @@ function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
     return $label;
   });
 
-  // Fomantic also hides the menu on paths that fire no DOM event (Escape, a programmatic "hide", a
-  // synthetic click on an item). The "onHide" setting can't be used because call sites replace it,
-  // so wrap the internal function that every close path goes through.
+  // some close paths fire no DOM event (Escape, programmatic hide, synthetic click) and call sites
+  // replace the "onHide" setting, so wrap the internal hide that every close path goes through
   const dropdownHideOld = dropdownCall('internal', 'hide');
   dropdownCall('internal', 'hide', function(this: unknown, ...args: unknown[]) {
     const ret = dropdownHideOld.apply(this, args);
