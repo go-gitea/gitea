@@ -268,6 +268,17 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
+	// An explicit LOCAL_ROOT_URL (eg the historical Cheat Sheet suggestion
+	// "%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/") can resolve to the unspecified
+	// bind-all address when HTTP_ADDR is left at its default. That address is never a
+	// valid connect target or TLS cert host, so internal API calls to it always fail;
+	// substitute localhost, mirroring what the default LOCAL_ROOT_URL already does.
+	if localURL, err := url.Parse(LocalURL); err == nil {
+		if host := localURL.Hostname(); host == "0.0.0.0" || host == "::" {
+			localURL.Host = net.JoinHostPort("localhost", localURL.Port())
+			LocalURL = localURL.String()
+		}
+	}
 	LocalUseProxyProtocol = sec.Key("LOCAL_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
