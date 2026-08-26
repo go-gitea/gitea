@@ -119,3 +119,11 @@ type MoveProjectIssueOption struct {
 	// the rest, equal values are ordered newest first.
 	Sorting *int64 `json:"sorting,omitempty"`
 }
+
+// ProjectColumnIssue represents an issue placed in a project column
+// swagger:model
+type ProjectColumnIssue struct {
+	Issue *Issue `json:"issue"`
+	// Position of the issue within the column, ascending, as accepted by the move endpoint
+	Sorting int64 `json:"sorting"`
+}

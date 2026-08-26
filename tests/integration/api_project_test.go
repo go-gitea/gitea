@@ -71,8 +71,8 @@ func TestAPIProjects(t *testing.T) {
 		defaultColumn := unittest.AssertExistsAndLoadBean(t, &project_model.Column{ProjectID: 1, Default: true})
 		req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/projects/1/columns/%d/issues", defaultColumn.ID).AddTokenAuth(token)
 		issueIDs := make([]int64, 0)
-		for _, issue := range *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{}) {
-			issueIDs = append(issueIDs, issue.ID)
+		for _, columnIssue := range *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{}) {
+			issueIDs = append(issueIDs, columnIssue.Issue.ID)
 		}
 		assert.Contains(t, issueIDs, int64(2))
 
@@ -212,13 +212,13 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	})
 
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[1])).AddTokenAuth(token)
-	issues := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{})
+	issues := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{})
 	require.Len(t, issues, 1)
-	assert.Equal(t, scope.issueID, issues[0].ID)
+	assert.Equal(t, scope.issueID, issues[0].Issue.ID)
 
 	// the sibling column must not report the same issue
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[0])).AddTokenAuth(token)
-	assert.Empty(t, *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{}))
+	assert.Empty(t, *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{}))
 
 	// an issue that is not in the project cannot be moved within it
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/issues/%d/move", projectURL, scope.foreignIssueID),
@@ -232,6 +232,12 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	moved := unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{ProjectID: project.ID, IssueID: scope.issueID})
 	assert.Equal(t, columnIDs[0], moved.ProjectColumnID)
 	assert.Equal(t, sortPos, moved.Sorting)
+
+	// the position written by the move must be readable back, so clients can reorder deterministically
+	req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[0])).AddTokenAuth(token)
+	listed := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{})
+	require.Len(t, listed, 1)
+	assert.Equal(t, sortPos, listed[0].Sorting)
 
 	// removing through a column the issue no longer occupies must not detach it
 	req = NewRequest(t, "DELETE", fmt.Sprintf("%s/columns/%d/issues/%d", projectURL, columnIDs[1], scope.issueID)).AddTokenAuth(token)

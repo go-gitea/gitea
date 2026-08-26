@@ -4008,6 +4008,7 @@
     },
     "/orgs/{org}/projects/{id}/columns/{column_id}/issues": {
       "get": {
+        "description": "Issues are returned in board order, each with its sorting value.",
         "produces": [
           "application/json"
         ],
@@ -4055,7 +4056,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/IssueList"
+            "$ref": "#/responses/ProjectColumnIssueList"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -16131,6 +16132,7 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues": {
       "get": {
+        "description": "Issues are returned in board order, each with its sorting value.",
         "produces": [
           "application/json"
         ],
@@ -16185,7 +16187,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/IssueList"
+            "$ref": "#/responses/ProjectColumnIssueList"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -23439,6 +23441,7 @@
     },
     "/user/projects/{id}/columns/{column_id}/issues": {
       "get": {
+        "description": "Issues are returned in board order, each with its sorting value.",
         "produces": [
           "application/json"
         ],
@@ -23479,7 +23482,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/IssueList"
+            "$ref": "#/responses/ProjectColumnIssueList"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -31721,6 +31724,22 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ProjectColumnIssue": {
+      "description": "ProjectColumnIssue represents an issue placed in a project column",
+      "type": "object",
+      "properties": {
+        "issue": {
+          "$ref": "#/definitions/Issue"
+        },
+        "sorting": {
+          "description": "Position of the issue within the column, ascending, as accepted by the move endpoint",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "PublicKey": {
       "description": "PublicKey publickey is a user key to push code to repository",
       "type": "object",
@@ -34681,6 +34700,15 @@
       "description": "ProjectColumn",
       "schema": {
         "$ref": "#/definitions/ProjectColumn"
+      }
+    },
+    "ProjectColumnIssueList": {
+      "description": "ProjectColumnIssueList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProjectColumnIssue"
+        }
       }
     },
     "ProjectColumnList": {
