@@ -15,7 +15,7 @@ import (
 	"xorm.io/builder"
 )
 
-type KeyType int
+type KeyType int // SSH public key or HTTP auth token
 
 const (
 	KeyTypeSSH KeyType = iota + 1
@@ -42,18 +42,17 @@ type DeployKey struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
-func (key *DeployKey) HasUsed() bool {
-	return key.UpdatedUnix > key.CreatedUnix
-}
+// these methods below are mainly used by templates
 
 func (key *DeployKey) HasRecentActivity() bool {
 	return key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
-// IsReadOnly checks if the key can only be used for read operations, used by template
-func (key *DeployKey) IsReadOnly() bool {
-	return key.Mode == perm.AccessModeRead
-}
+func (key *DeployKey) HasUsed() bool { return key.UpdatedUnix > key.CreatedUnix }
+
+func (key *DeployKey) IsReadOnly() bool { return key.Mode == perm.AccessModeRead }
+
+func (key *DeployKey) IsKeyTypeToken() bool { return key.KeyType == KeyTypeToken }
 
 func init() {
 	db.RegisterModel(new(DeployKey))

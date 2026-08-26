@@ -30,7 +30,7 @@
 				</a>
 			{{end}}
 			<a class="{{if .PageIsSettingsKeys}}active {{end}}item" href="{{.RepoLink}}/settings/keys">
-				{{ctx.Locale.Tr "repo.settings.deploy_keys_and_tokens"}}
+				{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
 			</a>
 			{{if .LFSStartServer}}
 				<a class="{{if .PageIsSettingsLFS}}active {{end}}item" href="{{.RepoLink}}/settings/lfs">

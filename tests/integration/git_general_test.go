@@ -171,7 +171,7 @@ func doSSHLFSAccessTest(_ APITestContext, keyID int64) func(*testing.T) {
 			_, err := cmd.Output()
 			var errExit *exec.ExitError
 			require.ErrorAs(t, err, &errExit) // inaccessible, error
-			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf(`has no "write" permission for user5/repo4`))
+			assert.Contains(t, string(errExit.Stderr), `has no "write" permission for user5/repo4`)
 		})
 	}
 }

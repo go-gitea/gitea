@@ -23,6 +23,7 @@ const (
 func (key *DeployKey) generateToken() {
 	key.Token = DeployTokenPrefix + util.CryptoRandomString(deployTokenLength)
 	key.TokenHash = base.EncodeSha256(key.Token)
+	key.Fingerprint = key.Token[:len(DeployTokenPrefix)+2] + "********" + key.Token[len(key.Token)-2:]
 }
 
 // AddDeployKeyToken adds a token that authenticates git HTTP requests for one repository.

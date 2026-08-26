@@ -19,7 +19,6 @@ import (
 	"gitea.dev/services/forms"
 )
 
-// DeployKeys render the deploy keys and tokens list of a repository page
 func DeployKeys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys_and_tokens")
 	ctx.Data["PageIsSettingsKeys"] = true
@@ -30,21 +29,10 @@ func DeployKeys(ctx *context.Context) {
 		ctx.ServerError("ListDeployKeys", err)
 		return
 	}
-	var sshKeys, tokens []*deploykey_model.DeployKey
-	for _, key := range keys {
-		if key.KeyType == deploykey_model.KeyTypeToken {
-			tokens = append(tokens, key)
-		} else {
-			sshKeys = append(sshKeys, key)
-		}
-	}
-	ctx.Data["RepoDeployKeys"] = sshKeys
-	ctx.Data["DeployTokens"] = tokens
-
+	ctx.Data["RepoDeployKeys"] = keys
 	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
 
-// DeployKeysPost response for adding a deploy-key of a repository
 func DeployKeysPost(ctx *context.Context) {
 	form := context.GetFetchActionForm[*forms.AddKeyForm](ctx)
 	if form == nil {
@@ -84,7 +72,6 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
-// DeleteDeployKey response for deleting a deploy key or a deploy token
 func DeleteDeployKey(ctx *context.Context) {
 	key, err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id"))
 	if err != nil && !deploykey_model.IsErrDeployKeyNotExist(err) { // a key that is already gone leaves the caller with the state it asked for
@@ -92,14 +79,12 @@ func DeleteDeployKey(ctx *context.Context) {
 		return
 	}
 	if key != nil {
-		msg := util.Iif(key.KeyType == deploykey_model.KeyTypeToken, "repo.settings.deploy_token_deletion_success", "repo.settings.deploy_key_deletion_success")
-		ctx.Flash.Success(ctx.Tr(msg, key.Name))
+		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success", key.Name))
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
-// DeployTokensPost response for adding a deploy token of a repository
-func DeployTokensPost(ctx *context.Context) {
+func DeployKeyGenerateToken(ctx *context.Context) {
 	form := context.GetFetchActionForm[*forms.AddDeployTokenForm](ctx)
 	if form == nil {
 		return
@@ -119,8 +104,7 @@ func DeployTokensPost(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
-// RegenerateDeployToken response for replacing the token value of a deploy token
-func RegenerateDeployToken(ctx *context.Context) {
+func DeployKeyRegenerateToken(ctx *context.Context) {
 	key, err := deploykey_model.RegenerateDeployKeyToken(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
 		if deploykey_model.IsErrDeployKeyNotExist(err) {
