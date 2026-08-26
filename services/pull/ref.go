@@ -10,7 +10,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 )
 
@@ -30,7 +29,6 @@ func EnumPullRequestsByHeadCommitID(ctx context.Context, repo *repo_model.Reposi
 		ref := git.RefName(refStr)
 		prIndex, ok := ref.PullIndex()
 		if !ok {
-			log.Error("Found broken pull ref [%s] on repo %s", ref, gitRepo.LogString())
 			continue
 		}
 
