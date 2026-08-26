@@ -9,3 +9,11 @@ jobs:
         continue-on-error: ${{ steps.quarantine.outputs.quarantine == 'true' }}
       - run: exit 1
         continue-on-error: true
+      - run: exit 1
+        continue-on-error: TRUE
+      - run: exit 1
+        continue-on-error: false
+      - run: exit 1
+        continue-on-error: yes
+      - run: exit 1
+        continue-on-error: off

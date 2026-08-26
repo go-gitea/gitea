@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"gitea.dev/actionslib/pkg/expreval"
 	"gitea.dev/actionslib/pkg/exprparser"
@@ -184,8 +185,21 @@ type Step struct {
 	Shell              string            `yaml:"shell,omitempty"`
 	Env                yaml.Node         `yaml:"env,omitempty"`
 	With               map[string]string `yaml:"with,omitempty"`
-	RawContinueOnError yaml.Node         `yaml:"continue-on-error,omitempty"` // kept raw: the runner evaluates it with the step context
+	RawContinueOnError yaml.Node         `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
 	TimeoutMinutes     string            `yaml:"timeout-minutes,omitempty"`
+}
+
+// UnmarshalYAML canonicalizes continue-on-error: TRUE, yes and off are not expression literals.
+func (s *Step) UnmarshalYAML(node *yaml.Node) error {
+	type rawStep Step
+	if err := node.Decode((*rawStep)(s)); err != nil {
+		return err
+	}
+	var continueOnError bool
+	if raw := &s.RawContinueOnError; raw.Kind != 0 && raw.Decode(&continueOnError) == nil {
+		raw.Value, raw.Tag, raw.Style = strconv.FormatBool(continueOnError), "!!bool", 0
+	}
+	return nil
 }
 
 // String gets the name of step
