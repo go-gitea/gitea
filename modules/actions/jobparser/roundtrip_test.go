@@ -68,7 +68,7 @@ jobs:
 
 // Typing a step's continue-on-error as a bool used to reject the whole `jobs:` node.
 func TestSingleWorkflowRoundTripStepContinueOnError(t *testing.T) {
-	want := []string{"", "${{ steps.quarantine.outputs.quarantine == 'true' }}", "true", "true", "false", "true", "false"}
+	want := []string{"", "${{ steps.quarantine.outputs.quarantine == 'true' }}", "true", "true", "false", "yes", "off"}
 
 	sws, err := Parse(ReadTestdata(t, "step_continue_on_error_expr.in.yaml"))
 	require.NoError(t, err)

@@ -15,6 +15,6 @@ jobs:
       - run: exit 1
         continue-on-error: false
       - run: exit 1
-        continue-on-error: true
+        continue-on-error: yes
       - run: exit 1
-        continue-on-error: false
+        continue-on-error: off

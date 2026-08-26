@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strconv"
+	"strings"
 
 	"gitea.dev/actionslib/pkg/expreval"
 	"gitea.dev/actionslib/pkg/exprparser"
@@ -189,15 +189,14 @@ type Step struct {
 	TimeoutMinutes     string            `yaml:"timeout-minutes,omitempty"`
 }
 
-// UnmarshalYAML canonicalizes continue-on-error: TRUE, yes and off are not expression literals.
+// UnmarshalYAML canonicalizes continue-on-error, as YAML 1.2 spells a bool six ways.
 func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	type rawStep Step
 	if err := node.Decode((*rawStep)(s)); err != nil {
 		return err
 	}
-	var continueOnError bool
-	if raw := &s.RawContinueOnError; raw.Kind != 0 && raw.Decode(&continueOnError) == nil {
-		raw.Value, raw.Tag, raw.Style = strconv.FormatBool(continueOnError), "!!bool", 0
+	if raw := &s.RawContinueOnError; raw.Tag == "!!bool" {
+		raw.Value = strings.ToLower(raw.Value)
 	}
 	return nil
 }
