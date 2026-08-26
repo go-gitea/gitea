@@ -190,6 +190,19 @@
 					<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape .CommitID}}">{{ShortSha .CommitID}}</a>
 				</div>
 			</div>
+
+			{{if not .DiffNotAvailable}}
+				<div class="diff-stats-row">
+					<strong>{{ctx.Locale.TrN .DiffShortStat.NumFiles "repo.diff.stats_desc_files_changed_1" "repo.diff.stats_desc_files_changed_n" .DiffShortStat.NumFiles}}</strong>
+					<div class="flex-text-block tw-flex-shrink-0">
+						{{if .DiffShortStat.TotalAddition}}<strong class="tw-text-green">+{{.DiffShortStat.TotalAddition}}</strong>{{end}}
+						{{if .DiffShortStat.TotalDeletion}}<strong class="tw-text-red">-{{.DiffShortStat.TotalDeletion}}</strong>{{end}}
+						<span class="diff-stats-bar">
+							<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .DiffShortStat.TotalAddition "/" "(" .DiffShortStat.TotalAddition "+" .DiffShortStat.TotalDeletion "+" 0.0 ")"}}%"></div>
+						</span>
+					</div>
+				</div>
+			{{end}}
 		</div>
 
 		{{if .NoteRendered}}
