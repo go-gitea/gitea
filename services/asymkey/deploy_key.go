@@ -34,7 +34,7 @@ func deleteDeployKeyFromDB(ctx context.Context, key *deploykey_model.DeployKey) 
 		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
 	}
 
-	if key.Type == deploykey_model.AuthTypeToken { // a token has no public key to clean up
+	if key.KeyType == deploykey_model.KeyTypeToken { // a token has no public key to clean up
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64)
 	if err != nil {
 		return nil, err
 	}
-	if deleted.Type == deploykey_model.AuthTypeToken {
+	if deleted.KeyType == deploykey_model.KeyTypeToken {
 		return deleted, nil // a token never appears in the authorized_keys file
 	}
 

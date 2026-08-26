@@ -215,7 +215,7 @@ func TestCreateDeployToken(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys", repoOwner.Name, repo.Name)
 
-	req := NewRequestWithJSON(t, "POST", keysURL+"/tokens", api.CreateDeployTokenOption{Title: "ci", ReadOnly: true}).
+	req := NewRequestWithJSON(t, "POST", keysURL+"/tokens", api.CreateDeployKeyTokenOption{Title: "ci", ReadOnly: true}).
 		AddTokenAuth(token)
 	created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.DeployKey{})
 	assert.NotEmpty(t, created.Token)

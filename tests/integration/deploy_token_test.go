@@ -23,9 +23,9 @@ func TestDeployTokenGitHTTP(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	readKey, err := deploykey_model.AddDeployToken(t.Context(), repo.ID, "read", true)
+	readKey, err := deploykey_model.AddDeployKeyToken(t.Context(), repo.ID, "read", true)
 	require.NoError(t, err)
-	writeKey, err := deploykey_model.AddDeployToken(t.Context(), repo.ID, "write", false)
+	writeKey, err := deploykey_model.AddDeployKeyToken(t.Context(), repo.ID, "write", false)
 	require.NoError(t, err)
 
 	requestAs := func(t *testing.T, token, path string, expected int) {

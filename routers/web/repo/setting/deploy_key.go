@@ -32,7 +32,7 @@ func DeployKeys(ctx *context.Context) {
 	}
 	var sshKeys, tokens []*deploykey_model.DeployKey
 	for _, key := range keys {
-		if key.Type == deploykey_model.AuthTypeToken {
+		if key.KeyType == deploykey_model.KeyTypeToken {
 			tokens = append(tokens, key)
 		} else {
 			sshKeys = append(sshKeys, key)
@@ -65,7 +65,7 @@ func DeployKeysPost(ctx *context.Context) {
 	}
 
 	accessMode := util.Iif(form.IsWritable, perm.AccessModeWrite, perm.AccessModeRead)
-	key, err := deploykey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
+	key, err := deploykey_model.AddDeployKeySSH(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
 	if err != nil {
 		switch {
 		case deploykey_model.IsErrDeployKeyAlreadyExist(err):
@@ -92,7 +92,7 @@ func DeleteDeployKey(ctx *context.Context) {
 		return
 	}
 	if key != nil {
-		msg := util.Iif(key.Type == deploykey_model.AuthTypeToken, "repo.settings.deploy_token_deletion_success", "repo.settings.deploy_key_deletion_success")
+		msg := util.Iif(key.KeyType == deploykey_model.KeyTypeToken, "repo.settings.deploy_token_deletion_success", "repo.settings.deploy_key_deletion_success")
 		ctx.Flash.Success(ctx.Tr(msg, key.Name))
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
@@ -105,7 +105,7 @@ func DeployTokensPost(ctx *context.Context) {
 		return
 	}
 
-	key, err := deploykey_model.AddDeployToken(ctx, ctx.Repo.Repository.ID, form.Title, !form.IsWritable)
+	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, !form.IsWritable)
 	if err != nil {
 		if deploykey_model.IsErrDeployKeyNameAlreadyUsed(err) {
 			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_name_used"), "title")
@@ -121,7 +121,7 @@ func DeployTokensPost(ctx *context.Context) {
 
 // RegenerateDeployToken response for replacing the token value of a deploy token
 func RegenerateDeployToken(ctx *context.Context) {
-	key, err := deploykey_model.RegenerateDeployToken(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	key, err := deploykey_model.RegenerateDeployKeyToken(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
 		if deploykey_model.IsErrDeployKeyNotExist(err) {
 			ctx.JSONErrorNotFound()

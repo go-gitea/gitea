@@ -16,30 +16,24 @@ import (
 	"xorm.io/builder"
 )
 
-type AuthType int
+type KeyType int
 
 const (
-	// AuthTypeSSH authenticates over SSH with the public key of KeyID.
-	AuthTypeSSH AuthType = iota + 1
-	// AuthTypeToken authenticates over HTTPS with the token of TokenHash.
-	AuthTypeToken
+	KeyTypeSSH KeyType = iota + 1
+	KeyTypeToken
 )
 
-func (t AuthType) String() string {
-	return util.Iif(t == AuthTypeToken, "token", "ssh")
-}
-
-// DeployKey represents deploy key information and its relation with repository.
 type DeployKey struct {
-	ID          int64    `xorm:"pk autoincr"`
-	KeyID       int64    `xorm:"INDEX"`
-	RepoID      int64    `xorm:"INDEX"`
-	Type        AuthType `xorm:"NOT NULL DEFAULT 1"`
-	Name        string
-	Fingerprint string
+	ID     int64 `xorm:"pk autoincr"`
+	KeyID  int64 `xorm:"INDEX"`
+	RepoID int64 `xorm:"INDEX"`
+	Name   string
 
-	// Neither of these can be UNIQUE: one row type always leaves the other's columns empty,
-	// so both key_id and token_hash collide across rows. Uniqueness is checked in code instead.
+	KeyType KeyType `xorm:"NOT NULL DEFAULT 1"`
+
+	Fingerprint string
+	PublicKey   *asymkey.PublicKey `xorm:"-"`
+
 	TokenHash string `xorm:"INDEX"` // sha256 of the token, which carries enough entropy to need no salt
 	Token     string `xorm:"-"`     // only set when the token is created
 
@@ -47,8 +41,6 @@ type DeployKey struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
-
-	PublicKey *asymkey.PublicKey `xorm:"-"`
 }
 
 func (key *DeployKey) HasUsed() bool {
@@ -57,14 +49,6 @@ func (key *DeployKey) HasUsed() bool {
 
 func (key *DeployKey) HasRecentActivity() bool {
 	return key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
-}
-
-func (key *DeployKey) LoadPublicKey(ctx context.Context) (err error) {
-	if key.PublicKey != nil {
-		return nil
-	}
-	key.PublicKey, err = asymkey.GetPublicKeyByID(ctx, key.KeyID)
-	return err
 }
 
 // IsReadOnly checks if the key can only be used for read operations, used by template
@@ -86,8 +70,8 @@ func checkDeployKeyName(ctx context.Context, repoID int64, name string) error {
 	return nil
 }
 
-// AddDeployKey add new deploy key to database and authorized_keys file.
-func AddDeployKey(ctx context.Context, repoID int64, name, content string, accessMode perm.AccessMode) (*DeployKey, error) {
+// AddDeployKeySSH add new deploy-key to database and authorized_keys file.
+func AddDeployKeySSH(ctx context.Context, repoID int64, name, content string, accessMode perm.AccessMode) (*DeployKey, error) {
 	if accessMode != perm.AccessModeRead && accessMode != perm.AccessModeWrite {
 		return nil, util.NewInvalidArgumentErrorf("invalid access mode")
 	}
@@ -105,37 +89,9 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, acces
 			return nil, err
 		}
 
-		key := &DeployKey{KeyID: pkey.ID, RepoID: repoID, Type: AuthTypeSSH, Name: name, Fingerprint: pkey.Fingerprint, Mode: accessMode}
+		key := &DeployKey{KeyID: pkey.ID, RepoID: repoID, KeyType: KeyTypeSSH, Name: name, Fingerprint: pkey.Fingerprint, Mode: accessMode}
 		return key, db.Insert(ctx, key)
 	})
-}
-
-// GetDeployKeyByID returns deploy key by given ID.
-func GetDeployKeyByID(ctx context.Context, repoID, deployKeyID int64) (*DeployKey, error) {
-	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"id": deployKeyID, "repo_id": repoID})
-	if err != nil {
-		return nil, err
-	} else if !exist {
-		return nil, ErrDeployKeyNotExist{deployKeyID, 0, repoID}
-	}
-	return key, nil
-}
-
-// GetDeployKeyByRepoPublicKey returns deploy key by given public key ID and repository ID.
-func GetDeployKeyByRepoPublicKey(ctx context.Context, repoID, publicKeyID int64) (*DeployKey, error) {
-	// the type is part of the condition because every token row carries key id 0
-	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": publicKeyID, "repo_id": repoID, "type": AuthTypeSSH})
-	if err != nil {
-		return nil, err
-	} else if !exist {
-		return nil, ErrDeployKeyNotExist{0, publicKeyID, repoID}
-	}
-	return key, nil
-}
-
-// IsDeployKeyExistByPublicKeyID return true if there is at least one deploy-key with the key id
-func IsDeployKeyExistByPublicKeyID(ctx context.Context, keyID int64) (bool, error) {
-	return db.Exist[DeployKey](ctx, builder.Eq{"key_id": keyID, "type": AuthTypeSSH})
 }
 
 // UpdateDeployKeyLastUsed marks the key as used now.

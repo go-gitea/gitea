@@ -27,7 +27,7 @@ func TestAPIPrivateNoServ(t *testing.T) {
 		assert.Equal(t, "user2@localhost", key.Name)
 
 		keyContent := "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment"
-		deployKey, err := deploykey_model.AddDeployKey(ctx, 1, "test-deploy", keyContent, perm.AccessModeRead)
+		deployKey, err := deploykey_model.AddDeployKeySSH(ctx, 1, "test-deploy", keyContent, perm.AccessModeRead)
 		assert.NoError(t, err)
 
 		key, user, err = private.ServNoCommand(ctx, deployKey.KeyID)
@@ -86,7 +86,7 @@ func TestAPIPrivateServ(t *testing.T) {
 
 		// Add reading deploy key
 		testContent := "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment"
-		deployKey, err := deploykey_model.AddDeployKey(ctx, 19 /* repo id */, "test-deploy", testContent, perm.AccessModeRead)
+		deployKey, err := deploykey_model.AddDeployKeySSH(ctx, 19 /* repo id */, "test-deploy", testContent, perm.AccessModeRead)
 		assert.NoError(t, err)
 
 		// Can pull from repo we're a deploy-key for
@@ -119,7 +119,7 @@ func TestAPIPrivateServ(t *testing.T) {
 
 		// Add writing deploy key
 		testContent = "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment"
-		deployKey, err = deploykey_model.AddDeployKey(ctx, 20 /* repo id */, "test-deploy", testContent, perm.AccessModeWrite)
+		deployKey, err = deploykey_model.AddDeployKeySSH(ctx, 20 /* repo id */, "test-deploy", testContent, perm.AccessModeWrite)
 		assert.NoError(t, err)
 
 		// Cannot push to a private repo with reading key

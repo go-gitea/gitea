@@ -7,18 +7,17 @@ import (
 	"time"
 )
 
-// DeployKey a deploy key
 type DeployKey struct {
-	// ID is the unique identifier for the deploy key
+	// ID is the unique identifier for the deploy-key
 	ID int64 `json:"id"`
 	// Type tells whether the key authenticates over SSH or with a token over HTTPS
 	// enum: ssh,token
-	Type string `json:"type"`
+	KeyType string `json:"key_type"`
 	// KeyID is the associated public key ID
 	KeyID int64 `json:"key_id"`
 	// Key contains the actual SSH key content
 	Key string `json:"key"`
-	// URL is the API URL for this deploy key
+	// URL is the API URL for this deploy-key
 	URL string `json:"url"`
 	// Title is the human-readable name for the key
 	Title string `json:"title"`
@@ -27,15 +26,14 @@ type DeployKey struct {
 	// Token is the plaintext token of an HTTPS key, only returned when it is created
 	Token string `json:"token,omitempty"`
 	// swagger:strfmt date-time
-	// Created is the time when the deploy key was added
+	// Created is the time when the deploy-key was added
 	Created time.Time `json:"created_at"`
 	// ReadOnly indicates if the key has read-only access
 	ReadOnly bool `json:"read_only"`
-	// Repository is the repository this deploy key belongs to
+	// Repository is the repository this deploy-key belongs to
 	Repository *Repository `json:"repository,omitempty"`
 }
 
-// CreateKeyOption options when creating a key
 type CreateKeyOption struct {
 	// Title of the key to add
 	//
@@ -48,20 +46,15 @@ type CreateKeyOption struct {
 	// unique: true
 	Key string `json:"key" binding:"Required"`
 	// Describe if the key has only read access or read/write
-	//
-	// required: false
 	ReadOnly bool `json:"read_only"`
 }
 
-// CreateDeployTokenOption options when creating a deploy token
-type CreateDeployTokenOption struct {
+type CreateDeployKeyTokenOption struct {
 	// Title of the token to add
 	//
 	// required: true
 	// unique: true
 	Title string `json:"title" binding:"Required;MaxSize(50)"`
 	// Describe if the token has only read access or read/write
-	//
-	// required: false
 	ReadOnly bool `json:"read_only"`
 }

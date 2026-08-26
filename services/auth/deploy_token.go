@@ -30,7 +30,7 @@ func (d *DeployToken) Verify(req *http.Request, _ http.ResponseWriter, store Dat
 		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
-	key, err := deploykey_model.VerifyDeployToken(req.Context(), authToken)
+	key, err := deploykey_model.VerifyDeployKeyToken(req.Context(), authToken)
 	if err != nil {
 		if deploykey_model.IsErrDeployKeyNotExist(err) {
 			return nil, nil //nolint:nilnil // not a deploy token, let the other methods try

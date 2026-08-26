@@ -214,7 +214,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 	}
 
 	accessMode := util.Iif(form.ReadOnly, perm.AccessModeRead, perm.AccessModeWrite)
-	key, err := deploykey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
+	key, err := deploykey_model.AddDeployKeySSH(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return
@@ -254,8 +254,8 @@ func CreateDeployToken(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm[*api.CreateDeployTokenOption](ctx)
-	key, err := deploykey_model.AddDeployToken(ctx, ctx.Repo.Repository.ID, form.Title, form.ReadOnly)
+	form := web.GetForm[*api.CreateDeployKeyTokenOption](ctx)
+	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, form.ReadOnly)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return

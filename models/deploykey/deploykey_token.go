@@ -25,14 +25,14 @@ func (key *DeployKey) generateToken() {
 	key.TokenHash = base.EncodeSha256(key.Token)
 }
 
-// AddDeployToken adds a token that authenticates git HTTP requests for one repository.
+// AddDeployKeyToken adds a token that authenticates git HTTP requests for one repository.
 // The plaintext token is only readable on the returned key.
-func AddDeployToken(ctx context.Context, repoID int64, name string, readOnly bool) (*DeployKey, error) {
+func AddDeployKeyToken(ctx context.Context, repoID int64, name string, readOnly bool) (*DeployKey, error) {
 	key := &DeployKey{
-		RepoID: repoID,
-		Type:   AuthTypeToken,
-		Name:   name,
-		Mode:   util.Iif(readOnly, perm.AccessModeRead, perm.AccessModeWrite),
+		RepoID:  repoID,
+		KeyType: KeyTypeToken,
+		Name:    name,
+		Mode:    util.Iif(readOnly, perm.AccessModeRead, perm.AccessModeWrite),
 	}
 	key.generateToken()
 
@@ -44,13 +44,13 @@ func AddDeployToken(ctx context.Context, repoID int64, name string, readOnly boo
 	})
 }
 
-// RegenerateDeployToken replaces the token value of an existing deploy token, keeping its name and access mode.
-func RegenerateDeployToken(ctx context.Context, repoID, keyID int64) (*DeployKey, error) {
+// RegenerateDeployKeyToken replaces the token value of an existing deploy token, keeping its name and access mode.
+func RegenerateDeployKeyToken(ctx context.Context, repoID, keyID int64) (*DeployKey, error) {
 	key, err := GetDeployKeyByID(ctx, repoID, keyID)
 	if err != nil {
 		return nil, err
 	}
-	if key.Type != AuthTypeToken {
+	if key.KeyType != KeyTypeToken {
 		return nil, ErrDeployKeyNotExist{keyID, 0, repoID}
 	}
 
@@ -59,13 +59,13 @@ func RegenerateDeployToken(ctx context.Context, repoID, keyID int64) (*DeployKey
 	return key, err
 }
 
-// VerifyDeployToken returns the deploy key which the given plaintext token authenticates.
-func VerifyDeployToken(ctx context.Context, token string) (*DeployKey, error) {
+// VerifyDeployKeyToken returns the deploy-key which the given plaintext token authenticates.
+func VerifyDeployKeyToken(ctx context.Context, token string) (*DeployKey, error) {
 	if !strings.HasPrefix(token, DeployTokenPrefix) { // spares a query for every password of a normal user
 		return nil, ErrDeployKeyNotExist{}
 	}
 
-	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"token_hash": base.EncodeSha256(token), "type": AuthTypeToken})
+	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"token_hash": base.EncodeSha256(token), "key_type": KeyTypeToken})
 	if err != nil {
 		return nil, err
 	} else if !exist {
