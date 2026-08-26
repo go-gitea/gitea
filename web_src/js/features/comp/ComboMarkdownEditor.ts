@@ -11,7 +11,7 @@ import {
 import {handleGlobalEnterQuickSubmit} from './QuickSubmit.ts';
 import {renderPreviewPanelContent} from '../repo-editor.ts';
 import {toggleTasklistCheckbox} from '../../markup/tasklist.ts';
-import {easyMDEToolbarActions} from './EasyMDEToolbarActions.ts';
+import {easyMDEToolbarActions, type EasyMdeToolbarAction} from './EasyMDEToolbarActions.ts';
 import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
 import {POST} from '../../modules/fetch.ts';
@@ -25,6 +25,7 @@ import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
 import {initTabSwitcher} from '../../modules/fomantic/tab.ts';
 import type EasyMDE from 'easymde';
+import type Dropzone from '@deltablot/dropzone';
 import {localUserSettings} from '../../modules/user-settings.ts';
 
 /**
@@ -57,11 +58,13 @@ type Heights = {
 
 type ComboMarkdownEditorOptions = {
   editorHeights?: Heights,
-  easyMDEOptions?: EasyMDE.Options,
+  easyMDEOptions?: Omit<EasyMDE.Options, 'toolbar'> & {toolbar?: ReadonlyArray<string>},
 };
 
-type ComboMarkdownEditorTextarea = HTMLTextAreaElement & {_giteaComboMarkdownEditor: any};
-type ComboMarkdownEditorContainer = HTMLElement & {_giteaComboMarkdownEditor?: any};
+type EasyMdeOptions = Omit<EasyMDE.Options, 'toolbar'> & {toolbar: EasyMdeToolbarAction[]};
+
+type ComboMarkdownEditorTextarea = HTMLTextAreaElement & {_giteaComboMarkdownEditor: ComboMarkdownEditor};
+type ComboMarkdownEditorContainer = HTMLElement & {_giteaComboMarkdownEditor?: ComboMarkdownEditor};
 
 export class ComboMarkdownEditor {
   static EventEditorContentChanged = EventEditorContentChanged;
@@ -75,18 +78,18 @@ export class ComboMarkdownEditor {
   tabPreviewer?: HTMLElement;
 
   supportEasyMDE!: boolean;
-  easyMDE: any;
-  easyMDEToolbarActions: any;
-  easyMDEToolbarDefault: any;
+  easyMDE: EasyMDE | null = null;
+  easyMDEToolbarActions?: Record<string, EasyMdeToolbarAction>;
+  easyMDEToolbarDefault!: string[];
 
   textarea!: ComboMarkdownEditorTextarea;
   textareaMarkdownToolbar!: HTMLElement;
-  textareaAutosize: any;
+  textareaAutosize?: ReturnType<typeof autosize>;
 
   buttonMonospace!: HTMLButtonElement;
 
   dropzone: HTMLElement | null = null;
-  attachedDropzoneInst: any;
+  attachedDropzoneInst?: Dropzone;
 
   previewMode!: string;
   previewUrl!: string;
@@ -188,19 +191,19 @@ export class ComboMarkdownEditor {
   }
 
   dropzoneReloadFiles() {
-    if (!this.dropzone) return;
+    if (!this.attachedDropzoneInst) return;
     this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
   }
 
   dropzoneSubmitReload() {
-    if (!this.dropzone) return;
+    if (!this.attachedDropzoneInst) return;
     this.attachedDropzoneInst.emit('submit');
     this.attachedDropzoneInst.emit(DropzoneCustomEventReloadFiles);
   }
 
   isUploading() {
-    if (!this.dropzone) return false;
-    return this.attachedDropzoneInst.getQueuedFiles().length || this.attachedDropzoneInst.getUploadingFiles().length;
+    if (!this.attachedDropzoneInst) return false;
+    return Boolean(this.attachedDropzoneInst.getQueuedFiles().length || this.attachedDropzoneInst.getUploadingFiles().length);
   }
 
   setupTab() {
@@ -300,9 +303,9 @@ export class ComboMarkdownEditor {
     ];
   }
 
-  parseEasyMDEToolbar(easyMde: typeof EasyMDE, actions: any) {
+  parseEasyMDEToolbar(easyMde: typeof EasyMDE, actions: ReadonlyArray<string>) {
     this.easyMDEToolbarActions = this.easyMDEToolbarActions || easyMDEToolbarActions(easyMde, this);
-    const processed = [];
+    const processed: EasyMdeToolbarAction[] = [];
     for (const action of actions) {
       const actionButton = this.easyMDEToolbarActions[action];
       if (!actionButton) throw new Error(`Unknown EasyMDE toolbar action ${action}`);
@@ -334,7 +337,7 @@ export class ComboMarkdownEditor {
       import('easymde'),
       import('../../../css/easymde.css'),
     ]);
-    const easyMDEOpt: EasyMDE.Options = {
+    const easyMDEOpt: EasyMdeOptions = {
       autoDownloadFontAwesome: false,
       element: this.textarea,
       forceSync: true,
@@ -345,27 +348,27 @@ export class ComboMarkdownEditor {
       inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
       nativeSpellcheck: true,
       ...this.options.easyMDEOptions,
+      toolbar: this.parseEasyMDEToolbar(EasyMDE, this.options.easyMDEOptions?.toolbar ?? this.easyMDEToolbarDefault),
     };
-    easyMDEOpt.toolbar = this.parseEasyMDEToolbar(EasyMDE, easyMDEOpt.toolbar ?? this.easyMDEToolbarDefault);
 
-    this.easyMDE = new EasyMDE(easyMDEOpt);
+    this.easyMDE = new EasyMDE(easyMDEOpt as EasyMDE.Options);
     this.easyMDE.codemirror.on('change', () => triggerEditorContentChanged(this.container));
     this.easyMDE.codemirror.setOption('extraKeys', {
-      'Cmd-Enter': (cm: any) => handleGlobalEnterQuickSubmit(cm.getTextArea()),
-      'Ctrl-Enter': (cm: any) => handleGlobalEnterQuickSubmit(cm.getTextArea()),
-      Enter: (cm: any) => {
+      'Cmd-Enter': () => { handleGlobalEnterQuickSubmit(this.textarea) },
+      'Ctrl-Enter': () => { handleGlobalEnterQuickSubmit(this.textarea) },
+      Enter: (cm) => {
         const tributeContainer = document.querySelector<HTMLElement>('.tribute-container');
         if (!tributeContainer || tributeContainer.style.display === 'none') {
           cm.execCommand('newlineAndIndent');
         }
       },
-      Up: (cm: any) => {
+      Up: (cm) => {
         const tributeContainer = document.querySelector<HTMLElement>('.tribute-container');
         if (!tributeContainer || tributeContainer.style.display === 'none') {
           return cm.execCommand('goLineUp');
         }
       },
-      Down: (cm: any) => {
+      Down: (cm) => {
         const tributeContainer = document.querySelector<HTMLElement>('.tribute-container');
         if (!tributeContainer || tributeContainer.style.display === 'none') {
           return cm.execCommand('goLineDown');
@@ -380,20 +383,16 @@ export class ComboMarkdownEditor {
     hideElem(this.textareaMarkdownToolbar);
   }
 
-  value(v?: any) {
-    if (v === undefined) {
+  value(v?: string): string {
+    if (v !== undefined) {
       if (this.easyMDE) {
-        return this.easyMDE.value();
+        this.easyMDE.value(v);
+      } else {
+        this.textarea.value = v;
       }
-      return this.textarea.value;
+      this.textareaAutosize?.resizeToFit();
     }
-
-    if (this.easyMDE) {
-      this.easyMDE.value(v);
-    } else {
-      this.textarea.value = v;
-    }
-    this.textareaAutosize?.resizeToFit();
+    return this.easyMDE ? this.easyMDE.value() : this.textarea.value;
   }
 
   focus() {
@@ -438,10 +437,9 @@ function applyMonospaceToAllEditors() {
   }
 }
 
-export function getComboMarkdownEditor(el: any): ComboMarkdownEditor | null {
+export function getComboMarkdownEditor(el: Element | null): ComboMarkdownEditor | null {
   if (!el) return null;
-  if (el.length) el = el[0];
-  return el._giteaComboMarkdownEditor;
+  return (el as ComboMarkdownEditorContainer)._giteaComboMarkdownEditor ?? null;
 }
 
 export async function initComboMarkdownEditor(container: HTMLElement, options:ComboMarkdownEditorOptions = {}) {

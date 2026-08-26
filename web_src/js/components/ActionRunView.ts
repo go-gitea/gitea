@@ -5,6 +5,8 @@ import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../mo
 import type {IntervalId} from '../types.ts';
 import {POST} from '../modules/fetch.ts';
 
+export type ActionRunLocale = Record<string, string> & {status: Record<string, string>};
+
 // How GitHub Actions logs work:
 // * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
 // * Workflow runner parses and processes the commands to "##[group]", apply "matchers", hide secrets, etc.

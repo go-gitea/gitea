@@ -35,7 +35,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   $fomanticDropdownOptions.dropdown({
     showOnFocus: false,
     allowReselection: true,
-    async onChange(_value: string, _text: string, $item: any) {
+    async onChange(_value: string, _text: string, $item: JQuery) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
@@ -116,7 +116,7 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
     onHide() {
       $fomanticDropdown.dropdown('change values', null);
     },
-    onChange(value: string, itemHtml: string, $item: any) {
+    onChange(value: string, itemHtml: string, $item: JQuery) {
       if (value && !$item.find('[data-history-is-deleted=1]').length) {
         showContentHistoryDetail(issueBaseUrl, commentId, value, itemHtml);
       }

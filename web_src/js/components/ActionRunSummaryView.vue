@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import WorkflowGraph from './WorkflowGraph.vue';
-import type {ActionRunViewStore} from './ActionRunView.ts';
+import type {ActionRunLocale, ActionRunViewStore} from './ActionRunView.ts';
 import {computed, onBeforeUnmount, onMounted, toRefs} from 'vue';
 import {trString} from '../modules/i18n.ts';
 
@@ -10,7 +10,7 @@ defineOptions({
 
 const props = defineProps<{
   store: ActionRunViewStore;
-  locale: Record<string, any>;
+  locale: ActionRunLocale;
   artifactCount: number;
 }>();
 

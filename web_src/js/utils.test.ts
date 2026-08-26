@@ -51,13 +51,13 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('')).toEqual({ownerName: undefined, repoName: undefined, type: undefined, index: undefined});
+  expect(parseIssueHref('')).toBeNull();
 });
 
 test('parseRepoOwnerPathInfo', () => {
   expect(parseRepoOwnerPathInfo('/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
   expect(parseRepoOwnerPathInfo('/owner/repo/releases')).toEqual({ownerName: 'owner', repoName: 'repo'});
-  expect(parseRepoOwnerPathInfo('/other')).toEqual({});
+  expect(parseRepoOwnerPathInfo('/other')).toBeNull();
   window.config.appSubUrl = '/sub';
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo'});

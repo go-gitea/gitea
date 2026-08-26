@@ -7,7 +7,7 @@ import {isPlainClick} from '../utils/dom.ts';
 import {trN, trString} from '../modules/i18n.ts';
 import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
-import type {ActionRunViewStore} from './ActionRunView.ts';
+import type {ActionRunLocale, ActionRunViewStore} from './ActionRunView.ts';
 import {
   boxBottom,
   boxCenterY,
@@ -32,7 +32,7 @@ const props = defineProps<{
   workflowId: string;
   workflowLink?: string;
   triggerEvent?: string;
-  locale: Record<string, string>;
+  locale: ActionRunLocale;
 }>();
 
 const settingKeyStates = 'actions-graph-states';

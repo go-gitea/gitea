@@ -3,8 +3,12 @@ import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import type {FomanticApiResponse} from '../types.ts';
 
 const {appSubUrl} = window.config;
+
+type TopicSearchResponse = {topics: Array<{topic_name: string}>};
+type TopicSearchResult = {description: string, 'data-value': string};
 
 export function initRepoTopicBar() {
   const mgrBtn = document.querySelector<HTMLButtonElement>('#manage_topic');
@@ -87,10 +91,10 @@ export function initRepoTopicBar() {
     apiSettings: {
       url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
-      onResponse(this: any, res: any) {
-        const formattedResponse = {
+      onResponse(this: {urlData: {query: string}}, res: TopicSearchResponse) {
+        const formattedResponse: FomanticApiResponse<TopicSearchResult> = {
           success: false,
-          results: [] as Array<Record<string, any>>,
+          results: [],
         };
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
@@ -134,7 +138,7 @@ export function initRepoTopicBar() {
       this.attr('data-value', value).contents().first().replaceWith(value);
       return fomanticQuery(this);
     },
-    onAdd(addedValue: string, _addedText: any, $addedChoice: any) {
+    onAdd(addedValue: string, _addedText: any, $addedChoice: JQuery) {
       addedValue = addedValue.toLowerCase().trim();
       $addedChoice[0].setAttribute('data-value', addedValue);
       $addedChoice[0].setAttribute('data-text', addedValue);

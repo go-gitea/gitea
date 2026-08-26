@@ -10,10 +10,10 @@ export function initRepoPullRequestUpdate(el: HTMLElement) {
   const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
 
   fomanticQuery(elDropdown).dropdown({
-    onChange(_text: string, _value: string, $choice: any) {
+    onChange(_text: string, _value: string, $choice: JQuery) {
       const choiceEl = $choice[0];
       elButton.textContent = choiceEl.textContent;
-      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url'));
+      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url')!);
     },
   });
 }

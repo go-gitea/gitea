@@ -1198,7 +1198,7 @@ export default defineConfig([
   },
   {
     files: ['web_src/**/*'],
-    languageOptions: {globals: {...globals.browser, ...globals.jquery}},
+    languageOptions: {globals: {...globals.browser, ...globals.jquery, JQuery: 'readonly'}},
     rules: {
       'no-restricted-globals': [2, ...restrictedGlobals],
       'no-restricted-properties': [2, ...restrictedProperties],

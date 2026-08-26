@@ -36,7 +36,7 @@ export function initAriaModalPatch() {
 
 // the patched `$.fn.modal` modal function
 // * it does the one-time attaching on the first call
-function ariaModalFn(this: any, ...args: Parameters<FomanticInitFunction>) {
+function ariaModalFn(this: JQuery, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticModalFn.apply(this, args);
   if (args[0] === 'show' || args[0]?.autoShow) {
     for (const el of this) {
@@ -52,7 +52,7 @@ function ariaModalFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   return ret;
 }
 
-function onModalBeforeHidden(this: any) {
+function onModalBeforeHidden(this: HTMLElement) {
   const $modal = $(this);
   const elModal = $modal[0];
   hideToastsFrom(elModal.closest('.ui.dimmer') ?? document.body);
@@ -63,7 +63,7 @@ function onModalBeforeHidden(this: any) {
   }, 0);
 }
 
-function onModalApproveDefault(this: any) {
+function onModalApproveDefault(this: HTMLElement) {
   const $modal = $(this);
   const selectors = $modal.modal('setting', 'selector');
   const elModal = $modal[0];

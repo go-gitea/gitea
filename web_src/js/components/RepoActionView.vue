@@ -7,7 +7,7 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
-import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
+import {buildJobsByParentJobID, createActionRunViewStore, type ActionRunLocale} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 import {trString} from '../modules/i18n.ts';
 
@@ -18,7 +18,7 @@ defineOptions({
 const props = defineProps<{
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: ActionRunLocale;
 }>();
 
 const locale = props.locale;

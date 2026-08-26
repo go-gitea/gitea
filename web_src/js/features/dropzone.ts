@@ -9,6 +9,7 @@ import {isImageFile, isVideoFile} from '../utils.ts';
 import type Dropzone from '@deltablot/dropzone';
 
 type CustomDropzoneFile = Dropzone.DropzoneFile & {uuid: string};
+type UploadResponse = {uuid: string};
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
@@ -69,14 +70,16 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
   let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-  const opts: Record<string, any> = {
-    url: dropzoneEl.getAttribute('data-upload-url'),
-    acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')!) ? null : dropzoneEl.getAttribute('data-accepts'),
+  const accepts = dropzoneEl.getAttribute('data-accepts')!;
+  const opts: Dropzone.DropzoneOptions = {
+    url: dropzoneEl.getAttribute('data-upload-url')!,
+    // omitted when everything is accepted, so dropzone's own "acceptedFiles: null" default applies
+    ...(!['*/*', ''].includes(accepts) && {acceptedFiles: accepts}),
     addRemoveLinks: true,
-    dictDefaultMessage: dropzoneEl.getAttribute('data-default-message'),
-    dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type'),
-    dictFileTooBig: dropzoneEl.getAttribute('data-file-too-big'),
-    dictRemoveFile: dropzoneEl.getAttribute('data-remove-file'),
+    dictDefaultMessage: dropzoneEl.getAttribute('data-default-message')!,
+    dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type')!,
+    dictFileTooBig: dropzoneEl.getAttribute('data-file-too-big')!,
+    dictRemoveFile: dropzoneEl.getAttribute('data-remove-file')!,
     timeout: 0,
     thumbnailMethod: 'contain',
     thumbnailWidth: 480,
@@ -89,7 +92,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
-  dzInst.on('success', (file: CustomDropzoneFile, resp: any) => {
+  dzInst.on('success', (file: CustomDropzoneFile, resp: UploadResponse) => {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});

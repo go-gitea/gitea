@@ -13,6 +13,7 @@ import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../mo
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {
   type ActionRunViewStore,
+  type ActionRunLocale,
   createLogLineMessage,
   type LogLine,
   type LogLineCommand,
@@ -84,7 +85,7 @@ const props = defineProps<{
   store: ActionRunViewStore,
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: ActionRunLocale;
 }>();
 const store = props.store;
 const {currentRun: run} = toRefs(store.viewData);
