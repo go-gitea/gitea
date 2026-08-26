@@ -651,7 +651,7 @@ func getRepositoryByParams(ctx *context.APIContext) (*repo_model.Repository, *ac
 		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
-	return repo, perm
+	return repo, &perm
 }
 
 func canManageRepoCollaboratorTeam(ctx *context.APIContext, repo *repo_model.Repository, perm *access_model.Permission) bool {

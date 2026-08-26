@@ -266,10 +266,5 @@ func UserShouldSeeAllOrgTeams(ctx *Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, team := range teams {
-		if team.HasAllRepoAdminAccess() {
-			return true, nil
-		}
-	}
-	return false, nil
+	return teams.HasAllRepoAdminAccess(), nil
 }

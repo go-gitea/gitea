@@ -38,48 +38,28 @@ func LinkToRepository(ctx context.Context, pkg *packages_model.Package, repo *re
 	return nil
 }
 
+func canDoerManagePackage(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) bool {
+	owner, err := user_model.GetUserByID(ctx, pkg.OwnerID)
+	if err != nil {
+		return false
+	}
+	if doer.IsAdmin {
+		return true
+	}
+	if !owner.IsOrganization() {
+		return doer.ID == pkg.OwnerID
+	}
+
+	teams, _ := org_model.GetUserOrgTeams(ctx, owner.ID, doer.ID)
+	return teams.HasAllRepoAdminAccess()
+}
+
 func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) error {
 	if pkg.RepoID == 0 {
 		return util.ErrInvalidArgument
 	}
-
-	repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
-	if err != nil && !repo_model.IsErrRepoNotExist(err) {
-		return fmt.Errorf("error getting repository %d: %w", pkg.RepoID, err)
-	}
-	repoExists := err == nil
-	var perms access_model.Permission
-	if repoExists {
-		perms, err = access_model.GetIndividualUserRepoPermission(ctx, repo, doer)
-		if err != nil {
-			return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
-		}
-		if !perms.CanWrite(unit.TypePackages) {
-			return util.ErrPermissionDenied
-		}
-	}
-
-	user, err := user_model.GetUserByID(ctx, pkg.OwnerID)
-	if err != nil {
-		return err
-	}
-	if !doer.IsAdmin {
-		if !user.IsOrganization() {
-			if doer.ID != pkg.OwnerID {
-				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
-			}
-		} else if repoExists {
-			if !perms.IsOwner() {
-				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
-			}
-		} else {
-			isOwner, err := org_model.OrgFromUser(user).IsOwnedBy(ctx, doer.ID)
-			if err != nil {
-				return err
-			} else if !isOwner {
-				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
-			}
-		}
+	if !canDoerManagePackage(ctx, pkg, doer) {
+		return util.ErrPermissionDenied
 	}
 	return packages_model.UnlinkRepository(ctx, pkg.ID)
 }

@@ -184,10 +184,6 @@ func (t *Team) IsMember(ctx context.Context, userID int64) bool {
 	return isMember
 }
 
-func (t *Team) HasAllRepoAdminAccess() bool {
-	return t.IncludesAllRepositories && t.AccessMode >= perm.AccessModeAdmin
-}
-
 // LoadMembers returns paginated members in team of organization.
 func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{

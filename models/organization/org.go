@@ -585,8 +585,8 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 
 // GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
-func (org *Organization) GetUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
-	teams := make([]*Team, 0, org.NumTeams)
+func (org *Organization) GetUserTeams(ctx context.Context, userID int64, cols ...string) (TeamList, error) {
+	teams := make(TeamList, 0, org.NumTeams)
 	return teams, db.GetEngine(ctx).
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
