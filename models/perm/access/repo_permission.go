@@ -445,7 +445,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	// plain user TODO: this check should be replaced, only need to check collaborator access mode
-	perm.AccessMode, err = accessLevel(ctx, user, repo)
+	perm.AccessMode, err = modeByOwnerAndAccess(ctx, user, repo)
 	if err != nil {
 		return perm, err
 	}
@@ -496,52 +496,35 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	return perm, err
 }
 
-// IsUserRealRepoAdmin check if this user is real repo admin
-func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	if repo.OwnerID == user.ID {
-		return true, nil
-	}
-
-	if err := repo.LoadOwner(ctx); err != nil {
-		return false, err
-	}
-
-	accessMode, err := accessLevel(ctx, user, repo)
-	if err != nil {
-		return false, err
-	}
-
-	return accessMode >= perm_model.AccessModeAdmin, nil
+// IsUserRealRepoAdmin check if this user is real repo admin (but not a site admin who also has repo admin access)
+func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
+	return (user != nil && user.IsAdmin) || IsUserRealRepoAdmin(ctx, repo, user)
 }
 
-// IsUserRepoAdmin return true if user has admin right of a repo
-func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
 	if user == nil || repo == nil {
-		return false, nil
-	}
-	if user.IsAdmin {
-		return true, nil
+		return false
 	}
 
-	mode, err := accessLevel(ctx, user, repo)
+	mode, err := modeByOwnerAndAccess(ctx, user, repo)
 	if err != nil {
-		return false, err
+		return false
 	}
 	if mode >= perm_model.AccessModeAdmin {
-		return true, nil
+		return true
 	}
 
 	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
-		return false, err
+		return false
 	}
 
 	for _, team := range teams {
-		if team.HasAdminAccess() {
-			return true, nil
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the

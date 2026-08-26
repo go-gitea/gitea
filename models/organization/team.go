@@ -176,8 +176,8 @@ func (t *Team) IsMember(ctx context.Context, userID int64) bool {
 	return isMember
 }
 
-func (t *Team) HasAdminAccess() bool {
-	return t.AccessMode >= perm.AccessModeAdmin
+func (t *Team) HasAllRepoAdminAccess() bool {
+	return t.IncludesAllRepositories && t.AccessMode >= perm.AccessModeAdmin
 }
 
 // LoadMembers returns paginated members in team of organization.
