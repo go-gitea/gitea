@@ -13,3 +13,8 @@ import (
 func SetSysProcAttribute(cmd *exec.Cmd) {
 	// Do nothing
 }
+
+// KillCmd kills the process; on Windows there are no process groups.
+func KillCmd(cmd *exec.Cmd) error {
+	return cmd.Process.Kill()
+}

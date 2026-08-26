@@ -452,7 +452,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 		// * if we don't close the parent pipes here, the children process won't exit.
 		//
 		// There is no such problem on POSIX, while it won't make things worse by closing the parent pipes also on POSIX.
-		err := c.cmd.Process.Kill()
+		err := process.KillCmd(c.cmd)
 		c.closePipeFiles(c.parentPipeFiles)
 		return err
 	}
