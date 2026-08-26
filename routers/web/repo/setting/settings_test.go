@@ -174,149 +174,48 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 
 func TestAddTeamPost(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "org26/repo43")
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 43})
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 11})
+	repo.Owner = org
 
-	ctx.Req.Form.Set("team", "team11")
-
-	org := &user_model.User{
-		LowerName: "org26",
-		Type:      user_model.UserTypeOrganization,
+	testAddTeamPost := func(t *testing.T, teamName string, repoAdminChangeTeamAccess bool) *context.Context {
+		ctx, _ := contexttest.MockContext(t, "org26/repo43")
+		ctx.Req.Form.Set("team", teamName)
+		org.RepoAdminChangeTeamAccess = repoAdminChangeTeamAccess
+		ctx.Repo = &context.Repository{
+			Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
+			Owner:      repo.Owner,
+			Repository: repo,
+		}
+		ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
+		AddTeamPost(ctx)
+		return ctx
 	}
 
-	team := &organization.Team{
-		ID:    11,
-		OrgID: 26,
-	}
-
-	re := &repo_model.Repository{
-		ID:      43,
-		Owner:   org,
-		OwnerID: 26,
-	}
-
-	repo := &context.Repository{
-		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
-		Owner: &user_model.User{
-			ID:                        26,
-			LowerName:                 "org26",
-			RepoAdminChangeTeamAccess: true,
-		},
-		Repository: re,
-	}
-
-	ctx.Repo = repo
-	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
-
-	AddTeamPost(ctx)
-
-	assert.True(t, repo_service.HasRepository(t.Context(), team, re.ID))
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.Empty(t, ctx.Flash.ErrorMsg)
-}
-
-func TestAddTeamPost_NotAllowed(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
-	require.NoError(t, repo.LoadOwner(t.Context()))
-	adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
-	targetTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	require.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, repo))
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	repoContext := &context.Repository{Permission: access_model.Permission{AccessMode: perm.AccessModeOwner}, Owner: repo.Owner, Repository: repo}
-	renderCtx, _ := contexttest.MockContext(t, repo.Link()+"/settings/collaboration")
-	renderCtx.Repo = repoContext
-	renderCtx.Doer = doer
-	Collaboration(renderCtx)
-	assert.Equal(t, false, renderCtx.Data["CanChangeRepoTeamAccess"])
-
-	ctx, _ := contexttest.MockContext(t, repo.Link()+"/settings/collaboration")
-	ctx.Req.Form.Set("team", targetTeam.Name)
-	ctx.Repo = repoContext
-	ctx.Doer = doer
-
-	AddTeamPost(ctx)
-
-	assert.False(t, repo_service.HasRepository(t.Context(), targetTeam, repo.ID))
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
-}
-
-func TestAddTeamPost_AddTeamTwice(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "org26/repo43")
-
-	ctx.Req.Form.Set("team", "team11")
-
-	org := &user_model.User{
-		LowerName: "org26",
-		Type:      user_model.UserTypeOrganization,
-	}
-
-	team := &organization.Team{
-		ID:    11,
-		OrgID: 26,
-	}
-
-	re := &repo_model.Repository{
-		ID:      43,
-		Owner:   org,
-		OwnerID: 26,
-	}
-
-	repo := &context.Repository{
-		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
-		Owner: &user_model.User{
-			ID:                        26,
-			LowerName:                 "org26",
-			RepoAdminChangeTeamAccess: true,
-		},
-		Repository: re,
-	}
-
-	ctx.Repo = repo
-	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
-
-	AddTeamPost(ctx)
-
-	AddTeamPost(ctx)
-	assert.True(t, repo_service.HasRepository(t.Context(), team, re.ID))
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
-}
-
-func TestAddTeamPost_NonExistentTeam(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "org26/repo43")
-
-	ctx.Req.Form.Set("team", "team-non-existent")
-
-	org := &user_model.User{
-		LowerName: "org26",
-		Type:      user_model.UserTypeOrganization,
-	}
-
-	re := &repo_model.Repository{
-		ID:      43,
-		Owner:   org,
-		OwnerID: 26,
-	}
-
-	repo := &context.Repository{
-		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
-		Owner: &user_model.User{
-			ID:                        26,
-			LowerName:                 "org26",
-			RepoAdminChangeTeamAccess: true,
-		},
-		Repository: re,
-	}
-
-	ctx.Repo = repo
-	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
-
-	AddTeamPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
-	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+	t.Run("NonExisting", func(t *testing.T) {
+		ctx := testAddTeamPost(t, "team-not-exist", true)
+		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		assert.Contains(t, ctx.Flash.ErrorMsg, "form.team_not_exist")
+	})
+	t.Run("NotAllowed", func(t *testing.T) {
+		ctx := testAddTeamPost(t, team.Name, false)
+		assert.False(t, repo_service.HasRepository(t.Context(), team, repo.ID))
+		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		assert.Contains(t, ctx.Flash.ErrorMsg, "repo.settings.change_team_access_not_allowed")
+	})
+	t.Run("Allowed", func(t *testing.T) {
+		ctx := testAddTeamPost(t, team.Name, true)
+		assert.True(t, repo_service.HasRepository(t.Context(), team, repo.ID))
+		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		assert.Empty(t, ctx.Flash.ErrorMsg)
+		t.Run("Twice", func(t *testing.T) {
+			ctx := testAddTeamPost(t, team.Name, true)
+			assert.True(t, repo_service.HasRepository(t.Context(), team, repo.ID))
+			assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+			assert.Contains(t, ctx.Flash.ErrorMsg, "repo.settings.add_team_duplicate")
+		})
+	})
 }
 
 func TestDeleteTeam(t *testing.T) {
@@ -324,39 +223,21 @@ func TestDeleteTeam(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "org3/team1/repo3")
 
 	ctx.Req.Form.Set("id", "2")
-
-	org := &user_model.User{
-		LowerName: "org3",
-		Type:      user_model.UserTypeOrganization,
-	}
-
-	team := &organization.Team{
-		ID:    2,
-		OrgID: 3,
-	}
-
-	re := &repo_model.Repository{
-		ID:      3,
-		Owner:   org,
-		OwnerID: 3,
-	}
-
-	repo := &context.Repository{
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	repo.Owner = org
+	org.RepoAdminChangeTeamAccess = true
+	ctx.Repo = &context.Repository{
 		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
-		Owner: &user_model.User{
-			ID:                        3,
-			LowerName:                 "org3",
-			RepoAdminChangeTeamAccess: true,
-		},
-		Repository: re,
+		Owner:      repo.Owner,
+		Repository: repo,
 	}
-
-	ctx.Repo = repo
 	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
 
+	assert.True(t, repo_service.HasRepository(t.Context(), team, repo.ID))
 	DeleteTeam(ctx)
-
-	assert.False(t, repo_service.HasRepository(t.Context(), team, re.ID))
+	assert.False(t, repo_service.HasRepository(t.Context(), team, repo.ID))
 }
 
 func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {

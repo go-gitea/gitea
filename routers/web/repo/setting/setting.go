@@ -76,7 +76,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
-	ctx.Data["CanManagerDangerZone"] = canManageRepoDangerZone(ctx)
+	ctx.Data["CanManagerDangerZone"] = access_model.CanDoerManageRepoDangerZone(&ctx.Repo.Permission)
 
 	signing, _ := git.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
