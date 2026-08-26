@@ -107,11 +107,11 @@ func requestWithFreshTransport(t *testing.T, url string) ResponseExtra {
 }
 
 // TestE2E_Issue38903_BeforeFix reproduces https://github.com/go-gitea/gitea/issues/38903
-// verbatim: setting.LocalURL literally "https://0.0.0.0:<port>/" -- exactly what
-// LOCAL_ROOT_URL = %(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/ produced (before this fix)
-// when HTTP_ADDR was left at its default, per the issue's app.ini. A real internal API
-// request (the same helper ServNoCommand uses) must fail exactly like the issue reports
-// ("Internal Server Connection Error", TLS failure against the literal 0.0.0.0 host).
+// verbatim: setting.LocalURL literally "https://0.0.0.0:<port>/" -- what an explicit
+// LOCAL_ROOT_URL resolved to (before this fix) when its host was the unspecified bind-all
+// address, per the issue's app.ini. A real internal API request (the same helper
+// ServNoCommand uses) must fail exactly like the issue reports ("Internal Server
+// Connection Error", TLS failure against the literal 0.0.0.0 host).
 func TestE2E_Issue38903_BeforeFix(t *testing.T) {
 	port := startInternalAPITestServer(t)
 	setting.LocalURL = fmt.Sprintf("https://0.0.0.0:%d/", port)

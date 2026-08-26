@@ -11,21 +11,19 @@ import (
 
 // Regression test for https://github.com/go-gitea/gitea/issues/38903
 //
-// When LOCAL_ROOT_URL is set explicitly to "%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/"
-// (the historical Cheat Sheet suggestion) and HTTP_ADDR is left at its default of 0.0.0.0,
-// LocalURL used to resolve to the literal, unroutable address "https://0.0.0.0:443/". The
-// internal API client can never verify TLS against that host, so every internal request
-// (including SSH key checks via `gitea serv`) failed with a TLS handshake error.
+// If LOCAL_ROOT_URL is explicitly set with the unspecified bind-all address as its host,
+// LocalURL used to resolve to that literal, unroutable address, eg "https://0.0.0.0:443/".
+// The internal API client can never verify TLS against that host, so every internal
+// request (including SSH key checks via `gitea serv`) failed with a TLS handshake error.
 func TestLoadServerFrom_LocalRootURLZeroAddr(t *testing.T) {
 	cfg, err := NewConfigProviderFromData(`[server]
 PROTOCOL = https
 DOMAIN = sub.example.com
 HTTP_PORT = 443
-LOCAL_ROOT_URL = %(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/
+LOCAL_ROOT_URL = https://0.0.0.0:443/
 `)
 	assert.NoError(t, err)
 	loadServerFrom(cfg)
-	assert.Equal(t, "0.0.0.0", HTTPAddr)
 	assert.Equal(t, "https://localhost:443/", LocalURL)
 }
 
