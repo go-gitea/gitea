@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"strings"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -21,7 +20,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
-	"gitea.dev/modules/util"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -83,82 +81,7 @@ func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "AutoMerge: "+string(item))
 	defer finished()
 
-	parsed := item.Parse()
-	if parsed.PullID != 0 {
-		handlePullRequestAutoMergeByPullID(ctx, parsed.PullID)
-	} else if parsed.RepoID != 0 {
-		handleAutoMergeByRepoCommit(ctx, parsed.RepoID, parsed.CommitID)
-	} else {
-		log.Error("unsupported automerge item: %q", item)
-	}
-}
-
-// handleRepoCommitAutoMerge queues an automerge check for every pull request whose head is the given commit
-func handleAutoMergeByRepoCommit(ctx context.Context, repoID int64, commitID string) {
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
-	if err != nil {
-		log.Error("GetRepositoryByID[%d]: %v", repoID, err)
-		return
-	}
-
-	pulls, err := enumPullRequestsByHeadCommitID(ctx, commitID, repo, func(pr *issues_model.PullRequest) bool {
-		return !pr.HasMerged && pr.IsStatusMergeable()
-	})
-	if err != nil {
-		log.Error("enumPullRequestsByHeadCommitID[%-v, %s]: %v", repo, commitID, err)
-		return
-	}
-	for _, pr := range pulls {
-		handlePullRequestAutoMerge(ctx, pr)
-	}
-}
-
-func enumPullRequestsByHeadCommitID(ctx context.Context, commitID string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
-	gitRepo, err := git.OpenRepository(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
-
-	// Pull ref is something like "refs/pull/1/head"
-	refs, err := gitRepo.GetRefsBySha(ctx, commitID, git.PullPrefix)
-	if err != nil {
-		return nil, err
-	}
-
-	pulls := make(map[int64]*issues_model.PullRequest)
-	for _, ref := range refs {
-		refPart, ok := strings.CutPrefix(ref, git.PullPrefix)
-		if !ok {
-			continue
-		}
-		parts := strings.Split(refPart, "/") // the parts are from "123/head"
-		if len(parts) != 2 {
-			continue // impossible to happen
-		}
-
-		prIndex, err := strconv.ParseInt(parts[0], 10, 64)
-		if err != nil {
-			log.Error("Found broken pull ref [%s] on repo %s", ref, repo.FullName())
-			continue
-		}
-
-		p, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, prIndex)
-		if err != nil {
-			if errors.Is(err, util.ErrNotExist) {
-				continue // If there is no pull request for this branch, we don't try to merge it.
-			}
-			return nil, err
-		}
-
-		if filter(p) {
-			pulls[p.ID] = p
-		}
-	}
-	return pulls, nil
-}
-
-func handlePullRequestAutoMergeByPullID(ctx context.Context, pullID int64) {
+	pullID, _ := strconv.ParseInt(string(item), 10, 64)
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", pullID, err)

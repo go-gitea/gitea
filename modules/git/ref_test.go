@@ -19,10 +19,12 @@ func TestRefName(t *testing.T) {
 	assert.Equal(t, "release/foo", RefName("refs/tags/release/foo").TagName())
 
 	// Test pull names
-	assert.Equal(t, "1", RefName("refs/pull/1/head").PullName())
+	pullIndex, ok := RefName("refs/pull/1/head").PullIndex()
+	assert.True(t, ok)
+	assert.EqualValues(t, 1, pullIndex)
 	assert.True(t, RefName("refs/pull/1/head").IsPull())
 	assert.True(t, RefName("refs/pull/1/merge").IsPull())
-	assert.Equal(t, "my/pull", RefName("refs/pull/my/pull/head").PullName())
+	assert.Equal(t, "my/pull/head", RefName("refs/pull/my/pull/head").ShortName())
 
 	// Test for branch names
 	assert.Equal(t, "main", RefName("refs/for/main").ForBranchName())

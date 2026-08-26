@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/repository"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
 )
 
 type automergeNotifier struct {
@@ -48,7 +49,16 @@ func (n *automergeNotifier) PullReviewDismiss(ctx context.Context, doer *user_mo
 }
 
 func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
-	if status.State.IsSuccess() {
-		automergequeue.StartPRCheckAndAutoMergeByCommit(repo.ID, commit.Sha1)
+	if !status.State.IsSuccess() {
+		return
+	}
+
+	pulls, err := pull_service.GetMergeablePullRequestsByHeadCommitID(ctx, repo, commit.Sha1)
+	if err != nil {
+		log.Error("GetMergeablePullRequestsByHeadCommitID: %v", err)
+		return
+	}
+	for _, pr := range pulls {
+		automergequeue.StartPRCheckAndAutoMerge(pr)
 	}
 }
