@@ -27,9 +27,7 @@ func TestAPIDeleteRepositoryRequiresTargetRepoAdmin(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
 	unrelatedRepo, err := repo_service.CreateRepository(t.Context(), owner, org, repo_service.CreateRepoOptions{Name: "unrelated-admin-team"})
 	require.NoError(t, err)
-	defer func() {
-		_ = repo_service.DeleteRepositoryDirectly(t.Context(), unrelatedRepo.ID)
-	}()
+
 	targetRepo, err := repo_service.CreateRepository(t.Context(), owner, org, repo_service.CreateRepoOptions{Name: "target-admin-team"})
 	require.NoError(t, err)
 	require.NoError(t, repo_service.TeamAddRepository(t.Context(), team, targetRepo))
