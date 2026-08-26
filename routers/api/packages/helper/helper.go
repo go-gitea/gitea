@@ -4,6 +4,7 @@
 package helper
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,14 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 )
+
+// PackageErrorStatus returns the status to report for a package lookup error: 404 for a missing package or file, 500 otherwise.
+func PackageErrorStatus(err error) int {
+	if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
+		return http.StatusNotFound
+	}
+	return http.StatusInternalServerError
+}
 
 // ProcessErrorForUser logs the error and returns a user-error message for the end user.
 // If the status is http.StatusInternalServerError, the message is stripped for non-admin users in production.
