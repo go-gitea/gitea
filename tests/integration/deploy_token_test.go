@@ -10,6 +10,7 @@ import (
 	deploykey_model "gitea.dev/models/deploykey"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	lfs_module "gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -20,6 +21,9 @@ import (
 
 func TestDeployTokenGitHTTP(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	// need to disable agit, otherwise the "write" permission check is skipped at pre-receive (git-receive-pack) step
+	defer test.MockVariableValue(&git.DefaultFeatures().SupportProcReceive, false)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
