@@ -414,7 +414,7 @@ func GetDoerRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	if taskID, ok := user_model.GetActionsUserTaskID(user); ok {
 		return GetActionsUserRepoPermission(ctx, repo, user, taskID)
 	}
-	if keyID, ok := user_model.GetDeployKeyUserKeyID(user); ok {
+	if keyID, ok := user_model.GetDeployKeyUserDeployKeyID(user); ok {
 		return getDeployKeyRepoPermission(ctx, repo, keyID)
 	}
 	return GetIndividualUserRepoPermission(ctx, repo, user)

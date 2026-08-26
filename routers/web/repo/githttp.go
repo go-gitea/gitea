@@ -144,7 +144,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 	}
 
-	deployKeyID, isDeployKey := user_model.GetDeployKeyUserKeyID(ctx.Doer)
+	deployKeyID, isDeployKey := user_model.GetDeployKeyUserDeployKeyID(ctx.Doer)
 
 	// check access
 	if !canAnonymousPull { // not public pull, then either the pull needs auth, or the push needs "write" permission, so ask auth
@@ -172,7 +172,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["ApiTokenScope"] == nil && !ctx.Doer.IsGiteaActions() {
+		if ctx.IsBasicAuth && ctx.Data["ApiTokenScope"] == nil && ctx.Doer.IsIndividual() {
 			_, err = auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented

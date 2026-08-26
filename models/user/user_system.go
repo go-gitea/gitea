@@ -4,7 +4,6 @@
 package user
 
 import (
-	"strconv"
 	"strings"
 
 	"gitea.dev/modules/structs"
@@ -32,94 +31,66 @@ func (u *User) IsGhost() bool {
 	return u.ID == GhostUserID && u.Name == GhostUserName
 }
 
-const (
-	ActionsUserID    int64 = -2
-	ActionsUserName        = "gitea-actions"
-	ActionsUserEmail       = "teabot@gitea.io"
-)
-
-// NewActionsUser creates and returns a fake user for running the actions.
-func NewActionsUser() *User {
+// newSystemUser creates and returns a fake user for system use.
+// The builtin username should be wrapped in parentheses to avoid conflicts with real usernames.
+func newSystemUser(id int64, name, fullName string) *User {
 	return &User{
-		ID:               ActionsUserID,
-		Name:             ActionsUserName,
-		LowerName:        ActionsUserName,
-		IsActive:         true,
-		FullName:         "Gitea Actions",
-		Email:            ActionsUserEmail,
-		KeepEmailPrivate: true,
-		LoginName:        ActionsUserName,
-		Type:             UserTypeBot,
-		Visibility:       structs.VisibleTypePublic,
-	}
-}
-
-// withSystemUserRefID marks a system user as acting for one credential.
-// LoginName is for only internal usage in this case, so it can be moved to other fields in the future.
-func withSystemUserRefID(u *User, id int64) *User {
-	u.LoginSource = -1
-	u.LoginName = "@" + u.Name + "/" + strconv.FormatInt(id, 10)
-	return u
-}
-
-func systemUserRefID(u *User, systemUserID int64, name string) (int64, bool) {
-	if u == nil || u.ID != systemUserID {
-		return 0, false
-	}
-	prefix, payload, _ := strings.Cut(u.LoginName, "/")
-	if prefix != "@"+name {
-		return 0, false
-	} else if id, err := strconv.ParseInt(payload, 10, 64); err == nil {
-		return id, true
-	}
-	return 0, false
-}
-
-func NewActionsUserWithTaskID(id int64) *User {
-	return withSystemUserRefID(NewActionsUser(), id)
-}
-
-func GetActionsUserTaskID(u *User) (int64, bool) {
-	return systemUserRefID(u, ActionsUserID, ActionsUserName)
-}
-
-func (u *User) IsGiteaActions() bool {
-	return u != nil && u.ID == ActionsUserID
-}
-
-const (
-	DeployKeyUserID   int64 = -3
-	DeployKeyUserName       = "gitea-deploy-key"
-)
-
-// NewDeployKeyUser creates and returns a fake user for a request authenticated by a deploy key.
-// It is never the owner of anything, it only carries the key whose permissions the request gets.
-func NewDeployKeyUser() *User {
-	return &User{
-		ID:         DeployKeyUserID,
-		Name:       DeployKeyUserName,
-		LowerName:  DeployKeyUserName,
+		ID:         id,
+		Name:       name,
+		LowerName:  strings.ToLower(name),
 		IsActive:   true,
-		FullName:   "Gitea Deploy Key",
-		LoginName:  DeployKeyUserName,
+		FullName:   fullName,
 		Type:       UserTypeBot,
 		Visibility: structs.VisibleTypePublic,
 	}
 }
 
-func NewDeployKeyUserWithKeyID(id int64) *User {
-	return withSystemUserRefID(NewDeployKeyUser(), id)
+const ActionsUserID int64 = -2
+
+// NewActionsUser creates and returns a fake user for running the actions.
+func NewActionsUser() *User {
+	return newSystemUser(ActionsUserID, "(gitea-actions)", "Gitea Actions")
 }
 
-func GetDeployKeyUserKeyID(u *User) (int64, bool) {
-	return systemUserRefID(u, DeployKeyUserID, DeployKeyUserName)
+func NewActionsUserWithTaskID(id int64) *User {
+	u := NewActionsUser()
+	u.ExtDoerData = &extDoerGiteaActions{TaskID: id}
+	return u
+}
+
+func GetActionsUserTaskID(u *User) (int64, bool) {
+	if u == nil || u.ExtDoerData == nil {
+		return 0, false
+	}
+	extData := u.ExtDoerData.(*extDoerGiteaActions)
+	return extData.TaskID, true
+}
+
+func NewDeployKeyUser() *User {
+	return newSystemUser(-3, "(deploy-key)", "Deploy Key")
+}
+
+func NewDeployKeyUserWithKeyID(id int64) *User {
+	u := NewDeployKeyUser()
+	u.ExtDoerData = &extDoerDeployKey{DeployKeyID: id}
+	return u
+}
+
+func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
+	// ok, the function name seems wordy, it is intentionally to distinguish from other "keys" like "public key id"
+	// it was a mess in the "pre-receive" hook code
+	if u == nil || u.ExtDoerData == nil {
+		return 0, false
+	}
+	extData := u.ExtDoerData.(*extDoerDeployKey)
+	return extData.DeployKeyID, true
 }
 
 func GetSystemUserByName(name string) *User {
-	for _, newFunc := range globalVars().systemUserNewFuncs {
-		if u := newFunc(); strings.EqualFold(name, u.Name) {
-			return u
-		}
+	lowerName := strings.ToLower(name)
+	uid := globalVars().systemUserNameIdMap[lowerName]
+	if fn := globalVars().systemUserNewFuncs[uid]; fn != nil {
+		return fn()
 	}
 	return nil
 }
