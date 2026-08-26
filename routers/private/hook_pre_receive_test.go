@@ -46,6 +46,10 @@ func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	// The pusher is the base repo owner (the maintainer) with only read access on the head repo.
 	mockCtx, _ := contexttest.MockPrivateContext(t, "/")
 	ctx := &preReceiveContext{PrivateContext: mockCtx}
+	ctx.SetPathParam("owner", headRepo.OwnerName)
+	ctx.SetPathParam("repo", headRepo.Name)
+	RepoAssignment(ctx.PrivateContext)
+	loadContextDoerPermission(ctx.PrivateContext, baseRepo.OwnerID, "")
 
 	// The granted branch must be writable...
 	assert.True(t, ctx.canWriteCodeRef(git.RefNameFromBranch("granted-branch")))

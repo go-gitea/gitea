@@ -50,6 +50,7 @@ func loadContextDoerPermission(ctx *gitea_context.PrivateContext, userID int64, 
 		ctx.PrivateInternalErrorf("Failed to get user: %d, error: %v", userID, err)
 		return false
 	}
+	ctx.Doer = doer
 	ctx.Repo.Permission, err = access.GetDoerRepoPermission(ctx, ctx.Repo.Repository, doer)
 	if err != nil {
 		ctx.PrivateInternalErrorf("Failed to get permission for user: %d, error: %v", userID, err)
