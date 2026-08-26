@@ -256,7 +256,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		if results.IsWiki {
 			return fail(ctx, "LFS Transfer is not supported for wikis", "")
 		}
-		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, UserExtDoerData: results.UserExtDoerData, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}
@@ -270,7 +270,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		}
 		lfsTokenHref := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, UserExtDoerData: results.UserExtDoerData, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}

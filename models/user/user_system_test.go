@@ -6,6 +6,8 @@ package user
 import (
 	"testing"
 
+	"gitea.dev/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,6 +33,9 @@ func TestSystemUser(t *testing.T) {
 	u = GetSystemUserByName("Gitea-actionS")
 	require.NotNil(t, u)
 	assert.Equal(t, "Gitea Actions", u.FullName)
+
+	assert.Equal(t, "-2+gitea-actions@"+setting.Service.NoReplyAddress, u.NewGitSig().Email)
+	assert.Equal(t, "-3+(deploy-key)@"+setting.Service.NoReplyAddress, NewDeployKeyUser().NewGitSig().Email)
 
 	uid, u, err = GetPossibleUserByID(t.Context(), 999999)
 	require.NoError(t, err)

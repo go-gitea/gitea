@@ -850,18 +850,18 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 // ToDeployKey convert deploykey_model.DeployKey to api.DeployKey
 func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *deploykey_model.DeployKey) *api.DeployKey {
 	k := &api.DeployKey{
-		ID:       deployKey.ID,
-		KeyType:  util.Iif(deployKey.KeyType == deploykey_model.KeyTypeSSH, "ssh", "token"),
-		KeyID:    deployKey.KeyID,
-		Token:    deployKey.Token,
-		URL:      repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
-		Title:    deployKey.Name,
-		Created:  deployKey.CreatedUnix.AsTime(),
-		ReadOnly: deployKey.IsReadOnly(),
+		ID:          deployKey.ID,
+		KeyType:     util.Iif(deployKey.KeyType == deploykey_model.KeyTypeSSH, "ssh", "token"),
+		KeyID:       deployKey.KeyID,
+		Token:       deployKey.Token,
+		URL:         repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
+		Title:       deployKey.Name,
+		Fingerprint: deployKey.Fingerprint,
+		Created:     deployKey.CreatedUnix.AsTime(),
+		ReadOnly:    deployKey.IsReadOnly(),
 	}
 	if deployKey.KeyType == deploykey_model.KeyTypeSSH && deployKey.LoadPublicKey(ctx) == nil {
 		k.Key = deployKey.PublicKey.Content
-		k.Fingerprint = deployKey.PublicKey.Fingerprint
 	}
 	return k
 }

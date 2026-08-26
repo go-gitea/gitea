@@ -223,8 +223,11 @@ func TestCreateDeployToken(t *testing.T) {
 
 	// a token is listed and deleted like a deploy key, but it is never readable again
 	resp := MakeRequest(t, NewRequest(t, "GET", keysURL).AddTokenAuth(token), http.StatusOK)
-	assert.Len(t, DecodeJSON(t, resp, []api.DeployKey{}), 1)
+	listed := DecodeJSON(t, resp, []api.DeployKey{})
+	assert.Len(t, listed, 1)
 	assert.NotContains(t, resp.Body.String(), created.Token)
+	assert.Equal(t, created.Fingerprint, listed[0].Fingerprint)
+	assert.Contains(t, created.Fingerprint, "********")
 
 	MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", keysURL, created.ID)).AddTokenAuth(token), http.StatusNoContent)
 	resp = MakeRequest(t, NewRequest(t, "GET", keysURL).AddTokenAuth(token), http.StatusOK)
