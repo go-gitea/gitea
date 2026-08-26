@@ -866,26 +866,22 @@ td .commit-summary {
 }
 
 .diff-stats-row {
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: calc(100% + 2em);
+  margin: 0 -1em -1em;
+  padding: 8px 1em;
+  border-top: 1px solid var(--color-secondary);
 }
 
-@media (max-width: 800px) {
-  .diff-stats-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    width: calc(100% + 2em);
-    margin: 0 -1em -1em;
-    padding: 8px 1em;
-    border-top: 1px solid var(--color-secondary);
-  }
-  .diff-stats-row .diff-stats-bar {
-    background: var(--color-red);
-  }
-  .diff-stats-row .diff-stats-add-bar {
-    background: var(--color-green);
-  }
+.diff-stats-row .diff-stats-bar {
+  background: var(--color-red);
+}
+
+.diff-stats-row .diff-stats-add-bar {
+  background: var(--color-green);
 }
 
 .diff-detail-actions {
