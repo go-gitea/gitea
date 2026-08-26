@@ -427,6 +427,15 @@ func reqOwner() func(ctx *context.APIContext) {
 	}
 }
 
+func reqRepoDangerZone() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission) {
+			ctx.APIError(http.StatusForbidden, "user has no permission to manage the danger zone")
+			return
+		}
+	}
+}
+
 // reqSelfOrAdmin doer should be the same as the contextUser or site admin
 func reqSelfOrAdmin() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -795,7 +804,7 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 }
 
 func mustEnableWiki(ctx *context.APIContext) {
-	if !(ctx.Repo.Permission.CanRead(unit.TypeWiki)) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeWiki) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -988,19 +997,8 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 
 func individualPermsChecker(ctx *context.APIContext) {
 	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
-	if ctx.ContextUser.IsIndividual() {
-		switch ctx.ContextUser.Visibility {
-		case api.VisibleTypePrivate:
-			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-				ctx.APIErrorNotFound()
-				return
-			}
-		case api.VisibleTypeLimited:
-			if ctx.Doer == nil {
-				ctx.APIErrorNotFound()
-				return
-			}
-		}
+	if ctx.ContextUser.IsIndividual() && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.APIErrorNotFound()
 	}
 }
 
@@ -1166,7 +1164,7 @@ func Routes() *web.Router {
 				m.Get("/starred", reqStarsEnabled(), user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+			}, context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
@@ -1310,17 +1308,17 @@ func Routes() *web.Router {
 			m.Get("/search", repo.Search)
 
 			// (repo scope)
-			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
+			m.Post("/migrate", reqToken(), rejectPublicOnly(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
-					Delete(reqToken(), reqOwner(), repo.Delete).
+					Delete(reqToken(), reqRepoDangerZone(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Group("/transfer", func() {
-					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
+					m.Post("", reqRepoDangerZone(), bind(api.TransferRepoOption{}), repo.Transfer)
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
@@ -1791,16 +1789,16 @@ func Routes() *web.Router {
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
-		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
+		m.Get("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), org.GetAll)
 		m.Group("/orgs/{org}", func() {
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
 			m.Combo("/repos").Get(user.ListOrgRepos).
-				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
+				Post(reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
 				Delete(reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.DeleteOrgRepos)
 			m.Group("/members", func() {
 				m.Get("", reqToken(), org.ListMembers)
@@ -1889,6 +1887,7 @@ func Routes() *web.Router {
 				m.Post("/{task}", admin.PostCronTask)
 			})
 			m.Get("/orgs", admin.GetAllOrgs)
+			m.Get("/packages", admin.ListPackages)
 			m.Group("/users", func() {
 				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)

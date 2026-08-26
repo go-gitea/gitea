@@ -152,6 +152,10 @@ type ListDeployKeysOptions struct {
 	Fingerprint string
 }
 
+func (opt ListDeployKeysOptions) ToOrders() string {
+	return "name"
+}
+
 func (opt ListDeployKeysOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"repo_id": opt.RepoID}) // repo ID must be used
