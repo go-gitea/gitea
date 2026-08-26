@@ -140,7 +140,7 @@ func TestMarkPullRequestAsMergeable(t *testing.T) {
 
 	select {
 	case item := <-addToQueuePullChan:
-		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), item)
+		assert.EqualValues(t, "pr:2:985f0301dba5e7b34be866819cd15ad3d8f508ee", item) // ref: refs/pull/3/head
 	case <-time.After(1 * time.Second):
 		assert.FailNow(t, "Timeout: nothing was added to automergequeue")
 	}

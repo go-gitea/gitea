@@ -83,20 +83,21 @@ func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
 	defer finished()
 
 	fields := strings.Split(string(item), ":")
-	if len(fields) < 2 || fields[0] != "pr" {
+	if len(fields) != 3 || fields[0] != "pr" {
 		return
 	}
-	pullID, _ := strconv.ParseInt(fields[1], 10, 64)
+	pullIDStr, headCommitID := fields[1], fields[2]
+	pullID, _ := strconv.ParseInt(pullIDStr, 10, 64)
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", pullID, err)
 		return
 	}
-	handlePullRequestAutoMerge(ctx, pr)
+	handlePullRequestAutoMerge(ctx, pr, headCommitID)
 }
 
 // handlePullRequestAutoMerge merge the pull request if all checks are successful
-func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullRequest) {
+func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullRequest, expectedHeadCommitID string) {
 	_ = pr.LoadIssue(ctx)
 	if (pr.Issue != nil && pr.Issue.IsClosed) || pr.HasMerged {
 		// if the PR has been closed or merged, delete the automerge record and skip
@@ -123,6 +124,24 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 
 	if err = pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("%-v LoadBaseRepo: %v", pr, err)
+		return
+	}
+
+	// check the sha is the same as pull request head commit id
+	baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		log.Error("OpenRepository: %v", err)
+		return
+	}
+	defer baseGitRepo.Close()
+
+	headCommitID, err := baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+	if err != nil {
+		log.Debug("GetRefCommitID: %v", err)
+		return
+	}
+	if headCommitID != expectedHeadCommitID {
+		log.Debug("Head commit id of auto merge %-v does not match sha [%s], it may means the head branch has been updated. Just ignore this request because a new request expected in the queue", pr, sha)
 		return
 	}
 
