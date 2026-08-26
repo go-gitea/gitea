@@ -23,7 +23,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
-	if loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}
 

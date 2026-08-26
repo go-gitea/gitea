@@ -3973,8 +3973,7 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
-      "CreateDeployTokenOption": {
-        "description": "CreateDeployTokenOption options when creating a deploy token",
+      "CreateDeployKeyTokenOption": {
         "properties": {
           "read_only": {
             "description": "Describe if the token has only read access or read/write",
@@ -4248,7 +4247,6 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "CreateKeyOption": {
-        "description": "CreateKeyOption options when creating a key",
         "properties": {
           "key": {
             "description": "An armored SSH key to add",
@@ -5216,10 +5214,9 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "DeployKey": {
-        "description": "DeployKey a deploy key",
         "properties": {
           "created_at": {
-            "description": "Created is the time when the deploy key was added",
+            "description": "Created is the time when the deploy-key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -5230,7 +5227,7 @@
             "x-go-name": "Fingerprint"
           },
           "id": {
-            "description": "ID is the unique identifier for the deploy key",
+            "description": "ID is the unique identifier for the deploy-key",
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
@@ -5245,6 +5242,15 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "KeyID"
+          },
+          "key_type": {
+            "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+            "enum": [
+              "ssh",
+              "token"
+            ],
+            "type": "string",
+            "x-go-name": "KeyType"
           },
           "read_only": {
             "description": "ReadOnly indicates if the key has read-only access",
@@ -5264,17 +5270,8 @@
             "type": "string",
             "x-go-name": "Token"
           },
-          "type": {
-            "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
-            "enum": [
-              "ssh",
-              "token"
-            ],
-            "type": "string",
-            "x-go-name": "Type"
-          },
           "url": {
-            "description": "URL is the API URL for this deploy key",
+            "description": "URL is the API URL for this deploy-key",
             "format": "uri",
             "type": "string",
             "x-go-name": "URL"
@@ -26605,7 +26602,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDeployTokenOption"
+                "$ref": "#/components/schemas/CreateDeployKeyTokenOption"
               }
             }
           },

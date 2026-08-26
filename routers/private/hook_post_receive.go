@@ -98,7 +98,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		setting.PanicInDevOrTesting("wiki hook-post-receive is not supported")
 		return
 	}
-	if loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}
 

@@ -87,7 +87,7 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm[*private.HookOptions](ctx)
-	if loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}
 

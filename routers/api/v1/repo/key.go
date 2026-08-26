@@ -245,7 +245,7 @@ func CreateDeployToken(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateDeployTokenOption"
+	//     "$ref": "#/definitions/CreateDeployKeyTokenOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/DeployKey"
