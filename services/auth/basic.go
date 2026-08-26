@@ -54,7 +54,7 @@ func parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd str
 	uname, passwd := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 
 	// Check if username or password is a token
-	isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
+	isUsernameToken := passwd == "" || passwd == "x-oauth-basic"
 	// Assume username is token
 	authToken := uname
 	if !isUsernameToken {

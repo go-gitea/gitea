@@ -20,7 +20,7 @@
 					<input name="title" autofocus required>
 				</div>
 				<div class="field">
-					<label>{{ctx.Locale.Tr "repo.settings.deploy_key_content"}}</label>
+					<label>{{ctx.Locale.Tr "settings.key_content"}}</label>
 					<textarea name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required></textarea>
 				</div>
 				<div class="field">
@@ -38,7 +38,7 @@
 
 		<div class="tw-hidden tw-mb-4" id="add-deploy-key-token-panel">
 			<form class="ui form form-fetch-action" action="{{.Link}}/generate-token" method="post">
-				<div class="field">{{ctx.Locale.Tr "repo.settings.deploy_token_desc"}}</div>
+				<div class="field">{{ctx.Locale.Tr "repo.settings.deploy_key_token_desc"}}</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.title"}}</label>
 					<input name="title" autofocus required>
@@ -67,7 +67,7 @@
 </div>
 
 <div class="ui small modal" id="repo-deploy-token-regenerate-modal">
-	<div class="header">{{svg "octicon-sync"}} {{ctx.Locale.Tr "repo.settings.regenerate_deploy_token"}}</div>
+	<div class="header">{{svg "octicon-sync"}} {{ctx.Locale.Tr "settings.regenerate_token"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.regenerate_deploy_token_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

@@ -56,7 +56,7 @@ func RegenerateDeployKeyToken(ctx context.Context, repoID, keyID int64) (*Deploy
 	}
 
 	key.generateToken()
-	_, err = db.GetEngine(ctx).ID(key.ID).Cols("token_hash").NoAutoTime().Update(key)
+	_, err = db.GetEngine(ctx).ID(key.ID).Cols("token_hash", "fingerprint").NoAutoTime().Update(key)
 	return key, err
 }
 
