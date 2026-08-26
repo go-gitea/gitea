@@ -245,6 +245,16 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 }
 
 func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
+	// System users (e.g. ActionsUserID -2, GhostUserID -1) have no user row
+	// in the user table; GetPossibleUserByID resolves them from the
+	// system-user registry instead of returning ErrUserNotExist.
+	if id < 0 {
+		_, u, err := user_model.GetPossibleUserByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return u, nil
+	}
 	return cache.GetWithContextCache(ctx, cachegroup.User, id, user_model.GetUserByID)
 }
 
