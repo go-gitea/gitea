@@ -215,6 +215,10 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	issues := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.ProjectColumnIssue{})
 	require.Len(t, issues, 1)
 	assert.Equal(t, scope.issueID, issues[0].Issue.ID)
+	// the issue fields stay inlined, so a client reading plain issues is unaffected
+	plain := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{})
+	require.Len(t, plain, 1)
+	assert.Equal(t, scope.issueID, plain[0].ID)
 
 	// the sibling column must not report the same issue
 	req = NewRequest(t, "GET", fmt.Sprintf("%s/columns/%d/issues", projectURL, columnIDs[0])).AddTokenAuth(token)
