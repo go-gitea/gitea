@@ -568,6 +568,27 @@ func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchNam
 	return nil
 }
 
+func DeleteIssueDevLinkByBranchName(ctx context.Context, repoID int64, branchName string) error {
+	branches, err := git_model.GetBranches(ctx, repoID, []string{branchName}, true)
+	if err != nil {
+		return err
+	}
+	if len(branches) == 0 {
+		return nil
+	}
+
+	branchIDs := make([]int64, 0, len(branches))
+	for _, branch := range branches {
+		branchIDs = append(branchIDs, branch.ID)
+	}
+
+	_, err = db.GetEngine(ctx).
+		Where("linked_repo_id = ? AND link_type = ?", repoID, issues_model.IssueDevLinkTypeBranch).
+		In("link_id", branchIDs).
+		Delete(new(issues_model.IssueDevLink))
+	return err
+}
+
 func deleteBranchInternal(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, branchName string, branchCommit *git.Commit) (branchExisted bool, err error) {
 	activeInDB, err := git_model.IsBranchExist(ctx, repo.ID, branchName)
 	if err != nil {
@@ -579,6 +600,10 @@ func deleteBranchInternal(ctx context.Context, doer *user_model.User, repo *repo
 		if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, branchName, doer.ID); err != nil {
 			return false, err
 		}
+	}
+
+	if err := DeleteIssueDevLinkByBranchName(ctx, repo.ID, branchName); err != nil {
+		return false, err
 	}
 
 	// process the branch in git

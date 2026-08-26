@@ -8,9 +8,11 @@ import "gitea.dev/modules/web/middleware"
 // NewBranchForm form for creating a new branch
 type NewBranchForm struct {
 	middleware.FormDefaultValidator
-	NewBranchName string `binding:"Required;MaxSize(100);GitRefName"`
-	CurrentPath   string
-	CreateTag     bool
+	NewBranchName    string `binding:"Required;MaxSize(100);GitRefName"`
+	RepoID           int64
+	SourceBranchName string
+	CurrentPath      string
+	CreateTag        bool
 }
 
 // RenameBranchForm form for rename a branch

@@ -61,6 +61,9 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 			continue
 		}
 		if update.IsDelRef() {
+			if err := repo_service.DeleteIssueDevLinkByBranchName(ctx, repo.ID, update.RefFullName.BranchName()); err != nil {
+				log.Error("Failed to DeleteIssueDevLinkByBranchName: %s/%s %s Error: %v", repo.OwnerName, repo.Name, update.RefFullName.BranchName(), err)
+			}
 			if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
 				ctx.PrivateInternalErrorf("failed to mark branch %s as deleted: %v", update.RefFullName, err)
 				return false
