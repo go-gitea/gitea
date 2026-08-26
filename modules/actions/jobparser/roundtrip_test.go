@@ -68,7 +68,6 @@ jobs:
 
 // Typing a step's continue-on-error as a bool used to reject the whole `jobs:` node.
 func TestSingleWorkflowRoundTripStepContinueOnError(t *testing.T) {
-	// inline rather than a testdata fixture, as yamllint rejects the non-canonical spellings
 	const wf = `name: demo
 on: push
 jobs:
