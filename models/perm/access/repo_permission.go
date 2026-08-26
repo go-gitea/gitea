@@ -33,6 +33,8 @@ type Permission struct {
 
 	everyoneAccessMode  map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for every signed-in user
 	anonymousAccessMode map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for anonymous (non-signed-in) user
+
+	orgTeams []*organization.Team
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -459,11 +461,11 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	perm.AccessMode = max(perm.AccessMode, minAccessMode)
 
 	// get units mode from teams
-	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
+	perm.orgTeams, err = organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return perm, err
 	}
-	if len(teams) == 0 {
+	if len(perm.orgTeams) == 0 {
 		return perm, nil
 	}
 
@@ -477,7 +479,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	// if user in an owner team
-	for _, team := range teams {
+	for _, team := range perm.orgTeams {
 		if team.IsOwnerTeam() || team.AccessMode == perm_model.AccessModeOwner {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.unitsMode = nil
@@ -486,7 +488,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	for _, u := range repo.Units {
-		for _, team := range teams {
+		for _, team := range perm.orgTeams {
 			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
 			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
 			perm.unitsMode[u.Type] = unitAccessMode
@@ -496,11 +498,11 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	return perm, err
 }
 
-// IsUserRealRepoAdmin check if this user is real repo admin (but not a site admin who also has repo admin access)
 func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
 	return (user != nil && user.IsAdmin) || IsUserRealRepoAdmin(ctx, repo, user)
 }
 
+// IsUserRealRepoAdmin check if this user is real repo admin (but not a site admin who also has repo admin access)
 func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
 	if user == nil || repo == nil {
 		return false
@@ -683,4 +685,21 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 		return false, err
 	}
 	return botPerm.AccessMode >= perm_model.AccessModeRead, nil
+}
+
+func CanDoerManageRepoDangerZone(perm *Permission) bool {
+	if perm.IsOwner() {
+		return true
+	}
+
+	// FIXME: this is the legacy logic, "org repo admin" can delete a repo
+	// Ideally we need a new field in the Team like "CanAdminManageDangerZone" to control this permission, but for now we keep the legacy logic
+	if len(perm.orgTeams) != 0 {
+		for _, team := range perm.orgTeams {
+			if team.AccessMode >= perm_model.AccessModeAdmin {
+				return true
+			}
+		}
+	}
+	return false
 }

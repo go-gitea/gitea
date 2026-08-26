@@ -659,8 +659,8 @@ func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
 	return repo
 }
 
-func canChangeTeamRepository(ctx *context.APIContext, repo *repo_model.Repository) bool {
-	canChange, err := repo_module.CanUserChangeTeamAccess(ctx, repo, ctx.Doer)
+func canManageRepoCollaboratorTeam(ctx *context.APIContext, repo *repo_model.Repository) bool {
+	canChange, err := repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, repo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return false
@@ -708,7 +708,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx, repo) {
+	if !canManageRepoCollaboratorTeam(ctx, repo) {
 		return
 	}
 	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
@@ -756,7 +756,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx, repo) {
+	if !canManageRepoCollaboratorTeam(ctx, repo) {
 		return
 	}
 	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {

@@ -226,7 +226,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 }
 
 func canChangeRepoTeam(ctx *context.APIContext) bool {
-	canChange, err := repo_module.CanUserChangeTeamAccess(ctx, ctx.Repo.Repository, ctx.Doer)
+	canChange, err := repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return false

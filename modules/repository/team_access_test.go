@@ -24,29 +24,29 @@ func TestCanUserChangeTeamAccess(t *testing.T) {
 	orgOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	siteAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	canChange, err := CanUserChangeTeamAccess(t.Context(), repo, nil)
+	canChange, err := CanDoerManageRepoCollaboratorTeam(t.Context(), nil, repo)
 	require.NoError(t, err)
 	assert.False(t, canChange)
-	canChange, err = CanUserChangeTeamAccess(t.Context(), repo, siteAdmin)
+	canChange, err = CanDoerManageRepoCollaboratorTeam(t.Context(), siteAdmin, repo)
 	require.NoError(t, err)
 	assert.True(t, canChange)
-	canChange, err = CanUserChangeTeamAccess(t.Context(), repo, orgOwner)
+	canChange, err = CanDoerManageRepoCollaboratorTeam(t.Context(), orgOwner, repo)
 	require.NoError(t, err)
 	assert.True(t, canChange)
 
 	repo.Owner.RepoAdminChangeTeamAccess = true
-	canChange, err = CanUserChangeTeamAccess(t.Context(), repo, repoAdmin)
+	canChange, err = CanDoerManageRepoCollaboratorTeam(t.Context(), repoAdmin, repo)
 	require.NoError(t, err)
 	assert.False(t, canChange)
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
 	require.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: team.OrgID, TeamID: team.ID, RepoID: repo.ID}))
-	canChange, err = CanUserChangeTeamAccess(t.Context(), repo, repoAdmin)
+	canChange, err = CanDoerManageRepoCollaboratorTeam(t.Context(), repoAdmin, repo)
 	require.NoError(t, err)
 	assert.True(t, canChange)
 
 	repo.Owner.RepoAdminChangeTeamAccess = false
-	canChange, err = CanUserChangeTeamAccess(t.Context(), repo, repoAdmin)
+	canChange, err = CanDoerManageRepoCollaboratorTeam(t.Context(), repoAdmin, repo)
 	require.NoError(t, err)
 	assert.False(t, canChange)
 }

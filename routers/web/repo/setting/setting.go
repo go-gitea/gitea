@@ -13,6 +13,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -22,7 +23,6 @@ import (
 	"gitea.dev/modules/indexer/stats"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
@@ -54,6 +54,14 @@ type selectOption struct {
 	Value    string
 	Text     template.HTML
 	Selected bool
+}
+
+func canDoerManageRepoDangerZone(ctx *context.Context) bool {
+	if !access_model.CanDoerManageRepoDangerZone(&ctx.Repo.Permission) {
+		ctx.JSONErrorNotFound()
+		return false
+	}
+	return true
 }
 
 // SettingsCtxData is a middleware that sets all the general context data for the
@@ -775,12 +783,12 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 }
 
 func handleSettingsPostConvert(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
-	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
-		ctx.JSONErrorNotFound()
+	if !canDoerManageRepoDangerZone(ctx) {
 		return
 	}
+
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	repo := ctx.Repo.Repository
 	if repo.Name != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
@@ -805,12 +813,12 @@ func handleSettingsPostConvert(ctx *context.Context) {
 }
 
 func handleSettingsPostConvertFork(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
-	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
-		ctx.JSONErrorNotFound()
+	if !canDoerManageRepoDangerZone(ctx) {
 		return
 	}
+
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	repo := ctx.Repo.Repository
 	if err := repo.LoadOwner(ctx); err != nil {
 		ctx.ServerError("Convert Fork", err)
 		return
@@ -845,12 +853,12 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 }
 
 func handleSettingsPostTransfer(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
-	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
-		ctx.JSONErrorNotFound()
+	if !canDoerManageRepoDangerZone(ctx) {
 		return
 	}
+
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	repo := ctx.Repo.Repository
 	if repo.Name != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
@@ -909,12 +917,11 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 }
 
 func handleSettingsPostCancelTransfer(ctx *context.Context) {
-	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
-		ctx.HTTPError(http.StatusNotFound)
+	if !canDoerManageRepoDangerZone(ctx) {
 		return
 	}
 
+	repo := ctx.Repo.Repository
 	repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
 	if err != nil {
 		if repo_model.IsErrNoPendingTransfer(err) {
@@ -937,17 +944,12 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 }
 
 func handleSettingsPostDelete(ctx *context.Context) {
+	if !canDoerManageRepoDangerZone(ctx) {
+		return
+	}
+
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("CanUserDelete", err)
-		return
-	}
-	if !canDelete {
-		ctx.JSONErrorNotFound()
-		return
-	}
 	if repo.Name != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
@@ -969,12 +971,11 @@ func handleSettingsPostDelete(ctx *context.Context) {
 }
 
 func handleSettingsPostDeleteWiki(ctx *context.Context) {
-	form := web.GetForm[*forms.RepoSettingForm](ctx)
-	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
-		ctx.JSONErrorNotFound()
+	if !canDoerManageRepoDangerZone(ctx) {
 		return
 	}
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
+	repo := ctx.Repo.Repository
 	if repo.Name != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
@@ -991,12 +992,11 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 }
 
 func handleSettingsPostArchive(ctx *context.Context) {
-	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
-		ctx.HTTPError(http.StatusForbidden)
+	if !canDoerManageRepoDangerZone(ctx) {
 		return
 	}
 
+	repo := ctx.Repo.Repository
 	if repo.IsMirror {
 		ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -1024,12 +1024,11 @@ func handleSettingsPostArchive(ctx *context.Context) {
 }
 
 func handleSettingsPostUnarchive(ctx *context.Context) {
-	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
-		ctx.HTTPError(http.StatusForbidden)
+	if !canDoerManageRepoDangerZone(ctx) {
 		return
 	}
 
+	repo := ctx.Repo.Repository
 	if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
 		log.Error("Tried to unarchive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
@@ -1053,6 +1052,10 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 }
 
 func handleSettingsPostVisibility(ctx *context.Context) {
+	if !canDoerManageRepoDangerZone(ctx) {
+		return
+	}
+
 	repo := ctx.Repo.Repository
 	if repo.IsFork {
 		ctx.JSONError(ctx.Tr("repo.settings.visibility.fork_error"))
@@ -1061,7 +1064,7 @@ func handleSettingsPostVisibility(ctx *context.Context) {
 
 	private := ctx.FormOptionalBool("private").ValueOrDefault(true) // default to true for privacy & safety
 
-	// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
+	// when ForcePrivate enabled, you could change public repo to private, only site admin users can change private to public
 	if !private && setting.Repository.ForcePrivate && !ctx.Doer.IsAdmin {
 		ctx.JSONError(ctx.Tr("form.repository_force_private"))
 		return

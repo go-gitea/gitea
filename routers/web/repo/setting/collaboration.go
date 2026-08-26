@@ -45,7 +45,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
 	ctx.Data["Units"] = unit_model.Units
 	if ctx.Repo.Owner.IsOrganization() {
-		ctx.Data["CanChangeRepoTeamAccess"], err = repo_module.CanUserChangeTeamAccess(ctx, ctx.Repo.Repository, ctx.Doer)
+		ctx.Data["CanChangeRepoTeamAccess"], err = repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("CanChangeRepoTeamAccess", err)
 			return
@@ -163,7 +163,7 @@ func DeleteCollaboration(ctx *context.Context) {
 
 // AddTeamPost response for adding a team to a repository
 func AddTeamPost(ctx *context.Context) {
-	if !canChangeRepoTeamAccess(ctx) {
+	if !canManageRepoCollaboratorTeam(ctx) {
 		return
 	}
 
@@ -207,7 +207,7 @@ func AddTeamPost(ctx *context.Context) {
 
 // DeleteTeam response for deleting a team from a repository
 func DeleteTeam(ctx *context.Context) {
-	if !canChangeRepoTeamAccess(ctx) {
+	if !canManageRepoCollaboratorTeam(ctx) {
 		return
 	}
 
@@ -226,8 +226,8 @@ func DeleteTeam(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }
 
-func canChangeRepoTeamAccess(ctx *context.Context) bool {
-	canChange, err := repo_module.CanUserChangeTeamAccess(ctx, ctx.Repo.Repository, ctx.Doer)
+func canManageRepoCollaboratorTeam(ctx *context.Context) bool {
+	canChange, err := repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("CanChangeRepoTeamAccess", err)
 		return false
