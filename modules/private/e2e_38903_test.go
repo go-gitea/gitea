@@ -74,7 +74,9 @@ func startInternalAPITestServer(t *testing.T) (port int) {
 
 	ln, err := net.Listen("tcp", "0.0.0.0:0")
 	require.NoError(t, err)
-	port = ln.Addr().(*net.TCPAddr).Port
+	tcpAddr, ok := ln.Addr().(*net.TCPAddr)
+	require.True(t, ok)
+	port = tcpAddr.Port
 
 	srv := &httptest.Server{
 		Listener: ln,
