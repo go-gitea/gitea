@@ -32,7 +32,7 @@ func (u *User) IsGhost() bool {
 }
 
 // newSystemUser creates and returns a fake user for system use.
-// The builtin username should be wrapped in parentheses to avoid conflicts with real usernames.
+// The builtin username can be wrapped in parentheses to avoid conflicts with real usernames.
 func newSystemUser(id int64, name, fullName string) *User {
 	return &User{
 		ID:         id,
@@ -49,7 +49,15 @@ const ActionsUserID int64 = -2
 
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
-	return newSystemUser(ActionsUserID, "(gitea-actions)", "Gitea Actions")
+	return newSystemUser(ActionsUserID, "gitea-actions", "Gitea Actions")
+}
+
+func GetActionsUserTaskID(u *User) (int64, bool) {
+	if u == nil || u.ExtDoerData == nil || u.ID != ActionsUserID {
+		return 0, false
+	}
+	extData := u.ExtDoerData.(*extDoerGiteaActions) //nolint:forcetypeassert // must be valid
+	return extData.TaskID, true
 }
 
 func NewActionsUserWithTaskID(id int64) *User {
@@ -58,32 +66,24 @@ func NewActionsUserWithTaskID(id int64) *User {
 	return u
 }
 
-func GetActionsUserTaskID(u *User) (int64, bool) {
-	if u == nil || u.ExtDoerData == nil {
-		return 0, false
-	}
-	extData := u.ExtDoerData.(*extDoerGiteaActions)
-	return extData.TaskID, true
-}
-
 func NewDeployKeyUser() *User {
 	return newSystemUser(-3, "(deploy-key)", "Deploy Key")
+}
+
+func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
+	// ok, the function name seems wordy, it is intentionally to distinguish from other "keys" like "public key id"
+	// it was a mess in the "pre-receive" hook code
+	if u == nil || u.ExtDoerData == nil || u.ID != -3 {
+		return 0, false
+	}
+	extData := u.ExtDoerData.(*extDoerDeployKey) //nolint:forcetypeassert // must be valid
+	return extData.DeployKeyID, true
 }
 
 func NewDeployKeyUserWithKeyID(id int64) *User {
 	u := NewDeployKeyUser()
 	u.ExtDoerData = &extDoerDeployKey{DeployKeyID: id}
 	return u
-}
-
-func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
-	// ok, the function name seems wordy, it is intentionally to distinguish from other "keys" like "public key id"
-	// it was a mess in the "pre-receive" hook code
-	if u == nil || u.ExtDoerData == nil {
-		return 0, false
-	}
-	extData := u.ExtDoerData.(*extDoerDeployKey)
-	return extData.DeployKeyID, true
 }
 
 func GetSystemUserByName(name string) *User {
