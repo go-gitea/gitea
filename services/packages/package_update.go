@@ -50,12 +50,23 @@ func canDoerManagePackage(ctx context.Context, pkg *packages_model.Package, doer
 	if !owner.IsOrganization() {
 		return doer.ID == pkg.OwnerID
 	}
+
 	teams, _ := org_model.GetUserOrgTeams(ctx, owner.ID, doer.ID)
 	if teams.HasAllRepoAdminAccess() {
 		return true
 	}
-	teams, _ = org_model.GetUserRepoTeams(ctx, owner.ID, doer.ID, pkg.RepoID)
-	return teams.AnyRepoUnitMaxAccess(ctx, unit.TypePackages) >= perm.AccessModeAdmin
+
+	if pkg.RepoID != 0 {
+		// old behavior: repo admin can manage the package linked to the repo
+		teams, _ = org_model.GetUserRepoTeams(ctx, owner.ID, doer.ID, pkg.RepoID)
+		for _, team := range teams {
+			if team.AccessMode >= perm.AccessModeAdmin {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) error {

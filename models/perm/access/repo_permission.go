@@ -34,7 +34,7 @@ type Permission struct {
 	everyoneAccessMode  map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for every signed-in user
 	anonymousAccessMode map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for anonymous (non-signed-in) user
 
-	orgTeams []*organization.Team
+	orgRepoTeams []*organization.Team
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -461,11 +461,11 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	perm.AccessMode = max(perm.AccessMode, minAccessMode)
 
 	// get units mode from teams
-	perm.orgTeams, err = organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
+	perm.orgRepoTeams, err = organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return perm, err
 	}
-	if len(perm.orgTeams) == 0 {
+	if len(perm.orgRepoTeams) == 0 {
 		return perm, nil
 	}
 
@@ -479,7 +479,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	// if user in an owner team
-	for _, team := range perm.orgTeams {
+	for _, team := range perm.orgRepoTeams {
 		if team.IsOwnerTeam() || team.AccessMode == perm_model.AccessModeOwner {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.unitsMode = nil
@@ -488,7 +488,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	for _, u := range repo.Units {
-		for _, team := range perm.orgTeams {
+		for _, team := range perm.orgRepoTeams {
 			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
 			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
 			perm.unitsMode[u.Type] = unitAccessMode
@@ -694,7 +694,7 @@ func CanDoerManageRepoDangerZone(perm *Permission) bool {
 
 	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: this is the legacy logic, "org repo admin" can delete a repo
 	// Ideally we need a new field in the Team like "CanAdminManageDangerZone" to control this permission, but for now we keep the legacy logic
-	for _, team := range perm.orgTeams {
+	for _, team := range perm.orgRepoTeams {
 		if team.AccessMode >= perm_model.AccessModeAdmin {
 			return true
 		}
