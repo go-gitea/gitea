@@ -3,7 +3,7 @@ import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import type {FomanticApiResponse} from '../types.ts';
+import type {FomanticApiResponse, JQueryElem} from '../types.ts';
 
 const {appSubUrl} = window.config;
 
@@ -138,7 +138,7 @@ export function initRepoTopicBar() {
       this.attr('data-value', value).contents().first().replaceWith(value);
       return fomanticQuery(this);
     },
-    onAdd(addedValue: string, _addedText: any, $addedChoice: JQuery) {
+    onAdd(addedValue: string, _addedText: any, $addedChoice: JQueryElem) {
       addedValue = addedValue.toLowerCase().trim();
       $addedChoice[0].setAttribute('data-value', addedValue);
       $addedChoice[0].setAttribute('data-text', addedValue);

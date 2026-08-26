@@ -67,6 +67,10 @@ export type Issue = {
   labels: Array<Label>,
 };
 
+// the jQuery type is only in the global type namespace, which "no-undef" can't see, so derive it
+// from the "$" runtime global instead
+export type JQueryElem<T extends HTMLElement = HTMLElement> = ReturnType<typeof $<T>>;
+
 export type FomanticApiResponse<T> = {success: boolean, results: T[]};
 
 export type FomanticInitFunction = {

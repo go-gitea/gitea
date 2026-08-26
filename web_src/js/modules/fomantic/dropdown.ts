@@ -1,4 +1,4 @@
-import type {FomanticInitFunction} from '../../types.ts';
+import type {FomanticInitFunction, JQueryElem} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
 import {trString} from '../i18n.ts';
 
@@ -86,7 +86,7 @@ function onDropdownAfterFiltered(this: HTMLElement) {
 }
 
 // delegate the dropdown's template functions and callback functions to add aria attributes.
-function delegateDropdownModule($dropdown: JQuery<AriaDropdownElement>) {
+function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
   const dropdownCall = fomanticDropdownFn.bind($dropdown);
 
   // the "template" functions are used for dynamic creation (eg: AJAX)
@@ -125,7 +125,7 @@ function delegateDropdownModule($dropdown: JQuery<AriaDropdownElement>) {
 
   const oldSet = dropdownCall('internal', 'set');
   const oldSetDirection = oldSet.direction;
-  oldSet.direction = function($menu?: JQuery) {
+  oldSet.direction = function($menu?: JQueryElem) {
     oldSetDirection.call(this, $menu);
     const classNames = dropdownCall('setting', 'className');
     $menu = $menu || $dropdown.find('> .menu');

@@ -1,4 +1,4 @@
-import type {FomanticInitFunction} from '../../types.ts';
+import type {FomanticInitFunction, JQueryElem} from '../../types.ts';
 import {queryElems} from '../../utils/dom.ts';
 import {hideToastsFrom} from '../toast.ts';
 
@@ -36,7 +36,7 @@ export function initAriaModalPatch() {
 
 // the patched `$.fn.modal` modal function
 // * it does the one-time attaching on the first call
-function ariaModalFn(this: JQuery, ...args: Parameters<FomanticInitFunction>) {
+function ariaModalFn(this: JQueryElem, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticModalFn.apply(this, args);
   if (args[0] === 'show' || args[0]?.autoShow) {
     for (const el of this) {
