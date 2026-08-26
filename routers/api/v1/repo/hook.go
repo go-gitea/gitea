@@ -177,17 +177,17 @@ func ListDeliveries(ctx *context.APIContext) {
 
 	deliveries := make([]*api.HookDelivery, len(tasks))
 	for i, task := range tasks {
- 		d := webhook_service.ToHookDelivery(task)
- 		// Avoid returning potentially large request/response payloads on the list endpoint.
- 		if d.Request != nil {
- 			d.Request.Headers = nil
- 			d.Request.Body = ""
- 		}
- 		if d.Response != nil {
- 			d.Response.Headers = nil
- 			d.Response.Body = ""
- 		}
- 		deliveries[i] = d
+		d := webhook_service.ToHookDelivery(task)
+		// Avoid returning potentially large request/response payloads on the list endpoint.
+		if d.Request != nil {
+			d.Request.Headers = nil
+			d.Request.Body = ""
+		}
+		if d.Response != nil {
+			d.Response.Headers = nil
+			d.Response.Body = ""
+		}
+		deliveries[i] = d
 	}
 
 	ctx.SetLinkHeader(count, listOptions.PageSize)
