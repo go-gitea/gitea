@@ -74,9 +74,9 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
-		OwnerName: reqOwnerName, // it might be changed if there is "renamed user redirection"
-		RepoName:  reqRepoName,  // it might be changed if there is "renamed repo redirection", or the repo is a wiki
-		KeyID:     keyID,
+		OwnerName:   reqOwnerName, // it might be changed if there is "renamed user redirection"
+		RepoName:    reqRepoName,  // it might be changed if there is "renamed repo redirection", or the repo is a wiki
+		PublicKeyID: keyID,
 	}
 	repoLogName := reqOwnerName + "/" + reqRepoName
 
@@ -185,8 +185,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		ctx.PrivateInternalErrorf("Unable to get key: %d, error: %v", keyID, err)
 		return
 	}
-	results.KeyName = key.Name
-	results.KeyID = key.ID
+	results.PublicKeyID = key.ID
 	results.UserID = key.OwnerID
 
 	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
@@ -208,8 +207,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			ctx.PrivateInternalErrorf("Unable to get deploy for public (deploy) key %d for %s, error: %v", key.ID, repoLogName, err)
 			return
 		}
-		results.DeployKeyID = deployKey.ID
-		results.KeyName = deployKey.Name
+		results.UserExtDoerData = user_model.NewDeployKeyUserWithKeyID(deployKey.ID).ExtDoerData.EncodeToString()
 
 		// FIXME: Deploy keys aren't really the owner of the repo pushing changes
 		// however we don't have good way of representing deploy keys in hook.go

@@ -4,6 +4,7 @@
 package user
 
 import (
+	"context"
 	"strings"
 
 	"gitea.dev/modules/structs"
@@ -45,7 +46,10 @@ func newSystemUser(id int64, name, fullName string) *User {
 	}
 }
 
-const ActionsUserID int64 = -2
+const (
+	ActionsUserID   int64 = -2
+	DeployKeyUserID int64 = -3
+)
 
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
@@ -67,13 +71,13 @@ func NewActionsUserWithTaskID(id int64) *User {
 }
 
 func NewDeployKeyUser() *User {
-	return newSystemUser(-3, "(deploy-key)", "Deploy Key")
+	return newSystemUser(DeployKeyUserID, "(deploy-key)", "Deploy Key")
 }
 
 func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
 	// ok, the function name seems wordy, it is intentionally to distinguish from other "keys" like "public key id"
 	// it was a mess in the "pre-receive" hook code
-	if u == nil || u.ExtDoerData == nil || u.ID != -3 {
+	if u == nil || u.ExtDoerData == nil || u.ID != DeployKeyUserID {
 		return 0, false
 	}
 	extData := u.ExtDoerData.(*extDoerDeployKey) //nolint:forcetypeassert // must be valid
@@ -93,4 +97,21 @@ func GetSystemUserByName(name string) *User {
 		return fn()
 	}
 	return nil
+}
+
+func GetDoerUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
+	if id > 0 {
+		return GetUserByID(ctx, id)
+	}
+	switch id {
+	case ActionsUserID:
+		u = NewActionsUser()
+		u.ExtDoerData = &extDoerGiteaActions{}
+	case DeployKeyUserID:
+		u = NewDeployKeyUser()
+		u.ExtDoerData = &extDoerDeployKey{}
+	default:
+		return nil, ErrUserNotExist{UID: id}
+	}
+	return u, u.ExtDoerData.DecodeFromString(extDoerData)
 }

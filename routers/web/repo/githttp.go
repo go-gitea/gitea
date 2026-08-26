@@ -22,7 +22,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
@@ -144,8 +143,6 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 	}
 
-	deployKeyID, isDeployKey := user_model.GetDeployKeyUserDeployKeyID(ctx.Doer)
-
 	// check access
 	if !canAnonymousPull { // not public pull, then either the pull needs auth, or the push needs "write" permission, so ask auth
 		if !ctx.IsSigned {
@@ -158,12 +155,6 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea (Basic Auth)"`)
 			}
 			ctx.HTTPError(http.StatusUnauthorized)
-			return nil
-		}
-
-		// a deploy key grants nothing outside its own repository, so it cannot push-create one either
-		if isDeployKey && !repoExist {
-			ctx.PlainText(http.StatusNotFound, "Repository not found")
 			return nil
 		}
 
@@ -191,9 +182,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 		if repoExist {
 			// Only the main code repo accepts refs/for pushes, so wiki pushes must keep write checks.
-			// A deploy key skips the relaxation so a read-only key is refused here rather than mid-push,
-			// the same front door serv.go gives SSH. canWriteCodeUnit is the backstop.
-			if git.DefaultFeatures().SupportProcReceive && !isWiki && !isDeployKey {
+			if git.DefaultFeatures().SupportProcReceive && !isWiki {
 				accessMode = perm.AccessModeRead
 			}
 
@@ -263,13 +252,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 	var environ []string
 	if !isPull {
-		// if not "pull", then must be "push", and doer must exist
-		// a deploy key is not a person, so the push is recorded as the repo owner, same as over SSH
-		environ = repo_module.DoerPushingEnvironment(util.Iif(isDeployKey, owner, ctx.Doer), repo, isWiki)
-		if isDeployKey {
-			// let the hooks apply the deploy key rules of branch protection
-			environ = append(environ, repo_module.EnvDeployKeyID+"="+strconv.FormatInt(deployKeyID, 10))
-		}
+		environ = repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
 	}
 
 	return &serviceHandler{serviceType, repo, isWiki, environ}

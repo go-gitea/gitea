@@ -58,9 +58,9 @@ func Search(ctx *context.APIContext) {
 	uid := ctx.FormInt64("uid")
 	var users []*user_model.User
 	var maxResults int64
-	if uid <= 0 {
+	if uid < 0 {
 		_, sysUser, _ := user_model.GetPossibleUserByID(ctx, uid)
-		if sysUser != nil {
+		if sysUser != nil && sysUser.ID == uid {
 			maxResults = 1
 			users = []*user_model.User{sysUser}
 		}

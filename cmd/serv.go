@@ -314,15 +314,20 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	command.Env = append(command.Env, os.Environ()...)
 	command.Env = append(command.Env,
 		repo_module.EnvRepoIsWiki+"="+strconv.FormatBool(results.IsWiki),
-		repo_module.EnvRepoName+"="+results.RepoName,
+
 		repo_module.EnvRepoUsername+"="+results.OwnerName,
+		repo_module.EnvRepoName+"="+results.RepoName,
+		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
+
+		repo_module.EnvKeyID+"="+strconv.FormatInt(results.PublicKeyID, 10),
+
+		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvPusherName+"="+results.UserName,
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
-		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
-		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
+		repo_module.EnvPusherExtDoerData+"="+results.UserExtDoerData,
+
 		repo_module.EnvPRID+"="+strconv.Itoa(0),
-		repo_module.EnvDeployKeyID+"="+strconv.FormatInt(results.DeployKeyID, 10),
-		repo_module.EnvKeyID+"="+strconv.FormatInt(results.KeyID, 10),
+
 		repo_module.EnvAppURL+"="+setting.AppURL,
 	)
 	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
@@ -334,8 +339,8 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	// Update user key activity.
-	if results.KeyID > 0 {
-		if err = private.UpdatePublicKeyInRepo(ctx, results.KeyID, results.RepoID); err != nil {
+	if results.PublicKeyID > 0 {
+		if err = private.UpdatePublicKeyInRepo(ctx, results.PublicKeyID, results.RepoID); err != nil {
 			return fail(ctx, "Failed to update public key", "UpdatePublicKeyInRepo: %v", err)
 		}
 	}

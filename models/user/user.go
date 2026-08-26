@@ -1033,7 +1033,7 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the possible user and its ID. If the user  doesn't exist, it returns Ghost user
+// GetPossibleUserByID returns the possible user and its ID. If the user doesn't exist, it returns Ghost user
 func GetPossibleUserByID(ctx context.Context, id int64) (_ int64, u *User, err error) {
 	if id < 0 {
 		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {

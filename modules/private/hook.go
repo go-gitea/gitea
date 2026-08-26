@@ -38,10 +38,9 @@ type HookOptions struct {
 	PullRequestID int64
 	PushTrigger   repository.PushTrigger
 
-	UserID        int64
-	UserName      string
-	ActionsTaskID int64 // if the pusher is an Actions user, the task ID
-	DeployKeyID   int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
+	UserID          int64
+	UserName        string
+	UserExtDoerData string
 }
 
 // SSHLogOption ssh log options

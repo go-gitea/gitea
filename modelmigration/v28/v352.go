@@ -27,7 +27,7 @@ func AddTokenToDeployKey(ctx context.Context, x base.EngineMigration) error {
 	type DeployKey struct {
 		KeyID     int64  `xorm:"INDEX"`
 		RepoID    int64  `xorm:"INDEX"`
-		Type      int    `xorm:"NOT NULL DEFAULT 1"` // every existing row is an SSH key
+		KeyType   int    `xorm:"NOT NULL DEFAULT 1"` // every existing row is an SSH key
 		TokenHash string `xorm:"INDEX"`
 	}
 	_, err = x.SyncWithOptions(xorm.SyncOptions{

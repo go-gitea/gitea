@@ -4,18 +4,13 @@
 package private
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
-	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
@@ -103,15 +98,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		setting.PanicInDevOrTesting("wiki hook-post-receive is not supported")
 		return
 	}
-
-	ownerName := ctx.PathParam("owner")
-	repoName := ctx.PathParam("repo")
-	repo := loadRepository(ctx, ownerName, repoName)
-	if ctx.Written() {
+	if loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
 		return
 	}
-	// now, repo can't be nil
 
+	repo := ctx.Repo.Repository
 	// first, collect updates and sync branches
 	updates := hookPostReceiveCollectPushUpdates(opts, repo)
 	if !hookPostReceiveSyncDatabaseBranches(ctx, opts, repo, updates) {
@@ -144,17 +135,7 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 	isTemplate := opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate)
 	// Handle Push Options
 	if isPrivate.Has() || isTemplate.Has() {
-		pusher, err := loadContextCacheUser(ctx, opts.UserID)
-		if err != nil {
-			ctx.PrivateInternalErrorf("failed to load pusher user: %v", err)
-			return false
-		}
-		perm, err := access_model.GetDoerRepoPermission(ctx, repo, pusher)
-		if err != nil {
-			ctx.PrivateInternalErrorf("failed to load doer repo permission: %v", err)
-			return false
-		}
-		if !perm.IsOwner() && !perm.IsAdmin() {
+		if !ctx.Repo.Permission.IsAdmin() {
 			ctx.PrivateUserErrorf(http.StatusNotFound, "permission denied")
 			return false
 		}
@@ -171,13 +152,13 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 		// yet; setting the flags directly is sufficient in this push-to-create case.
 		if isPrivate.Has() && repo.IsPrivate != isPrivate.Value() {
 			repo.IsPrivate = isPrivate.Value()
-			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
+			if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
 				log.Error("failed to update repo is_private: %v", err)
 			}
 		}
 		if isTemplate.Has() && repo.IsTemplate != isTemplate.Value() {
 			repo.IsTemplate = isTemplate.Value()
-			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_template"); err != nil {
+			if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_template"); err != nil {
 				log.Error("failed to update repo is_template: %v", err)
 			}
 		}
@@ -244,10 +225,6 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{Results: results})
 }
 
-func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, error) {
-	return cache.GetWithContextCache(ctx, cachegroup.User, id, user_model.GetUserByID)
-}
-
 // hookPostReceiveHandlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit
 func hookPostReceiveHandlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, updates []*repo_module.PushUpdateOptions) bool {
 	if len(updates) == 0 {
@@ -261,15 +238,9 @@ func hookPostReceiveHandlePullRequestMerging(ctx *gitea_context.PrivateContext, 
 		return false
 	}
 
-	pusher, err := loadContextCacheUser(ctx, opts.UserID)
-	if err != nil {
-		ctx.PrivateInternalErrorf("failed to load pusher user %d: %v", opts.UserID, err)
-		return false
-	}
-
 	// FIXME: Maybe we need a `PullRequestStatusMerged` status for PRs that are merged, currently we use the previous status
 	// here to keep it as before, that maybe PullRequestStatusMergeable
-	_, err = pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), pusher, pr.Status)
+	_, err = pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), ctx.Doer, pr.Status)
 	if err != nil {
 		ctx.PrivateInternalErrorf("failed to set pr %d to merged: %v", pr.ID, err)
 		return false
