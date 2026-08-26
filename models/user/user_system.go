@@ -36,14 +36,13 @@ func (u *User) IsGhost() bool {
 // The builtin username can be wrapped in parentheses to avoid conflicts with real usernames.
 func newSystemUser(id int64, name, fullName string) *User {
 	return &User{
-		ID:               id,
-		Name:             name,
-		LowerName:        strings.ToLower(name),
-		IsActive:         true,
-		FullName:         fullName,
-		KeepEmailPrivate: true, // it has no real email, so GetEmail must fall back to the noreply placeholder
-		Type:             UserTypeBot,
-		Visibility:       structs.VisibleTypePublic,
+		ID:         id,
+		Name:       name,
+		LowerName:  strings.ToLower(name),
+		IsActive:   true,
+		FullName:   fullName,
+		Type:       UserTypeBot,
+		Visibility: structs.VisibleTypePublic,
 	}
 }
 
