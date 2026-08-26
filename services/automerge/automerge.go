@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -60,7 +61,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 	scheduled = err == nil
 	if scheduled {
 		log.Trace("Pull request [%d] scheduled for auto merge with style [%s] and message [%s]", pull.ID, style, message)
-		automergequeue.StartPRCheckAndAutoMerge(pull)
+		automergequeue.StartAutoMergeCheckByPullHead(ctx, pull)
 	}
 	return scheduled, err
 }
@@ -81,7 +82,11 @@ func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "AutoMerge: "+string(item))
 	defer finished()
 
-	pullID, _ := strconv.ParseInt(string(item), 10, 64)
+	fields := strings.Split(string(item), ":")
+	if len(fields) < 2 || fields[0] != "pr" {
+		return
+	}
+	pullID, _ := strconv.ParseInt(fields[1], 10, 64)
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", pullID, err)

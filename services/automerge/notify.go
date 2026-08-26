@@ -31,7 +31,7 @@ func NewNotifier() notify_service.Notifier {
 func (n *automergeNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	// as a missing / blocking reviews could have blocked a pending automerge let's recheck
 	if review.Type == issues_model.ReviewTypeApprove {
-		automergequeue.StartPRCheckAndAutoMerge(pr)
+		automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 	}
 }
 
@@ -45,7 +45,7 @@ func (n *automergeNotifier) PullReviewDismiss(ctx context.Context, doer *user_mo
 		return
 	}
 	// as reviews could have blocked a pending automerge let's recheck
-	automergequeue.StartPRCheckAndAutoMerge(review.Issue.PullRequest)
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, review.Issue.PullRequest)
 }
 
 func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {
@@ -59,6 +59,6 @@ func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_m
 		return
 	}
 	for _, pr := range pulls {
-		automergequeue.StartPRCheckAndAutoMerge(pr)
+		automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 	}
 }
