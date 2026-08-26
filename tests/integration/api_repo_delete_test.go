@@ -9,35 +9,39 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPIDeleteRepositoryRequiresTargetRepoAdmin(t *testing.T) {
+func TestAPIRepositoryDelete(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	unrelatedRepo, err := repo_service.CreateRepository(t.Context(), owner, org, repo_service.CreateRepoOptions{Name: "unrelated-admin-team"})
-	require.NoError(t, err)
+	t.Run("AdminNoPermToDeleteRepo", func(t *testing.T) {
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+		teams, err := organization.GetUserOrgTeams(t.Context(), org.ID, doer.ID)
+		require.NoError(t, err)
+		require.Len(t, teams, 1)
 
-	targetRepo, err := repo_service.CreateRepository(t.Context(), owner, org, repo_service.CreateRepoOptions{Name: "target-admin-team"})
-	require.NoError(t, err)
-	require.NoError(t, repo_service.TeamAddRepository(t.Context(), team, targetRepo))
+		team := teams[0]
+		assert.Equal(t, perm.AccessModeAdmin, team.AccessMode)
+		assert.True(t, team.CanCreateOrgRepo)
 
-	token := getUserToken(t, doer.Name, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequest(t, "DELETE", "/api/v1/repos/"+unrelatedRepo.FullName()).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: unrelatedRepo.ID})
+		targetRepo, err := repo_service.CreateRepository(t.Context(), owner, org, repo_service.CreateRepoOptions{Name: "target-admin-team"})
+		require.NoError(t, err)
+		require.NoError(t, repo_service.TeamAddRepository(t.Context(), team, targetRepo))
 
-	req = NewRequest(t, "DELETE", "/api/v1/repos/"+targetRepo.FullName()).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{ID: targetRepo.ID})
+		token := getUserToken(t, doer.Name, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequest(t, "DELETE", "/api/v1/repos/"+targetRepo.FullName()).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusForbidden)
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: targetRepo.ID})
+	})
 }
