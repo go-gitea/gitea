@@ -51,10 +51,11 @@ func Init(ctx context.Context) error {
 }
 
 func populateRecentAutoMergeItems(ctx context.Context) {
-	// in case Gitea's restart aborted some scheduled auto-merge pull requests, try to re-start the recents ones
+	// in case Gitea's restart aborted some scheduled auto-merge pull requests, try to re-start the recent ones
 	pullIDs, err := pull_model.GetScheduledMergePullIDsSince(ctx, timeutil.TimeStampNow().AddDuration(-24*time.Hour))
 	if err != nil {
 		log.Error("Failed to get recent scheduled auto-merge pull requests: %v", err)
+		return
 	}
 	for _, pullID := range pullIDs {
 		pull, err := issues_model.GetPullRequestByID(ctx, pullID)
