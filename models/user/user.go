@@ -144,10 +144,14 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams                  int
-	NumMembers                int
-	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
-	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
+	NumTeams   int
+	NumMembers int
+	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+
+	// Introduced by "Add teams to repo on collaboration page. (#8045)"
+	// Whether a repo admin can manage add/remove the repo to/from a team on the collaboration page
+	// Although this should be a team setting .....
+	RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
