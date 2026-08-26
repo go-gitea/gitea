@@ -9,6 +9,7 @@ import (
 
 	org_model "gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -49,9 +50,12 @@ func canDoerManagePackage(ctx context.Context, pkg *packages_model.Package, doer
 	if !owner.IsOrganization() {
 		return doer.ID == pkg.OwnerID
 	}
-
 	teams, _ := org_model.GetUserOrgTeams(ctx, owner.ID, doer.ID)
-	return teams.HasAllRepoAdminAccess()
+	if teams.HasAllRepoAdminAccess() {
+		return true
+	}
+	teams, _ = org_model.GetUserRepoTeams(ctx, owner.ID, doer.ID, pkg.RepoID)
+	return teams.AnyRepoUnitMaxAccess(ctx, unit.TypePackages) >= perm.AccessModeAdmin
 }
 
 func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer *user_model.User) error {
