@@ -17,7 +17,6 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -614,7 +613,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, permission := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -630,11 +629,6 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
 	// The team may be reachable by a non-team-member via its visibility tier;
 	// don't confirm the existence of a repo the doer cannot access.
 	if !permission.HasAnyUnitAccessOrPublicAccess() {
@@ -642,29 +636,26 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, *permission))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
-func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
+func getRepositoryByParams(ctx *context.APIContext) (*repo_model.Repository, *access_model.Permission) {
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.PathParam("reponame"))
 	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return nil
+		ctx.APIErrorAuto(err)
+		return nil, nil
 	}
-	return repo
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, nil
+	}
+	return repo, perm
 }
 
-func canManageRepoCollaboratorTeam(ctx *context.APIContext, repo *repo_model.Repository) bool {
-	canChange, err := repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, repo)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
+func canManageRepoCollaboratorTeam(ctx *context.APIContext, repo *repo_model.Repository, perm *access_model.Permission) bool {
+	canChange := access_model.CanDoerManageOrgRepoCollaboratorTeam(ctx, repo, perm)
 	if !canChange {
 		ctx.APIError(http.StatusForbidden, "Must have permission to manage team repository access")
 		return false
@@ -704,11 +695,11 @@ func AddTeamRepository(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !canManageRepoCollaboratorTeam(ctx, repo) {
+	if !canManageRepoCollaboratorTeam(ctx, repo, perm) {
 		return
 	}
 	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
@@ -752,11 +743,11 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !canManageRepoCollaboratorTeam(ctx, repo) {
+	if !canManageRepoCollaboratorTeam(ctx, repo, perm) {
 		return
 	}
 	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {

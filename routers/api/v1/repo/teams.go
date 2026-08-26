@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"gitea.dev/models/organization"
-	repo_module "gitea.dev/modules/repository"
+	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	repo_service "gitea.dev/services/repository"
@@ -189,11 +189,7 @@ func DeleteTeam(ctx *context.APIContext) {
 }
 
 func changeRepoTeam(ctx *context.APIContext, add bool) {
-	if !ctx.Repo.Owner.IsOrganization() {
-		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
-		return
-	}
-	if !canChangeRepoTeam(ctx) {
+	if !canChangeOrgRepoTeam(ctx) {
 		return
 	}
 
@@ -225,14 +221,10 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func canChangeRepoTeam(ctx *context.APIContext) bool {
-	canChange, err := repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, ctx.Repo.Repository)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
+func canChangeOrgRepoTeam(ctx *context.APIContext) bool {
+	canChange := access_model.CanDoerManageOrgRepoCollaboratorTeam(ctx, ctx.Repo.Repository, &ctx.Repo.Permission)
 	if !canChange {
-		ctx.APIError(http.StatusForbidden, "Must have permission to manage team repository access")
+		ctx.APIError(http.StatusForbidden, "No permission to change organization repository's team")
 		return false
 	}
 	return true

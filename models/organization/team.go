@@ -74,19 +74,27 @@ const OwnerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID                      int64 `xorm:"pk autoincr"`
-	OrgID                   int64 `xorm:"INDEX"`
-	LowerName               string
-	Name                    string
-	Description             string
-	AccessMode              perm.AccessMode    `xorm:"'authorize'"`
-	Members                 []*user_model.User `xorm:"-"`
-	NumRepos                int
-	NumMembers              int
-	Units                   []*TeamUnit         `xorm:"-"`
-	IncludesAllRepositories bool                `xorm:"NOT NULL DEFAULT false"`
-	CanCreateOrgRepo        bool                `xorm:"NOT NULL DEFAULT false"`
-	Visibility              structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
+	ID          int64 `xorm:"pk autoincr"`
+	OrgID       int64 `xorm:"INDEX"`
+	LowerName   string
+	Name        string
+	Description string
+	AccessMode  perm.AccessMode    `xorm:"'authorize'"`
+	Members     []*user_model.User `xorm:"-"`
+	NumRepos    int
+	NumMembers  int
+	Units       []*TeamUnit `xorm:"-"`
+
+	// All repos in the org are included in this team automatically
+	IncludesAllRepositories bool `xorm:"NOT NULL DEFAULT false"`
+
+	// Any user with CanCreateOrgRepo permission can create a repository in the organization, regardless of team membership.
+	// And the user will become the repo's admin (via collaborator) after the creation.
+	CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
+
+	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: it needs a new field to decide whether a repo admin can manage the repo's danger zone
+
+	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
 }
 
 func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }

@@ -10,11 +10,11 @@ import (
 
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
+	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
-	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
@@ -44,14 +44,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["OrgName"] = ctx.Repo.Repository.OwnerName
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
 	ctx.Data["Units"] = unit_model.Units
-	if ctx.Repo.Owner.IsOrganization() {
-		ctx.Data["CanChangeRepoTeamAccess"], err = repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, ctx.Repo.Repository)
-		if err != nil {
-			ctx.ServerError("CanChangeRepoTeamAccess", err)
-			return
-		}
-	}
-
+	ctx.Data["CanChangeRepoTeamAccess"] = access.CanDoerManageOrgRepoCollaboratorTeam(ctx, ctx.Repo.Repository, &ctx.Repo.Permission)
 	ctx.HTML(http.StatusOK, tplCollaboration)
 }
 
@@ -227,11 +220,7 @@ func DeleteTeam(ctx *context.Context) {
 }
 
 func canManageRepoCollaboratorTeam(ctx *context.Context) bool {
-	canChange, err := repo_module.CanDoerManageRepoCollaboratorTeam(ctx, ctx.Doer, ctx.Repo.Repository)
-	if err != nil {
-		ctx.ServerError("CanChangeRepoTeamAccess", err)
-		return false
-	}
+	canChange := access.CanDoerManageOrgRepoCollaboratorTeam(ctx, ctx.Repo.Repository, &ctx.Repo.Permission)
 	if !canChange {
 		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")

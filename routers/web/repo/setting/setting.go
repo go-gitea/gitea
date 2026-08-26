@@ -56,7 +56,7 @@ type selectOption struct {
 	Selected bool
 }
 
-func canDoerManageRepoDangerZone(ctx *context.Context) bool {
+func canManageRepoDangerZone(ctx *context.Context) bool {
 	if !access_model.CanDoerManageRepoDangerZone(&ctx.Repo.Permission) {
 		ctx.JSONErrorNotFound()
 		return false
@@ -76,6 +76,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
+	ctx.Data["CanManagerDangerZone"] = canManageRepoDangerZone(ctx)
 
 	signing, _ := git.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
@@ -783,7 +784,7 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 }
 
 func handleSettingsPostConvert(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 
@@ -813,7 +814,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 }
 
 func handleSettingsPostConvertFork(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 
@@ -853,7 +854,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 }
 
 func handleSettingsPostTransfer(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 
@@ -917,7 +918,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 }
 
 func handleSettingsPostCancelTransfer(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 
@@ -944,7 +945,7 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 }
 
 func handleSettingsPostDelete(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 
@@ -971,7 +972,7 @@ func handleSettingsPostDelete(ctx *context.Context) {
 }
 
 func handleSettingsPostDeleteWiki(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
@@ -992,7 +993,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 }
 
 func handleSettingsPostArchive(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 
@@ -1024,7 +1025,7 @@ func handleSettingsPostArchive(ctx *context.Context) {
 }
 
 func handleSettingsPostUnarchive(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 
@@ -1052,7 +1053,7 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 }
 
 func handleSettingsPostVisibility(ctx *context.Context) {
-	if !canDoerManageRepoDangerZone(ctx) {
+	if !canManageRepoDangerZone(ctx) {
 		return
 	}
 

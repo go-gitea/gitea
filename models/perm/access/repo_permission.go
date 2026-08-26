@@ -692,7 +692,7 @@ func CanDoerManageRepoDangerZone(perm *Permission) bool {
 		return true
 	}
 
-	// FIXME: this is the legacy logic, "org repo admin" can delete a repo
+	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: this is the legacy logic, "org repo admin" can delete a repo
 	// Ideally we need a new field in the Team like "CanAdminManageDangerZone" to control this permission, but for now we keep the legacy logic
 	if len(perm.orgTeams) != 0 {
 		for _, team := range perm.orgTeams {
@@ -702,4 +702,12 @@ func CanDoerManageRepoDangerZone(perm *Permission) bool {
 		}
 	}
 	return false
+}
+
+func CanDoerManageOrgRepoCollaboratorTeam(ctx context.Context, repo *repo_model.Repository, perm *Permission) bool {
+	_ = repo.LoadOwner(ctx)
+	if repo.Owner == nil || !repo.Owner.IsOrganization() {
+		return false
+	}
+	return perm.IsOwner() || perm.IsAdmin() && repo.Owner.RepoAdminChangeTeamAccess
 }
