@@ -144,10 +144,16 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams                  int
-	NumMembers                int
-	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
-	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
+	NumTeams   int
+	NumMembers int
+	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+
+	// Introduced by "Add teams to repo on collaboration page. (#8045)"
+	// Whether a repo admin can add/remove a team to/from the repo on the collaboration page
+	RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
+
+	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: it needs a new field to decide whether a repo admin can manage the repo's danger zone
+	// Team won't work for this case, because a newly create org repo isn't in any team (same as above)
 
 	// Preferences
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
