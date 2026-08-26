@@ -28,12 +28,12 @@ func (key *DeployKey) generateToken() {
 
 // AddDeployKeyToken adds a token that authenticates git HTTP requests for one repository.
 // The plaintext token is only readable on the returned key.
-func AddDeployKeyToken(ctx context.Context, repoID int64, name string, readOnly bool) (*DeployKey, error) {
+func AddDeployKeyToken(ctx context.Context, repoID int64, name string, accessMode perm.AccessMode) (*DeployKey, error) {
 	key := &DeployKey{
 		RepoID:  repoID,
 		KeyType: KeyTypeToken,
 		Name:    name,
-		Mode:    util.Iif(readOnly, perm.AccessModeRead, perm.AccessModeWrite),
+		Mode:    accessMode,
 	}
 	key.generateToken()
 

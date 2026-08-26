@@ -255,7 +255,8 @@ func CreateDeployToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm[*api.CreateDeployKeyTokenOption](ctx)
-	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, form.ReadOnly)
+	accessMode := util.Iif(form.ReadOnly, perm.AccessModeRead, perm.AccessModeWrite)
+	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, accessMode)
 	if err != nil {
 		HandleAddKeyError(ctx, err)
 		return

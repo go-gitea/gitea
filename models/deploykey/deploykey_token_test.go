@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ import (
 func TestDeployToken(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	key, err := AddDeployKeyToken(t.Context(), 1, "ci", false)
+	key, err := AddDeployKeyToken(t.Context(), 1, "ci", perm.AccessModeWrite)
 	require.NoError(t, err)
 	assert.False(t, key.IsReadOnly())
 	assert.Len(t, key.Token, len(DeployTokenPrefix)+deployTokenLength)
@@ -29,7 +30,7 @@ func TestDeployToken(t *testing.T) {
 	_, err = VerifyDeployKeyToken(t.Context(), "not-a-token")
 	assert.True(t, IsErrDeployKeyNotExist(err))
 
-	_, err = AddDeployKeyToken(t.Context(), 1, "ci", false)
+	_, err = AddDeployKeyToken(t.Context(), 1, "ci", perm.AccessModeWrite)
 	assert.True(t, IsErrDeployKeyNameAlreadyUsed(err))
 
 	regenerated, err := RegenerateDeployKeyToken(t.Context(), 1, key.ID)

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	deploykey_model "gitea.dev/models/deploykey"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
@@ -27,9 +28,9 @@ func TestDeployTokenGitHTTP(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	readKey, err := deploykey_model.AddDeployKeyToken(t.Context(), repo.ID, "read", true)
+	readKey, err := deploykey_model.AddDeployKeyToken(t.Context(), repo.ID, "read", perm.AccessModeRead)
 	require.NoError(t, err)
-	writeKey, err := deploykey_model.AddDeployKeyToken(t.Context(), repo.ID, "write", false)
+	writeKey, err := deploykey_model.AddDeployKeyToken(t.Context(), repo.ID, "write", perm.AccessModeWrite)
 	require.NoError(t, err)
 
 	requestAs := func(t *testing.T, token, path string, expected int) {

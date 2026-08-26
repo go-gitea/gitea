@@ -90,7 +90,8 @@ func DeployKeyGenerateToken(ctx *context.Context) {
 		return
 	}
 
-	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, !form.IsWritable)
+	accessMode := util.Iif(form.IsWritable, perm.AccessModeWrite, perm.AccessModeRead)
+	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, accessMode)
 	if err != nil {
 		if deploykey_model.IsErrDeployKeyNameAlreadyUsed(err) {
 			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_name_used"), "title")
