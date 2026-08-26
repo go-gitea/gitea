@@ -4,7 +4,10 @@
 package jobparser
 
 import (
+	"bytes"
 	"testing"
+
+	actmodel "gitea.dev/actionslib/pkg/model"
 
 	"github.com/stretchr/testify/require"
 )
@@ -61,4 +64,39 @@ jobs:
 	_, gotJob := roundTripped[0].Job()
 	require.Len(t, gotJob.Steps, 1)
 	require.Equal(t, wantRun, gotJob.Steps[0].Run, "round-trip must preserve run content; got payload:\n%s", payload)
+}
+
+// A step-level `continue-on-error` may hold an expression reading the steps context, which only the
+// runner can evaluate. The server must therefore parse it without deciding it and hand it to the
+// runner unchanged: typing it as a bool used to abort decoding of the whole `jobs:` node.
+func TestSingleWorkflowRoundTripStepContinueOnError(t *testing.T) {
+	const wf = `name: demo
+on: push
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - id: quarantine
+        run: echo "q=true" >> "$GITHUB_OUTPUT"
+      - run: exit 1
+        continue-on-error: ${{ steps.quarantine.outputs.q == 'true' }}
+      - run: exit 1
+        continue-on-error: true
+`
+	sws, err := Parse([]byte(wf))
+	require.NoError(t, err)
+	require.Len(t, sws, 1)
+
+	payload, err := sws[0].Marshal()
+	require.NoError(t, err)
+
+	// the payload is what the runner reads back as act's model.Workflow, whose step keeps the raw
+	// string it evaluates at step execution time
+	rw, err := actmodel.ReadWorkflow(bytes.NewReader(payload))
+	require.NoError(t, err, "payload:\n%s", payload)
+	steps := rw.Jobs["job1"].Steps
+	require.Len(t, steps, 3)
+	require.Empty(t, steps[0].RawContinueOnError)
+	require.Equal(t, "${{ steps.quarantine.outputs.q == 'true' }}", steps[1].RawContinueOnError, "payload:\n%s", payload)
+	require.Equal(t, "true", steps[2].RawContinueOnError, "payload:\n%s", payload)
 }
