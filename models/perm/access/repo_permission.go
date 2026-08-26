@@ -401,7 +401,7 @@ func getDeployKeyRepoPermission(ctx context.Context, repo *repo_model.Repository
 	perm.units = repo.Units
 	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
 	for _, u := range repo.Units {
-		if u.Type == unit.TypeCode || u.Type == unit.TypeWiki { // a deploy key only ever reaches git data
+		if u.Type == unit.TypeCode || u.Type == unit.TypeWiki { // a deploy-key only ever reaches git data
 			perm.unitsMode[u.Type] = key.Mode
 		}
 	}

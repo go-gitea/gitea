@@ -186,11 +186,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		return
 	}
 	results.PublicKeyID = key.ID
-	results.UserID = key.OwnerID
 
-	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
-	// So now we need to check if the key is a deploy key
-	// We'll keep hold of the deploy key here for permissions checking
 	var deployKey *deploykey_model.DeployKey
 	var user *user_model.User
 	if key.Type == asymkey_model.KeyTypeDeploy {
@@ -201,22 +197,13 @@ func ServCommand(ctx *context.PrivateContext) {
 		deployKey, err = deploykey_model.GetDeployKeyByRepoPublicKey(ctx, repo.ID, key.ID)
 		if err != nil {
 			if deploykey_model.IsErrDeployKeyNotExist(err) {
-				ctx.PrivateUserErrorf(http.StatusNotFound, "Deploy key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)
+				ctx.PrivateUserErrorf(http.StatusNotFound, "Deploy-key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)
 				return
 			}
 			ctx.PrivateInternalErrorf("Unable to get deploy for public (deploy) key %d for %s, error: %v", key.ID, repoLogName, err)
 			return
 		}
-		results.UserExtDoerData = user_model.NewDeployKeyUserWithKeyID(deployKey.ID).ExtDoerData.EncodeToString()
-
-		// FIXME: Deploy keys aren't really the owner of the repo pushing changes
-		// however we don't have good way of representing deploy keys in hook.go
-		// so for now use the owner of the repository
-		results.UserName = results.OwnerName
-		results.UserID = repo.OwnerID
-		if !repo.Owner.KeepEmailPrivate {
-			results.UserEmail = repo.Owner.Email
-		}
+		user = user_model.NewDeployKeyUserWithKeyID(deployKey.ID)
 	} else {
 		// Get the user represented by the Key
 		user, err = user_model.GetUserByID(ctx, key.OwnerID)
@@ -228,16 +215,19 @@ func ServCommand(ctx *context.PrivateContext) {
 			ctx.PrivateInternalErrorf("Unable to get key owner %d for public key %d:%s, error: %v", key.OwnerID, key.ID, key.Name, err)
 			return
 		}
-
 		if !user.IsActive || user.ProhibitLogin {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
+	}
 
-		results.UserName = user.Name
-		if !user.KeepEmailPrivate {
-			results.UserEmail = user.Email
-		}
+	results.UserID = user.ID
+	results.UserName = user.Name
+	if !user.KeepEmailPrivate {
+		results.UserEmail = user.Email
+	}
+	if user.ExtDoerData != nil {
+		results.UserExtDoerData = user.ExtDoerData.EncodeToString()
 	}
 
 	// Don't allow pushing if the repo is archived
@@ -251,37 +241,30 @@ func ServCommand(ctx *context.PrivateContext) {
 		(mode > perm.AccessModeRead ||
 			repo.IsPrivate ||
 			owner.Visibility.IsPrivate() ||
-			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploy key
+			user.IsRestricted ||
 			setting.Service.RequireSignInViewStrict) {
-		if key.Type == asymkey_model.KeyTypeDeploy {
-			if deployKey == nil || deployKey.Mode < mode {
-				ctx.PrivateUserErrorf(http.StatusUnauthorized, "Deploy key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)
-				return
-			}
-		} else {
-			// Because of the special ref "refs/for" (AGit) we will need to delay write permission check,
-			// AGit flow needs to write its own ref when the doer has "reader" permission (allowing to create PR).
-			// The real permission check is done in HookPreReceive (routers/private/hook_pre_receive.go).
-			// Here it should relax the permission check for "git push (git-receive-pack)", but not for others like LFS operations.
-			if git.DefaultFeatures().SupportProcReceive && unitType == unit.TypeCode && verb == git.CmdVerbReceivePack {
-				mode = perm.AccessModeRead
-			}
 
-			userPerm, err := access_model.GetDoerRepoPermission(ctx, repo, user)
-			if err != nil {
-				ctx.PrivateInternalErrorf("Unable to get permissions for %-v with key %d in %-v, error: %v", user, key.ID, repo, err)
-				return
-			}
+		// Because of the special ref "refs/for" (AGit) we will need to delay write permission check,
+		// AGit flow needs to write its own ref when the doer has "reader" permission (allowing to create PR).
+		// The real permission check is done in HookPreReceive (routers/private/hook_pre_receive.go).
+		// Here it should relax the permission check for "git push (git-receive-pack)", but not for others like LFS operations.
+		if git.DefaultFeatures().SupportProcReceive && unitType == unit.TypeCode && verb == git.CmdVerbReceivePack {
+			mode = perm.AccessModeRead
+		}
 
-			userMode := userPerm.UnitAccessMode(unitType)
-			if userMode < mode {
-				ctx.PrivateUserErrorf(http.StatusUnauthorized, "User %d with key %d:%s has no %q permission for %s", key.OwnerID, key.ID, key.Name, modeString, repoLogName)
-				return
-			}
+		userPerm, err := access_model.GetDoerRepoPermission(ctx, repo, user)
+		if err != nil {
+			ctx.PrivateInternalErrorf("Unable to get permissions for %-v with key %d in %-v, error: %v", user, key.ID, repo, err)
+			return
+		}
+
+		userMode := userPerm.UnitAccessMode(unitType)
+		if userMode < mode {
+			ctx.PrivateUserErrorf(http.StatusUnauthorized, "User key %d:%s has no %q permission for %s", key.ID, key.Name, modeString, repoLogName)
+			return
 		}
 	}
 
-	// We already know we aren't using a deploy key
 	if repo == nil {
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Push to create is not enabled for organizations.")
