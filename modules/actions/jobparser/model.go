@@ -189,7 +189,7 @@ type Step struct {
 	TimeoutMinutes     string            `yaml:"timeout-minutes,omitempty"`
 }
 
-// UnmarshalYAML canonicalizes continue-on-error, as YAML 1.2 spells a bool six ways.
+// UnmarshalYAML canonicalizes booleans like continue-on-error
 func (s *Step) UnmarshalYAML(node *yaml.Node) error {
 	type rawStep Step
 	if err := node.Decode((*rawStep)(s)); err != nil {
