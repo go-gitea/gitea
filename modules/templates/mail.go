@@ -4,6 +4,7 @@
 package templates
 
 import (
+	"fmt"
 	"html/template"
 	"io"
 	"net/url"
@@ -114,6 +115,7 @@ func newMailRenderer() (*MailRender, error) {
 	}
 
 	assetFS := AssetFS()
+	aliases := map[string]string{}
 
 	renderer.tmplRenderer = &tmplRender{
 		collectTemplateNames: func() ([]string, error) {
@@ -125,13 +127,29 @@ func newMailRenderer() (*MailRender, error) {
 				return !strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
 			})
 			for i, name := range names {
-				names[i] = strings.TrimSuffix(strings.TrimPrefix(name, "mail/"), ".tmpl")
+				names[i] = strings.TrimSuffix(name, ".tmpl")
 			}
-			renderer.TemplateNames = names
-			return names, nil
+			renderer.TemplateNames = slices.DeleteFunc(slices.Clone(names), func(name string) bool {
+				return strings.HasPrefix(name, "mail/base/")
+			})
+			allNames := slices.Clone(names)
+			for _, name := range names {
+				alias := strings.TrimPrefix(name, "mail/")
+				if slices.Contains(names, alias) {
+					continue
+				}
+				aliases[alias] = name
+				allNames = append(allNames, alias)
+			}
+			return allNames, nil
 		},
 		readTemplateContent: func(name string) ([]byte, error) {
-			content, err := assetFS.ReadFile("mail/" + name + ".tmpl")
+			if target, ok := aliases[name]; ok {
+				content := fmt.Sprintf(`{{template %q .}}`, target)
+				_, err := renderer.SubjectTemplates.New(name).Parse(content)
+				return []byte(content), err
+			}
+			content, err := assetFS.ReadFile(name + ".tmpl")
 			if err != nil {
 				return nil, err
 			}

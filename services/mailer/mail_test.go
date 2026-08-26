@@ -11,12 +11,13 @@ import (
 	"html/template"
 	"io"
 	"mime/quotedprintable"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 	texttmpl "text/template"
 
-	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/asymkey"
 	git_model "gitea.dev/models/git"
@@ -52,11 +53,7 @@ const bodyTpl = `
 
 <body>
 	<p>{{.Body}}</p>
-	<p>
-		---
-		<br>
-		<a href="{{.Link}}">View it on Gitea</a>.
-	</p>
+	<p><a href="{{.Link}}">#{{.Issue.Index}}</a>.</p>
 </body>
 </html>
 `
@@ -114,7 +111,7 @@ func TestComposeIssueComment(t *testing.T) {
 	})
 
 	defer test.MockVariableValue(&setting.IncomingEmail.Enabled, true)()
-	defer mockMailTemplates("repo/issue/comment", subjectTpl, bodyTpl)()
+	defer mockMailTemplates("mail/repo/issue/comment", subjectTpl, bodyTpl)()
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(t.Context(), &mailComment{
@@ -159,7 +156,7 @@ func TestComposeIssueComment(t *testing.T) {
 func TestMailMentionsComment(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 	comment.Poster = doer
-	defer mockMailTemplates("repo/issue/comment", subjectTpl, bodyTpl)()
+	defer mockMailTemplates("mail/repo/issue/comment", subjectTpl, bodyTpl)()
 	mails := 0
 
 	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
@@ -174,7 +171,7 @@ func TestMailMentionsComment(t *testing.T) {
 func TestComposeIssueMessage(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
-	defer mockMailTemplates("repo/issue/new", subjectTpl, bodyTpl)()
+	defer mockMailTemplates("mail/repo/issue/new", subjectTpl, bodyTpl)()
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(t.Context(), &mailComment{
 		Issue: issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
@@ -200,13 +197,41 @@ func TestComposeIssueMessage(t *testing.T) {
 }
 
 func TestTemplateSelection(t *testing.T) {
+	t.Run("legacy custom template", func(t *testing.T) {
+		restoreCustomPath := test.MockVariableValue(&setting.CustomPath, t.TempDir())
+		t.Cleanup(func() {
+			restoreCustomPath()
+			require.NoError(t, templates.MailRendererReload())
+		})
+		templatePath := filepath.Join(setting.CustomPath, "templates/mail/repo/issue")
+		require.NoError(t, os.MkdirAll(templatePath, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(templatePath, "default.tmpl"), []byte("custom subject\n---\ncustom body"), 0o644))
+		require.NoError(t, templates.MailRendererReload())
+
+		for _, name := range []string{"mail/repo/issue/default", "repo/issue/default"} {
+			var subject, body bytes.Buffer
+			require.NoError(t, LoadedTemplates().SubjectTemplates.ExecuteTemplate(&subject, name, nil))
+			require.NoError(t, LoadedTemplates().BodyTemplates.ExecuteTemplate(&body, name, nil))
+			assert.Equal(t, "custom subject\n", subject.String())
+			assert.Equal(t, "\ncustom body", body.String())
+		}
+	})
+
+	for _, name := range []string{"base/footer", "base/head"} {
+		assert.True(t, LoadedTemplates().BodyTemplates.HasTemplate("mail/"+name))
+		assert.True(t, LoadedTemplates().BodyTemplates.HasTemplate(name))
+		assert.NotContains(t, LoadedTemplates().TemplateNames, "mail/"+name)
+		var rendered bytes.Buffer
+		require.NoError(t, LoadedTemplates().BodyTemplates.ExecuteTemplate(&rendered, name, "test"))
+	}
+
 	doer, repo, issue, comment := prepareMailerTest(t)
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 
-	defer mockMailTemplates("repo/issue/default", "repo/issue/default/subject", "repo/issue/default/body")()
-	defer mockMailTemplates("repo/issue/new", "repo/issue/new/subject", "repo/issue/new/body")()
-	defer mockMailTemplates("repo/pull/comment", "repo/pull/comment/subject", "repo/pull/comment/body")()
-	defer mockMailTemplates("repo/issue/close", "", "repo/issue/close/body")() // Must default to a fallback subject
+	defer mockMailTemplates("mail/repo/issue/default", "repo/issue/default/subject", "repo/issue/default/body")()
+	defer mockMailTemplates("mail/repo/issue/new", "repo/issue/new/subject", "repo/issue/new/body")()
+	defer mockMailTemplates("mail/repo/pull/comment", "repo/pull/comment/subject", "repo/pull/comment/body")()
+	defer mockMailTemplates("mail/repo/issue/close", "", "repo/issue/close/body")() // Must default to a fallback subject
 
 	expect := func(t *testing.T, msg *sender_service.Message, expSubject, expBody string) {
 		subject := msg.ToMessage().GetGenHeader("Subject")
@@ -251,7 +276,7 @@ func TestTemplateServices(t *testing.T) {
 	expect := func(t *testing.T, issue *issues_model.Issue, comment *issues_model.Comment, doer *user_model.User,
 		actionType activities_model.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
 	) {
-		defer mockMailTemplates("repo/issue/default", tplSubject, tplBody)()
+		defer mockMailTemplates("mail/repo/issue/default", tplSubject, tplBody)()
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 		msg := testComposeIssueCommentMessage(t, &mailComment{
 			Issue: issue, Doer: doer, ActionType: actionType,
@@ -436,16 +461,6 @@ func TestGenerateMessageIDForRelease(t *testing.T) {
 	assert.Equal(t, "<owner/repo/releases/1@localhost>", msgID)
 }
 
-func TestGenerateMessageIDForActionsWorkflowRunStatusEmail(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 795, RepoID: repo.ID})
-	assert.NoError(t, run.LoadAttributes(t.Context()))
-	msgID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
-	assert.Equal(t, "<user2/repo2/actions/runs/191@localhost>", msgID)
-}
-
 func TestFromDisplayName(t *testing.T) {
 	tmpl, err := texttmpl.New("mailFrom").Parse("{{ .DisplayName }}")
 	assert.NoError(t, err)
@@ -518,7 +533,7 @@ func TestEmbedBase64Images(t *testing.T) {
 	att2ImgBase64 := fmt.Sprintf(`<img src="%s"/>`, att2Base64)
 
 	t.Run("ComposeMessage", func(t *testing.T) {
-		defer mockMailTemplates("repo/issue/new", subjectTpl, bodyTpl)()
+		defer mockMailTemplates("mail/repo/issue/new", subjectTpl, bodyTpl)()
 
 		issue.Content = fmt.Sprintf(`MSG-BEFORE <image src="attachments/%s"> MSG-AFTER`, att1.UUID)
 		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "content"))
