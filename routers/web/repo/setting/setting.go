@@ -57,7 +57,7 @@ type selectOption struct {
 }
 
 func canManageRepoDangerZone(ctx *context.Context) bool {
-	if !access_model.CanDoerManageRepoDangerZone(&ctx.Repo.Permission) {
+	if !access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission) {
 		ctx.JSONErrorNotFound()
 		return false
 	}
@@ -76,7 +76,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
-	ctx.Data["CanManagerDangerZone"] = access_model.CanDoerManageRepoDangerZone(&ctx.Repo.Permission)
+	ctx.Data["CanManagerDangerZone"] = access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission)
 
 	signing, _ := git.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil

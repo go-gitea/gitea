@@ -429,7 +429,7 @@ func reqOwner() func(ctx *context.APIContext) {
 
 func reqRepoDangerZone() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !access_model.CanDoerManageRepoDangerZone(&ctx.Repo.Permission) {
+		if !access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission) {
 			ctx.APIError(http.StatusForbidden, "user has no permission to manage the danger zone")
 			return
 		}

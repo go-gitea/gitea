@@ -92,8 +92,6 @@ type Team struct {
 	// And the user will become the repo's admin (via collaborator) after the creation.
 	CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
 
-	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: it needs a new field to decide whether a repo admin can manage the repo's danger zone
-
 	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
 }
 

@@ -687,19 +687,32 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 	return botPerm.AccessMode >= perm_model.AccessModeRead, nil
 }
 
-func CanDoerManageRepoDangerZone(perm *Permission) bool {
+func CanDoerManageRepoDangerZone(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, perm *Permission) bool {
 	if perm.IsOwner() {
 		return true
 	}
 
 	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: this is the legacy logic, "org repo admin" can delete a repo
-	// Ideally we need a new field in the Team like "CanAdminManageDangerZone" to control this permission, but for now we keep the legacy logic
+	// Ideally we need a new field in like "AdminManageDangerZone" to control this permission, but for now we keep the legacy logic
 	for _, team := range perm.orgRepoTeams {
 		if team.AccessMode >= perm_model.AccessModeAdmin {
 			return true
 		}
 	}
-	return false
+
+	// A special case: if the team allows to create repo, then the doer will be added as a collaborator with admin access.
+	// For this case, we also allow the doer to manage the danger zone as well, because the doer is effectively a repo admin.
+	// Since the admin permission from team is already allowed above (legacy logic), here nothing worse.
+	// Keep in mind: the newly created repo isn't in any org team, it only has the doer as a collaborator with admin access.
+	// So we need to get all the teams of the doer to check.
+	allowCreateRepo := false
+	doerOrgTeams, _ := organization.GetUserOrgTeams(ctx, repo.OwnerID, doer.ID)
+	for _, team := range doerOrgTeams {
+		if allowCreateRepo = team.CanCreateOrgRepo; allowCreateRepo {
+			break
+		}
+	}
+	return allowCreateRepo && perm.IsAdmin()
 }
 
 func CanDoerManageOrgRepoCollaboratorTeam(ctx context.Context, repo *repo_model.Repository, perm *Permission) bool {
