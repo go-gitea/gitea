@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-const RequiredVersion = "2.13.0" // the minimum Git version required
+const RequiredVersion = "2.18.0" // the minimum Git version required
 
 type Features struct {
 	gitVersion *version.Version
