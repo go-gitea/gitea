@@ -1192,6 +1192,8 @@
   "repo.tree": "Aborescence",
   "repo.clear_ref": "Effacer la référence actuelle",
   "repo.filter_branch_and_tag": "Filtrer une branche ou une étiquette",
+  "repo.filter_workflows": "Filtrer les workflows",
+  "repo.select_workflow": "Sélectionner le workflow",
   "repo.find_tag": "Rechercher une étiquette",
   "repo.branches": "Branches",
   "repo.tags": "Étiquettes",

@@ -1187,6 +1187,8 @@
   "repo.tree": "ツリー",
   "repo.clear_ref": "現在の参照をクリア",
   "repo.filter_branch_and_tag": "ブランチまたはタグを絞り込み",
+  "repo.filter_workflows": "ワークフローを絞り込み",
+  "repo.select_workflow": "ワークフローを選択",
   "repo.find_tag": "タグを検索",
   "repo.branches": "ブランチ",
   "repo.tags": "タグ",

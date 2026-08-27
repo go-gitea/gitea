@@ -724,6 +724,8 @@
   "repo.code.desc": "Toegang tot broncode, bestanden, commits en branches.",
   "repo.clear_ref": "Huidige referentie wissen",
   "repo.filter_branch_and_tag": "Filter op branch of tag",
+  "repo.filter_workflows": "Workflows filteren",
+  "repo.select_workflow": "Workflow selecteren",
   "repo.find_tag": "Label zoeken",
   "repo.tags": "Labels",
   "repo.issues": "Kwesties",

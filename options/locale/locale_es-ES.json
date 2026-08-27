@@ -886,6 +886,8 @@
   "repo.tree": "Árbol",
   "repo.clear_ref": "Borrar referencia actual",
   "repo.filter_branch_and_tag": "Filtrar por rama o etiqueta",
+  "repo.filter_workflows": "Filtrar workflows",
+  "repo.select_workflow": "Seleccionar el workflow",
   "repo.find_tag": "Buscar etiqueta",
   "repo.branches": "Ramas",
   "repo.tags": "Etiquetas",

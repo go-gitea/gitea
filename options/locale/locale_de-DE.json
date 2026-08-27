@@ -1192,6 +1192,8 @@
   "repo.tree": "Struktur",
   "repo.clear_ref": "Aktuelle Referenz löschen",
   "repo.filter_branch_and_tag": "Branch oder Tag filtern",
+  "repo.filter_workflows": "Workflows filtern",
+  "repo.select_workflow": "Workflow auswählen",
   "repo.find_tag": "Tag finden",
   "repo.branches": "Branches",
   "repo.tags": "Tags",

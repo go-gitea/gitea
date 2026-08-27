@@ -1192,6 +1192,8 @@
   "repo.tree": "Árvore",
   "repo.clear_ref": "Apagar a referência vigente",
   "repo.filter_branch_and_tag": "Filtrar ramo ou etiqueta",
+  "repo.filter_workflows": "Filtrar fluxos de trabalho",
+  "repo.select_workflow": "Selecionar o fluxo de trabalho",
   "repo.find_tag": "Procurar etiqueta",
   "repo.branches": "Ramos",
   "repo.tags": "Etiquetas",

@@ -1192,6 +1192,8 @@
   "repo.tree": "트리",
   "repo.clear_ref": "현재 참조 지우기",
   "repo.filter_branch_and_tag": "브랜치나 태그로 필터",
+  "repo.filter_workflows": "워크플로 필터링",
+  "repo.select_workflow": "워크플로 선택",
   "repo.find_tag": "태그 찾기",
   "repo.branches": "브랜치",
   "repo.tags": "태그",

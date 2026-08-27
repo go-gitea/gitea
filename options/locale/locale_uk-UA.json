@@ -1013,6 +1013,8 @@
   "repo.tree": "Дерево",
   "repo.clear_ref": "Очистити поточне посилання",
   "repo.filter_branch_and_tag": "Фільтрувати гілку або тег",
+  "repo.filter_workflows": "Фільтрувати робочі процеси",
+  "repo.select_workflow": "Вибрати робочий процес",
   "repo.find_tag": "Знайти тег",
   "repo.branches": "Гілки",
   "repo.tags": "Теги",

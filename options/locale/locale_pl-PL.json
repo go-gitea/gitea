@@ -1192,6 +1192,8 @@
   "repo.tree": "Drzewo",
   "repo.clear_ref": "Wyczyść bieżące odniesienie",
   "repo.filter_branch_and_tag": "Filtruj gałąź lub tag",
+  "repo.filter_workflows": "Filtruj przepływy pracy",
+  "repo.select_workflow": "Wybierz przepływ pracy",
   "repo.find_tag": "Znajdź tag",
   "repo.branches": "Gałęzie",
   "repo.tags": "Tagi",

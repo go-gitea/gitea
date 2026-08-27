@@ -572,6 +572,8 @@
   "repo.branch": "Haara",
   "repo.tree": "Puu",
   "repo.filter_branch_and_tag": "Suodata haara tai tagi",
+  "repo.filter_workflows": "Suodata työnkulkuja",
+  "repo.select_workflow": "Valitse työnkulku",
   "repo.branches": "Branchit",
   "repo.tags": "Tagit",
   "repo.issues": "Ongelmat",

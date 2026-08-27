@@ -18,6 +18,25 @@ test('dropdown-item-literal-text', () => {
   }
 });
 
+test('search dropdown-selects-matched-item', () => {
+  const $dropdown = $(`<div class="ui search selection dropdown">
+    <input type="hidden" name="item" value="Item 001">
+    <input class="search" type="text">
+    <div class="default text">Item 001</div>
+    <div class="menu">
+      <div class="item" data-value="Item 001">Item 001</div>
+      <div class="item" data-value="Item 002">Item 002</div>
+    </div>
+  </div>`).dropdown();
+  const $search = $dropdown.find('input.search');
+
+  $search.val('Item 002').trigger('keyup');
+  $dropdown.find('.item:not(.filtered)').trigger('click');
+
+  expect($dropdown.dropdown('get value')).toEqual('Item 002');
+  expect($dropdown.dropdown('get text')).toEqual('Item 002');
+});
+
 test('hideScopedEmptyDividers-simple', () => {
   const container = createElementFromHTML(`<div>
 <div class="divider"></div>

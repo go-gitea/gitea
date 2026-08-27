@@ -1056,6 +1056,8 @@
   "repo.tree": "Tag",
   "repo.clear_ref": "Limpar referência atual",
   "repo.filter_branch_and_tag": "Filtrar branch ou tag",
+  "repo.filter_workflows": "Filtrar workflows",
+  "repo.select_workflow": "Selecionar o workflow",
   "repo.find_tag": "Pesquisar etiqueta",
   "repo.projects": "Projetos",
   "repo.packages": "Pacotes",

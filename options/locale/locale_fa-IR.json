@@ -713,6 +713,8 @@
   "repo.tree": "درخت",
   "repo.clear_ref": "حذف مرجع فعلی",
   "repo.filter_branch_and_tag": "صافی شاخه یا برچسب",
+  "repo.filter_workflows": "پالایش گردش‌کارها",
+  "repo.select_workflow": "انتخاب گردش‌کار",
   "repo.find_tag": "جستجوی تگ",
   "repo.branches": "شاخه‎ها",
   "repo.tags": "برچسب‎ها",

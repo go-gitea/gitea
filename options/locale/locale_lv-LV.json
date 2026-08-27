@@ -919,6 +919,8 @@
   "repo.tree": "Koks",
   "repo.clear_ref": "Notīrīt pašreizējo atsauci",
   "repo.filter_branch_and_tag": "Filtrēt atzarus vai tagus",
+  "repo.filter_workflows": "Filtrēt darbplūsmas",
+  "repo.select_workflow": "Atlasīt darbplūsmu",
   "repo.find_tag": "Atrast tagu",
   "repo.branches": "Atzari",
   "repo.tags": "Tagi",

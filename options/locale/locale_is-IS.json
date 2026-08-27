@@ -436,6 +436,8 @@
   "settings.visibility.private": "Einka",
   "repo.owner": "Eigandi",
   "repo.template": "Sniðmát",
+  "repo.filter_workflows": "Sía verkflæði",
+  "repo.select_workflow": "Veldu verkflæði",
   "repo.visibility": "Sýnileiki",
   "repo.clone_helper": "Þarftu hjálp við afritun? Fáðu <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">aðstoð</a>.",
   "repo.fork_repo": "Tvískipta Hugbúnaðarsafni",

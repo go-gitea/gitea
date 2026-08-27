@@ -566,6 +566,8 @@
   "repo.tree": "Träd",
   "repo.clear_ref": "Rensa aktuell referens",
   "repo.filter_branch_and_tag": "Filtrera gren eller tagg",
+  "repo.filter_workflows": "Filtrera arbetsflöden",
+  "repo.select_workflow": "Välj arbetsflöde",
   "repo.branches": "Grenar",
   "repo.tags": "Taggar",
   "repo.issues": "Ärenden",
