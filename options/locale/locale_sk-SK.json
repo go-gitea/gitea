@@ -776,8 +776,6 @@
   "repo.tree": "Strom",
   "repo.clear_ref": "Vymazať aktuálnu referenciu",
   "repo.filter_branch_and_tag": "Filter vetvy alebo tagu",
-  "repo.filter_workflows": "Filtrovať pracovné postupy",
-  "repo.select_workflow": "Vybrať pracovný postup",
   "repo.find_tag": "Hľadať tag",
   "repo.branches": "Vetvy",
   "repo.tags": "Tagy",

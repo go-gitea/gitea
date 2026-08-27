@@ -1192,8 +1192,6 @@
   "repo.tree": "Crann",
   "repo.clear_ref": "Tagairt reatha soiléir",
   "repo.filter_branch_and_tag": "Scagaire brainse nó clib",
-  "repo.filter_workflows": "Scagair sreafa oibre",
-  "repo.select_workflow": "Roghnaigh an sreabh oibre",
   "repo.find_tag": "Aimsigh clib",
   "repo.branches": "Brainsí",
   "repo.tags": "Clibeanna",

@@ -901,8 +901,6 @@
   "repo.tree": "Δέντρο",
   "repo.clear_ref": "Καθαρισμός τρέχουσας αναφοράς",
   "repo.filter_branch_and_tag": "Φίλτρο κλάδου ή ετικέτας",
-  "repo.filter_workflows": "Φίλτρο ροών εργασιών",
-  "repo.select_workflow": "Επιλέξτε τη ροή εργασίας",
   "repo.find_tag": "Εύρεση ετικέτας",
   "repo.branches": "Κλάδοι",
   "repo.tags": "Ετικέτες",

@@ -995,8 +995,6 @@
   "repo.tree": "Strom",
   "repo.clear_ref": "Vymazat aktuální referenci",
   "repo.filter_branch_and_tag": "Filtr pro větev nebo značku",
-  "repo.filter_workflows": "Filtrovat workflow",
-  "repo.select_workflow": "Vybrat workflow",
   "repo.find_tag": "Najít značku",
   "repo.branches": "Větve",
   "repo.tags": "Značky",

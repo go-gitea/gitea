@@ -1159,8 +1159,6 @@
   "repo.tree": "Ağaç",
   "repo.clear_ref": "Geçerli referansı temizle",
   "repo.filter_branch_and_tag": "Dal veya biçim imini filtrele",
-  "repo.filter_workflows": "İş akışlarını filtrele",
-  "repo.select_workflow": "İş akışını seç",
   "repo.find_tag": "Etiketi bul",
   "repo.branches": "Dal",
   "repo.tags": "Etiketler",

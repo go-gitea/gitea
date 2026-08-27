@@ -693,8 +693,6 @@
   "repo.tree": "ගස",
   "repo.clear_ref": "පැහැදිලි වත්මන් සඳහන",
   "repo.filter_branch_and_tag": "පෙරහන් ශාඛාව හෝ ටැගය",
-  "repo.filter_workflows": "ක්‍රියා ප්‍රවාහ පෙරහන්",
-  "repo.select_workflow": "කාර්ය ප්‍රවාහය තෝරන්න",
   "repo.find_tag": "ටැගය සොයන්න",
   "repo.branches": "ශාඛා",
   "repo.tags": "ටැග්",

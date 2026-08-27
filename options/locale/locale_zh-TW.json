@@ -1000,8 +1000,6 @@
   "repo.tree": "目錄樹",
   "repo.clear_ref": "清除目前的參考",
   "repo.filter_branch_and_tag": "過濾分支或標籤",
-  "repo.filter_workflows": "過濾工作流程",
-  "repo.select_workflow": "選擇工作流程",
   "repo.find_tag": "尋找標籤",
   "repo.branches": "分支",
   "repo.tags": "標籤",

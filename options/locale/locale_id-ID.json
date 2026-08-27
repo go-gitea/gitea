@@ -527,8 +527,6 @@
   "repo.branch": "Cabang",
   "repo.tree": "Pohon",
   "repo.filter_branch_and_tag": "Filter cabang atau tag",
-  "repo.filter_workflows": "Filter alur kerja",
-  "repo.select_workflow": "Pilih alur kerja",
   "repo.branches": "Cabang",
   "repo.tags": "Tag",
   "repo.issues": "Masalah",

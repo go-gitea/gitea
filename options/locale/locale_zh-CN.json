@@ -1187,8 +1187,6 @@
   "repo.tree": "目录树",
   "repo.clear_ref": "清除当前引用",
   "repo.filter_branch_and_tag": "过滤分支或 Git 标签",
-  "repo.filter_workflows": "过滤工作流",
-  "repo.select_workflow": "选择工作流",
   "repo.find_tag": "查找 Git 标签",
   "repo.branches": "分支列表",
   "repo.tags": "Git 标签列表",

@@ -901,8 +901,6 @@
   "repo.tree": "Дерево",
   "repo.clear_ref": "Удалить текущую ссылку",
   "repo.filter_branch_and_tag": "Фильтр по ветке или тегу",
-  "repo.filter_workflows": "Фильтр рабочих процессов",
-  "repo.select_workflow": "Выберите рабочий процесс",
   "repo.find_tag": "Найти тег",
   "repo.branches": "Ветки",
   "repo.tags": "Теги",

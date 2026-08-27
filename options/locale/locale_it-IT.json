@@ -734,8 +734,6 @@
   "repo.tree": "Albero (Tree)",
   "repo.clear_ref": "Cancella il riferimento corrente",
   "repo.filter_branch_and_tag": "Filtra per branch o tag",
-  "repo.filter_workflows": "Filtra i flussi di lavoro",
-  "repo.select_workflow": "Seleziona il flusso di lavoro",
   "repo.find_tag": "Trova etichetta",
   "repo.branches": "Rami (Branch)",
   "repo.tags": "Tag",

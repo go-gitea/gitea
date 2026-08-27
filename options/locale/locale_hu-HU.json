@@ -518,8 +518,6 @@
   "repo.branch": "Ág",
   "repo.tree": "Fa",
   "repo.filter_branch_and_tag": "Ág vagy címke szűrése",
-  "repo.filter_workflows": "Munkafolyamatok szűrése",
-  "repo.select_workflow": "Munkafolyamat kiválasztása",
   "repo.branches": "Ágak",
   "repo.tags": "Címkék",
   "repo.issues": "Hibajegyek",
