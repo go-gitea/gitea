@@ -576,3 +576,10 @@ type SaveTopicForm struct {
 	middleware.FormDefaultValidator
 	Topics []string `binding:"topics;Required;"`
 }
+
+// AddDeployTokenForm form for adding a deploy token to a repository
+type AddDeployTokenForm struct {
+	middleware.FormDefaultValidator
+	Title      string `binding:"Required;MaxSize(50)"`
+	IsWritable bool
+}

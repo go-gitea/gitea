@@ -83,7 +83,7 @@ func parseArtifactItemPath(ctx *ArtifactContext) (string, string, bool) {
 	// it's formatted as {artifact_name}/{artfict_path_in_runner}
 	// runner in host mode on Windows, itemPath is joined by Windows slash '\'
 	itemPath := util.PathJoinRelX(ctx.Req.URL.Query().Get("itemPath"))
-	artifactName := strings.Split(itemPath, "/")[0]
+	artifactName, _, _ := strings.Cut(itemPath, "/")
 	artifactPath := strings.TrimPrefix(itemPath, artifactName+"/")
 	if !validateArtifactHash(ctx, artifactName) {
 		return "", "", false
