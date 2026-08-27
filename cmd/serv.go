@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -289,7 +288,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return nil
 	}
 
-	var command *exec.Cmd
+	var command *process.Cmd
 	gitBinPath := filepath.Dir(gitcmd.GitExecutable) // e.g. /usr/bin
 	gitBinVerb := filepath.Join(gitBinPath, verb)    // e.g. /usr/bin/git-upload-pack
 	if _, err := os.Stat(gitBinVerb); err != nil {
@@ -298,15 +297,14 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		verbFields := strings.SplitN(verb, "-", 2)
 		if len(verbFields) == 2 {
 			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
-			command = exec.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], results.RepoStoragePath)
+			command = process.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], results.RepoStoragePath)
 		}
 	}
 	if command == nil {
 		// by default, use the verb (it has been checked above by allowedCommands)
-		command = exec.CommandContext(ctx, gitBinVerb, results.RepoStoragePath)
+		command = process.CommandContext(ctx, gitBinVerb, results.RepoStoragePath)
 	}
 
-	process.SetSysProcAttribute(command)
 	command.Dir = setting.RepoRootPath
 	command.Stdout = os.Stdout
 	command.Stdin = os.Stdin
