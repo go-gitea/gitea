@@ -13,7 +13,9 @@ import (
 	"testing"
 
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/42wim/sshsig"
 	"github.com/stretchr/testify/assert"
@@ -489,4 +491,31 @@ func TestCheckPublicKeyStringOversized(t *testing.T) {
 	content := "---- BEGIN SSH2 PUBLIC KEY ----\n" + strings.Repeat("a", maxKeyContentBase64Bytes+1) + "\n--- END SSH2 PUBLIC KEY ----"
 	_, err = parseKeyString(content)
 	assert.ErrorContains(t, err, "SSH public key base64 is too long")
+}
+
+func TestAddPublicKeyLimit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // already owns one user key from the fixtures
+
+	const (
+		rsaKey   = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMZXh+1OBUwSH9D45wTaxErQIN9IoC9xl7MKJkqvTvv6O5RR9YW/IK9FbfjXgXsppYGhsCZo1hFOOsXHMnfOORqu/xMDx4yPuyvKpw4LePEcg4TDipaDFuxbWOqc/BUZRZcXu41QAWfDLrInwsltWZHSeG7hjhpacl4FrVv9V1pS6Oc5Q1NxxEzTzuNLS/8diZrTm/YAQQ/+B+mzWI3zEtF4miZjjAljWd1LTBPvU23d29DcBmmFahcZ441XZsTeAwGxG/Q6j8NgNXj9WxMeWwxXV2jeAX/EBSpZrCVlCQ1yJswT6xCp8TuBnTiGWYMBNTbOZvPC4e0WI2/yZW/s5F nocomment"
+		ecdsaKey = "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFQacN3PrOll7PXmN5B/ZNVahiUIqI05nbBlZk1KXsO3d06ktAWqbNflv2vEmA38bTFTfJ2sbn2B5ksT52cDDbA= nocomment"
+	)
+
+	t.Run("LimitReached", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.User.MaxSSHKeysPerUser, 2)()
+
+		_, err := AddPublicKey(t.Context(), user2.ID, "test-limit", rsaKey, 0, false)
+		assert.NoError(t, err)
+
+		_, err = AddPublicKey(t.Context(), user2.ID, "test-limit-2", ecdsaKey, 0, false)
+		assert.True(t, IsErrKeyLimitReached(err))
+	})
+
+	t.Run("Unlimited", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.User.MaxSSHKeysPerUser, -1)()
+
+		_, err := AddPublicKey(t.Context(), user2.ID, "test-unlimited", ecdsaKey, 0, false)
+		assert.NoError(t, err)
+	})
 }

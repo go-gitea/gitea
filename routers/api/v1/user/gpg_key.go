@@ -320,6 +320,8 @@ func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 		ctx.APIError(http.StatusNotFound, "None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: "+token)
 	case asymkey_model.IsErrGPGInvalidTokenSignature(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: "+token)
+	case asymkey_model.IsErrKeyLimitReached(err):
+		ctx.APIError(http.StatusUnprocessableEntity, "Reached the maximum number of GPG keys allowed per user")
 	default:
 		ctx.APIErrorInternal(err)
 	}

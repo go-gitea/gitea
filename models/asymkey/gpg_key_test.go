@@ -10,6 +10,8 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
@@ -195,12 +197,7 @@ Unknown GPG key with good email
 	assert.Error(t, err, "Validate a bad signature with a kay that can not sign")
 }
 
-func TestCheckGPGUserEmail(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	testEmailWithUpperCaseLetters := `-----BEGIN PGP PUBLIC KEY BLOCK-----
+var testUser1GPGKeyArmor = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
 
 mQENBFlEBvMBCADe+EQcfv/aKbMFy7YB8e/DE+hY39sfjvdvSgeXtNhfmYvIOUjT
@@ -231,7 +228,12 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 =zHo9
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	keys, err := AddGPGKey(t.Context(), 1, testEmailWithUpperCaseLetters, "", "")
+func TestCheckGPGUserEmail(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	keys, err := AddGPGKey(t.Context(), 1, testUser1GPGKeyArmor, "", "")
 	assert.NoError(t, err)
 	if assert.NotEmpty(t, keys) {
 		key := keys[0]
@@ -239,6 +241,28 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 			assert.Equal(t, "user1@example.com", key.Emails[0].Email)
 		}
 	}
+}
+
+func TestAddGPGKeyLimit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	t.Run("LimitReached", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.User.MaxGPGKeysPerUser, 1)()
+
+		_, err := AddGPGKey(t.Context(), 1, testUser1GPGKeyArmor, "", "")
+		assert.NoError(t, err)
+
+		_, err = AddGPGKey(t.Context(), 1, testUser1GPGKeyArmor, "", "")
+		assert.True(t, IsErrKeyLimitReached(err))
+	})
+
+	t.Run("Unlimited", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.User.MaxGPGKeysPerUser, -1)()
+
+		// the key from the previous subtest is still in the database, but the limit is disabled
+		_, err := AddGPGKey(t.Context(), 1, testUser1GPGKeyArmor, "", "")
+		assert.True(t, IsErrGPGKeyIDAlreadyUsed(err))
+	})
 }
 
 func TestCheckGParseGPGExpire(t *testing.T) {

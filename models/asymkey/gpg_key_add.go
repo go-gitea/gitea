@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 )
@@ -134,6 +135,14 @@ func AddGPGKey(ctx context.Context, ownerID int64, content, token, signature str
 				newEKeys = append(newEKeys, ekey)
 			}
 			ekeys = newEKeys
+		}
+
+		if limit := setting.User.MaxGPGKeysPerUser; limit >= 0 {
+			if count, err := db.Count[GPGKey](ctx, FindGPGKeyOptions{OwnerID: ownerID}); err != nil {
+				return nil, err
+			} else if count+int64(len(ekeys)) > int64(limit) {
+				return nil, ErrKeyLimitReached{Limit: limit}
+			}
 		}
 
 		for _, ekey := range ekeys {

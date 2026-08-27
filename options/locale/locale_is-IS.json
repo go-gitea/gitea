@@ -385,6 +385,8 @@
   "settings.gpg_helper": "<strong>Vantar þér aðstoð?</strong> Skoðaðu leiðbeiningarnar frá GitHub <a href=\"%s\">um GPG</a>.",
   "settings.add_new_key": "Bæta við SSH lykli",
   "settings.key_content_ssh_placeholder": "Byrjar með 'ssh-ed25519', 'ssh-rsa', 'ecdsa-sha2-nistp256', 'ecdsa-sha2-nistp384', 'ecdsa-sha2-nistp521', 'sk-ecdsa-sha2-nistp256@openssh.com' eða 'sk-ssh-ed25519@openssh.com'",
+  "settings.ssh_key_limit_reached": "Þú hefur náð hámarksfjölda SSH-lykla (%d). Þú verður að fjarlægja einn áður en þú bætir við öðrum.",
+  "settings.gpg_key_limit_reached": "Þú hefur náð hámarksfjölda GPG-lykla (%d). Þú verður að fjarlægja einn áður en þú bætir við öðrum.",
   "settings.gpg_key_verify": "Staðfesta",
   "settings.gpg_token": "Táknlykill",
   "settings.ssh_key_verified": "Staðfestur Lykill",

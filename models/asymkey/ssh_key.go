@@ -99,6 +99,14 @@ func AddPublicKey(ctx context.Context, ownerID int64, name, content string, auth
 	}
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*PublicKey, error) {
+		if limit := setting.User.MaxSSHKeysPerUser; limit >= 0 {
+			if count, err := db.Count[PublicKey](ctx, FindPublicKeyOptions{OwnerID: ownerID, KeyTypes: []KeyType{KeyTypeUser}}); err != nil {
+				return nil, err
+			} else if count >= int64(limit) {
+				return nil, ErrKeyLimitReached{Limit: limit}
+			}
+		}
+
 		if err := checkKeyFingerprint(ctx, fingerprint); err != nil {
 			return nil, err
 		}

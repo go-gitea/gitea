@@ -126,6 +126,9 @@ func KeysPost(ctx *context.Context) {
 				ctx.Data["KeyID"] = keyID
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
+			case asymkey_model.IsErrKeyLimitReached(err):
+				ctx.Flash.Error(ctx.Tr("settings.gpg_key_limit_reached", setting.User.MaxGPGKeysPerUser))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			default:
 				ctx.ServerError("AddPublicKey", err)
 			}
@@ -202,6 +205,9 @@ func KeysPost(ctx *context.Context) {
 
 				ctx.Data["Err_Title"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_key_name_used"), tplSettingsKeys, &form)
+			case asymkey_model.IsErrKeyLimitReached(err):
+				ctx.Flash.Error(ctx.Tr("settings.ssh_key_limit_reached", setting.User.MaxSSHKeysPerUser))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			case asymkey_model.IsErrKeyUnableVerify(err):
 				ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 				ctx.Redirect(setting.AppSubURL + "/user/settings/keys")

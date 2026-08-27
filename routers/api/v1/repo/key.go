@@ -168,6 +168,8 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 		ctx.APIError(http.StatusUnprocessableEntity, "Key title has been used")
 	case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same name already exists")
+	case asymkey_model.IsErrKeyLimitReached(err):
+		ctx.APIError(http.StatusUnprocessableEntity, "Reached the maximum number of SSH keys allowed per user")
 	default:
 		ctx.APIErrorInternal(err)
 	}

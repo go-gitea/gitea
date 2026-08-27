@@ -88,6 +88,21 @@ func (err ErrKeyNameAlreadyUsed) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
+// ErrKeyLimitReached represents a "KeyLimitReached" kind of error.
+type ErrKeyLimitReached struct {
+	Limit int
+}
+
+// IsErrKeyLimitReached checks if an error is a ErrKeyLimitReached.
+func IsErrKeyLimitReached(err error) bool {
+	_, ok := err.(ErrKeyLimitReached)
+	return ok
+}
+
+func (err ErrKeyLimitReached) Error() string {
+	return fmt.Sprintf("the maximum number of keys per user has been reached [limit: %d]", err.Limit)
+}
+
 // ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
 type ErrGPGNoEmailFound struct {
 	FailedEmails []string
