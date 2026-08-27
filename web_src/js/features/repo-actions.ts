@@ -66,8 +66,6 @@ function initWorkflowDispatchChoiceDropdown(dropdown: HTMLElement): void {
     event.preventDefault();
     event.stopPropagation();
     let nextIndex = event.key === 'ArrowDown' ? activeIndex + 1 : activeIndex - 1;
-    // set the console of event.key, activeIndex, and visibleItems.length to help debug the issue
-    console.log(event.key, activeIndex, visibleItems.length, items);
     if (event.key === 'ArrowUp' && (activeIndex <= 0 || !visibleItems.length)) {
       for (const item of items) item.classList.remove('active');
       search.focus();
