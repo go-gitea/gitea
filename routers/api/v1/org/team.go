@@ -683,16 +683,13 @@ func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
 }
 
 func canChangeTeamRepository(ctx *context.APIContext) bool {
-	if ctx.Org.Organization.RepoAdminChangeTeamAccess {
-		return true
-	}
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	canChange, err := ctx.Org.Organization.CanChangeRepoTeamAccess(ctx, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return false
 	}
-	if !isOwner {
-		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+	if !canChange {
+		ctx.APIError(http.StatusForbidden, "Must be an organization owner")
 		return false
 	}
 	return true
