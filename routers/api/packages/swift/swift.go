@@ -330,7 +330,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	packageVersion := v.Core().String()
+	packageVersion := v.String()
 
 	file, err := formFileOptionalReadCloser(ctx, "source-archive")
 	if file == nil || err != nil {

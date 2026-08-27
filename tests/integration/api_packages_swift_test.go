@@ -190,6 +190,31 @@ func TestPackageSwift(t *testing.T) {
 		)
 	})
 
+	t.Run("UploadPrerelease", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		prereleaseVersion := "2.0.0-beta.1"
+
+		var body bytes.Buffer
+		mpw := multipart.NewWriter(&body)
+		part, _ := mpw.CreateFormFile("source-archive", "source-archive.zip")
+		io.Copy(part, test.WriteZipArchive(map[string]string{
+			"Package.swift": contentManifest1,
+		}))
+		mpw.WriteField("metadata", makePackageMetadataJSON(prereleaseVersion))
+		mpw.Close()
+
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, prereleaseVersion), &body).
+			SetHeader("Content-Type", mpw.FormDataContentType()).
+			SetHeader("Accept", swift_router.AcceptJSON).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeSwift, packageID, prereleaseVersion)
+		assert.NoError(t, err)
+		assert.Equal(t, prereleaseVersion, pv.Version)
+	})
+
 	t.Run("UploadMultipart", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
