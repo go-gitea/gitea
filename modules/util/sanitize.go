@@ -23,6 +23,9 @@ func (err sanitizedError) Unwrap() error {
 
 // SanitizeErrorCredentialURLs wraps the error and make sure the returned error message doesn't contain sensitive credentials in URLs
 func SanitizeErrorCredentialURLs(err error) error {
+	if err == nil {
+		return nil
+	}
 	return sanitizedError{err: err}
 }
 

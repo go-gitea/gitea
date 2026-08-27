@@ -11,9 +11,32 @@ import (
 )
 
 func TestSanitizeErrorCredentialURLs(t *testing.T) {
-	err := errors.New("error with https://a@b.com")
-	se := SanitizeErrorCredentialURLs(err)
-	assert.Equal(t, "error with https://"+userInfoPlaceholder+"@b.com", se.Error())
+	tests := []struct {
+		name     string
+		err      error
+		expected string
+	}{
+		{
+			name:     "sanitizes credentials",
+			err:      errors.New("error with https://a@b.com"),
+			expected: "error with https://" + userInfoPlaceholder + "@b.com",
+		},
+		{
+			name: "nil error",
+			err:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			se := SanitizeErrorCredentialURLs(tt.err)
+			if tt.err == nil {
+				assert.Nil(t, se)
+				return
+			}
+			assert.Equal(t, tt.expected, se.Error())
+		})
+	}
 }
 
 func TestSanitizeCredentialURLs(t *testing.T) {
