@@ -34,7 +34,7 @@ func TestPackageSwift(t *testing.T) {
 	packageName := "test_package"
 	packageID := packageScope + "." + packageName
 	packageVersion := "1.0.3"
-	packageVersion2 := "1.0.4"
+	packageVersion2Beta := "1.0.4-beta.1" // full version should be kept
 	packageVersion3 := "1.0.5"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Gitea Test Package"
@@ -190,31 +190,6 @@ func TestPackageSwift(t *testing.T) {
 		)
 	})
 
-	t.Run("UploadPrerelease", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		prereleaseVersion := "2.0.0-beta.1"
-
-		var body bytes.Buffer
-		mpw := multipart.NewWriter(&body)
-		part, _ := mpw.CreateFormFile("source-archive", "source-archive.zip")
-		io.Copy(part, test.WriteZipArchive(map[string]string{
-			"Package.swift": contentManifest1,
-		}))
-		mpw.WriteField("metadata", makePackageMetadataJSON(prereleaseVersion))
-		mpw.Close()
-
-		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, prereleaseVersion), &body).
-			SetHeader("Content-Type", mpw.FormDataContentType()).
-			SetHeader("Accept", swift_router.AcceptJSON).
-			AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-
-		pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeSwift, packageID, prereleaseVersion)
-		assert.NoError(t, err)
-		assert.Equal(t, prereleaseVersion, pv.Version)
-	})
-
 	t.Run("UploadMultipart", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
@@ -240,7 +215,7 @@ func TestPackageSwift(t *testing.T) {
 			MakeRequest(t, req, expectedStatus)
 		}
 
-		uploadURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, packageVersion2)
+		uploadURL := fmt.Sprintf("%s/%s/%s/%s", url, packageScope, packageName, packageVersion2Beta)
 
 		req := NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader([]byte{}))
 		MakeRequest(t, req, http.StatusUnauthorized)
@@ -254,7 +229,7 @@ func TestPackageSwift(t *testing.T) {
 				"Package.swift":           contentManifest1,
 				"Package@swift-5.6.swift": contentManifest2,
 			}),
-			makePackageMetadataJSON(packageVersion2),
+			makePackageMetadataJSON(packageVersion2Beta),
 		)
 
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeSwift)
@@ -265,7 +240,7 @@ func TestPackageSwift(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.Equal(t, packageID, pd.Package.Name)
-		assert.Equal(t, packageVersion2, pd.Version.Version)
+		assert.Equal(t, packageVersion2Beta, pd.Version.Version)
 		metadata, ok := pd.Metadata.(*swift_module.Metadata)
 		require.True(t, ok)
 		assert.Equal(t, packageDescription, metadata.Description)
@@ -278,7 +253,7 @@ func TestPackageSwift(t *testing.T) {
 		pfs, err := packages.GetFilesByVersionID(t.Context(), thisPackageVersion.ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
-		assert.Equal(t, fmt.Sprintf("%s-%s.zip", packageName, packageVersion2), pfs[0].Name)
+		assert.Equal(t, fmt.Sprintf("%s-%s.zip", packageName, packageVersion2Beta), pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
 		uploadPackage(
@@ -320,7 +295,7 @@ func TestPackageSwift(t *testing.T) {
 			SetHeader("Accept", swift_router.AcceptJSON)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		versionURL := setting.AppURL + url[1:] + fmt.Sprintf("/%s/%s/%s", packageScope, packageName, packageVersion2)
+		versionURL := setting.AppURL + url[1:] + fmt.Sprintf("/%s/%s/%s", packageScope, packageName, packageVersion2Beta)
 
 		assert.Equal(t, "1", resp.Header().Get("Content-Version"))
 		assert.Equal(t, fmt.Sprintf(`<%s>; rel="latest-version"`, versionURL), resp.Header().Get("Link"))
@@ -330,8 +305,8 @@ func TestPackageSwift(t *testing.T) {
 		result := DecodeJSON(t, resp, &swift_router.EnumeratePackageVersionsResponse{})
 
 		assert.Len(t, result.Releases, 2)
-		assert.Contains(t, result.Releases, packageVersion2)
-		assert.Equal(t, versionURL, result.Releases[packageVersion2].URL)
+		assert.Contains(t, result.Releases, packageVersion2Beta)
+		assert.Equal(t, versionURL, result.Releases[packageVersion2Beta].URL)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.json", url, packageScope, packageName)).
 			AddBasicAuth(user.Name)

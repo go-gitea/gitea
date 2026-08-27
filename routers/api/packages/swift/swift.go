@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -145,7 +146,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 		return pds[i].SemVer.LessThan(pds[j].SemVer)
 	})
 
-	baseURL := fmt.Sprintf("%sapi/packages/%s/swift/%s/%s/", setting.AppURL, ctx.Package.Owner.LowerName, packageScope, packageName)
+	baseURL := fmt.Sprintf("%sapi/packages/%s/swift/%s/%s/", setting.AppURL, url.PathEscape(ctx.Package.Owner.LowerName), url.PathEscape(packageScope), url.PathEscape(packageName))
 
 	releases := make(map[string]Release)
 	for _, pd := range pds {
@@ -156,7 +157,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 	}
 
 	setResponseHeaders(ctx.Resp, &headers{
-		Link: fmt.Sprintf(`<%s%s>; rel="latest-version"`, baseURL, pds[len(pds)-1].Version.Version),
+		Link: fmt.Sprintf(`<%s%s>; rel="latest-version"`, baseURL, url.PathEscape(pds[len(pds)-1].Version.Version)),
 	})
 
 	ctx.JSON(http.StatusOK, EnumeratePackageVersionsResponse{
