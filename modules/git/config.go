@@ -42,16 +42,16 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if DefaultFeatures().CheckVersionAtLeast("2.18") {
-		if err := configSet(ctx, "core.commitGraph", "true"); err != nil {
-			return err
-		}
-		if err := configSet(ctx, "gc.writeCommitGraph", "true"); err != nil {
-			return err
-		}
-		if err := configSet(ctx, "fetch.writeCommitGraph", "true"); err != nil {
-			return err
-		}
+	if err := configSet(ctx, "core.commitGraph", "true"); err != nil {
+		return err
+	}
+
+	if err := configSet(ctx, "gc.writeCommitGraph", "true"); err != nil {
+		return err
+	}
+
+	if err := configSet(ctx, "fetch.writeCommitGraph", "true"); err != nil {
+		return err
 	}
 
 	if DefaultFeatures().SupportProcReceive {
@@ -91,8 +91,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		}
 	}
 
-	// By default, partial clones are disabled, enable them from git v2.22
-	if !setting.Git.DisablePartialClone && DefaultFeatures().CheckVersionAtLeast("2.22") {
+	if !setting.Git.DisablePartialClone {
 		if err = configSet(ctx, "uploadpack.allowfilter", "true"); err != nil {
 			return err
 		}

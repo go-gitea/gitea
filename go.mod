@@ -41,7 +41,6 @@ require (
 	github.com/editorconfig/editorconfig-core-go/v2 v2.6.4
 	github.com/emersion/go-imap v1.2.1
 	github.com/emirpasic/gods v1.18.1
-	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.5
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/getkin/kin-openapi v0.147.0
@@ -93,7 +92,6 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.16
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.11.0

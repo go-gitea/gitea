@@ -147,9 +147,6 @@ linters:
           - dupl
         path: modelmigration/v
       - linters:
-          - forbidigo
-        path: cmd
-      - linters:
           - dupl
         text: (?i)webhook
       - linters:
@@ -165,10 +162,10 @@ linters:
           - gocritic
         text: '(?i)exitAfterDefer:'
     paths:
-      - node_modules
-      - .venv
-      - public
-      - web_src
+      - ^node_modules/
+      - ^\.venv/
+      - ^public/
+      - ^web_src/
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -190,10 +187,10 @@ formatters:
   exclusions:
     generated: lax
     paths:
-      - node_modules
-      - .venv
-      - public
-      - web_src
+      - ^node_modules/
+      - ^\.venv/
+      - ^public/
+      - ^web_src/
 
 run:
   timeout: 10m

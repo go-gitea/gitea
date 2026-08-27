@@ -17,6 +17,8 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // if it has "toggle" class, it toggles the panel
   e.preventDefault();
   const sel = el.getAttribute('data-panel')!;
+  const selHide = el.getAttribute('data-panel-hide');
+  if (selHide) hideElem(selHide);
   const elems = el.classList.contains('toggle') ? toggleElem(sel) : showElem(sel);
   for (const elem of elems) {
     if (isElemVisible(elem as HTMLElement)) {

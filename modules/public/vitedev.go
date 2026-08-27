@@ -115,7 +115,7 @@ func IsViteDevMode() bool {
 
 	now := time.Now()
 	lastCheck := viteDevModeCheck.Load()
-	if lastCheck != nil && time.Now().Sub(lastCheck.time) < time.Second {
+	if lastCheck != nil && now.Sub(lastCheck.time) < time.Second {
 		return lastCheck.isDev
 	}
 
