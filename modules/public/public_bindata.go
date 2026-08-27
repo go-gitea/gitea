@@ -10,9 +10,9 @@ package public
 import (
 	"sync"
 
-	_ "embed"
-
 	"gitea.dev/modules/assetfs"
+
+	_ "embed"
 )
 
 //go:embed bindata.dat

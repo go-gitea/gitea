@@ -7,14 +7,13 @@ package auth
 import (
 	"net/http"
 	"strings"
+	"uuid"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
-
-	gouuid "github.com/google/uuid"
 )
 
 // Ensure the struct implements the interface.
@@ -143,7 +142,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		return nil
 	}
 
-	email := gouuid.New().String() + "@localhost"
+	email := uuid.New().String() + "@localhost"
 	if setting.Service.EnableReverseProxyEmail {
 		webAuthEmail := req.Header.Get(setting.ReverseProxyAuthEmail)
 		if len(webAuthEmail) > 0 {

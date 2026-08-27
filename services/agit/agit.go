@@ -60,8 +60,18 @@ func GetAgitBranchInfo(ctx context.Context, repoID int64, baseBranchName string)
 	return "", "", util.NewNotExistErrorf("base branch does not exist")
 }
 
+type ProcReceiveOptions struct {
+	OldCommitIDs []string
+	NewCommitIDs []string
+	RefFullNames []git.RefName
+
+	GitPushOptions private.GitPushOptions
+
+	Doer *user_model.User
+}
+
 // ProcReceive handle proc receive work
-func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
+func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
@@ -72,12 +82,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 	description := parseAgitPushOptionValue(opts.GitPushOptions["description"])
 
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	userName := strings.ToLower(opts.UserName)
 
-	pusher, err := user_model.GetUserByID(ctx, opts.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user. Error: %w", err)
-	}
+	pusher := opts.Doer
+	userName := strings.ToLower(pusher.Name)
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
