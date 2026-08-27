@@ -3988,6 +3988,26 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "CreateDeployKeyTokenOption": {
+        "properties": {
+          "read_only": {
+            "description": "Describe if the token has only read access or read/write",
+            "type": "boolean",
+            "x-go-name": "ReadOnly"
+          },
+          "title": {
+            "description": "Title of the token to add",
+            "type": "string",
+            "uniqueItems": true,
+            "x-go-name": "Title"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "CreateEmailOption": {
         "description": "CreateEmailOption options when creating email addresses",
         "properties": {
@@ -4242,7 +4262,6 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "CreateKeyOption": {
-        "description": "CreateKeyOption options when creating a key",
         "properties": {
           "key": {
             "description": "An armored SSH key to add",
@@ -5210,10 +5229,9 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "DeployKey": {
-        "description": "DeployKey a deploy key",
         "properties": {
           "created_at": {
-            "description": "Created is the time when the deploy key was added",
+            "description": "Created is the time when the deploy-key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -5224,7 +5242,7 @@
             "x-go-name": "Fingerprint"
           },
           "id": {
-            "description": "ID is the unique identifier for the deploy key",
+            "description": "ID is the unique identifier for the deploy-key",
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
@@ -5240,6 +5258,15 @@
             "type": "integer",
             "x-go-name": "KeyID"
           },
+          "key_type": {
+            "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+            "enum": [
+              "ssh",
+              "token"
+            ],
+            "type": "string",
+            "x-go-name": "KeyType"
+          },
           "read_only": {
             "description": "ReadOnly indicates if the key has read-only access",
             "type": "boolean",
@@ -5253,8 +5280,13 @@
             "type": "string",
             "x-go-name": "Title"
           },
+          "token": {
+            "description": "Token is the plaintext token of an HTTPS key, only returned when it is created",
+            "type": "string",
+            "x-go-name": "Token"
+          },
           "url": {
-            "description": "URL is the API URL for this deploy key",
+            "description": "URL is the API URL for this deploy-key",
             "format": "uri",
             "type": "string",
             "x-go-name": "URL"
@@ -26598,6 +26630,56 @@
           }
         },
         "summary": "Add a key to a repository",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/keys/tokens": {
+      "post": {
+        "operationId": "repoCreateDeployToken",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeployKeyTokenOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/DeployKey"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Add a deploy token to a repository, it authenticates git over HTTPS",
         "tags": [
           "repository"
         ]
