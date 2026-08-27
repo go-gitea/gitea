@@ -331,8 +331,8 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
+	// SemVer: https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#2-definitions
 	packageVersion := v.String()
-
 	file, err := formFileOptionalReadCloser(ctx, "source-archive")
 	if file == nil || err != nil {
 		apiError(ctx, http.StatusBadRequest, "unable to read source-archive file")
