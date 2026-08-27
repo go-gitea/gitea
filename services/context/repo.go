@@ -154,6 +154,7 @@ type CommitFormOptions struct {
 	WontSignReason           string
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
+	CannotCommitReasons      []string
 }
 
 func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *repo_model.Repository, doerRepoPerm access_model.Permission, refName git.RefName) (*CommitFormOptions, error) {
@@ -235,6 +236,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
 	}
+	opts.CannotCommitReasons = cannotCommitReasons(submitToForkedRepo, targetRepo, canPushWithProtection, protectionRequireSigned, willSign, canCommitToBranch)
 	editorAction := ctx.PathParam("editor_action")
 	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	if submitToForkedRepo {
@@ -250,6 +252,27 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		opts.TargetFormAction += util.Iif(strings.Contains(opts.TargetFormAction, "?"), "&", "?") + ctx.Req.URL.RawQuery
 	}
 	return opts, nil
+}
+
+func cannotCommitReasons(submitToForkedRepo bool, targetRepo *repo_model.Repository, canPushWithProtection, protectionRequireSigned, willSign, canCommitToBranch bool) []string {
+	if canCommitToBranch {
+		return nil
+	}
+
+	reasons := make([]string, 0, 3)
+	if submitToForkedRepo {
+		reasons = append(reasons, "repo.editor.no_write_access_to_upstream_branch")
+	}
+	if !targetRepo.CanEnableEditor() {
+		reasons = append(reasons, "repo.editor.web_editor_unavailable")
+	}
+	if !canPushWithProtection {
+		reasons = append(reasons, "repo.editor.user_no_push_to_branch")
+	}
+	if protectionRequireSigned && !willSign {
+		reasons = append(reasons, "repo.editor.require_signed_commit")
+	}
+	return reasons
 }
 
 // CanUseTimetracker returns whether a user can use the timetracker.

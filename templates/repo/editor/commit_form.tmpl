@@ -33,8 +33,9 @@
 						<div class="tw-mt-2">
 							{{ctx.Locale.Tr "repo.editor.no_commit_to_branch"}}
 							<ul class="tw-mb-0">
-								{{if not .CommitFormOptions.UserCanPush}}<li>{{ctx.Locale.Tr "repo.editor.user_no_push_to_branch"}}</li>{{end}}
-								{{if and .CommitFormOptions.RequireSigned (not .CommitFormOptions.WillSign)}}<li>{{ctx.Locale.Tr "repo.editor.require_signed_commit"}}</li>{{end}}
+								{{range .CommitFormOptions.CannotCommitReasons}}
+								<li>{{ctx.Locale.Tr .}}</li>
+								{{end}}
 							</ul>
 						</div>
 						{{end}}

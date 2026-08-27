@@ -1324,6 +1324,8 @@
   "repo.editor.upload_files_to_dir": "Upload files to \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Cannot commit to protected branch \"%s\".",
   "repo.editor.no_commit_to_branch": "Not allowed to commit directly to branch because:",
+  "repo.editor.no_write_access_to_upstream_branch": "You do not have write access to commit directly to this repository's branch",
+  "repo.editor.web_editor_unavailable": "The web editor is not available for this repository",
   "repo.editor.user_no_push_to_branch": "User cannot push to branch",
   "repo.editor.require_signed_commit": "Branch requires a signed commit",
   "repo.editor.cherry_pick": "Cherry-pick %s onto:",
