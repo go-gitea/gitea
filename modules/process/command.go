@@ -7,11 +7,7 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
-	"time"
 )
-
-// defaultWaitDelay is how long CommandContext waits after sending SIGTERM before escalating to SIGKILL.
-const defaultWaitDelay = 10 * time.Second
 
 type Cmd struct {
 	*exec.Cmd
@@ -35,11 +31,6 @@ func (c *Cmd) WithDir(dir string) *Cmd {
 	return c
 }
 
-func (c *Cmd) WithWaitDelay(d time.Duration) *Cmd {
-	c.Cmd.WaitDelay = d
-	return c
-}
-
 func (c *Cmd) OutputString() (string, string, error) {
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
 	c.Cmd.Stdout = stdout
@@ -55,7 +46,6 @@ func CommandContext(ctx context.Context, name string, arg ...string) *Cmd {
 	c := &Cmd{Cmd: exec.CommandContext(ctx, name, arg...)}
 	setSysProcAttribute(c.Cmd)
 	c.Cmd.Cancel = c.onCancel
-	c.Cmd.WaitDelay = defaultWaitDelay
 	c.termGraceful = true
 	return c
 }

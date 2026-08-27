@@ -8,7 +8,6 @@ package process
 import (
 	"os/exec"
 	"syscall"
-	"time"
 
 	"gitea.dev/modules/util"
 )
@@ -26,20 +25,6 @@ func (c *Cmd) onCancel() error {
 		}
 	}
 	sig := util.Iif(c.termGraceful, syscall.SIGTERM, syscall.SIGKILL)
-	if sig == syscall.SIGTERM && c.Cmd.WaitDelay > 0 {
-		delay := c.Cmd.WaitDelay
-		go func() {
-			time.Sleep(delay)
-			_ = c.signalProcessGroup(syscall.SIGKILL)
-		}()
-	}
-	return c.signalProcessGroup(sig)
-}
-
-// signalProcessGroup sends sig to the process group, skipping if the process has already been reaped.
-func (c *Cmd) signalProcessGroup(sig syscall.Signal) error {
-	if c.Cmd.ProcessState != nil {
-		return nil
-	}
+	// kill the whole process group
 	return syscall.Kill(-c.Process.Pid, sig)
 }
