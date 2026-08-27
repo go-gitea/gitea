@@ -84,6 +84,8 @@ func startTask(ctx context.Context, row *actions_model.ActionScheduleSpec, now t
 	if row.Repo == nil || row.Schedule == nil {
 		return errors.New("repo or schedule row is gone")
 	}
+	// Only archived repositories should be ignored by default.
+  // Mirrors can be disabled by disabling the Actions unit in the next code block.
 	if row.Repo.IsArchived {
 		return nil
 	}
