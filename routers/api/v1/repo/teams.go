@@ -137,6 +137,8 @@ func AddTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "405":
@@ -173,6 +175,8 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	//   "405":
@@ -186,9 +190,9 @@ func DeleteTeam(ctx *context.APIContext) {
 func changeRepoTeam(ctx *context.APIContext, add bool) {
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
+		return
 	}
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
-		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+	if !canChangeRepoTeam(ctx) {
 		return
 	}
 
@@ -218,6 +222,19 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func canChangeRepoTeam(ctx *context.APIContext) bool {
+	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return false
+	}
+	if !canChange {
+		ctx.APIError(http.StatusForbidden, "Must be an organization owner")
+		return false
+	}
+	return true
 }
 
 func getTeamByParam(ctx *context.APIContext) *organization.Team {
