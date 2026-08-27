@@ -7,8 +7,7 @@ import (
 	"bytes"
 	"testing"
 
-	"gitea.dev/actionslib/pkg/model"
-
+	"gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/require"
 )
 
