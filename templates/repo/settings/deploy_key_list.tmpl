@@ -1,0 +1,44 @@
+{{if .RepoDeployKeys}}
+	<div class="flex-divided-list items-with-main">
+		{{range $key := .RepoDeployKeys}}
+			<div class="item">
+				<div class="item-leading">
+					{{$usedRecently := and $key.HasUsed $key.HasRecentActivity}}
+					<span class="{{if $usedRecently}}tw-text-green{{end}}" {{if $usedRecently}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>
+						{{svg (Iif $key.IsKeyTypeToken "octicon-key-asterisk" "octicon-key") 32}}
+					</span>
+				</div>
+				<div class="item-main">
+					<div class="item-title">{{$key.Name}}</div>
+					{{if $key.Fingerprint}}
+						<div class="item-body">{{$key.Fingerprint}}</div>
+					{{end}}
+					<div class="item-body">
+						{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort $key.CreatedUnix)}}
+						·
+						{{if $key.HasUsed}}{{ctx.Locale.Tr "settings.last_used"}}
+							<span {{if $key.HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort $key.UpdatedUnix}}</span>
+						{{else}}
+							{{ctx.Locale.Tr "settings.no_activity"}}
+						{{end}}
+						·
+						{{ctx.Locale.Tr "settings.can_read_info"}}
+						{{if not $key.IsReadOnly}} · {{ctx.Locale.Tr "settings.can_write_info"}}{{end}}
+					</div>
+				</div>
+				<div class="item-trailing">
+					{{if $key.IsKeyTypeToken}}
+						<button class="ui tiny button link-action" data-modal-confirm="#repo-deploy-token-regenerate-modal" data-url="{{ctx.RootData.Link}}/regenerate-token?id={{$key.ID}}">
+							{{svg "octicon-sync"}} {{ctx.Locale.Tr "settings.regenerate_token"}}
+						</button>
+					{{end}}
+					<button class="ui red tiny button link-action" data-modal-confirm="#repo-deploy-key-delete-modal" data-url="{{ctx.RootData.Link}}/delete?id={{$key.ID}}">
+						{{ctx.Locale.Tr "settings.delete_key"}}
+					</button>
+				</div>
+			</div>
+		{{end}}
+	</div>
+{{else}}
+	{{ctx.Locale.Tr "repo.settings.no_deploy_keys"}}
+{{end}}

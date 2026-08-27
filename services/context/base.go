@@ -225,11 +225,11 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 	return b
 }
 
-func NewBaseContextForTest(resp http.ResponseWriter, req *http.Request) *Base {
+func NewBaseContextForTest(t reqctx.TestingT, resp http.ResponseWriter, req *http.Request) *Base {
 	if !setting.IsInTesting {
 		panic("This function is only for testing")
 	}
-	ctx := reqctx.NewRequestContextForTest(req.Context())
+	ctx := reqctx.NewRequestContextForTest(t)
 	*req = *req.WithContext(ctx)
 	return NewBaseContext(resp, req)
 }

@@ -159,6 +159,11 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+
+	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
+	// * Actions task doer needs to bind to the task
+	// * Deploy-key doer needs to bind to the key
+	ExtDoerData ExtDoerData `xorm:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table
@@ -418,9 +423,9 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
-// IsIndividual returns true if user is actually a individual user.
+// IsIndividual returns true if user is actually an individual user.
 func (u *User) IsIndividual() bool {
-	return u.Type == UserTypeIndividual
+	return u.ID > 0 && u.Type == UserTypeIndividual
 }
 
 // IsTypeBot returns whether the user is of type bot
@@ -513,9 +518,8 @@ func (u *User) GitName() string {
 }
 
 // IsMailable checks if a user is eligible to receive emails.
-// System users like Ghost and Gitea Actions are excluded.
 func (u *User) IsMailable() bool {
-	return u.IsActive && !u.IsGiteaActions() && !u.IsGhost()
+	return u.ID > 0 && u.IsActive && u.IsIndividual()
 }
 
 // IsUserExist checks if given username exist,
@@ -551,10 +555,11 @@ type globalVarsStruct struct {
 	emailToReplacer        *strings.Replacer
 	emailRegexp            *regexp.Regexp
 	systemUserNewFuncs     map[int64]func() *User
+	systemUserNameIdMap    map[string]int64
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
-	return &globalVarsStruct{
+	ret := &globalVarsStruct{
 		// Note: The set of characters here can safely expand without a breaking change,
 		// but characters removed from this set can cause user account linking to break
 		customCharsReplacement: strings.NewReplacer("Æ", "AE"),
@@ -573,12 +578,17 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 			";", "",
 		),
 		emailRegexp: regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
-
-		systemUserNewFuncs: map[int64]func() *User{
-			GhostUserID:   NewGhostUser,
-			ActionsUserID: NewActionsUser,
-		},
 	}
+
+	userFuncs := []func() *User{NewGhostUser, NewActionsUser, NewDeployKeyUser}
+	ret.systemUserNewFuncs = map[int64]func() *User{}
+	ret.systemUserNameIdMap = map[string]int64{}
+	for _, fn := range userFuncs {
+		u := fn()
+		ret.systemUserNewFuncs[u.ID] = fn
+		ret.systemUserNameIdMap[u.LowerName] = u.ID
+	}
+	return ret
 })
 
 // NormalizeUserName only takes the name part if it is an email address, transforms it diacritics to ASCII characters.
@@ -1023,7 +1033,7 @@ func GetUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, err
 }
 
-// GetPossibleUserByID returns the possible user and its ID. If the user  doesn't exist, it returns Ghost user
+// GetPossibleUserByID returns the possible user and its ID. If the user doesn't exist, it returns Ghost user
 func GetPossibleUserByID(ctx context.Context, id int64) (_ int64, u *User, err error) {
 	if id < 0 {
 		if newFunc, ok := globalVars().systemUserNewFuncs[id]; ok {

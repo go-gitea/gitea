@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	asymkey_model "gitea.dev/models/asymkey"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -38,7 +38,7 @@ func TestAddDeployKey(t *testing.T) {
 		contexttest.LoadRepo(t, ctx, 2)
 		DeployKeysPost(ctx)
 		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-		unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{Name: "read-only", Mode: perm.AccessModeRead})
+		unittest.AssertExistsAndLoadBean(t, &deploykey_model.DeployKey{Name: "read-only", Mode: perm.AccessModeRead})
 	})
 	t.Run("ReadWrite", func(t *testing.T) {
 		const testKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEHjnNEfE88W1pvBLdV3otv28x760gdmPao3lVD5uAt9\n"
@@ -47,7 +47,7 @@ func TestAddDeployKey(t *testing.T) {
 		contexttest.LoadRepo(t, ctx, 2)
 		DeployKeysPost(ctx)
 		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-		unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{Name: "read-write", Mode: perm.AccessModeWrite})
+		unittest.AssertExistsAndLoadBean(t, &deploykey_model.DeployKey{Name: "read-write", Mode: perm.AccessModeWrite})
 	})
 }
 
