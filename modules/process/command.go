@@ -46,6 +46,9 @@ func CommandContext(ctx context.Context, name string, arg ...string) *Cmd {
 	c := &Cmd{Cmd: exec.CommandContext(ctx, name, arg...)}
 	setSysProcAttribute(c.Cmd)
 	c.Cmd.Cancel = c.onCancel
+
+	// Unlike exec.CommandContext, we use graceful termination by default to avoid corrupting data or leaving lock files behind.
+	// If some processes don't respond to SIGTERM, can switch to WithOnCancelForceKill (SIGKILL) to force kill them.
 	c.termGraceful = true
 	return c
 }

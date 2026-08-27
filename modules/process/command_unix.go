@@ -26,5 +26,7 @@ func (c *Cmd) onCancel() error {
 	}
 	sig := util.Iif(c.termGraceful, syscall.SIGTERM, syscall.SIGKILL)
 	// kill the whole process group
+	// ATTENTION: do not access PID after Wait or in other goroutine, it will just cause PID reuse data-race.
+	// There is no easy solution to implement "first SIGTERM then SIGKILL" in a safe way, only one signal can be sent to the process group.
 	return syscall.Kill(-c.Process.Pid, sig)
 }
