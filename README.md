@@ -64,7 +64,7 @@ Translations are done through [Crowdin](https://translate.gitea.com). If you wan
 
 You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty, but we hope to fill it as questions pop up.
 
-Get more information from [documentation](https://docs.gitea.com/contributing/localization).
+Get more information from [documentation](https://docs.gitea.com/1.26/contributing/localization/).
 
 ## Official and Third-Party Projects
 
