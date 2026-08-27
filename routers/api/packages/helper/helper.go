@@ -13,12 +13,13 @@ import (
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
 // PackageErrorStatus returns the status to report for a package lookup error
 func PackageErrorStatus(err error) int {
-	if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
+	if errors.Is(err, util.ErrNotExist) {
 		return http.StatusNotFound
 	}
 	return http.StatusInternalServerError
