@@ -323,16 +323,14 @@ func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCl
 func UploadPackageFile(ctx *context.Context) {
 	packageScope := ctx.PathParam("scope")
 	packageName := ctx.PathParam("name")
-
-	v, err := version.NewVersion(ctx.PathParam("version"))
+	packageVersion := ctx.PathParam("version")
+	_, err := version.NewSemver(packageVersion)
 
 	if !scopePattern.MatchString(packageScope) || !namePattern.MatchString(packageName) || err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	// SemVer: https://github.com/swiftlang/swift-package-manager/blob/main/Documentation/PackageRegistry/Registry.md#2-definitions
-	packageVersion := v.String()
 	file, err := formFileOptionalReadCloser(ctx, "source-archive")
 	if file == nil || err != nil {
 		apiError(ctx, http.StatusBadRequest, "unable to read source-archive file")
