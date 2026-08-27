@@ -980,7 +980,6 @@
   "repo.settings.update_hook_success": "Webhook bol aktualizovaný.",
   "repo.settings.delete_webhook": "Odstrániť webhook",
   "repo.settings.title": "Názov",
-  "repo.settings.deploy_key_content": "Obsah",
   "repo.settings.branches": "Vetvy",
   "repo.settings.require_signed_commits": "Vyžadovať podpísané commity",
   "repo.settings.block_rejected_reviews": "Zablokovať zlúčenie pri zamietavých revíziách",
