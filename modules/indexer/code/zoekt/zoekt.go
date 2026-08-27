@@ -368,8 +368,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		startIndex, endIndex := -1, -1
 		for _, line := range file.LineMatches {
 			for _, frag := range line.LineFragments {
-				fragStart := (int)(frag.Offset)
-				fragEnd := (int)(frag.Offset) + frag.MatchLength
+				fragStart := int(frag.Offset)
+				fragEnd := int(frag.Offset) + frag.MatchLength
 				if startIndex < 0 || fragStart < startIndex {
 					startIndex = fragStart
 				}
