@@ -363,6 +363,22 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 	return units, nil
 }
 
+// GetUnitsMapByRepoIDs returns the units of the given type for the given repositories, keyed by repository ID
+func GetUnitsMapByRepoIDs(ctx context.Context, repoIDs []int64, unitType unit.Type) (map[int64]*RepoUnit, error) {
+	units := make(map[int64]*RepoUnit, len(repoIDs))
+	if len(repoIDs) == 0 || unitType.UnitGlobalDisabled() {
+		return units, nil
+	}
+	var found []*RepoUnit
+	if err := db.GetEngine(ctx).In("repo_id", repoIDs).And("`type` = ?", unitType).Find(&found); err != nil {
+		return nil, err
+	}
+	for _, u := range found {
+		units[u.RepoID] = u
+	}
+	return units, nil
+}
+
 // UpdateRepoUnitConfig updates the config of the provided repo unit
 func UpdateRepoUnitConfig(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Cols("config").Update(unit)
