@@ -105,9 +105,9 @@ func TestStartTasks(t *testing.T) {
 	due := timeutil.TimeStamp(time.Now().Add(-time.Minute).Unix())
 	validWorkflow := "jobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: true\n"
 
-	// specs are processed by descending id, so the broken one runs first and used to abort the whole pass
-	valid := insertSchedule(4, 5, "valid.yml", "@every 1m", validWorkflow, due)
+	// specs are processed by ascending id, so the broken one runs first and used to abort the whole pass
 	broken := insertSchedule(1, 2, "broken.yml", "@every 1m", "this: [is: not: a: workflow", due)
+	valid := insertSchedule(4, 5, "valid.yml", "@every 1m", validWorkflow, due)
 	never := insertSchedule(4, 5, "never.yml", "0 0 30 2 *", validWorkflow, timeutil.TimeStamp(time.Time{}.Unix()))
 
 	require.ErrorContains(t, startTasks(t.Context()), "1 schedule(s) could not be started")
@@ -117,7 +117,7 @@ func TestStartTasks(t *testing.T) {
 	assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: 4, WorkflowID: "never.yml"}))
 
 	// the broken spec moves on too, so it does not fail again on every pass
-	for _, spec := range []*actions_model.ActionScheduleSpec{valid, broken} {
+	for _, spec := range []*actions_model.ActionScheduleSpec{broken, valid} {
 		updated := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{ID: spec.ID})
 		assert.Greater(t, updated.Next, spec.Next)
 	}

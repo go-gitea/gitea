@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"time"
@@ -32,33 +31,17 @@ func StartScheduleTasks(ctx context.Context) error {
 
 // startTasks starts every due spec and returns an error if any of them failed.
 func startTasks(ctx context.Context) error {
-	const pageSize = 50
-
 	now := time.Now()
 	var failed int
-	var beforeID int64
-	for {
-		specs, _, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
-			ListOptions: db.ListOptions{Page: 1, PageSize: pageSize},
-			Next:        now.Unix(),
-			BeforeID:    beforeID,
-		})
-		if err != nil {
-			return fmt.Errorf("find specs: %w", err)
+	if err := actions_model.IterateDueSpecs(ctx, now.Unix(), func(ctx context.Context, row *actions_model.ActionScheduleSpec) error {
+		// one failing spec must not abort the pass, or a single broken workflow stops every other schedule
+		if err := startTask(ctx, row, now); err != nil {
+			failed++
+			log.Error("start schedule spec %d (repo %d, schedule %d): %v", row.ID, row.RepoID, row.ScheduleID, err)
 		}
-
-		for _, row := range specs {
-			// one failing spec must not abort the pass, or a single broken workflow stops every other schedule
-			if err := startTask(ctx, row, now); err != nil {
-				failed++
-				log.Error("start schedule spec %d (repo %d, schedule %d): %v", row.ID, row.RepoID, row.ScheduleID, err)
-			}
-		}
-
-		if len(specs) < pageSize {
-			break
-		}
-		beforeID = specs[len(specs)-1].ID // keyset, because advanced specs drop out of the "next <= now" filter
+		return nil
+	}); err != nil {
+		return fmt.Errorf("iterate specs: %w", err)
 	}
 
 	// surfaces as an admin notice through the cron task, once per occurrence rather than once per pass
@@ -71,21 +54,33 @@ func startTasks(ctx context.Context) error {
 // startTask advances the spec to its next occurrence before creating the run, so a failing workflow
 // retries on its own schedule instead of on every pass, and a failed update cannot duplicate the run.
 func startTask(ctx context.Context, row *actions_model.ActionScheduleSpec, now time.Time) error {
-	schedule, err := row.Parse()
+	cronSchedule, err := row.Parse()
 	if err != nil {
 		return fmt.Errorf("parse %q: %w", row.Spec, err)
 	}
 	row.Prev = row.Next
-	row.Next = timeutil.TimeStamp(schedule.Next(now.Add(time.Minute)).Unix())
+	row.Next = timeutil.TimeStamp(cronSchedule.Next(now.Add(time.Minute)).Unix())
 	if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
 		return fmt.Errorf("update spec: %w", err)
 	}
 
-	if row.Repo == nil || row.Schedule == nil {
-		return errors.New("repo or schedule row is gone")
+	// a spec whose schedule or repo row is gone is skipped, not reported on every occurrence
+	schedule, exist, err := db.GetByID[actions_model.ActionSchedule](ctx, row.ScheduleID)
+	if err != nil {
+		return fmt.Errorf("get schedule %d: %w", row.ScheduleID, err)
+	} else if !exist {
+		return nil
 	}
-	// Only archived repositories should be ignored by default.
-  // Mirrors can be disabled by disabling the Actions unit in the next code block.
+	repo, exist, err := db.GetByID[repo_model.Repository](ctx, row.RepoID)
+	if err != nil {
+		return fmt.Errorf("get repo %d: %w", row.RepoID, err)
+	} else if !exist {
+		return nil
+	}
+	row.Schedule, row.Repo = schedule, repo
+
+	// only archived repos are skipped; mirrors keep their schedules because a mirror is a normal repo
+	// for Actions, and nightly builds or scans of the mirrored code are a common reason to run one
 	if row.Repo.IsArchived {
 		return nil
 	}
