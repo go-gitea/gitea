@@ -32,7 +32,9 @@
 						{{if not .CommitFormOptions.CanCommitToBranch}}
 						<div class="tw-mt-2">
 							{{ctx.Locale.Tr "repo.editor.no_commit_to_branch"}}
-							<ul class="tw-mb-0"><li>{{.CommitFormOptions.CannotCommitReason}}</li></ul>
+							{{if .CommitFormOptions.DenyCommitToBranchReason}}
+								<ul class="tw-mb-0"><li>{{.CommitFormOptions.DenyCommitToBranchReason}}</li></ul>
+							{{end}}
 						</div>
 						{{end}}
 					</label>

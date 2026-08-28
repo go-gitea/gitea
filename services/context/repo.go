@@ -149,8 +149,8 @@ type CommitFormOptions struct {
 
 	WillSubmitToFork bool
 
-	CanCommitToBranch  bool
-	CannotCommitReason template.HTML
+	CanCommitToBranch        bool
+	DenyCommitToBranchReason template.HTML
 
 	WillSign              bool
 	SigningKeyFormDisplay string
@@ -176,7 +176,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		}
 		// now, we get our own forked repo; it must be writable by us.
 	}
-	submitToForkedRepo := targetRepo.ID != originRepo.ID
+
 	err := targetRepo.GetBaseRepo(ctx)
 	if err != nil {
 		return nil, err
@@ -224,7 +224,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	opts := &CommitFormOptions{
 		TargetRepo: targetRepo,
 
-		WillSubmitToFork: submitToForkedRepo,
+		WillSubmitToFork: targetRepo.ID != originRepo.ID,
 
 		WillSign:              willSign,
 		SigningKeyFormDisplay: asymkey_model.GetDisplaySigningKey(signKey),
@@ -234,24 +234,26 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		CanCreateBasePullRequest: canCreateBasePullRequest,
 	}
 
-	if !submitToForkedRepo {
+	editorAction := ctx.PathParam("editor_action")
+	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+
+	opts.CanCommitToBranch = false
+	if opts.WillSubmitToFork {
+		// there is only "default branch" in forked repo, we will use "from_base_branch" to get a new branch from base repo
+		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
+	} else {
+		// if the user is committing to the same repo, we need to check if the branch is protected and if the user can push to it
 		if !targetRepo.CanContentChange() {
-			opts.CannotCommitReason = ctx.Locale.Tr("repo.editor.repo_not_editable")
+			opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.repo_not_editable")
 		} else if !canPushWithProtection {
-			opts.CannotCommitReason = ctx.Locale.Tr("repo.editor.user_no_push_to_branch")
+			opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.branch_is_protected")
 		} else if protectionRequireSigned && !willSign {
-			opts.CannotCommitReason = ctx.Locale.Tr("repo.editor.require_signed_commit")
+			opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.require_signed_commit")
 		} else {
 			opts.CanCommitToBranch = true
 		}
 	}
 
-	editorAction := ctx.PathParam("editor_action")
-	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	if submitToForkedRepo {
-		// there is only "default branch" in forked repo, we will use "from_base_branch" to get a new branch from base repo
-		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
-	}
 	if editorAction == "_cherrypick" {
 		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + ctx.PathParam("sha") + "/" + editorPathParamRemaining
 	} else {

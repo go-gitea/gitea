@@ -1325,7 +1325,7 @@
   "repo.editor.cannot_commit_to_protected_branch": "Cannot commit to protected branch \"%s\".",
   "repo.editor.no_commit_to_branch": "Not allowed to commit directly to branch because:",
   "repo.editor.repo_not_editable": "Repository is not editable.",
-  "repo.editor.user_no_push_to_branch": "User cannot push to branch",
+  "repo.editor.branch_is_protected": "Branch is protected",
   "repo.editor.require_signed_commit": "Branch requires a signed commit",
   "repo.editor.cherry_pick": "Cherry-pick %s onto:",
   "repo.editor.revert": "Revert %s onto:",
