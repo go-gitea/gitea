@@ -1,26 +1,25 @@
 <div class="flex-divided-list items-with-main">
-	{{range .Users}}
+	{{range $user := .Users}}
 		<div class="item tw-items-center">
 			<div class="item-leading">
-				{{ctx.AvatarUtils.Avatar . 48}}
+				{{ctx.AvatarUtils.Avatar $user 48}}
 			</div>
 			<div class="item-main">
 				<div class="item-title">
-					{{template "shared/user/name" .}}
-					{{if .Visibility.IsPrivate}}
+					{{template "shared/user/name" $user}}
+					{{if $user.Visibility.IsPrivate}}
 						<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
 					{{end}}
 				</div>
 				<div class="item-body">
-					{{if .Location}}
-						<span class="flex-text-inline">{{svg "octicon-location"}}{{.Location}}</span>
+					{{if $user.Location}}
+						<span class="flex-text-inline">{{svg "octicon-location"}}{{$user.Location}}</span>
 					{{end}}
-					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}</span>
+					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort $user.CreatedUnix)}}</span>
 				</div>
 			</div>
 			<div class="item-trailing">
-				<form method="post" action="{{$.Link}}/orgs/{{.ID}}/remove">
-					{{$.CsrfTokenHtml}}
+				<form method="post" action="{{$.Link}}/orgs/{{$user.ID}}/remove">
 					<button class="ui red tiny button" type="submit">{{ctx.Locale.Tr "remove"}}</button>
 				</form>
 			</div>
