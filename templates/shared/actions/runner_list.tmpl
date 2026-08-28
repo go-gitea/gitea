@@ -35,10 +35,24 @@
 
 		</div>
 	</h4>
-	<div class="ui attached segment">
-		<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
+	<div class="ui attached segment flex-text-block">
+		<form class="ui form ignore-dirty tw-flex-1" id="user-list-search-form" action="{{$.Link}}">
+			{{if .SortType}}<input type="hidden" name="sort" value="{{.SortType}}">{{end}}
+			<input type="hidden" name="limit" value="{{.PageSize}}">
 			{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.runner_kind")}}
 		</form>
+		{{$queryLink := QueryBuild "?" "q" $.Keyword "sort" $.SortType}}
+		<div class="ui dropdown jump">
+			<button class="ui small button">
+				{{ctx.Locale.Tr "actions.runners.per_page" .PageSize}}
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</button>
+			<div class="menu">
+				{{range .PageSizes}}
+					<a class="item{{if eq . $.PageSize}} active selected{{end}}" href="{{QueryBuild $queryLink "limit" .}}">{{ctx.Locale.Tr "actions.runners.per_page" .}}</a>
+				{{end}}
+			</div>
+		</div>
 	</div>
 	{{if .AllowBulkActions}}
 	<div class="ui attached segment tw-hidden" data-global-init="initRunnerBulkToolbar">

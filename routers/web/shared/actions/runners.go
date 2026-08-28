@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -33,6 +34,11 @@ const (
 	tplAdminRunnerEdit templates.TplName = "admin/runners/edit"
 	tplUserRunnerEdit  templates.TplName = "user/settings/runner_edit"
 )
+
+// runnersPageSizes are the selectable "runners per page" values on the runner management page.
+var runnersPageSizes = []int{25, 50, 100, 200}
+
+const runnersDefaultPageSize = 100
 
 type runnersCtx struct {
 	OwnerID            int64
@@ -111,10 +117,15 @@ func Runners(ctx *context.Context) {
 
 	page := max(ctx.FormInt("page"), 1)
 
+	pageSize := ctx.FormInt("limit")
+	if !slices.Contains(runnersPageSizes, pageSize) {
+		pageSize = runnersDefaultPageSize
+	}
+
 	opts := actions_model.FindRunnerOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
-			PageSize: 100,
+			PageSize: pageSize,
 		},
 		Sort:   ctx.Req.URL.Query().Get("sort"),
 		Filter: ctx.Req.URL.Query().Get("q"),
@@ -160,8 +171,11 @@ func Runners(ctx *context.Context) {
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 	ctx.Data["SortType"] = opts.Sort
 	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
+	ctx.Data["PageSize"] = pageSize
+	ctx.Data["PageSizes"] = runnersPageSizes
 
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
+	pager.AddParamFromRequest(ctx.Req)
 
 	ctx.Data["Page"] = pager
 
