@@ -4,8 +4,10 @@
 package jobparser
 
 import (
+	"bytes"
 	"testing"
 
+	"gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,4 +63,43 @@ jobs:
 	_, gotJob := roundTripped[0].Job()
 	require.Len(t, gotJob.Steps, 1)
 	require.Equal(t, wantRun, gotJob.Steps[0].Run, "round-trip must preserve run content; got payload:\n%s", payload)
+}
+
+// Typing a step's continue-on-error as a bool used to reject the whole `jobs:` node.
+func TestSingleWorkflowRoundTripStepContinueOnError(t *testing.T) {
+	const wf = `name: demo
+on: push
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - id: quarantine
+        run: echo "q=true" >> "$GITHUB_OUTPUT"
+      - run: exit 1
+        continue-on-error: ${{ steps.quarantine.outputs.q == 'true' }}
+      - run: exit 1
+        continue-on-error: true
+      - run: exit 1
+        continue-on-error: TRUE
+      - run: exit 1
+        continue-on-error: false
+      - run: exit 1
+        continue-on-error: yes
+`
+	want := []string{"", "${{ steps.quarantine.outputs.q == 'true' }}", "true", "true", "false", "yes"}
+
+	sws, err := Parse([]byte(wf))
+	require.NoError(t, err)
+	require.Len(t, sws, 1)
+
+	payload, err := sws[0].Marshal()
+	require.NoError(t, err)
+
+	rw, err := model.ReadWorkflow(bytes.NewReader(payload))
+	require.NoError(t, err, "payload:\n%s", payload)
+	steps := rw.Jobs["job1"].Steps
+	require.Len(t, steps, len(want))
+	for i, w := range want {
+		require.Equal(t, w, steps[i].RawContinueOnError, "step %d, payload:\n%s", i, payload)
+	}
 }
