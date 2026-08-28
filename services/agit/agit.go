@@ -24,6 +24,8 @@ import (
 	pull_service "gitea.dev/services/pull"
 )
 
+const SshInfoJson = `{"type":"agit","version":1}`
+
 func parseAgitPushOptionValue(s string) string {
 	if base64Value, ok := strings.CutPrefix(s, "{base64}"); ok {
 		decoded, err := base64.StdEncoding.DecodeString(base64Value)
