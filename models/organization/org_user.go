@@ -69,20 +69,6 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
 }
 
-// IsOrganizationAdmin returns true if given user is in the owner team or an admin team.
-func IsOrganizationAdmin(ctx context.Context, orgID, uid int64) (bool, error) {
-	teams, err := GetUserOrgTeams(ctx, orgID, uid)
-	if err != nil {
-		return false, err
-	}
-	for _, t := range teams {
-		if t.HasAdminAccess() {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 // IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
