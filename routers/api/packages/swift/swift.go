@@ -324,9 +324,10 @@ func UploadPackageFile(ctx *context.Context) {
 	packageScope := ctx.PathParam("scope")
 	packageName := ctx.PathParam("name")
 	packageVersion := ctx.PathParam("version")
+
 	_, err := version.NewSemver(packageVersion)
 
-	if !scopePattern.MatchString(packageScope) || !namePattern.MatchString(packageName) || err != nil {
+	if err != nil || !scopePattern.MatchString(packageScope) || !namePattern.MatchString(packageName) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
