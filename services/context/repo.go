@@ -239,6 +239,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 
 	opts.CanCommitToBranch = false
 	if opts.WillSubmitToFork {
+		opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.no_write_permission")
 		// there is only "default branch" in forked repo, we will use "from_base_branch" to get a new branch from base repo
 		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
 	} else {

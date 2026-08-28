@@ -1324,6 +1324,7 @@
   "repo.editor.upload_files_to_dir": "Upload files to \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Cannot commit to protected branch \"%s\".",
   "repo.editor.no_commit_to_branch": "Not allowed to commit directly to branch because:",
+  "repo.editor.no_write_permission": "No write permission.",
   "repo.editor.repo_not_editable": "Repository is not editable.",
   "repo.editor.branch_is_protected": "Branch is protected",
   "repo.editor.require_signed_commit": "Branch requires a signed commit",
