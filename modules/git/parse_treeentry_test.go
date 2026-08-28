@@ -5,6 +5,7 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"strings"
 	"testing"
@@ -130,4 +131,25 @@ func TestParseCatFileTreeLine(t *testing.T) {
 	_, _, _, n, err = ParseCatFileTreeLine(Sha1ObjectFormat, buf)
 	assert.ErrorIs(t, err, io.EOF)
 	assert.Zero(t, n)
+}
+
+func TestParseTreeEntriesCapHint(t *testing.T) {
+	// Bounding the preallocation hint must not change what is parsed, on either
+	// side of the bound: capacity is only a hint to append.
+	for _, n := range []int{1, 10, 100, 4095, 4096, 4097, 8195} {
+		var sb strings.Builder
+		for i := 0; i < n; i++ {
+			sb.WriteString("100644 blob 0000000000000000000000000000000000000000\tf.txt\n")
+		}
+		entries, err := ParseTreeEntries([]byte(sb.String()))
+		assert.NoError(t, err, "n=%d", n)
+		assert.Len(t, entries, n, "n=%d", n)
+	}
+}
+
+func TestParseTreeEntriesNewlinesOnly(t *testing.T) {
+	// An input made only of newlines must still be an error, so that bounding the
+	// hint cannot turn invalid input into a silent success.
+	_, err := ParseTreeEntries(bytes.Repeat([]byte{'\n'}, 1024))
+	assert.Error(t, err)
 }
