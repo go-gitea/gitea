@@ -27,68 +27,8 @@ function initWorkflowBadgeForm(form: HTMLElement): void {
   updateWorkflowBadgeFields(form, branchInput.value);
 }
 
-function initWorkflowDispatchChoiceDropdown(dropdown: HTMLElement): void {
-  const search = dropdown.querySelector<HTMLInputElement>('.workflow-dispatch-choice-search input')!;
-  const searchIcon = dropdown.querySelector<HTMLElement>('.workflow-dispatch-choice-search-icon')!;
-  const clear = dropdown.querySelector<HTMLButtonElement>('.workflow-dispatch-choice-clear')!;
-  const items = dropdown.querySelectorAll<HTMLElement>('.menu > .item');
-
-  const filterItems = () => {
-    const searchTerm = search.value.toLowerCase();
-    for (const item of items) {
-      if (!searchTerm) {
-        item.classList.remove('tw-hidden', 'filtered');
-        continue;
-      }
-      item.classList.toggle('tw-hidden', !item.textContent.toLowerCase().includes(searchTerm));
-    }
-    searchIcon.classList.toggle('hide-element', Boolean(search.value));
-    clear.hidden = !search.value;
-  };
-
-  const clearSearch = () => {
-    search.value = '';
-    filterItems();
-  };
-
-  search.addEventListener('input', filterItems);
-  search.addEventListener('keydown', (event) => {
-    if (event.isComposing || !['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
-
-    const visibleItems = [...items].filter((item) => !item.classList.contains('tw-hidden'));
-    const activeIndex = visibleItems.findIndex((item) => item.classList.contains('active'));
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      visibleItems[activeIndex]?.click();
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    let nextIndex = event.key === 'ArrowDown' ? activeIndex + 1 : activeIndex - 1;
-    if (event.key === 'ArrowUp' && (activeIndex <= 0 || !visibleItems.length)) {
-      for (const item of items) item.classList.remove('active');
-      search.focus();
-      return;
-    }
-    nextIndex = Math.max(0, Math.min(nextIndex, visibleItems.length - 1));
-    for (const item of items) item.classList.remove('active');
-    const nextItem = visibleItems[nextIndex];
-    nextItem.classList.add('active');
-    nextItem.scrollIntoView({block: 'nearest'});
-  });
-  clear.addEventListener('click', () => {
-    clearSearch();
-    search.focus();
-  });
-  dropdown.querySelector<HTMLElement>('.dropdown.icon')!.addEventListener('click', clearSearch);
-  for (const item of items) item.addEventListener('click', clearSearch);
-  filterItems();
-}
-
 export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
-  registerGlobalInitFunc('initWorkflowDispatchChoiceDropdown', initWorkflowDispatchChoiceDropdown);
   initRepositoryActionsView();
   registerGlobalInitFunc('initActionRunsList', initActionRunsList);
 }

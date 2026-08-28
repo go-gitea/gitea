@@ -12,21 +12,11 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				<div class="ui selection dropdown workflow-dispatch-choice-dropdown" data-global-init="initWorkflowDispatchChoiceDropdown">
-					<input type="hidden" name="{{.Name}}" value="{{$item.Default}}">
-					<div class="default text">{{ctx.Locale.Tr "repo.select_workflow"}}</div>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					<div class="menu">
-						<div class="ui icon search input workflow-dispatch-choice-search">
-							<i class="icon workflow-dispatch-choice-search-icon">{{svg "octicon-search" 16}}</i>
-							<input type="text" autocomplete="off" placeholder="{{ctx.Locale.Tr "repo.filter_workflows"}}...">
-							<i class="workflow-dispatch-choice-clear" aria-label="{{ctx.Locale.Tr "repo.milestones.clear"}}" hidden>{{svg "octicon-x" 16}}</i>
-						</div>
-						{{range .Options}}
-							<div class="item" data-value="{{.}}">{{.}}</div>
-						{{end}}
-					</div>
-				</div>
+				<select class="ui search selection dropdown" name="{{.Name}}">
+					{{range .Options}}
+						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
+					{{end}}
+				</select>
 			{{else if eq .Type "boolean"}}
 				<label class="tw-flex flex-text-inline">
 					<input type="checkbox" name="{{.Name}}" {{if .IsDefaultTrue}}checked{{end}}>
