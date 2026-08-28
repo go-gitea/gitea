@@ -297,7 +297,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 	} else if !exist {
 		return
 	}
-	automergequeue.StartPRCheckAndAutoMerge(ctx, pr)
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 }
 
 // getMergeCommit checks if a pull request has been merged
