@@ -17,9 +17,43 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestActionsRunnerListPagination(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ctx := t.Context()
+	require.NoError(t, db.DeleteAllRecords("action_runner"))
+	for i := range 26 {
+		require.NoError(t, actions_model.CreateRunner(ctx, &actions_model.ActionRunner{
+			Name:      fmt.Sprintf("global-runner-%02d", i),
+			TokenHash: fmt.Sprintf("h%d", i),
+			UUID:      fmt.Sprintf("h%d", i),
+		}))
+	}
+
+	session := loginUser(t, "user1")
+	req := NewRequest(t, "GET", "/-/admin/actions/runners?sort=newest&limit=25")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	// the chosen page size is reflected in the per-page selector
+	assert.Positive(t, htmlDoc.Find(`.dropdown .menu a.item.active[href*="limit=25"]`).Length())
+
+	// pagination links carry both the sort and the page size across pages
+	var pagerHrefs []string
+	htmlDoc.Find(".page.buttons a[href]").Each(func(_ int, s *goquery.Selection) {
+		pagerHrefs = append(pagerHrefs, s.AttrOr("href", ""))
+	})
+	require.NotEmpty(t, pagerHrefs)
+	for _, href := range pagerHrefs {
+		assert.Contains(t, href, "sort=newest", "pagination link must keep the sort: %s", href)
+		assert.Contains(t, href, "limit=25", "pagination link must keep the page size: %s", href)
+	}
+}
 
 func TestActionsRunnerModify(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
