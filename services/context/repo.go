@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"html/template"
 	"net/http"
 	"net/url"
 	"path"
@@ -143,18 +144,20 @@ func RepoMustNotBeArchived() func(ctx *Context) {
 type CommitFormOptions struct {
 	NeedFork bool
 
-	TargetRepo               *repo_model.Repository
-	TargetFormAction         string
-	WillSubmitToFork         bool
-	CanCommitToBranch        bool
-	UserCanPush              bool
-	RequireSigned            bool
-	WillSign                 bool
-	SigningKeyFormDisplay    string
-	WontSignReason           string
+	TargetRepo       *repo_model.Repository
+	TargetFormAction string
+
+	WillSubmitToFork bool
+
+	CanCommitToBranch  bool
+	CannotCommitReason template.HTML
+
+	WillSign              bool
+	SigningKeyFormDisplay string
+	WontSignReason        string
+
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
-	CannotCommitReasons      []string
 }
 
 func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *repo_model.Repository, doerRepoPerm access_model.Permission, refName git.RefName) (*CommitFormOptions, error) {
@@ -215,20 +218,14 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		return nil, err
 	}
 
-	canCommitToBranch := !submitToForkedRepo /* same repo */ && targetRepo.CanEnableEditor() && canPushWithProtection
-	if protectionRequireSigned {
-		canCommitToBranch = canCommitToBranch && willSign
-	}
-
 	canCreateBasePullRequest := targetRepo.BaseRepo != nil && targetRepo.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
 	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
 
 	opts := &CommitFormOptions{
-		TargetRepo:            targetRepo,
-		WillSubmitToFork:      submitToForkedRepo,
-		CanCommitToBranch:     canCommitToBranch,
-		UserCanPush:           canPushWithProtection,
-		RequireSigned:         protectionRequireSigned,
+		TargetRepo: targetRepo,
+
+		WillSubmitToFork: submitToForkedRepo,
+
 		WillSign:              willSign,
 		SigningKeyFormDisplay: asymkey_model.GetDisplaySigningKey(signKey),
 		WontSignReason:        wontSignReason,
@@ -236,7 +233,19 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
 	}
-	opts.CannotCommitReasons = cannotCommitReasons(submitToForkedRepo, targetRepo, canPushWithProtection, protectionRequireSigned, willSign, canCommitToBranch)
+
+	if !submitToForkedRepo {
+		if !targetRepo.CanContentChange() {
+			opts.CannotCommitReason = ctx.Locale.Tr("repo.editor.repo_not_editable")
+		} else if !canPushWithProtection {
+			opts.CannotCommitReason = ctx.Locale.Tr("repo.editor.user_no_push_to_branch")
+		} else if protectionRequireSigned && !willSign {
+			opts.CannotCommitReason = ctx.Locale.Tr("repo.editor.require_signed_commit")
+		} else {
+			opts.CanCommitToBranch = true
+		}
+	}
+
 	editorAction := ctx.PathParam("editor_action")
 	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	if submitToForkedRepo {
@@ -252,27 +261,6 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		opts.TargetFormAction += util.Iif(strings.Contains(opts.TargetFormAction, "?"), "&", "?") + ctx.Req.URL.RawQuery
 	}
 	return opts, nil
-}
-
-func cannotCommitReasons(submitToForkedRepo bool, targetRepo *repo_model.Repository, canPushWithProtection, protectionRequireSigned, willSign, canCommitToBranch bool) []string {
-	if canCommitToBranch {
-		return nil
-	}
-
-	reasons := make([]string, 0, 3)
-	if submitToForkedRepo {
-		reasons = append(reasons, "repo.editor.no_write_access_to_upstream_branch")
-	}
-	if !targetRepo.CanEnableEditor() {
-		reasons = append(reasons, "repo.editor.web_editor_unavailable")
-	}
-	if !canPushWithProtection {
-		reasons = append(reasons, "repo.editor.user_no_push_to_branch")
-	}
-	if protectionRequireSigned && !willSign {
-		reasons = append(reasons, "repo.editor.require_signed_commit")
-	}
-	return reasons
 }
 
 // CanUseTimetracker returns whether a user can use the timetracker.
