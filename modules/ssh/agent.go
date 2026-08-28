@@ -108,10 +108,9 @@ func (sa *Agent) serve() {
 				defer sa.wg.Done()
 				defer c.Close()
 
+				// ServeAgent only returns once the connection ends, always with a non-nil error.
 				err := agent.ServeAgent(sa.agent, c)
-				if err != nil {
-					log.Debug("SSH agent connection ended: %v", err)
-				}
+				log.Debug("SSH agent connection ended: %v", err)
 			}(conn)
 		}
 	}
