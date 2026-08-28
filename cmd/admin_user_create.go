@@ -152,7 +152,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 			return err
 		}
 		// codeql[disable-next-line=go/clear-text-logging]
-		fmt.Printf("generated random password is '%s'\n", password)
+		cprintf(c, "generated random password is '%s'\n", password)
 	} else if userType == user_model.UserTypeIndividual {
 		return errors.New("must set either password or random-password flag")
 	}
@@ -228,7 +228,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
-	fmt.Printf("New user '%s' has been successfully created!\n", username)
+	cprintf(c, "New user '%s' has been successfully created!\n", username)
 
 	// create the access token
 	if accessTokenScope != "" {
@@ -236,7 +236,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
-		fmt.Printf("Access token was successfully created... %s\n", t.Token)
+		cprintf(c, "Access token was successfully created... %s\n", t.Token)
 	}
 	return nil
 }
