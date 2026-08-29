@@ -4,7 +4,6 @@
 package private
 
 import (
-	"fmt"
 	"net/http"
 
 	"gitea.dev/models/db"
@@ -22,9 +21,7 @@ import (
 func ReloadTemplates(ctx *context.PrivateContext) {
 	err := templates.ReloadAllTemplates()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			UserMsg: fmt.Sprintf("Template error: %v", err),
-		})
+		ctx.PrivateInternalErrorf("Template error: %v", err)
 		return
 	}
 	ctx.PlainText(http.StatusOK, "success")
@@ -49,9 +46,8 @@ func FlushQueues(ctx *context.PrivateContext) {
 	}
 	err := queue.GetManager().FlushAll(ctx, opts.Timeout)
 	if err != nil {
-		ctx.JSON(http.StatusRequestTimeout, private.Response{
-			UserMsg: fmt.Sprintf("%v", err),
-		})
+		ctx.PrivateUserErrorf(http.StatusRequestTimeout, "%v", err)
+		return
 	}
 	ctx.PlainText(http.StatusOK, "success")
 }
@@ -71,9 +67,7 @@ func ResumeLogging(ctx *context.PrivateContext) {
 // ReleaseReopenLogging releases and reopens logging files
 func ReleaseReopenLogging(ctx *context.PrivateContext) {
 	if err := releasereopen.GetManager().ReleaseReopen(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Error during release and reopen: %v", err),
-		})
+		ctx.PrivateInternalErrorf("Error during release and reopen: %v", err)
 		return
 	}
 	ctx.PlainText(http.StatusOK, "success")

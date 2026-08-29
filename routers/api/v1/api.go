@@ -79,7 +79,9 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/api/v1/activitypub"
 	"gitea.dev/routers/api/v1/admin"
 	"gitea.dev/routers/api/v1/misc"
@@ -99,7 +101,6 @@ import (
 
 	_ "gitea.dev/routers/api/v1/swagger" // for swagger generation
 
-	"gitea.com/go-chi/binding"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
@@ -188,13 +189,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
-			ctx.Repo.Permission, err = access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-		} else {
+		{
 			needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -227,7 +222,7 @@ func doerNeedTwoFactorAuth(ctx gocontext.Context, doer *user_model.User) (bool, 
 	if !setting.TwoFactorAuthEnforced {
 		return false, nil
 	}
-	if doer == nil {
+	if doer == nil || !doer.IsIndividual() { // system doers like Actions tasks or deploy-keys can never enroll 2FA
 		return false, nil
 	}
 	has, err := auth_model.HasTwoFactorOrWebAuthn(ctx, doer.ID)
@@ -421,6 +416,15 @@ func reqOwner() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Repo.Permission.IsOwner() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should be the owner of the repo")
+			return
+		}
+	}
+}
+
+func reqRepoDangerZone() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if !access_model.CanDoerManageRepoDangerZone(ctx, ctx.Doer, ctx.Repo.Repository, &ctx.Repo.Permission) {
+			ctx.APIError(http.StatusForbidden, "user has no permission to manage the danger zone")
 			return
 		}
 	}
@@ -794,7 +798,7 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 }
 
 func mustEnableWiki(ctx *context.APIContext) {
-	if !(ctx.Repo.Permission.CanRead(unit.TypeWiki)) {
+	if !ctx.Repo.Permission.CanRead(unit.TypeWiki) {
 		ctx.APIErrorNotFound()
 		return
 	}
@@ -870,7 +874,7 @@ func mustNotBeArchived(ctx *context.APIContext) {
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
-	if !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanContentChange() {
 		ctx.APIError(http.StatusLocked, "repo is not allowed to edit")
 		return
 	}
@@ -884,15 +888,14 @@ func mustEnableAttachments(ctx *context.APIContext) {
 }
 
 // bind binding an obj to a func(ctx *context.APIContext)
-func bind[T any](_ T) any {
+func bind[T any](tmpl T) any {
 	return func(ctx *context.APIContext) {
-		theObj := new(T) // create a new form obj for every request but not use obj directly
-		errs := binding.Bind(ctx.Req, theObj)
+		form, errs := middleware.BindFormAny(ctx.Req, validation.Binder(), tmpl)
 		if len(errs) > 0 {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
 			return
 		}
-		web.SetForm(ctx, theObj)
+		web.SetForm(ctx, form)
 	}
 }
 
@@ -988,19 +991,8 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 
 func individualPermsChecker(ctx *context.APIContext) {
 	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
-	if ctx.ContextUser.IsIndividual() {
-		switch ctx.ContextUser.Visibility {
-		case api.VisibleTypePrivate:
-			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-				ctx.APIErrorNotFound()
-				return
-			}
-		case api.VisibleTypeLimited:
-			if ctx.Doer == nil {
-				ctx.APIErrorNotFound()
-				return
-			}
-		}
+	if ctx.ContextUser.IsIndividual() && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.APIErrorNotFound()
 	}
 }
 
@@ -1166,7 +1158,7 @@ func Routes() *web.Router {
 				m.Get("/starred", reqStarsEnabled(), user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+			}, context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
@@ -1310,17 +1302,17 @@ func Routes() *web.Router {
 			m.Get("/search", repo.Search)
 
 			// (repo scope)
-			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
+			m.Post("/migrate", reqToken(), rejectPublicOnly(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
-					Delete(reqToken(), reqOwner(), repo.Delete).
+					Delete(reqToken(), reqRepoDangerZone(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Group("/transfer", func() {
-					m.Post("", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
+					m.Post("", reqRepoDangerZone(), bind(api.TransferRepoOption{}), repo.Transfer)
 					m.Post("/accept", repo.AcceptTransfer)
 					m.Post("/reject", repo.RejectTransfer)
 				}, reqToken())
@@ -1473,8 +1465,9 @@ func Routes() *web.Router {
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
+					m.Post("/tokens", bind(api.CreateDeployKeyTokenOption{}), repo.CreateDeployToken)
 					m.Combo("/{id}").Get(repo.GetDeployKey).
-						Delete(repo.DeleteDeploykey)
+						Delete(repo.DeleteDeployKey)
 				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
@@ -1813,16 +1806,16 @@ func Routes() *web.Router {
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
-		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
+		m.Get("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), org.GetAll)
 		m.Group("/orgs/{org}", func() {
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Post("/rename", reqToken(), reqOrgOwnership(), bind(api.RenameOrgOption{}), org.Rename)
 			m.Combo("/repos").Get(user.ListOrgRepos).
-				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
+				Post(reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), bind(api.CreateRepoOption{}), repo.CreateOrgRepo).
 				Delete(reqToken(), reqOrgOwnership(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), org.DeleteOrgRepos)
 			m.Group("/members", func() {
 				m.Get("", reqToken(), org.ListMembers)
@@ -1911,6 +1904,7 @@ func Routes() *web.Router {
 				m.Post("/{task}", admin.PostCronTask)
 			})
 			m.Get("/orgs", admin.GetAllOrgs)
+			m.Get("/packages", admin.ListPackages)
 			m.Group("/users", func() {
 				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)

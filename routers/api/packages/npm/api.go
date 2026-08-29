@@ -99,7 +99,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),
-			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)),
+			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.PathEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)),
 		},
 	}
 }

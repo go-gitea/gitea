@@ -628,6 +628,76 @@
         }
       }
     },
+    "/admin/packages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all packages",
+        "operationId": "adminListPackages",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "alpine",
+              "cargo",
+              "chef",
+              "composer",
+              "conan",
+              "conda",
+              "container",
+              "cran",
+              "debian",
+              "generic",
+              "go",
+              "helm",
+              "maven",
+              "npm",
+              "nuget",
+              "pub",
+              "pypi",
+              "rpm",
+              "rubygems",
+              "swift",
+              "terraform",
+              "vagrant"
+            ],
+            "type": "string",
+            "description": "package type filter",
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "name filter",
+            "name": "q",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PackageList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/admin/unadopted": {
       "get": {
         "produces": [
@@ -14966,6 +15036,55 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/keys/tokens": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a deploy token to a repository, it authenticates git over HTTPS",
+        "operationId": "repoCreateDeployToken",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateDeployKeyTokenOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/DeployKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/keys/{id}": {
       "get": {
         "produces": [
@@ -20282,6 +20401,9 @@
           "204": {
             "$ref": "#/responses/empty"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -20328,6 +20450,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -27476,6 +27601,26 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "CreateDeployKeyTokenOption": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "read_only": {
+          "description": "Describe if the token has only read access or read/write",
+          "type": "boolean",
+          "x-go-name": "ReadOnly"
+        },
+        "title": {
+          "description": "Title of the token to add",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateEmailOption": {
       "description": "CreateEmailOption options when creating email addresses",
       "type": "object",
@@ -27729,7 +27874,6 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CreateKeyOption": {
-      "description": "CreateKeyOption options when creating a key",
       "type": "object",
       "required": [
         "title",
@@ -28740,11 +28884,10 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "DeployKey": {
-      "description": "DeployKey a deploy key",
       "type": "object",
       "properties": {
         "created_at": {
-          "description": "Created is the time when the deploy key was added",
+          "description": "Created is the time when the deploy-key was added",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
@@ -28755,7 +28898,7 @@
           "x-go-name": "Fingerprint"
         },
         "id": {
-          "description": "ID is the unique identifier for the deploy key",
+          "description": "ID is the unique identifier for the deploy-key",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
@@ -28771,6 +28914,15 @@
           "format": "int64",
           "x-go-name": "KeyID"
         },
+        "key_type": {
+          "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+          "type": "string",
+          "enum": [
+            "ssh",
+            "token"
+          ],
+          "x-go-name": "KeyType"
+        },
         "read_only": {
           "description": "ReadOnly indicates if the key has read-only access",
           "type": "boolean",
@@ -28784,8 +28936,13 @@
           "type": "string",
           "x-go-name": "Title"
         },
+        "token": {
+          "description": "Token is the plaintext token of an HTTPS key, only returned when it is created",
+          "type": "string",
+          "x-go-name": "Token"
+        },
         "url": {
-          "description": "URL is the API URL for this deploy key",
+          "description": "URL is the API URL for this deploy-key",
           "type": "string",
           "x-go-name": "URL"
         }

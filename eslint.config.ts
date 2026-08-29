@@ -79,7 +79,7 @@ export default defineConfig([
       '@eslint-community/eslint-comments/no-unlimited-disable': [2],
       '@eslint-community/eslint-comments/no-unused-enable': [2],
       '@eslint-community/eslint-comments/no-use': [0],
-      '@eslint-community/eslint-comments/require-description': [0],
+      '@eslint-community/eslint-comments/require-description': [2, {ignore: ['eslint', 'eslint-enable', 'eslint-env', 'exported', 'global', 'globals']}],
       '@stylistic/array-bracket-newline': [0],
       '@stylistic/array-bracket-spacing': [2, 'never'],
       '@stylistic/array-element-newline': [0],
@@ -258,7 +258,7 @@ export default defineConfig([
       '@typescript-eslint/prefer-function-type': [2],
       '@typescript-eslint/prefer-includes': [2],
       '@typescript-eslint/prefer-literal-enum-member': [0],
-      '@typescript-eslint/prefer-namespace-keyword': [2],
+      '@typescript-eslint/prefer-namespace-keyword': [0], // handled by @typescript-eslint/no-namespace
       '@typescript-eslint/prefer-nullish-coalescing': [0],
       '@typescript-eslint/prefer-optional-chain': [2, {requireNullish: true}],
       '@typescript-eslint/prefer-promise-reject-errors': [2],
@@ -531,8 +531,8 @@ export default defineConfig([
       'no-nonoctal-decimal-escape': [2],
       'no-obj-calls': [2],
       'no-object-constructor': [2],
-      'no-octal-escape': [2],
-      'no-octal': [2],
+      'no-octal-escape': [0], // parse error under strict mode
+      'no-octal': [0], // parse error under strict mode
       'no-param-reassign': [0],
       'no-plusplus': [0],
       'no-promise-executor-return': [0],
@@ -581,7 +581,7 @@ export default defineConfig([
       'no-useless-call': [2],
       'no-useless-catch': [2],
       'no-useless-computed-key': [2],
-      'no-useless-concat': [2],
+      'no-useless-concat': [0], // handled by unicorn/no-useless-concat
       'no-useless-constructor': [2],
       'no-useless-escape': [2],
       'no-useless-rename': [2],
@@ -592,7 +592,7 @@ export default defineConfig([
       'no-with': [0], // handled by no-restricted-syntax
       'object-shorthand': [2, 'always'],
       'one-var': [0],
-      'operator-assignment': [2, 'always'],
+      'operator-assignment': [0], // handled by unicorn/operator-assignment
       'prefer-arrow-callback': [2, {allowNamedFunctions: true, allowUnboundThis: true}],
       'prefer-const': [2, {destructuring: 'all', ignoreReadBeforeAssign: true}],
       'prefer-destructuring': [0],
@@ -1096,6 +1096,7 @@ export default defineConfig([
   },
   {
     files: ['**/*.test.ts', 'web_src/js/vitest.setup.ts'],
+    ignores: ['tests/e2e/**'],
     plugins: {vitest},
     languageOptions: {globals: globals.vitest},
     rules: {

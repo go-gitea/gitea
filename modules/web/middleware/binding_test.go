@@ -4,13 +4,11 @@
 package middleware
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/validation"
 
-	"gitea.com/go-chi/binding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +20,7 @@ type testRangeForm struct {
 func TestBuildValidationErrorForUser(t *testing.T) {
 	// an out-of-range value must reach its own message instead of the panicking "default" branch
 	form := &testRangeForm{Hours: 2000}
-	errs := binding.Validate(httptest.NewRequest(http.MethodPost, "/", nil), form)
+	errs := validation.Binder().Validate(t.Context(), form)
 	errorMessage, errorFieldName, fieldNames := BuildValidationErrorForUser(form, translation.MockLocale{}, errs)
 	assert.Equal(t, "form.range_error:form.Hours,0,1000", errorMessage)
 	assert.Equal(t, "Hours", errorFieldName)

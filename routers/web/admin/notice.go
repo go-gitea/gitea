@@ -37,7 +37,7 @@ func Notices(ctx *context.Context) {
 
 	ctx.Data["Total"] = total
 
-	ctx.Data["Page"] = context.NewPagination(total, setting.UI.Admin.NoticePagingNum, page, 5)
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.Admin.NoticePagingNum).CurPage(page).Build()
 
 	ctx.HTML(http.StatusOK, tplNotices)
 }

@@ -17,9 +17,9 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
@@ -97,8 +97,7 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["CommitCount"] = commitsCount
 
-	pager := context.NewPagination(commitsCount, pageSize, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(commitsCount).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
 }
@@ -165,10 +164,8 @@ func Graph(ctx *context.Context) {
 	ctx.Data["AllRefs"] = gitRefs
 
 	divOnly := ctx.FormBool("div-only")
-	queryParams := ctx.Req.URL.Query()
-	queryParams.Del("div-only")
-	paginator := context.NewPagination(graphCommitsCount, setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParamFromQuery(queryParams)
+	paginator := context.NewPagerBuilder(ctx).TotalCount(graphCommitsCount).PerPageLimit(setting.UI.GraphMaxCommitNum).CurPage(page).Build()
+	paginator.RemoveParam(container.SetOf("div-only"))
 	ctx.Data["Page"] = paginator
 	if divOnly {
 		ctx.HTML(http.StatusOK, tplGraphDiv)
@@ -259,11 +256,10 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(commitsCount).PerPageLimit(setting.Git.CommitsRangeSize).CurPage(page).Build()
 	if commitsCount == -1 {
 		pager.WithUnlimitedPaging(len(commits), hasMore)
 	}
-	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
 }
@@ -388,9 +384,7 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, statuses)
-	}
+	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
@@ -466,14 +460,6 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-		for _, commit := range commits {
-			if commit.Status == nil {
-				continue
-			}
-			commit.Status.HideActionsURL(ctx)
-			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
-		}
-	}
+	git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, commits)
 	return commits, nil
 }

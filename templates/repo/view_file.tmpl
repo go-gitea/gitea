@@ -69,7 +69,7 @@
 					{{svg "octicon-rss"}}
 				</a>
 				{{end}}
-				{{if .Repository.CanEnableEditor}}
+				{{if .Repository.CanContentChange}}
 					{{if .CanEditFile}}
 						<a class="btn-octicon" data-tooltip-content="{{.EditFileTooltip}}" href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-pencil"}}</a>
 					{{else}}

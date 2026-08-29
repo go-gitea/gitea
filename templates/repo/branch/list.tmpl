@@ -194,13 +194,13 @@
 								{{end}}
 								{{if and $.IsWriter $.Repository.CanContentChange (not .IsProtected)}}
 									{{if .DBBranch.IsDeleted}}
-										<button class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
+										<button class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginator.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
 											<span class="tw-text-blue">
 												{{svg "octicon-reply"}}
 											</span>
 										</button>
 									{{else}}
-										<button class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
+										<button class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginator.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
 											{{svg "octicon-trash"}}
 										</button>
 									{{end}}

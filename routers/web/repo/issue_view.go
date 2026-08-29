@@ -74,11 +74,7 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 			return roleDesc, nil
 		}
 		// Otherwise (poster is site admin), check if poster is the real repo admin.
-		isRealRepoAdmin, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
-		if err != nil {
-			return roleDesc, err
-		}
-		if isRealRepoAdmin {
+		if access_model.IsUserRealRepoAdmin(ctx, repo, poster) {
 			roleDesc.RoleInRepo = issues_model.RoleRepoOwner
 			return roleDesc, nil
 		}
@@ -794,15 +790,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-				for _, commit := range comment.Commits {
-					if commit.Status == nil {
-						continue
-					}
-					commit.Status.HideActionsURL(ctx)
-					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
-				}
-			}
+			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
