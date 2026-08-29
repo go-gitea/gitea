@@ -19,6 +19,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
@@ -96,7 +97,7 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["CommitCount"] = commitsCount
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(commitsCount).PerPageLimit(pageSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(commitsCount).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
 }
@@ -163,10 +164,8 @@ func Graph(ctx *context.Context) {
 	ctx.Data["AllRefs"] = gitRefs
 
 	divOnly := ctx.FormBool("div-only")
-	queryParams := ctx.Req.URL.Query()
-	queryParams.Del("div-only")
-	paginator := context.NewPagination(graphCommitsCount, setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParamFromQuery(queryParams)
+	paginator := context.NewPagerBuilder(ctx).TotalCount(graphCommitsCount).PerPageLimit(setting.UI.GraphMaxCommitNum).CurPage(page).Build()
+	paginator.RemoveParam(container.SetOf("div-only"))
 	ctx.Data["Page"] = paginator
 	if divOnly {
 		ctx.HTML(http.StatusOK, tplGraphDiv)
@@ -257,7 +256,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(commitsCount).PerPageLimit(setting.Git.CommitsRangeSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(commitsCount).PerPageLimit(setting.Git.CommitsRangeSize).CurPage(page).Build()
 	if commitsCount == -1 {
 		pager.WithUnlimitedPaging(len(commits), hasMore)
 	}

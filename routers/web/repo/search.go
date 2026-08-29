@@ -71,7 +71,7 @@ func Search(ctx *context.Context) {
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.RepoSearchPagingNum).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.RepoSearchPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplSearch)

@@ -128,7 +128,7 @@ func Dashboard(ctx *context.Context) {
 
 	// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: here is still an edge case: when curRows==pagingNum, then the "next page" will be an empty page.
 	// Ideally we should query one more row to determine if there is really a next page, but it's impossible in current framework.
-	pager := context.NewPaginationBuilder(ctx).TotalCount(count).PerPageLimit(pageSize).CurPage(page).Build().WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(pageSize).CurPage(page).Build().WithUnlimitedPaging(len(feeds), len(feeds) == pageSize)
 	ctx.Data["Page"] = pager
 	ctx.Data["Feeds"] = feeds
 
@@ -319,7 +319,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(pagerCount).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(pagerCount).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplMilestones)
@@ -626,7 +626,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(shownIssues).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(shownIssues).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplIssues)

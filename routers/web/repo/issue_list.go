@@ -509,7 +509,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		total = util.Iif(isShowClosed.Value(), issueStats.ClosedCount, issueStats.OpenCount)
 	}
 	page := max(ctx.FormInt("page"), 1)
-	pager := context.NewPaginationBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 
 	// prepare real issue list:
 	var issues issues_model.IssueList

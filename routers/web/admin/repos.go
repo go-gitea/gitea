@@ -83,7 +83,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	q := ctx.FormString("q")
 
 	if !doSearch {
-		pager := context.NewPaginationBuilder(ctx).TotalCount(0).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
+		pager := context.NewPagerBuilder(ctx).TotalCount(0).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 		ctx.Data["Page"] = pager
 		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
@@ -96,7 +96,7 @@ func UnadoptedRepos(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Dirs"] = repoNames
-	pager := context.NewPaginationBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }

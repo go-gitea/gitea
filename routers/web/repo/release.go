@@ -192,7 +192,7 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Releases"] = releases
 
 	numReleases := ctx.Data["NumReleases"].(int64) //nolint:forcetypeassert // must exist
-	pager := context.NewPaginationBuilder(ctx).TotalCount(numReleases).PerPageLimit(listOptions.PageSize).CurPage(listOptions.Page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(numReleases).PerPageLimit(listOptions.PageSize).CurPage(listOptions.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
@@ -243,7 +243,7 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["Releases"] = releases
 	ctx.Data["TagCount"] = count
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 	ctx.HTML(http.StatusOK, tplTagsList)

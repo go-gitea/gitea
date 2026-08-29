@@ -103,7 +103,7 @@ func Projects(ctx *context.Context) {
 		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
 	}
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)

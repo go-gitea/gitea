@@ -93,7 +93,7 @@ func Emails(ctx *context.Context) {
 	ctx.Data["Total"] = count
 	ctx.Data["Emails"] = emails
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplEmails)

@@ -62,7 +62,7 @@ func Members(ctx *context.Context) {
 	}
 
 	pageSize := setting.UI.MembersPagingNum
-	pager := context.NewPaginationBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
 	opts.ListOptions.Page = pager.Paginator.Current()
 	opts.ListOptions.PageSize = pageSize
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)

@@ -64,7 +64,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)

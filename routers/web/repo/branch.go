@@ -82,7 +82,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranchOptional
-	pager := context.NewPaginationBuilder(ctx).TotalCount(branchesCount).PerPageLimit(pageSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(branchesCount).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplBranch)
 }

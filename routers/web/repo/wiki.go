@@ -366,7 +366,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		return nil, nil
 	}
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(commitsCount).PerPageLimit(setting.Git.CommitsRangeSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(commitsCount).PerPageLimit(setting.Git.CommitsRangeSize).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	return wikiGitRepo, entry

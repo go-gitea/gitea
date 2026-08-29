@@ -73,7 +73,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
-	pager := context.NewPaginationBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
