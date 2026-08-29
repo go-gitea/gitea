@@ -113,6 +113,7 @@ var (
 	OrganizationDelete                  = define("organization:delete", "Deleted organization {scope}.")
 	OrganizationName                    = define("organization:name:update", "Changed organization name from {previous_name} to {scope}.")
 	OrganizationVisibility              = define("organization:visibility", "Changed visibility of organization {scope} to {new_visibility}.")
+	OrganizationMemberRemove            = define("organization:member:remove", "Removed user {member} from organization {scope}.")
 	OrganizationTeamAdd                 = define("organization:team:add", "Added team {team} to organization {scope}.")
 	OrganizationTeamUpdate              = define("organization:team:update", "Updated settings of team {scope}/{team}.")
 	OrganizationTeamRemove              = define("organization:team:remove", "Removed team {team} from organization {scope}.")
