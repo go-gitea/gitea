@@ -164,7 +164,7 @@ func TestAPIPullAutoMergeScheduled(t *testing.T) {
 
 	// schedule an auto merge; stub the queue so nothing gets merged in the background
 	oldAddToQueue := automergequeue.AddToQueue
-	automergequeue.AddToQueue = func(*issues_model.PullRequest, string) {}
+	automergequeue.AddToQueue = func(automergequeue.AutoMergeItem) {}
 	defer func() { automergequeue.AddToQueue = oldAddToQueue }()
 	scheduled, err := automerge.ScheduleAutoMerge(t.Context(), doer, pr, repo_model.MergeStyleSquash, "the title\n\nthe body", false)
 	require.NoError(t, err)

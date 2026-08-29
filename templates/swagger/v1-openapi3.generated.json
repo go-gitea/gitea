@@ -3973,6 +3973,26 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "CreateDeployKeyTokenOption": {
+        "properties": {
+          "read_only": {
+            "description": "Describe if the token has only read access or read/write",
+            "type": "boolean",
+            "x-go-name": "ReadOnly"
+          },
+          "title": {
+            "description": "Title of the token to add",
+            "type": "string",
+            "uniqueItems": true,
+            "x-go-name": "Title"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "CreateEmailOption": {
         "description": "CreateEmailOption options when creating email addresses",
         "properties": {
@@ -4227,7 +4247,6 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "CreateKeyOption": {
-        "description": "CreateKeyOption options when creating a key",
         "properties": {
           "key": {
             "description": "An armored SSH key to add",
@@ -5195,10 +5214,9 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "DeployKey": {
-        "description": "DeployKey a deploy key",
         "properties": {
           "created_at": {
-            "description": "Created is the time when the deploy key was added",
+            "description": "Created is the time when the deploy-key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -5209,7 +5227,7 @@
             "x-go-name": "Fingerprint"
           },
           "id": {
-            "description": "ID is the unique identifier for the deploy key",
+            "description": "ID is the unique identifier for the deploy-key",
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
@@ -5225,6 +5243,15 @@
             "type": "integer",
             "x-go-name": "KeyID"
           },
+          "key_type": {
+            "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+            "enum": [
+              "ssh",
+              "token"
+            ],
+            "type": "string",
+            "x-go-name": "KeyType"
+          },
           "read_only": {
             "description": "ReadOnly indicates if the key has read-only access",
             "type": "boolean",
@@ -5238,8 +5265,13 @@
             "type": "string",
             "x-go-name": "Title"
           },
+          "token": {
+            "description": "Token is the plaintext token of an HTTPS key, only returned when it is created",
+            "type": "string",
+            "x-go-name": "Token"
+          },
           "url": {
-            "description": "URL is the API URL for this deploy key",
+            "description": "URL is the API URL for this deploy-key",
             "format": "uri",
             "type": "string",
             "x-go-name": "URL"
@@ -11708,6 +11740,81 @@
           }
         },
         "summary": "List all organizations",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/packages": {
+      "get": {
+        "operationId": "adminListPackages",
+        "parameters": [
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "package type filter",
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "enum": [
+                "alpine",
+                "cargo",
+                "chef",
+                "composer",
+                "conan",
+                "conda",
+                "container",
+                "cran",
+                "debian",
+                "generic",
+                "go",
+                "helm",
+                "maven",
+                "npm",
+                "nuget",
+                "pub",
+                "pypi",
+                "rpm",
+                "rubygems",
+                "swift",
+                "terraform",
+                "vagrant"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "name filter",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PackageList"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          }
+        },
+        "summary": "List all packages",
         "tags": [
           "admin"
         ]
@@ -26496,6 +26603,56 @@
         ]
       }
     },
+    "/repos/{owner}/{repo}/keys/tokens": {
+      "post": {
+        "operationId": "repoCreateDeployToken",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeployKeyTokenOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/DeployKey"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Add a deploy token to a repository, it authenticates git over HTTPS",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/keys/{id}": {
       "delete": {
         "operationId": "repoDeleteKey",
@@ -32272,6 +32429,9 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           },
@@ -32368,6 +32528,9 @@
         "responses": {
           "204": {
             "$ref": "#/components/responses/empty"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

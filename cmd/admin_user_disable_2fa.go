@@ -67,6 +67,6 @@ func runDisableTwoFactor(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	fmt.Printf("Disabled 2FA for user %q (removed %d TOTP and %d WebAuthn credential(s))\n", user.Name, totp, webAuthn)
+	cprintf(c, "Disabled 2FA for user %q (removed %d TOTP and %d WebAuthn credential(s))\n", user.Name, totp, webAuthn)
 	return nil
 }

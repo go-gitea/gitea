@@ -4,13 +4,11 @@
 package actions
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"slices"
 	"strings"
 
-	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -20,6 +18,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
@@ -83,6 +82,12 @@ func newNotifyInputForSchedules(repo *repo_model.Repository) *notifyInput {
 	return newNotifyInput(repo, user_model.NewActionsUser(), webhook_module.HookEventSchedule)
 }
 
+func newPullRequestReviewNotifyInput(repo *repo_model.Repository, reviewer *user_model.User, event webhook_module.HookEventType, commitID string, pr *issues_model.PullRequest) *notifyInput {
+	return newNotifyInput(repo, reviewer, event).
+		WithRef(commitID).
+		WithPullRequest(pr)
+}
+
 func (input *notifyInput) WithDoer(doer *user_model.User) *notifyInput {
 	input.Doer = doer
 	return input
@@ -116,7 +121,7 @@ func (input *notifyInput) Notify(ctx context.Context) {
 
 func notify(ctx context.Context, input *notifyInput) error {
 	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
-	if input.Doer.IsGiteaActions() {
+	if input.Doer.ID == user_model.ActionsUserID {
 		// avoiding triggering cyclically, for example:
 		// a comment of an issue will trigger the runner to add a new comment as reply,
 		// and the new comment will trigger the runner again.
@@ -412,11 +417,18 @@ func handleFilteredWorkflows(ctx context.Context, input *notifyInput, filteredWo
 		return
 	}
 	for _, dwf := range filteredWorkflows {
+		if !shouldCreateSkippedCommitStatusForFilteredWorkflow(input, dwf) {
+			continue
+		}
 		if err := CreateSkippedCommitStatusForFilteredWorkflow(ctx, input.Repo, input.Event, dwf.TriggerEvent.Name, dwf.EntryName, dwf.Content, input.Payload, "", requiredGlobs); err != nil {
 			log.Error("repo %s: skipped commit status for workflow %s: %v", input.Repo.FullName(), dwf.EntryName, err)
 			continue
 		}
 	}
+}
+
+func shouldCreateSkippedCommitStatusForFilteredWorkflow(input *notifyInput, workflow *actions_module.DetectedWorkflow) bool {
+	return !isForkPullRequestInput(input) || workflow.TriggerEvent.Name == actions_module.GithubEventPullRequestTarget
 }
 
 func newNotifyInputFromIssue(issue *issues_model.Issue, event webhook_module.HookEventType) *notifyInput {
@@ -553,7 +565,7 @@ func handleSchedules(
 	crons := make([]*actions_model.ActionSchedule, 0, len(detectedWorkflows))
 	for _, dwf := range detectedWorkflows {
 		// Check cron job condition. Only working in default branch
-		workflow, err := model.ReadWorkflow(bytes.NewReader(dwf.Content))
+		workflow, err := jobparser.ReadWorkflow(dwf.Content)
 		if err != nil {
 			log.Error("ReadWorkflow: %v", err)
 			continue
@@ -583,7 +595,7 @@ func handleSchedules(
 		crons = append(crons, run)
 	}
 
-	return actions_model.CreateScheduleTask(ctx, crons)
+	return actions_model.CreateScheduleTaskBySchedules(ctx, crons)
 }
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks

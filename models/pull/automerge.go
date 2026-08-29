@@ -97,6 +97,12 @@ func GetScheduledMergeByPullIDs(ctx context.Context, pullIDs []int64) (map[int64
 	return result, nil
 }
 
+func GetScheduledMergePullIDsSince(ctx context.Context, since timeutil.TimeStamp) ([]int64, error) {
+	var pullIDs []int64
+	err := db.GetEngine(ctx).Table(&AutoMerge{}).Where("created_unix >= ?", since).Cols("pull_id").Find(&pullIDs)
+	return pullIDs, err
+}
+
 // DeleteScheduledAutoMerge delete a scheduled pull request
 func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
 	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
