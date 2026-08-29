@@ -21,45 +21,35 @@ func TestAdminRemoveUserFromOrg(t *testing.T) {
 	// Admin user
 	session := loginUser(t, "user1")
 
-	// User to remove from org
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	t.Run("RemoveFromOrg", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 
-	// Verify user is in org
-	isMember, err := organization.IsOrganizationMember(t.Context(), org.ID, user.ID)
-	assert.NoError(t, err)
-	assert.True(t, isMember)
+		isMember, err := organization.IsOrganizationMember(t.Context(), org.ID, user.ID)
+		assert.NoError(t, err)
+		assert.True(t, isMember)
 
-	// Remove user from org
-	req := NewRequest(t, "POST", "/-/admin/users/4/orgs/3/remove")
-	session.MakeRequest(t, req, http.StatusSeeOther)
+		req := NewRequest(t, "POST", "/-/admin/users/4/orgs/3/remove")
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
-	// Verify user is no longer in org
-	isMember, err = organization.IsOrganizationMember(t.Context(), org.ID, user.ID)
-	assert.NoError(t, err)
-	assert.False(t, isMember)
-}
+		isMember, err = organization.IsOrganizationMember(t.Context(), org.ID, user.ID)
+		assert.NoError(t, err)
+		assert.False(t, isMember)
+	})
 
-func TestAdminRemoveUserFromAllOrgs(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+	t.Run("RemoveFromAllOrg", func(t *testing.T) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	// Admin user
-	session := loginUser(t, "user1")
+		orgCount, err := organization.GetOrganizationCount(t.Context(), user)
+		assert.EqualValues(t, 4, orgCount)
+		assert.NoError(t, err)
+		assert.Positive(t, orgCount, "User should be in at least one org")
 
-	// User to remove from all orgs (user4 is not a last owner)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		req := NewRequest(t, "POST", "/-/admin/users/5/orgs/remove-all")
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
-	// Get count of orgs user is in before removal
-	orgCount, err := organization.GetOrganizationCount(t.Context(), user)
-	assert.NoError(t, err)
-	assert.Positive(t, orgCount, "User should be in at least one org")
-
-	// Remove user from all orgs
-	req := NewRequest(t, "POST", "/-/admin/users/4/orgs/remove-all")
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	// Verify user is no longer in any orgs
-	orgCountAfter, err := organization.GetOrganizationCount(t.Context(), user)
-	assert.NoError(t, err)
-	assert.Equal(t, int64(0), orgCountAfter, "User should not be in any orgs")
+		orgCountAfter, err := organization.GetOrganizationCount(t.Context(), user)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 2, orgCountAfter) // User 5 is the last owner of remaining orgs
+	})
 }
