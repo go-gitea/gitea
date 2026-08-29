@@ -4726,7 +4726,7 @@ WARNING: v1.10.5 is incorrectly tagged targeting 1.12-dev and should __not__ be 
   * Fix 500 in public activity page (#1901)
   * Center-aligned login topbar (#1880)
   * Migration to fix existing owner team units (#1873)
-  * Fix paginater length (#1866)
+  * Fix paginator length (#1866)
   * Fix bug in removeOrgRepo (#1858)
   * Display draft releases (#1854)
   * Fix 404 for external tracking issues (#1852)

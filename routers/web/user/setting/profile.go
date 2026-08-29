@@ -214,8 +214,7 @@ func Organization(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
-	pager := context.NewPagination(total, opts.PageSize, opts.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPaginationBuilder(ctx).TotalCount(total).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsOrganization)
 }
@@ -320,8 +319,7 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Repos"] = repos
 	}
 	ctx.Data["ContextUser"] = ctxUser
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPaginationBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsRepositories)
 }

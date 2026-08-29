@@ -96,8 +96,7 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["CommitCount"] = commitsCount
 
-	pager := context.NewPagination(commitsCount, pageSize, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPaginationBuilder(ctx).TotalCount(commitsCount).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
 }
@@ -258,11 +257,10 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
+	pager := context.NewPaginationBuilder(ctx).TotalCount(commitsCount).PerPageLimit(setting.Git.CommitsRangeSize).CurPage(page).Build()
 	if commitsCount == -1 {
 		pager.WithUnlimitedPaging(len(commits), hasMore)
 	}
-	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
 }

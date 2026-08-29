@@ -161,8 +161,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 
-	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPaginationBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.User.RepoPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)

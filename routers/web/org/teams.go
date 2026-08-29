@@ -103,8 +103,7 @@ func Teams(ctx *context.Context) {
 
 	ctx.Data["OrgListTeams"] = teams
 	ctx.Data["Keyword"] = keyword
-	pager := context.NewPagination(count, setting.UI.MembersPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPaginationBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.MembersPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplTeams)

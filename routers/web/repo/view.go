@@ -346,7 +346,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
-		Page:     pager.Paginater.Current(),
+		Page:     pager.Paginator.Current(),
 		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
