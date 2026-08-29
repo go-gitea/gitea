@@ -17,9 +17,7 @@ import (
 
 func TestAdminRemoveUserFromOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	// Admin user
-	session := loginUser(t, "user1")
+	adminSession := loginUser(t, "user1")
 
 	t.Run("RemoveFromOrg", func(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
@@ -30,7 +28,7 @@ func TestAdminRemoveUserFromOrg(t *testing.T) {
 		assert.True(t, isMember)
 
 		req := NewRequest(t, "POST", "/-/admin/users/4/orgs/3/remove")
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		adminSession.MakeRequest(t, req, http.StatusOK)
 
 		isMember, err = organization.IsOrganizationMember(t.Context(), org.ID, user.ID)
 		assert.NoError(t, err)
@@ -46,7 +44,7 @@ func TestAdminRemoveUserFromOrg(t *testing.T) {
 		assert.Positive(t, orgCount, "User should be in at least one org")
 
 		req := NewRequest(t, "POST", "/-/admin/users/5/orgs/remove-all")
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		adminSession.MakeRequest(t, req, http.StatusOK)
 
 		orgCountAfter, err := organization.GetOrganizationCount(t.Context(), user)
 		assert.NoError(t, err)
