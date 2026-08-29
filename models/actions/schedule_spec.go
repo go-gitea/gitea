@@ -26,7 +26,7 @@ type ActionScheduleSpec struct {
 	// Next time the job will run, or the zero time if Cron has not been
 	// started or this entry's schedule is unsatisfiable
 	Next timeutil.TimeStamp `xorm:"index"`
-	// Prev is the last time this job was run, or the zero time if never.
+	// Prev is the occurrence this spec was last processed for, or the zero time if never.
 	Prev timeutil.TimeStamp
 	Spec string
 

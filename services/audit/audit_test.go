@@ -52,7 +52,7 @@ func BenchmarkBuildEvent(b *testing.B) {
 // signed-in request.
 func newRequestContext(t *testing.T, signedIn *user_model.User) context.Context {
 	t.Helper()
-	rc := reqctx.NewRequestContextForTest(context.Background())
+	rc := reqctx.NewRequestContextForTest(t)
 	rc.GetData()[middleware.ContextDataKeySignedUser] = signedIn
 	return rc
 }
@@ -190,7 +190,7 @@ func TestImpersonatorRef(t *testing.T) {
 	admin := &user_model.User{ID: 1, Name: "Admin"}
 	impersonated := &user_model.User{ID: 2, Name: "Impersonated"}
 
-	rc := reqctx.NewRequestContextForTest(context.Background())
+	rc := reqctx.NewRequestContextForTest(t)
 	rc.GetData()[middleware.ContextDataKeySignedUser] = impersonated
 	rc.GetData()[middleware.ContextDataKeyImpersonator] = admin
 

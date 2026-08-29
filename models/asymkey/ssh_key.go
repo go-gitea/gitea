@@ -89,6 +89,36 @@ func addPublicKey(ctx context.Context, key *PublicKey) (err error) {
 	return appendAuthorizedKeysToFile(key)
 }
 
+// FindOrAddDeployPublicKey returns the shared public key that deploy keys of the given content link to, adding it on first use.
+func FindOrAddDeployPublicKey(ctx context.Context, content string) (*PublicKey, error) {
+	fingerprint, err := CalcFingerprint(content)
+	if err != nil {
+		return nil, err
+	}
+
+	pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
+	if err != nil {
+		return nil, err
+	} else if exist {
+		if pkey.Type != KeyTypeDeploy {
+			return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+		}
+		return pkey, nil
+	}
+
+	pkey = &PublicKey{
+		Mode:        perm.AccessModeNone,
+		Type:        KeyTypeDeploy,
+		Name:        "(DeployKey)",
+		Content:     content,
+		Fingerprint: fingerprint,
+	}
+	if err = addPublicKey(ctx, pkey); err != nil {
+		return nil, fmt.Errorf("addPublicKey: %w", err)
+	}
+	return pkey, nil
+}
+
 // AddPublicKey adds new public key to database and authorized_keys file.
 func AddPublicKey(ctx context.Context, ownerID int64, name, content string, authSourceID int64, verified bool) (*PublicKey, error) {
 	log.Trace(content)
@@ -182,6 +212,10 @@ type FindPublicKeyOptions struct {
 	KeyTypes      []KeyType
 	NotKeytype    KeyType
 	LoginSourceID int64
+}
+
+func (opts FindPublicKeyOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts FindPublicKeyOptions) ToConds() builder.Cond {

@@ -114,6 +114,10 @@ func GetLanguageStats(ctx context.Context, repo *git.Repository, commitID string
 			if hasLanguage := attrs.GetLanguage(); hasLanguage.Value() != "" {
 				language := hasLanguage.Value()
 
+				if canonicalLanguage, ok := enry.GetLanguageByAlias(language); ok {
+					language = canonicalLanguage
+				}
+
 				// group languages, such as Pug -> HTML; SCSS -> CSS
 				group := enry.GetLanguageGroup(language)
 				if len(group) != 0 {

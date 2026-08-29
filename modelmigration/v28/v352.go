@@ -7,30 +7,32 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm"
 )
 
-type AuditEvent struct {
-	ID               int64  `xorm:"pk autoincr"`
-	Action           string `xorm:"INDEX NOT NULL"`
-	ActorID          int64  `xorm:"INDEX NOT NULL"`
-	ActorName        string
-	ImpersonatorID   int64 `xorm:"INDEX"`
-	ImpersonatorName string
-	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`
-	ScopeType        string `xorm:"INDEX INDEX(scope) NOT NULL"`
-	ScopeName        string
-	Origin           string `xorm:"INDEX NOT NULL"`
-	Message          string
-	Metadata         string `xorm:"LONGTEXT JSON"`
-	IPAddress        string
-	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
-}
+func AddTokenToDeployKey(ctx context.Context, x base.EngineMigration) error {
+	// Drop the old UNIQUE(s) index on (key_id, repo_id). Every token row carries key
+	// id 0, so the pair can no longer be unique. AddDeployKey still checks it in code.
+	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "deploy_key")
+	if err != nil {
+		return err
+	}
+	if idx, ok := indexes["s"]; ok {
+		if _, err := x.Exec(x.Dialect().DropIndexSQL("deploy_key", idx)); err != nil {
+			return err
+		}
+	}
 
-func (*AuditEvent) TableName() string {
-	return "audit_event"
-}
-
-func AddAuditEventTable(_ context.Context, x base.EngineMigration) error {
-	return x.Sync(new(AuditEvent))
+	type DeployKey struct {
+		KeyID     int64  `xorm:"INDEX"`
+		RepoID    int64  `xorm:"INDEX"`
+		KeyType   int    `xorm:"NOT NULL DEFAULT 1"` // every existing row is an SSH key
+		TokenHash string `xorm:"INDEX"`
+	}
+	_, err = x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true, // the bean only describes the new columns
+	}, new(DeployKey))
+	return err
 }

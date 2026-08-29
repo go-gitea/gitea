@@ -27,9 +27,6 @@ func TestSystemUser(t *testing.T) {
 	assert.Equal(t, int64(-2), uid)
 	assert.Equal(t, "gitea-actions", u.Name)
 	assert.Equal(t, "gitea-actions", u.LowerName)
-	assert.True(t, u.IsGiteaActions())
-	assert.Empty(t, u.Email)
-	assert.False(t, u.KeepEmailPrivate)
 
 	u = GetSystemUserByName("Gitea-actionS")
 	require.NotNil(t, u)

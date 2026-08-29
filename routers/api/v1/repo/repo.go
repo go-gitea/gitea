@@ -1160,15 +1160,6 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !canDelete {
-		ctx.APIError(http.StatusForbidden, "Given user is not owner of organization.")
-		return
-	}
-
 	if ctx.Repo.GitRepo != nil {
 		ctx.Repo.GitRepo.Close()
 	}

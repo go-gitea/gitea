@@ -99,9 +99,7 @@ func View(ctx *context.Context, opts ViewOptions) {
 
 	ctx.Data["AuditEvents"] = evs
 
-	pager := context.NewPagination(total, setting.UI.Admin.NoticePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
-	ctx.Data["Page"] = pager
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.Admin.NoticePagingNum).CurPage(page).Build()
 
 	ctx.HTML(http.StatusOK, opts.Template)
 }

@@ -415,7 +415,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 
 // GetGitHeadRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
-	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
+	return git.RefNameFromPullIndex(pr.Index).String()
 }
 
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
