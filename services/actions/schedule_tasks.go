@@ -36,7 +36,7 @@ func startTasks(ctx context.Context) error {
 	var failed int
 	now := time.Now()
 	err := db.Iterate(ctx,
-		builder.And(builder.Gt{"next": 0}, builder.Lte{"next": now}),
+		builder.And(builder.Gt{"next": 0}, builder.Lte{"next": now.Unix()}),
 		func(ctx context.Context, row *actions_model.ActionScheduleSpec) error {
 			// one failing spec must not abort the pass, or a single broken workflow stops every other schedule
 			if err := startTask(ctx, row, now); err != nil {
