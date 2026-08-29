@@ -1324,7 +1324,6 @@
   "repo.editor.upload_files_to_dir": "Uaslódáil comhaid go \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Ní féidir gealltanas a thabhairt don bhrainse faoi chosaint \"%s\".",
   "repo.editor.no_commit_to_branch": "Ní cheadaítear gealltanas díreach a thabhairt don bhrainse mar gheall ar:",
-  "repo.editor.user_no_push_to_branch": "Ní féidir leis an úsáideoir brúigh go dtí an brainse",
   "repo.editor.require_signed_commit": "Éilíonn an Brainse tiomantas sínithe",
   "repo.editor.cherry_pick": "Roghnaigh silíní %s ar:",
   "repo.editor.revert": "Fill %s ar:",

@@ -1324,7 +1324,6 @@
   "repo.editor.upload_files_to_dir": "파일을 \"%s\" 로 업로드",
   "repo.editor.cannot_commit_to_protected_branch": "보호된 브랜치 \"%s\"에 커밋할 수 없습니다.",
   "repo.editor.no_commit_to_branch": "다음 이유로 브랜치에 직접 커밋할 수 없습니다:",
-  "repo.editor.user_no_push_to_branch": "사용자는 브랜치에 푸시할 수 없습니다",
   "repo.editor.require_signed_commit": "브랜치에는 서명된 커밋이 필요합니다",
   "repo.editor.cherry_pick": "Cherry-pick %s 다음으로:",
   "repo.editor.revert": "다음으로 %s Revert:",
