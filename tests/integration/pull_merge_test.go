@@ -1128,6 +1128,7 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 
 		resp = bypassSession.MakeRequest(t, NewRequest(t, "GET", pullURL), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Contains(t, htmlDoc.doc.Find(".merge-section").Text(), "Merging is blocked")
 		mergeFormProps, exists := htmlDoc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
 		require.True(t, exists)
 		var mergeForm map[string]any

@@ -16,10 +16,12 @@ type pullMergeBoxInfoItem struct {
 	SvgIconHTML template.HTML
 	InfoHTML    template.HTML
 	ListItems   []template.HTML
+	ExtraClass  string
 }
 
 type pullMergeBoxInfoItemCollection struct {
-	items []*pullMergeBoxInfoItem
+	items      []*pullMergeBoxInfoItem
+	errorCount int
 }
 
 type pullInfoSection struct {
@@ -41,12 +43,15 @@ func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, op
 	})
 }
 
+// AddErrorItem adds a blocking reason, rendered as a muted sub-row of the "merging is blocked" heading
 func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
 	c.items = append(c.items, &pullMergeBoxInfoItem{
-		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
+		SvgIconHTML: svg.RenderHTML("octicon-dot-fill", 16, "tw-text-text-light"),
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
+		ExtraClass:  "tw-pl-6 tw-text-text-light",
 	})
+	c.errorCount++
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
@@ -176,7 +181,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 	if len(data.infoCommitBlockers.items) > 0 {
 		data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoCommitBlockers.items})
 	} else {
-		data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoProtectionBlockers.items})
+		items := data.infoProtectionBlockers.items
+		if data.infoProtectionBlockers.errorCount > 0 {
+			heading := &pullMergeBoxInfoItem{
+				SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
+				InfoHTML:    htmlutil.HTMLFormat("<strong>%s</strong>", ctx.Locale.Tr("repo.pulls.merging_is_blocked")),
+			}
+			items = append([]*pullMergeBoxInfoItem{heading}, items...)
+		}
+		data.InfoSections = append(data.InfoSections, &pullInfoSection{items})
 	}
 	data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoMergePrompts.items})
 }

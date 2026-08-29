@@ -42,17 +42,13 @@ const autoMergeWhenSucceed = computed(() => {
   return !mergeForm.allOverridableChecksOk && !forceMerge.value && !mergeStyleDetail.value.hideAutoMerge;
 });
 
-// uncolored: schedule auto-merge; primary: merge now; red: bypass or mark as merged
+// primary: the merge happens on submit; uncolored: it is only scheduled, or is a bookkeeping action
 const mergeButtonStyleClass = computed(() => {
-  if (forceMerge.value || mergeStyle.value === mergeStyleManuallyMerged) return 'red';
+  if (mergeStyle.value === mergeStyleManuallyMerged) return '';
   return autoMergeWhenSucceed.value ? '' : 'primary';
 });
 
-const mergeSelectStyleClass = computed(() => {
-  if (mergeForm.emptyCommit) return '';
-  if (forceMerge.value || mergeStyle.value === mergeStyleManuallyMerged) return 'red';
-  return autoMergeWhenSucceed.value ? '' : 'primary';
-});
+const mergeSelectStyleClass = computed(() => mergeForm.emptyCommit ? '' : mergeButtonStyleClass.value);
 
 watch(mergeStyle, (val) => {
   mergeStyleDetail.value = mergeForm.mergeStyles.find((e: any) => e.name === val);
@@ -91,11 +87,6 @@ function selectMergeStyle(name: string) {
   showMergeStyleMenu.value = false;
 }
 
-function toggleForceMerge() {
-  // switch between scheduling an auto merge and bypassing the blockers to merge now
-  forceMerge.value = !forceMerge.value;
-}
-
 function clearMergeMessage() {
   mergeMessageFieldValue.value = mergeForm.defaultMergeMessage;
 }
@@ -107,7 +98,7 @@ function clearMergeMessage() {
   the dropdown only chooses the merge style; the merge mode is derived:
   - no overridable blockers => merge now
   - overridable blockers, no bypass => enable auto merge (merge when checks succeed)
-  - overridable blockers + "switch to force merge" link (only offered when the user can bypass) => merge now, skipping the blockers
+  - overridable blockers + "bypass rules" checkbox (only offered when the user can bypass) => merge now, skipping the blockers
   How to test the UI manually:
   * Method 1: manually set some variables in pull.tmpl, eg: {{$notAllOverridableChecksOk = true}} {{$canMergeNow = false}}
   * Method 2: make a protected branch, then set state=pending/success :
@@ -119,10 +110,11 @@ function clearMergeMessage() {
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
 
-    <!-- switch between scheduling an auto merge and bypassing the blockers to merge now, keeping the selected style -->
-    <a v-if="showBypassProtection" class="tw-inline-block tw-mb-2 tw-cursor-pointer" :class="forceMerge ? 'muted' : 'tw-text-red'" @click="toggleForceMerge">
-      {{ forceMerge ? mergeForm.textSwitchToAutoMerge : mergeForm.textSwitchToForceMerge }}
-    </a>
+    <!-- opt in to bypassing the blockers and merging now, instead of scheduling an auto merge -->
+    <div class="ui checkbox tw-mb-2" v-if="showBypassProtection">
+      <input type="checkbox" v-model="forceMerge" id="merge-bypass-rules">
+      <label for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
+    </div>
 
     <!-- another similar form is in pull.tmpl (manual merge)-->
     <form class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
