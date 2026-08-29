@@ -217,7 +217,6 @@ func oauthDoerAuthorizePreCheck(ctx *context.Context, formState string) bool {
 	return true
 }
 
-// AuthorizeOAuth manages authorize requests
 // oauthApplicationCreatorLinkHTML returns an HTML link to the application creator's profile
 // or to the site root when the application is owned by the system.
 func oauthApplicationCreatorLinkHTML(user *user_model.User) template.HTML {
@@ -227,6 +226,7 @@ func oauthApplicationCreatorLinkHTML(user *user_model.User) template.HTML {
 	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName)))
 }
 
+// AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context) {
 	form := web.GetForm[*forms.AuthorizationForm](ctx)
 	if !oauthDoerAuthorizePreCheck(ctx, form.State) {

@@ -366,11 +366,12 @@ func testAccessTokenExchangeWithoutPKCE(t *testing.T) {
 }
 
 type deviceAuthorizationResponse struct {
-	DeviceCode      string `json:"device_code"`
-	UserCode        string `json:"user_code"`
-	VerificationURI string `json:"verification_uri"`
-	ExpiresIn       int64  `json:"expires_in"`
-	Interval        int64  `json:"interval"`
+	DeviceCode              string `json:"device_code"`
+	UserCode                string `json:"user_code"`
+	VerificationURI         string `json:"verification_uri"`
+	VerificationURIComplete string `json:"verification_uri_complete"`
+	ExpiresIn               int64  `json:"expires_in"`
+	Interval                int64  `json:"interval"`
 }
 
 func startDeviceAuthorization(t *testing.T, clientID, scope string) *deviceAuthorizationResponse {
@@ -494,6 +495,7 @@ func TestDeviceAuthorizationFlow(t *testing.T) {
 	assert.NotEmpty(t, deviceAuth.DeviceCode)
 	assert.NotEmpty(t, deviceAuth.UserCode)
 	assert.Contains(t, deviceAuth.VerificationURI, "/login/oauth/device")
+	assert.Contains(t, deviceAuth.VerificationURIComplete, "user_code="+deviceAuth.UserCode)
 	assert.Equal(t, int64(5), deviceAuth.Interval)
 	assert.Positive(t, deviceAuth.ExpiresIn)
 
@@ -605,6 +607,55 @@ func TestDeviceAuthorizationExpired(t *testing.T) {
 	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 	assert.Equal(t, "expired_token", string(parsedError.ErrorCode))
 	assert.Equal(t, "device code expired", parsedError.ErrorDescription)
+}
+
+func TestDeviceAuthorizationSkipSecondaryAuthorization(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// public client with skip-secondary-authorization enabled
+	createReq := NewRequestWithJSON(t, "POST", "/api/v1/user/applications/oauth2", &api.CreateOAuth2ApplicationOptions{
+		Name:                       "device-skip-app",
+		RedirectURIs:               []string{"http://127.0.0.1"},
+		ConfidentialClient:         false,
+		SkipSecondaryAuthorization: true,
+	}).AddBasicAuth("user1")
+	app := DecodeJSON(t, MakeRequest(t, createReq, http.StatusCreated), &api.OAuth2Application{})
+
+	require.NoError(t, db.Insert(t.Context(), &auth_model.OAuth2Grant{
+		ApplicationID: app.ID,
+		UserID:        1,
+		Scope:         "openid profile",
+	}))
+
+	t.Run("ScopeMatchesGrant", func(t *testing.T) {
+		deviceAuth := startDeviceAuthorization(t, app.ClientID, "openid profile")
+
+		session := loginUser(t, "user1")
+		verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": deviceAuth.UserCode})
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusOK).Body)
+		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", false)
+
+		resp := MakeRequest(t, newDeviceTokenPollRequest(t, app.ClientID, deviceAuth.DeviceCode), http.StatusOK)
+		parsedToken := struct {
+			AccessToken string `json:"access_token"`
+		}{}
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &parsedToken))
+		assert.NotEmpty(t, parsedToken.AccessToken)
+	})
+
+	t.Run("ScopeDiffersFromGrant", func(t *testing.T) {
+		deviceAuth := startDeviceAuthorization(t, app.ClientID, "openid profile email")
+
+		session := loginUser(t, "user1")
+		verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": deviceAuth.UserCode})
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusOK).Body)
+		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", true)
+
+		resp := MakeRequest(t, newDeviceTokenPollRequest(t, app.ClientID, deviceAuth.DeviceCode), http.StatusBadRequest)
+		parsedError := new(oauth2_provider.AccessTokenError)
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
+		assert.Equal(t, "authorization_pending", string(parsedError.ErrorCode))
+	})
 }
 
 func testAccessTokenExchangeWithBasicAuth(t *testing.T) {

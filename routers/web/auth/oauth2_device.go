@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -58,15 +59,17 @@ func DeviceAuthorizationOAuth(ctx *context.Context) {
 	}
 
 	verificationURI := strings.TrimSuffix(setting.AppURL, "/") + "/login/oauth/device"
+	formattedUserCode := deviceAuthorization.FormattedUserCode()
 	expiresIn := int64(deviceAuthorization.ExpiresAtUnix - timeutil.TimeStampNow())
 	expiresIn = max(expiresIn, 0)
 
 	ctx.JSON(http.StatusOK, oauth2_provider.DeviceAuthorizationResponse{
-		DeviceCode:      deviceCode,
-		UserCode:        deviceAuthorization.FormattedUserCode(),
-		VerificationURI: verificationURI,
-		ExpiresIn:       expiresIn,
-		Interval:        deviceAuthorization.PollIntervalSeconds,
+		DeviceCode:              deviceCode,
+		UserCode:                formattedUserCode,
+		VerificationURI:         verificationURI,
+		VerificationURIComplete: verificationURI + "?user_code=" + url.QueryEscape(formattedUserCode),
+		ExpiresIn:               expiresIn,
+		Interval:                deviceAuthorization.PollIntervalSeconds,
 	})
 }
 
@@ -120,7 +123,8 @@ func DeviceVerifyOAuth(ctx *context.Context) {
 			ctx.ServerError("GetGrantByUserID", err)
 			return
 		}
-		if grant != nil {
+		// only skip the consent screen when the existing grant already covers the requested scope
+		if grant != nil && grant.Scope == deviceAuthorization.Scope {
 			if err := deviceAuthorization.MarkApproved(ctx, grant.ID, ctx.Doer.ID); err != nil {
 				if errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
 					if err := renderCurrentOAuthDeviceAuthorizationResult(ctx, deviceAuthorization.ID); err != nil {
@@ -211,14 +215,16 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 			return err
 		}
 		if grant == nil {
-			grant, err = app.CreateGrant(txCtx, ctx.Doer.ID, deviceAuthorization.Scope)
-			if err != nil {
+			var createErr error
+			grant, createErr = app.CreateGrant(txCtx, ctx.Doer.ID, deviceAuthorization.Scope)
+			if createErr != nil {
+				// a concurrent request may have created the grant, fall back to loading it
 				grant, err = app.GetGrantByUserID(txCtx, ctx.Doer.ID)
 				if err != nil {
 					return err
 				}
 				if grant == nil {
-					return err
+					return createErr
 				}
 			}
 		}

@@ -84,11 +84,12 @@ type AccessTokenResponse struct {
 
 // DeviceAuthorizationResponse represents a successful device authorization response.
 type DeviceAuthorizationResponse struct {
-	DeviceCode      string `json:"device_code"`
-	UserCode        string `json:"user_code"`
-	VerificationURI string `json:"verification_uri"`
-	ExpiresIn       int64  `json:"expires_in"`
-	Interval        int64  `json:"interval"`
+	DeviceCode              string `json:"device_code"`
+	UserCode                string `json:"user_code"`
+	VerificationURI         string `json:"verification_uri"`
+	VerificationURIComplete string `json:"verification_uri_complete"`
+	ExpiresIn               int64  `json:"expires_in"`
+	Interval                int64  `json:"interval"`
 }
 
 func GeneralScopesSupported() []string {
