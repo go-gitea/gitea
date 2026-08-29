@@ -60,19 +60,19 @@ const oauth2DeviceAuthorizationUserCodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ234567
 
 // OAuth2DeviceAuthorization stores state for the OAuth device authorization flow.
 type OAuth2DeviceAuthorization struct {
-	ID                  int64                           `xorm:"pk autoincr"`
-	ApplicationID       int64                           `xorm:"INDEX"`
-	UserID              int64                           `xorm:"INDEX"`
-	GrantID             int64                           `xorm:"INDEX"`
+	ID                  int64 `xorm:"pk autoincr"`
+	ApplicationID       int64 `xorm:"INDEX"`
+	UserID              int64 `xorm:"INDEX"`
+	GrantID             int64
 	DeviceCodeHash      string                          `xorm:"unique"`
 	UserCode            string                          `xorm:"unique"`
 	Scope               string                          `xorm:"TEXT"`
-	Status              OAuth2DeviceAuthorizationStatus `xorm:"INDEX NOT NULL"`
+	Status              OAuth2DeviceAuthorizationStatus `xorm:"NOT NULL"`
 	PollIntervalSeconds int64                           `xorm:"NOT NULL DEFAULT 5"`
-	LastPolledUnix      timeutil.TimeStamp              `xorm:"INDEX"`
-	ExpiresAtUnix       timeutil.TimeStamp              `xorm:"INDEX"`
-	CreatedUnix         timeutil.TimeStamp              `xorm:"created"`
-	UpdatedUnix         timeutil.TimeStamp              `xorm:"updated"`
+	LastPolledUnix      timeutil.TimeStamp
+	ExpiresAtUnix       timeutil.TimeStamp
+	CreatedUnix         timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix         timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {

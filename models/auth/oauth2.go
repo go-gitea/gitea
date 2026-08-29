@@ -135,6 +135,14 @@ func Init(ctx context.Context) error {
 			if err := deleteOAuth2Application(ctx, app.ID, 0); err != nil {
 				return err
 			}
+			continue
+		}
+		// builtin apps are locked from editing, so BuiltinApplications is the only source of truth for their flags
+		if builtinApp := builtinApps[app.ClientID]; app.ConfidentialClient != builtinApp.ConfidentialClient {
+			app.ConfidentialClient = builtinApp.ConfidentialClient
+			if _, err := db.GetEngine(ctx).ID(app.ID).Cols("confidential_client").Update(app); err != nil {
+				return err
+			}
 		}
 	}
 	for clientID := range clientIDsToAdd {
