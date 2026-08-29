@@ -1,14 +1,14 @@
-{{template "admin/layout_head" (dict "pageClass" "admin view user" "root" .)}}
+{{template "admin/layout_head" (dict "pageClass" "admin view user")}}
 
 <div class="admin-setting-content">
 	<div class="admin-responsive-columns">
 		<div class="tw-flex-1">
-			<h4 class="ui top attached header tw-flex tw-justify-between tw-items-center">
+			<h4 class="ui top attached header flex-left-right">
 				<span>{{.Title}}</span>
-				<div class="tw-flex tw-gap-2">
+				<span class="flex-text-block">
 					<button class="ui primary compact tiny basic button link-action" data-url="{{.Link}}/impersonate">{{ctx.Locale.Tr "admin.users.impersonate"}}</button>
 					<a class="ui primary compact tiny button" href="{{.Link}}/edit">{{ctx.Locale.Tr "admin.users.edit"}}</a>
-				</div>
+				</span>
 			</h4>
 			<div class="ui attached segment">
 				{{template "admin/user/view_details" .}}
@@ -29,32 +29,8 @@
 	<div class="ui attached segment">
 		{{template "shared/repo/list" .}}
 	</div>
-	<h4 class="ui top attached header tw-flex tw-justify-between tw-items-center">
-		<span>{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" .OrgsTotal}})</span>
-		{{if gt .OrgsTotal 0}}
-			<button class="ui red tiny button show-modal" data-modal="#remove-all-orgs-modal">{{ctx.Locale.Tr "remove_all"}}</button>
-		{{end}}
-	</h4>
-	<div class="ui attached segment">
-		{{template "admin/user/view_orgs" .}}
-	</div>
-</div>
 
-{{if gt .OrgsTotal 0}}
-<div class="ui small modal" id="remove-all-orgs-modal">
-	<div class="header">
-		{{ctx.Locale.Tr "admin.users.remove_all_orgs_title"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "admin.users.remove_all_orgs_desc" .User.Name .OrgsTotal}}</p>
-	</div>
-	<div class="actions">
-		<div class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</div>
-		<form class="tw-inline" method="post" action="{{.Link}}/orgs/remove-all">
-			<button class="ui red button" type="submit">{{ctx.Locale.Tr "remove_all"}}</button>
-		</form>
-	</div>
+	{{template "admin/user/view_orgs" dict "User" .User "UserOrgs" .UserOrgs}}
 </div>
-{{end}}
 
 {{template "admin/layout_footer" .}}

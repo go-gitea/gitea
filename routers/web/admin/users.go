@@ -21,7 +21,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
@@ -294,18 +293,11 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
 
-	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions:       db.ListOptionsAll,
-		UserID:            u.ID,
-		IncludeVisibility: structs.VisibleTypePrivate,
-	})
+	ctx.Data["UserOrgs"], err = org_model.GetUserOrganizations(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-
-	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
-	ctx.Data["OrgsTotal"] = len(orgs)
 
 	ctx.HTML(http.StatusOK, tplUserView)
 }
