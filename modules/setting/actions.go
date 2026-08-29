@@ -13,11 +13,14 @@ import (
 )
 
 const (
+	// some of the values are from GitHub defaults
 	defaultMaxRerunAttempts       = 50
+	defaultMaxConcurrentTaskPicks = 16
+	defaultArtifactRetentionDays  = 90
+	defaultLogRetentionDays       = 365
+	defaultRunRetentionDays       = 400
 	defaultArtifactPreviewMaxSize = 100 * 1024 * 1024
 )
-
-const defaultMaxConcurrentTaskPicks = 16
 
 // Actions settings
 var (
@@ -29,6 +32,7 @@ var (
 		ArtifactStorage        *Storage          // how the created artifacts should be stored
 		ArtifactRetentionDays  int64             `ini:"ARTIFACT_RETENTION_DAYS"`
 		ArtifactPreviewMaxSize int64             `ini:"ARTIFACT_PREVIEW_MAX_SIZE"`
+		RunRetentionDays       int64             `ini:"RUN_RETENTION_DAYS"`
 		DefaultActionsURL      defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
 		ZombieTaskTimeout      time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
 		EndlessTaskTimeout     time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
@@ -50,6 +54,9 @@ var (
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
 		ArtifactPreviewMaxSize: defaultArtifactPreviewMaxSize,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
+		LogRetentionDays:       defaultLogRetentionDays,
+		ArtifactRetentionDays:  defaultArtifactRetentionDays,
+		RunRetentionDays:       defaultRunRetentionDays,
 	}
 )
 
@@ -98,7 +105,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	}
 
 	if urls := string(Actions.DefaultActionsURL); urls != defaultActionsURLGitHub && urls != defaultActionsURLSelf {
-		url := strings.Split(urls, ",")[0]
+		url, _, _ := strings.Cut(urls, ",")
 		if strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") {
 			log.Error("[actions] DEFAULT_ACTIONS_URL does not support %q as custom URL any longer, fallback to %q",
 				urls,
@@ -115,10 +122,6 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if err != nil {
 		return err
 	}
-	// default to 1 year
-	if Actions.LogRetentionDays <= 0 {
-		Actions.LogRetentionDays = 365
-	}
 
 	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
 
@@ -127,23 +130,11 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 		return err
 	}
 
-	// default to 90 days in Github Actions
-	if Actions.ArtifactRetentionDays <= 0 {
-		Actions.ArtifactRetentionDays = 90
-	}
 	Actions.ArtifactPreviewMaxSize = sec.Key("ARTIFACT_PREVIEW_MAX_SIZE").MustInt64(defaultArtifactPreviewMaxSize)
 
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
-
-	if Actions.MaxRerunAttempts <= 0 {
-		Actions.MaxRerunAttempts = defaultMaxRerunAttempts
-	}
-
-	if Actions.MaxConcurrentTaskPicks <= 0 {
-		Actions.MaxConcurrentTaskPicks = defaultMaxConcurrentTaskPicks
-	}
 
 	if !Actions.LogCompression.IsValid() {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)

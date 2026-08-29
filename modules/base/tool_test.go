@@ -76,23 +76,6 @@ JWT_SECRET = %s
 	})
 }
 
-func TestFileSize(t *testing.T) {
-	var size int64 = 512
-	assert.Equal(t, "512 B", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 KiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 MiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 GiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 TiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 PiB", FileSize(size))
-	size *= 4
-	assert.Equal(t, "2.0 EiB", FileSize(size))
-}
-
 func TestStringsToInt64s(t *testing.T) {
 	testSuccess := func(input []string, expected []int64) {
 		result, err := StringsToInt64s(input)

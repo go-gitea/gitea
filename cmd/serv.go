@@ -29,6 +29,7 @@ import (
 	"gitea.dev/modules/process"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/agit"
 	"gitea.dev/services/lfs"
 
 	"github.com/kballard/go-shellquote"
@@ -139,13 +140,13 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	if setting.SSH.Disabled {
-		println("Gitea: SSH has been disabled")
+		cprintln(c, "Gitea: SSH has been disabled")
 		return nil
 	}
 
 	if c.NArg() < 1 {
 		if err := cli.ShowSubcommandHelp(c); err != nil {
-			fmt.Printf("error showing subcommand help: %v\n", err)
+			cprintf(c, "error showing subcommand help: %v\n", err)
 		}
 		return nil
 	}
@@ -171,15 +172,19 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		if err != nil {
 			return fail(ctx, "Key check failed", "Failed to check provided key: %v", err)
 		}
+		var authSuccessMsg string
 		switch key.Type {
 		case asymkey_model.KeyTypeDeploy:
-			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
+			authSuccessMsg = "Hi there! You've successfully authenticated with an SSH deploy key."
 		case asymkey_model.KeyTypePrincipal:
-			println("Hi there! You've successfully authenticated with the principal " + key.Content + ", but Gitea does not provide shell access.")
+			authSuccessMsg = "Hi there! You've successfully authenticated with the SSH principal " + key.Content + "."
 		default:
-			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
+			authSuccessMsg = "Hi there, " + user.Name + "! You've successfully authenticated with the SSH key named " + key.Name + "."
 		}
-		println("If this is unexpected, please log in with password and setup Gitea under another user.")
+		_, _ = fmt.Fprintf(c.ErrWriter, "%s\n%s",
+			authSuccessMsg,
+			"Gitea does not provide shell access. If this is unexpected, please setup Gitea under another SSH user or use container to deploy.",
+		)
 		return nil
 	} else if c.Bool("debug") {
 		log.Debug("SSH_ORIGINAL_COMMAND: %s", os.Getenv("SSH_ORIGINAL_COMMAND"))
@@ -194,7 +199,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
-				fmt.Print(`{"type":"agit","version":1}`)
+				cprintf(c, "%s", agit.SshInfoJson)
 				return nil
 			}
 		}
@@ -256,7 +261,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		if results.IsWiki {
 			return fail(ctx, "LFS Transfer is not supported for wikis", "")
 		}
-		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, UserExtDoerData: results.UserExtDoerData, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}
@@ -270,7 +275,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		}
 		lfsTokenHref := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
-		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
+		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, UserExtDoerData: results.UserExtDoerData, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}
@@ -314,15 +319,20 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	command.Env = append(command.Env, os.Environ()...)
 	command.Env = append(command.Env,
 		repo_module.EnvRepoIsWiki+"="+strconv.FormatBool(results.IsWiki),
-		repo_module.EnvRepoName+"="+results.RepoName,
+
 		repo_module.EnvRepoUsername+"="+results.OwnerName,
+		repo_module.EnvRepoName+"="+results.RepoName,
+		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
+
+		repo_module.EnvKeyID+"="+strconv.FormatInt(results.PublicKeyID, 10),
+
+		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
 		repo_module.EnvPusherName+"="+results.UserName,
 		repo_module.EnvPusherEmail+"="+results.UserEmail,
-		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
-		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
+		repo_module.EnvPusherExtDoerData+"="+results.UserExtDoerData,
+
 		repo_module.EnvPRID+"="+strconv.Itoa(0),
-		repo_module.EnvDeployKeyID+"="+strconv.FormatInt(results.DeployKeyID, 10),
-		repo_module.EnvKeyID+"="+strconv.FormatInt(results.KeyID, 10),
+
 		repo_module.EnvAppURL+"="+setting.AppURL,
 	)
 	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
@@ -334,8 +344,8 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	// Update user key activity.
-	if results.KeyID > 0 {
-		if err = private.UpdatePublicKeyInRepo(ctx, results.KeyID, results.RepoID); err != nil {
+	if results.PublicKeyID > 0 {
+		if err = private.UpdatePublicKeyInRepo(ctx, results.PublicKeyID, results.RepoID); err != nil {
 			return fail(ctx, "Failed to update public key", "UpdatePublicKeyInRepo: %v", err)
 		}
 	}

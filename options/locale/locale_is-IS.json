@@ -861,7 +861,6 @@
   "repo.settings.slack_token": "Táknlykill",
   "repo.settings.slack_channel": "Rás",
   "repo.settings.title": "Heiti",
-  "repo.settings.deploy_key_content": "Innihald",
   "repo.settings.branches": "Greinar",
   "repo.settings.edit_protected_branch": "Breyta",
   "repo.settings.tags": "Merki",
