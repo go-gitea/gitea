@@ -526,20 +526,19 @@ func RemoveUserFromOrg(ctx *context.Context) {
 		return
 	}
 
-	orgID := ctx.PathParamInt64("orgid")
+	orgID := ctx.PathParamInt64("org_id")
 	org, err := org_model.GetOrgByID(ctx, orgID)
 	if err != nil {
 		ctx.ServerError("GetOrgByID", err)
 		return
 	}
 
-	if err := org_service.RemoveOrgUser(ctx, org, u); err != nil {
-		if org_model.IsErrLastOrgOwner(err) {
-			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
-			return
-		}
-
+	err = org_service.RemoveOrgUser(ctx, org, u)
+	if org_model.IsErrLastOrgOwner(err) {
+		ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		return
+	} else if err != nil {
 		ctx.ServerError("RemoveOrgUser", err)
 		return
 	}
@@ -555,19 +554,9 @@ func RemoveUserFromAllOrgs(ctx *context.Context) {
 		return
 	}
 
-	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions:       db.ListOptionsAll,
-		UserID:            u.ID,
-		IncludeVisibility: structs.VisibleTypePrivate,
-	})
+	orgs, err := org_model.GetUserOrganizations(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("FindOrgs", err)
-		return
-	}
-
-	if len(orgs) == 0 {
-		ctx.Flash.Info(ctx.Tr("admin.users.no_orgs_to_remove"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		ctx.ServerError("GetUserOrganizations", err)
 		return
 	}
 
@@ -575,7 +564,6 @@ func RemoveUserFromAllOrgs(ctx *context.Context) {
 	for i := range orgs {
 		if err := org_service.RemoveOrgUser(ctx, orgs[i], u); err != nil {
 			if org_model.IsErrLastOrgOwner(err) {
-				log.Warn("Cannot remove user %s from org %s: last owner", u.Name, orgs[i].Name)
 				continue
 			}
 			log.Error("Failed to remove user %s from org %s: %v", u.Name, orgs[i].Name, err)
@@ -584,9 +572,7 @@ func RemoveUserFromAllOrgs(ctx *context.Context) {
 		removedCount++
 	}
 
-	if removedCount == 0 {
-		ctx.Flash.Error(ctx.Tr("admin.users.no_orgs_removed"))
-	} else if removedCount < len(orgs) {
+	if removedCount < len(orgs) {
 		ctx.Flash.Warning(ctx.Tr("admin.users.some_orgs_removed", removedCount, len(orgs)))
 	} else {
 		ctx.Flash.Success(ctx.Tr("admin.users.all_orgs_removed"))

@@ -3102,7 +3102,6 @@
   "admin.users.deletion_success": "The user account has been deleted.",
   "admin.users.org_removed": "User has been removed from the organization.",
   "admin.users.all_orgs_removed": "User has been removed from all organizations.",
-  "admin.users.no_orgs_to_remove": "User is not a member of any organizations.",
   "admin.users.no_orgs_removed": "Failed to remove user from organizations (may be last owner).",
   "admin.users.some_orgs_removed": "User removed from %d of %d organizations (some may require another owner first).",
   "admin.users.remove_all_orgs_title": "Remove from All Organizations?",
