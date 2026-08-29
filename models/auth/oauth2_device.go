@@ -26,6 +26,10 @@ const (
 	oauth2DeviceAuthorizationUserCodeLength     = oauth2DeviceAuthorizationFormattedCodeParts * oauth2DeviceAuthorizationCodePartLength
 )
 
+// OAuth2DeviceAuthorizationMaxPendingPerApp bounds how many rows one client can hold open,
+// since the device authorization endpoint is unauthenticated.
+var OAuth2DeviceAuthorizationMaxPendingPerApp int64 = 1000
+
 type OAuth2DeviceAuthorizationStatus string
 
 const (
@@ -35,7 +39,10 @@ const (
 	OAuth2DeviceAuthorizationConsumed OAuth2DeviceAuthorizationStatus = "consumed"
 )
 
-var ErrOAuth2DeviceAuthorizationInvalidated = errors.New("oauth2 device authorization changed state")
+var (
+	ErrOAuth2DeviceAuthorizationInvalidated  = errors.New("oauth2 device authorization changed state")
+	ErrOAuth2DeviceAuthorizationLimitReached = errors.New("too many pending oauth2 device authorizations")
+)
 
 // DeleteExpiredDeviceAuthorizations removes device authorizations that are
 // expired or in a terminal state (denied/consumed).
@@ -157,6 +164,17 @@ func (d *OAuth2DeviceAuthorization) MarkConsumed(ctx context.Context) error {
 
 // CreateOAuth2DeviceAuthorization creates a new device authorization and returns the plaintext device code.
 func CreateOAuth2DeviceAuthorization(ctx context.Context, app *OAuth2Application, scope string) (*OAuth2DeviceAuthorization, string, error) {
+	pending, err := db.GetEngine(ctx).Where(
+		"application_id = ? AND status = ? AND expires_at_unix > ?",
+		app.ID, OAuth2DeviceAuthorizationPending, timeutil.TimeStampNow(),
+	).Count(new(OAuth2DeviceAuthorization))
+	if err != nil {
+		return nil, "", err
+	}
+	if pending >= OAuth2DeviceAuthorizationMaxPendingPerApp {
+		return nil, "", ErrOAuth2DeviceAuthorizationLimitReached
+	}
+
 	deviceCode := generateOAuth2DeviceCode()
 
 	// Retry user code generation a few times in case of unique constraint collision.

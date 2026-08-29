@@ -710,6 +710,10 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 }
 
 func handleAccessTokenError(ctx *context.Context, acErr oauth2_provider.AccessTokenError) {
+	if acErr.ErrorCode == oauth2_provider.AccessTokenErrorCodeServerError {
+		ctx.JSON(http.StatusInternalServerError, acErr)
+		return
+	}
 	ctx.JSON(http.StatusBadRequest, acErr)
 }
 

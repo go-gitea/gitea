@@ -48,6 +48,8 @@ const (
 	AccessTokenErrorCodeSlowDown = "slow_down"
 	// AccessTokenErrorCodeExpiredToken represents an error code specified in RFC 8628
 	AccessTokenErrorCodeExpiredToken = "expired_token"
+	// AccessTokenErrorCodeServerError signals an internal failure, so clients get JSON instead of an HTML error page
+	AccessTokenErrorCodeServerError = "server_error"
 )
 
 // AccessTokenError represents an error response specified in RFC 6749

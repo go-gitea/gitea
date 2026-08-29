@@ -648,14 +648,24 @@ func TestDeviceAuthorizationSkipSecondaryAuthorization(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": deviceAuth.UserCode})
-		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusOK).Body)
-		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", true)
+		// consent could never succeed against a mismatched grant, so the error replaces the consent screen
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusBadRequest).Body)
+		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", false)
 
 		resp := MakeRequest(t, newDeviceTokenPollRequest(t, app.ClientID, deviceAuth.DeviceCode), http.StatusBadRequest)
 		parsedError := new(oauth2_provider.AccessTokenError)
 		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
 		assert.Equal(t, "authorization_pending", string(parsedError.ErrorCode))
 	})
+}
+
+func TestDeviceAuthorizationInvalidUserCodeShowsErrorOnPage(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": "ZZZZ-ZZZZ"})
+	htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusOK).Body)
+	assert.Contains(t, htmlDoc.doc.Find(".ui.message.flash-message").Text(), "The device code is invalid or has expired.")
 }
 
 func testAccessTokenExchangeWithBasicAuth(t *testing.T) {

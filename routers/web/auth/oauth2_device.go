@@ -31,8 +31,6 @@ const (
 	oauthDeviceAuthorizationIDKey                    = "device_authorization_id"
 )
 
-var errDeviceAuthorizationGrantScopeMismatch = errors.New("a grant exists with different scope")
-
 // DeviceAuthorizationOAuth issues a device code to a public OAuth client.
 func DeviceAuthorizationOAuth(ctx *context.Context) {
 	form := web.GetForm[*forms.DeviceAuthorizationForm](ctx)
@@ -54,7 +52,18 @@ func DeviceAuthorizationOAuth(ctx *context.Context) {
 
 	deviceAuthorization, deviceCode, err := auth_model.CreateOAuth2DeviceAuthorization(ctx, app, form.Scope)
 	if err != nil {
-		ctx.ServerError("CreateOAuth2DeviceAuthorization", err)
+		if errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationLimitReached) {
+			handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+				ErrorCode:        oauth2_provider.AccessTokenErrorCodeSlowDown,
+				ErrorDescription: "too many pending device authorizations for this client",
+			})
+			return
+		}
+		log.Error("CreateOAuth2DeviceAuthorization: %v", err)
+		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+			ErrorCode:        oauth2_provider.AccessTokenErrorCodeServerError,
+			ErrorDescription: "cannot create device authorization",
+		})
 		return
 	}
 
@@ -96,14 +105,14 @@ func DeviceVerifyOAuth(ctx *context.Context) {
 		return
 	}
 	if deviceAuthorization == nil || deviceAuthorization.IsExpired() {
-		ctx.Flash.Error(ctx.Tr("auth.device_code_invalid"))
+		ctx.Flash.Error(ctx.Tr("auth.device_code_invalid"), true)
 		renderOAuthDeviceAuthorizationEntry(ctx, form.UserCode)
 		return
 	}
 
 	switch deviceAuthorization.Status {
 	case auth_model.OAuth2DeviceAuthorizationDenied:
-		ctx.Flash.Error(ctx.Tr("auth.device_code_denied"))
+		ctx.Flash.Error(ctx.Tr("auth.device_code_denied"), true)
 		renderOAuthDeviceAuthorizationEntry(ctx, form.UserCode)
 		return
 	case auth_model.OAuth2DeviceAuthorizationConsumed, auth_model.OAuth2DeviceAuthorizationApproved:
@@ -117,27 +126,30 @@ func DeviceVerifyOAuth(ctx *context.Context) {
 		return
 	}
 
-	if app.SkipSecondaryAuthorization {
-		grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
-		if err != nil {
-			ctx.ServerError("GetGrantByUserID", err)
-			return
-		}
-		// only skip the consent screen when the existing grant already covers the requested scope
-		if grant != nil && grant.Scope == deviceAuthorization.Scope {
-			if err := deviceAuthorization.MarkApproved(ctx, grant.ID, ctx.Doer.ID); err != nil {
-				if errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
-					if err := renderCurrentOAuthDeviceAuthorizationResult(ctx, deviceAuthorization.ID); err != nil {
-						ctx.ServerError("renderCurrentOAuthDeviceAuthorizationResult", err)
-					}
-					return
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetGrantByUserID", err)
+		return
+	}
+	// consent cannot succeed against a grant with a different scope, so say so before asking for it
+	if grant != nil && grant.Scope != deviceAuthorization.Scope {
+		renderOAuthDeviceAuthorizationScopeMismatch(ctx)
+		return
+	}
+
+	if grant != nil && app.SkipSecondaryAuthorization {
+		if err := deviceAuthorization.MarkApproved(ctx, grant.ID, ctx.Doer.ID); err != nil {
+			if errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
+				if err := renderCurrentOAuthDeviceAuthorizationResult(ctx, deviceAuthorization.ID); err != nil {
+					ctx.ServerError("renderCurrentOAuthDeviceAuthorizationResult", err)
 				}
-				ctx.ServerError("MarkApproved", err)
 				return
 			}
-			renderOAuthDeviceAuthorizationComplete(ctx, true)
+			ctx.ServerError("MarkApproved", err)
 			return
 		}
+		renderOAuthDeviceAuthorizationComplete(ctx, true)
+		return
 	}
 
 	if err := setOAuthDeviceAuthorizationData(ctx, app, deviceAuthorization); err != nil {
@@ -196,6 +208,38 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 		return
 	}
 
+	app, err := auth_model.GetOAuth2ApplicationByID(ctx, deviceAuthorization.ApplicationID)
+	if err != nil {
+		ctx.ServerError("GetOAuth2ApplicationByID", err)
+		return
+	}
+
+	// the grant is created outside the transaction: on PostgreSQL a failed insert aborts it, so the fallback lookup could not run
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetGrantByUserID", err)
+		return
+	}
+	if grant == nil {
+		var createErr error
+		if grant, createErr = app.CreateGrant(ctx, ctx.Doer.ID, deviceAuthorization.Scope); createErr != nil {
+			// a concurrent request may have created the grant, fall back to loading it
+			grant, err = app.GetGrantByUserID(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("GetGrantByUserID", err)
+				return
+			}
+			if grant == nil {
+				ctx.ServerError("CreateGrant", createErr)
+				return
+			}
+		}
+	}
+	if grant.Scope != deviceAuthorization.Scope {
+		renderOAuthDeviceAuthorizationScopeMismatch(ctx)
+		return
+	}
+
 	if err := db.WithTx(ctx, func(txCtx stdctx.Context) error {
 		deviceAuthorization, err := auth_model.GetOAuth2DeviceAuthorizationByID(txCtx, form.DeviceAuthorizationID)
 		if err != nil {
@@ -204,40 +248,9 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 		if deviceAuthorization == nil || deviceAuthorization.IsExpired() {
 			return auth_model.ErrOAuth2DeviceAuthorizationInvalidated
 		}
-
-		app, err := auth_model.GetOAuth2ApplicationByID(txCtx, deviceAuthorization.ApplicationID)
-		if err != nil {
-			return err
-		}
-
-		grant, err := app.GetGrantByUserID(txCtx, ctx.Doer.ID)
-		if err != nil {
-			return err
-		}
-		if grant == nil {
-			var createErr error
-			grant, createErr = app.CreateGrant(txCtx, ctx.Doer.ID, deviceAuthorization.Scope)
-			if createErr != nil {
-				// a concurrent request may have created the grant, fall back to loading it
-				grant, err = app.GetGrantByUserID(txCtx, ctx.Doer.ID)
-				if err != nil {
-					return err
-				}
-				if grant == nil {
-					return createErr
-				}
-			}
-		}
-		if grant.Scope != deviceAuthorization.Scope {
-			return errDeviceAuthorizationGrantScopeMismatch
-		}
-
 		return deviceAuthorization.MarkApproved(txCtx, grant.ID, ctx.Doer.ID)
 	}); err != nil {
 		switch {
-		case errors.Is(err, errDeviceAuthorizationGrantScopeMismatch):
-			ctx.Data["Error"] = AuthorizeError{ErrorDescription: ctx.Locale.TrString("auth.device_scope_mismatch")}
-			ctx.HTML(http.StatusBadRequest, tplGrantError)
 		case errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated):
 			if err := renderCurrentOAuthDeviceAuthorizationResult(ctx, form.DeviceAuthorizationID); err != nil {
 				ctx.ServerError("renderCurrentOAuthDeviceAuthorizationResult", err)
@@ -270,7 +283,7 @@ func handleDeviceCode(ctx *context.Context, form forms.AccessTokenForm, serverKe
 
 	deviceAuthorization, err := auth_model.GetOAuth2DeviceAuthorizationByDeviceCode(ctx, form.DeviceCode)
 	if err != nil {
-		ctx.ServerError("GetOAuth2DeviceAuthorizationByDeviceCode", err)
+		handleDeviceAccessTokenServerError(ctx, "GetOAuth2DeviceAuthorizationByDeviceCode", err)
 		return
 	}
 	if deviceAuthorization == nil {
@@ -299,7 +312,7 @@ func handleDeviceCode(ctx *context.Context, form forms.AccessTokenForm, serverKe
 	case auth_model.OAuth2DeviceAuthorizationPending:
 		slowDown, err := deviceAuthorization.RegisterPoll(ctx)
 		if err != nil {
-			ctx.ServerError("RegisterPoll", err)
+			handleDeviceAccessTokenServerError(ctx, "RegisterPoll", err)
 			return
 		}
 		if slowDown {
@@ -367,14 +380,28 @@ func handleDeviceCode(ctx *context.Context, form forms.AccessTokenForm, serverKe
 			handleAccessTokenError(ctx, *accessTokenErr)
 		case errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated):
 			if err := handleCurrentOAuthDeviceAuthorizationTokenState(ctx, deviceAuthorization.ID); err != nil {
-				ctx.ServerError("handleCurrentOAuthDeviceAuthorizationTokenState", err)
+				handleDeviceAccessTokenServerError(ctx, "handleCurrentOAuthDeviceAuthorizationTokenState", err)
 			}
 		default:
-			ctx.ServerError("consumeDeviceAuthorization", err)
+			handleDeviceAccessTokenServerError(ctx, "consumeDeviceAuthorization", err)
 		}
 		return
 	}
 	ctx.JSON(http.StatusOK, resp)
+}
+
+// handleDeviceAccessTokenServerError keeps the token endpoint on JSON, since polling clients cannot parse an HTML error page.
+func handleDeviceAccessTokenServerError(ctx *context.Context, name string, err error) {
+	log.Error("%s: %v", name, err)
+	handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+		ErrorCode:        oauth2_provider.AccessTokenErrorCodeServerError,
+		ErrorDescription: "an internal error occurred",
+	})
+}
+
+func renderOAuthDeviceAuthorizationScopeMismatch(ctx *context.Context) {
+	ctx.Data["Error"] = AuthorizeError{ErrorDescription: ctx.Locale.TrString("auth.device_scope_mismatch")}
+	ctx.HTML(http.StatusBadRequest, tplGrantError)
 }
 
 func renderOAuthDeviceAuthorizationEntry(ctx *context.Context, userCode string) {

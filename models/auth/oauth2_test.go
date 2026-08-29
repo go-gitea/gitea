@@ -10,6 +10,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -217,6 +218,20 @@ func TestCreateOAuth2DeviceAuthorizationUserCodeIsHumanFriendly(t *testing.T) {
 			assert.True(t, strings.ContainsRune("ABCDEFGHJKMNPQRSTUVWXYZ23456789", ch))
 		}
 	}
+}
+
+func TestCreateOAuth2DeviceAuthorizationCapsPendingPerApp(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&auth_model.OAuth2DeviceAuthorizationMaxPendingPerApp, 2)()
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
+	for range 2 {
+		_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "")
+		require.NoError(t, err)
+	}
+
+	_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "")
+	assert.ErrorIs(t, err, auth_model.ErrOAuth2DeviceAuthorizationLimitReached)
 }
 
 func TestOAuth2DeviceAuthorizationStateTransitions(t *testing.T) {

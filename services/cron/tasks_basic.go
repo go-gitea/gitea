@@ -153,8 +153,8 @@ func registerCleanupPackages() {
 func registerCleanupDeviceAuthorizations() {
 	RegisterTaskFatal("cleanup_device_authorizations", &BaseConfig{
 		Enabled:    true,
-		RunAtStart: false,
-		Schedule:   "@every 24h",
+		RunAtStart: true,
+		Schedule:   "@every 1h",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return auth_model.DeleteExpiredDeviceAuthorizations(ctx)
 	})
