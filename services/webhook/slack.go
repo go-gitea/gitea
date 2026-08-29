@@ -7,16 +7,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 // SlackMeta contains the slack metadata
@@ -277,6 +276,8 @@ func (s slackConvertor) Repository(p *api.RepositoryPayload) (SlackPayload, erro
 		text = fmt.Sprintf("[%s] Repository created by %s", repoLink, senderLink)
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
+	case api.HookRepoRenamed:
+		text = fmt.Sprintf("[%s] Repository renamed from %s by %s", repoLink, getRepoRenamedFrom(p), senderLink)
 	}
 
 	return s.createPayload(text, nil), nil
@@ -317,12 +318,10 @@ func init() {
 	RegisterWebhookRequester(webhook_module.SLACK, newSlackRequest)
 }
 
-var slackChannel = regexp.MustCompile(`^#?[a-z0-9_-]{1,80}$`)
-
-// IsValidSlackChannel validates a channel name conforms to what slack expects:
-// https://api.slack.com/methods/conversations.rename#naming
-// Conversation names can only contain lowercase letters, numbers, hyphens, and underscores, and must be 80 characters or less.
-// Gitea accepts if it starts with a #.
 func IsValidSlackChannel(name string) bool {
-	return slackChannel.MatchString(name)
+	// Some documents: https://api.slack.com/methods/conversations.rename#naming
+	// 1. Internal channel name should "only contain lowercase letters, numbers, hyphens, and underscores, and must be 80 characters or less"
+	// 2. Slack would also "modify it to meet the above criteria"
+	// Since we know nothing about the details, don't do any validation here.
+	return name != ""
 }

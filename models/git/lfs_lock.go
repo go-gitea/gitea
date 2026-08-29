@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // LFSLock represents a git lfs lock of repository.
@@ -124,7 +124,7 @@ func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) (
 		e.Limit(pageSize, start)
 	}
 	lfsLocks := make(LFSLockList, 0, pageSize)
-	return lfsLocks, e.Find(&lfsLocks, &LFSLock{RepoID: repoID})
+	return lfsLocks, e.OrderBy("id").Find(&lfsLocks, &LFSLock{RepoID: repoID})
 }
 
 // GetTreePathLock returns LSF lock for the treePath

@@ -5,6 +5,8 @@ on:
   #   - cron: "7 0 * * 1" # every Monday at 00:07 UTC
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   cron-licenses:
     runs-on: ubuntu-latest
@@ -12,15 +14,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
       - run: make generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo
-        uses: appleboy/git-push-action@v1.2.0
+        uses: appleboy/git-push-action@3b2c8661652360dbf1afe1b319a49dbb739c39f1 # v1.2.0
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot

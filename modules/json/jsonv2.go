@@ -1,19 +1,16 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build goexperiment.jsonv2
-
 package json
 
 import (
 	"bytes"
 	jsonv1 "encoding/json"    //nolint:depguard // this package wraps it
+	"encoding/json/jsontext"  //nolint:depguard // this package wraps it
 	jsonv2 "encoding/json/v2" //nolint:depguard // this package wraps it
 	"io"
 )
 
-// JSONv2 implements Interface via encoding/json/v2
-// Requires GOEXPERIMENT=jsonv2 to be set at build time
 type JSONv2 struct {
 	marshalOptions                  jsonv2.Options
 	marshalKeepOptionalEmptyOptions jsonv2.Options
@@ -50,6 +47,10 @@ func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 
 func (j *JSONv2) Marshal(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, j.marshalOptions)
+}
+
+func (j *JSONv2) MarshalWrite(w io.Writer, v any) error {
+	return jsonv2.MarshalWrite(w, v, j.marshalOptions)
 }
 
 func (j *JSONv2) Unmarshal(data []byte, v any) error {
@@ -90,3 +91,5 @@ func (d *jsonV2Decoder) Decode(v any) error {
 func NewDecoderCaseInsensitive(reader io.Reader) Decoder {
 	return &jsonV2Decoder{reader: reader, opts: jsonV2.unmarshalCaseInsensitiveOptions}
 }
+
+type Value = jsontext.Value

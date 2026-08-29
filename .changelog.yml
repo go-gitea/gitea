@@ -37,10 +37,7 @@ groups:
     name: BUGFIXES
     labels:
       - type/bug
-  -
-    name: API
-    labels:
-      - modifies/api
+
   -
     name: TESTING
     labels:

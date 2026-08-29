@@ -4,8 +4,9 @@
 package jobparser
 
 import (
-	"github.com/nektos/act/pkg/exprparser"
-	"github.com/nektos/act/pkg/model"
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
+
 	"go.yaml.in/yaml/v4"
 )
 
@@ -57,9 +58,12 @@ func NewInterpeter(
 	}
 
 	ee := &exprparser.EvaluationEnvironment{
-		Github:   gitCtx,
-		Env:      nil, // no need
-		Job:      nil, // no need
+		Github: gitCtx,
+		Env:    nil, // no need
+		// TODO: The empty JobContext.Status is right for now because Gitea never checks `if` condition when the workflow run is cancelled.
+		// This is an implementation gap in Gitea Actions. When a workflow run is cancelled, Gitea should check the job's `if` condition,
+		// and if the condition is met (e.g. `if: ${{ cancelled() }}` ), the job should be executed rather than cancelled.
+		Job:      &model.JobContext{},
 		Steps:    nil, // no need
 		Runner:   nil, // no need
 		Secrets:  nil, // no need

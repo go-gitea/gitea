@@ -11,15 +11,17 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	system_model "code.gitea.io/gitea/models/system"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/models/db"
+	system_model "gitea.dev/models/system"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
+
+	"github.com/go-co-op/gocron/v2"
 )
 
 var (
@@ -55,12 +57,10 @@ func (t *Task) IsEnabled() bool {
 
 // GetConfig will return a copy of the task's config
 func (t *Task) GetConfig() Config {
-	if reflect.TypeOf(t.config).Kind() == reflect.Ptr {
-		// Pointer:
-		return reflect.New(reflect.ValueOf(t.config).Elem().Type()).Interface().(Config)
+	if reflect.TypeOf(t.config).Kind() == reflect.Pointer {
+		return reflect.New(reflect.ValueOf(t.config).Elem().Type()).Interface().(Config) //nolint:forcetypeassert // pointer
 	}
-	// Not pointer:
-	return reflect.New(reflect.TypeOf(t.config)).Elem().Interface().(Config)
+	return reflect.New(reflect.TypeOf(t.config)).Elem().Interface().(Config) //nolint:forcetypeassert // not pointer
 }
 
 // Run will run the task incrementing the cron counter with no user defined
@@ -122,9 +122,9 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		if err := t.fun(ctx, doer, config); err != nil {
 			var message string
 			var status string
-			if db.IsErrCancelled(err) {
+			if errCancelled, ok := err.(db.ErrCancelled); ok {
 				status = "cancelled"
-				message = err.(db.ErrCancelled).Message
+				message = errCancelled.Message
 			} else {
 				status = "error"
 				message = err.Error()
@@ -166,7 +166,7 @@ func GetTask(name string) *Task {
 }
 
 // RegisterTask allows a task to be registered with the cron service
-func RegisterTask(name string, config Config, fun func(context.Context, *user_model.User, Config) error) error {
+func RegisterTask[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error) error {
 	log.Debug("Registering task: %s", name)
 
 	i18nKey := "admin.dashboard." + name
@@ -183,7 +183,9 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 	task := &Task{
 		Name:   name,
 		config: config,
-		fun:    fun,
+		fun: func(ctx context.Context, doer *user_model.User, runConfig Config) error {
+			return fun(ctx, doer, runConfig.(T)) //nolint:forcetypeassert // must be valid
+		},
 	}
 	lock.Lock()
 	locked := true
@@ -216,7 +218,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 }
 
 // RegisterTaskFatal will register a task but if there is an error log.Fatal
-func RegisterTaskFatal(name string, config Config, fun func(context.Context, *user_model.User, Config) error) {
+func RegisterTaskFatal[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error) {
 	if err := RegisterTask(name, config, fun); err != nil {
 		log.Fatal("Unable to register cron task %s Error: %v", name, err)
 	}
@@ -224,12 +226,13 @@ func RegisterTaskFatal(name string, config Config, fun func(context.Context, *us
 
 func addTaskToScheduler(task *Task) error {
 	tags := []string{task.Name, task.config.GetSchedule()} // name and schedule can't be get from job, so we add them as tag
-	if scheduleHasSeconds(task.config.GetSchedule()) {
-		scheduler = scheduler.CronWithSeconds(task.config.GetSchedule())
-	} else {
-		scheduler = scheduler.Cron(task.config.GetSchedule())
-	}
-	if _, err := scheduler.Tag(tags...).Do(task.Run); err != nil {
+	withSeconds := scheduleHasSeconds(task.config.GetSchedule())
+	_, err := scheduler.NewJob(
+		gocron.CronJob(task.config.GetSchedule(), withSeconds),
+		gocron.NewTask(task.Run),
+		gocron.WithTags(tags...),
+	)
+	if err != nil {
 		log.Error("Unable to register cron task with name: %s Error: %v", task.Name, err)
 		return err
 	}

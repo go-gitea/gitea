@@ -9,7 +9,8 @@ import (
 	"net/url"
 	"regexp"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/setting"
 
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -33,19 +34,18 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Line numbers on codepreview
 	policy.AllowAttrs("data-line-number").OnElements("span")
 
-	// Custom URL-Schemes
+	// HINT: CUSTOM-URL-SCHEMES-ALLOW: setting custom means also allow them besides http/https, no custom means "allow all"
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
 	} else {
 		policy.AllowURLSchemesMatching(st.allowAllRegex)
-
 		// Even if every scheme is allowed, these three are blocked for security reasons
 		disallowScheme := func(*url.URL) bool {
 			return false
 		}
-		policy.AllowURLSchemeWithCustomPolicy("javascript", disallowScheme)
-		policy.AllowURLSchemeWithCustomPolicy("vbscript", disallowScheme)
-		policy.AllowURLSchemeWithCustomPolicy("data", disallowScheme)
+		for _, scheme := range common.GlobalVars().DisallowedSchemes {
+			policy.AllowURLSchemeWithCustomPolicy(scheme, disallowScheme)
+		}
 	}
 
 	// Allow classes for org mode list item status.
@@ -54,9 +54,46 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
 	policy.AllowStyles("color", "background-color").OnElements("div", "span", "p", "tr", "th", "td")
 
-	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
+	policy.AllowAttrs("src", "autoplay", "controls", "muted", "loop", "playsinline").OnElements("video")
+
+	// Native support of "<picture><source media=... srcset=...><img src=...></picture>"
+	// ATTENTION: it only works with "auto" theme, because "media" query doesn't work with the theme chosen by end user manually.
+	// For example: browser's color scheme is "dark", but end user chooses "light" theme. Maybe it needs JS to help to make it work.
+	policy.AllowAttrs("media", "srcset").OnElements("source")
 
 	policy.AllowAttrs("loading").OnElements("img")
+
+	// MathML Core (https://www.w3.org/TR/mathml-core/)
+	mathMLElements := []string{
+		"math",
+		// token elements
+		"mi", "mn", "mo", "mtext", "mspace", "ms",
+		// layout elements
+		"mrow", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom",
+		// scripting elements
+		"msub", "msup", "msubsup", "munder", "mover", "munderover", "mmultiscripts", "mprescripts", "none",
+		// tabular elements
+		"mtable", "mtr", "mtd",
+		// semantic annotations
+		"semantics", "annotation", "annotation-xml",
+	}
+	policy.AllowAttrs("display", "alttext").OnElements("math")
+	policy.AllowAttrs(
+		// global presentation attributes
+		"dir", "displaystyle", "mathbackground", "mathcolor", "mathsize", "mathvariant", "scriptlevel",
+		// operator attributes
+		"accent", "accentunder", "fence", "form", "largeop", "lspace", "maxsize", "minsize", "movablelimits", "rspace", "separator", "stretchy", "symmetric",
+		// space and padding attributes
+		"depth", "height", "voffset", "width",
+		// fraction attribute
+		"linethickness",
+		// table attributes
+		"columnalign", "columnlines", "columnspacing", "frame", "framespacing", "rowalign", "rowlines", "rowspacing",
+		// cell attributes
+		"columnspan",
+		// annotation attribute
+		"encoding",
+	).OnElements(mathMLElements...)
 
 	// Allow generally safe attributes (reference: https://github.com/jch/html-pipeline)
 	generalSafeAttrs := []string{
@@ -86,6 +123,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		"dl", "dt", "dd", "kbd", "q", "samp", "var", "hr", "ruby", "rt", "rp", "li", "tr", "td", "th", "s", "strike", "summary",
 		"details", "caption", "figure", "figcaption",
 		"abbr", "bdo", "cite", "dfn", "mark", "small", "span", "time", "video", "wbr",
+		"picture", "source",
 	}
 	// FIXME: Need to handle longdesc in img but there is no easy way to do it
 	policy.AllowAttrs(generalSafeAttrs...).OnElements(generalSafeElements...)
@@ -97,8 +135,8 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 }
 
 // Sanitize use default sanitizer policy to sanitize a string
-func Sanitize(s string) template.HTML {
-	return template.HTML(GetDefaultSanitizer().defaultPolicy.Sanitize(s))
+func Sanitize[T string | template.HTML](s T) template.HTML {
+	return template.HTML(GetDefaultSanitizer().defaultPolicy.Sanitize(string(s)))
 }
 
 // SanitizeReader sanitizes a Reader

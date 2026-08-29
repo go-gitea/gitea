@@ -7,16 +7,22 @@ package repo
 import (
 	"time"
 
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
+	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
 )
+
+func checkDownloadTokenScope(ctx *context.Context) bool {
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	return !ctx.Written()
+}
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
 func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Time) error {
@@ -24,28 +30,15 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 		return nil
 	}
 
-	dataRc, err := blob.DataAsync()
+	lfsPointerBuf, err := blob.GetBlobBytes(ctx, lfs.MetaFileMaxSize)
 	if err != nil {
 		return err
 	}
-	closed := false
-	defer func() {
-		if closed {
-			return
-		}
-		if err = dataRc.Close(); err != nil {
-			log.Error("ServeBlobOrLFS: Close: %v", err)
-		}
-	}()
 
-	pointer, _ := lfs.ReadPointer(dataRc)
+	pointer, _ := lfs.ReadPointerFromBuffer(lfsPointerBuf)
 	if pointer.IsValid() {
 		meta, _ := git_model.GetLFSMetaObjectByOid(ctx, ctx.Repo.Repository.ID, pointer.Oid)
 		if meta == nil {
-			if err = dataRc.Close(); err != nil {
-				log.Error("ServeBlobOrLFS: Close: %v", err)
-			}
-			closed = true
 			return common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified)
 		}
 		if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`, meta.UpdatedUnix.AsTimePtr()) {
@@ -61,28 +54,20 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 			}
 		}
 
-		lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
+		lfsDataFile, err := lfs.ReadMetaObject(meta.Pointer)
 		if err != nil {
 			return err
 		}
-		defer func() {
-			if err = lfsDataRc.Close(); err != nil {
-				log.Error("ServeBlobOrLFS: Close: %v", err)
-			}
-		}()
-		common.ServeContentByReadSeeker(ctx.Base, ctx.Repo.TreePath, lastModified, lfsDataRc)
+		defer lfsDataFile.Close()
+		httplib.ServeUserContentByFile(ctx.Req, ctx.Resp, lfsDataFile, httplib.ServeHeaderOptions{Filename: ctx.Repo.TreePath})
 		return nil
 	}
-	if err = dataRc.Close(); err != nil {
-		log.Error("ServeBlobOrLFS: Close: %v", err)
-	}
-	closed = true
 
 	return common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified)
 }
 
 func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -97,18 +82,22 @@ func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 		return nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetTreePathLatestCommit", err)
 		return nil, nil
 	}
 	lastModified := &latestCommit.Committer.When
 
-	return entry.Blob(), lastModified
+	return entry.Blob(ctx.Repo.GitRepo), lastModified
 }
 
 // SingleDownload download a file by repos path
 func SingleDownload(ctx *context.Context) {
+	if !checkDownloadTokenScope(ctx) {
+		return
+	}
+
 	blob, lastModified := getBlobForEntry(ctx)
 	if blob == nil {
 		return
@@ -121,6 +110,10 @@ func SingleDownload(ctx *context.Context) {
 
 // SingleDownloadOrLFS download a file by repos path redirecting to LFS if necessary
 func SingleDownloadOrLFS(ctx *context.Context) {
+	if !checkDownloadTokenScope(ctx) {
+		return
+	}
+
 	blob, lastModified := getBlobForEntry(ctx)
 	if blob == nil {
 		return
@@ -133,6 +126,10 @@ func SingleDownloadOrLFS(ctx *context.Context) {
 
 // DownloadByID download a file by sha1 ID
 func DownloadByID(ctx *context.Context) {
+	if !checkDownloadTokenScope(ctx) {
+		return
+	}
+
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -149,6 +146,10 @@ func DownloadByID(ctx *context.Context) {
 
 // DownloadByIDOrLFS download a file by sha1 ID taking account of LFS
 func DownloadByIDOrLFS(ctx *context.Context) {
+	if !checkDownloadTokenScope(ctx) {
+		return
+	}
+
 	blob, err := ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	if err != nil {
 		if git.IsErrNotExist(err) {

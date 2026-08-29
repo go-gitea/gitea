@@ -15,84 +15,6 @@ import (
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
-// GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
-	entryPaths := make([]string, len(tes)+1)
-	// Get the commit for the treePath itself
-	entryPaths[0] = ""
-	for i, entry := range tes {
-		entryPaths[i+1] = entry.Name()
-	}
-
-	commitNodeIndex, commitGraphFile := commit.repo.CommitNodeIndex()
-	if commitGraphFile != nil {
-		defer commitGraphFile.Close()
-	}
-
-	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID.RawValue()))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var revs map[string]*Commit
-	if commit.repo.LastCommitCache != nil {
-		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
-		if err != nil {
-			return nil, nil, err
-		}
-		if len(unHitPaths) > 0 {
-			revs2, err := GetLastCommitForPaths(ctx, commit.repo.LastCommitCache, c, treePath, unHitPaths)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			for k, v := range revs2 {
-				revs[k] = v
-			}
-		}
-	} else {
-		revs, err = GetLastCommitForPaths(ctx, nil, c, treePath, entryPaths)
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-
-	commit.repo.gogitStorage.Close()
-
-	commitsInfo := make([]CommitInfo, len(tes))
-	for i, entry := range tes {
-		commitsInfo[i] = CommitInfo{
-			Entry: entry,
-		}
-
-		// Check if we have found a commit for this entry in time
-		if entryCommit, ok := revs[entry.Name()]; ok {
-			commitsInfo[i].Commit = entryCommit
-		}
-
-		// If the entry is a submodule, add a submodule file for this
-		if entry.IsSubModule() {
-			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-	}
-
-	// Retrieve the commit for the treePath itself (see above). We basically
-	// get it for free during the tree traversal and it's used for listing
-	// pages to display information about newest commit for a given path.
-	var treeCommit *Commit
-	var ok bool
-	if treePath == "" {
-		treeCommit = commit
-	} else if treeCommit, ok = revs[""]; ok {
-		treeCommit.repo = commit.repo
-	}
-	return commitsInfo, treeCommit, nil
-}
-
 type commitAndPaths struct {
 	commit cgobject.CommitNode
 	// Paths that are still on the branch represented by commit
@@ -143,32 +65,24 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
-	var unHitEntryPaths []string
-	results := make(map[string]*Commit)
-	for _, p := range paths {
-		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
-		if err != nil {
-			return nil, nil, err
-		}
-		if lastCommit != nil {
-			results[p] = lastCommit
-			continue
-		}
+// GetLastCommitForPaths returns last commit information
+func GetLastCommitForPaths(ctx context.Context, gitRepo *Repository, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
+	commitNodeIndex, closer := gitRepo.CommitNodeIndex()
+	defer closer()
 
-		unHitEntryPaths = append(unHitEntryPaths, p)
+	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID.RawValue()))
+	if err != nil {
+		return nil, err
 	}
-
-	return results, unHitEntryPaths, nil
+	return getLastCommitForPathsByCommitNode(ctx, gitRepo, c, treePath, paths)
 }
 
-// GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, c cgobject.CommitNode, treePath string, paths []string) (map[string]*Commit, error) {
+func getLastCommitForPathsByCommitNode(ctx context.Context, gitRepo *Repository, c cgobject.CommitNode, treePath string, paths []string) (map[string]*Commit, error) {
 	refSha := c.ID().String()
 
 	// We do a tree traversal with nodes sorted by commit time
 	heap := binaryheap.NewWith(func(a, b any) int {
-		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
+		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) { //nolint:forcetypeassert // this heap only ever holds *commitAndPaths
 			return 1
 		}
 		return -1
@@ -196,12 +110,12 @@ heaploop:
 		if !ok {
 			break
 		}
-		current := cIn.(*commitAndPaths)
+		current := cIn.(*commitAndPaths) //nolint:forcetypeassert // this heap only ever holds *commitAndPaths
 
 		// Load the parent commits for the one we are currently examining
 		numParents := current.commit.NumParents()
 		var parents []cgobject.CommitNode
-		for i := 0; i < numParents; i++ {
+		for i := range numParents {
 			parent, err := current.commit.ParentNode(i)
 			if err != nil {
 				break
@@ -244,7 +158,7 @@ heaploop:
 					//   match any of the hashes being merged. This is more common for directories,
 					//   but it can also happen if a file is changed through conflict resolution.
 					resultNodes[pth] = current.commit
-					if err := cache.Put(refSha, path.Join(treePath, pth), current.commit.ID().String()); err != nil {
+					if err := gitRepo.LastCommitCache.Put(refSha, path.Join(treePath, pth), current.commit.ID().String()); err != nil {
 						return nil, err
 					}
 				}
@@ -273,9 +187,8 @@ heaploop:
 
 				if len(newRemainingPaths) == 0 {
 					break
-				} else {
-					remainingPaths = newRemainingPaths
 				}
+				remainingPaths = newRemainingPaths
 			}
 		}
 	}

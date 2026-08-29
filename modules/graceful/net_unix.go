@@ -16,9 +16,8 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 const (
@@ -121,8 +120,7 @@ func getProvidedFDs() (savedErr error) {
 				continue
 			}
 
-			// If needed we can handle packetconns here.
-			savedErr = fmt.Errorf("Error getting provided socket fd %d: %w", i, err)
+			savedErr = fmt.Errorf("error getting provided socket fd %d: %w", i, err)
 			return
 		}
 	})
@@ -179,13 +177,15 @@ func GetListenerTCP(network string, address *net.TCPAddr) (*net.TCPListener, err
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
+			tcpListener := l.(*net.TCPListener) //nolint:forcetypeassert // a listener matching a *net.TCPAddr is a *net.TCPListener
+
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
 			needsUnlink := providedListenersToUnlink[i]
 			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
 
 			activeListeners = append(activeListeners, l)
 			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
-			return l.(*net.TCPListener), nil
+			return tcpListener, nil
 		}
 	}
 
@@ -213,13 +213,14 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
+			unixListener := l.(*net.UnixListener) //nolint:forcetypeassert // a listener matching a *net.UnixAddr is a *net.UnixListener
+
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
 			needsUnlink := providedListenersToUnlink[i]
 			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
 
 			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
 			activeListeners = append(activeListeners, l)
-			unixListener := l.(*net.UnixListener)
 			if needsUnlink {
 				unixListener.SetUnlinkOnClose(true)
 			}
@@ -228,8 +229,8 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	}
 
 	// make a fresh listener
-	if err := util.Remove(address.Name); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("Failed to remove unix socket %s: %w", address.Name, err)
+	if err := os.Remove(address.Name); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to remove unix socket %s: %w", address.Name, err)
 	}
 
 	l, err := net.ListenUnix(network, address)
@@ -239,7 +240,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 
 	fileMode := os.FileMode(setting.UnixSocketPermission)
 	if err = os.Chmod(address.Name, fileMode); err != nil {
-		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %w", fileMode.String(), err)
+		return nil, fmt.Errorf("failed to set permission of unix socket to %s: %w", fileMode.String(), err)
 	}
 
 	activeListeners = append(activeListeners, l)

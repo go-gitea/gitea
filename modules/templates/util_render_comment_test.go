@@ -7,15 +7,15 @@ import (
 	"html/template"
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/translation"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRenderTimelineEventComment(t *testing.T) {
-	ctx := reqctx.NewRequestContextForTest(t.Context())
+	ctx := reqctx.NewRequestContextForTest(t)
 	ctx.SetContextValue(translation.ContextKey, &translation.MockLocale{})
 	ut := &RenderUtils{ctx: ctx}
 	var createdStr template.HTML = "(created-at)"

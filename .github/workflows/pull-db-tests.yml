@@ -7,110 +7,129 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
-    permissions:
-      contents: read
 
-  test-pgsql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+  test-pgsql-shard-1:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:14@sha256:2fdfb9b432d4a73bd3eea3d989752c1e669b68d502347e0bfd2cc6d709f3d6b4
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
         ports:
           - "5432:5432"
       ldap:
-        image: gitea/test-openldap:latest
+        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
         ports:
           - "389:389"
           - "636:636"
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2023.8.31
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
+      - uses: ./.github/actions/pgsql-shard
         with:
-          go-version-file: go.mod
-          check-latest: true
-      - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
+          shard: 1
+          total-shards: 2
+          run-migration: "true"
+
+  test-pgsql-shard-2:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    services:
+      pgsql:
+        image: postgres:14@sha256:2fdfb9b432d4a73bd3eea3d989752c1e669b68d502347e0bfd2cc6d709f3d6b4
         env:
-          TAGS: bindata
-      - name: run migration tests
-        run: make test-pgsql-migration
-      - name: run tests
-        run: make test-pgsql
-        timeout-minutes: 50
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - "5432:5432"
+      ldap:
+        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
+        ports:
+          - "389:389"
+          - "636:636"
+      minio:
+        # as github actions doesn't support "entrypoint", we need to use a non-official image
+        # that has a custom entrypoint set to "minio server /data"
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
-          TAGS: bindata gogit
-          RACE_ENABLED: true
-          TEST_TAGS: gogit
-          TEST_LDAP: 1
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
+        ports:
+          - "9000:9000"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
+      - uses: ./.github/actions/pgsql-shard
+        with:
+          shard: 2
+          total-shards: 2
 
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          check-latest: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
       - run: make deps-backend
-      - run: GOEXPERIMENT='' make backend
+      - run: make backend
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - name: run migration tests
-        run: make test-sqlite-migration
+          TAGS: bindata gogit
+      - run: GITEA_TEST_DATABASE=sqlite make test-migration
+        env:
+          TAGS: bindata gogit
       - name: run tests
-        run: GOEXPERIMENT='' make test-sqlite
+        run: GITEA_TEST_DATABASE=sqlite make test-integration
         timeout-minutes: 50
         env:
-          TAGS: bindata gogit sqlite sqlite_unlock_notify
-          RACE_ENABLED: true
-          TEST_TAGS: gogit sqlite sqlite_unlock_notify
+          # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
+          GOTEST_FLAGS: -timeout=40m
+          TAGS: bindata gogit
 
   test-unit:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     services:
       elasticsearch:
-        image: elasticsearch:7.5.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
         env:
           discovery.type: single-node
+          xpack.security.enabled: false
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1
+        image: getmeili/meilisearch:v1@sha256:8d6643d86d71fad6ad3cba92cde7ccfce9e4d6c384bda67598eb553571c32431
         env:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
       redis:
-        image: redis
+        image: redis:latest@sha256:1c4405ec7fb6ed58b6b83d26c7e3fc80625d2aca6cfa517ae03b6e963510f7ca
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -119,51 +138,48 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnamilegacy/minio:2021.3.17
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
-          MINIO_ACCESS_KEY: 123456
-          MINIO_SECRET_KEY: 12345678
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          check-latest: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
+      - run: make generate-go
         env:
           TAGS: bindata
       - name: unit-tests
-        run: make unit-test-coverage test-check
+        run: make test-backend
         env:
+          GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata
-          RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
-        run: GOEXPERIMENT='' make unit-test-coverage test-check
+        run: make test-backend
         env:
+          GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
-          RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+          GITEA_TEST_CI_SKIP_EXTERNAL: true
+      - run: make test-check
 
   test-mysql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
-        image: bitnamilegacy/mysql:8.0
+        image: bitnamilegacy/mysql:8.4@sha256:7089d796fc9b4629a628bd445e4afabe607351ee665444c3197bdeaed812ea65
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
@@ -172,49 +188,45 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: elasticsearch:7.5.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
         env:
           discovery.type: single-node
+          xpack.security.enabled: false
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
         ports:
           - "9200:9200"
       smtpimap:
-        image: tabascoterrier/docker-imap-devel:latest
+        image: tabascoterrier/docker-imap-devel:latest@sha256:3fb7cf50b47693e7b80f6f74abea2def4d7386016931d61359864de8a0aba551
         ports:
           - "25:25"
           - "143:143"
           - "587:587"
           - "993:993"
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          check-latest: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
           TAGS: bindata
-      - name: run migration tests
-        run: make test-mysql-migration
+      - run: GITEA_TEST_DATABASE=mysql make test-migration
       - name: run tests
-        # run: make integration-test-coverage (at the moment, no coverage is really handled)
-        run: make test-mysql
+        run: GITEA_TEST_DATABASE=mysql make test-integration
         env:
           TAGS: bindata
-          RACE_ENABLED: true
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:46f719fd3457d4e7e8e5845fe00c35c20e7bae7ff1e8b9fe595f2a81029f5ba8
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
@@ -222,24 +234,21 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          check-latest: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
           TAGS: bindata
-      - run: make test-mssql-migration
+      - run: GITEA_TEST_DATABASE=mssql make test-migration
       - name: run tests
-        run: make test-mssql
+        run: GITEA_TEST_DATABASE=mssql make test-integration
         timeout-minutes: 50
         env:
           TAGS: bindata

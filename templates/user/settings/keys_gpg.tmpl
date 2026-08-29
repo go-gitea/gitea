@@ -38,37 +38,37 @@
 			</button>
 		</form>
 	</div>
-	<div class="flex-list">
-		<div class="flex-item">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
 			<p>
 				{{ctx.Locale.Tr "settings.gpg_desc"}}<br>
 				{{ctx.Locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification"}}
 			</p>
 		</div>
 		{{range .GPGKeys}}
-			<div class="flex-item">
-				<div class="flex-item-leading">
+			<div class="item">
+				<div class="item-leading">
 					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}tw-text-green{{end}}">{{svg "octicon-key" 32}}</span>
 				</div>
-				<div class="flex-item-main">
+				<div class="item-main">
 					{{if .Verified}}
 						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{ctx.Locale.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
 					{{if .Emails}}
 						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{ctx.Locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
-					<div class="flex-item-body">
+					<div class="item-body">
 						<b>{{ctx.Locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
 						<b>{{ctx.Locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .AddedUnix)}}</i>
 						-
 						<i>{{if not .ExpiredUnix.IsZero}}{{ctx.Locale.Tr "settings.valid_until_date" (DateUtils.AbsoluteShort .ExpiredUnix)}}{{else}}{{ctx.Locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
-				<div class="flex-item-trailing">
-					<button class="ui red tiny button delete-button" data-modal-id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
+				<div class="item-trailing">
+					<button class="ui red tiny button link-action" data-modal-confirm="#delete-gpg" data-url="{{$.Link}}/delete?type=gpg&id={{.ID}}">
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
@@ -108,7 +108,7 @@
 			{{end}}
 		{{end}}
 	</div>
-	<div class="ui g-modal-confirm delete modal" id="delete-gpg">
+	<div class="ui small modal" id="delete-gpg">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.gpg_key_deletion"}}

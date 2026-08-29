@@ -5,13 +5,14 @@ package markup
 
 import (
 	"fmt"
+	"html/template"
 	"strconv"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	testModule "code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	testModule "gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -260,9 +261,8 @@ func TestRender_PostProcessIssueTitle(t *testing.T) {
 		"repo":   "someRepo",
 		"style":  IssueNameStyleNumeric,
 	}
-	actual, err := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
-	assert.NoError(t, err)
-	assert.Equal(t, "#1", actual)
+	actual := PostProcessIssueTitle(NewTestRenderContext(metas), "#1")
+	assert.Equal(t, template.HTML("#1"), actual)
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {

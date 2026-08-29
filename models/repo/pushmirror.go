@@ -7,11 +7,11 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -36,6 +36,10 @@ type PushMirrorOptions struct {
 	ID         int64
 	RepoID     int64
 	RemoteName string
+}
+
+func (opts PushMirrorOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts PushMirrorOptions) ToConds() builder.Cond {
@@ -98,6 +102,10 @@ type findPushMirrorOptions struct {
 	db.ListOptions
 	RepoID       int64
 	SyncOnCommit optional.Option[bool]
+}
+
+func (opts findPushMirrorOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts findPushMirrorOptions) ToConds() builder.Cond {

@@ -6,42 +6,43 @@ package packages
 import (
 	"net/http"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/packages/alpine"
-	"code.gitea.io/gitea/routers/api/packages/arch"
-	"code.gitea.io/gitea/routers/api/packages/cargo"
-	"code.gitea.io/gitea/routers/api/packages/chef"
-	"code.gitea.io/gitea/routers/api/packages/composer"
-	"code.gitea.io/gitea/routers/api/packages/conan"
-	"code.gitea.io/gitea/routers/api/packages/conda"
-	"code.gitea.io/gitea/routers/api/packages/container"
-	"code.gitea.io/gitea/routers/api/packages/cran"
-	"code.gitea.io/gitea/routers/api/packages/debian"
-	"code.gitea.io/gitea/routers/api/packages/generic"
-	"code.gitea.io/gitea/routers/api/packages/goproxy"
-	"code.gitea.io/gitea/routers/api/packages/helm"
-	"code.gitea.io/gitea/routers/api/packages/maven"
-	"code.gitea.io/gitea/routers/api/packages/npm"
-	"code.gitea.io/gitea/routers/api/packages/nuget"
-	"code.gitea.io/gitea/routers/api/packages/pub"
-	"code.gitea.io/gitea/routers/api/packages/pypi"
-	"code.gitea.io/gitea/routers/api/packages/rpm"
-	"code.gitea.io/gitea/routers/api/packages/rubygems"
-	"code.gitea.io/gitea/routers/api/packages/swift"
-	"code.gitea.io/gitea/routers/api/packages/vagrant"
-	"code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/perm"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/packages/alpine"
+	"gitea.dev/routers/api/packages/arch"
+	"gitea.dev/routers/api/packages/cargo"
+	"gitea.dev/routers/api/packages/chef"
+	"gitea.dev/routers/api/packages/composer"
+	"gitea.dev/routers/api/packages/conan"
+	"gitea.dev/routers/api/packages/conda"
+	"gitea.dev/routers/api/packages/container"
+	"gitea.dev/routers/api/packages/cran"
+	"gitea.dev/routers/api/packages/debian"
+	"gitea.dev/routers/api/packages/generic"
+	"gitea.dev/routers/api/packages/goproxy"
+	"gitea.dev/routers/api/packages/helm"
+	"gitea.dev/routers/api/packages/maven"
+	"gitea.dev/routers/api/packages/npm"
+	"gitea.dev/routers/api/packages/nuget"
+	"gitea.dev/routers/api/packages/pub"
+	"gitea.dev/routers/api/packages/pypi"
+	"gitea.dev/routers/api/packages/rpm"
+	"gitea.dev/routers/api/packages/rubygems"
+	"gitea.dev/routers/api/packages/swift"
+	"gitea.dev/routers/api/packages/terraform"
+	"gitea.dev/routers/api/packages/vagrant"
+	"gitea.dev/services/auth"
+	"gitea.dev/services/context"
 )
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
-		if ctx.Data["IsApiToken"] == true {
-			scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-			if ok { // it's a personal access token but not oauth2 token
+		scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		if hasApiTokenScope {
+			{ // request authenticated by a scoped token; enforce package scope restrictions
 				scopeMatched := false
 				var err error
 				switch accessMode {
@@ -72,7 +73,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				}
 
 				if publicOnly {
-					if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+					// a public-only token must not reach limited-visibility owners either,
+					// matching how orgs/users are enforced elsewhere in this file
+					if ctx.Package != nil && !ctx.Package.Owner.Visibility.IsPublic() {
 						ctx.HTTPError(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
 						return
 					}
@@ -132,7 +135,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/{branch}/{repository}", func() {
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
 				r.Group("/{architecture}", func() {
-					r.Get("/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+					r.Methods("HEAD,GET", "/APKINDEX.tar.gz", alpine.GetRepositoryFile)
 					r.Group("/{filename}", func() {
 						r.Get("", alpine.DownloadPackageFile)
 						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)
@@ -356,6 +359,7 @@ func CommonRoutes() *web.Router {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
+			r.Post("/api/prov", reqPackageAccess(perm.AccessModeWrite), helm.UploadProvenanceFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
@@ -472,9 +476,10 @@ func CommonRoutes() *web.Router {
 			g.MatchPath("HEAD", "/<group:*>/repodata/<filename>", rpm.CheckRepositoryFileExistence)
 			g.MatchPath("GET", "/<group:*>/repodata/<filename>", rpm.GetRepositoryFile)
 			g.MatchPath("PUT", "/<group:*>/upload", reqPackageAccess(perm.AccessModeWrite), rpm.UploadPackageFile)
+			g.MatchPath("POST", "/<group:*>/package/<name>/<version>/errata", reqPackageAccess(perm.AccessModeWrite), rpm.UploadErrata)
 			// this URL pattern is only used internally in the RPM index, it is generated by us, the filename part is not really used (can be anything)
-			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>", rpm.DownloadPackageFile)
 			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>/<filename>", rpm.DownloadPackageFile)
+			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>", rpm.DownloadPackageFile)
 			g.MatchPath("DELETE", "/<group:*>/package/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 
@@ -514,6 +519,21 @@ func CommonRoutes() *web.Router {
 				r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
+		// See https://docs.gitlab.com/ci/jobs/fine_grained_permissions/#terraform-state-endpoints
+		// For endpoint and permission reference
+		r.Group("/terraform/state/{name}", func() {
+			r.Get("", terraform.GetTerraformState)
+			r.Get("/versions/{serial}", terraform.GetTerraformStateBySerial)
+			r.Group("", func() {
+				r.Post("", terraform.UploadState)
+				r.Delete("", terraform.DeleteState)
+				r.Delete("/versions/{serial}", terraform.DeleteStateBySerial)
+			}, reqPackageAccess(perm.AccessModeWrite))
+			r.Group("/lock", func() {
+				r.Post("", terraform.LockState)
+				r.Delete("", terraform.UnlockState)
+			}, reqPackageAccess(perm.AccessModeWrite))
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)

@@ -4,10 +4,10 @@
 package user
 
 import (
-	"strconv"
+	"context"
 	"strings"
 
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/structs"
 )
 
 const (
@@ -32,59 +32,86 @@ func (u *User) IsGhost() bool {
 	return u.ID == GhostUserID && u.Name == GhostUserName
 }
 
+// newSystemUser creates and returns a fake user for system use.
+// The builtin username can be wrapped in parentheses to avoid conflicts with real usernames.
+func newSystemUser(id int64, name, fullName string) *User {
+	return &User{
+		ID:         id,
+		Name:       name,
+		LowerName:  strings.ToLower(name),
+		IsActive:   true,
+		FullName:   fullName,
+		Type:       UserTypeBot,
+		Visibility: structs.VisibleTypePublic,
+	}
+}
+
 const (
-	ActionsUserID    int64 = -2
-	ActionsUserName        = "gitea-actions"
-	ActionsUserEmail       = "teabot@gitea.io"
+	ActionsUserID   int64 = -2
+	DeployKeyUserID int64 = -3
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
-	return &User{
-		ID:               ActionsUserID,
-		Name:             ActionsUserName,
-		LowerName:        ActionsUserName,
-		IsActive:         true,
-		FullName:         "Gitea Actions",
-		Email:            ActionsUserEmail,
-		KeepEmailPrivate: true,
-		LoginName:        ActionsUserName,
-		Type:             UserTypeBot,
-		Visibility:       structs.VisibleTypePublic,
+	return newSystemUser(ActionsUserID, "gitea-actions", "Gitea Actions")
+}
+
+func GetActionsUserTaskID(u *User) (int64, bool) {
+	if u == nil || u.ExtDoerData == nil || u.ID != ActionsUserID {
+		return 0, false
 	}
+	extData := u.ExtDoerData.(*extDoerGiteaActions) //nolint:forcetypeassert // must be valid
+	return extData.TaskID, true
 }
 
 func NewActionsUserWithTaskID(id int64) *User {
 	u := NewActionsUser()
-	// LoginName is for only internal usage in this case, so it can be moved to other fields in the future
-	u.LoginSource = -1
-	u.LoginName = "@" + ActionsUserName + "/" + strconv.FormatInt(id, 10)
+	u.ExtDoerData = &extDoerGiteaActions{TaskID: id}
 	return u
 }
 
-func GetActionsUserTaskID(u *User) (int64, bool) {
-	if u == nil || u.ID != ActionsUserID {
-		return 0, false
-	}
-	prefix, payload, _ := strings.Cut(u.LoginName, "/")
-	if prefix != "@"+ActionsUserName {
-		return 0, false
-	} else if taskID, err := strconv.ParseInt(payload, 10, 64); err == nil {
-		return taskID, true
-	}
-	return 0, false
+func NewDeployKeyUser() *User {
+	return newSystemUser(DeployKeyUserID, "(deploy-key)", "Deploy Key")
 }
 
-func (u *User) IsGiteaActions() bool {
-	return u != nil && u.ID == ActionsUserID
+func GetDeployKeyUserDeployKeyID(u *User) (int64, bool) {
+	// ok, the function name seems wordy, it is intentionally to distinguish from other "keys" like "public key id"
+	// it was a mess in the "pre-receive" hook code
+	if u == nil || u.ExtDoerData == nil || u.ID != DeployKeyUserID {
+		return 0, false
+	}
+	extData := u.ExtDoerData.(*extDoerDeployKey) //nolint:forcetypeassert // must be valid
+	return extData.DeployKeyID, true
+}
+
+func NewDeployKeyUserWithKeyID(id int64) *User {
+	u := NewDeployKeyUser()
+	u.ExtDoerData = &extDoerDeployKey{DeployKeyID: id}
+	return u
 }
 
 func GetSystemUserByName(name string) *User {
-	if strings.EqualFold(name, GhostUserName) {
-		return NewGhostUser()
-	}
-	if strings.EqualFold(name, ActionsUserName) {
-		return NewActionsUser()
+	lowerName := strings.ToLower(name)
+	uid := globalVars().systemUserNameIdMap[lowerName]
+	if fn := globalVars().systemUserNewFuncs[uid]; fn != nil {
+		return fn()
 	}
 	return nil
+}
+
+func GetDoerUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
+	if id > 0 {
+		return GetUserByID(ctx, id)
+	}
+	switch id {
+	case ActionsUserID:
+		u = NewActionsUser()
+		u.ExtDoerData = &extDoerGiteaActions{}
+	case DeployKeyUserID:
+		u = NewDeployKeyUser()
+		u.ExtDoerData = &extDoerDeployKey{}
+	default:
+		return nil, ErrUserNotExist{UID: id}
+	}
+	return u, u.ExtDoerData.DecodeFromString(extDoerData)
 }

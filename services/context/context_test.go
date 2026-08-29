@@ -9,8 +9,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -41,11 +42,25 @@ func TestRedirectToCurrentSite(t *testing.T) {
 		t.Run(c.location, func(t *testing.T) {
 			req := &http.Request{URL: &url.URL{Path: "/"}}
 			resp := httptest.NewRecorder()
-			base := NewBaseContextForTest(resp, req)
+			base := NewBaseContextForTest(t, resp, req)
 			ctx := NewWebContext(base, nil, nil)
 			ctx.RedirectToCurrentSite(c.location)
 			redirect := test.RedirectURL(resp)
 			assert.Equal(t, c.want, redirect)
 		})
 	}
+}
+
+func TestAppFullLink(t *testing.T) {
+	setting.IsInTesting = true
+	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
+	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
+
+	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/sub/", nil)
+	tmplCtx := NewTemplateContext(reqctx.NewRequestContextForTest(t), req)
+
+	assert.Equal(t, "https://gitea.example.com/sub", string(tmplCtx.AppFullLink()))
+	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("user/repo")))
+	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("/user/repo")))
 }

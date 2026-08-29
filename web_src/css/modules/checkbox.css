@@ -35,13 +35,9 @@ input[type="checkbox"]::before {
   height: var(--checkbox-size);
   clip-path: inset(var(--checkbox-size) 0 0 0);
   mask-image: var(--checkbox-mask-checked);
-  -webkit-mask-image: var(--checkbox-mask-checked);
   mask-size: 75%;
-  -webkit-mask-size: 75%;
   mask-repeat: no-repeat;
-  -webkit-mask-repeat: no-repeat;
   mask-position: center;
-  -webkit-mask-position: center;
 }
 
 input[type="checkbox"]:checked,
@@ -67,9 +63,7 @@ input[type="radio"]:disabled:checked {
 input[type="checkbox"]:indeterminate::before {
   clip-path: inset(0);
   mask-image: var(--checkbox-mask-indeterminate);
-  -webkit-mask-image: var(--checkbox-mask-indeterminate);
   mask-size: 75%;
-  -webkit-mask-size: 75%;
 }
 
 .ui.checkbox {
@@ -91,17 +85,9 @@ input[type="checkbox"]:indeterminate::before {
   height: var(--checkbox-size);
 }
 
-.ui.checkbox input[type="checkbox"]:enabled,
-.ui.checkbox input[type="radio"]:enabled,
-.ui.checkbox label:enabled {
-  cursor: pointer;
-}
-
 .ui.checkbox label {
-  cursor: auto;
   position: relative;
   display: block;
-  user-select: none;
 }
 
 .ui.checkbox label,
@@ -113,6 +99,7 @@ input[type="checkbox"]:indeterminate::before {
   vertical-align: middle;
 }
 
+.ui.disabled.checkbox input,
 .ui.disabled.checkbox label,
 .ui.checkbox input[disabled] ~ label {
   cursor: default !important;
@@ -183,6 +170,29 @@ input[type="checkbox"]:indeterminate::before {
 .ui.toggle.checkbox input:checked ~ label::before,
 .ui.toggle.checkbox input:focus:checked ~ label::before {
   background: var(--color-primary) !important;
+}
+
+@media (forced-colors: active) {
+  input[type="checkbox"]:checked,
+  input[type="checkbox"]:indeterminate {
+    background: CanvasText;
+    border-color: CanvasText;
+  }
+  input[type="checkbox"]:disabled:checked,
+  input[type="checkbox"]:disabled:indeterminate {
+    background: GrayText;
+    border-color: GrayText;
+  }
+  input[type="radio"]:disabled:checked {
+    border-color: GrayText;
+  }
+  .ui.toggle.checkbox label::before {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .ui.toggle.checkbox label::after {
+    background: CanvasText;
+  }
 }
 
 label.gt-checkbox {

@@ -7,15 +7,16 @@ import (
 	"context"
 	"fmt"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	activities_model "gitea.dev/models/activities"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const MailBatchSize = 100 // batch size used in mailIssueCommentBatch
@@ -66,7 +67,8 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(comment.Issue.IsPull && comment.Issue.PullRequest.IsWorkInProgress(ctx) && comment.ActionType != activities_model.ActionCreatePullRequest) {
-		ids, err = repo_model.GetRepoWatchersIDs(ctx, comment.Issue.RepoID)
+		watchType := util.Iif(comment.Issue.IsPull, repo_model.WatchPullRequests, repo_model.WatchIssues)
+		ids, err = repo_model.GetRepoWatchersIDs(ctx, comment.Issue.RepoID, watchType)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %w", comment.Issue.RepoID, err)
 		}
@@ -74,6 +76,13 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	}
 
 	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
+
+	// muting the repository outranks every other source, including mentions
+	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, comment.Issue.RepoID)
+	if err != nil {
+		return fmt.Errorf("GetRepoIgnorersIDs(%d): %w", comment.Issue.RepoID, err)
+	}
+	visited.AddMultiple(ignorers...)
 
 	// Avoid mailing the doer
 	if comment.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn && !comment.ForceDoerNotification {

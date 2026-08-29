@@ -4,13 +4,16 @@
 package web
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 	"reflect"
+	"slices"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/modules/web/types"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/web/routing"
+	"gitea.dev/modules/web/types"
 )
 
 var responseStatusProviders = map[reflect.Type]func(req *http.Request) types.ResponseStatusProvider{}
@@ -47,6 +50,13 @@ func (r *responseWriter) WriteHeader(statusCode int) {
 	r.respWriter.WriteHeader(statusCode)
 }
 
+func (r *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := r.respWriter.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+	return nil, nil, http.ErrNotSupported
+}
+
 var (
 	httpReqType    = reflect.TypeFor[*http.Request]()
 	respWriterType = reflect.TypeFor[http.ResponseWriter]()
@@ -56,7 +66,7 @@ var (
 func preCheckHandler(fn reflect.Value, argsIn []reflect.Value) {
 	hasStatusProvider := false
 	for _, argIn := range argsIn {
-		if _, hasStatusProvider = argIn.Interface().(types.ResponseStatusProvider); hasStatusProvider {
+		if _, hasStatusProvider = reflect.TypeAssert[types.ResponseStatusProvider](argIn); hasStatusProvider {
 			break
 		}
 	}
@@ -109,7 +119,7 @@ func handleResponse(fn reflect.Value, ret []reflect.Value) {
 
 func hasResponseBeenWritten(argsIn []reflect.Value) bool {
 	for _, argIn := range argsIn {
-		if statusProvider, ok := argIn.Interface().(types.ResponseStatusProvider); ok {
+		if statusProvider, ok := reflect.TypeAssert[types.ResponseStatusProvider](argIn); ok {
 			if statusProvider.WrittenStatus() != 0 {
 				return true
 			}
@@ -122,8 +132,8 @@ type middlewareProvider = func(next http.Handler) http.Handler
 
 func executeMiddlewaresHandler(w http.ResponseWriter, r *http.Request, middlewares []middlewareProvider, endpoint http.HandlerFunc) {
 	handler := endpoint
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = middlewares[i](handler).ServeHTTP
+	for _, middleware := range slices.Backward(middlewares) {
+		handler = middleware(handler).ServeHTTP
 	}
 	handler(w, r)
 }

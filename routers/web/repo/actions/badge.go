@@ -9,14 +9,20 @@ import (
 	"path/filepath"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/badge"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/badge"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 func GetWorkflowBadge(ctx *context.Context) {
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	if ctx.Written() {
+		return
+	}
+
 	workflowFile := ctx.PathParam("workflow_name")
 	branch := ctx.FormString("branch", ctx.Repo.Repository.DefaultBranch)
 	event := ctx.FormString("event")

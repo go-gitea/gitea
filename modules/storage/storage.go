@@ -11,33 +11,17 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // ErrURLNotSupported represents url is not supported
 var ErrURLNotSupported = errors.New("url method not supported")
-
-// ErrInvalidConfiguration is called when there is invalid configuration for a storage
-type ErrInvalidConfiguration struct {
-	cfg any
-	err error
-}
-
-func (err ErrInvalidConfiguration) Error() string {
-	if err.err != nil {
-		return fmt.Sprintf("Invalid Configuration Argument: %v: Error: %v", err.cfg, err.err)
-	}
-	return fmt.Sprintf("Invalid Configuration Argument: %v", err.cfg)
-}
-
-// IsErrInvalidConfiguration checks if an error is an ErrInvalidConfiguration
-func IsErrInvalidConfiguration(err error) bool {
-	_, ok := err.(ErrInvalidConfiguration)
-	return ok
-}
 
 type Type = setting.StorageType
 
@@ -62,31 +46,30 @@ type Object interface {
 type ServeDirectOptions struct {
 	// Overrides the automatically detected MIME type.
 	ContentType string
-	// Overrides the default Content-Disposition header, which is `inline; filename="name"`.
-	ContentDisposition string
 }
 
 // Safe defaults are applied only when not explicitly overridden by the caller.
-func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (ret ServeDirectOptions) {
+func prepareServeDirectOptions(optsOptional *ServeDirectOptions, name string) (ret struct {
+	ContentType        string
+	ContentDisposition string
+},
+) {
 	// Here we might not know the real filename, and it's quite inefficient to detect the MIME type by pre-fetching the object head.
 	// So we just do a quick detection by extension name, at least it works for the "View Raw File" for an LFS file on the Web UI.
 	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
 
 	if optsOptional != nil {
-		ret = *optsOptional
+		ret.ContentType = optsOptional.ContentType
 	}
-
-	// TODO: UNIFY-CONTENT-DISPOSITION-FROM-STORAGE
+	name = path.Base(name)
 	if ret.ContentType == "" {
 		ext := path.Ext(name)
 		ret.ContentType = public.DetectWellKnownMimeType(ext)
 	}
-	if ret.ContentDisposition == "" {
-		// When using ServeDirect, the URL is from the object storage's web server,
-		// it is not the same origin as Gitea server, so it should be safe enough to use "inline" to render the content directly.
-		// If a browser doesn't support the content type to be displayed inline, browser will download with the filename.
-		ret.ContentDisposition = fmt.Sprintf(`inline; filename="%s"`, quoteEscaper.Replace(name))
-	}
+	// When using ServeDirect, the URL is from the object storage's web server,
+	// it is not the same origin as Gitea server, so it should be safe enough to use "inline" to render the content directly.
+	// If a browser doesn't support the content type to be displayed inline, browser will download with the filename.
+	ret.ContentDisposition = httplib.EncodeContentDispositionInline(name)
 	return ret
 }
 
@@ -156,6 +139,23 @@ func SaveFrom(objStorage ObjectStorage, path string, callback func(w io.Writer) 
 
 	_, err := objStorage.Save(path, pr, -1)
 	return err
+}
+
+func buildObjectStorePath(base, p string) string {
+	p = strings.TrimPrefix(util.PathJoinRelX(base, p), "/") // object store doesn't use slash for root path
+	if p == "." {
+		p = "" // object store doesn't use dot as relative path
+	}
+	return p
+}
+
+func buildObjectStorePathPrefix(base, p string) string {
+	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+	p = buildObjectStorePath(base, p) + "/"
+	if p == "/" {
+		p = "" // object store doesn't use slash for root path
+	}
+	return p
 }
 
 var (

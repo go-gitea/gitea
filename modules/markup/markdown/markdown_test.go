@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -429,9 +429,12 @@ test
 ---
 test
 `,
-			`- item1
-- item2
-
+			`<hr/>
+<ul>
+<li>item1</li>
+<li>item2</li>
+</ul>
+<hr/>
 <p>test</p>
 `,
 		},
@@ -443,8 +446,8 @@ anything
 ---
 test
 `,
-			`anything
-
+			`<hr/>
+<h2>anything</h2>
 <p>test</p>
 `,
 		},
@@ -473,12 +476,24 @@ foo: bar
 </ul>
 `,
 		},
+		// we have our own frontmatter parser, don't need to use github.com/yuin/goldmark-meta
+		{
+			"InvalidFrontmatter",
+			`---
+foo
+`,
+			`<hr/>
+<p>foo</p>
+`,
+		},
 	}
 
-	for _, test := range testcases {
-		res, err := markdown.RenderString(markup.NewTestRenderContext(), test.input)
-		assert.NoError(t, err, "Unexpected error in testcase: %q", test.name)
-		assert.Equal(t, test.expected, string(res), "Unexpected result in testcase %q", test.name)
+	for _, tt := range testcases {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := markdown.RenderString(markup.NewTestRenderContext(), tt.input)
+			assert.NoError(t, err, "Unexpected error in testcase: %q", tt.name)
+			assert.Equal(t, tt.expected, string(res), "Unexpected result in testcase %q", tt.name)
+		})
 	}
 }
 
@@ -567,4 +582,41 @@ func TestMarkdownLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `<p><a href="https://example.com/__init__.py" rel="nofollow">https://example.com/__init__.py</a></p>
 `, string(result))
+}
+
+func TestMarkdownUlDir(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, false)()
+	result, err := markdown.RenderString(markup.NewTestRenderContext(), `
+* a
+  * b
+`)
+	assert.NoError(t, err)
+	assert.Equal(t, `<ul dir="auto">
+<li>a
+<ul>
+<li>b</li>
+</ul>
+</li>
+</ul>
+`, string(result))
+}
+
+func TestMarkdownCodeBlock(t *testing.T) {
+	testRender := func(input, expected string) {
+		buffer, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+	}
+	const nl = "\n"
+	const prefix = `<div class="code-block-container code-overflow-scroll"><pre class="code-block">`
+	const suffix = `</pre></div>`
+
+	testRender("```\ncode\n```", prefix+`<code class="chroma language-text">code`+nl+`</code>`+suffix)
+
+	const jsCommon = prefix + `<code class="chroma language-js"><span class="nx">code</span>` + nl + `</code>` + suffix
+	testRender("```js\ncode\n```", jsCommon)
+	testRender("```js:app.ts\ncode\n```", jsCommon)
+	testRender("```js,ignore\ncode\n```", jsCommon)
+	testRender("```js ignore\ncode\n```", jsCommon)
+	testRender("    <any&content>\n", prefix+`<code class="chroma language-text">&lt;any&amp;content&gt;`+nl+`</code>`+suffix)
 }

@@ -5,16 +5,18 @@
 package org
 
 import (
+	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	org_service "code.gitea.io/gitea/services/org"
+	"gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	org_service "gitea.dev/services/org"
 )
 
 const (
@@ -29,16 +31,19 @@ func Members(ctx *context.Context) {
 	ctx.Data["PageIsOrgMembers"] = true
 
 	page := max(ctx.FormInt("page"), 1)
+	keyword := ctx.FormTrim("q")
+	ctx.Data["Keyword"] = keyword
 
 	opts := &organization.FindOrgMembersOpts{
-		Doer:  ctx.Doer,
-		OrgID: org.ID,
+		Doer:    ctx.Doer,
+		OrgID:   org.ID,
+		Keyword: keyword,
 	}
 
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "IsOrgMember")
+			ctx.ServerError("IsOrgMember", err)
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -47,7 +52,7 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "CountOrgMembers")
+		ctx.ServerError("CountOrgMembers", err)
 		return
 	}
 
@@ -56,9 +61,10 @@ func Members(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(total, setting.UI.MembersPagingNum, page, 5)
-	opts.ListOptions.Page = page
-	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
+	pageSize := setting.UI.MembersPagingNum
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pageSize).CurPage(page).Build()
+	opts.ListOptions.Page = pager.Paginator.Current()
+	opts.ListOptions.PageSize = pageSize
 	members, membersIsPublic, err := organization.FindOrgMembers(ctx, opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)
@@ -76,11 +82,11 @@ func Members(ctx *context.Context) {
 // MembersAction response for operation to a member of organization
 func MembersAction(ctx *context.Context) {
 	member, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
-	if err != nil {
-		log.Error("GetUserByID: %v", err)
-	}
-	if member == nil {
-		ctx.Redirect(ctx.Org.OrgLink + "/members")
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	} else if err != nil {
+		ctx.ServerError("GetUserByID", err)
 		return
 	}
 
@@ -105,40 +111,25 @@ func MembersAction(ctx *context.Context) {
 			return
 		}
 		err = org_service.RemoveOrgUser(ctx, org, member)
-		if organization.IsErrLastOrgOwner(err) {
-			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
-			return
-		}
 	case "leave":
 		err = org_service.RemoveOrgUser(ctx, org, ctx.Doer)
 		if err == nil {
 			ctx.Flash.Success(ctx.Tr("form.organization_leave_success", org.DisplayName()))
-			ctx.JSON(http.StatusOK, map[string]any{
-				"redirect": "", // keep the user stay on current page, in case they want to do other operations.
-			})
-		} else if organization.IsErrLastOrgOwner(err) {
-			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.JSONRedirect(ctx.Org.OrgLink + "/members")
-		} else {
-			log.Error("RemoveOrgUser(%d,%d): %v", org.ID, ctx.Doer.ID, err)
+			ctx.JSONRedirect(setting.AppSubURL + "/")
+			return
 		}
+	}
+
+	if err == nil {
+		ctx.JSONOK()
 		return
 	}
 
-	if err != nil {
-		log.Error("Action(%s): %v", ctx.PathParam("action"), err)
-		ctx.JSON(http.StatusOK, map[string]any{
-			"ok":  false,
-			"err": err.Error(),
-		})
+	if organization.IsErrLastOrgOwner(err) {
+		ctx.JSONError(ctx.Tr("form.last_org_owner"))
 		return
 	}
 
-	redirect := ctx.Org.OrgLink + "/members"
-	if ctx.PathParam("action") == "leave" {
-		redirect = setting.AppSubURL + "/"
-	}
-
-	ctx.JSONRedirect(redirect)
+	log.Error("Action(%s): %v", ctx.PathParam("action"), err)
+	ctx.JSONError(err.Error()) // FIXME: legacy logic, errors are handled together, it's not right, need to distinguish between different errors
 }

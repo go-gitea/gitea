@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -157,18 +157,12 @@ func (d *OAuth2DeviceAuthorization) MarkConsumed(ctx context.Context) error {
 
 // CreateOAuth2DeviceAuthorization creates a new device authorization and returns the plaintext device code.
 func CreateOAuth2DeviceAuthorization(ctx context.Context, app *OAuth2Application, scope string) (*OAuth2DeviceAuthorization, string, error) {
-	deviceCode, err := generateOAuth2DeviceCode()
-	if err != nil {
-		return nil, "", err
-	}
+	deviceCode := generateOAuth2DeviceCode()
 
 	// Retry user code generation a few times in case of unique constraint collision.
 	const maxRetries = 5
 	for range maxRetries {
-		userCode, err := generateOAuth2UserCode()
-		if err != nil {
-			return nil, "", err
-		}
+		userCode := generateOAuth2UserCode()
 
 		// Check for collision before inserting.
 		existing, err := GetOAuth2DeviceAuthorizationByUserCode(ctx, userCode)
@@ -241,25 +235,17 @@ func NormalizeOAuth2DeviceUserCode(userCode string) string {
 	return strings.ToUpper(strings.NewReplacer("-", "", " ", "").Replace(strings.TrimSpace(userCode)))
 }
 
-func generateOAuth2DeviceCode() (string, error) {
-	rBytes, err := util.CryptoRandomBytes(32)
-	if err != nil {
-		return "", err
-	}
-	return "gtd_" + base32Lower.EncodeToString(rBytes), nil
+func generateOAuth2DeviceCode() string {
+	return "gtd_" + base32Lower.EncodeToString(util.CryptoRandomBytes(32))
 }
 
-func generateOAuth2UserCode() (string, error) {
+func generateOAuth2UserCode() string {
 	buf := make([]byte, oauth2DeviceAuthorizationUserCodeLength)
 	limit := int64(len(oauth2DeviceAuthorizationUserCodeAlphabet))
 	for i := range buf {
-		num, err := util.CryptoRandomInt(limit)
-		if err != nil {
-			return "", err
-		}
-		buf[i] = oauth2DeviceAuthorizationUserCodeAlphabet[num]
+		buf[i] = oauth2DeviceAuthorizationUserCodeAlphabet[util.CryptoRandomInt(limit)]
 	}
-	return string(buf), nil
+	return string(buf)
 }
 
 func hashOAuth2DeviceCode(deviceCode string) string {

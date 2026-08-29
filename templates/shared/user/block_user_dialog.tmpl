@@ -1,7 +1,7 @@
 <div class="ui small modal" id="block-user-modal">
 	<div class="header">{{ctx.Locale.Tr "user.block.title"}}</div>
 	<div class="content">
-		<div class="ui warning message">{{ctx.Locale.Tr "user.block.info"}}</div>
+		<div class="ui warning message">{{ctx.Locale.Tr "user.block.info"}} <a target="_blank" href="https://docs.gitea.com/usage/access-control/blocking-user">{{ctx.Locale.Tr "user.block.info.docs"}}</a></div>
 		<form class="ui form modal-form" method="post">
 			<input type="hidden" name="action" value="block" />
 			<input type="hidden" name="blockee" class="modal-blockee" />

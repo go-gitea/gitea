@@ -7,15 +7,15 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/optional"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	packages_service "code.gitea.io/gitea/services/packages"
+	"gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/optional"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	packages_service "gitea.dev/services/packages"
 )
 
 // ListPackages gets all packages of an owner
@@ -43,7 +43,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [alpine, cargo, chef, composer, conan, conda, container, cran, debian, generic, go, helm, maven, npm, nuget, pub, pypi, rpm, rubygems, swift, vagrant]
+	//   enum: [alpine, cargo, chef, composer, conan, conda, container, cran, debian, generic, go, helm, maven, npm, nuget, pub, pypi, rpm, rubygems, swift, terraform, vagrant]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -118,9 +118,44 @@ func GetPackage(ctx *context.APIContext) {
 
 // DeletePackage deletes a package
 func DeletePackage(ctx *context.APIContext) {
-	// swagger:operation DELETE /packages/{owner}/{type}/{name}/{version} package deletePackage
+	// swagger:operation DELETE /packages/{owner}/{type}/{name} package deletePackage
 	// ---
 	// summary: Delete a package
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the package
+	//   type: string
+	//   required: true
+	// - name: type
+	//   in: path
+	//   description: type of the package
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	err := packages_service.RemovePackage(ctx, ctx.Doer, ctx.Package.Descriptor.Package)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// DeletePackageVersion deletes a package version
+func DeletePackageVersion(ctx *context.APIContext) {
+	// swagger:operation DELETE /packages/{owner}/{type}/{name}/{version} package deletePackageVersion
+	// ---
+	// summary: Delete a package version
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -294,7 +329,7 @@ func GetLatestPackageVersion(ctx *context.APIContext) {
 		return
 	}
 	if len(pvs) == 0 {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -348,7 +383,7 @@ func LinkPackage(ctx *context.APIContext) {
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -358,7 +393,7 @@ func LinkPackage(ctx *context.APIContext) {
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ctx.PathParam("repo_name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -369,9 +404,9 @@ func LinkPackage(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -410,7 +445,7 @@ func UnlinkPackage(ctx *context.APIContext) {
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -421,9 +456,9 @@ func UnlinkPackage(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}

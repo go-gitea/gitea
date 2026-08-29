@@ -14,19 +14,19 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git/gitcmd"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSelf bool, targetBranch, sourceBranch, title string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the PR button to create a pull
@@ -55,7 +55,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSel
 
 	// Submit the form for creating the pull
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	link, exists = htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists = htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title": title,
@@ -98,7 +98,7 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, opts createPullR
 
 	// Submit the form for creating the pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	params := map[string]string{
 		"title": opts.Title,
@@ -125,7 +125,7 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 
 	// Submit the form for creating the pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title": title,
@@ -189,7 +189,8 @@ func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoNam
 	req := NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
 		"repo_name": repoName,
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 }
 
 func TestPullBranchDelete(t *testing.T) {
@@ -288,8 +289,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 			Readme:        "Default",
 		}).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusCreated)
-		var baseRepo api.Repository
-		DecodeJSON(t, resp, &baseRepo)
+		baseRepo := DecodeJSON(t, resp, &api.Repository{})
 		assert.Equal(t, "main", baseRepo.DefaultBranch)
 
 		forkIntoOrg := func(srcOrg, dstOrg string) api.Repository {
@@ -297,13 +297,12 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 				Organization: new(dstOrg),
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusAccepted)
-			var forkRepo api.Repository
-			DecodeJSON(t, resp, &forkRepo)
+			forkRepo := DecodeJSON(t, resp, &api.Repository{})
 			assert.NotNil(t, forkRepo.Owner)
 			if forkRepo.Owner != nil {
 				assert.Equal(t, dstOrg, forkRepo.Owner.UserName)
 			}
-			return forkRepo
+			return *forkRepo
 		}
 
 		forkIntoOrg(baseOrg, midForkOrg)
@@ -326,8 +325,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 		}
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls", baseOrg, repoName), prPayload).AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusCreated)
-		var pr api.PullRequest
-		DecodeJSON(t, resp, &pr)
+		pr := DecodeJSON(t, resp, &api.PullRequest{})
 		assert.Equal(t, prPayload["title"], pr.Title)
 		if assert.NotNil(t, pr.Head) {
 			assert.Equal(t, patchBranch, pr.Head.Ref)

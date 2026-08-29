@@ -63,7 +63,7 @@ func TestFile(t *testing.T) {
 		{
 			name:      "tags.py",
 			code:      "<>",
-			want:      lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
+			want:      lines(`<span class="o">&lt;&gt;</span>`),
 			lexerName: "Python",
 		},
 		{
@@ -102,7 +102,7 @@ c=2
 <span class="n">def</span><span class="p">:</span>\n
     <span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
 \n
-<span class="n">b</span><span class="o">=</span><span class="sa"></span><span class="s1">&#39;</span><span class="s1">&#39;</span>\n
+<span class="n">b</span><span class="o">=</span><span class="s1">&#39;&#39;</span>\n
     \n
 <span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
 			),
@@ -114,12 +114,23 @@ c=2
 			want:      []template.HTML{"<span class=\"c1\">--\n</span>", `<span class="k">SELECT</span>`},
 			lexerName: "SQL",
 		},
+		{
+			name: "test.http",
+			code: `HTTP/1.0 400 Bad request
+Content-Type: text/html
+
+<html></html>`,
+			want: lines(`<span class="kr">HTTP</span><span class="o">/</span><span class="m">1.0</span> <span class="m">400</span> <span class="ne">Bad request</span>\n
+<span class="n">Content-Type</span><span class="o">:</span> <span class="l">text/html</span>\n
+\n
+<span class="p">&lt;</span><span class="nt">html</span><span class="p">&gt;&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>`),
+			lexerName: "HTTP",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, lexerName, err := RenderFullFile(tt.name, "", []byte(tt.code))
-			assert.NoError(t, err)
+			out, lexerName := RenderFullFile(tt.name, "", []byte(tt.code))
 			assert.Equal(t, tt.want, out)
 			assert.Equal(t, tt.lexerName, lexerName)
 		})
@@ -182,7 +193,7 @@ c=2`),
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out := RenderPlainText([]byte(tt.code))
+			out := renderPlainText([]byte(tt.code))
 			assert.Equal(t, tt.want, out)
 		})
 	}
@@ -204,4 +215,20 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Len(t, ret, 2)
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}
+
+func TestCodeBlockAttributes(t *testing.T) {
+	test := func(t *testing.T, lang string, css, attr template.HTML) {
+		t.Helper()
+		cssActual, attrActual := CodeBlockAttributes(lang)
+		assert.Equal(t, css, cssActual)
+		assert.Equal(t, attr, attrActual)
+	}
+	for _, s := range []string{"", "FALLback", "plainTEXT"} {
+		test(t, s, `class="code-block"`, `class="chroma language-text" data-code-language="text"`)
+	}
+	test(t, "math", `class="code-block is-loading"`, `class="chroma language-math" data-code-language="math"`)
+	test(t, "mermaid", `class="code-block is-loading"`, `class="chroma language-mermaid" data-code-language="mermaid"`)
+	test(t, "Visual Basic.NET", `class="code-block"`, `class="chroma language-visual_basic_net" data-code-language="Visual Basic.NET"`)
+	test(t, "c++-x", `class="code-block"`, `class="chroma language-c___x" data-code-language="c++-x"`)
 }

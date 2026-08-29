@@ -12,14 +12,14 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
 )
 
 type BaseContextKeyType struct{}
@@ -114,7 +114,7 @@ func (b *Base) HTTPError(status int, contents ...string) {
 func (b *Base) JSON(status int, content any) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
-	if err := json.NewEncoder(b.Resp).Encode(content); err != nil {
+	if err := json.MarshalWrite(b.Resp, content); err != nil {
 		log.Error("Render JSON failed: %v", err)
 	}
 }
@@ -159,26 +159,24 @@ func (b *Base) Redirect(location string, status ...int) {
 		// So in this case, we should remove the session cookie from the response header
 		removeSessionCookieHeader(b.Resp)
 	}
-	// in case the request is made by htmx, have it redirect the browser instead of trying to follow the redirect inside htmx
-	if b.Req.Header.Get("HX-Request") == "true" {
-		b.Resp.Header().Set("HX-Redirect", location)
-		// we have to return a non-redirect status code so XMLHTTPRequest will not immediately follow the redirect
-		// so as to give htmx redirect logic a chance to run
-		b.Status(http.StatusNoContent)
+	// In case the request is made by "fetch-action" module, make JS redirect to the new location
+	// Otherwise, the JS fetch will follow the redirection and read a "login" page, embed it to the current page, which is not expected.
+	if b.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
+		b.JSON(http.StatusOK, map[string]any{"redirect": location})
 		return
 	}
 	http.Redirect(b.Resp, b.Req, location, code)
 }
 
-type ServeHeaderOptions httplib.ServeHeaderOptions
+type ServeHeaderOptions = httplib.ServeHeaderOptions
 
-func (b *Base) SetServeHeaders(opt *ServeHeaderOptions) {
-	httplib.ServeSetHeaders(b.Resp, (*httplib.ServeHeaderOptions)(opt))
+func (b *Base) SetServeHeaders(opts ServeHeaderOptions) {
+	httplib.ServeSetHeaders(b.Resp, opts)
 }
 
 // ServeContent serves content to http request
-func (b *Base) ServeContent(r io.ReadSeeker, opts *ServeHeaderOptions) {
-	httplib.ServeSetHeaders(b.Resp, (*httplib.ServeHeaderOptions)(opts))
+func (b *Base) ServeContent(r io.ReadSeeker, opts ServeHeaderOptions) {
+	httplib.ServeSetHeaders(b.Resp, opts)
 	http.ServeContent(b.Resp, b.Req, opts.Filename, opts.LastModified, r)
 }
 
@@ -188,6 +186,26 @@ func (b *Base) Tr(msg string, args ...any) template.HTML {
 
 func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
+}
+
+func CspScriptNonce(ctx reqctx.RequestContext) (ret string) {
+	// Generate a random nonce for each request and cache it in the context to make it usable during the whole rendering process.
+	//
+	// Some "<script>" tags are not in the CSP context, so they don't need nonce,
+	// these tags are written as "<script nonce>" to help developers to know that "no script nonce attribute is missing"
+	// (e.g.: when they grep the codebase for "script" tags)
+	ret, _ = ctx.Value("_cspScriptNonce").(string)
+	if ret == "" {
+		ret = util.FastCryptoRandomHex(32) // 16 bytes / 128 bits entropy
+		ctx.SetContextValue("_cspScriptNonce", ret)
+	}
+	return ret
+}
+
+func (b *Base) SetHeaderContentSecurityPolicyGeneral() {
+	if csp := WebContentSecurityPolicy(CspScriptNonce(b)); csp != "" {
+		b.Resp.Header().Set("Content-Security-Policy", csp)
+	}
 }
 
 func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
@@ -207,11 +225,11 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 	return b
 }
 
-func NewBaseContextForTest(resp http.ResponseWriter, req *http.Request) *Base {
+func NewBaseContextForTest(t reqctx.TestingT, resp http.ResponseWriter, req *http.Request) *Base {
 	if !setting.IsInTesting {
 		panic("This function is only for testing")
 	}
-	ctx := reqctx.NewRequestContextForTest(req.Context())
+	ctx := reqctx.NewRequestContextForTest(t)
 	*req = *req.WithContext(ctx)
 	return NewBaseContext(resp, req)
 }

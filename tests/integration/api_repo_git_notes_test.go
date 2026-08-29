@@ -8,10 +8,10 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,8 +37,7 @@ func TestAPIReposGitNotes(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var apiData api.Note
-		DecodeJSON(t, resp, &apiData)
+		apiData := DecodeJSON(t, resp, &api.Note{})
 		assert.Equal(t, "This is a test note\n", apiData.Message)
 		assert.NotEmpty(t, apiData.Commit.Files)
 		assert.NotNil(t, apiData.Commit.RepoCommit.Verification)

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/assetfs"
+	"gitea.dev/modules/assetfs"
 
 	"github.com/stretchr/testify/assert"
 )

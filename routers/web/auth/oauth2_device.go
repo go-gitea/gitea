@@ -11,17 +11,17 @@ import (
 	"strconv"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/oauth2_provider"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/oauth2_provider"
 )
 
 const (
@@ -34,7 +34,7 @@ var errDeviceAuthorizationGrantScopeMismatch = errors.New("a grant exists with d
 
 // DeviceAuthorizationOAuth issues a device code to a public OAuth client.
 func DeviceAuthorizationOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.DeviceAuthorizationForm)
+	form := web.GetForm[*forms.DeviceAuthorizationForm](ctx)
 	app, err := auth_model.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
@@ -74,13 +74,13 @@ func DeviceAuthorizationOAuth(ctx *context.Context) {
 // When a user_code query parameter is present, the form is pre-filled so the
 // user can submit it as a POST, which is where session state is written.
 func DeviceVerifyShowOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.DeviceVerificationForm)
+	form := web.GetForm[*forms.DeviceVerificationForm](ctx)
 	renderOAuthDeviceAuthorizationEntry(ctx, form.UserCode)
 }
 
 // DeviceVerifyOAuth processes the device verification form (POST).
 func DeviceVerifyOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.DeviceVerificationForm)
+	form := web.GetForm[*forms.DeviceVerificationForm](ctx)
 	userCode := auth_model.NormalizeOAuth2DeviceUserCode(form.UserCode)
 	if userCode == "" {
 		renderOAuthDeviceAuthorizationEntry(ctx, form.UserCode)
@@ -152,7 +152,7 @@ func DeviceVerifyOAuth(ctx *context.Context) {
 
 // DeviceGrantApplicationOAuth stores the user's device-flow consent decision.
 func DeviceGrantApplicationOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.DeviceGrantApplicationForm)
+	form := web.GetForm[*forms.DeviceGrantApplicationForm](ctx)
 	if ctx.Session.Get(oauthDeviceAuthorizationIDKey) != strconv.FormatInt(form.DeviceAuthorizationID, 10) {
 		ctx.HTTPError(http.StatusBadRequest)
 		return

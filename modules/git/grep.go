@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 type GrepResult struct {
@@ -80,7 +80,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := cmd.WithDir(repo.Path).
+	err := cmd.WithRepo(repo).
 		WithTimeout(grepSearchTimeout).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			isInBlock := false

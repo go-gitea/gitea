@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 type LogChecker struct {
@@ -53,11 +53,11 @@ func (lc *LogChecker) checkLogEvent(event *log.EventFormatted) {
 	}
 }
 
-var checkerIndex int64
+var checkerIndex atomic.Int64
 
 func NewLogChecker(namePrefix string) (logChecker *LogChecker, cancel func()) {
 	logger := log.GetManager().GetLogger(namePrefix)
-	newCheckerIndex := atomic.AddInt64(&checkerIndex, 1)
+	newCheckerIndex := checkerIndex.Add(1)
 	writerName := namePrefix + "-" + strconv.FormatInt(newCheckerIndex, 10)
 
 	lc := &LogChecker{}

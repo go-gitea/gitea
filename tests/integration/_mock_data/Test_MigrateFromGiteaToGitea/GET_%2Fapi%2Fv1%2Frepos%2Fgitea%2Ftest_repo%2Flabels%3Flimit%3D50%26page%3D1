@@ -1,0 +1,3 @@
+Content-Type: application/json
+
+[{"id":1,"name":"Bug","color":"#ee0701","description":""},{"id":2,"name":"Question","color":"#d876e3","description":""}]

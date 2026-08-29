@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"time"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // RewriteAllPublicKeys removes any authorized key and rewrite all keys from database again.
@@ -50,8 +50,8 @@ func rewriteAllPublicKeys(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		t.Close()
-		if err := util.Remove(tmpPath); err != nil {
+		_ = t.Close()
+		if err := util.RemoveWithRetry(tmpPath); err != nil {
 			log.Warn("Unable to remove temporary authorized keys file: %s: Error: %v", tmpPath, err)
 		}
 	}()
@@ -74,6 +74,6 @@ func rewriteAllPublicKeys(ctx context.Context) error {
 		return err
 	}
 
-	t.Close()
-	return util.Rename(tmpPath, fPath)
+	_ = t.Close()
+	return util.RenameWithRetry(tmpPath, fPath)
 }

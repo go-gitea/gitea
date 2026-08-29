@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"sort"
 
-	"code.gitea.io/gitea/models/db"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
+	user_model "gitea.dev/models/user"
 
 	"xorm.io/builder"
 )
@@ -356,7 +356,7 @@ func ClearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) 
 			return err
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		perm, err := access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}

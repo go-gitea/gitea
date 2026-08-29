@@ -13,19 +13,20 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
-	web_types "code.gitea.io/gitea/modules/web/types"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
+	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
+	web_types "gitea.dev/modules/web/types"
 )
 
 // Render represents a template render
@@ -63,14 +64,12 @@ type Context struct {
 	Package *Package
 }
 
-type TemplateContext map[string]any
-
 func init() {
 	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(BaseContextKey).(*Base)
+		return reqctx.MustContextValue[*Base](req.Context(), BaseContextKey)
 	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(WebContextKey).(*Context)
+		return reqctx.MustContextValue[*Context](req.Context(), WebContextKey)
 	})
 }
 
@@ -83,29 +82,13 @@ func GetWebContext(ctx context.Context) *Context {
 	return webCtx
 }
 
-// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
-type ValidateContext struct {
-	*Base
-}
-
-// GetValidateContext gets a context for middleware form validation
-func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
-	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
-		ctx = &ValidateContext{Base: ctxAPI.Base}
-	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
-		ctx = &ValidateContext{Base: ctxWeb.Base}
-	} else {
-		panic("invalid context, expect either APIContext or Context")
-	}
-	return ctx
-}
-
 func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, locale translation.Locale) TemplateContext {
 	tmplCtx := NewTemplateContext(ctx, req)
 	tmplCtx["Locale"] = locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
 	tmplCtx["RenderUtils"] = templates.NewRenderUtils(ctx)
 	tmplCtx["MiscUtils"] = templates.NewMiscUtils(ctx)
+	tmplCtx["ActionsUtils"] = templates.NewActionsUtils(ctx)
 	tmplCtx["RootData"] = ctx.GetData()
 	tmplCtx["Consts"] = map[string]any{
 		"RepoUnitTypeCode":            unit.TypeCode,
@@ -165,6 +148,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			base := NewBaseContext(resp, req)
 			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
+			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 			ctx.Data["Link"] = ctx.Link
 
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
@@ -196,11 +180,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-
-			if setting.Security.XFrameOptions != "unset" {
-				ctx.Resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
-			}
+			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{})
 
 			ctx.Data["SystemConfig"] = setting.Config()
 
@@ -211,7 +191,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 			ctx.Data["EnableActions"] = setting.Actions.Enabled && !unit.TypeActions.UnitGlobalDisabled()
 
-			ctx.Data["ManifestData"] = setting.ManifestData
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -224,6 +203,11 @@ func (ctx *Context) DoerNeedTwoFactorAuth() bool {
 		return false
 	}
 	return ctx.Session.Get(session.KeyUserHasTwoFactorAuth) == false
+}
+
+// DoerIsImpersonated returns true if the current session is an admin impersonating the doer
+func (ctx *Context) DoerIsImpersonated() bool {
+	return ctx.Session.Get(session.KeyImpersonatorData) != nil
 }
 
 // HasError returns true if error occurs in form validation.
@@ -259,15 +243,24 @@ func (ctx *Context) JSONOK() {
 	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
 }
 
-func (ctx *Context) JSONError(msg any) {
+func buildJsonErrorMap(msg any) map[string]any {
 	switch v := msg.(type) {
 	case string:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "text"})
+		return map[string]any{"errorMessage": v, "renderFormat": "text"}
 	case template.HTML:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "html"})
-	default:
-		panic(fmt.Sprintf("unsupported type: %T", msg))
+		return map[string]any{"errorMessage": v, "renderFormat": "html"}
 	}
+	panic(fmt.Sprintf("unsupported type: %T", msg))
+}
+
+func (ctx *Context) JSONError(msg any) {
+	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
+}
+
+func (ctx *Context) JSONErrorWithField(msg any, field string) {
+	m := buildJsonErrorMap(msg)
+	m["errorFields"] = []string{field}
+	ctx.JSON(http.StatusBadRequest, m)
 }
 
 func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
@@ -275,5 +268,19 @@ func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
 	if msg == "" {
 		msg = ctx.Locale.TrString("error.not_found")
 	}
-	ctx.JSON(http.StatusNotFound, map[string]any{"errorMessage": msg, "renderFormat": "text"})
+	ctx.JSON(http.StatusNotFound, buildJsonErrorMap(msg))
+}
+
+func GetFetchActionForm[T middleware.Form](ctx *Context) (ret T) {
+	if web.IsFormSet(ctx) {
+		panic("don't mix fetch-action form validation with template-based form validation")
+	}
+	form, errs := middleware.BindFormValidate[T](ctx.Req, validation.Binder())
+	errorMessage, fieldName, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
+	if errorMessage != "" {
+		ctx.Resp.Header().Set("Content-Type", "application/json")
+		ctx.JSONErrorWithField(errorMessage, fieldName)
+		return ret
+	}
+	return form
 }

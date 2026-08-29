@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 )
 
 type EmbeddedFile interface {

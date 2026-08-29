@@ -5,6 +5,8 @@ on:
     - cron: "7 0 * * *" # every day at 00:07 UTC
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   crowdin-pull:
     runs-on: ubuntu-latest
@@ -12,8 +14,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: crowdin/github-action@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: crowdin/github-action@c7af9bc98b01694653031fef2a0dc6c7888ce9bc # v2.17.0
         with:
           upload_sources: true
           upload_translations: false
@@ -29,7 +31,7 @@ jobs:
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
-        uses: appleboy/git-push-action@v1.2.0
+        uses: appleboy/git-push-action@3b2c8661652360dbf1afe1b319a49dbb739c39f1 # v1.2.0
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot

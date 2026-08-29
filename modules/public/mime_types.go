@@ -4,31 +4,36 @@
 package public
 
 import (
+	"mime"
 	"strings"
+	"sync"
 )
 
-// wellKnownMimeTypesLower comes from Golang's builtin mime package: `builtinTypesLower`, see the comment of DetectWellKnownMimeType
-var wellKnownMimeTypesLower = map[string]string{
-	".avif": "image/avif",
-	".css":  "text/css; charset=utf-8",
-	".gif":  "image/gif",
-	".htm":  "text/html; charset=utf-8",
-	".html": "text/html; charset=utf-8",
-	".jpeg": "image/jpeg",
-	".jpg":  "image/jpeg",
-	".js":   "text/javascript; charset=utf-8",
-	".json": "application/json",
-	".mjs":  "text/javascript; charset=utf-8",
-	".pdf":  "application/pdf",
-	".png":  "image/png",
-	".svg":  "image/svg+xml",
-	".wasm": "application/wasm",
-	".webp": "image/webp",
-	".xml":  "text/xml; charset=utf-8",
+// wellKnownMimeTypesLower comes from Golang's builtin mime package: `builtinTypesLower`,
+// see the comment of DetectWellKnownMimeType
+var wellKnownMimeTypesLower = sync.OnceValue(func() map[string]string {
+	return map[string]string{
+		".avif": "image/avif",
+		".css":  "text/css; charset=utf-8",
+		".gif":  "image/gif",
+		".htm":  "text/html; charset=utf-8",
+		".html": "text/html; charset=utf-8",
+		".jpeg": "image/jpeg",
+		".jpg":  "image/jpeg",
+		".js":   "text/javascript; charset=utf-8",
+		".json": "application/json",
+		".mjs":  "text/javascript; charset=utf-8",
+		".pdf":  "application/pdf",
+		".png":  "image/png",
+		".svg":  "image/svg+xml",
+		".wasm": "application/wasm",
+		".webp": "image/webp",
+		".xml":  "text/xml; charset=utf-8",
 
-	// well, there are some types missing from the builtin list
-	".txt": "text/plain; charset=utf-8",
-}
+		// well, there are some types missing from the builtin list
+		".txt": "text/plain; charset=utf-8",
+	}
+})
 
 // DetectWellKnownMimeType will return the mime-type for a well-known file ext name
 // The purpose of this function is to bypass the unstable behavior of Golang's mime.TypeByExtension
@@ -38,5 +43,8 @@ var wellKnownMimeTypesLower = map[string]string{
 // DetectWellKnownMimeType makes the Content-Type for well-known files stable.
 func DetectWellKnownMimeType(ext string) string {
 	ext = strings.ToLower(ext)
-	return wellKnownMimeTypesLower[ext]
+	if s, ok := wellKnownMimeTypesLower()[ext]; ok {
+		return s
+	}
+	return mime.TypeByExtension(ext)
 }

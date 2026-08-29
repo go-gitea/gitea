@@ -9,13 +9,15 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/util"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -61,6 +63,8 @@ type LayeredFS struct {
 	layers []*Layer
 }
 
+var _ fs.ReadDirFS = (*LayeredFS)(nil)
+
 // Layered returns a new LayeredFS with the given layers. The first layer is the top layer.
 func Layered(layers ...*Layer) *LayeredFS {
 	return &LayeredFS{layers: layers}
@@ -81,6 +85,27 @@ func (l *LayeredFS) Open(name string) (fs.File, error) {
 func (l *LayeredFS) ReadFile(elems ...string) ([]byte, error) {
 	bs, _, err := l.ReadLayeredFile(elems...)
 	return bs, err
+}
+
+func (l *LayeredFS) ReadDir(name string) (files []fs.DirEntry, _ error) {
+	filesMap := map[string]fs.DirEntry{}
+	for _, layer := range l.layers {
+		entries, err := readDirOptional(layer, name)
+		if err != nil {
+			return nil, err
+		}
+		for _, entry := range entries {
+			entryName := entry.Name()
+			if _, exist := filesMap[entryName]; !exist && shouldInclude(entry) {
+				filesMap[entryName] = entry
+			}
+		}
+	}
+	for _, file := range filesMap {
+		files = append(files, file)
+	}
+	slices.SortFunc(files, func(a, b fs.DirEntry) int { return strings.Compare(a.Name(), b.Name()) })
+	return files, nil
 }
 
 // ReadLayeredFile reads the named file, and returns the layer name.

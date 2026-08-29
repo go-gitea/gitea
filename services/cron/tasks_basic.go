@@ -7,19 +7,19 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
-	repo_service "code.gitea.io/gitea/services/repository"
-	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/repostats"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/auth"
+	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
+	packages_cleanup_service "gitea.dev/services/packages/cleanup"
+	repo_service "gitea.dev/services/repository"
+	archiver_service "gitea.dev/services/repository/archiver"
 )
 
 func registerUpdateMirrorTask() {
@@ -37,9 +37,8 @@ func registerUpdateMirrorTask() {
 		},
 		PullLimit: 50,
 		PushLimit: 50,
-	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
-		umtc := cfg.(*UpdateMirrorTaskConfig)
-		return mirror_service.Update(ctx, umtc.PullLimit, umtc.PushLimit)
+	}, func(ctx context.Context, _ *user_model.User, cfg *UpdateMirrorTaskConfig) error {
+		return mirror_service.Update(ctx, cfg.PullLimit, cfg.PushLimit)
 	})
 }
 
@@ -57,10 +56,9 @@ func registerRepoHealthCheck() {
 		},
 		Timeout: time.Duration(setting.Git.Timeout.GC) * time.Second,
 		Args:    []string{},
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		rhcConfig := config.(*RepoHealthCheckConfig)
+	}, func(ctx context.Context, _ *user_model.User, config *RepoHealthCheckConfig) error {
 		// the git args are set by config, they can be safe to be trusted
-		return repo_service.GitFsckRepos(ctx, rhcConfig.Timeout, gitcmd.ToTrustedCmdArgs(rhcConfig.Args))
+		return repo_service.GitFsckRepos(ctx, config.Timeout, gitcmd.ToTrustedCmdArgs(config.Args))
 	})
 }
 
@@ -69,8 +67,8 @@ func registerCheckRepoStats() {
 		Enabled:    true,
 		RunAtStart: true,
 		Schedule:   "@midnight",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return models.CheckRepoStats(ctx)
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		return repostats.CheckRepoStats(ctx)
 	})
 }
 
@@ -82,9 +80,8 @@ func registerArchiveCleanup() {
 			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		acConfig := config.(*OlderThanConfig)
-		return archiver_service.DeleteOldRepositoryArchives(ctx, acConfig.OlderThan)
+	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
+		return archiver_service.DeleteOldRepositoryArchives(ctx, config.OlderThan)
 	})
 }
 
@@ -96,9 +93,8 @@ func registerSyncExternalUsers() {
 			Schedule:   "@midnight",
 		},
 		UpdateExisting: true,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		realConfig := config.(*UpdateExistingConfig)
-		return auth.SyncExternalUsers(ctx, realConfig.UpdateExisting)
+	}, func(ctx context.Context, _ *user_model.User, config *UpdateExistingConfig) error {
+		return auth.SyncExternalUsers(ctx, config.UpdateExisting)
 	})
 }
 
@@ -110,9 +106,8 @@ func registerDeletedBranchesCleanup() {
 			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		realConfig := config.(*OlderThanConfig)
-		git_model.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
+	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
+		git_model.RemoveOldDeletedBranches(ctx, config.OlderThan)
 		return nil
 	})
 }
@@ -122,7 +117,7 @@ func registerUpdateMigrationPosterID() {
 		Enabled:    true,
 		RunAtStart: true,
 		Schedule:   "@midnight",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return migrations.UpdateMigrationPosterID(ctx)
 	})
 }
@@ -137,9 +132,8 @@ func registerCleanupHookTaskTable() {
 		CleanupType:  "OlderThan",
 		OlderThan:    168 * time.Hour,
 		NumberToKeep: 10,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		realConfig := config.(*CleanupHookTaskConfig)
-		return webhook.CleanupHookTaskTable(ctx, webhook.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.OlderThan, realConfig.NumberToKeep)
+	}, func(ctx context.Context, _ *user_model.User, config *CleanupHookTaskConfig) error {
+		return webhook.CleanupHookTaskTable(ctx, webhook.ToHookTaskCleanupType(config.CleanupType), config.OlderThan, config.NumberToKeep)
 	})
 }
 
@@ -151,9 +145,8 @@ func registerCleanupPackages() {
 			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		realConfig := config.(*OlderThanConfig)
-		return packages_cleanup_service.CleanupTask(ctx, realConfig.OlderThan)
+	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
+		return packages_cleanup_service.CleanupTask(ctx, config.OlderThan)
 	})
 }
 
@@ -162,7 +155,7 @@ func registerCleanupDeviceAuthorizations() {
 		Enabled:    true,
 		RunAtStart: false,
 		Schedule:   "@every 24h",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return auth_model.DeleteExpiredDeviceAuthorizations(ctx)
 	})
 }
@@ -172,7 +165,7 @@ func registerSyncRepoLicenses() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@annually",
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return repo_service.SyncRepoLicenses(ctx)
 	})
 }

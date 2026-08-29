@@ -17,22 +17,21 @@ import (
 	"sync"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/go-chi/cors"
 )
@@ -59,8 +58,6 @@ func CorsHandler() func(next http.Handler) http.Handler {
 // httpBase does the common work for git http services,
 // including early response, authentication, repository lookup and permission check.
 func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
-	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
-
 	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return nil
@@ -94,11 +91,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 	isWiki := false
 	unitType := unit.TypeCode
-
-	if strings.HasSuffix(reponame, ".wiki") {
+	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = true
 		unitType = unit.TypeWiki
-		reponame = reponame[:len(reponame)-5]
+		repoName = repoName[:len(repoName)-5]
 	}
 
 	owner := ctx.ContextUser
@@ -108,14 +105,14 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	}
 
 	repoExist := true
-	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, reponame)
+	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, repoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return nil
 		}
 
-		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, reponame); err == nil {
+		if redirectRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, repoName); err == nil {
 			context.RedirectToRepo(ctx.Base, redirectRepoID)
 			return nil
 		}
@@ -128,23 +125,26 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		return nil
 	}
 
-	// Only public pull don't need auth.
-	isPublicPull := repoExist && !repo.IsPrivate && isPull
-	askAuth := !isPublicPull || setting.Service.RequireSignInViewStrict
-
-	// don't allow anonymous pulls if organization is not public
-	if isPublicPull {
-		if err := repo.LoadOwner(ctx); err != nil {
-			ctx.ServerError("LoadOwner", err)
-			return nil
+	// Only public pulls don't need auth: repo must exist, not require-sign-in
+	canAnonymousPull := false
+	if isPull && repoExist && !setting.Service.RequireSignInViewStrict {
+		// allow anonymous pulls if owner is public and repo is public (not private)
+		if owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate {
+			canAnonymousPull = true
 		}
-
-		askAuth = askAuth || (repo.Owner.Visibility != structs.VisibleTypePublic)
+		// then check "public anonymous access" permission
+		if !canAnonymousPull && ctx.Doer == nil {
+			anonPerm, err := access_model.GetDoerRepoPermission(ctx, repo, nil)
+			if err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
+				return nil
+			}
+			canAnonymousPull = anonPerm.CanAccess(accessMode, unitType)
+		}
 	}
 
 	// check access
-	if askAuth {
-		// rely on the results of Contexter
+	if !canAnonymousPull { // not public pull, then either the pull needs auth, or the push needs "write" permission, so ask auth
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			if setting.OAuth2.Enabled {
@@ -163,7 +163,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && !ctx.Doer.IsGiteaActions() {
+		if ctx.IsBasicAuth && ctx.Data["ApiTokenScope"] == nil && ctx.Doer.IsIndividual() {
 			_, err = auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
@@ -181,34 +181,20 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 
 		if repoExist {
-			// Because of special ref "refs/for" (agit) , need delay write permission check
-			if git.DefaultFeatures().SupportProcReceive {
+			// Only the main code repo accepts refs/for pushes, so wiki pushes must keep write checks.
+			if git.DefaultFeatures().SupportProcReceive && !isWiki {
 				accessMode = perm.AccessModeRead
 			}
 
-			taskID, isActionsUser := user_model.GetActionsUserTaskID(ctx.Doer)
-			if isActionsUser {
-				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
-				if err != nil {
-					ctx.ServerError("GetActionsUserRepoPermission", err)
-					return nil
-				}
+			p, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetDoerRepoPermission", err)
+				return nil
+			}
 
-				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusNotFound, "Repository not found")
-					return nil
-				}
-			} else {
-				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
-					return nil
-				}
-
-				if !p.CanAccess(accessMode, unitType) {
-					ctx.PlainText(http.StatusNotFound, "Repository not found")
-					return nil
-				}
+			if !p.CanAccess(accessMode, unitType) {
+				ctx.PlainText(http.StatusNotFound, "Repository not found")
+				return nil
 			}
 
 			if !isPull && repo.IsMirror {
@@ -244,7 +230,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, repoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)
@@ -266,7 +252,6 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 	var environ []string
 	if !isPull {
-		// if not "pull", then must be "push", and doer must exist
 		environ = repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
 	}
 
@@ -280,20 +265,20 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
+		tmpEmptyRepoDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return
 		}
 		defer cleanup()
 
-		if err := git.InitRepository(ctx, tmpDir, true, git.Sha1ObjectFormat.Name()); err != nil {
+		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, git.Sha1ObjectFormat.Name()); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}
 
 		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").
-			WithDir(tmpDir).
+			WithDir(tmpEmptyRepoDir).
 			RunStdBytes(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
@@ -320,11 +305,11 @@ type serviceHandler struct {
 	environ []string
 }
 
-func (h *serviceHandler) getStorageRepo() gitrepo.Repository {
+func (h *serviceHandler) getStorageRepo() git.RepositoryFacade {
 	if h.isWiki {
 		return h.repo.WikiStorageRepo()
 	}
-	return h.repo
+	return h.repo.CodeStorageRepo()
 }
 
 func setHeaderNoCache(ctx *context.Context) {
@@ -357,7 +342,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 		return
 	}
 
-	fs := gitrepo.GetRepoFS(h.getStorageRepo())
+	fs := gitrepo.RepoLocalFS(h.getStorageRepo())
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	http.ServeFileFS(ctx.Resp, ctx.Req, fs, path.Clean(file))
 }
@@ -426,13 +411,15 @@ func serviceRPC(ctx *context.Context, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	if err := gitrepo.RunCmdWithStderr(ctx, h.getStorageRepo(), cmd.AddArguments(".").
-		WithEnv(append(os.Environ(), h.environ...)).
+	err := cmd.AddArguments(".").
+		WithRepo(h.getStorageRepo()).WithEnv(append(os.Environ(), h.environ...)).
 		WithStdinCopy(reqBody).
-		WithStdoutCopy(ctx.Resp),
-	); err != nil {
+		WithStdoutCopy(ctx.Resp).
+		RunWithStderr(ctx)
+	if err != nil {
 		if !gitcmd.IsErrorCanceledOrKilled(err) {
-			log.Error("Fail to serve RPC(%s) in %s: %v", service, h.getStorageRepo().RelativePath(), err)
+			repoLogName := h.repo.FullName() + util.Iif(h.isWiki, ".wiki", "")
+			log.Error("Fail to serve RPC(%s) for repo %s: %v", service, repoLogName, err)
 		}
 	}
 }
@@ -475,7 +462,7 @@ func GetInfoRefs(ctx *context.Context) {
 	if h.serviceType == "" {
 		// it's said that some legacy git clients will send requests to "/info/refs" without "service" parameter,
 		// although there should be no such case client in the modern days. TODO: not quite sure why we need this UpdateServerInfo logic
-		if err := gitrepo.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
+		if err := git.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
 			ctx.ServerError("UpdateServerInfo", err)
 			return
 		}
@@ -495,7 +482,7 @@ func GetInfoRefs(ctx *context.Context) {
 	h.environ = append(os.Environ(), h.environ...)
 
 	cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(h.environ)
-	refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd)
+	refs, _, err := cmd.WithRepo(h.getStorageRepo()).RunStdBytes(ctx)
 	if err != nil {
 		ctx.ServerError("RunGitServiceAdvertiseRefs", err)
 		return

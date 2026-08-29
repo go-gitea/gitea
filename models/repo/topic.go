@@ -9,10 +9,10 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -42,12 +42,6 @@ type RepoTopic struct { //revive:disable-line:exported
 // ErrTopicNotExist represents an error that a topic is not exist
 type ErrTopicNotExist struct {
 	Name string
-}
-
-// IsErrTopicNotExist checks if an error is an ErrTopicNotExist.
-func IsErrTopicNotExist(err error) bool {
-	_, ok := err.(ErrTopicNotExist)
-	return ok
 }
 
 // Error implements error interface

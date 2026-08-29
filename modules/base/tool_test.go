@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -74,23 +74,6 @@ JWT_SECRET = %s
 		initGeneralSecret("000_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko")
 		assert.False(t, verifyDataCode(code))
 	})
-}
-
-func TestFileSize(t *testing.T) {
-	var size int64 = 512
-	assert.Equal(t, "512 B", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 KiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 MiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 GiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 TiB", FileSize(size))
-	size *= 1024
-	assert.Equal(t, "512 PiB", FileSize(size))
-	size *= 4
-	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
 func TestStringsToInt64s(t *testing.T) {

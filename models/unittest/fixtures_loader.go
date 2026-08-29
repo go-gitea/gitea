@@ -4,6 +4,7 @@
 package unittest
 
 import (
+	"context"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
@@ -11,10 +12,11 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
@@ -32,7 +34,8 @@ type FixtureItem struct {
 
 type fixturesLoaderInternal struct {
 	xormEngine       *xorm.Engine
-	xormTableNames   map[string]bool
+	tableSyncMu      sync.Mutex
+	tableSynced      map[string]bool
 	db               *sql.DB
 	dbType           schemas.DBType
 	fixtures         map[string]*FixtureItem
@@ -148,23 +151,37 @@ func (f *fixturesLoaderInternal) Load() error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	ctx := context.WithValue(context.Background(), db.ContextKeyTestFixtures, true)
+
+	f.tableSyncMu.Lock()
+	defer f.tableSyncMu.Unlock()
+
 	for _, fixture := range f.fixtures {
-		if !f.xormTableNames[fixture.tableName] {
+		synced, existing := f.tableSynced[fixture.tableName]
+		if synced || !existing {
 			continue
 		}
 		if err := f.loadFixtures(tx, fixture); err != nil {
 			return fmt.Errorf("failed to load fixtures from %s: %w", fixture.fileFullPath, err)
 		}
+		f.tableSynced[fixture.tableName] = true
 	}
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	for xormTableName := range f.xormTableNames {
-		if f.fixtures[xormTableName] == nil {
-			_, _ = f.xormEngine.Exec("DELETE FROM `" + xormTableName + "`")
+	for tableName, synced := range f.tableSynced {
+		if !synced && f.fixtures[tableName] == nil {
+			_, _ = f.xormEngine.Context(ctx).Exec("DELETE FROM `" + tableName + "`")
 		}
+		f.tableSynced[tableName] = true
 	}
 	return nil
+}
+
+func (f *fixturesLoaderInternal) MarkTableChanged(tableName string) {
+	f.tableSyncMu.Lock()
+	defer f.tableSyncMu.Unlock()
+	f.tableSynced[tableName] = false
 }
 
 func FixturesFileFullPaths(dir string, files []string) (map[string]*FixtureItem, error) {
@@ -199,7 +216,7 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 		return nil, fmt.Errorf("failed to get fixtures files: %w", err)
 	}
 
-	f := &fixturesLoaderInternal{xormEngine: x, db: x.DB().DB, dbType: x.Dialect().URI().DBType, fixtures: fixtureItems}
+	f := &fixturesLoaderInternal{xormEngine: x, db: x.DB().DB, dbType: x.Dialect().URI().DBType, fixtures: fixtureItems, tableSynced: map[string]bool{}}
 	switch f.dbType {
 	case schemas.SQLITE:
 		f.quoteObject = func(s string) string { return fmt.Sprintf(`"%s"`, s) }
@@ -215,11 +232,12 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 		f.paramPlaceholder = func(idx int) string { return "?" }
 	}
 
+	// If a model is not imported in a package (no bean is registered), the table won't exist in database.
+	// So only use tables of registered models (beans).
 	xormBeans, _ := db.NamesToBean()
-	f.xormTableNames = map[string]bool{}
 	for _, bean := range xormBeans {
-		f.xormTableNames[x.TableName(bean)] = true
+		beanTableName := x.TableName(bean)
+		f.tableSynced[trimTableNameQuotes(beanTableName)] = false
 	}
-
 	return f, nil
 }

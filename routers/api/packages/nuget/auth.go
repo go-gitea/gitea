@@ -6,8 +6,8 @@ package nuget
 import (
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/services/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/services/auth"
 )
 
 var _ auth.Method = &Auth{}

@@ -8,9 +8,9 @@ import (
 	"reflect"
 	"sync"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 type CfgSecKey struct {
@@ -78,11 +78,16 @@ func isZeroOrEmpty(v any) bool {
 	return false
 }
 
+var SkipDatabaseConfig bool
+
 func (opt *Option[T]) ValueRevision(ctx context.Context) (v T, rev int, has bool) {
 	dg := GetDynGetter()
 	if dg == nil {
 		// this is an edge case: the database is not initialized but the system setting is going to be used
 		// it should panic to avoid inconsistent config values (from config / system setting) and fix the code
+		if SkipDatabaseConfig {
+			return opt.DefaultValue(), 0, false
+		}
 		panic("no config dyn value getter")
 	}
 
