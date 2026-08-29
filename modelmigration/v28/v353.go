@@ -15,7 +15,7 @@ type AuditEvent struct {
 	Action           string `xorm:"INDEX NOT NULL"`
 	ActorID          int64  `xorm:"INDEX NOT NULL"`
 	ActorName        string
-	ActorExtData     string
+	ActorCredential  string
 	ImpersonatorID   int64 `xorm:"INDEX"`
 	ImpersonatorName string
 	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`

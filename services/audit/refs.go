@@ -25,14 +25,18 @@ func actorRef(doer *user_model.User) audit_model.EntityRef {
 	return audit_model.EntityRef{Type: audit_model.ScopeUser, ID: doer.ID, Name: doer.Name}
 }
 
-// actorExtData identifies the concrete actor behind a system user, so events
-// from Gitea Actions or a deploy key name the task or key instead of only the
-// shared bot account.
-func actorExtData(doer *user_model.User) string {
-	if doer == nil || doer.ExtDoerData == nil {
+// actorCredential names what the actor acted with: the task or key behind a
+// system user, otherwise the token the surrounding request authenticated with.
+// An incident then traces one credential across every event it produced,
+// instead of stopping at the account that owns it.
+func actorCredential(ctx context.Context, doer *user_model.User) string {
+	if doer == nil {
 		return ""
 	}
-	return doer.ExtDoerData.EncodeToString()
+	if doer.ExtDoerData != nil {
+		return doer.ExtDoerData.EncodeToString()
+	}
+	return credentialFromContext(ctx, doer)
 }
 
 // impersonatorRef names the admin behind an impersonated session. It is dropped

@@ -107,17 +107,27 @@ func TestBuildEvent(t *testing.T) {
 	t.Run("SystemActorNamesTaskOrKey", func(t *testing.T) {
 		actions := user_model.NewActionsUserWithTaskID(42)
 		e := buildEvent(context.Background(), RecordParams{
-			Action:       audit_model.UserCreate,
-			Actor:        actorRef(actions),
-			ActorExtData: actorExtData(actions),
-			Scope:        ScopeFromUser(u),
+			Action:          audit_model.UserCreate,
+			Actor:           actorRef(actions),
+			ActorCredential: actorCredential(context.Background(), actions),
+			Scope:           ScopeFromUser(u),
 		})
 		assert.Equal(t, user_model.ActionsUserID, e.ActorID)
-		assert.Equal(t, "gitea-actions:42", e.ActorExtData)
+		assert.Equal(t, "gitea-actions:42", e.ActorCredential)
 
 		key := user_model.NewDeployKeyUserWithKeyID(7)
-		assert.Equal(t, "deploy-key:7", actorExtData(key))
-		assert.Empty(t, actorExtData(doer))
+		assert.Equal(t, "deploy-key:7", actorCredential(context.Background(), key))
+		assert.Empty(t, actorCredential(context.Background(), doer))
+	})
+
+	t.Run("CredentialFromRequest", func(t *testing.T) {
+		ctx := newRequestContext(t, doer)
+		middleware.GetContextData(ctx)[middleware.ContextDataKeyAuthCredential] = "access-token:9"
+		assert.Equal(t, "access-token:9", actorCredential(ctx, doer))
+
+		// an event recorded for someone other than the signed-in user is not
+		// tied to the credential of that request
+		assert.Empty(t, actorCredential(ctx, u))
 	})
 
 	t.Run("IPAddressFromRequest", func(t *testing.T) {

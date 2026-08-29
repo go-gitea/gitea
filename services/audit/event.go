@@ -20,12 +20,12 @@ import (
 // RecordParams describes an audit event. Callers (or domain-specific helpers)
 // supply metadata; the message is rendered from the action's template.
 type RecordParams struct {
-	Action       audit_model.Action
-	Actor        audit_model.EntityRef
-	ActorExtData string
-	Impersonator *audit_model.EntityRef
-	Scope        audit_model.EntityRef
-	Metadata     map[string]any
+	Action          audit_model.Action
+	Actor           audit_model.EntityRef
+	ActorCredential string
+	Impersonator    *audit_model.EntityRef
+	Scope           audit_model.EntityRef
+	Metadata        map[string]any
 }
 
 type originContextKeyType struct{}
@@ -39,18 +39,18 @@ func WithOrigin(ctx context.Context, origin audit_model.Origin) context.Context 
 
 func buildEvent(ctx context.Context, params RecordParams) *audit_model.Event {
 	e := &audit_model.Event{
-		Action:        params.Action,
-		ActorID:       params.Actor.ID,
-		ActorName:     params.Actor.DisplayName(),
-		ActorExtData:  params.ActorExtData,
-		ScopeType:     params.Scope.Type,
-		ScopeID:       params.Scope.ID,
-		ScopeName:     params.Scope.DisplayName(),
-		Message:       renderMessage(params.Action, params.Actor, params.Scope, params.Metadata),
-		Metadata:      audit_model.EncodeMetadata(params.Metadata),
-		IPAddress:     getIPAddress(ctx),
-		Origin:        getOrigin(ctx),
-		TimestampUnix: timeutil.TimeStamp(time.Now().Unix()),
+		Action:          params.Action,
+		ActorID:         params.Actor.ID,
+		ActorName:       params.Actor.DisplayName(),
+		ActorCredential: params.ActorCredential,
+		ScopeType:       params.Scope.Type,
+		ScopeID:         params.Scope.ID,
+		ScopeName:       params.Scope.DisplayName(),
+		Message:         renderMessage(params.Action, params.Actor, params.Scope, params.Metadata),
+		Metadata:        audit_model.EncodeMetadata(params.Metadata),
+		IPAddress:       getIPAddress(ctx),
+		Origin:          getOrigin(ctx),
+		TimestampUnix:   timeutil.TimeStamp(time.Now().Unix()),
 	}
 	if params.Impersonator != nil {
 		e.ImpersonatorID = params.Impersonator.ID
@@ -107,12 +107,12 @@ func Record(ctx context.Context, action audit_model.Action, scope any, metadata 
 // acting user is not the one the context resolves to.
 func RecordAs(ctx context.Context, doer *user_model.User, action audit_model.Action, scope any, metadata ...any) {
 	writeEvent(ctx, RecordParams{
-		Action:       action,
-		Actor:        actorRef(doer),
-		ActorExtData: actorExtData(doer),
-		Impersonator: impersonatorRef(ImpersonatorFromContext(ctx), doer),
-		Scope:        scopeRef(scope),
-		Metadata:     metaPairs(metadata...),
+		Action:          action,
+		Actor:           actorRef(doer),
+		ActorCredential: actorCredential(ctx, doer),
+		Impersonator:    impersonatorRef(ImpersonatorFromContext(ctx), doer),
+		Scope:           scopeRef(scope),
+		Metadata:        metaPairs(metadata...),
 	})
 }
 

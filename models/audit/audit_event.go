@@ -24,7 +24,7 @@ type Event struct {
 	Action           Action `xorm:"INDEX NOT NULL"`
 	ActorID          int64  `xorm:"INDEX NOT NULL"`
 	ActorName        string
-	ActorExtData     string // Identifies the concrete actor behind a system user, e.g. "gitea-actions:<task id>" or "deploy-key:<key id>".
+	ActorCredential  string // Credential the actor acted with, e.g. "access-token:<id>", "oauth2-grant:<id>", "gitea-actions:<task id>" or "deploy-key:<key id>".
 	ImpersonatorID   int64  `xorm:"INDEX"` // Admin acting as the actor; zero when the actor acted themselves.
 	ImpersonatorName string
 	ScopeID          int64     `xorm:"INDEX(scope) NOT NULL"` // Entity ID within ScopeType; zero for system.
@@ -63,30 +63,30 @@ func (e *Event) Time() time.Time {
 
 // eventJSON is the nested JSONL export / import shape.
 type eventJSON struct {
-	Action       Action         `json:"action"`
-	Actor        EntityRef      `json:"actor"`
-	ActorExtData string         `json:"actor_ext_data,omitempty"`
-	Impersonator *EntityRef     `json:"impersonator,omitempty"`
-	Scope        EntityRef      `json:"scope"`
-	Message      string         `json:"message"`
-	Metadata     map[string]any `json:"metadata,omitempty"`
-	Time         time.Time      `json:"time"`
-	IPAddress    string         `json:"ip_address"`
-	Origin       Origin         `json:"origin"`
+	Action          Action         `json:"action"`
+	Actor           EntityRef      `json:"actor"`
+	ActorCredential string         `json:"actor_credential,omitempty"`
+	Impersonator    *EntityRef     `json:"impersonator,omitempty"`
+	Scope           EntityRef      `json:"scope"`
+	Message         string         `json:"message"`
+	Metadata        map[string]any `json:"metadata,omitempty"`
+	Time            time.Time      `json:"time"`
+	IPAddress       string         `json:"ip_address"`
+	Origin          Origin         `json:"origin"`
 }
 
 func (e *Event) MarshalJSON() ([]byte, error) {
 	return json.Marshal(eventJSON{
-		Action:       e.Action,
-		Actor:        e.Actor(),
-		ActorExtData: e.ActorExtData,
-		Impersonator: e.Impersonator(),
-		Scope:        e.Scope(),
-		Message:      e.Message,
-		Metadata:     DecodeMetadata(e.Metadata),
-		Time:         e.Time(),
-		IPAddress:    e.IPAddress,
-		Origin:       e.Origin,
+		Action:          e.Action,
+		Actor:           e.Actor(),
+		ActorCredential: e.ActorCredential,
+		Impersonator:    e.Impersonator(),
+		Scope:           e.Scope(),
+		Message:         e.Message,
+		Metadata:        DecodeMetadata(e.Metadata),
+		Time:            e.Time(),
+		IPAddress:       e.IPAddress,
+		Origin:          e.Origin,
 	})
 }
 
@@ -98,7 +98,7 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 	e.Action = j.Action
 	e.ActorID = j.Actor.ID
 	e.ActorName = j.Actor.Name
-	e.ActorExtData = j.ActorExtData
+	e.ActorCredential = j.ActorCredential
 	if j.Impersonator != nil {
 		e.ImpersonatorID = j.Impersonator.ID
 		e.ImpersonatorName = j.Impersonator.Name

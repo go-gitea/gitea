@@ -11,8 +11,10 @@ import (
 	"testing"
 
 	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/tests"
@@ -60,6 +62,28 @@ func TestAdminAuditLogImpersonation(t *testing.T) {
 	require.NotNil(t, exit)
 	assert.Equal(t, int64(1), exit.ActorID)
 	assert.Zero(t, exit.ImpersonatorID)
+}
+
+// A leaked token is only traceable if events name the token, not just its owner.
+func TestAdminAuditLogTokenCredential(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &api.CreateRepoOption{
+		Name: "audit-credential-repo",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+
+	events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{
+		Action:  audit_model.RepositoryCreate,
+		ActorID: 2,
+	})
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.True(t, strings.HasPrefix(events[0].ActorCredential, "access-token:"), "unexpected credential %q", events[0].ActorCredential)
 }
 
 func TestAdminAuditLogExport(t *testing.T) {
