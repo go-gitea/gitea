@@ -136,6 +136,7 @@
   "show_full_screen": "Show full screen",
   "download_logs": "Download logs",
   "confirm_delete_selected": "Confirm to delete all selected items?",
+  "confirm_remove": "Confirm to remove?",
   "name": "Name",
   "value": "Value",
   "readme": "Readme",

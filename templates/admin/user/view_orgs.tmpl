@@ -42,7 +42,9 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button link-action" type="button" data-url="{{ctx.RootData.Link}}/orgs/{{$org.ID}}/remove">{{ctx.Locale.Tr "remove"}}</button>
+					<button class="ui red tiny button link-action" type="button" data-url="{{ctx.RootData.Link}}/orgs/{{$org.ID}}/remove"
+						data-modal-confirm="{{ctx.Locale.Tr "confirm_remove"}}"
+					>{{ctx.Locale.Tr "remove"}}</button>
 				</div>
 			</div>
 		{{end}}
