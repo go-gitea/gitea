@@ -535,7 +535,7 @@ func RemoveUserFromOrg(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("admin.users.org_removed"))
+	ctx.Flash.Success(ctx.Tr("admin.users.org_removed", org.Name))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 }
 

@@ -3100,7 +3100,7 @@
   "admin.users.purge_help": "Forcibly delete user and any repositories, organizations, and packages owned by the user. All comments will be deleted too.",
   "admin.users.still_own_packages": "This user still owns one or more packages. Delete these packages first.",
   "admin.users.deletion_success": "The user account has been deleted.",
-  "admin.users.org_removed": "User has been removed from the organization.",
+  "admin.users.org_removed": "User has been removed from the organization %s.",
   "admin.users.all_orgs_removed": "User has been removed from all organizations.",
   "admin.users.no_orgs_removed": "Failed to remove user from organizations (may be last owner).",
   "admin.users.some_orgs_removed": "User removed from %d of %d organizations (some may require another owner first).",
