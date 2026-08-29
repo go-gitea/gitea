@@ -111,10 +111,12 @@ func RecordScoped(ctx context.Context, owner *user_model.User, repo *repository_
 		log.Error("audit: no action configured for scope type %s", scope.Type)
 		return
 	}
+	doer := doerFromContext(ctx)
 	writeEvent(ctx, RecordParams{
-		Action:   action,
-		Actor:    actorRef(doerFromContext(ctx)),
-		Scope:    scope,
-		Metadata: metaPairs(metadata...),
+		Action:       action,
+		Actor:        actorRef(doer),
+		ActorExtData: actorExtData(doer),
+		Scope:        scope,
+		Metadata:     metaPairs(metadata...),
 	})
 }

@@ -57,6 +57,9 @@
 						{{else}}
 							<span class="text small">{{ctx.Locale.Tr "audit.deleted.actor"}}</span>
 						{{end}}
+						{{if $event.ActorExtData}}
+							<div><code class="text small">{{$event.ActorExtData}}</code></div>
+						{{end}}
 					</td>
 					<td>
 						{{if $event.Scope.DisplayName}}

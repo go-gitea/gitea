@@ -104,6 +104,22 @@ func TestBuildEvent(t *testing.T) {
 		assert.Equal(t, "Changed restricted status of user TestUser to true.", e.Message)
 	})
 
+	t.Run("SystemActorNamesTaskOrKey", func(t *testing.T) {
+		actions := user_model.NewActionsUserWithTaskID(42)
+		e := buildEvent(context.Background(), RecordParams{
+			Action:       audit_model.UserCreate,
+			Actor:        actorRef(actions),
+			ActorExtData: actorExtData(actions),
+			Scope:        ScopeFromUser(u),
+		})
+		assert.Equal(t, user_model.ActionsUserID, e.ActorID)
+		assert.Equal(t, "gitea-actions:42", e.ActorExtData)
+
+		key := user_model.NewDeployKeyUserWithKeyID(7)
+		assert.Equal(t, "deploy-key:7", actorExtData(key))
+		assert.Empty(t, actorExtData(doer))
+	})
+
 	t.Run("IPAddressFromRequest", func(t *testing.T) {
 		params := RecordParams{Action: audit_model.UserCreate, Actor: actorRef(doer), Scope: ScopeFromUser(u)}
 

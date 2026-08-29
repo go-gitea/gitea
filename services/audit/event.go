@@ -22,6 +22,7 @@ import (
 type RecordParams struct {
 	Action       audit_model.Action
 	Actor        audit_model.EntityRef
+	ActorExtData string
 	Impersonator *audit_model.EntityRef
 	Scope        audit_model.EntityRef
 	Metadata     map[string]any
@@ -41,6 +42,7 @@ func buildEvent(ctx context.Context, params RecordParams) *audit_model.Event {
 		Action:        params.Action,
 		ActorID:       params.Actor.ID,
 		ActorName:     params.Actor.DisplayName(),
+		ActorExtData:  params.ActorExtData,
 		ScopeType:     params.Scope.Type,
 		ScopeID:       params.Scope.ID,
 		ScopeName:     params.Scope.DisplayName(),
@@ -107,6 +109,7 @@ func RecordAs(ctx context.Context, doer *user_model.User, action audit_model.Act
 	writeEvent(ctx, RecordParams{
 		Action:       action,
 		Actor:        actorRef(doer),
+		ActorExtData: actorExtData(doer),
 		Impersonator: impersonatorRef(ImpersonatorFromContext(ctx), doer),
 		Scope:        scopeRef(scope),
 		Metadata:     metaPairs(metadata...),
