@@ -5,7 +5,7 @@
 	<span>{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" $userOrgsTotal}})</span>
 	{{if $userOrgs}}
 		<button class="ui red tiny button show-modal" data-modal="#remove-all-orgs-modal">{{ctx.Locale.Tr "remove_all"}}</button>
-		<form class="ui small modal" id="remove-all-orgs-modal" method="post" action="{{ctx.RootData.Link}}/orgs/remove-all">
+		<form class="ui small modal form-fetch-action" id="remove-all-orgs-modal" method="post" action="{{ctx.RootData.Link}}/orgs/remove-all">
 			<div class="header">
 				{{ctx.Locale.Tr "admin.users.remove_all_orgs_title"}}
 			</div>

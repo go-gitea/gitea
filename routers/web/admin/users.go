@@ -511,7 +511,6 @@ func DeleteUser(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users")
 }
 
-// RemoveUserFromOrg removes a user from an organization
 func RemoveUserFromOrg(ctx *context.Context) {
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -528,7 +527,7 @@ func RemoveUserFromOrg(ctx *context.Context) {
 	err = org_service.RemoveOrgUser(ctx, org, u)
 	if org_model.IsErrLastOrgOwner(err) {
 		ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		ctx.JSONRedirect("")
 		return
 	} else if err != nil {
 		ctx.ServerError("RemoveOrgUser", err)
@@ -536,10 +535,9 @@ func RemoveUserFromOrg(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.org_removed", org.Name))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+	ctx.JSONRedirect("")
 }
 
-// RemoveUserFromAllOrgs removes a user from all organizations
 func RemoveUserFromAllOrgs(ctx *context.Context) {
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -554,10 +552,10 @@ func RemoveUserFromAllOrgs(ctx *context.Context) {
 
 	removedCount := 0
 	for i := range orgs {
-		if err := org_service.RemoveOrgUser(ctx, orgs[i], u); err != nil {
-			if org_model.IsErrLastOrgOwner(err) {
-				continue
-			}
+		err = org_service.RemoveOrgUser(ctx, orgs[i], u)
+		if org_model.IsErrLastOrgOwner(err) {
+			continue
+		} else if err != nil {
 			log.Error("Failed to remove user %s from org %s: %v", u.Name, orgs[i].Name, err)
 			continue
 		}
@@ -569,8 +567,7 @@ func RemoveUserFromAllOrgs(ctx *context.Context) {
 	} else {
 		ctx.Flash.Success(ctx.Tr("admin.users.all_orgs_removed"))
 	}
-
-	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+	ctx.JSONRedirect("")
 }
 
 // AvatarPost response for change user's avatar request
