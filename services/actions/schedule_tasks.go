@@ -22,6 +22,8 @@ import (
 	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
+
+	"xorm.io/builder"
 )
 
 // StartScheduleTasks start the task
@@ -31,16 +33,19 @@ func StartScheduleTasks(ctx context.Context) error {
 
 // startTasks starts every due spec and returns an error if any of them failed.
 func startTasks(ctx context.Context) error {
-	now := time.Now()
 	var failed int
-	if err := actions_model.IterateDueSpecs(ctx, now.Unix(), func(ctx context.Context, row *actions_model.ActionScheduleSpec) error {
-		// one failing spec must not abort the pass, or a single broken workflow stops every other schedule
-		if err := startTask(ctx, row, now); err != nil {
-			failed++
-			log.Error("start schedule spec %d (repo %d, schedule %d): %v", row.ID, row.RepoID, row.ScheduleID, err)
-		}
-		return nil
-	}); err != nil {
+	now := time.Now()
+	err := db.Iterate(ctx,
+		builder.And(builder.Gt{"next": 0}, builder.Lte{"next": now}),
+		func(ctx context.Context, row *actions_model.ActionScheduleSpec) error {
+			// one failing spec must not abort the pass, or a single broken workflow stops every other schedule
+			if err := startTask(ctx, row, now); err != nil {
+				failed++
+				log.Error("start schedule spec %d (repo %d, schedule %d): %v", row.ID, row.RepoID, row.ScheduleID, err)
+			}
+			return nil
+		})
+	if err != nil {
 		return fmt.Errorf("iterate specs: %w", err)
 	}
 

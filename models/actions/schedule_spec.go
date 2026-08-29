@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/timeutil"
 
 	"github.com/robfig/cron/v3"
-	"xorm.io/builder"
 )
 
 // ActionScheduleSpec represents a schedule spec of a workflow file
@@ -71,12 +70,4 @@ func UpdateScheduleSpec(ctx context.Context, spec *ActionScheduleSpec, cols ...s
 	}
 	_, err := sess.Update(spec)
 	return err
-}
-
-// IterateDueSpecs calls f for every spec that is due at or before now, in ascending ID order,
-// so specs that f advances past now do not show up again in a later batch.
-func IterateDueSpecs(ctx context.Context, now int64, f func(ctx context.Context, spec *ActionScheduleSpec) error) error {
-	// an unsatisfiable spec stores a non-positive "next" and would otherwise stay due forever
-	cond := builder.And(builder.Gt{"next": 0}, builder.Lte{"next": now})
-	return db.Iterate(ctx, cond, f)
 }
