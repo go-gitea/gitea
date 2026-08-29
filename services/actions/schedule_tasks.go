@@ -101,15 +101,15 @@ func startTask(ctx context.Context, row *actions_model.ActionScheduleSpec, now t
 		return nil
 	}
 
-	if err := CreateScheduleTask(ctx, row); err != nil {
+	if err := CreateScheduleTaskBySpec(ctx, row); err != nil {
 		return fmt.Errorf("create run for %s workflow %q: %w", row.Repo.FullName(), row.Schedule.WorkflowID, err)
 	}
 	return nil
 }
 
-// CreateScheduleTask creates a scheduled task from a cron action schedule spec.
+// CreateScheduleTaskBySpec creates a scheduled task from a cron action schedule spec.
 // It creates an action run based on the schedule, inserts it into the database, and creates commit statuses for each job.
-func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleSpec) error {
+func CreateScheduleTaskBySpec(ctx context.Context, spec *actions_model.ActionScheduleSpec) error {
 	cron := spec.Schedule
 
 	// Scheduled runs carry no webhook payload; synthesize what github.event.* expects.
