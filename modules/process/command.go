@@ -43,7 +43,7 @@ func (c *Cmd) OutputString() (string, string, error) {
 // By default, it uses graceful termination (SIGTERM) on Unix-like systems to make the subprocesses have chances
 // to clean up (e.g. remove temporary files or lock files).
 func CommandContext(ctx context.Context, name string, arg ...string) *Cmd {
-	c := &Cmd{Cmd: exec.CommandContext(ctx, name, arg...)}
+	c := &Cmd{Cmd: exec.CommandContext(ctx, name, arg...)} //nolint:forbidigo // wrap it
 	setSysProcAttribute(c.Cmd)
 	c.Cmd.Cancel = c.onCancel
 
