@@ -624,6 +624,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/grant", web.Bind[*forms.GrantApplicationForm](), auth.GrantApplicationOAuth)
 			m.Get("/device", web.Bind[*forms.DeviceVerificationForm](), auth.DeviceVerifyShowOAuth)
 			m.Post("/device", web.Bind[*forms.DeviceVerificationForm](), auth.DeviceVerifyOAuth)
+			m.Get("/device/authorize", auth.DeviceAuthorizeShowOAuth)
 			m.Post("/device/confirm", web.Bind[*forms.DeviceGrantApplicationForm](), auth.DeviceGrantApplicationOAuth)
 			// TODO manage redirection
 			m.Post("/authorize", web.Bind[*forms.AuthorizationForm](), auth.AuthorizeOAuth)

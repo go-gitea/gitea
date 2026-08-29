@@ -455,6 +455,8 @@
   "auth.device_code_denied": "This device code has already been denied.",
   "auth.device_scope_mismatch": "The requested scope does not match the existing grant for this application. Please revoke the existing authorization and try again.",
   "auth.device_authorize_terminal_notice": "Approving this request will authorize the waiting terminal session.",
+  "auth.device_authorize_code_notice": "Confirm this matches the code shown on your device: %s",
+  "auth.device_two_factor_required": "Two-factor authentication is required before you can authorize an application.",
   "auth.device_authorization_complete_title": "Authorization Complete",
   "auth.device_authorization_complete_desc": "The waiting terminal session can continue now.",
   "auth.device_authorization_cancelled_title": "Authorization Cancelled",

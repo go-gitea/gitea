@@ -17,13 +17,14 @@ func AddOAuth2DeviceAuthorizationTable(_ context.Context, x base.EngineMigration
 		ApplicationID       int64 `xorm:"INDEX"`
 		UserID              int64 `xorm:"INDEX"`
 		GrantID             int64
+		RequesterIP         string
 		DeviceCodeHash      string `xorm:"unique"`
 		UserCode            string `xorm:"unique"`
 		Scope               string `xorm:"TEXT"`
 		Status              string `xorm:"NOT NULL"`
 		PollIntervalSeconds int64  `xorm:"NOT NULL DEFAULT 5"`
 		LastPolledUnix      timeutil.TimeStamp
-		ExpiresAtUnix       timeutil.TimeStamp
+		ExpiresAtUnix       timeutil.TimeStamp `xorm:"INDEX"`
 		CreatedUnix         timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix         timeutil.TimeStamp `xorm:"updated"`
 	}

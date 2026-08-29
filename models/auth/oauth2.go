@@ -61,31 +61,27 @@ func init() {
 }
 
 type BuiltinOAuth2Application struct {
-	ConfigName         string
-	DisplayName        string
-	RedirectURIs       []string
-	ConfidentialClient bool
+	ConfigName   string
+	DisplayName  string
+	RedirectURIs []string
 }
 
 func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 	m := make(map[string]*BuiltinOAuth2Application)
 	m["a4792ccc-144e-407e-86c9-5e7d8d9c3269"] = &BuiltinOAuth2Application{
-		ConfigName:         "git-credential-oauth",
-		DisplayName:        "git-credential-oauth",
-		RedirectURIs:       []string{"http://127.0.0.1", "https://127.0.0.1"},
-		ConfidentialClient: false,
+		ConfigName:   "git-credential-oauth",
+		DisplayName:  "git-credential-oauth",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
 	m["e90ee53c-94e2-48ac-9358-a874fb9e0662"] = &BuiltinOAuth2Application{
-		ConfigName:         "git-credential-manager",
-		DisplayName:        "Git Credential Manager",
-		RedirectURIs:       []string{"http://127.0.0.1", "https://127.0.0.1"},
-		ConfidentialClient: false,
+		ConfigName:   "git-credential-manager",
+		DisplayName:  "Git Credential Manager",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
 	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
-		ConfigName:         "tea",
-		DisplayName:        "tea",
-		RedirectURIs:       []string{"http://127.0.0.1", "https://127.0.0.1"},
-		ConfidentialClient: false,
+		ConfigName:   "tea",
+		DisplayName:  "tea",
+		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
 	}
 	m["b757811a-05c8-4c76-8d74-a5ee3d2073f2"] = &BuiltinOAuth2Application{
 		ConfigName:   "gitea-app",
@@ -135,23 +131,14 @@ func Init(ctx context.Context) error {
 			if err := deleteOAuth2Application(ctx, app.ID, 0); err != nil {
 				return err
 			}
-			continue
-		}
-		// builtin apps are locked from editing, so BuiltinApplications is the only source of truth for their flags
-		if builtinApp := builtinApps[app.ClientID]; app.ConfidentialClient != builtinApp.ConfidentialClient {
-			app.ConfidentialClient = builtinApp.ConfidentialClient
-			if _, err := db.GetEngine(ctx).ID(app.ID).Cols("confidential_client").Update(app); err != nil {
-				return err
-			}
 		}
 	}
 	for clientID := range clientIDsToAdd {
 		builtinApp := builtinApps[clientID]
 		if err := db.Insert(ctx, &OAuth2Application{
-			Name:               builtinApp.DisplayName,
-			ClientID:           clientID,
-			RedirectURIs:       builtinApp.RedirectURIs,
-			ConfidentialClient: builtinApp.ConfidentialClient,
+			Name:         builtinApp.DisplayName,
+			ClientID:     clientID,
+			RedirectURIs: builtinApp.RedirectURIs,
 		}); err != nil {
 			return err
 		}

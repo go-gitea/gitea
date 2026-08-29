@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -221,9 +222,9 @@ func oauthDoerAuthorizePreCheck(ctx *context.Context, formState string) bool {
 // or to the site root when the application is owned by the system.
 func oauthApplicationCreatorLinkHTML(user *user_model.User) template.HTML {
 	if user != nil {
-		return template.HTML(fmt.Sprintf(`<a href="%s">@%s</a>`, html.EscapeString(user.HomeLink()), html.EscapeString(user.Name)))
+		return htmlutil.HTMLFormat(`<a href="%s">@%s</a>`, user.HomeLink(), user.Name)
 	}
-	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(setting.AppSubURL+"/"), html.EscapeString(setting.AppName)))
+	return htmlutil.HTMLFormat(`<a href="%s">%s</a>`, setting.AppSubURL+"/", setting.AppName)
 }
 
 // AuthorizeOAuth manages authorize requests
@@ -710,10 +711,6 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 }
 
 func handleAccessTokenError(ctx *context.Context, acErr oauth2_provider.AccessTokenError) {
-	if acErr.ErrorCode == oauth2_provider.AccessTokenErrorCodeServerError {
-		ctx.JSON(http.StatusInternalServerError, acErr)
-		return
-	}
 	ctx.JSON(http.StatusBadRequest, acErr)
 }
 

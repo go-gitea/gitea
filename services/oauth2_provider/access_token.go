@@ -48,7 +48,8 @@ const (
 	AccessTokenErrorCodeSlowDown = "slow_down"
 	// AccessTokenErrorCodeExpiredToken represents an error code specified in RFC 8628
 	AccessTokenErrorCodeExpiredToken = "expired_token"
-	// AccessTokenErrorCodeServerError signals an internal failure, so clients get JSON instead of an HTML error page
+	// AccessTokenErrorCodeServerError is not in the RFC 6749 §5.2 token-endpoint list, but is
+	// the conventional code for an internal failure and is what OpenID Connect clients expect
 	AccessTokenErrorCodeServerError = "server_error"
 )
 

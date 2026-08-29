@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -26,9 +27,10 @@ const (
 	oauth2DeviceAuthorizationUserCodeLength     = oauth2DeviceAuthorizationFormattedCodeParts * oauth2DeviceAuthorizationCodePartLength
 )
 
-// OAuth2DeviceAuthorizationMaxPendingPerApp bounds how many rows one client can hold open,
-// since the device authorization endpoint is unauthenticated.
-var OAuth2DeviceAuthorizationMaxPendingPerApp int64 = 1000
+// OAuth2DeviceAuthorizationMaxPendingPerRequester bounds how many rows a single caller can
+// hold open for one client. The device authorization endpoint is unauthenticated and client
+// IDs are public, so a per-app-only cap would let anyone lock out a client's real users.
+var OAuth2DeviceAuthorizationMaxPendingPerRequester int64 = 100
 
 type OAuth2DeviceAuthorizationStatus string
 
@@ -44,15 +46,26 @@ var (
 	ErrOAuth2DeviceAuthorizationLimitReached = errors.New("too many pending oauth2 device authorizations")
 )
 
-// deleteExpiredDeviceAuthorizations removes device authorizations that are
-// expired or in a terminal state (denied/consumed).
+// ErrOAuth2DeviceAuthorizationNotFound is returned when no device authorization matches the lookup.
+type ErrOAuth2DeviceAuthorizationNotFound struct {
+	ID int64
+}
+
+func (err ErrOAuth2DeviceAuthorizationNotFound) Error() string {
+	return fmt.Sprintf("oauth2 device authorization does not exist [id: %d]", err.ID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrOAuth2DeviceAuthorizationNotFound) Unwrap() error {
+	return util.ErrNotExist
+}
+
+// deleteExpiredDeviceAuthorizations removes device authorizations past their validity.
+// Denied and consumed rows are kept until they expire so a polling client still learns
+// why it was rejected instead of seeing the code vanish.
 func deleteExpiredDeviceAuthorizations(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Where(
-		"expires_at_unix < ? OR status IN (?, ?)",
-		timeutil.TimeStampNow(),
-		OAuth2DeviceAuthorizationDenied,
-		OAuth2DeviceAuthorizationConsumed,
-	).Delete(new(OAuth2DeviceAuthorization))
+	_, err := db.GetEngine(ctx).Where("expires_at_unix < ?", timeutil.TimeStampNow()).
+		Delete(new(OAuth2DeviceAuthorization))
 	return err
 }
 
@@ -64,13 +77,14 @@ type OAuth2DeviceAuthorization struct {
 	ApplicationID       int64 `xorm:"INDEX"`
 	UserID              int64 `xorm:"INDEX"`
 	GrantID             int64
+	RequesterIP         string
 	DeviceCodeHash      string                          `xorm:"unique"`
 	UserCode            string                          `xorm:"unique"`
 	Scope               string                          `xorm:"TEXT"`
 	Status              OAuth2DeviceAuthorizationStatus `xorm:"NOT NULL"`
 	PollIntervalSeconds int64                           `xorm:"NOT NULL DEFAULT 5"`
 	LastPolledUnix      timeutil.TimeStamp
-	ExpiresAtUnix       timeutil.TimeStamp
+	ExpiresAtUnix       timeutil.TimeStamp `xorm:"INDEX"`
 	CreatedUnix         timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix         timeutil.TimeStamp `xorm:"updated"`
 }
@@ -163,19 +177,19 @@ func (d *OAuth2DeviceAuthorization) MarkConsumed(ctx context.Context) error {
 }
 
 // CreateOAuth2DeviceAuthorization creates a new device authorization and returns the plaintext device code.
-func CreateOAuth2DeviceAuthorization(ctx context.Context, app *OAuth2Application, scope string) (*OAuth2DeviceAuthorization, string, error) {
+func CreateOAuth2DeviceAuthorization(ctx context.Context, app *OAuth2Application, scope, requesterIP string) (*OAuth2DeviceAuthorization, string, error) {
 	if err := deleteExpiredDeviceAuthorizations(ctx); err != nil {
 		return nil, "", err
 	}
 
 	pending, err := db.GetEngine(ctx).Where(
-		"application_id = ? AND status = ? AND expires_at_unix > ?",
-		app.ID, OAuth2DeviceAuthorizationPending, timeutil.TimeStampNow(),
+		"application_id = ? AND requester_ip = ? AND status = ? AND expires_at_unix > ?",
+		app.ID, requesterIP, OAuth2DeviceAuthorizationPending, timeutil.TimeStampNow(),
 	).Count(new(OAuth2DeviceAuthorization))
 	if err != nil {
 		return nil, "", err
 	}
-	if pending >= OAuth2DeviceAuthorizationMaxPendingPerApp {
+	if pending >= OAuth2DeviceAuthorizationMaxPendingPerRequester {
 		return nil, "", ErrOAuth2DeviceAuthorizationLimitReached
 	}
 
@@ -187,16 +201,16 @@ func CreateOAuth2DeviceAuthorization(ctx context.Context, app *OAuth2Application
 		userCode := generateOAuth2UserCode()
 
 		// Check for collision before inserting.
-		existing, err := GetOAuth2DeviceAuthorizationByUserCode(ctx, userCode)
-		if err != nil {
-			return nil, "", err
-		}
-		if existing != nil {
+		switch _, err := GetOAuth2DeviceAuthorizationByUserCode(ctx, userCode); {
+		case err == nil:
 			continue
+		case !errors.Is(err, util.ErrNotExist):
+			return nil, "", err
 		}
 
 		deviceAuthorization := &OAuth2DeviceAuthorization{
 			ApplicationID:       app.ID,
+			RequesterIP:         requesterIP,
 			DeviceCodeHash:      hashOAuth2DeviceCode(deviceCode),
 			UserCode:            userCode,
 			Scope:               strings.TrimSpace(scope),
@@ -221,7 +235,7 @@ func GetOAuth2DeviceAuthorizationByID(ctx context.Context, id int64) (*OAuth2Dev
 	if has, err := db.GetEngine(ctx).ID(id).Get(deviceAuthorization); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
+		return nil, ErrOAuth2DeviceAuthorizationNotFound{ID: id}
 	}
 	return deviceAuthorization, nil
 }
@@ -232,7 +246,7 @@ func GetOAuth2DeviceAuthorizationByDeviceCode(ctx context.Context, deviceCode st
 	if has, err := db.GetEngine(ctx).Where("device_code_hash = ?", hashOAuth2DeviceCode(deviceCode)).Get(deviceAuthorization); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
+		return nil, ErrOAuth2DeviceAuthorizationNotFound{}
 	}
 	return deviceAuthorization, nil
 }
@@ -242,12 +256,12 @@ func GetOAuth2DeviceAuthorizationByUserCode(ctx context.Context, userCode string
 	deviceAuthorization := new(OAuth2DeviceAuthorization)
 	normalized := NormalizeOAuth2DeviceUserCode(userCode)
 	if normalized == "" {
-		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
+		return nil, ErrOAuth2DeviceAuthorizationNotFound{}
 	}
 	if has, err := db.GetEngine(ctx).Where("user_code = ?", normalized).Get(deviceAuthorization); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
+		return nil, ErrOAuth2DeviceAuthorizationNotFound{}
 	}
 	return deviceAuthorization, nil
 }

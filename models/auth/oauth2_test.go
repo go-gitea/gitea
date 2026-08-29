@@ -193,11 +193,11 @@ func TestBuiltinOAuth2ApplicationsArePublic(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.NoError(t, auth_model.Init(t.Context()))
 
-	for clientID, builtin := range auth_model.BuiltinApplications() {
+	for clientID := range auth_model.BuiltinApplications() {
 		app, err := auth_model.GetOAuth2ApplicationByClientID(t.Context(), clientID)
 		assert.NoError(t, err)
 		if assert.NotNil(t, app) {
-			assert.Equal(t, builtin.ConfidentialClient, app.ConfidentialClient)
+			assert.False(t, app.ConfidentialClient)
 		}
 	}
 }
@@ -206,7 +206,7 @@ func TestCreateOAuth2DeviceAuthorizationUserCodeIsHumanFriendly(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
-	deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "")
+	deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
 	assert.NoError(t, err)
 	if assert.NotNil(t, deviceAuthorization) {
 		assert.Len(t, deviceAuthorization.UserCode, 8)
@@ -220,18 +220,22 @@ func TestCreateOAuth2DeviceAuthorizationUserCodeIsHumanFriendly(t *testing.T) {
 	}
 }
 
-func TestCreateOAuth2DeviceAuthorizationCapsPendingPerApp(t *testing.T) {
+func TestCreateOAuth2DeviceAuthorizationCapsPendingPerRequester(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&auth_model.OAuth2DeviceAuthorizationMaxPendingPerApp, 2)()
+	defer test.MockVariableValue(&auth_model.OAuth2DeviceAuthorizationMaxPendingPerRequester, 2)()
 
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
 	for range 2 {
-		_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "")
+		_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
 		require.NoError(t, err)
 	}
 
-	_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "")
+	_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
 	assert.ErrorIs(t, err, auth_model.ErrOAuth2DeviceAuthorizationLimitReached)
+
+	// a flooding caller must not lock the client's other users out
+	_, _, err = auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.2")
+	assert.NoError(t, err)
 }
 
 func TestOAuth2DeviceAuthorizationStateTransitions(t *testing.T) {
@@ -240,7 +244,7 @@ func TestOAuth2DeviceAuthorizationStateTransitions(t *testing.T) {
 	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
 
 	t.Run("DeniedAuthorizationCannotBeApproved", func(t *testing.T) {
-		deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "")
+		deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
 		assert.NoError(t, err)
 		if !assert.NotNil(t, deviceAuthorization) {
 			return
@@ -257,7 +261,7 @@ func TestOAuth2DeviceAuthorizationStateTransitions(t *testing.T) {
 	})
 
 	t.Run("ConsumedAuthorizationCannotBeConsumedTwice", func(t *testing.T) {
-		deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "")
+		deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
 		assert.NoError(t, err)
 		if !assert.NotNil(t, deviceAuthorization) {
 			return

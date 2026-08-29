@@ -388,6 +388,19 @@ func startDeviceAuthorization(t *testing.T, clientID, scope string) *deviceAutho
 	return parsed
 }
 
+// verifyDeviceUserCode submits the user code and follows the JSON redirect the
+// "form-fetch-action" entry form expects, returning the consent page response.
+func verifyDeviceUserCode(t *testing.T, session *TestSession, userCode string, expectedStatus int) *httptest.ResponseRecorder {
+	t.Helper()
+	req := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": userCode})
+	redirect := struct {
+		Redirect string `json:"redirect"`
+	}{}
+	require.NoError(t, json.Unmarshal(session.MakeRequest(t, req, http.StatusOK).Body.Bytes(), &redirect))
+	require.Equal(t, "/login/oauth/device/authorize", redirect.Redirect)
+	return session.MakeRequest(t, NewRequest(t, "GET", redirect.Redirect), expectedStatus)
+}
+
 func newDeviceTokenPollRequest(t *testing.T, clientID, deviceCode string) *RequestWrapper {
 	return NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":  "urn:ietf:params:oauth:grant-type:device_code",
@@ -510,11 +523,7 @@ func TestDeviceAuthorizationFlow(t *testing.T) {
 	assert.Equal(t, "slow_down", string(parsedError.ErrorCode))
 
 	session := loginUser(t, "user1")
-	verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{
-		"user_code": deviceAuth.UserCode,
-	})
-	verifyResp := session.MakeRequest(t, verifyReq, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, verifyResp.Body)
+	htmlDoc := NewHTMLParser(t, verifyDeviceUserCode(t, session, deviceAuth.UserCode, http.StatusOK).Body)
 	AssertHTMLElement(t, htmlDoc, "#authorize-device-app", true)
 
 	record, err := auth_model.GetOAuth2DeviceAuthorizationByDeviceCode(t.Context(), deviceAuth.DeviceCode)
@@ -557,10 +566,7 @@ func TestDeviceAuthorizationDenied(t *testing.T) {
 	require.NotNil(t, record)
 
 	session := loginUser(t, "user1")
-	verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{
-		"user_code": deviceAuth.UserCode,
-	})
-	session.MakeRequest(t, verifyReq, http.StatusOK)
+	verifyDeviceUserCode(t, session, deviceAuth.UserCode, http.StatusOK)
 	denyReq := NewRequestWithValues(t, "POST", "/login/oauth/device/confirm", map[string]string{
 		"device_authorization_id": strconv.FormatInt(record.ID, 10),
 		"granted":                 "false",
@@ -629,11 +635,19 @@ func TestDeviceAuthorizationSkipSecondaryAuthorization(t *testing.T) {
 
 	t.Run("ScopeMatchesGrant", func(t *testing.T) {
 		deviceAuth := startDeviceAuthorization(t, app.ClientID, "openid profile")
+		record, err := auth_model.GetOAuth2DeviceAuthorizationByDeviceCode(t.Context(), deviceAuth.DeviceCode)
+		require.NoError(t, err)
 
+		// the device may not be the user's, so consent is shown even for a skip-secondary-auth app
 		session := loginUser(t, "user1")
-		verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": deviceAuth.UserCode})
-		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusOK).Body)
-		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", false)
+		htmlDoc := NewHTMLParser(t, verifyDeviceUserCode(t, session, deviceAuth.UserCode, http.StatusOK).Body)
+		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", true)
+
+		approveReq := NewRequestWithValues(t, "POST", "/login/oauth/device/confirm", map[string]string{
+			"device_authorization_id": strconv.FormatInt(record.ID, 10),
+			"granted":                 "true",
+		})
+		session.MakeRequest(t, approveReq, http.StatusOK)
 
 		resp := MakeRequest(t, newDeviceTokenPollRequest(t, app.ClientID, deviceAuth.DeviceCode), http.StatusOK)
 		parsedToken := struct {
@@ -647,25 +661,25 @@ func TestDeviceAuthorizationSkipSecondaryAuthorization(t *testing.T) {
 		deviceAuth := startDeviceAuthorization(t, app.ClientID, "openid profile email")
 
 		session := loginUser(t, "user1")
-		verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": deviceAuth.UserCode})
 		// consent could never succeed against a mismatched grant, so the error replaces the consent screen
-		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusBadRequest).Body)
+		htmlDoc := NewHTMLParser(t, verifyDeviceUserCode(t, session, deviceAuth.UserCode, http.StatusBadRequest).Body)
 		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", false)
 
+		// and the waiting device is told at once instead of polling until it expires
 		resp := MakeRequest(t, newDeviceTokenPollRequest(t, app.ClientID, deviceAuth.DeviceCode), http.StatusBadRequest)
 		parsedError := new(oauth2_provider.AccessTokenError)
 		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
-		assert.Equal(t, "authorization_pending", string(parsedError.ErrorCode))
+		assert.Equal(t, "access_denied", string(parsedError.ErrorCode))
 	})
 }
 
-func TestDeviceAuthorizationInvalidUserCodeShowsErrorOnPage(t *testing.T) {
+func TestDeviceAuthorizationInvalidUserCodeShowsError(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	verifyReq := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": "ZZZZ-ZZZZ"})
-	htmlDoc := NewHTMLParser(t, session.MakeRequest(t, verifyReq, http.StatusOK).Body)
-	assert.Contains(t, htmlDoc.doc.Find(".ui.message.flash-message").Text(), "The device code is invalid or has expired.")
+	req := NewRequestWithValues(t, "POST", "/login/oauth/device", map[string]string{"user_code": "ZZZZ-ZZZZ"})
+	resp := session.MakeRequest(t, req, http.StatusBadRequest)
+	assert.Contains(t, resp.Body.String(), "The device code is invalid or has expired.")
 }
 
 func testAccessTokenExchangeWithBasicAuth(t *testing.T) {

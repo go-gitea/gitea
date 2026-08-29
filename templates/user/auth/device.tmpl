@@ -17,6 +17,7 @@
 			</div>
 			<div class="ui attached segment">
 				<p>{{ctx.Locale.Tr "auth.device_authorize_terminal_notice"}}</p>
+				<p>{{ctx.Locale.Tr "auth.device_authorize_code_notice" (HTMLFormat "<b>%s</b>" .DeviceAuthorization.FormattedUserCode)}}</p>
 			</div>
 			<div class="ui attached segment tw-text-center">
 				<form method="post" action="{{AppSubUrl}}/login/oauth/device/confirm">
@@ -32,7 +33,7 @@
 				<p>{{ctx.Locale.Tr "auth.device_code_entry_desc"}}</p>
 			</div>
 			<div class="ui attached segment">
-				<form class="ui form" method="post" action="{{AppSubUrl}}/login/oauth/device">
+				<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/login/oauth/device">
 					<div class="field">
 						<label>{{ctx.Locale.Tr "auth.device_code"}}</label>
 						<input name="user_code" value="{{.UserCode}}" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" autofocus required placeholder="{{ctx.Locale.Tr "auth.device_code_placeholder"}}">

@@ -285,14 +285,14 @@ func TestAPICron(t *testing.T) {
 
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadAdmin)
 
-		req := NewRequest(t, "GET", "/api/v1/admin/cron?page=1&limit=50").
+		req := NewRequest(t, "GET", "/api/v1/admin/cron").
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, "31", resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, "30", resp.Header().Get("X-Total-Count"))
 
 		crons := DecodeJSON(t, resp, []api.Cron{})
-		assert.Len(t, crons, 31)
+		assert.Len(t, crons, 30)
 	})
 
 	t.Run("Execute", func(t *testing.T) {
