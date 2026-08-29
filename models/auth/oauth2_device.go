@@ -44,9 +44,9 @@ var (
 	ErrOAuth2DeviceAuthorizationLimitReached = errors.New("too many pending oauth2 device authorizations")
 )
 
-// DeleteExpiredDeviceAuthorizations removes device authorizations that are
+// deleteExpiredDeviceAuthorizations removes device authorizations that are
 // expired or in a terminal state (denied/consumed).
-func DeleteExpiredDeviceAuthorizations(ctx context.Context) error {
+func deleteExpiredDeviceAuthorizations(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).Where(
 		"expires_at_unix < ? OR status IN (?, ?)",
 		timeutil.TimeStampNow(),
@@ -164,6 +164,10 @@ func (d *OAuth2DeviceAuthorization) MarkConsumed(ctx context.Context) error {
 
 // CreateOAuth2DeviceAuthorization creates a new device authorization and returns the plaintext device code.
 func CreateOAuth2DeviceAuthorization(ctx context.Context, app *OAuth2Application, scope string) (*OAuth2DeviceAuthorization, string, error) {
+	if err := deleteExpiredDeviceAuthorizations(ctx); err != nil {
+		return nil, "", err
+	}
+
 	pending, err := db.GetEngine(ctx).Where(
 		"application_id = ? AND status = ? AND expires_at_unix > ?",
 		app.ID, OAuth2DeviceAuthorizationPending, timeutil.TimeStampNow(),

@@ -34,8 +34,8 @@
 			<div class="ui attached segment">
 				<form class="ui form" method="post" action="{{AppSubUrl}}/login/oauth/device">
 					<div class="field">
-						<label for="user-code">{{ctx.Locale.Tr "auth.device_code"}}</label>
-						<input id="user-code" name="user_code" value="{{.UserCode}}" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" autofocus required placeholder="{{ctx.Locale.Tr "auth.device_code_placeholder"}}">
+						<label>{{ctx.Locale.Tr "auth.device_code"}}</label>
+						<input name="user_code" value="{{.UserCode}}" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" autofocus required placeholder="{{ctx.Locale.Tr "auth.device_code_placeholder"}}">
 					</div>
 					<button type="submit" class="ui primary button">{{ctx.Locale.Tr "continue"}}</button>
 				</form>
