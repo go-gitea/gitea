@@ -1324,7 +1324,6 @@
   "repo.editor.upload_files_to_dir": "Téléverser les fichiers vers \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Impossible de créer une révision sur la branche protégée \"%s\".",
   "repo.editor.no_commit_to_branch": "Impossible de réviser cette branche car :",
-  "repo.editor.user_no_push_to_branch": "L’utilisateur ne peut pas soumettre sur la branche",
   "repo.editor.require_signed_commit": "Cette branche nécessite une révision signée",
   "repo.editor.cherry_pick": "Picorer %s vers:",
   "repo.editor.revert": "Rétablir %s sur:",

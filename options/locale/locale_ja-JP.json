@@ -1319,7 +1319,6 @@
   "repo.editor.upload_files_to_dir": "\"%s\" にファイルをアップロード",
   "repo.editor.cannot_commit_to_protected_branch": "保護されたブランチ \"%s\" にコミットすることはできません。",
   "repo.editor.no_commit_to_branch": "ブランチに直接コミットすることは許可されません、なぜなら：",
-  "repo.editor.user_no_push_to_branch": "ユーザーはブランチにプッシュできません",
   "repo.editor.require_signed_commit": "ブランチには署名済みコミットが必要です",
   "repo.editor.cherry_pick": "チェリーピック %s:",
   "repo.editor.revert": "リバート %s:",

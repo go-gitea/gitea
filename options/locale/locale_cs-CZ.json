@@ -1109,7 +1109,6 @@
   "repo.editor.upload_file_is_locked": "Soubor „%s“ je uzamčen uživatelem %s.",
   "repo.editor.upload_files_to_dir": "Nahrát soubory do „%s“",
   "repo.editor.cannot_commit_to_protected_branch": "Nelze vytvořit commit v chráněné větvi „%s“.",
-  "repo.editor.user_no_push_to_branch": "Uživatel nemůže nahrávat do větve",
   "repo.editor.require_signed_commit": "Větev vyžaduje podepsaný commit",
   "repo.editor.cherry_pick": "Cherry-pick %s na:",
   "repo.editor.revert": "Vrátit %s na:",

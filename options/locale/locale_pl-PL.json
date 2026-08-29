@@ -1324,7 +1324,6 @@
   "repo.editor.upload_files_to_dir": "Prześlij pliki do \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Nie można składać do chronionej gałęzi \"%s\".",
   "repo.editor.no_commit_to_branch": "Złożenie bezpośrednio do tej gałęzi nie jest możliwe, ponieważ:",
-  "repo.editor.user_no_push_to_branch": "Użytkownik nie może wypychać do gałęzi",
   "repo.editor.require_signed_commit": "Gałąź wymaga podpisanych commitów",
   "repo.editor.cherry_pick": "Zastosuj zmianę %s na gałąź:",
   "repo.editor.revert": "Przywróć %s do:",

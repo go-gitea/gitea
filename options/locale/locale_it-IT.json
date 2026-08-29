@@ -810,7 +810,6 @@
   "repo.editor.push_rejected": "La modifica è stata rifiutata dal server. Controlla Git Hooks.",
   "repo.editor.push_rejected_summary": "Messaggio Di Rifiuto Completo:",
   "repo.editor.add_subdir": "Aggiungi una directory…",
-  "repo.editor.user_no_push_to_branch": "L'utente non può effettuare il push sul branch",
   "repo.editor.require_signed_commit": "Il branch richiede un commit firmato",
   "repo.editor.cherry_pick": "Cherry-pick %s suto:",
   "repo.editor.revert": "Ripristina %s su:",
