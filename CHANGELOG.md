@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.27.3](https://github.com/go-gitea/gitea/releases/tag/v1.27.3) - 2026-XX-XX
+## [1.27.3](https://github.com/go-gitea/gitea/releases/tag/v1.27.3) - 2026-08-29
 
 * SECURITY
   * fix(packages): restrict/limited/token-scope access (#39041, #39043, #39044, #39047, #39046) (#39058)
