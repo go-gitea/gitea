@@ -184,15 +184,18 @@ func DeviceAuthorizeShowOAuth(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplDeviceAuthorization)
 }
 
-// DeviceGrantApplicationOAuth stores the user's device-flow consent decision.
+// DeviceGrantApplicationOAuth stores the user's device-flow consent decision. It answers
+// JSON because the consent form is a "form-fetch-action", and sends the browser back to the
+// authorize page, which renders whichever state the authorization ended up in.
 func DeviceGrantApplicationOAuth(ctx *context.Context) {
-	if !oauthDoerAuthorizePreCheck(ctx, "") {
+	if ctx.DoerNeedTwoFactorAuth() {
+		ctx.JSONError(ctx.Tr("auth.device_two_factor_required"))
 		return
 	}
 
 	form := web.GetForm[*forms.DeviceGrantApplicationForm](ctx)
 	if ctx.Session.Get(oauthDeviceAuthorizationIDKey) != strconv.FormatInt(form.DeviceAuthorizationID, 10) {
-		ctx.HTTPError(http.StatusBadRequest)
+		ctx.JSONError(ctx.Tr("auth.device_code_invalid"))
 		return
 	}
 
@@ -202,24 +205,20 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 		return
 	}
 	if err != nil || deviceAuthorization.IsExpired() {
-		renderOAuthDeviceAuthorizationError(ctx, "auth.device_code_invalid")
+		ctx.JSONError(ctx.Tr("auth.device_code_invalid"))
 		return
 	}
 	if deviceAuthorization.Status != auth_model.OAuth2DeviceAuthorizationPending {
-		if deviceAuthorization.Status == auth_model.OAuth2DeviceAuthorizationDenied {
-			renderOAuthDeviceAuthorizationComplete(ctx, false)
-			return
-		}
-		renderOAuthDeviceAuthorizationComplete(ctx, true)
+		redirectToOAuthDeviceAuthorizePage(ctx)
 		return
 	}
 
 	if !form.Granted {
-		if err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil {
-			handleDeviceAuthorizationWriteError(ctx, "MarkDenied", deviceAuthorization.ID, err)
+		if err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil && !errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
+			ctx.ServerError("MarkDenied", err)
 			return
 		}
-		renderOAuthDeviceAuthorizationComplete(ctx, false)
+		redirectToOAuthDeviceAuthorizePage(ctx)
 		return
 	}
 
@@ -251,11 +250,11 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 		}
 	}
 	if grant.Scope != deviceAuthorization.Scope {
-		if err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil {
-			handleDeviceAuthorizationWriteError(ctx, "MarkDenied", deviceAuthorization.ID, err)
+		if err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil && !errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
+			ctx.ServerError("MarkDenied", err)
 			return
 		}
-		renderOAuthDeviceAuthorizationError(ctx, "auth.device_scope_mismatch")
+		ctx.JSONError(ctx.Tr("auth.device_scope_mismatch"))
 		return
 	}
 
@@ -267,12 +266,15 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 			return err
 		}
 		return deviceAuthorization.MarkApproved(txCtx, grant.ID, ctx.Doer.ID)
-	}); err != nil {
-		handleDeviceAuthorizationWriteError(ctx, "approveDeviceAuthorization", form.DeviceAuthorizationID, err)
+	}); err != nil && !errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
+		ctx.ServerError("approveDeviceAuthorization", err)
 		return
 	}
+	redirectToOAuthDeviceAuthorizePage(ctx)
+}
 
-	renderOAuthDeviceAuthorizationComplete(ctx, true)
+func redirectToOAuthDeviceAuthorizePage(ctx *context.Context) {
+	ctx.JSONRedirect(setting.AppSubURL + "/login/oauth/device/authorize")
 }
 
 func handleDeviceCode(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2_provider.JWTSigningKey) {

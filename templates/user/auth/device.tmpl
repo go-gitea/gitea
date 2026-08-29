@@ -20,7 +20,7 @@
 				<p>{{ctx.Locale.Tr "auth.device_authorize_code_notice" (HTMLFormat "<b>%s</b>" .DeviceAuthorization.FormattedUserCode)}}</p>
 			</div>
 			<div class="ui attached segment tw-text-center">
-				<form method="post" action="{{AppSubUrl}}/login/oauth/device/confirm">
+				<form class="form-fetch-action" method="post" action="{{AppSubUrl}}/login/oauth/device/confirm">
 					<input type="hidden" name="device_authorization_id" value="{{.DeviceAuthorization.ID}}">
 					<button type="submit" id="authorize-device-app" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
 					<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>

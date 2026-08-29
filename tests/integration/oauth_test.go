@@ -401,6 +401,22 @@ func verifyDeviceUserCode(t *testing.T, session *TestSession, userCode string, e
 	return session.MakeRequest(t, NewRequest(t, "GET", redirect.Redirect), expectedStatus)
 }
 
+// confirmDeviceAuthorization posts the consent decision and follows the JSON redirect the
+// "form-fetch-action" consent form expects, returning the result page response.
+func confirmDeviceAuthorization(t *testing.T, session *TestSession, deviceAuthorizationID int64, granted bool) *httptest.ResponseRecorder {
+	t.Helper()
+	req := NewRequestWithValues(t, "POST", "/login/oauth/device/confirm", map[string]string{
+		"device_authorization_id": strconv.FormatInt(deviceAuthorizationID, 10),
+		"granted":                 strconv.FormatBool(granted),
+	})
+	redirect := struct {
+		Redirect string `json:"redirect"`
+	}{}
+	require.NoError(t, json.Unmarshal(session.MakeRequest(t, req, http.StatusOK).Body.Bytes(), &redirect))
+	require.Equal(t, "/login/oauth/device/authorize", redirect.Redirect)
+	return session.MakeRequest(t, NewRequest(t, "GET", redirect.Redirect), http.StatusOK)
+}
+
 func newDeviceTokenPollRequest(t *testing.T, clientID, deviceCode string) *RequestWrapper {
 	return NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":  "urn:ietf:params:oauth:grant-type:device_code",
@@ -534,11 +550,7 @@ func TestDeviceAuthorizationFlow(t *testing.T) {
 	_, err = db.GetEngine(t.Context()).ID(record.ID).Cols("last_polled_unix").Update(record)
 	require.NoError(t, err)
 
-	approveReq := NewRequestWithValues(t, "POST", "/login/oauth/device/confirm", map[string]string{
-		"device_authorization_id": strconv.FormatInt(record.ID, 10),
-		"granted":                 "true",
-	})
-	session.MakeRequest(t, approveReq, http.StatusOK)
+	confirmDeviceAuthorization(t, session, record.ID, true)
 
 	resp = MakeRequest(t, newDeviceTokenPollRequest(t, "ce5a1322-42a7-11ed-b878-0242ac120002", deviceAuth.DeviceCode), http.StatusOK)
 	type tokenResponse struct {
@@ -567,11 +579,7 @@ func TestDeviceAuthorizationDenied(t *testing.T) {
 
 	session := loginUser(t, "user1")
 	verifyDeviceUserCode(t, session, deviceAuth.UserCode, http.StatusOK)
-	denyReq := NewRequestWithValues(t, "POST", "/login/oauth/device/confirm", map[string]string{
-		"device_authorization_id": strconv.FormatInt(record.ID, 10),
-		"granted":                 "false",
-	})
-	session.MakeRequest(t, denyReq, http.StatusOK)
+	confirmDeviceAuthorization(t, session, record.ID, false)
 
 	resp := MakeRequest(t, newDeviceTokenPollRequest(t, "ce5a1322-42a7-11ed-b878-0242ac120002", deviceAuth.DeviceCode), http.StatusBadRequest)
 	parsedError := new(oauth2_provider.AccessTokenError)
@@ -643,11 +651,7 @@ func TestDeviceAuthorizationSkipSecondaryAuthorization(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, verifyDeviceUserCode(t, session, deviceAuth.UserCode, http.StatusOK).Body)
 		AssertHTMLElement(t, htmlDoc, "#authorize-device-app", true)
 
-		approveReq := NewRequestWithValues(t, "POST", "/login/oauth/device/confirm", map[string]string{
-			"device_authorization_id": strconv.FormatInt(record.ID, 10),
-			"granted":                 "true",
-		})
-		session.MakeRequest(t, approveReq, http.StatusOK)
+		confirmDeviceAuthorization(t, session, record.ID, true)
 
 		resp := MakeRequest(t, newDeviceTokenPollRequest(t, app.ClientID, deviceAuth.DeviceCode), http.StatusOK)
 		parsedToken := struct {
