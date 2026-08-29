@@ -1324,7 +1324,6 @@
   "repo.editor.upload_files_to_dir": "Dateien nach \"%s\" hochladen",
   "repo.editor.cannot_commit_to_protected_branch": "Ein Commit auf den geschützten Branch „%s“ ist nicht möglich.",
   "repo.editor.no_commit_to_branch": "Kann nicht direkt zum Branch committen, da:",
-  "repo.editor.user_no_push_to_branch": "Benutzer kann nicht in die Branch pushen",
   "repo.editor.require_signed_commit": "Branch erfordert einen signierten Commit",
   "repo.editor.cherry_pick": "Cherry-Picke %s von:",
   "repo.editor.revert": "%s zurücksetzen auf:",

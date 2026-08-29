@@ -619,7 +619,6 @@
   "repo.editor.commit_empty_file_text": "Filen du vill committa är tom. Vill du fortsätta?",
   "repo.editor.no_changes_to_show": "Det finns inga ändringar att visa.",
   "repo.editor.add_subdir": "Lägga till en katalog…",
-  "repo.editor.user_no_push_to_branch": "Användaren kan inte pusha till branchen",
   "repo.editor.require_signed_commit": "Branchen kräver en signerad commit",
   "repo.commits.desc": "Bläddra i källkodens förändringshistorik.",
   "repo.commits.commits": "Incheckningar",

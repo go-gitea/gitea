@@ -1027,7 +1027,6 @@
   "repo.editor.upload_file_is_locked": "Failu \"%s\" ir nobloķējis %s.",
   "repo.editor.upload_files_to_dir": "Augšupielādēt failus uz direktoriju \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Nav atļauts veikt izmaiņas aizsargātam atzaram \"%s\".",
-  "repo.editor.user_no_push_to_branch": "Lietotājs nevar iesūtīt izmaiņas šajā atzarā",
   "repo.editor.require_signed_commit": "Atzarā var iesūtīt tikai parakstītas revīzijas",
   "repo.editor.cherry_pick": "Izlasīt %s uz:",
   "repo.editor.revert": "Atgriezt %s uz:",
