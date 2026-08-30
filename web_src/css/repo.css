@@ -988,11 +988,6 @@ td .commit-summary {
   border-radius: 0;
 }
 
-.repository .diff-file-box .ui.bottom.attached.table.segment {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
 .diff-file-box {
   border: 1px solid transparent;
   border-radius: var(--border-radius);
@@ -1668,8 +1663,7 @@ tbody.commit-list {
   display: none;
 }
 
-.diff-file-box[data-folded="true"] .diff-file-header,
-.diff-file-header:last-child {
+.diff-file-box[data-folded="true"] .diff-file-header {
   border-radius: var(--border-radius) !important;
 }
 
