@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+	"uuid"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/perm"
@@ -23,7 +24,6 @@ import (
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 )
 
 const (
@@ -197,7 +197,7 @@ func createOIDCClaims(ctx context.Context, task *actions_model.ActionTask, audie
 			ExpiresAt: jwt.NewNumericDate(now.Add(actionsOIDCTokenExpiry)),
 			NotBefore: jwt.NewNumericDate(now),
 			IssuedAt:  jwt.NewNumericDate(now),
-			ID:        uuid.NewString(),
+			ID:        uuid.New().String(),
 		},
 		Actor:                   run.TriggerUser.Name,
 		ActorID:                 strconv.FormatInt(run.TriggerUser.ID, 10),
