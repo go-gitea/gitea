@@ -193,7 +193,7 @@
 		</div>
 
 		{{if .ShowDiffSummaryInCommitHeader}}
-			<div class="ui attached segment commit-diff-summary">
+			<div class="ui attached segment flex-left-right">
 				<strong>{{ctx.Locale.TrN .DiffShortStat.NumFiles "repo.diff.num_files_changed_1" "repo.diff.num_files_changed_n" .DiffShortStat.NumFiles}}</strong>
 				{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion}}
 			</div>

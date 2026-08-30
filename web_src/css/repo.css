@@ -866,15 +866,6 @@ td .commit-summary {
   }
 }
 
-.commit-diff-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
-}
-
 .diff-detail-actions {
   display: flex;
   align-items: center;
