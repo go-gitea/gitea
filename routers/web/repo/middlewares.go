@@ -75,10 +75,10 @@ func SetWhitespaceBehavior(ctx *context.Context) {
 
 	// these behaviors are for gitdiff.GetWhitespaceFlag
 	if whitespaceBehavior == "" {
-		whitespaceBehavior = defaultWhitespaceBehavior
+		ctx.Data["WhitespaceBehavior"] = defaultWhitespaceBehavior
+	} else {
+		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
 	}
-	ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
-	ctx.Data["DiffIgnoresWhitespace"] = whitespaceBehavior != defaultWhitespaceBehavior
 }
 
 func GetWhitespaceBehavior(ctx *context.Context) string {

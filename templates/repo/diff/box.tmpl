@@ -206,10 +206,8 @@
 									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_renamed_no_changes"}}</div>
 								{{else if and $file.EntryMode $file.OldEntryMode}}
 									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_mode_changed"}}</div>
-								{{else if $.DiffIgnoresWhitespace}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
 								{{else}}
-									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_empty"}}</div>
+									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
 								{{end}}
 							</div>
 							{{if $showFileViewToggle}}

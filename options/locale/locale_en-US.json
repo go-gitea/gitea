@@ -2600,7 +2600,6 @@
   "repo.diff.file_renamed_no_changes": "File renamed without changes.",
   "repo.diff.file_mode_changed": "File mode changed.",
   "repo.diff.file_whitespace_only_changes": "Whitespace-only changes.",
-  "repo.diff.file_empty": "Empty file.",
   "repo.diff.view_file": "View File",
   "repo.diff.file_before": "Before",
   "repo.diff.file_after": "After",
