@@ -348,8 +348,8 @@ func loadPullRequestsForRun(ctx context.Context, run *actions_model.ActionRun) (
 	var prs issues_model.PullRequestList
 	switch {
 	case run.Event.IsPullRequest() || run.Event.IsPullRequestReview():
-		index, err := strconv.ParseInt(refName.PullName(), 10, 64)
-		if err != nil {
+		index, ok := refName.PullIndex()
+		if !ok {
 			return result, nil
 		}
 		pr, err := issues_model.GetPullRequestByIndex(ctx, run.RepoID, index)

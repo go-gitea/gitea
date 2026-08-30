@@ -3,14 +3,14 @@
 <div class="admin-setting-content">
 	<div class="admin-responsive-columns">
 		<div class="tw-flex-1">
-			<h4 class="ui top attached header">
-				{{.Title}}
-				<div class="ui right">
+			<h4 class="ui top attached header flex-left-right">
+				<span>{{.Title}}</span>
+				<span class="flex-text-block">
 					{{if not .User.IsTypeBot}}
 						<button class="ui primary compact tiny basic button link-action" data-url="{{.Link}}/impersonate">{{ctx.Locale.Tr "admin.users.impersonate"}}</button>
 					{{end}}
 					<a class="ui primary compact tiny button" href="{{.Link}}/edit">{{ctx.Locale.Tr "admin.users.edit"}}</a>
-				</div>
+				</span>
 			</h4>
 			<div class="ui attached segment">
 				{{template "admin/user/view_details" .}}
@@ -34,12 +34,8 @@
 	<div class="ui attached segment">
 		{{template "shared/repo/list" .}}
 	</div>
-	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" .OrgsTotal}})
-	</h4>
-	<div class="ui attached segment">
-		{{template "explore/user_list" .}}
-	</div>
+
+	{{template "admin/user/view_orgs" dict "User" .User "UserOrgs" .UserOrgs}}
 </div>
 
 {{template "admin/layout_footer" .}}

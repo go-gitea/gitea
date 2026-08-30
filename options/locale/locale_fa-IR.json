@@ -782,7 +782,6 @@
   "repo.editor.no_changes_to_show": "تغییری برای نمایش وجود ندارد.",
   "repo.editor.push_rejected_summary": "متن کامل پیام دلیل رد شدن:",
   "repo.editor.add_subdir": "افزودن پوشه…",
-  "repo.editor.user_no_push_to_branch": "کاربر نمیتواند به شاخه ارسال کند",
   "repo.editor.require_signed_commit": "شاخه یک کامیت امضا شده لازم دارد",
   "repo.commits.desc": "تاریخچه تغییرات کد منبع را مرور کنید.",
   "repo.commits.commits": "کامیت‌ها",

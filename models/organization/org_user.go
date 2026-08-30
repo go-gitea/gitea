@@ -56,6 +56,13 @@ func GetOrganizationCount(ctx context.Context, u *user_model.User) (int64, error
 		Count(new(OrgUser))
 }
 
+func GetUserOrganizations(ctx context.Context, uid int64) (ret []*Organization, err error) {
+	err = db.GetEngine(ctx).Select("`user`.*").
+		Join("INNER", "org_user", "org_user.org_id = `user`.id").
+		Where("org_user.uid=?", uid).Find(&ret)
+	return ret, err
+}
+
 // IsOrganizationOwner returns true if given user is in the owner team.
 func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	ownerTeam, err := GetOwnerTeam(ctx, orgID)

@@ -1007,7 +1007,6 @@
   "repo.editor.upload_file_is_locked": "Файл «%s» заблокирован %s.",
   "repo.editor.upload_files_to_dir": "Загрузить файлы в «%s»",
   "repo.editor.cannot_commit_to_protected_branch": "Невозможно сделать коммит в защищённую ветку «%s».",
-  "repo.editor.user_no_push_to_branch": "Пользователь не может отправлять коммиты в эту ветку",
   "repo.editor.require_signed_commit": "Ветка ожидает подписанный коммит",
   "repo.editor.cherry_pick": "Перенести изменения %s в:",
   "repo.editor.revert": "Откатить %s к:",

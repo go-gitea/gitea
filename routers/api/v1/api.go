@@ -874,7 +874,7 @@ func mustNotBeArchived(ctx *context.APIContext) {
 }
 
 func mustEnableEditor(ctx *context.APIContext) {
-	if !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanContentChange() {
 		ctx.APIError(http.StatusLocked, "repo is not allowed to edit")
 		return
 	}

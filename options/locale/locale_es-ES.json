@@ -988,7 +988,6 @@
   "repo.editor.upload_file_is_locked": "El archivo \"%s\" está bloqueado por %s.",
   "repo.editor.upload_files_to_dir": "Subir archivos a \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "No se puede hacer commit a la rama protegida \"%s\".",
-  "repo.editor.user_no_push_to_branch": "El usuario no puede hacer push a la rama",
   "repo.editor.require_signed_commit": "Esta rama requiere un commit firmado",
   "repo.editor.cherry_pick": "Hacer Cherry-pick %s en:",
   "repo.editor.revert": "Revertir %s en:",

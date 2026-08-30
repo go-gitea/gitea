@@ -1289,7 +1289,6 @@
   "repo.editor.upload_file_is_locked": "\"%s\" dosyası %s tarafından kilitlendi.",
   "repo.editor.upload_files_to_dir": "Dosyaları \"%s\" dizinine yükle",
   "repo.editor.cannot_commit_to_protected_branch": "Korunan \"%s\" dalına işleme yapılamıyor.",
-  "repo.editor.user_no_push_to_branch": "Kullanıcı dala gönderemez",
   "repo.editor.require_signed_commit": "Dal imzalı bir işleme gerektirir",
   "repo.editor.cherry_pick": "%s şunun üzerine cımbızla:",
   "repo.editor.revert": "%s şuna geri döndür:",

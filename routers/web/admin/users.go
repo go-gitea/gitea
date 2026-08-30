@@ -22,7 +22,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -32,6 +31,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
+	org_service "gitea.dev/services/org"
 	user_service "gitea.dev/services/user"
 )
 
@@ -335,18 +335,11 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Emails"] = emails
 	ctx.Data["EmailsTotal"] = len(emails)
 
-	orgs, err := db.Find[org_model.Organization](ctx, org_model.FindOrgOptions{
-		ListOptions:       db.ListOptionsAll,
-		UserID:            u.ID,
-		IncludeVisibility: structs.VisibleTypePrivate,
-	})
+	ctx.Data["UserOrgs"], err = org_model.GetUserOrganizations(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-
-	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
-	ctx.Data["OrgsTotal"] = len(orgs)
 
 	// Bot users cannot sign in to generate their own tokens, so admins manage them here.
 	if u.IsTypeBot() {
@@ -709,6 +702,65 @@ func ConvertUserType(ctx *context.Context) {
 	log.Trace("Account type converted by admin (%s): %s", ctx.Doer.Name, u.Name)
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
 	ctx.Redirect(redirect)
+}
+
+func RemoveUserFromOrg(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	orgID := ctx.PathParamInt64("org_id")
+	org, err := org_model.GetOrgByID(ctx, orgID)
+	if err != nil {
+		ctx.ServerError("GetOrgByID", err)
+		return
+	}
+
+	err = org_service.RemoveOrgUser(ctx, org, u)
+	if org_model.IsErrLastOrgOwner(err) {
+		ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+		ctx.JSONRedirect("")
+		return
+	} else if err != nil {
+		ctx.ServerError("RemoveOrgUser", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.users.org_removed", org.Name))
+	ctx.JSONRedirect("")
+}
+
+func RemoveUserFromAllOrgs(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	orgs, err := org_model.GetUserOrganizations(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("GetUserOrganizations", err)
+		return
+	}
+
+	removedCount := 0
+	for i := range orgs {
+		err = org_service.RemoveOrgUser(ctx, orgs[i], u)
+		if org_model.IsErrLastOrgOwner(err) {
+			continue
+		} else if err != nil {
+			log.Error("Failed to remove user %s from org %s: %v", u.Name, orgs[i].Name, err)
+			continue
+		}
+		removedCount++
+	}
+
+	if removedCount < len(orgs) {
+		ctx.Flash.Warning(ctx.Tr("admin.users.some_orgs_removed", removedCount, len(orgs)))
+	} else {
+		ctx.Flash.Success(ctx.Tr("admin.users.all_orgs_removed"))
+	}
+	ctx.JSONRedirect("")
 }
 
 // AvatarPost response for change user's avatar request
