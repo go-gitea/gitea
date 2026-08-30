@@ -7,15 +7,19 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
+	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Validate that each navbar setting is correct. This checks that the
@@ -268,6 +272,48 @@ func TestUserSettingsSecurity(t *testing.T) {
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user/settings/security")
 		session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("disabling two-factor requires the passcode", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+		session := loginUser(t, user.Name) // signed in before enrolling: a live session must not be enough
+
+		enroll := func() (secret, recoveryKey string) {
+			t.Helper()
+			if existing, err := auth_model.GetTwoFactorByUID(t.Context(), user.ID); err == nil {
+				require.NoError(t, auth_model.DeleteTwoFactorByID(t.Context(), existing.ID, user.ID))
+			}
+			otpKey, err := totp.Generate(totp.GenerateOpts{SecretSize: 40, Issuer: "gitea-test", AccountName: user.Name})
+			require.NoError(t, err)
+			tfa := &auth_model.TwoFactor{UID: user.ID}
+			require.NoError(t, tfa.SetSecret(otpKey.Secret()))
+			token, err := tfa.GenerateScratchToken()
+			require.NoError(t, err)
+			require.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
+			return otpKey.Secret(), token
+		}
+		disable := func(passcode string, expectedStatus int) {
+			t.Helper()
+			req := NewRequestWithValues(t, "POST", "/user/settings/security/two_factor/disable", map[string]string{"passcode": passcode})
+			session.MakeRequest(t, req, expectedStatus)
+		}
+
+		enroll()
+		disable("", http.StatusBadRequest)
+		disable("000000", http.StatusBadRequest)
+		unittest.AssertExistsAndLoadBean(t, &auth_model.TwoFactor{UID: user.ID})
+
+		secret, _ := enroll()
+		passcode, err := totp.GenerateCode(secret, time.Now())
+		require.NoError(t, err)
+		disable(passcode, http.StatusSeeOther)
+		unittest.AssertNotExistsBean(t, &auth_model.TwoFactor{UID: user.ID})
+
+		_, recoveryKey := enroll()
+		disable(recoveryKey, http.StatusSeeOther)
+		unittest.AssertNotExistsBean(t, &auth_model.TwoFactor{UID: user.ID})
 	})
 }
 
