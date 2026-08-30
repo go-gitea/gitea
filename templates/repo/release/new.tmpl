@@ -88,7 +88,7 @@
 					<div class="flex-text-block tw-flex-1">
 						<input class="tw-max-w-[48em]" value="{{.Name}}" {{if $assetsMutable}}name="attachment-edit-{{.UUID}}" required{{else}}readonly{{end}}>
 						{{if $assetsMutable}}<input name="attachment-del-{{.UUID}}" type="hidden" value="false">{{end}}
-						<span class="tw-text-text-light tw-flex-shrink-0">{{.Size | FileSize}}</span>
+						<span class="tw-text-text-light tw-flex-shrink-0">{{.Size | FormatByteSize}}</span>
 						<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
 							{{svg "octicon-info"}}
 						</span>

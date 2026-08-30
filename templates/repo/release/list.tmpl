@@ -87,7 +87,7 @@
 											<strong class="flex-text-inline">{{svg "octicon-package" 16 "download-icon"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 										</a>
 										<div class="attachment-right-info flex-text-inline">
-											<span class="tw-pl-5">{{$att.Size | FileSize}}</span>
+											<span class="tw-pl-5">{{$att.Size | FormatByteSize}}</span>
 											<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">
 												{{svg "octicon-info"}}
 											</span>

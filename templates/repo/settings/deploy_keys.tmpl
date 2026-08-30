@@ -1,91 +1,74 @@
 {{template "repo/settings/layout_head" (dict "pageClass" "repository settings")}}
-	<div class="repo-setting-content">
-		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
-			<div class="ui right">
+<div class="repo-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
+		<div class="ui right">
 			{{if not .DisableSSH}}
-				<button class="ui primary tiny show-panel toggle button" data-panel="#add-deploy-key-panel">{{ctx.Locale.Tr "repo.settings.add_deploy_key"}}</button>
+			<button class="ui primary compact tiny button show-panel toggle" data-panel="#add-deploy-key-ssh-panel" data-panel-hide="#add-deploy-key-token-panel">{{ctx.Locale.Tr "repo.settings.add_deploy_key_ssh"}}</button>
 			{{else}}
-				<button class="ui primary tiny button disabled">{{ctx.Locale.Tr "settings.ssh_disabled"}}</button>
+			<button class="ui primary compact tiny button disabled">{{ctx.Locale.Tr "settings.ssh_disabled"}}</button>
 			{{end}}
-			</div>
-		</h4>
-		<div class="ui attached segment">
-			<div class="tw-hidden tw-mb-4" id="add-deploy-key-panel">
-				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-					<div class="field">
-						{{ctx.Locale.Tr "repo.settings.deploy_key_desc"}}
-					</div>
-					<div class="field">
-						<label for="ssh-key-title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
-						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
-					</div>
-					<div class="field">
-						<label for="ssh-key-content">{{ctx.Locale.Tr "repo.settings.deploy_key_content"}}</label>
-						<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
-					</div>
-					<div class="field">
-						<div class="ui checkbox">
-							<input id="ssh-key-is-writable" name="is_writable" type="checkbox" value="1">
-							<label for="ssh-key-is-writable">
-								{{ctx.Locale.Tr "repo.settings.is_writable"}}
-							</label>
-							<small class="tw-pl-[26px]">{{ctx.Locale.Tr "repo.settings.is_writable_info"}}</small>
-						</div>
-					</div>
-					<button class="ui primary button">
-						{{ctx.Locale.Tr "repo.settings.add_deploy_key"}}
-					</button>
-					<button class="ui hide-panel button" data-panel="#add-deploy-key-panel">
-						{{ctx.Locale.Tr "cancel"}}
-					</button>
-				</form>
-			</div>
-			{{if .RepoDeployKeys}}
-				<div class="flex-divided-list items-with-main">
-					{{range $deployKey := .RepoDeployKeys}}
-						<div class="item">
-							<div class="item-leading">
-								<span class="{{if $deployKey.HasRecentActivity}}tw-text-green{{end}}"
-									{{if $deployKey.HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}
-								>{{svg "octicon-key" 32}}</span>
-							</div>
-							<div class="item-main">
-								<div class="item-title">{{$deployKey.Name}}</div>
-								<div class="item-body">
-									{{$deployKey.Fingerprint}}
-								</div>
-								<div class="item-body">
-									{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort $deployKey.CreatedUnix)}}
-									<span class="tw-mx-2">-</span>
-									{{svg "octicon-info"}}
-									{{if $deployKey.HasUsed}}
-										{{ctx.Locale.Tr "settings.last_used"}}
-										<span {{if $deployKey.HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort $deployKey.UpdatedUnix}}</span>
-									{{else}}
-										{{ctx.Locale.Tr "settings.no_activity"}}
-									{{end}}
-									<span class="tw-mx-2">-</span>
-									<span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not $deployKey.IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span>
-								</div>
-							</div>
-							<div class="item-trailing">
-								<button class="ui red tiny button link-action" data-modal-confirm="#repo-deploy-key-delete-modal" data-url="{{$.Link}}/delete?id={{$deployKey.ID}}">
-									{{ctx.Locale.Tr "settings.delete_key"}}
-								</button>
-							</div>
-						</div>
-					{{end}}
-				</div>
-			{{else}}
-				{{ctx.Locale.Tr "repo.settings.no_deploy_keys"}}
-			{{end}}
+			<button class="ui primary compact tiny button show-panel toggle" data-panel="#add-deploy-key-token-panel" data-panel-hide="#add-deploy-key-ssh-panel">{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}</button>
 		</div>
+	</h4>
+	<div class="ui attached segment">
+		<div class="tw-hidden tw-mb-4" id="add-deploy-key-ssh-panel">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+				<div class="field">{{ctx.Locale.Tr "repo.settings.deploy_key_ssh_desc"}}</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "repo.settings.title"}}</label>
+					<input name="title" autofocus required>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "settings.key_content"}}</label>
+					<textarea name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required></textarea>
+				</div>
+				<div class="field">
+					<div class="ui checkbox">
+						<input name="is_writable" type="checkbox" value="1">
+						<label>{{ctx.Locale.Tr "repo.settings.is_writable"}}</label>
+						<small class="tw-pl-[20px]">{{ctx.Locale.Tr "repo.settings.is_writable_info"}}</small>
+					</div>
+				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_deploy_key_ssh"}}</button>
+				<button class="ui hide-panel button" data-panel="#add-deploy-key-ssh-panel">{{ctx.Locale.Tr "cancel"}}</button>
+			</form>
+			<div class="divider"></div>
+		</div>
+
+		<div class="tw-hidden tw-mb-4" id="add-deploy-key-token-panel">
+			<form class="ui form form-fetch-action" action="{{.Link}}/generate-token" method="post">
+				<div class="field">{{ctx.Locale.Tr "repo.settings.deploy_key_token_desc"}}</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "repo.settings.title"}}</label>
+					<input name="title" autofocus required>
+				</div>
+				<div class="field">
+					<div class="ui checkbox">
+						<input name="is_writable" type="checkbox" value="1">
+						<label>{{ctx.Locale.Tr "repo.settings.is_writable"}}</label>
+						<small class="tw-pl-[20px]">{{ctx.Locale.Tr "repo.settings.is_writable_info"}}</small>
+					</div>
+				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}</button>
+				<button class="ui hide-panel button" data-panel="#add-deploy-key-token-panel">{{ctx.Locale.Tr "cancel"}}</button>
+			</form>
+			<div class="divider"></div>
+		</div>
+
+		{{template "repo/settings/deploy_key_list" dict "RepoDeployKeys" .RepoDeployKeys}}
 	</div>
+</div>
 
 <div class="ui small modal" id="repo-deploy-key-delete-modal">
-	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.deploy_key_deletion"}}</div>
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "remove"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p></div>
+	{{template "base/modal_actions_confirm" .}}
+</div>
+
+<div class="ui small modal" id="repo-deploy-token-regenerate-modal">
+	<div class="header">{{svg "octicon-sync"}} {{ctx.Locale.Tr "settings.regenerate_token"}}</div>
+	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.regenerate_deploy_token_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
 
