@@ -83,7 +83,6 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     thumbnailHeight: 480,
   };
   const accepts = dropzoneEl.getAttribute('data-accepts')!;
-  // left unset so dropzone's own "acceptedFiles: null" default applies, undefined would break it
   if (!['*/*', ''].includes(accepts)) opts.acceptedFiles = accepts;
   if (dropzoneEl.hasAttribute('data-max-file')) opts.maxFiles = Number(dropzoneEl.getAttribute('data-max-file'));
   if (dropzoneEl.hasAttribute('data-max-size')) opts.maxFilesize = Number(dropzoneEl.getAttribute('data-max-size'));
