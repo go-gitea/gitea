@@ -167,8 +167,15 @@ func DeviceAuthorizeShowOAuth(ctx *context.Context) {
 	// consent could never succeed against a mismatched grant, so deny now instead of
 	// leaving the device polling "authorization_pending" until it expires
 	if grant != nil && grant.Scope != deviceAuthorization.Scope {
-		if err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil {
-			handleDeviceAuthorizationWriteError(ctx, "MarkDenied", deviceAuthorization.ID, err)
+		ok, err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("MarkDenied", err)
+			return
+		}
+		if !ok {
+			if err := renderCurrentOAuthDeviceAuthorizationResult(ctx, deviceAuthorization.ID); err != nil {
+				ctx.ServerError("renderCurrentOAuthDeviceAuthorizationResult", err)
+			}
 			return
 		}
 		renderOAuthDeviceAuthorizationError(ctx, "auth.device_scope_mismatch")
@@ -214,7 +221,7 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 	}
 
 	if !form.Granted {
-		if err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil && !errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
+		if _, err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("MarkDenied", err)
 			return
 		}
@@ -250,7 +257,7 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 		}
 	}
 	if grant.Scope != deviceAuthorization.Scope {
-		if err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil && !errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
+		if _, err := deviceAuthorization.MarkDenied(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("MarkDenied", err)
 			return
 		}
@@ -258,15 +265,8 @@ func DeviceGrantApplicationOAuth(ctx *context.Context) {
 		return
 	}
 
-	if err := db.WithTx(ctx, func(txCtx stdctx.Context) error {
-		deviceAuthorization, err := auth_model.GetOAuth2DeviceAuthorizationByID(txCtx, form.DeviceAuthorizationID)
-		if errors.Is(err, util.ErrNotExist) || (err == nil && deviceAuthorization.IsExpired()) {
-			return auth_model.ErrOAuth2DeviceAuthorizationInvalidated
-		} else if err != nil {
-			return err
-		}
-		return deviceAuthorization.MarkApproved(txCtx, grant.ID, ctx.Doer.ID)
-	}); err != nil && !errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
+	_, err = deviceAuthorization.MarkApproved(ctx, grant.ID, ctx.Doer.ID)
+	if err != nil {
 		ctx.ServerError("approveDeviceAuthorization", err)
 		return
 	}
@@ -342,52 +342,38 @@ func handleDeviceCode(ctx *context.Context, form forms.AccessTokenForm, serverKe
 		return
 	}
 
-	var resp *oauth2_provider.AccessTokenResponse
-	err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-		deviceAuthorization, err := auth_model.GetOAuth2DeviceAuthorizationByID(txCtx, deviceAuthorization.ID)
-		if errors.Is(err, util.ErrNotExist) || (err == nil && deviceAuthorization.IsExpired()) {
-			return auth_model.ErrOAuth2DeviceAuthorizationInvalidated
-		} else if err != nil {
-			return err
+	resp, err := db.WithTx2(ctx, func(ctx stdctx.Context) (*oauth2_provider.AccessTokenResponse, error) {
+		ok, err := deviceAuthorization.MarkConsumed(ctx)
+		if err != nil {
+			return nil, err
 		}
-		if err := deviceAuthorization.MarkConsumed(txCtx); err != nil {
-			return err
+		if !ok {
+			return nil, determineOAuthDeviceAuthConsumeFailureError(ctx, deviceAuthorization.ID)
 		}
 
-		grant, err := auth_model.GetOAuth2GrantByID(txCtx, deviceAuthorization.GrantID)
+		grant, err := auth_model.GetOAuth2GrantByID(ctx, deviceAuthorization.GrantID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if grant == nil {
-			return &oauth2_provider.AccessTokenError{
+			return nil, oauth2_provider.AccessTokenError{
 				ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
 				ErrorDescription: "grant does not exist",
 			}
 		}
 		if grant.ApplicationID != app.ID {
-			return &oauth2_provider.AccessTokenError{
+			return nil, oauth2_provider.AccessTokenError{
 				ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
 				ErrorDescription: "device code belongs to a different client",
 			}
 		}
-
-		var tokenErr *oauth2_provider.AccessTokenError
-		resp, tokenErr = oauth2_provider.NewAccessTokenResponse(txCtx, grant, serverKey, clientKey)
-		if tokenErr != nil {
-			return tokenErr
-		}
-
-		return nil
+		return oauth2_provider.NewAccessTokenResponse(ctx, grant, serverKey, clientKey)
 	})
 	if err != nil {
-		var accessTokenErr *oauth2_provider.AccessTokenError
+		var accessTokenErr oauth2_provider.AccessTokenError
 		switch {
-		case errors.As(err, &accessTokenErr) && accessTokenErr != nil:
-			handleAccessTokenError(ctx, *accessTokenErr)
-		case errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated):
-			if err := handleCurrentOAuthDeviceAuthorizationTokenState(ctx, deviceAuthorization.ID); err != nil {
-				handleDeviceAccessTokenServerError(ctx, "handleCurrentOAuthDeviceAuthorizationTokenState", err)
-			}
+		case errors.As(err, &accessTokenErr):
+			handleAccessTokenError(ctx, accessTokenErr)
 		default:
 			handleDeviceAccessTokenServerError(ctx, "consumeDeviceAuthorization", err)
 		}
@@ -408,18 +394,6 @@ func handleDeviceAccessTokenServerError(ctx *context.Context, name string, err e
 func renderOAuthDeviceAuthorizationError(ctx *context.Context, msgKey string) {
 	ctx.Data["Error"] = AuthorizeError{ErrorDescription: ctx.Locale.TrString(msgKey)}
 	ctx.HTML(http.StatusBadRequest, tplGrantError)
-}
-
-// handleDeviceAuthorizationWriteError renders the authorization's current state when it changed
-// under us, and reports anything else as a server error.
-func handleDeviceAuthorizationWriteError(ctx *context.Context, name string, deviceAuthorizationID int64, err error) {
-	if !errors.Is(err, auth_model.ErrOAuth2DeviceAuthorizationInvalidated) {
-		ctx.ServerError(name, err)
-		return
-	}
-	if err := renderCurrentOAuthDeviceAuthorizationResult(ctx, deviceAuthorizationID); err != nil {
-		ctx.ServerError("renderCurrentOAuthDeviceAuthorizationResult", err)
-	}
 }
 
 func renderOAuthDeviceAuthorizationEntry(ctx *context.Context, userCode string) {
@@ -459,49 +433,46 @@ func renderCurrentOAuthDeviceAuthorizationResult(ctx *context.Context, deviceAut
 	return nil
 }
 
-func handleCurrentOAuthDeviceAuthorizationTokenState(ctx *context.Context, deviceAuthorizationID int64) error {
+func determineOAuthDeviceAuthConsumeFailureError(ctx stdctx.Context, deviceAuthorizationID int64) error {
 	deviceAuthorization, err := auth_model.GetOAuth2DeviceAuthorizationByID(ctx, deviceAuthorizationID)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return err
 	}
 	if err != nil {
-		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+		return oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "device code is invalid",
-		})
-		return nil
+		}
 	}
 	if deviceAuthorization.IsExpired() {
-		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+		return oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeExpiredToken,
 			ErrorDescription: "device code expired",
-		})
-		return nil
+		}
 	}
 
 	switch deviceAuthorization.Status {
 	case auth_model.OAuth2DeviceAuthorizationPending:
-		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+		return oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeAuthorizationPending,
 			ErrorDescription: "device authorization pending",
-		})
+		}
 	case auth_model.OAuth2DeviceAuthorizationDenied:
-		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+		return oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeAccessDenied,
 			ErrorDescription: "device authorization denied",
-		})
+		}
 	case auth_model.OAuth2DeviceAuthorizationConsumed:
-		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+		return oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "device code already used",
-		})
+		}
 	default:
-		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
+		return oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidGrant,
 			ErrorDescription: "device code is invalid",
-		})
+		}
 	}
-	return nil
 }
 
 func setOAuthDeviceAuthorizationData(ctx *context.Context, app *auth_model.OAuth2Application, deviceAuthorization *auth_model.OAuth2DeviceAuthorization) error {

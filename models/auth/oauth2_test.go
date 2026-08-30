@@ -250,8 +250,12 @@ func TestOAuth2DeviceAuthorizationStateTransitions(t *testing.T) {
 			return
 		}
 
-		assert.NoError(t, deviceAuthorization.MarkDenied(t.Context(), 1))
-		assert.ErrorIs(t, deviceAuthorization.MarkApproved(t.Context(), 1, 1), auth_model.ErrOAuth2DeviceAuthorizationInvalidated)
+		ok, err := deviceAuthorization.MarkDenied(t.Context(), 1)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		ok, err = deviceAuthorization.MarkApproved(t.Context(), 1, 1)
+		assert.NoError(t, err)
+		assert.False(t, ok)
 
 		reloaded, err := auth_model.GetOAuth2DeviceAuthorizationByID(t.Context(), deviceAuthorization.ID)
 		assert.NoError(t, err)
@@ -267,9 +271,15 @@ func TestOAuth2DeviceAuthorizationStateTransitions(t *testing.T) {
 			return
 		}
 
-		assert.NoError(t, deviceAuthorization.MarkApproved(t.Context(), 1, 1))
-		assert.NoError(t, deviceAuthorization.MarkConsumed(t.Context()))
-		assert.ErrorIs(t, deviceAuthorization.MarkConsumed(t.Context()), auth_model.ErrOAuth2DeviceAuthorizationInvalidated)
+		ok, err := deviceAuthorization.MarkApproved(t.Context(), 1, 1)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		ok, err = deviceAuthorization.MarkConsumed(t.Context())
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		ok, err = deviceAuthorization.MarkConsumed(t.Context())
+		assert.NoError(t, err)
+		assert.False(t, ok)
 
 		reloaded, err := auth_model.GetOAuth2DeviceAuthorizationByID(t.Context(), deviceAuthorization.ID)
 		assert.NoError(t, err)

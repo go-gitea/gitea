@@ -38,10 +38,7 @@ const (
 	OAuth2DeviceAuthorizationConsumed OAuth2DeviceAuthorizationStatus = "consumed"
 )
 
-var (
-	ErrOAuth2DeviceAuthorizationInvalidated  = errors.New("oauth2 device authorization changed state")
-	ErrOAuth2DeviceAuthorizationLimitReached = errors.New("too many pending oauth2 device authorizations")
-)
+var ErrOAuth2DeviceAuthorizationLimitReached = errors.New("too many pending oauth2 device authorizations")
 
 // deleteExpiredDeviceAuthorizations removes device authorizations past their validity.
 // Denied and consumed rows are kept until they expire so a polling client still learns
@@ -114,48 +111,30 @@ func (d *OAuth2DeviceAuthorization) RegisterPoll(ctx context.Context) (bool, err
 }
 
 // MarkApproved persists the approved device authorization.
-func (d *OAuth2DeviceAuthorization) MarkApproved(ctx context.Context, grantID, userID int64) error {
+func (d *OAuth2DeviceAuthorization) MarkApproved(ctx context.Context, grantID, userID int64) (bool, error) {
 	d.GrantID = grantID
 	d.UserID = userID
 	d.Status = OAuth2DeviceAuthorizationApproved
 	affected, err := db.GetEngine(ctx).Where("id = ? AND status = ?", d.ID, OAuth2DeviceAuthorizationPending).
 		Cols("grant_id", "user_id", "status").Update(d)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return ErrOAuth2DeviceAuthorizationInvalidated
-	}
-	return nil
+	return affected > 0, err
 }
 
 // MarkDenied persists the denied device authorization.
-func (d *OAuth2DeviceAuthorization) MarkDenied(ctx context.Context, userID int64) error {
+func (d *OAuth2DeviceAuthorization) MarkDenied(ctx context.Context, userID int64) (bool, error) {
 	d.UserID = userID
 	d.Status = OAuth2DeviceAuthorizationDenied
 	affected, err := db.GetEngine(ctx).Where("id = ? AND status = ?", d.ID, OAuth2DeviceAuthorizationPending).
 		Cols("user_id", "status").Update(d)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return ErrOAuth2DeviceAuthorizationInvalidated
-	}
-	return nil
+	return affected > 0, err
 }
 
 // MarkConsumed persists the consumed device authorization.
-func (d *OAuth2DeviceAuthorization) MarkConsumed(ctx context.Context) error {
+func (d *OAuth2DeviceAuthorization) MarkConsumed(ctx context.Context) (bool, error) {
 	d.Status = OAuth2DeviceAuthorizationConsumed
 	affected, err := db.GetEngine(ctx).Where("id = ? AND status = ?", d.ID, OAuth2DeviceAuthorizationApproved).
 		Cols("status").Update(d)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return ErrOAuth2DeviceAuthorizationInvalidated
-	}
-	return nil
+	return affected > 0, err
 }
 
 // CreateOAuth2DeviceAuthorization creates a new device authorization and returns the plaintext device code.
