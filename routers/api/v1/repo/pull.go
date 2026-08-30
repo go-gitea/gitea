@@ -1590,7 +1590,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:           -1, // GetDiff() will return all files
 			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")),
-			LFSRepositoryID:    pr.BaseRepoID,
+			LFSRepositoryID:    pr.HeadRepoID,
 		})
 	if err != nil {
 		ctx.APIErrorInternal(err)
