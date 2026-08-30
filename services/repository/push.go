@@ -336,9 +336,13 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
-	relMap := make(map[string]*repo_model.Release)
+	// a case-insensitive collation answers the query above with a differently cased row, and its
+	// unique index cannot hold both, so that row is the one to update rather than duplicate
+	relMap := make(map[string]*repo_model.Release, len(releases))
+	relMapFolded := make(map[string]*repo_model.Release, len(releases))
 	for _, rel := range releases {
 		relMap[rel.TagName] = rel
+		relMapFolded[strings.ToLower(rel.TagName)] = rel
 	}
 
 	newReleases := make([]*repo_model.Release, 0, len(tags)-len(relMap))
@@ -361,14 +365,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 
 		rel, has := relMap[tagName]
 		if !has {
-			// a case-insensitive collation answers the query above with a differently cased row,
-			// and its unique index cannot hold both, so update that one instead of duplicating it
-			for name, candidate := range relMap {
-				if strings.EqualFold(name, tagName) {
-					rel, has = candidate, true
-					break
-				}
-			}
+			rel, has = relMapFolded[strings.ToLower(tagName)]
 		}
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
@@ -400,13 +397,13 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.PublishedUnix = publishedUnix
 			} else {
 				if rel.IsDraft { // pushing the tag publishes the draft, so it locks like any other publication
-					// a predecessor at this path may have claimed the name after the draft was created
+					// the name may have been claimed since the hook checked it, and publishing claims it
 					immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 					if err != nil {
 						return fmt.Errorf("IsTagImmutable: %w", err)
 					}
 					if immutable {
-						continue // the pre-receive hook rejects this, a push around it must not publish either
+						continue
 					}
 					rel.IsDraft = false
 					if err = repo_model.LockRelease(ctx, repo, rel); err != nil {

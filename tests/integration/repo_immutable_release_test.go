@@ -10,7 +10,10 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
@@ -78,6 +81,17 @@ func TestImmutableRelease(t *testing.T) {
 			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
 				HasReleases: new(true), ImmutableReleases: new(true),
 			}).AddTokenAuth(token), http.StatusOK)
+
+			// the setting rewrites the unit row, which must keep its public access settings
+			releases := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeReleases})
+			releases.EveryoneAccessMode = perm.AccessModeRead
+			_, err := db.GetEngine(t.Context()).ID(releases.ID).Cols("everyone_access_mode").Update(releases)
+			require.NoError(t, err)
+			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
+				ImmutableReleases: new(true),
+			}).AddTokenAuth(token), http.StatusOK)
+			after := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeReleases})
+			assert.Equal(t, perm.AccessModeRead, after.EveryoneAccessMode)
 		})
 
 		t.Run("GitPush", func(t *testing.T) {

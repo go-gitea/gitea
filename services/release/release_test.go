@@ -509,6 +509,14 @@ func TestRelease_Immutable(t *testing.T) {
 	rel.Note = "changed note"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
 
+	// a request built without the flag must not clear it, UpdateRelease writes all columns
+	stale := *rel
+	stale.IsImmutable = false
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, &stale, nil, nil, nil))
+	reloaded, err := repo_model.GetReleaseByID(t.Context(), rel.ID)
+	assert.NoError(t, err)
+	assert.True(t, reloaded.IsImmutable)
+
 	assertLocked := func(field string, addUUIDs []string, mutate func(rel *repo_model.Release)) {
 		current, err := repo_model.GetReleaseByID(t.Context(), rel.ID)
 		assert.NoError(t, err)

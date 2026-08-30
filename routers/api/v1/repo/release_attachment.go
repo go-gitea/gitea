@@ -266,10 +266,10 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if release.IsImmutable {
-		ctx.APIErrorAuto(release_service.ErrImmutableRelease)
 		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 			log.Error("DeleteAttachment %s: %v", attach.UUID, err)
 		}
+		ctx.APIErrorAuto(release_service.ErrImmutableRelease)
 		return
 	}
 

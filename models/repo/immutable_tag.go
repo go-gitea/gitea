@@ -31,10 +31,6 @@ func init() {
 	db.RegisterModel(new(ImmutableTag))
 }
 
-func AddImmutableTag(ctx context.Context, repo *Repository, tagName string) error {
-	return db.Insert(ctx, &ImmutableTag{RepoID: repo.ID, TagName: tagName})
-}
-
 // LockRelease claims the tag name of a release becoming published. Must run inside the transaction
 // that writes the release, so the row and its claim commit together.
 func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
@@ -42,7 +38,7 @@ func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
 		return nil
 	}
 	rel.IsImmutable = true
-	return AddImmutableTag(ctx, repo, rel.TagName)
+	return db.Insert(ctx, &ImmutableTag{RepoID: repo.ID, TagName: rel.TagName})
 }
 
 // StampImmutableTagPath records the path a deleted repository ended at, so its claims keep applying

@@ -944,18 +944,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		if opts.HasReleases != nil && !*opts.HasReleases {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
 		} else if unit != nil || opts.HasReleases != nil { // immutable_releases alone must not enable the unit
-			config := &repo_model.ReleasesConfig{}
-			if unit != nil {
-				config = unit.ReleasesConfig()
-			}
+			config := repo.MustGetUnit(ctx, unit_model.TypeReleases).ReleasesConfig()
 			if opts.ImmutableReleases != nil {
 				config.ImmutableReleases = *opts.ImmutableReleases
 			}
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeReleases,
-				Config: config,
-			})
+			repoUnit := repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases, Config: config}
+			if unit != nil { // the row is rewritten, so its public access settings have to survive
+				repoUnit.AnonymousAccessMode, repoUnit.EveryoneAccessMode = unit.AnonymousAccessMode, unit.EveryoneAccessMode
+			}
+			units = append(units, repoUnit)
 		}
 	}
 

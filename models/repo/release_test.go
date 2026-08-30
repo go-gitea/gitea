@@ -126,7 +126,7 @@ func TestImmutableTag(t *testing.T) {
 	}
 
 	assert.False(t, isImmutable(repo, "V1.1"))
-	assert.NoError(t, AddImmutableTag(t.Context(), repo, "V1.1"))
+	assert.NoError(t, db.Insert(t.Context(), &ImmutableTag{RepoID: repo.ID, TagName: "V1.1"}))
 	assert.True(t, isImmutable(repo, "V1.1"))
 	assert.False(t, isImmutable(repo, "v1.1")) // a git ref, so the claim is on the exact name
 
