@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -22,9 +21,7 @@ const (
 	oauth2DeviceAuthorizationIntervalSeconds    = 5
 	oauth2DeviceAuthorizationSlowDownSeconds    = 5
 	oauth2DeviceAuthorizationMaxIntervalSeconds = 300
-	oauth2DeviceAuthorizationFormattedCodeParts = 2
-	oauth2DeviceAuthorizationCodePartLength     = 4
-	oauth2DeviceAuthorizationUserCodeLength     = oauth2DeviceAuthorizationFormattedCodeParts * oauth2DeviceAuthorizationCodePartLength
+	oauth2DeviceAuthorizationUserCodeLength     = 8
 )
 
 // OAuth2DeviceAuthorizationMaxPendingPerRequester bounds how many rows a single caller can
@@ -46,20 +43,6 @@ var (
 	ErrOAuth2DeviceAuthorizationLimitReached = errors.New("too many pending oauth2 device authorizations")
 )
 
-// ErrOAuth2DeviceAuthorizationNotFound is returned when no device authorization matches the lookup.
-type ErrOAuth2DeviceAuthorizationNotFound struct {
-	ID int64
-}
-
-func (err ErrOAuth2DeviceAuthorizationNotFound) Error() string {
-	return fmt.Sprintf("oauth2 device authorization does not exist [id: %d]", err.ID)
-}
-
-// Unwrap unwraps this as a ErrNotExist err
-func (err ErrOAuth2DeviceAuthorizationNotFound) Unwrap() error {
-	return util.ErrNotExist
-}
-
 // deleteExpiredDeviceAuthorizations removes device authorizations past their validity.
 // Denied and consumed rows are kept until they expire so a polling client still learns
 // why it was rejected instead of seeing the code vanish.
@@ -68,8 +51,6 @@ func deleteExpiredDeviceAuthorizations(ctx context.Context) error {
 		Delete(new(OAuth2DeviceAuthorization))
 	return err
 }
-
-const oauth2DeviceAuthorizationUserCodeAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
 // OAuth2DeviceAuthorization stores state for the OAuth device authorization flow.
 type OAuth2DeviceAuthorization struct {
@@ -109,10 +90,11 @@ func (d *OAuth2DeviceAuthorization) IsExpired() bool {
 // FormattedUserCode returns the user-facing device code.
 func (d *OAuth2DeviceAuthorization) FormattedUserCode() string {
 	normalized := NormalizeOAuth2DeviceUserCode(d.UserCode)
-	if len(normalized) != oauth2DeviceAuthorizationFormattedCodeParts*oauth2DeviceAuthorizationCodePartLength {
+	if len(normalized) != oauth2DeviceAuthorizationUserCodeLength {
 		return normalized
 	}
-	return normalized[:oauth2DeviceAuthorizationCodePartLength] + "-" + normalized[oauth2DeviceAuthorizationCodePartLength:]
+	half := oauth2DeviceAuthorizationUserCodeLength / 2
+	return normalized[:half] + "-" + normalized[half:]
 }
 
 // RegisterPoll updates the device authorization with the current poll time.
@@ -235,7 +217,7 @@ func GetOAuth2DeviceAuthorizationByID(ctx context.Context, id int64) (*OAuth2Dev
 	if has, err := db.GetEngine(ctx).ID(id).Get(deviceAuthorization); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrOAuth2DeviceAuthorizationNotFound{ID: id}
+		return nil, util.NewNotExistErrorf("device authorization by ID not found")
 	}
 	return deviceAuthorization, nil
 }
@@ -246,7 +228,7 @@ func GetOAuth2DeviceAuthorizationByDeviceCode(ctx context.Context, deviceCode st
 	if has, err := db.GetEngine(ctx).Where("device_code_hash = ?", hashOAuth2DeviceCode(deviceCode)).Get(deviceAuthorization); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrOAuth2DeviceAuthorizationNotFound{}
+		return nil, util.NewNotExistErrorf("device authorization by device code not found")
 	}
 	return deviceAuthorization, nil
 }
@@ -255,13 +237,10 @@ func GetOAuth2DeviceAuthorizationByDeviceCode(ctx context.Context, deviceCode st
 func GetOAuth2DeviceAuthorizationByUserCode(ctx context.Context, userCode string) (*OAuth2DeviceAuthorization, error) {
 	deviceAuthorization := new(OAuth2DeviceAuthorization)
 	normalized := NormalizeOAuth2DeviceUserCode(userCode)
-	if normalized == "" {
-		return nil, ErrOAuth2DeviceAuthorizationNotFound{}
-	}
 	if has, err := db.GetEngine(ctx).Where("user_code = ?", normalized).Get(deviceAuthorization); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrOAuth2DeviceAuthorizationNotFound{}
+		return nil, util.NewNotExistErrorf("device authorization by user code not found")
 	}
 	return deviceAuthorization, nil
 }
@@ -272,14 +251,14 @@ func NormalizeOAuth2DeviceUserCode(userCode string) string {
 }
 
 func generateOAuth2DeviceCode() string {
-	return "gtd_" + base32Lower.EncodeToString(util.CryptoRandomBytes(32))
+	return "gtd_" + base32Lower.EncodeToString(util.FastCryptoRandomBytes(32))
 }
 
 func generateOAuth2UserCode() string {
+	const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 	buf := make([]byte, oauth2DeviceAuthorizationUserCodeLength)
-	limit := int64(len(oauth2DeviceAuthorizationUserCodeAlphabet))
 	for i := range buf {
-		buf[i] = oauth2DeviceAuthorizationUserCodeAlphabet[util.CryptoRandomInt(limit)]
+		buf[i] = chars[util.FastCryptoRandomInt(len(chars))]
 	}
 	return string(buf)
 }

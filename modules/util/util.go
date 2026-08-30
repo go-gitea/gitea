@@ -123,6 +123,13 @@ func FastCryptoRandomHex(length int) string {
 	return hex.EncodeToString(buf)
 }
 
+func FastCryptoRandomInt[T int | int64](n T) T {
+	pool := chaCha8RandPool()
+	chaCha8Rand := pool.Get().(*rand2.ChaCha8) //nolint:forcetypeassert // the pool's New only ever makes *rand2.ChaCha8
+	defer pool.Put(chaCha8Rand)
+	return rand2.New(chaCha8Rand).N(n)
+}
+
 // ToLowerASCII returns s with all ASCII letters mapped to their lower case.
 func ToLowerASCII(s string) string {
 	b := []byte(s)
