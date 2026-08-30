@@ -70,11 +70,8 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
   let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-  const accepts = dropzoneEl.getAttribute('data-accepts')!;
   const opts: Dropzone.DropzoneOptions = {
     url: dropzoneEl.getAttribute('data-upload-url')!,
-    // omitted so dropzone's own "acceptedFiles: null" default applies, undefined would break it
-    ...(!['*/*', ''].includes(accepts) && {acceptedFiles: accepts}),
     addRemoveLinks: true,
     dictDefaultMessage: dropzoneEl.getAttribute('data-default-message')!,
     dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type')!,
@@ -85,6 +82,9 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     thumbnailWidth: 480,
     thumbnailHeight: 480,
   };
+  const accepts = dropzoneEl.getAttribute('data-accepts')!;
+  // left unset so dropzone's own "acceptedFiles: null" default applies, undefined would break it
+  if (!['*/*', ''].includes(accepts)) opts.acceptedFiles = accepts;
   if (dropzoneEl.hasAttribute('data-max-file')) opts.maxFiles = Number(dropzoneEl.getAttribute('data-max-file'));
   if (dropzoneEl.hasAttribute('data-max-size')) opts.maxFilesize = Number(dropzoneEl.getAttribute('data-max-size'));
 

@@ -59,7 +59,7 @@ export function assignElementProperty(el: ElementWithAssignableProperties, kebab
     if (kebabName === 'url') kebabName = 'action';
   }
   const camelizedName = camelize(kebabName);
-  const properties = el as ElementWithAssignableProperties & Record<string, unknown>;
+  const properties: Record<string, unknown> = el;
   const old = properties[camelizedName];
   if (typeof old === 'boolean') {
     properties[camelizedName] = val === 'true';

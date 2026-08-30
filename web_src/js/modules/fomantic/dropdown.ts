@@ -10,7 +10,7 @@ type AriaDropdownElement = HTMLElement & {
     focusableRole: 'combobox' | 'menu';
     listPopupRole: 'listbox' | '';
     listItemRole: 'option' | 'menuitem';
-    deferredRefreshAriaActiveItem?: (delay?: number) => void;
+    deferredRefreshAriaActiveItem: (delay?: number) => void;
   };
 };
 
@@ -100,7 +100,7 @@ function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
     const $wrapper = $(div);
     const $items = $wrapper.find('> .item');
     $items.each((_, item) => updateMenuItem($dropdown[0], item));
-    $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem!();
+    $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
     return $wrapper.html();
   };
   dropdownCall('setting', 'templates', dropdownTemplates);
@@ -118,7 +118,7 @@ function delegateDropdownModule($dropdown: JQueryElem<AriaDropdownElement>) {
   const dropdownHideOld = dropdownCall('internal', 'hide');
   dropdownCall('internal', 'hide', function(this: unknown, ...args: unknown[]) {
     const ret = dropdownHideOld.apply(this, args);
-    $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem!();
+    $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
     return ret;
   });
 
@@ -211,9 +211,9 @@ function attachInitElements(dropdown: AriaDropdownElement) {
     focusableRole: isComboBox ? 'combobox' : 'menu',
     listPopupRole: isComboBox ? 'listbox' : '',
     listItemRole: isComboBox ? 'option' : 'menuitem',
+    deferredRefreshAriaActiveItem: attachDomEvents(dropdown, focusable, menu),
   };
 
-  attachDomEvents(dropdown, focusable, menu);
   attachStaticElements(dropdown, focusable, menu);
 }
 
@@ -260,7 +260,6 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
   // when the popup is hiding, it's better to have a small "delay", because there is a Fomantic UI animation
   // without the delay for hiding, the UI will be somewhat laggy and sometimes may get stuck in the animation.
   const deferredRefreshAriaActiveItem = (delay = 0) => { setTimeout(refreshAriaActiveItem, delay) };
-  dropdown[ariaPatchKey].deferredRefreshAriaActiveItem = deferredRefreshAriaActiveItem;
   dropdown.addEventListener('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAriaActiveItem(); });
 
   // if the dropdown has been opened by focus, do not trigger the next click event again.
@@ -297,6 +296,8 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
     }
     ignoreClickPreEvents = ignoreClickPreVisible = 0;
   }, {capture: true});
+
+  return deferredRefreshAriaActiveItem;
 }
 
 // Although Fomantic Dropdown supports "hideDividers", it doesn't really work with our "scoped dividers"

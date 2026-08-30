@@ -61,8 +61,6 @@ type ComboMarkdownEditorOptions = {
   easyMDEOptions?: Omit<EasyMDE.Options, 'toolbar'> & {toolbar?: ReadonlyArray<string>},
 };
 
-type EasyMdeOptions = Omit<EasyMDE.Options, 'toolbar'> & {toolbar: EasyMdeToolbarAction[]};
-
 type ComboMarkdownEditorTextarea = HTMLTextAreaElement & {_giteaComboMarkdownEditor: ComboMarkdownEditor};
 type ComboMarkdownEditorContainer = HTMLElement & {_giteaComboMarkdownEditor?: ComboMarkdownEditor};
 
@@ -337,7 +335,7 @@ export class ComboMarkdownEditor {
       import('easymde'),
       import('../../../css/easymde.css'),
     ]);
-    const easyMDEOpt: EasyMdeOptions = {
+    const easyMDEOpt: EasyMDE.Options = {
       autoDownloadFontAwesome: false,
       element: this.textarea,
       forceSync: true,
@@ -348,10 +346,10 @@ export class ComboMarkdownEditor {
       inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
       nativeSpellcheck: true,
       ...this.options.easyMDEOptions,
-      toolbar: this.parseEasyMDEToolbar(EasyMDE, this.options.easyMDEOptions?.toolbar ?? this.easyMDEToolbarDefault),
+      toolbar: this.parseEasyMDEToolbar(EasyMDE, this.options.easyMDEOptions?.toolbar ?? this.easyMDEToolbarDefault) as EasyMDE.Options['toolbar'],
     };
 
-    this.easyMDE = new EasyMDE(easyMDEOpt as EasyMDE.Options);
+    this.easyMDE = new EasyMDE(easyMDEOpt);
     this.easyMDE.codemirror.on('change', () => triggerEditorContentChanged(this.container));
     this.easyMDE.codemirror.setOption('extraKeys', {
       'Cmd-Enter': () => { handleGlobalEnterQuickSubmit(this.textarea) },
