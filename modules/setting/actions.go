@@ -19,7 +19,7 @@ const (
 	defaultArtifactRetentionDays  = 90
 	defaultLogRetentionDays       = 365
 	defaultRunRetentionDays       = 400
-	defaultArtifactPreviewMaxSize = 100 * 1024 * 1024
+	defaultArtifactPreviewMaxSize = 10 * 1024 * 1024
 )
 
 // Actions settings
