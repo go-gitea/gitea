@@ -395,6 +395,8 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitOtherParticipants"] = gituser.BuildAvatarStackData(ctx, commit.CoAuthorIdentities(), nil).Participants
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+	ctx.Data["ShowDiffSummaryInToolbar"] = false
+	ctx.Data["ShowDiffSummaryInCommitHeader"] = diffShortStat.NumFiles != 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 		return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)

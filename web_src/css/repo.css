@@ -829,9 +829,9 @@ td .commit-summary {
   position: sticky;
   top: 0;
   z-index: 8;
-  padding: 7px 5px;
+  padding: 4px 5px;
   margin: 0 -5px; /* negative margin so it covers active file shadow */
-  height: 44px; /* this height should match sticky-2nd-row */
+  height: 41px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
 
@@ -840,6 +840,7 @@ td .commit-summary {
     flex-wrap: wrap;
   }
 }
+
 .repository .diff-detail-box .diff-detail-stats strong {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -972,25 +973,16 @@ td .commit-summary {
   width: 100%;
 }
 
-.repository .diff-file-box.file-content {
-  clear: right;
-}
-
 .repository .diff-file-box.file-content .image-diff img {
   max-width: 100%;
   padding: 0;
   border-radius: 0;
 }
 
-.repository .diff-file-box .ui.bottom.attached.table.segment {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
 .diff-file-box {
   border: 1px solid transparent;
   border-radius: var(--border-radius);
-  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
+  scroll-margin-top: 44px; /* .diff-detail-box height plus the :target shadow */
 }
 
 .file.editor .diff-file-box {
@@ -1549,7 +1541,6 @@ tbody.commit-list {
 
 #diff-container {
   display: flex;
-  padding-top: 4px; /* for box-shadow from .diff-file-box */
   gap: var(--page-spacing);
 }
 
@@ -1570,8 +1561,8 @@ tbody.commit-list {
   line-height: inherit;
   position: sticky;
   padding-top: 0;
-  top: 47px;
-  max-height: calc(100vh - 47px);
+  top: 44px; /* match .diff-file-box scroll-margin-top */
+  max-height: calc(100vh - 44px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1669,7 +1660,7 @@ tbody.commit-list {
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
-  top: 44px; /* match .repository .diff-detail-box */
+  top: 41px; /* dock right below .repository .diff-detail-box */
   z-index: 7;
 }
 

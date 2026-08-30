@@ -871,6 +871,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
