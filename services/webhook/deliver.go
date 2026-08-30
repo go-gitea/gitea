@@ -67,15 +67,12 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid URL: %w", err)
 		}
-		// The whole payload goes into the query string, which is limited by
-		// servers and proxies along the way. Fail early with a clear error
-		// instead of delivering a truncated request.
-		if len(t.PayloadContent)+len(u.String()) > maxGetWebhookURLLength {
-			return nil, nil, fmt.Errorf("GET webhook URL would be %d bytes, exceeding the %d byte limit; use POST for large payloads", len(t.PayloadContent)+len(u.String()), maxGetWebhookURLLength)
-		}
 		vals := u.Query()
 		vals["payload"] = []string{t.PayloadContent}
-		u.RawQuery = vals.Encode()
+		u.RawQuery = vals.Encode() // JSON is percent-escaped here, so validate the final URL, not the raw payload
+		if len(u.String()) > maxGetWebhookURLLength {
+			return nil, nil, fmt.Errorf("GET webhook URL would be %d bytes, exceeding the %d byte limit; use POST for large payloads", len(u.String()), maxGetWebhookURLLength)
+		}
 		req, err = http.NewRequest(http.MethodGet, u.String(), nil)
 		if err != nil {
 			return nil, nil, err

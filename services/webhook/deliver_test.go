@@ -96,18 +96,63 @@ func TestWebhookDeliverGetPayloadTooLarge(t *testing.T) {
 	}
 	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
+	// The quotes get percent-encoded into the query string, so the final URL
+	// is ~3x the payload size: the raw payload fits the limit, the URL does not.
 	hookTask := &webhook_model.HookTask{
 		HookID:         hook.ID,
 		EventType:      webhook_module.HookEventPush,
 		PayloadVersion: 2,
-		PayloadContent: strings.Repeat("x", 4096),
+		PayloadContent: `{"x":"` + strings.Repeat(`"`, 790) + `"}`,
 	}
+	assert.Less(t, len(hookTask.PayloadContent), 2048)
+
 	hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
 	assert.NoError(t, err)
 
 	err = Deliver(t.Context(), hookTask)
 	assert.ErrorContains(t, err, "exceeding the 2048 byte limit")
 	assert.False(t, hookTask.IsSucceed)
+}
+
+func TestWebhookDeliverGetSmallPayload(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	done := make(chan struct{}, 1)
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/webhook", r.URL.Path)
+		assert.Equal(t, `{"x":"y"}`, r.URL.Query().Get("payload"))
+		w.WriteHeader(http.StatusOK)
+		done <- struct{}{}
+	}))
+	t.Cleanup(s.Close)
+
+	hook := &webhook_model.Webhook{
+		RepoID:      3,
+		URL:         s.URL + "/webhook",
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
+		HTTPMethod:  "GET",
+		ContentType: webhook_model.ContentTypeJSON,
+	}
+	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
+
+	hookTask := &webhook_model.HookTask{
+		HookID:         hook.ID,
+		EventType:      webhook_module.HookEventPush,
+		PayloadVersion: 2,
+		PayloadContent: `{"x":"y"}`,
+	}
+	hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
+	assert.NoError(t, err)
+
+	assert.NoError(t, Deliver(t.Context(), hookTask))
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("waited too long for request to happen")
+	}
+
+	assert.True(t, hookTask.IsSucceed)
 }
 
 func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
