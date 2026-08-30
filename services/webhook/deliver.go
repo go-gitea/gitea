@@ -35,6 +35,9 @@ import (
 )
 
 func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (req *http.Request, body []byte, err error) {
+	// GET deliveries put the payload into the query string; keep the total URL
+	// within a size most HTTP servers and proxies accept.
+	const maxGetWebhookURLLength = 2048
 	switch w.HTTPMethod {
 	case "", http.MethodPost:
 		switch w.ContentType {
@@ -63,6 +66,12 @@ func newDefaultRequest(ctx context.Context, w *webhook_model.Webhook, t *webhook
 		u, err := url.Parse(w.URL)
 		if err != nil {
 			return nil, nil, fmt.Errorf("invalid URL: %w", err)
+		}
+		// The whole payload goes into the query string, which is limited by
+		// servers and proxies along the way. Fail early with a clear error
+		// instead of delivering a truncated request.
+		if len(t.PayloadContent)+len(u.String()) > maxGetWebhookURLLength {
+			return nil, nil, fmt.Errorf("GET webhook URL would be %d bytes, exceeding the %d byte limit; use POST for large payloads", len(t.PayloadContent)+len(u.String()), maxGetWebhookURLLength)
 		}
 		vals := u.Query()
 		vals["payload"] = []string{t.PayloadContent}

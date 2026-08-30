@@ -83,6 +83,33 @@ func TestWebhookProxy(t *testing.T) {
 	}
 }
 
+func TestWebhookDeliverGetPayloadTooLarge(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	hook := &webhook_model.Webhook{
+		RepoID:      3,
+		URL:         "http://example.com/webhook",
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
+		HTTPMethod:  "GET",
+		ContentType: webhook_model.ContentTypeJSON,
+	}
+	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
+
+	hookTask := &webhook_model.HookTask{
+		HookID:         hook.ID,
+		EventType:      webhook_module.HookEventPush,
+		PayloadVersion: 2,
+		PayloadContent: strings.Repeat("x", 4096),
+	}
+	hookTask, err := webhook_model.CreateHookTask(t.Context(), hookTask)
+	assert.NoError(t, err)
+
+	err = Deliver(t.Context(), hookTask)
+	assert.ErrorContains(t, err, "exceeding the 2048 byte limit")
+	assert.False(t, hookTask.IsSucceed)
+}
+
 func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
