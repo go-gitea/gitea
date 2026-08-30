@@ -140,7 +140,7 @@ func TestGrantApplicationOAuth_AllowsScopeChange(t *testing.T) {
 	mockOpt := contexttest.MockContextOption{
 		SessionStore: session.NewMockMemStore("oauth2-scope-change"),
 	}
-	ctx, _ := contexttest.MockContext(t, "/login/oauth2/grant", mockOpt)
+	ctx, _ := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
 
 	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
@@ -160,6 +160,38 @@ func TestGrantApplicationOAuth_AllowsScopeChange(t *testing.T) {
 
 	updatedGrant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: grant.ID})
 	assert.Equal(t, newScope, updatedGrant.Scope)
+}
+
+func TestAuthorizeOAuth_ConfidentialClientSameScopesDifferentOrder(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
+	require.True(t, app.ConfidentialClient)
+
+	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, UserID: 1})
+	require.Equal(t, "openid profile", grant.Scope)
+
+	redirectURI := app.RedirectURIs[0]
+	state := "test-state"
+
+	mockOpt := contexttest.MockContextOption{
+		SessionStore: session.NewMockMemStore("oauth2-scope-order"),
+	}
+	ctx, resp := contexttest.MockContext(t, "/login/oauth/authorize", mockOpt)
+
+	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	web.SetForm(ctx, &forms.AuthorizationForm{
+		ResponseType: "code",
+		ClientID:     app.ClientID,
+		RedirectURI:  redirectURI,
+		State:        state,
+		Scope:        "profile openid",
+	})
+
+	AuthorizeOAuth(ctx)
+
+	assert.Equal(t, http.StatusSeeOther, resp.Code)
 }
 
 func TestAuthorizeOAuth_ConfidentialClientScopeChangeShowsConsent(t *testing.T) {
