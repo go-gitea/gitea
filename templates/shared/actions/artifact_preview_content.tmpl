@@ -33,7 +33,7 @@
 					<span class="gt-ellipsis">{{.Name}}</span>
 				</div>
 			{{else}}
-				<a class="artifact-preview-file-row artifact-preview-file-row-file {{.IndentClass}} {{if .Selected}}active{{end}}" href="{{$.PreviewRawURL}}/{{PathEscapeSegments .Path}}{{$.AttemptQuery}}" target="_blank" rel="noopener noreferrer" title="{{.Path}}">
+				<a class="artifact-preview-file-row artifact-preview-file-row-file {{.IndentClass}} {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}{{$.AttemptAmpQuery}}" title="{{.Path}}">
 					{{svg "octicon-file" 16}}
 					<span class="gt-ellipsis">{{.Name}}</span>
 				</a>
@@ -43,3 +43,8 @@
 		{{end}}
 	</div>
 </div>
+
+{{if .ShowPreviewContent}}
+	<div class="ui warning message tw-mt-4">{{ctx.Locale.Tr "actions.artifacts.preview_generated_content"}}</div>
+	<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}{{.AttemptQuery}}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+{{end}}

@@ -165,3 +165,10 @@
 .artifact-preview-depth-8 { padding-left: calc(1rem + 8 * 1.25rem); }
 .artifact-preview-depth-9 { padding-left: calc(1rem + 9 * 1.25rem); }
 .artifact-preview-depth-10 { padding-left: calc(1rem + 10 * 1.25rem); }
+
+.artifact-preview-frame {
+  width: 100%;
+  min-height: 70vh;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+}

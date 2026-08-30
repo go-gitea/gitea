@@ -255,12 +255,8 @@ func isArtifactPreviewSizeAllowed(artifacts []*actions_model.ActionArtifact) boo
 }
 
 // ArtifactPreviewHTMLContentSecurityPolicy returns the sandboxed CSP for rendered artifact HTML.
-func ArtifactPreviewHTMLContentSecurityPolicy(ctx *context_module.Context) string {
-	source := "'self'"
-	if currentURL, err := url.Parse(httplib.GuessCurrentHostURL(ctx)); err == nil && currentURL.Scheme != "" && currentURL.Host != "" {
-		source += " " + currentURL.Scheme + "://" + currentURL.Host
-	}
-	return fmt.Sprintf("default-src 'none'; script-src %s 'unsafe-inline'; style-src %s 'unsafe-inline'; img-src %s data:; connect-src 'none'; sandbox allow-scripts", source, source, source)
+func ArtifactPreviewHTMLContentSecurityPolicy() string {
+	return "sandbox allow-scripts"
 }
 
 func listPreviewPathsForLegacyArtifacts(artifacts []*actions_model.ActionArtifact) []string {
@@ -400,7 +396,7 @@ func artifactPreviewContentType(filename string, st typesniffer.SniffedType) str
 	return st.GetMimeType()
 }
 
-func artifactPreviewServeHeaderOptions(ctx *context_module.Context, path string, st typesniffer.SniffedType) context_module.ServeHeaderOptions {
+func artifactPreviewServeHeaderOptions(path string, st typesniffer.SniffedType) context_module.ServeHeaderOptions {
 	contentType := artifactPreviewContentType(path, st)
 	opts := context_module.ServeHeaderOptions{
 		Filename:           path,
@@ -408,7 +404,7 @@ func artifactPreviewServeHeaderOptions(ctx *context_module.Context, path string,
 		ContentType:        contentType,
 	}
 	if strings.HasPrefix(contentType, "text/html") {
-		opts.ContentSecurityPolicy = ArtifactPreviewHTMLContentSecurityPolicy(ctx)
+		opts.ContentSecurityPolicy = ArtifactPreviewHTMLContentSecurityPolicy()
 	}
 	return opts
 }
@@ -489,7 +485,7 @@ func previewArtifactByReadSeeker(ctx *context_module.Context, path string, reade
 	}
 
 	// CSP sandbox is applied by httplib.ServeSetHeaders, see HINT: PDF-RENDER-SANDBOX
-	ctx.ServeContent(reader, artifactPreviewServeHeaderOptions(ctx, path, st))
+	ctx.ServeContent(reader, artifactPreviewServeHeaderOptions(path, st))
 }
 
 func ArtifactsPreviewView(ctx *context_module.Context) {
@@ -542,6 +538,7 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	ctx.Data["AttemptQuery"] = attemptQuery
 	ctx.Data["AttemptAmpQuery"] = attemptAmpQuery
 	ctx.Data["SelectedPath"] = selectedPath
+	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
 	// only claim the file is missing when a listing was actually computed, otherwise an over-sized artifact reports both warnings
 	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == "" && !previewTooLarge
 	ctx.Data["PreviewTooLarge"] = previewTooLarge

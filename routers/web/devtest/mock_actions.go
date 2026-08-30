@@ -711,6 +711,7 @@ func MockActionsArtifactPreview(ctx *context.Context) {
 	ctx.Data["PreviewRawURL"] = previewURL + "/raw"
 	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName)
 	ctx.Data["SelectedPath"] = selectedPath
+	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
 	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
 	ctx.Data["AttemptQuery"] = ""
 	ctx.Data["AttemptAmpQuery"] = ""
@@ -747,7 +748,7 @@ func MockActionsArtifactPreviewRaw(ctx *context.Context) {
 	contentSecurityPolicy := ""
 	if path.Ext(selectedFile.Path) == ".html" {
 		contentType = "text/html"
-		contentSecurityPolicy = actions.ArtifactPreviewHTMLContentSecurityPolicy(ctx)
+		contentSecurityPolicy = actions.ArtifactPreviewHTMLContentSecurityPolicy()
 	} else if mappedContentType := mime.TypeByExtension(path.Ext(selectedFile.Path)); strings.HasPrefix(mappedContentType, "text/") || strings.Contains(mappedContentType, "javascript") {
 		contentType = mappedContentType
 	}
