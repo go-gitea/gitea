@@ -1114,7 +1114,6 @@
   "repo.editor.upload_file_is_locked": "檔案「%s」已被 %s 鎖定。",
   "repo.editor.upload_files_to_dir": "上傳檔案到「%s」",
   "repo.editor.cannot_commit_to_protected_branch": "無法提交到受保護的分支「%s」。",
-  "repo.editor.user_no_push_to_branch": "使用者無法推送到分支",
   "repo.editor.require_signed_commit": "分支僅接受經簽署的提交",
   "repo.editor.cherry_pick": "Cherry-pick %s 到：",
   "repo.editor.revert": "還原 %s 到：",

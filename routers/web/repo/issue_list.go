@@ -509,7 +509,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		total = util.Iif(isShowClosed.Value(), issueStats.ClosedCount, issueStats.OpenCount)
 	}
 	page := max(ctx.FormInt("page"), 1)
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 
 	// prepare real issue list:
 	var issues issues_model.IssueList
@@ -519,7 +519,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		// In either case, no need to use keyword anymore
 		searchResult, err := db_indexer.GetIndexer().FindWithIssueOptions(ctx, &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
-				Page:     pager.Paginater.Current(),
+				Page:     pager.Paginator.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
 			RepoIDs:           []int64{repo.ID},
@@ -645,7 +645,6 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	default:
 		ctx.Data["State"] = "open"
 	}
-	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 

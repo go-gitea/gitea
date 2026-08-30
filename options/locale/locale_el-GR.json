@@ -1004,7 +1004,6 @@
   "repo.editor.upload_file_is_locked": "Το αρχείο \"%s\" είναι κλειδωμένο από %s.",
   "repo.editor.upload_files_to_dir": "Μεταφόρτωση αρχείων στο \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Δεν είναι δυνατή η υποβολή στον προστατευόμενο κλάδο \"%s\".",
-  "repo.editor.user_no_push_to_branch": "Ο χρήστης δεν μπορεί να κάνει push στο κλάδο",
   "repo.editor.require_signed_commit": "Ο κλάδος απαιτεί υπογεγραμμένη υποβολή",
   "repo.editor.cherry_pick": "Ανθολόγηση (cherry-pic) του %s στο:",
   "repo.editor.revert": "Απόσυρση του %s στο:",

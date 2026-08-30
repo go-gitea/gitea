@@ -1167,7 +1167,6 @@
   "repo.editor.upload_file_is_locked": "Arquivo \"%s\" está bloqueado por %s.",
   "repo.editor.upload_files_to_dir": "Enviar arquivos para \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Não foi possível enviar commits para o branch protegido \"%s\".",
-  "repo.editor.user_no_push_to_branch": "O usuário não pode fazer push no branch",
   "repo.editor.require_signed_commit": "Branch requer um commit assinado",
   "repo.editor.cherry_pick": "Cherry-pick %s para:",
   "repo.editor.revert": "Reverter %s para:",

@@ -1324,7 +1324,6 @@
   "repo.editor.upload_files_to_dir": "Carregar ficheiros para \"%s\"",
   "repo.editor.cannot_commit_to_protected_branch": "Não é possível cometer para o ramo protegido \"%s\".",
   "repo.editor.no_commit_to_branch": "Não é permitido cometer imediatamente para o ramo porque:",
-  "repo.editor.user_no_push_to_branch": "O utilizador não pode enviar para o ramo",
   "repo.editor.require_signed_commit": "O ramo requer um cometimento assinado",
   "repo.editor.cherry_pick": "Escolher a dedo %s para:",
   "repo.editor.revert": "Reverter %s para:",
