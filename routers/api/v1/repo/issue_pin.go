@@ -262,6 +262,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 		}
 
 		apiPrs[i] = convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
+		hideCrossRepoPRHead(ctx, pr, apiPrs[i])
 	}
 
 	ctx.JSON(http.StatusOK, &apiPrs)

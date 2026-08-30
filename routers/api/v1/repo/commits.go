@@ -416,5 +416,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
+	hideCrossRepoPRHead(ctx, pr, apiPR)
+	ctx.JSON(http.StatusOK, apiPR)
 }
