@@ -38,6 +38,13 @@ func TestImmutableRelease(t *testing.T) {
 		rel := publish("imm-1")
 		assert.True(t, rel.IsImmutable)
 
+		t.Run("EditPage", func(t *testing.T) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/releases/edit/imm-1", owner.Name, repo.Name))
+			htmlDoc := NewHTMLParser(t, session.MakeRequest(t, req, http.StatusOK).Body)
+			assert.Contains(t, htmlDoc.doc.Find(".ui.info.message").Text(), "You cannot change the tag, target or assets")
+			assert.Equal(t, 0, htmlDoc.doc.Find(".dropzone").Length())
+		})
+
 		t.Run("API", func(t *testing.T) {
 			// a repo edit that leaves the setting out must not clear it
 			var apiRepo api.Repository
@@ -57,6 +64,19 @@ func TestImmutableRelease(t *testing.T) {
 			}).AddTokenAuth(token), http.StatusUnprocessableEntity)
 			MakeRequest(t, NewRequestWithJSON(t, "PATCH", relURL, &api.EditReleaseOption{
 				Title: "renamed",
+			}).AddTokenAuth(token), http.StatusOK)
+
+			// the setting alone must not enable the releases unit
+			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
+				HasReleases: new(false),
+			}).AddTokenAuth(token), http.StatusOK)
+			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
+				ImmutableReleases: new(true),
+			}).AddTokenAuth(token), http.StatusOK), &apiRepo)
+			assert.False(t, apiRepo.HasReleases)
+
+			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
+				HasReleases: new(true), ImmutableReleases: new(true),
 			}).AddTokenAuth(token), http.StatusOK)
 		})
 
@@ -87,7 +107,7 @@ func TestImmutableRelease(t *testing.T) {
 			_, _, err = gitcmd.NewCommand("push", "origin", ":refs/tags/imm-push").WithDir(dstPath).RunStdString(t.Context())
 			assert.NoError(t, err)
 
-			// pushing the tag of a draft publishes it, which must lock it like any other publication
+			// pushing the tag of a draft publishes it, which must lock it too
 			var draft api.Release
 			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "POST", base+"/releases", &api.CreateReleaseOption{
 				TagName: "imm-draft", Target: "master", Title: "draft", IsDraft: true,

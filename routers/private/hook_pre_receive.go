@@ -322,14 +322,10 @@ func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.R
 
 	tagName := refFullName.TagName()
 
-	// an immutable tag name can never be created or moved again, deleting it is
-	// only allowed once its release is gone
-	var immutable bool
-	var err error
-	if git.IsEmptyCommitID(newCommitID) {
+	// a claimed name can never be created or moved again, deleting it needs its release gone first
+	immutable, err := repo_model.IsTagImmutable(ctx, ctx.Repo.Repository, tagName)
+	if immutable && err == nil && git.IsEmptyCommitID(newCommitID) {
 		immutable, err = repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName)
-	} else {
-		immutable, err = repo_model.IsTagImmutable(ctx, ctx.Repo.Repository, tagName)
 	}
 	if err != nil {
 		ctx.PrivateInternalErrorf("unable to check immutable tag %s: %v", tagName, err)

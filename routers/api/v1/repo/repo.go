@@ -937,10 +937,17 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	if (opts.HasReleases != nil || opts.ImmutableReleases != nil) && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		unit, err := repo.GetUnit(ctx, unit_model.TypeReleases)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return err
+		}
 		if opts.HasReleases != nil && !*opts.HasReleases {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
-		} else {
-			config := repo.MustGetUnit(ctx, unit_model.TypeReleases).ReleasesConfig()
+		} else if unit != nil || opts.HasReleases != nil { // immutable_releases alone must not enable the unit
+			config := &repo_model.ReleasesConfig{}
+			if unit != nil {
+				config = unit.ReleasesConfig()
+			}
 			if opts.ImmutableReleases != nil {
 				config.ImmutableReleases = *opts.ImmutableReleases
 			}

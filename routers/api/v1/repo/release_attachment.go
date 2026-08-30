@@ -259,8 +259,14 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	// the release may have been published while the upload was streaming
-	if !checkReleaseAssetsMutable(ctx, releaseID) {
+	// the release may have been published while the upload was streaming, but only an actual lock
+	// may discard what was uploaded, a transient failure must not
+	release := checkReleaseMatchRepo(ctx, releaseID)
+	if release == nil {
+		return
+	}
+	if release.IsImmutable {
+		ctx.APIErrorAuto(release_service.ErrImmutableRelease)
 		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 			log.Error("DeleteAttachment %s: %v", attach.UUID, err)
 		}

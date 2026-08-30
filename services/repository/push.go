@@ -25,7 +25,6 @@ import (
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
-	release_service "gitea.dev/services/release"
 )
 
 // pushQueue represents a queue to handle update pull request tests
@@ -386,6 +385,8 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			}
 
 			newReleases = append(newReleases, rel)
+		} else if rel.IsImmutable && !rel.IsTag {
+			continue // the pre-receive hook rejects moving this tag, a push around it must not either
 		} else {
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = createdUnix
@@ -396,7 +397,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			} else {
 				if rel.IsDraft { // pushing the tag publishes the draft, so it locks like any other publication
 					rel.IsDraft = false
-					if err = release_service.LockRelease(ctx, repo, rel); err != nil {
+					if err = repo_model.LockRelease(ctx, repo, rel); err != nil {
 						return fmt.Errorf("LockRelease: %w", err)
 					}
 				}

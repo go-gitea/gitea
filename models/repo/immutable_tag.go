@@ -13,15 +13,13 @@ import (
 	"xorm.io/builder"
 )
 
-// IsImmutableReleasesEnabled reports whether newly published releases of this repository are locked.
 func (repo *Repository) IsImmutableReleasesEnabled(ctx context.Context) bool {
 	return repo.MustGetUnit(ctx, unit.TypeReleases).ReleasesConfig().ImmutableReleases
 }
 
-// ImmutableTag records a tag name used by an immutable release. It outlives the release, the tag and
-// the repository itself, so the name can never back another release or be pushed again. The repository
-// is recorded twice, by id and by path, and matching either claims the name: the id covers renames and
-// transfers while the repository lives, the path covers one recreated where it used to be.
+// ImmutableTag claims a tag name for good, outliving the release, the tag and the repository. The
+// path is only filled in once the repository is deleted, so that a repository recreated there
+// inherits the claim, while a live repository is matched by id and can be renamed freely.
 type ImmutableTag struct {
 	ID            int64  `xorm:"pk autoincr"`
 	RepoID        int64  `xorm:"UNIQUE(r) NOT NULL"`
@@ -34,18 +32,22 @@ func init() {
 	db.RegisterModel(new(ImmutableTag))
 }
 
-// AddImmutableTag claims a tag name permanently.
 func AddImmutableTag(ctx context.Context, repo *Repository, tagName string) error {
-	return db.Insert(ctx, &ImmutableTag{
-		RepoID:        repo.ID,
-		OwnerID:       repo.OwnerID,
-		LowerRepoName: repo.LowerName,
-		LowerTagName:  strings.ToLower(tagName),
-	})
+	return db.Insert(ctx, &ImmutableTag{RepoID: repo.ID, LowerTagName: strings.ToLower(tagName)})
 }
 
-// StampImmutableTagPath refreshes the path recorded at claim time, which rename and transfer leave
-// stale. Only deletion needs it, because until then the repository id claims the name.
+// LockRelease claims the tag name of a release becoming published. Must run inside the transaction
+// that writes the release, so the row and its claim commit together.
+func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
+	if rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
+		return nil
+	}
+	rel.IsImmutable = true
+	return AddImmutableTag(ctx, repo, rel.TagName)
+}
+
+// StampImmutableTagPath records the path a deleted repository ended at, so its claims keep applying
+// there. Until then the repository is claimed by id, which rename and transfer leave alone.
 func StampImmutableTagPath(ctx context.Context, repo *Repository) error {
 	_, err := db.GetEngine(ctx).Where("repo_id = ?", repo.ID).
 		Cols("owner_id", "lower_repo_name").
@@ -53,8 +55,7 @@ func StampImmutableTagPath(ctx context.Context, repo *Repository) error {
 	return err
 }
 
-// IsTagImmutable reports whether the tag name was used by an immutable release of this repository
-// or of an earlier repository at the same path.
+// IsTagImmutable also matches a claim left behind by a deleted repository at the same path.
 func IsTagImmutable(ctx context.Context, repo *Repository, tagName string) (bool, error) {
 	return db.Exist[ImmutableTag](ctx, builder.Eq{"lower_tag_name": strings.ToLower(tagName)}.And(
 		builder.Eq{"repo_id": repo.ID}.Or(

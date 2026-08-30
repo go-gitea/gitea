@@ -83,16 +83,6 @@ func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName 
 	return ErrImmutableTag
 }
 
-// LockRelease claims the tag name of a release becoming published, when the repository locks releases.
-// Must run inside the transaction that writes the release, so the row and its claim commit together.
-func LockRelease(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release) error {
-	if rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
-		return nil
-	}
-	rel.IsImmutable = true
-	return repo_model.AddImmutableTag(ctx, repo, rel.TagName)
-}
-
 func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) (bool, error) {
 	err := rel.LoadAttributes(ctx)
 	if err != nil {
@@ -207,6 +197,9 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 		}
 	}
 
+	if err = rel.LoadRepo(ctx); err != nil {
+		return err
+	}
 	if err = assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 		return err
 	}
@@ -218,7 +211,7 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
-		if err := LockRelease(ctx, rel.Repo, rel); err != nil {
+		if err := repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
 			return err
 		}
 		if err := db.Insert(ctx, rel); err != nil {
@@ -331,7 +324,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			return errImmutableField("tag_name")
 		case rel.Target != oldRelease.Target:
 			return errImmutableField("target_commitish")
-		case rel.IsDraft:
+		case rel.IsDraft || rel.IsTag: // demoting to a tag would free the tag for deletion
 			return errImmutableField("state")
 		case len(addAttachmentUUIDs) > 0 || len(delAttachmentUUIDs) > 0 || len(editAttachments) > 0:
 			return errImmutableField("assets")
@@ -350,7 +343,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if isBeingPublished {
-			if err = LockRelease(ctx, rel.Repo, rel); err != nil {
+			if err = repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
 				return err
 			}
 		}
@@ -441,8 +434,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
 func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release, doer *user_model.User, delTag bool) error {
 	if delTag {
-		// the tag of an immutable release can only be deleted after the release itself is gone
-		if rel.IsImmutable && !rel.IsTag {
+		if rel.IsImmutable && !rel.IsTag { // the tag outlives the release it belongs to
 			return ErrImmutableTag
 		}
 

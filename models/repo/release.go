@@ -166,8 +166,7 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
 }
 
-// HasImmutableRelease returns true if the tag is backed by an immutable release that still exists,
-// unlike IsTagImmutable, which stays true once the release and the tag are gone.
+// HasImmutableRelease needs the release to still exist, unlike IsTagImmutable.
 func HasImmutableRelease(ctx context.Context, repoID int64, tagName string) (bool, error) {
 	return db.Exist[Release](ctx, builder.Eq{
 		"repo_id":        repoID,
@@ -484,8 +483,9 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 		return fmt.Errorf("Delete: %w", err)
 	}
 
+	// an immutable release stays published, reverting it to a draft would leave it uneditable
 	if _, err := db.GetEngine(ctx).
-		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
+		Where("repo_id = ? AND is_tag = ? AND is_immutable = ?", repo.ID, false, false).
 		In("lower_tag_name", lowerTags).
 		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{
