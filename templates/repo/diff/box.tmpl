@@ -92,6 +92,7 @@
 					{{$isCsv := $file.IsBlobTypeCsv}}
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
+					{{$hasDiffBody := or $file.IsIncomplete $file.IsBin $file.SubmoduleDiffInfo $file.Sections $showFileViewToggle}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
@@ -169,55 +170,57 @@
 								{{end}}
 							</div>
 						</div>
-						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
-							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
-								{{if or $file.IsIncomplete $file.IsBin}}
-									<div class="diff-file-body binary">
-										{{if $file.IsIncomplete}}
-											{{if $file.IsIncompleteLineTooLong}}
-												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
+						{{if $hasDiffBody}}
+							<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
+								<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
+									{{if or $file.IsIncomplete $file.IsBin}}
+										<div class="diff-file-body binary">
+											{{if $file.IsIncomplete}}
+												{{if $file.IsIncompleteLineTooLong}}
+													{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
+												{{else}}
+													{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
+													<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
+												{{end}}
 											{{else}}
-												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-												<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
+												{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
 											{{end}}
-										{{else}}
-											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
-										{{end}}
+										</div>
+									{{else if $file.SubmoduleDiffInfo}}
+										<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
+											{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
+											{{- if $file.IsDeleted -}}
+												{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
+											{{- else if $file.IsCreated -}}
+												{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.NewRefID) -}}
+											{{- else -}}
+												{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
+											{{end}}
+										</div>
+									{{else}}
+										<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+											{{if $.IsSplitStyle}}
+												{{template "repo/diff/section_split" dict "file" . "root" $}}
+											{{else}}
+												{{template "repo/diff/section_unified" dict "file" . "root" $}}
+											{{end}}
+										</table>
+									{{end}}
+								</div>
+								{{if $showFileViewToggle}}
+									{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
+									<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} tw-overflow-x-scroll">
+										<table class="chroma tw-w-full">
+											{{if $isImage}}
+												{{template "repo/diff/image_diff" dict "file" $file}}
+											{{else if $isCsv}}
+												{{template "repo/diff/csv_diff" dict "file" $file}}
+											{{end}}
+										</table>
 									</div>
-								{{else if $file.SubmoduleDiffInfo}}
-									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
-										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
-										{{- if $file.IsDeleted -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
-										{{- else if $file.IsCreated -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_added" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.NewRefID) -}}
-										{{- else -}}
-											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
-										{{end}}
-									</div>
-								{{else}}
-									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
-										{{if $.IsSplitStyle}}
-											{{template "repo/diff/section_split" dict "file" . "root" $}}
-										{{else}}
-											{{template "repo/diff/section_unified" dict "file" . "root" $}}
-										{{end}}
-									</table>
 								{{end}}
 							</div>
-							{{if $showFileViewToggle}}
-								{{/* for image or CSV, it can have a horizontal scroll bar, there won't be review comment context menu (position absolute) which would be clipped by "overflow" */}}
-								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} tw-overflow-x-scroll">
-									<table class="chroma tw-w-full">
-										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" $file}}
-										{{else if $isCsv}}
-											{{template "repo/diff/csv_diff" dict "file" $file}}
-										{{end}}
-									</table>
-								</div>
-							{{end}}
-						</div>
+						{{end}}
 					</div>
 				{{end}}
 
