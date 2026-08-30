@@ -688,33 +688,67 @@ func MockActionsArtifactDownload(ctx *context.Context) {
 	}
 }
 
-func MockActionsArtifactPreview(ctx *context.Context) {
-	runID := ctx.PathParamInt64("run")
-	artifactName := ctx.PathParam("artifact_name")
+func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, artifactName, requested, previewURL string, runAttempt int64) bool {
 	files, ok := mockActionsArtifactFiles[artifactName]
 	if !ok {
-		ctx.NotFound(nil)
-		return
+		return false
 	}
 
-	requested := actions.GetRequestedPreviewPath(ctx)
 	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), requested)
 	previewFiles := actions.BuildArtifactPreviewFiles(mockArtifactFilePaths(files), selectedPath)
 
 	runURL := fmt.Sprintf("%s/devtest/repo-action-view/runs/%d", setting.AppSubURL, runID)
-	previewURL := runURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
+	backToRunURL := runURL
+	runPreviewURL := runURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
+	if previewURL == "" {
+		previewURL = runPreviewURL
+	}
+	attemptQuery := ""
+	if runAttempt > 0 {
+		backToRunURL += fmt.Sprintf("/attempts/%d", runAttempt)
+		attemptQuery = fmt.Sprintf("?attempt=%d", runAttempt)
+	}
 
 	ctx.Data["ArtifactName"] = artifactName
 	ctx.Data["PreviewFiles"] = previewFiles
-	ctx.Data["RunURL"] = runURL
+	ctx.Data["RunURL"] = backToRunURL
+	ctx.Data["RunIndex"] = runID
+	ctx.Data["RunAttempt"] = runAttempt
 	ctx.Data["PreviewURL"] = previewURL
-	ctx.Data["PreviewRawURL"] = previewURL + "/raw"
-	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName)
+	ctx.Data["PreviewRawURL"] = runPreviewURL + "/raw"
+	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName) + attemptQuery
 	ctx.Data["SelectedPath"] = selectedPath
 	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
 	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
-	ctx.Data["AttemptQuery"] = ""
-	ctx.Data["AttemptAmpQuery"] = ""
+	return true
+}
+
+func prepareMockDataRepoActionArtifactPreview(ctx *context.Context) {
+	const (
+		runID        = int64(10)
+		artifactName = "artifact-lcov-coverage"
+		runAttempt   = int64(3)
+	)
+	requested := actions.GetRequestedPreviewPath(ctx)
+	if requested == "" {
+		requested = "coverage/index.html"
+	}
+	previewURL := setting.AppSubURL + "/devtest/repo-action-artifact-preview"
+	prepareMockActionsArtifactPreviewData(ctx, runID, artifactName, requested, previewURL, runAttempt)
+}
+
+func MockActionsArtifactPreview(ctx *context.Context) {
+	if !prepareMockActionsArtifactPreviewData(
+		ctx,
+		ctx.PathParamInt64("run"),
+		ctx.PathParam("artifact_name"),
+		actions.GetRequestedPreviewPath(ctx),
+		"",
+		ctx.FormInt64("attempt"),
+	) {
+		ctx.NotFound(nil)
+		return
+	}
 	ctx.HTML(http.StatusOK, "devtest/repo-action-artifact-preview")
 }
 

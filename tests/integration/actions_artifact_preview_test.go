@@ -65,6 +65,8 @@ func TestActionsArtifactPreview(t *testing.T) {
 		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview", repo.FullName())
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "abc.txt")
+		assert.Contains(t, resp.Body.String(), "Back to action run #187")
+		assert.Contains(t, resp.Body.String(), `href="/user5/repo4/actions/runs/791"`)
 		assert.Contains(t, resp.Body.String(), `/preview?path=abc.txt" title="abc.txt"`)
 		assert.NotContains(t, resp.Body.String(), "<iframe")
 

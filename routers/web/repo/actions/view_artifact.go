@@ -519,24 +519,27 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	previewFiles := BuildArtifactPreviewFiles(previewPaths, selectedPath)
 
 	runURL := run.Link()
+	backToRunURL := runURL
 	artifactPath := url.PathEscape(artifactName)
 	previewURL := runURL + "/artifacts/" + artifactPath + "/preview"
 	downloadURL := runURL + "/artifacts/" + artifactPath
-	attemptQuery, attemptAmpQuery := "", ""
+	attemptQuery := ""
+	runAttempt := int64(0)
 	if attempt := ctx.FormString("attempt"); attempt != "" {
 		attemptQuery = "?attempt=" + url.QueryEscape(attempt)
-		attemptAmpQuery = "&attempt=" + url.QueryEscape(attempt)
+		backToRunURL += "/attempts/" + url.PathEscape(attempt)
+		runAttempt = ctx.FormInt64("attempt")
 	}
 
 	ctx.Data["Title"] = ctx.Tr("preview")
 	ctx.Data["PageIsActions"] = true
-	ctx.Data["RunURL"] = runURL
+	ctx.Data["RunURL"] = backToRunURL
+	ctx.Data["RunIndex"] = run.Index
+	ctx.Data["RunAttempt"] = runAttempt
 	ctx.Data["ArtifactName"] = artifactName
 	ctx.Data["PreviewURL"] = previewURL
 	ctx.Data["PreviewRawURL"] = previewURL + "/raw"
 	ctx.Data["DownloadURL"] = downloadURL + attemptQuery
-	ctx.Data["AttemptQuery"] = attemptQuery
-	ctx.Data["AttemptAmpQuery"] = attemptAmpQuery
 	ctx.Data["SelectedPath"] = selectedPath
 	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
 	// only claim the file is missing when a listing was actually computed, otherwise an over-sized artifact reports both warnings
