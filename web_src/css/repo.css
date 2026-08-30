@@ -1570,7 +1570,7 @@ tbody.commit-list {
   line-height: inherit;
   position: sticky;
   padding-top: 0;
-  top: 44px;
+  top: 44px; /* match .diff-file-box scroll-margin-top */
   max-height: calc(100vh - 44px);
   height: 100%;
   display: flex;
