@@ -13,7 +13,6 @@ import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../mo
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {
   type ActionRunViewStore,
-  type ActionRunLocale,
   createLogLineMessage,
   type LogLine,
   type LogLineCommand,
@@ -25,6 +24,17 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
   // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
   return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
+
+export type ActionRunJobViewLocale = {
+  status: Record<ActionsStatus, string>,
+  showTimeStamps: string,
+  showLogSeconds: string,
+  showFullScreen: string,
+  logsAlwaysAutoScroll: string,
+  logsAlwaysExpandRunning: string,
+  downloadLogs: string,
+  copyOutput: string,
+};
 
 type Step = {
   summary: string,
@@ -85,7 +95,7 @@ const props = defineProps<{
   store: ActionRunViewStore,
   jobId: number;
   actionsViewUrl: string;
-  locale: ActionRunLocale;
+  locale: ActionRunJobViewLocale;
 }>();
 const store = props.store;
 const {currentRun: run} = toRefs(store.viewData);

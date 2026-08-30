@@ -7,7 +7,7 @@ import {isPlainClick} from '../utils/dom.ts';
 import {trN, trString} from '../modules/i18n.ts';
 import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
-import type {ActionRunLocale, ActionRunViewStore} from './ActionRunView.ts';
+import type {ActionRunViewStore} from './ActionRunView.ts';
 import {
   boxBottom,
   boxCenterY,
@@ -17,6 +17,18 @@ import {
   type GraphNode,
   type RoutedEdge,
 } from './WorkflowGraph.utils.ts';
+
+export type WorkflowGraphLocale = {
+  graphJobsCount1: string,
+  graphJobsCountN: string,
+  graphDependenciesCount1: string,
+  graphDependenciesCountN: string,
+  graphSuccessRate: string,
+  graphZoomIn: string,
+  graphZoomMax: string,
+  graphZoomOut: string,
+  graphResetView: string,
+};
 
 interface StoredState {
   scale: number;
@@ -32,7 +44,7 @@ const props = defineProps<{
   workflowId: string;
   workflowLink?: string;
   triggerEvent?: string;
-  locale: ActionRunLocale;
+  locale: WorkflowGraphLocale;
 }>();
 
 const settingKeyStates = 'actions-graph-states';

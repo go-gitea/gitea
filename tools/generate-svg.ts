@@ -47,8 +47,8 @@ function processAssetsSvgFiles(pattern: string, opts: Opts = {}) {
   return glob(pattern).map((path) => processAssetsSvgFile(path, opts));
 }
 
-function lowercaseKeys<T>(obj: Record<string, T>): Record<string, T> {
-  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key.toLowerCase(), value]));
+function lowercaseKeys<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key.toLowerCase(), value])) as T;
 }
 
 async function processMaterialFileIcons() {
