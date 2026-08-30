@@ -866,15 +866,13 @@ td .commit-summary {
   }
 }
 
-.diff-stats-row {
+.commit-diff-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  width: calc(100% + 2em);
-  margin: 0 -1em -1em;
-  padding: 8px 1em;
-  border-top: 1px solid var(--color-secondary);
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
 }
 
 .diff-detail-actions {

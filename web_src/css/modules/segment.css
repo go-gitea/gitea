@@ -146,6 +146,7 @@
 
 .ui.attached.segment:has(+ .ui[class*="top attached"].header),
 .ui.attached.segment:has(+ .page.buttons),
+.ui.attached.segment:has(+ .diff-box),
 .ui.attached.segment:last-child,
 .ui.segment:has(+ .ui.segment:not(.attached)),
 .ui.attached.segment:has(+ .ui.modal) {

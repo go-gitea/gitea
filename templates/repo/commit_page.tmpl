@@ -190,14 +190,14 @@
 					<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape .CommitID}}">{{ShortSha .CommitID}}</a>
 				</div>
 			</div>
-
-			{{if .ShowDiffSummaryInCommitHeader}}
-				<div class="diff-stats-row">
-					<strong>{{ctx.Locale.TrN .DiffShortStat.NumFiles "repo.diff.stats_desc_files_changed_1" "repo.diff.stats_desc_files_changed_n" .DiffShortStat.NumFiles}}</strong>
-					{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion}}
-				</div>
-			{{end}}
 		</div>
+
+		{{if .ShowDiffSummaryInCommitHeader}}
+			<div class="ui attached segment commit-diff-summary">
+				<strong>{{ctx.Locale.TrN .DiffShortStat.NumFiles "repo.diff.stats_desc_files_changed_1" "repo.diff.stats_desc_files_changed_n" .DiffShortStat.NumFiles}}</strong>
+				{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion}}
+			</div>
+		{{end}}
 
 		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">
