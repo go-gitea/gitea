@@ -1319,7 +1319,6 @@
   "repo.editor.upload_files_to_dir": "上传文件至「%s」",
   "repo.editor.cannot_commit_to_protected_branch": "不可以提交到受保护的分支「%s」。",
   "repo.editor.no_commit_to_branch": "无法直接提交分支，因为：",
-  "repo.editor.user_no_push_to_branch": "用户不能推送到分支",
   "repo.editor.require_signed_commit": "分支需要签名提交",
   "repo.editor.cherry_pick": "拣选提交 %s 到：",
   "repo.editor.revert": "将 %s 还原到：",

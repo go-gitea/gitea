@@ -797,7 +797,6 @@
   "repo.editor.push_rejected": "De wijziging is afgewezen door de server. Controleer Controleer de Git Hooks alsjeblieft.",
   "repo.editor.push_rejected_summary": "Volledig afwijzingsbericht:",
   "repo.editor.add_subdir": "Een map toevoegen…",
-  "repo.editor.user_no_push_to_branch": "Gebruiker kan niet pushen naar branch",
   "repo.editor.require_signed_commit": "Branch vereist een ondertekende commit",
   "repo.editor.cherry_pick": "Cherry-pick %s op:",
   "repo.editor.revert": "%s ongedaan maken op:",

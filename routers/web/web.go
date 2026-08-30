@@ -819,6 +819,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind[*forms.AvatarForm](), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
+			m.Post("/{userid}/orgs/{org_id}/remove", admin.RemoveUserFromOrg)
+			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
 
 		m.Group("/badges", func() {
