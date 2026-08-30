@@ -13,6 +13,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/organization"
 	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -383,11 +384,38 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	return perm, nil
 }
 
+// getDeployKeyRepoPermission returns the permissions that a deploy key grants on a repository.
+// A key only ever reaches the git data of the one repository it was added to, at its own access mode.
+func getDeployKeyRepoPermission(ctx context.Context, repo *repo_model.Repository, keyID int64) (perm Permission, err error) {
+	key, err := deploykey_model.GetDeployKeyByID(ctx, repo.ID, keyID)
+	if err != nil {
+		if deploykey_model.IsErrDeployKeyNotExist(err) {
+			return perm, nil // the key belongs to another repository, so it grants nothing here
+		}
+		return perm, err
+	}
+	if err = repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+
+	perm.units = repo.Units
+	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+	for _, u := range repo.Units {
+		if u.Type == unit.TypeCode || u.Type == unit.TypeWiki { // a deploy-key only ever reaches git data
+			perm.unitsMode[u.Type] = key.Mode
+		}
+	}
+	return perm, nil
+}
+
 // GetDoerRepoPermission returns the repository permission for the current actor,
-// dispatching to GetActionsUserRepoPermission when the actor is an Actions token user.
+// dispatching to the credential-scoped permissions when the actor is a token or key user.
 func GetDoerRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (Permission, error) {
 	if taskID, ok := user_model.GetActionsUserTaskID(user); ok {
 		return GetActionsUserRepoPermission(ctx, repo, user, taskID)
+	}
+	if keyID, ok := user_model.GetDeployKeyUserDeployKeyID(user); ok {
+		return getDeployKeyRepoPermission(ctx, repo, keyID)
 	}
 	return GetIndividualUserRepoPermission(ctx, repo, user)
 }

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"html/template"
 	"net/http"
 	"net/url"
 	"path"
@@ -124,7 +125,7 @@ func (r *Repository) CanWriteToBranch(ctx context.Context, user *user_model.User
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
-	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanCreateBranch()
+	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanContentChange()
 }
 
 func (r *Repository) GetObjectFormat() git.ObjectFormat {
@@ -143,15 +144,18 @@ func RepoMustNotBeArchived() func(ctx *Context) {
 type CommitFormOptions struct {
 	NeedFork bool
 
-	TargetRepo               *repo_model.Repository
-	TargetFormAction         string
-	WillSubmitToFork         bool
+	TargetRepo       *repo_model.Repository
+	TargetFormAction string
+
+	WillSubmitToFork bool
+
 	CanCommitToBranch        bool
-	UserCanPush              bool
-	RequireSigned            bool
-	WillSign                 bool
-	SigningKeyFormDisplay    string
-	WontSignReason           string
+	DenyCommitToBranchReason template.HTML
+
+	WillSign              bool
+	SigningKeyFormDisplay string
+	WontSignReason        string
+
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
 }
@@ -172,7 +176,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		}
 		// now, we get our own forked repo; it must be writable by us.
 	}
-	submitToForkedRepo := targetRepo.ID != originRepo.ID
+
 	err := targetRepo.GetBaseRepo(ctx)
 	if err != nil {
 		return nil, err
@@ -214,20 +218,14 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		return nil, err
 	}
 
-	canCommitToBranch := !submitToForkedRepo /* same repo */ && targetRepo.CanEnableEditor() && canPushWithProtection
-	if protectionRequireSigned {
-		canCommitToBranch = canCommitToBranch && willSign
-	}
-
 	canCreateBasePullRequest := targetRepo.BaseRepo != nil && targetRepo.BaseRepo.UnitEnabled(ctx, unit_model.TypePullRequests)
 	canCreatePullRequest := targetRepo.UnitEnabled(ctx, unit_model.TypePullRequests) || canCreateBasePullRequest
 
 	opts := &CommitFormOptions{
-		TargetRepo:            targetRepo,
-		WillSubmitToFork:      submitToForkedRepo,
-		CanCommitToBranch:     canCommitToBranch,
-		UserCanPush:           canPushWithProtection,
-		RequireSigned:         protectionRequireSigned,
+		TargetRepo: targetRepo,
+
+		WillSubmitToFork: targetRepo.ID != originRepo.ID,
+
 		WillSign:              willSign,
 		SigningKeyFormDisplay: asymkey_model.GetDisplaySigningKey(signKey),
 		WontSignReason:        wontSignReason,
@@ -235,12 +233,28 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,
 	}
+
 	editorAction := ctx.PathParam("editor_action")
 	editorPathParamRemaining := util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-	if submitToForkedRepo {
+
+	opts.CanCommitToBranch = false
+	if opts.WillSubmitToFork {
+		opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.no_write_permission")
 		// there is only "default branch" in forked repo, we will use "from_base_branch" to get a new branch from base repo
 		editorPathParamRemaining = util.PathEscapeSegments(targetRepo.DefaultBranch) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath) + "?from_base_branch=" + url.QueryEscape(branchName)
+	} else {
+		// if the user is committing to the same repo, we need to check if the branch is protected and if the user can push to it
+		if !targetRepo.CanContentChange() {
+			opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.repo_not_editable")
+		} else if !canPushWithProtection {
+			opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.branch_is_protected")
+		} else if protectionRequireSigned && !willSign {
+			opts.DenyCommitToBranchReason = ctx.Locale.Tr("repo.editor.require_signed_commit")
+		} else {
+			opts.CanCommitToBranch = true
+		}
 	}
+
 	if editorAction == "_cherrypick" {
 		opts.TargetFormAction = targetRepo.Link() + "/" + editorAction + "/" + ctx.PathParam("sha") + "/" + editorPathParamRemaining
 	} else {

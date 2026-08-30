@@ -4,12 +4,15 @@
 package v1_16
 
 import (
+	"encoding/hex"
+	"slices"
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"xorm.io/xorm/schemas"
 )
 
@@ -72,4 +75,32 @@ func Test_RemigrateU2FCredentials(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, got)
+}
+
+const u2fRawMessageFormatsExample81Hex = "" +
+	"0504b174bc49c7ca254b70d2e5c207cee9cf174820ebd77ea3c65508c26da51b657c1cc6b952f8621697936482da0a6d3d3826a59095da" +
+	"f6cd7c03e2e60385d2f6d9402a552dfdb7477ed65fd84133f86196010b2215b57da75d315b7b9e8fe2e3925a6019551bab61d16591659c" +
+	"baf00b4950f7abfe6660e2e006f76868b772d70c25"
+
+func Test_parseU2FRegistration(t *testing.T) {
+	raw, err := hex.DecodeString(u2fRawMessageFormatsExample81Hex)
+	require.NoError(t, err)
+
+	keyHandle, publicKey, err := parseU2FRegistration(raw)
+	require.NoError(t, err)
+	assert.Equal(t, "2a552dfdb7477ed65fd84133f86196010b2215b57da75d315b7b9e8fe2e3925a6019551bab61d16591659cbaf00b4950f7abfe6660e2e006f76868b772d70c25", hex.EncodeToString(keyHandle))
+	assert.Equal(t, "04b174bc49c7ca254b70d2e5c207cee9cf174820ebd77ea3c65508c26da51b657c1cc6b952f8621697936482da0a6d3d3826a59095daf6cd7c03e2e60385d2f6d9", hex.EncodeToString(publicKey))
+
+	invalidPoint := slices.Clone(raw)
+	invalidPoint[1] = 0x02
+
+	for name, input := range map[string][]byte{
+		"too short":            raw[:68],
+		"bad reserved byte":    append([]byte{0x04}, raw[1:]...),
+		"invalid point":        invalidPoint,
+		"truncated key handle": raw[:67+int(raw[66])-1],
+	} {
+		_, _, err := parseU2FRegistration(input)
+		assert.Error(t, err, name)
+	}
 }

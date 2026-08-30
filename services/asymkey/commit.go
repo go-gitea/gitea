@@ -298,7 +298,7 @@ func verifyCommitSignByGPGSettings(ctx context.Context, gpgSettings *git.CommitS
 	}
 
 	// Otherwise we have to parse the key
-	pubKeyContent, err := gpgSettings.PublicKeyContent()
+	pubKeyContent, err := gpgSettings.PublicKeyContent(ctx)
 	if err != nil {
 		log.Error("gpgSettings.PublicKeyContent: %v", err)
 		return nil
@@ -420,7 +420,7 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 
 	// Try the configured instance-wide SSH public key
 	if instanceSettings := getInstanceCommitSignSettings(git.SigningKeyFormatSSH); instanceSettings != nil {
-		pubKeyContent, err := instanceSettings.PublicKeyContent()
+		pubKeyContent, err := instanceSettings.PublicKeyContent(ctx)
 		if err != nil {
 			log.Error("commitSignSettings.PublicKeyContent: %v", err)
 		} else {
