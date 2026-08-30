@@ -396,6 +396,14 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.PublishedUnix = publishedUnix
 			} else {
 				if rel.IsDraft { // pushing the tag publishes the draft, so it locks like any other publication
+					// a predecessor at this path may have claimed the name after the draft was created
+					immutable, err := repo_model.IsTagImmutable(ctx, repo, tags[i])
+					if err != nil {
+						return fmt.Errorf("IsTagImmutable: %w", err)
+					}
+					if immutable {
+						continue // the pre-receive hook rejects this, a push around it must not publish either
+					}
 					rel.IsDraft = false
 					if err = repo_model.LockRelease(ctx, repo, rel); err != nil {
 						return fmt.Errorf("LockRelease: %w", err)
