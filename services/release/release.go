@@ -142,7 +142,6 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 				return false, err
 			}
 			created = true
-			rel.LowerTagName = strings.ToLower(rel.TagName)
 
 			objectFormat := git.ObjectFormatFromName(rel.Repo.ObjectFormatName)
 			commits := repository.NewPushCommits()
@@ -209,7 +208,6 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 	}
 
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
-	rel.LowerTagName = strings.ToLower(rel.TagName)
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
 			return err
@@ -339,7 +337,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if err != nil {
 		return err
 	}
-	rel.LowerTagName = strings.ToLower(rel.TagName)
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if isBeingPublished {

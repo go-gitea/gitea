@@ -292,7 +292,6 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 		rel := repo_model.Release{
 			RepoID:        g.repo.ID,
 			TagName:       release.TagName,
-			LowerTagName:  strings.ToLower(release.TagName),
 			Target:        release.TargetCommitish,
 			Title:         release.Name,
 			Note:          release.Body,

@@ -485,7 +485,7 @@ func TestRelease_Immutable(t *testing.T) {
 
 		// the name is unchanged, so only the publish transition can catch a claim made meanwhile
 		predecessor := &repo_model.ImmutableTag{
-			RepoID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerRepoName: repo.LowerName, LowerTagName: "v9.5",
+			RepoID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerRepoName: repo.LowerName, TagName: "v9.5",
 		}
 		assert.NoError(t, db.Insert(t.Context(), predecessor))
 		published := *draft

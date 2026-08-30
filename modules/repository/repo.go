@@ -241,10 +241,9 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		//
 		for _, tag := range inserts {
 			release := repo_model.Release{
-				RepoID:       repo.ID,
-				TagName:      tag.Name,
-				LowerTagName: strings.ToLower(tag.Name),
-				Sha1:         tag.Object.String(),
+				RepoID:  repo.ID,
+				TagName: tag.Name,
+				Sha1:    tag.Object.String(),
 				// NOTE: ignored, The NumCommits value is calculated and cached on demand when the UI requires it.
 				NumCommits:    -1,
 				CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
@@ -268,7 +267,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 		for _, tag := range updates {
 			// an immutable release keeps the commit it was published at, even if upstream moves the
 			// tag, but a leftover locked tag has no release to pin and still follows upstream
-			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ? AND NOT (is_immutable = ? AND is_tag = ?)", repo.ID, strings.ToLower(tag.Name), true, false).
+			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND tag_name = ? AND NOT (is_immutable = ? AND is_tag = ?)", repo.ID, tag.Name, true, false).
 				Cols("sha1", "created_unix", "published_unix").
 				Update(&repo_model.Release{
 					Sha1:          tag.Object.String(),

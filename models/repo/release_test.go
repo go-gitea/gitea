@@ -27,6 +27,30 @@ func TestMigrate_InsertReleases(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestReleaseTagNameIsCaseSensitive(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// a tag name is a git ref, so "V1.1" and "v1.1" are two different tags
+	exist, err := IsReleaseExist(t.Context(), 1, "V1.1")
+	assert.NoError(t, err)
+	assert.False(t, exist)
+	_, err = GetRelease(t.Context(), 1, "V1.1")
+	assert.True(t, IsErrReleaseNotExist(err))
+
+	rel, err := GetRelease(t.Context(), 1, "v1.1")
+	assert.NoError(t, err)
+	assert.Equal(t, "v1.1", rel.TagName)
+
+	// so both may exist side by side, each addressable on its own
+	assert.NoError(t, db.Insert(t.Context(), &Release{RepoID: 1, TagName: "V1.1", Sha1: "upper"}))
+	upper, err := GetRelease(t.Context(), 1, "V1.1")
+	assert.NoError(t, err)
+	assert.Equal(t, "upper", upper.Sha1)
+	lower, err := GetRelease(t.Context(), 1, "v1.1")
+	assert.NoError(t, err)
+	assert.Equal(t, rel.ID, lower.ID)
+}
+
 func Test_FindTagsByCommitIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -101,20 +125,21 @@ func TestImmutableTag(t *testing.T) {
 		return immutable
 	}
 
-	assert.False(t, isImmutable(repo, "v1.1"))
-	assert.NoError(t, AddImmutableTag(t.Context(), repo, "V1.1")) // names are matched case insensitively
-	assert.True(t, isImmutable(repo, "v1.1"))
+	assert.False(t, isImmutable(repo, "V1.1"))
+	assert.NoError(t, AddImmutableTag(t.Context(), repo, "V1.1"))
+	assert.True(t, isImmutable(repo, "V1.1"))
+	assert.False(t, isImmutable(repo, "v1.1")) // a git ref, so the claim is on the exact name
 
 	// the claim is held by id, so a rename cannot shake it off and frees no path
 	renamed := &Repository{ID: repo.ID, OwnerID: repo.OwnerID, LowerName: "renamed"}
 	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: repo.LowerName}
-	assert.True(t, isImmutable(renamed, "v1.1"))
-	assert.False(t, isImmutable(successor, "v1.1"))
+	assert.True(t, isImmutable(renamed, "V1.1"))
+	assert.False(t, isImmutable(successor, "V1.1"))
 
 	// only deletion stamps the path, which a repository recreated there inherits
 	assert.NoError(t, StampImmutableTagPath(t.Context(), renamed))
-	assert.True(t, isImmutable(&Repository{ID: successor.ID, OwnerID: repo.OwnerID, LowerName: "renamed"}, "v1.1"))
-	assert.False(t, isImmutable(successor, "v1.1"))
+	assert.True(t, isImmutable(&Repository{ID: successor.ID, OwnerID: repo.OwnerID, LowerName: "renamed"}, "V1.1"))
+	assert.False(t, isImmutable(successor, "V1.1"))
 
 	other := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2})
 	assert.False(t, isImmutable(other, "v1.1"))

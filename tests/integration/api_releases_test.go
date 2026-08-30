@@ -90,6 +90,8 @@ func testAPIListReleasesWithWriteToken(t *testing.T) {
 	testAPIListReleasesTagNames(t, link+"?tag_filter=*1.0", token, []string{"v1.0"}, "suffix tag filter")
 	testAPIListReleasesTagNames(t, link+"?tag_filter=*raft*", token, []string{"draft-release"}, "substring tag filter")
 	testAPIListReleasesTagNames(t, link+"?tag_filter=v1._", token, nil, "underscore is not a wildcard")
+	// vacuous on sqlite, whose LIKE ignores ASCII case anyway, it guards the case-sensitive backends
+	testAPIListReleasesTagNames(t, link+"?tag_filter=V1*", token, []string{"v1.0", "v1.1"}, "filtering stays case insensitive")
 }
 
 func testAPIListReleasesWithReadToken(t *testing.T) {

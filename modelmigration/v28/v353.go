@@ -21,7 +21,7 @@ func AddImmutableReleases(_ context.Context, x base.EngineMigration) error {
 		RepoID        int64  `xorm:"UNIQUE(r) NOT NULL"`
 		OwnerID       int64  `xorm:"INDEX(s) NOT NULL"`
 		LowerRepoName string `xorm:"INDEX(s) NOT NULL"`
-		LowerTagName  string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"`
+		TagName       string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"`
 	}
 
 	if err := x.Sync(new(ImmutableTag)); err != nil {

@@ -5,7 +5,6 @@ package repo
 
 import (
 	"context"
-	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
@@ -24,8 +23,8 @@ type ImmutableTag struct {
 	ID            int64  `xorm:"pk autoincr"`
 	RepoID        int64  `xorm:"UNIQUE(r) NOT NULL"`
 	OwnerID       int64  `xorm:"INDEX(s) NOT NULL"`
-	LowerRepoName string `xorm:"INDEX(s) NOT NULL"`
-	LowerTagName  string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"`
+	LowerRepoName string `xorm:"INDEX(s) NOT NULL"`           // a repository name is an identity, so it is matched folded
+	TagName       string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"` // a tag name is a git ref, so it is matched exactly
 }
 
 func init() {
@@ -33,7 +32,7 @@ func init() {
 }
 
 func AddImmutableTag(ctx context.Context, repo *Repository, tagName string) error {
-	return db.Insert(ctx, &ImmutableTag{RepoID: repo.ID, LowerTagName: strings.ToLower(tagName)})
+	return db.Insert(ctx, &ImmutableTag{RepoID: repo.ID, TagName: tagName})
 }
 
 // LockRelease claims the tag name of a release becoming published. Must run inside the transaction
@@ -57,7 +56,7 @@ func StampImmutableTagPath(ctx context.Context, repo *Repository) error {
 
 // IsTagImmutable also matches a claim left behind by a deleted repository at the same path.
 func IsTagImmutable(ctx context.Context, repo *Repository, tagName string) (bool, error) {
-	return db.Exist[ImmutableTag](ctx, builder.Eq{"lower_tag_name": strings.ToLower(tagName)}.And(
+	return db.Exist[ImmutableTag](ctx, builder.Eq{"tag_name": tagName}.And(
 		builder.Eq{"repo_id": repo.ID}.Or(
 			builder.Eq{"owner_id": repo.OwnerID, "lower_repo_name": repo.LowerName}),
 	))

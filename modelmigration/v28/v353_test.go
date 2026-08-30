@@ -18,7 +18,7 @@ func TestAddImmutableReleases(t *testing.T) {
 		RepoID        int64  `xorm:"UNIQUE(r) NOT NULL"`
 		OwnerID       int64  `xorm:"INDEX(s) NOT NULL"`
 		LowerRepoName string `xorm:"INDEX(s) NOT NULL"`
-		LowerTagName  string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"`
+		TagName       string `xorm:"INDEX(s) UNIQUE(r) NOT NULL"`
 	}
 
 	x, deferable := migrationtest.PrepareTestEnv(t, 0)
@@ -29,14 +29,14 @@ func TestAddImmutableReleases(t *testing.T) {
 
 	require.NoError(t, AddImmutableReleases(t.Context(), x))
 
-	_, err := x.Insert(&ImmutableTag{RepoID: 1, OwnerID: 1, LowerRepoName: "r", LowerTagName: "v1.0"})
+	_, err := x.Insert(&ImmutableTag{RepoID: 1, OwnerID: 1, LowerRepoName: "r", TagName: "v1.0"})
 	require.NoError(t, err)
 
 	// the unique index must be created by the migration, not only on fresh installs
-	_, err = x.Insert(&ImmutableTag{RepoID: 1, OwnerID: 1, LowerRepoName: "r", LowerTagName: "v1.0"})
+	_, err = x.Insert(&ImmutableTag{RepoID: 1, OwnerID: 1, LowerRepoName: "r", TagName: "v1.0"})
 	assert.Error(t, err)
 
 	// two repositories may claim the same name, only the path lookup has to stay non-unique
-	_, err = x.Insert(&ImmutableTag{RepoID: 2, OwnerID: 1, LowerRepoName: "r", LowerTagName: "v1.0"})
+	_, err = x.Insert(&ImmutableTag{RepoID: 2, OwnerID: 1, LowerRepoName: "r", TagName: "v1.0"})
 	assert.NoError(t, err)
 }
