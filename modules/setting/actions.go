@@ -130,8 +130,6 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 		return err
 	}
 
-	Actions.ArtifactPreviewMaxSize = sec.Key("ARTIFACT_PREVIEW_MAX_SIZE").MustInt64(defaultArtifactPreviewMaxSize)
-
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
