@@ -54,7 +54,7 @@ export type DayDataObject = {
 };
 
 export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
-  const result: Record<string, any> = {};
+  const result: DayDataObject = {};
 
   for (const startDay of startDays) {
     result[startDay] = data[startDay] || {'week': startDay, 'additions': 0, 'deletions': 0, 'commits': 0};

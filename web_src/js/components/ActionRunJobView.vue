@@ -25,6 +25,17 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
   return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
 
+export type ActionRunJobViewLocale = {
+  status: Record<ActionsStatus, string>,
+  showTimeStamps: string,
+  showLogSeconds: string,
+  showFullScreen: string,
+  logsAlwaysAutoScroll: string,
+  logsAlwaysExpandRunning: string,
+  downloadLogs: string,
+  copyOutput: string,
+};
+
 type Step = {
   summary: string,
   duration: string,
@@ -84,7 +95,7 @@ const props = defineProps<{
   store: ActionRunViewStore,
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: ActionRunJobViewLocale;
 }>();
 const store = props.store;
 const {currentRun: run} = toRefs(store.viewData);

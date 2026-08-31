@@ -18,6 +18,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import type {FomanticApiResponse} from '../types.ts';
 
 const {appSubUrl} = window.config;
 
@@ -305,8 +306,8 @@ export function initRepoIssueReferenceIssue() {
     fullTextSearch: true,
     apiSettings: {
       url: `${appSubUrl}/repo/search?q={query}&limit=20`,
-      onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+      onResponse(response: {data: Array<{repository: {full_name: string}}>}) {
+        const filteredResponse: FomanticApiResponse<{name: string, value: string}> = {success: true, results: []};
         for (const repo of response.data) {
           filteredResponse.results.push({
             name: htmlEscape(repo.repository.full_name),
