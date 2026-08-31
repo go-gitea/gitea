@@ -1,19 +1,22 @@
 {{/* Template Attributes:
-* StatusCheckData: see backend pullCommitStatusCheckData struct
+* StatusCheckData: see backend PullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := $.StatusCheckData}}
 {{if $statusCheckData}}
-	{{$commitStatuses := $statusCheckData.PullCommitStatuses}}
-	<div class="item flex-left-right commit-status-toggle">
-		<div>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</div>
-		<button data-global-click="onCommitStatusChecksToggle" class="btn interact-fg"
-						data-show-all="{{ctx.Locale.Tr "repo.pulls.status_checks_show_all"}}"
-						data-hide-all="{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}"
-		>{{ctx.Locale.Tr "repo.pulls.status_checks_hide_all"}}</button>
-	</div>
+	<details class="item tw-p-0 commit-status-widget" open>
+	<summary class="commit-status-header flex-text-block tw-px-4 tw-py-3">
+		<span class="commit-status-summary-icon{{if $statusCheckData.HasPendingChecks}} is-pending{{end}}"></span>
+		<span class="tw-flex-1 tw-min-w-0">
+			<strong>{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}</strong>
+			{{$summary := $statusCheckData.Summary ctx.Locale}}
+			{{if $summary}}<span class="tw-block tw-text-text-light-2">{{$summary}}</span>{{end}}
+		</span>
+		{{svg "octicon-chevron-down" 16 "commit-status-widget-chevron"}}
+	</summary>
+	<div class="commit-status-widget-body">
 
 	{{if $statusCheckData.RequireApprovalRunCount}}
-	<div class="item flex-left-right" id="approve-status-checks">
+	<div class="commit-status-approval flex-left-right" id="approve-status-checks">
 		<div>
 			<strong>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals" $statusCheckData.RequireApprovalRunCount}}</strong>
 			<p>{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</p>
@@ -26,9 +29,19 @@
 	</div>
 	{{end}}
 
-	<div class="item tw-p-0">
-		<div class="commit-status-list flex-divided-list items-px-default">
-			{{template "repo/pulls/status_items" (dict "CommitStatuses" $commitStatuses "StatusCheckData" $statusCheckData)}}
-		</div>
+	<div class="commit-status-list commit-status-groups">
+		{{range $group := $statusCheckData.Groups}}
+			<details class="commit-status-group"{{if eq $group.Kind "failed" "pending"}} open{{end}}>
+				<summary class="flex-text-block">
+					{{ctx.Locale.Tr $group.LocaleKey $group.Count}}
+					{{svg "octicon-chevron-right" 12 "commit-status-group-chevron"}}
+				</summary>
+				<div class="commit-status-group-items flex-divided-list items-px-default">
+					{{template "repo/pulls/status_items" (dict "CommitStatuses" $group.CommitStatuses "CommitActionsStatuses" $statusCheckData.ActionsStatuses "StatusCheckData" $statusCheckData "MissingRequiredChecks" $group.MissingRequiredChecks)}}
+				</div>
+			</details>
+		{{end}}
 	</div>
+	</div>
+	</details>
 {{end}}

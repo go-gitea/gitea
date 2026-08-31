@@ -2,7 +2,6 @@ import {createApp} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
-import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
   const elDropdown = el.querySelector(':scope > .ui.dropdown');
@@ -16,13 +15,6 @@ export function initRepoPullRequestUpdate(el: HTMLElement) {
       elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url'));
     },
   });
-}
-
-function onCommitStatusChecksToggle(btn: HTMLElement) {
-  const panel = btn.closest('.commit-status-toggle')!.parentElement!;
-  const list = panel.querySelector<HTMLElement>('.commit-status-list')!;
-  list.style.maxHeight = list.style.maxHeight ? '' : '0px'; // toggle
-  btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
 }
 
 async function initRepoPullRequestMergeForm(box: HTMLElement) {
@@ -58,15 +50,14 @@ function initRepoPullMergeBoxRefresh(el: Element) {
         return;
       }
       const newEl = createElementFromHTML(respText);
-      const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
+      const scrollTop = el.querySelector<HTMLElement>('.commit-status-widget-body')?.scrollTop;
       el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
-      if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
+      if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-widget-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
     },
   });
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
-  registerGlobalEventFunc('click', 'onCommitStatusChecksToggle', onCommitStatusChecksToggle);
   initRepoPullRequestMergeForm(el);
   initRepoPullMergeBoxRefresh(el);
 }
