@@ -100,6 +100,7 @@ textarea:focus,
 
 .ui.form input:not([type="checkbox"], [type="radio"])[readonly],
 .ui.form textarea[readonly],
+.ui.form select[readonly],
 .ui.form .ui.selection.dropdown[readonly] {
   background: var(--color-secondary-bg);
 }
