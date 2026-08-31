@@ -1504,7 +1504,7 @@ func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, beforeCommit
 	})
 }
 
-func GetDiffShortStatWithOptions(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions) (*DiffShortStat, error) {
+func GetDiffShortStatWithOptions(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(ctx, opts.AfterCommitID)
 	if err != nil {
 		return nil, err
@@ -1523,6 +1523,7 @@ func GetDiffShortStatWithOptions(ctx context.Context, gitRepo *git.Repository, o
 		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
 	}
 	cmdDiff.AddDynamicArguments(actualBeforeCommitID.String(), opts.AfterCommitID)
+	cmdDiff.AddDashesAndList(files...)
 
 	diff := &DiffShortStat{}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmd(ctx, gitRepo, cmdDiff)
