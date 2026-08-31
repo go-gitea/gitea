@@ -235,7 +235,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
   };
 }
 
-export function onInputDebounce(fn: () => Promisable<any>) {
+export function onInputDebounce(fn: () => Promisable<void>) {
   return debounce(fn, 300);
 }
 
@@ -277,7 +277,7 @@ export function createElementFromHTML<T extends Element>(htmlString: string): T 
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): T {
+export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, string | number | boolean | null | undefined> | null, ...children: (Node | string)[]): T {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;

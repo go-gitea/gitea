@@ -144,11 +144,8 @@
   border-top: none;
 }
 
-.ui.attached.segment:has(+ .ui[class*="top attached"].header),
-.ui.attached.segment:has(+ .page.buttons),
 .ui.attached.segment:last-child,
-.ui.segment:has(+ .ui.segment:not(.attached)),
-.ui.attached.segment:has(+ .ui.modal) {
+.ui.attached.segment:has(+ :not(.ui.attached.segment)) {
   border-bottom-left-radius: 0.28571429rem;
   border-bottom-right-radius: 0.28571429rem;
 }
