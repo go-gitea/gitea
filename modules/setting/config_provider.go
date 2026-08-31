@@ -25,10 +25,15 @@ type ConfigKey interface {
 	Value() string
 	SetValue(v string)
 
-	In(defaultVal string, candidates []string) string
 	String() string
 	Strings(delim string) []string
 	Bool() (bool, error)
+
+	// FIXME: INI-MUST-SIDE-EFFECT: ini package's In/MustXxx functions have bad side-effects:
+	// they will change the origin config content and write the key with default value if the key didn't exist.
+	// Need to completely refactor the ini package to remove this side-effect.
+
+	In(defaultVal string, candidates []string) string
 
 	MustString(defaultVal string) string
 	MustBool(defaultVal ...bool) bool
