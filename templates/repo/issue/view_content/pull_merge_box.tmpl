@@ -32,7 +32,7 @@
 				{{if $infoSection.InfoItems}}
 				<div class="item">
 					{{range $infoItem := $infoSection.InfoItems}}
-						<div class="flex-text-block">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
+						<div class="flex-text-block {{$infoItem.ExtraClass}}">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
 						{{if $infoItem.ListItems}}
 							<ul class="tw-pl-[36px]">{{/* align with the info icon and text */}}
 								{{range $listItem := $infoItem.ListItems}}
@@ -63,16 +63,16 @@
 				</div>
 			{{end}}
 
-			{{if $data.MergeFormProps}}
-				{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
+			{{if or $data.MergeFormProps $data.ShowPullCommands}}
 				<div class="item">
-					<div id="pull-request-merge-form" class="tw-min-h-[40px] tw-w-full" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
-				</div>
-			{{end}}
-
-			{{if $data.ShowPullCommands}}
-				<div class="item">
-					{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
+					{{if $data.MergeFormProps}}
+						<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
+					{{else}}
+						<a class="show-modal" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a>
+					{{end}}
+					{{if $data.ShowPullCommands}}
+						{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
+					{{end}}
 				</div>
 			{{end}}
 			</div>
