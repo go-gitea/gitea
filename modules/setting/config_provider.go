@@ -113,7 +113,7 @@ func (k *iniConfigKey) MustDuration(defaultVal ...time.Duration) time.Duration {
 	}
 	d, err := time.ParseDuration(s)
 	if err != nil {
-		return util.OptionalArg(defaultVal, 0)
+		return util.OptionalArg(defaultVal)
 	}
 	return d
 }
