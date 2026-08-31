@@ -10,17 +10,16 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+
+	"gitea.dev/modules/setting"
 )
 
 // createAgentListener creates a Unix domain socket listener for the SSH agent.
 // Returns the listener, socket path, and a cleanup function for early-return error paths.
 func createAgentListener() (net.Listener, string, func(), error) {
-	tempDir, err := os.MkdirTemp("", "gitea-ssh-agent-")
+	tempDir, cleanupDir, err := setting.AppDataTempDir("ssh-agent").MkdirTempRandom("gitea-ssh-agent-")
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("failed to create temporary directory: %w", err)
-	}
-	cleanupDir := func() {
-		os.RemoveAll(tempDir)
 	}
 
 	if err := os.Chmod(tempDir, 0o700); err != nil {
@@ -37,7 +36,7 @@ func createAgentListener() (net.Listener, string, func(), error) {
 
 	cleanup := func() {
 		listener.Close()
-		os.RemoveAll(tempDir)
+		cleanupDir()
 	}
 
 	if err := os.Chmod(socketPath, 0o600); err != nil {
