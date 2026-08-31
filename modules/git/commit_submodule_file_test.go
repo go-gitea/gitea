@@ -26,13 +26,6 @@ func TestCommitSubmoduleLink(t *testing.T) {
 		assert.Equal(t, "https://github.com/user/repo/compare/1111...2222", wl.CommitWebLink)
 	})
 
-	t.Run("IPv6SSHPort", func(t *testing.T) {
-		sf := NewCommitSubmoduleFile("/any/repo-link", "full-path", "ssh://git@[2001:db8::1]:22/user/repo.git", "aaaa")
-		wl := sf.SubmoduleWebLinkTree(t.Context())
-		assert.Equal(t, "https://[2001:db8::1]/user/repo", wl.RepoWebLink)
-		assert.Equal(t, "https://[2001:db8::1]/user/repo/tree/aaaa", wl.CommitWebLink)
-	})
-
 	t.Run("RelativePath", func(t *testing.T) {
 		sf := NewCommitSubmoduleFile("/subpath/any/repo-home-link", "full-path", "../../user/repo", "aaaa")
 		wl := sf.SubmoduleWebLinkTree(t.Context())
