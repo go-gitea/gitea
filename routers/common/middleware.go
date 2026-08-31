@@ -6,7 +6,6 @@ package common
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/gtprof"
@@ -19,7 +18,6 @@ import (
 	"gitea.dev/services/context"
 
 	"gitea.com/go-chi/session"
-	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -118,18 +116,6 @@ func ChiRoutePathHandler() func(h http.Handler) http.Handler {
 			next.ServeHTTP(resp, req)
 		})
 	}
-}
-
-func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Handler) http.Handler {
-	opt := proxy.NewForwardedHeadersOptions().WithForwardLimit(limit).ClearTrustedProxies()
-	for _, n := range trustedProxies {
-		if !strings.Contains(n, "/") {
-			opt.AddTrustedProxy(n)
-		} else {
-			opt.AddTrustedNetwork(n)
-		}
-	}
-	return proxy.ForwardedHeaders(opt)
 }
 
 func MustInitSessioner() func(next http.Handler) http.Handler {
