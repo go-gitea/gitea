@@ -674,7 +674,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	}
 }
 
-func TestGetDiffShortStatWithWhitespaceBehavior(t *testing.T) {
+func TestGetDiffShortStatWithOptions(t *testing.T) {
 	repoDir := filepath.Join(t.TempDir(), "temp-repo")
 	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name()))
 
@@ -698,18 +698,19 @@ func TestGetDiffShortStatWithWhitespaceBehavior(t *testing.T) {
 	afterCommit, err := gitRepo.GetBranchCommit(t.Context(), "head")
 	require.NoError(t, err)
 
-	diff, err := GetDiffForAPI(t.Context(), gitRepo, &DiffOptions{
+	diffOptions := &DiffOptions{
 		BeforeCommitID:     beforeCommit.ID.String(),
 		AfterCommitID:      afterCommit.ID.String(),
 		MaxLines:           setting.Git.MaxGitDiffLines,
 		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           -1,
 		WhitespaceBehavior: gitcmd.TrustedCmdArgs{"-b"},
-	})
+	}
+	diff, err := GetDiffForAPI(t.Context(), gitRepo, diffOptions)
 	require.NoError(t, err)
 	require.Len(t, diff.Files, 1)
 
-	stat, err := GetDiffShortStatWithWhitespaceBehavior(t.Context(), gitRepo, beforeCommit.ID.String(), afterCommit.ID.String(), gitcmd.TrustedCmdArgs{"-b"})
+	stat, err := GetDiffShortStatWithOptions(t.Context(), gitRepo, diffOptions)
 	require.NoError(t, err)
 	assert.Equal(t, len(diff.Files), stat.NumFiles)
 
