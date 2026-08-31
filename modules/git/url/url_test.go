@@ -264,4 +264,25 @@ func TestMakeRepositoryBaseLink(t *testing.T) {
 	u, err = ParseRepositoryURL(t.Context(), "git+ssh://other:123/owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://other/owner/repo", MakeRepositoryWebLink(u))
+
+	u, err = ParseRepositoryURL(t.Context(), "ssh://git@[::1]:22/owner/repo.git")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://[::1]/owner/repo", MakeRepositoryWebLink(u))
+
+	u, err = ParseRepositoryURL(t.Context(), "git+ssh://git@[2001:db8::1]:2222/owner/repo.git")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://[2001:db8::1]/owner/repo", MakeRepositoryWebLink(u))
+
+	u, err = ParseRepositoryURL(t.Context(), "ssh://git@[::1]/owner/repo.git")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://[::1]/owner/repo", MakeRepositoryWebLink(u))
+}
+
+func TestHostnameFromURLHost(t *testing.T) {
+	assert.Equal(t, "example.com", hostnameFromURLHost("example.com"))
+	assert.Equal(t, "example.com", hostnameFromURLHost("example.com:22"))
+	assert.Equal(t, "[::1]", hostnameFromURLHost("[::1]"))
+	assert.Equal(t, "[::1]", hostnameFromURLHost("[::1]:22"))
+	assert.Equal(t, "[2001:db8::1]", hostnameFromURLHost("[2001:db8::1]:2222"))
+	assert.Equal(t, "127.0.0.1", hostnameFromURLHost("127.0.0.1:22"))
 }

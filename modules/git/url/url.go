@@ -171,8 +171,7 @@ func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 	case "http", "https":
 		return strings.TrimSuffix(repoURL.GitURL.String(), ".git")
 	case "ssh", "git+ssh":
-		hostname, _, _ := net.SplitHostPort(repoURL.GitURL.Host)
-		hostname = util.IfZero(hostname, repoURL.GitURL.Host)
+		hostname := hostnameFromURLHost(repoURL.GitURL.Host)
 		urlPath := strings.TrimSuffix(repoURL.GitURL.Path, ".git")
 		urlPath = strings.TrimPrefix(urlPath, "/")
 		urlFull := fmt.Sprintf("https://%s/%s", hostname, urlPath)
@@ -180,4 +179,17 @@ func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 		return urlFull
 	}
 	return ""
+}
+
+// hostnameFromURLHost returns host without a port, keeping IPv6 addresses bracketed.
+// net.SplitHostPort strips brackets, which would produce https://::1/... instead of https://[::1]/...
+func hostnameFromURLHost(host string) string {
+	hostname, _, err := net.SplitHostPort(host)
+	if err != nil {
+		return host
+	}
+	if strings.Contains(hostname, ":") {
+		return "[" + hostname + "]"
+	}
+	return hostname
 }
