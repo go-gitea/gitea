@@ -432,28 +432,20 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	)
 
 	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
-	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
 	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
-	if err := mergeCtx.PrepareGitCmd(pushCmd).RunWithStderr(ctx); err != nil {
-		if strings.Contains(err.Stderr(), "non-fast-forward") {
-			return "", &git.ErrPushOutOfDate{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
-			err := &git.ErrPushRejected{
-				StdOut: mergeCtx.outbuf.String(),
-				StdErr: err.Stderr(),
-				Err:    err,
-			}
-			err.GenerateMessage()
-			return "", err
-		}
-		return "", fmt.Errorf("git push: %s", err.Stderr())
+	if err := git.Push(ctx, mergeCtx.tmpBasePath, git.PushOptions{
+		Remote:       "origin",
+		LocalRefName: tmpRepoBaseBranch,
+		Branch:       git.BranchPrefix + pr.BaseBranch,
+		// mergeBaseSHA is the base branch tip the merge was computed on, so the push
+		// fails if the base branch has been updated meanwhile
+		ForceWithLease: fmt.Sprintf("%s:%s", git.BranchPrefix+pr.BaseBranch, mergeBaseSHA),
+		Env:            mergeCtx.env,
+	}); err != nil {
+		return "", err
 	}
 	mergeCtx.outbuf.Reset()
 	return mergeCommitID, nil
