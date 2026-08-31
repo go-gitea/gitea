@@ -1977,8 +1977,6 @@
   "repo.diff.file_image_width": "Ширина",
   "repo.diff.file_image_height": "Высота",
   "repo.diff.file_byte_size": "Размер",
-  "repo.diff.file_suppressed": "Разница между файлами не показана из-за своего большого размера",
-  "repo.diff.file_suppressed_line_too_long": "Различия файлов скрыты, потому что одна или несколько строк слишком длинны",
   "repo.diff.comment.placeholder": "Оставить комментарий",
   "repo.diff.comment.add_single_comment": "Добавить простой комментарий",
   "repo.diff.comment.add_review_comment": "Добавить комментарий",

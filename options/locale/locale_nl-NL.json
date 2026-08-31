@@ -1516,8 +1516,6 @@
   "repo.diff.file_image_width": "Breedte",
   "repo.diff.file_image_height": "Hoogte",
   "repo.diff.file_byte_size": "Grootte",
-  "repo.diff.file_suppressed": "Diff onderdrukt omdat het te groot bestand",
-  "repo.diff.file_suppressed_line_too_long": "Bestand-diff onderdrukt omdat een of meer regels te lang zijn",
   "repo.diff.comment.placeholder": "Opmerking toevoegen",
   "repo.diff.comment.add_single_comment": "Één reactie toevoegen",
   "repo.diff.comment.add_review_comment": "Voeg commentaar toe",

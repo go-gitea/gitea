@@ -1981,8 +1981,6 @@
   "repo.diff.file_image_width": "Πλάτος",
   "repo.diff.file_image_height": "Ύψος",
   "repo.diff.file_byte_size": "Μέγεθος",
-  "repo.diff.file_suppressed": "Το diff αρχείου καταστέλλεται επειδή είναι πολύ μεγάλο",
-  "repo.diff.file_suppressed_line_too_long": "Το diff αρχείων καταστέλλεται επειδή μία ή περισσότερες γραμμές είναι πολύ μεγάλες",
   "repo.diff.comment.add_line_comment": "Προσθήκη σχολίου στη γραμμή",
   "repo.diff.comment.placeholder": "Αφήστε ένα σχόλιο",
   "repo.diff.comment.add_single_comment": "Προσθέστε ένα σχόλιο",
