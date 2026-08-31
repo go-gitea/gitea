@@ -268,4 +268,8 @@ func TestMakeRepositoryBaseLink(t *testing.T) {
 	u, err = ParseRepositoryURL(t.Context(), "git+ssh://[::1]/owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://[::1]/owner/repo", MakeRepositoryWebLink(u))
+
+	u, err = ParseRepositoryURL(t.Context(), "git+ssh://[::1]:2222/owner/repo.git")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://[::1]/owner/repo", MakeRepositoryWebLink(u))
 }
