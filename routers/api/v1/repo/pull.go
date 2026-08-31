@@ -1608,8 +1608,6 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	start, limit := listOptions.GetSkipTake()
 
 	limit = min(limit, totalNumberOfFiles-start)
-	// The shortstat may count files which are omitted from the diff, such as whitespace-only changes.
-	limit = min(limit, len(diff.Files)-start)
 
 	limit = max(limit, 0)
 
