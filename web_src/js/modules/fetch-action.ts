@@ -68,7 +68,7 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
   }
 }
 
-export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: any) {
+export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
   ignoreAreYouSure(el); // ignore the areYouSure check before reloading
   const redirect = respJson?.redirect;
   if (typeof redirect === 'string' && redirect) {
