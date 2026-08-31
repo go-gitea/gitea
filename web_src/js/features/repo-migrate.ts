@@ -96,7 +96,6 @@ export function initRepoMigrationForm() {
 
     updateAuthFields();
     cloneAddrInput.addEventListener('input', updateAuthFields);
-    cloneAddrInput.addEventListener('blur', updateAuthFields);
 
     initSSHKeyOwnerSelector(form, cloneAddrInput);
   });
@@ -157,7 +156,6 @@ function initSSHKeyOwnerSelector(form: HTMLFormElement, cloneAddrInput: HTMLInpu
   }
 
   cloneAddrInput.addEventListener('input', update);
-  cloneAddrInput.addEventListener('blur', update);
 
   update();
 }
