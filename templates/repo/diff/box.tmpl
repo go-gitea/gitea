@@ -17,7 +17,7 @@
 					diffTreeBtn.setAttribute('data-tooltip-content', diffTreeBtn.getAttribute(diffTreeVisible ? 'data-hide-text' : 'data-show-text'));
 				</script>
 			{{end}}
-			{{if not .DiffNotAvailable}}
+			{{if .ShowDiffSummaryInToolbar}}
 				<div class="diff-detail-stats tw-flex tw-items-center tw-flex-wrap">
 					{{svg "octicon-diff" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.diff.stats_desc" .DiffShortStat.NumFiles .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
 				</div>
@@ -91,13 +91,12 @@
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
-					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
-					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if or ($file.ShouldBeHidden) (not $isExpandable)}}data-folded="true"{{end}}>
+					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<div class="flex-text-block">
-									<button class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1 {{if not $isExpandable}}tw-invisible{{end}}" data-global-click="diffFileViewFold">
+									<button class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1" data-global-click="diffFileViewFold">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
@@ -172,7 +171,7 @@
 						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
 							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} tw-hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
-									<div class="diff-file-body binary">
+									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
 											{{if $file.IsIncompleteLineTooLong}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
@@ -185,7 +184,7 @@
 										{{end}}
 									</div>
 								{{else if $file.SubmoduleDiffInfo}}
-									<div class="tw-p-3">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
+									<div class="tw-p-3 flex-text-block">{{svg "octicon-file-submodule"}} {{$submoduleDiffInfo := $file.SubmoduleDiffInfo -}}
 										{{- $submoduleName := $submoduleDiffInfo.SubmoduleRepoLinkHTML ctx -}}
 										{{- if $file.IsDeleted -}}
 											{{- ctx.Locale.Tr "repo.diff.submodule_deleted" $submoduleName ($submoduleDiffInfo.CommitRefIDLinkHTML ctx $submoduleDiffInfo.PreviousRefID) -}}
@@ -195,7 +194,7 @@
 											{{- ctx.Locale.Tr "repo.diff.submodule_updated" $submoduleName ($submoduleDiffInfo.CompareRefIDLinkHTML ctx) -}}
 										{{end}}
 									</div>
-								{{else}}
+								{{else if $file.Sections}}
 									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 										{{if $.IsSplitStyle}}
 											{{template "repo/diff/section_split" dict "file" . "root" $}}
@@ -203,6 +202,12 @@
 											{{template "repo/diff/section_unified" dict "file" . "root" $}}
 										{{end}}
 									</table>
+								{{else if $file.IsRenamed}}
+									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_renamed_no_changes"}}</div>
+								{{else if and $file.EntryMode $file.OldEntryMode}}
+									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_mode_changed"}}</div>
+								{{else}}
+									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_whitespace_only_changes"}}</div>
 								{{end}}
 							</div>
 							{{if $showFileViewToggle}}

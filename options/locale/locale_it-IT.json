@@ -1609,8 +1609,6 @@
   "repo.diff.file_image_width": "Larghezza",
   "repo.diff.file_image_height": "Altezza",
   "repo.diff.file_byte_size": "Dimensione",
-  "repo.diff.file_suppressed": "File diff soppresso perché troppo grande",
-  "repo.diff.file_suppressed_line_too_long": "File diff soppresso perché una o più righe sono troppo lunghe",
   "repo.diff.comment.placeholder": "Lascia un commento",
   "repo.diff.comment.add_single_comment": "Aggiungi un commento singolo",
   "repo.diff.comment.add_review_comment": "Aggiungi commento",

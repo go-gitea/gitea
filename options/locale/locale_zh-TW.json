@@ -2200,8 +2200,6 @@
   "repo.diff.file_image_width": "寬度",
   "repo.diff.file_image_height": "高度",
   "repo.diff.file_byte_size": "大小",
-  "repo.diff.file_suppressed": "檔案差異因為檔案過大而無法顯示",
-  "repo.diff.file_suppressed_line_too_long": "檔案差異因為一行或多行太長而無法顯示",
   "repo.diff.generated": "已產生",
   "repo.diff.vendored": "已供應",
   "repo.diff.comment.add_line_comment": "新增行評論",
