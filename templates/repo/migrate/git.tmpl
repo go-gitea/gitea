@@ -6,7 +6,7 @@
 		</h3>
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
-			<form class="ui form left-right-form" action="{{.Link}}" method="post">
+			<form class="ui form left-right-form" action="{{.Link}}" method="post" data-global-init="initRepoMigrationForm">
 				{{template "base/disable_form_autofill"}}
 
 				<input id="service_type" type="hidden" name="service" value="{{.service}}">
