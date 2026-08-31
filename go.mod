@@ -32,7 +32,6 @@ require (
 	github.com/buildkite/terminal-to-html/v3 v3.17.1
 	github.com/caddyserver/certmagic v0.25.4
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260812203852-971c0284dc33
-	github.com/chi-middleware/proxy v1.1.1
 	github.com/coder/websocket v1.8.15
 	github.com/dlclark/regexp2/v2 v2.7.1
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
