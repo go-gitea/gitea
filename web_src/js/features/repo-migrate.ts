@@ -107,7 +107,7 @@ export function initRepoMigrationForm() {
 function initSSHKeyOwnerSelector(cloneAddrInput: HTMLInputElement) {
   const selector = document.querySelector<HTMLElement>('.ssh-key-owner-selector');
   const fingerprintOnly = document.querySelector<HTMLElement>('.ssh-key-fingerprint-only');
-  const hiddenId = document.querySelector<HTMLInputElement>('#ssh_key_owner_id');
+  const hiddenId = selector?.querySelector<HTMLInputElement>('input[name="ssh_key_owner_id"]');
   const uidInput = document.querySelector<HTMLInputElement>('#uid');
   if (!selector || !hiddenId || !uidInput) return;
 
