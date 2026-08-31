@@ -88,7 +88,7 @@ func ToUTF8(content []byte, opts ConvertOpts) []byte {
 
 	encoding, _ := charset.Lookup(charsetLabel)
 	if encoding == nil {
-		setting.PanicInDevOrTesting("unsupported detected charset %q, it shouldn't happen", charsetLabel)
+		// chardet can return Mozilla-only labels such as IBM424_ltr that html/charset cannot decode
 		if opts.ErrorReturnOrigin {
 			return content
 		}
@@ -182,23 +182,37 @@ func DetectEncoding(content []byte) (encoding string, _ error) {
 		return util.IfZero(setting.Repository.AnsiCharset, "UTF-8"), err
 	}
 
-	topConfidence := results[0].Confidence
-	topResult := results[0]
-	priority, has := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(topResult.Charset))]
+	var (
+		topResult     chardet.Result
+		topConfidence int
+		priority      int
+		has           bool
+		found         bool
+	)
 	for _, result := range results {
-		// As results are sorted in confidence order - if we have a different confidence
-		// we know it's less than the current confidence and can break out of the loop early
+		if !charsetLabelDecodable(result.Charset) {
+			continue
+		}
+		if !found {
+			topResult = result
+			topConfidence = result.Confidence
+			priority, has = setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(result.Charset))]
+			found = true
+			continue
+		}
+		// results are sorted by confidence; once confidence drops, later entries cannot win
 		if result.Confidence != topConfidence {
 			break
 		}
-
-		// Otherwise check if this results is earlier in the DetectedCharsetOrder than our current top guess
 		resultPriority, resultHas := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(result.Charset))]
 		if resultHas && (!has || resultPriority < priority) {
 			topResult = result
 			priority = resultPriority
 			has = true
 		}
+	}
+	if !found {
+		return util.IfZero(setting.Repository.AnsiCharset, "UTF-8"), nil
 	}
 
 	// FIXME: to properly decouple this function the fallback ANSI charset should be passed as an argument
@@ -207,4 +221,14 @@ func DetectEncoding(content []byte) (encoding string, _ error) {
 	}
 
 	return topResult.Charset, nil
+}
+
+// charsetLabelDecodable reports whether html/charset can decode the label.
+// chardet returns Mozilla names such as IBM424_ltr that are not HTML encodings.
+func charsetLabelDecodable(label string) bool {
+	if strings.EqualFold(strings.TrimSpace(label), "UTF-8") {
+		return true
+	}
+	enc, _ := charset.Lookup(label)
+	return enc != nil
 }

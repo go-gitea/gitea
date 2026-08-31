@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
+	htmlcharset "golang.org/x/net/html/charset"
 )
 
 func TestMain(m *testing.M) {
@@ -205,6 +206,28 @@ func TestDetectEncoding(t *testing.T) {
 
 	defer test.MockVariableValue(&setting.Repository.AnsiCharset, "MyEncoding")()
 	testSuccess(b, "MyEncoding")
+}
+
+func TestCharsetLabelDecodableIBM424(t *testing.T) {
+	// chardet can report these Mozilla names; html/charset has no decoder for them
+	for _, label := range []string{"IBM424_ltr", "IBM424_rtl", "IBM420_ltr", "IBM420_rtl"} {
+		enc, _ := htmlcharset.Lookup(label)
+		assert.Nil(t, enc, label)
+		assert.False(t, charsetLabelDecodable(label), label)
+	}
+	assert.True(t, charsetLabelDecodable("UTF-8"))
+	assert.True(t, charsetLabelDecodable("windows-1252"))
+	assert.True(t, charsetLabelDecodable("ISO-8859-1"))
+}
+
+func TestToUTF8UnsupportedDetectedCharset(t *testing.T) {
+	content := []byte{0x41, 0x42, 0x43, 0x04, 0x40, 0x40, 0xff}
+	assert.NotPanics(t, func() {
+		_ = ToUTF8(content, ConvertOpts{})
+	})
+	assert.NotPanics(t, func() {
+		_ = ToUTF8(content, ConvertOpts{ErrorReturnOrigin: true})
+	})
 }
 
 func stringMustStartWith(t *testing.T, expected string, value []byte) {
