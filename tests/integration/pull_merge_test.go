@@ -312,6 +312,42 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 	})
 }
 
+func TestPullDeleteBranchButtonWithSharedHeadBranch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+
+		const branchName = "feature/shared-head"
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", branchName, "README.md", "shared head branch\n")
+
+		pullA := testPullCreate(t, session, "user1", "repo1", false, "master", branchName, "Pull request A")
+		pullAPath := test.RedirectURL(pullA)
+		pullAElem := strings.Split(pullAPath, "/")
+		testIssueClose(t, session, pullAElem[1], pullAElem[2], pullAElem[4])
+
+		pullB := testPullCreate(t, session, "user1", "repo1", false, "master", branchName, "Pull request B")
+		pullBElem := strings.Split(test.RedirectURL(pullB), "/")
+
+		headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
+		branchExists, err := git_model.IsBranchExist(t.Context(), headRepo.ID, branchName)
+		require.NoError(t, err)
+		require.True(t, branchExists)
+
+		resp := session.MakeRequest(t, NewRequest(t, "GET", pullAPath), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Zero(t, htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Length())
+
+		testIssueClose(t, session, pullBElem[1], pullBElem[2], pullBElem[4])
+		branchExists, err = git_model.IsBranchExist(t.Context(), headRepo.ID, branchName)
+		require.NoError(t, err)
+		require.True(t, branchExists)
+
+		resp = session.MakeRequest(t, NewRequest(t, "GET", pullAPath), http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 1, htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Length())
+	})
+}
+
 func TestCantMergeWorkInProgress(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
