@@ -306,9 +306,9 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
 	// MAX_CREATION_LIMIT is a shortcut that sets the default for the two per-type limits below.
 	// USER_/ORG_MAX_CREATION_LIMIT take precedence when explicitly set.
-	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
-	Repository.UserMaxCreationLimit = sec.Key("USER_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)
-	Repository.OrgMaxCreationLimit = sec.Key("ORG_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)
+	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)                                   // FIXME: INI-MUST-SIDE-EFFECT
+	Repository.UserMaxCreationLimit = sec.Key("USER_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit) // FIXME: INI-MUST-SIDE-EFFECT
+	Repository.OrgMaxCreationLimit = sec.Key("ORG_MAX_CREATION_LIMIT").MustInt(Repository.MaxCreationLimit)   // FIXME: INI-MUST-SIDE-EFFECT
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
 	RepoRootPath = sec.Key("ROOT").MustString(filepath.Join(AppDataPath, "gitea-repositories"))
 	if !filepath.IsAbs(RepoRootPath) {
