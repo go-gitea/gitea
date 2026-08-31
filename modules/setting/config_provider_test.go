@@ -144,8 +144,8 @@ neg = -1
 zero = 0
 hour = 1h
 `)
-	assert.EqualValues(t, -1*time.Second, cfg.Section("").Key("neg").MustDuration(9999))
+	assert.Equal(t, -1*time.Second, cfg.Section("").Key("neg").MustDuration(9999))
 	assert.EqualValues(t, 0, cfg.Section("").Key("zero").MustDuration(9999))
-	assert.EqualValues(t, time.Hour, cfg.Section("").Key("hour").MustDuration(9999))
-	assert.EqualValues(t, time.Duration(9999), cfg.Section("").Key("def").MustDuration(9999))
+	assert.Equal(t, time.Hour, cfg.Section("").Key("hour").MustDuration(9999))
+	assert.Equal(t, time.Duration(9999), cfg.Section("").Key("def").MustDuration(9999))
 }

@@ -109,12 +109,15 @@ func (k *iniConfigKey) MustDuration(defaultVal ...time.Duration) time.Duration {
 	s := k.String()
 	v, ok := strconv.ParseInt(s, 10, 64)
 	if ok == nil {
-		return time.Duration(v) * time.Second
+		d := time.Duration(v) * time.Second
+		k.key.SetValue(d.String())
+		return d
 	}
 	d, err := time.ParseDuration(s)
 	if err != nil {
-		return util.OptionalArg(defaultVal)
+		d = util.OptionalArg(defaultVal)
 	}
+	k.key.SetValue(d.String())
 	return d
 }
 
