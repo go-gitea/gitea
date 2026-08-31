@@ -79,6 +79,15 @@ var (
 	_ ConfigKey      = (*ini.Key)(nil)
 )
 
+// ConfigKeyMustDurationWithNegativeOne supports the legacy -1 value for duration settings
+// which use it to disable a timeout.
+func ConfigKeyMustDurationWithNegativeOne(key ConfigKey, defaultVal ...time.Duration) time.Duration {
+	if strings.TrimSpace(key.String()) == "-1" {
+		return -time.Nanosecond
+	}
+	return key.MustDuration(defaultVal...)
+}
+
 // ConfigSectionKey only searches the keys in the given section, but it is O(n).
 // ini package has a special behavior:  with "[sec] a=1" and an empty "[sec.sub]",
 // then in "[sec.sub]", Key()/HasKey() can always see "a=1" because it always tries parent sections.

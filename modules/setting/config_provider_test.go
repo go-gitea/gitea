@@ -6,9 +6,44 @@ package setting
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestConfigKeyMustDuration(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[server]
+disabled = -1
+negative = -1ns
+duration = 30s
+invalid = invalid
+`)
+	assert.NoError(t, err)
+
+	sec := cfg.Section("server")
+	assert.Equal(t, time.Minute, sec.Key("disabled").MustDuration(time.Minute))
+	assert.Equal(t, -time.Nanosecond, sec.Key("negative").MustDuration(time.Minute))
+	assert.Equal(t, 30*time.Second, sec.Key("duration").MustDuration(time.Minute))
+	assert.Equal(t, time.Minute, sec.Key("invalid").MustDuration(time.Minute))
+}
+
+func TestConfigKeyMustDurationWithNegativeOne(t *testing.T) {
+	cfg, err := NewConfigProviderFromData(`
+[server]
+disabled = -1
+negative = -1ns
+duration = 30s
+invalid = invalid
+`)
+	assert.NoError(t, err)
+
+	sec := cfg.Section("server")
+	assert.Equal(t, -time.Nanosecond, ConfigKeyMustDurationWithNegativeOne(sec.Key("disabled"), time.Minute))
+	assert.Equal(t, -time.Nanosecond, ConfigKeyMustDurationWithNegativeOne(sec.Key("negative"), time.Minute))
+	assert.Equal(t, 30*time.Second, ConfigKeyMustDurationWithNegativeOne(sec.Key("duration"), time.Minute))
+	assert.Equal(t, time.Minute, ConfigKeyMustDurationWithNegativeOne(sec.Key("invalid"), time.Minute))
+}
 
 func TestConfigProviderBehaviors(t *testing.T) {
 	t.Run("BuggyKeyOverwritten", func(t *testing.T) {

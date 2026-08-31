@@ -178,8 +178,8 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 
 	SSH.AuthorizedKeysCommandTemplateTemplate = template.Must(template.New("").Parse(SSH.AuthorizedKeysCommandTemplate))
 
-	SSH.PerWriteTimeout = sec.Key("SSH_PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
-	SSH.PerWritePerKbTimeout = sec.Key("SSH_PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
+	SSH.PerWriteTimeout = ConfigKeyMustDurationWithNegativeOne(sec.Key("SSH_PER_WRITE_TIMEOUT"), PerWriteTimeout)
+	SSH.PerWritePerKbTimeout = ConfigKeyMustDurationWithNegativeOne(sec.Key("SSH_PER_WRITE_PER_KB_TIMEOUT"), PerWritePerKbTimeout)
 
 	// ensure parseRunModeSetting has been executed before this
 	SSH.BuiltinServerUser = rootCfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
