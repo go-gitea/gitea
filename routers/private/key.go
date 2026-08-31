@@ -37,12 +37,18 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	ctx.PlainText(http.StatusOK, "success")
 }
 
-// AuthorizedPublicKeyByContent searches content as prefix (without comment part)
-// and returns public key found.
+// AuthorizedPublicKeyByContent searches by the fingerprint of the given content
+// and returns the public key found.
 func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
 
-	publicKey, err := asymkey_model.SearchPublicKeyByContent(ctx, content)
+	fingerprint, err := asymkey_model.CalcFingerprint(content)
+	if err != nil {
+		ctx.PrivateInternalErrorf("%v", err)
+		return
+	}
+
+	publicKey, err := asymkey_model.SearchPublicKeyByFingerprint(ctx, fingerprint)
 	if err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return

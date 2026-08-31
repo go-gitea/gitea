@@ -175,12 +175,11 @@ func GetPublicKeyByID(ctx context.Context, keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
-// and returns public key found.
-func SearchPublicKeyByContent(ctx context.Context, content string) (*PublicKey, error) {
+// SearchPublicKeyByFingerprint searches by key fingerprint and returns the public key found.
+func SearchPublicKeyByFingerprint(ctx context.Context, fingerprint string) (*PublicKey, error) {
 	key := new(PublicKey)
 	has, err := db.GetEngine(ctx).
-		Where("content like ?", content+"%").
+		Where("fingerprint = ?", fingerprint).
 		Get(key)
 	if err != nil {
 		return nil, err
@@ -322,9 +321,14 @@ func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, erro
 		// Delete keys marked for deletion
 		var sshKeysNeedUpdate bool
 		for _, KeyToDelete := range keys {
-			key, err := SearchPublicKeyByContent(ctx, KeyToDelete)
+			fingerprint, err := CalcFingerprint(KeyToDelete)
 			if err != nil {
-				log.Error("SearchPublicKeyByContent: %v", err)
+				log.Error("CalcFingerprint: %v", err)
+				continue
+			}
+			key, err := SearchPublicKeyByFingerprint(ctx, fingerprint)
+			if err != nil {
+				log.Error("SearchPublicKeyByFingerprint: %v", err)
 				continue
 			}
 			if _, err = db.DeleteByID[PublicKey](ctx, key.ID); err != nil {
