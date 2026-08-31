@@ -6,6 +6,7 @@ package gitdiff
 
 import (
 	"html/template"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -671,6 +672,50 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 			assert.NotEmpty(t, f.Sections, "Diff file %q should have sections", f.Name)
 		}
 	}
+}
+
+func TestGetDiffShortStatWithWhitespaceBehavior(t *testing.T) {
+	repoDir := filepath.Join(t.TempDir(), "temp-repo")
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name()))
+
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
+		{Ref: "refs/heads/base", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "a\n"},
+			{Path: "whitespace.txt", Content: "b\n"},
+		}},
+		{Ref: "refs/heads/head", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "a2\n"},
+			{Path: "whitespace.txt", Content: "b   \n"},
+		}},
+	}))
+
+	beforeCommit, err := gitRepo.GetBranchCommit(t.Context(), "base")
+	require.NoError(t, err)
+	afterCommit, err := gitRepo.GetBranchCommit(t.Context(), "head")
+	require.NoError(t, err)
+
+	diff, err := GetDiffForAPI(t.Context(), gitRepo, &DiffOptions{
+		BeforeCommitID:     beforeCommit.ID.String(),
+		AfterCommitID:      afterCommit.ID.String(),
+		MaxLines:           setting.Git.MaxGitDiffLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           -1,
+		WhitespaceBehavior: gitcmd.TrustedCmdArgs{"-b"},
+	})
+	require.NoError(t, err)
+	require.Len(t, diff.Files, 1)
+
+	stat, err := GetDiffShortStatWithWhitespaceBehavior(t.Context(), gitRepo, beforeCommit.ID.String(), afterCommit.ID.String(), gitcmd.TrustedCmdArgs{"-b"})
+	require.NoError(t, err)
+	assert.Equal(t, len(diff.Files), stat.NumFiles)
+
+	stat, err = GetDiffShortStat(t.Context(), gitRepo, beforeCommit.ID.String(), afterCommit.ID.String())
+	require.NoError(t, err)
+	assert.Equal(t, 2, stat.NumFiles)
 }
 
 func TestNoCrashes(t *testing.T) {

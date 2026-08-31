@@ -1498,6 +1498,10 @@ type DiffShortStat struct {
 }
 
 func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
+	return GetDiffShortStatWithWhitespaceBehavior(ctx, gitRepo, beforeCommitID, afterCommitID, nil)
+}
+
+func GetDiffShortStatWithWhitespaceBehavior(ctx context.Context, gitRepo *git.Repository, beforeCommitID, afterCommitID string, whitespaceBehavior gitcmd.TrustedCmdArgs) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(ctx, afterCommitID)
 	if err != nil {
 		return nil, err
@@ -1509,7 +1513,7 @@ func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, beforeCommit
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(ctx, gitRepo, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(ctx, gitRepo, whitespaceBehavior, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}
