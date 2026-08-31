@@ -110,10 +110,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}
 
-	if ssh_module.IsSSHURL(opts.CloneAddr) && repo.Owner == nil {
-		repo.Owner = u
-	}
-
 	if err := cloneExternalRepoWithSSHAuth(ctx, repo, opts.CloneAddr, repo, cloneOpts, opts.SSHKeyOwnerID); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return repo, fmt.Errorf("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini, underlying err: %w", err)

@@ -23,7 +23,6 @@
 			{{end}}
 			<div class="field">
 				<form action="{{.OrgLink}}/settings/ssh_keys/regenerate" method="post">
-					{{.CsrfTokenHtml}}
 					<button class="ui primary button" type="submit">
 						{{if .SSHKeypair}}
 							{{ctx.Locale.Tr "settings.managed_ssh_regenerate"}}

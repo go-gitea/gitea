@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/util"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -82,37 +81,27 @@ func (sa *Agent) serve() {
 	defer sa.cleanup()
 
 	for {
-		select {
-		case <-sa.stop:
-			return
-		default:
-			// Set a timeout for Accept to avoid blocking indefinitely
-			setListenerAcceptDeadline(sa.listener)
-
-			conn, err := sa.listener.Accept()
-			if err != nil {
-				if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-					continue
-				}
-				select {
-				case <-sa.stop:
-					return
-				default:
-					log.Error("SSH agent failed to accept connection: %v", err)
-					continue
-				}
+		// Close() closes sa.stop then the listener, which unblocks Accept here.
+		conn, err := sa.listener.Accept()
+		if err != nil {
+			select {
+			case <-sa.stop:
+				return
+			default:
+				log.Error("SSH agent failed to accept connection: %v", err)
+				continue
 			}
-
-			sa.wg.Add(1)
-			go func(c net.Conn) {
-				defer sa.wg.Done()
-				defer c.Close()
-
-				// ServeAgent only returns once the connection ends, always with a non-nil error.
-				err := agent.ServeAgent(sa.agent, c)
-				log.Debug("SSH agent connection ended: %v", err)
-			}(conn)
 		}
+
+		sa.wg.Add(1)
+		go func(c net.Conn) {
+			defer sa.wg.Done()
+			defer c.Close()
+
+			// ServeAgent only returns once the connection ends, always with a non-nil error.
+			err := agent.ServeAgent(sa.agent, c)
+			log.Debug("SSH agent connection ended: %v", err)
+		}(conn)
 	}
 }
 
@@ -147,50 +136,13 @@ func (sa *Agent) Close() error {
 	return nil
 }
 
-// AgentManager manages temporary SSH agents for git operations
-type AgentManager struct {
-	mu     sync.Mutex
-	agents map[string]*Agent
-}
-
-var globalAgentManager = &AgentManager{
-	agents: make(map[string]*Agent),
-}
-
-// CreateTemporaryAgent creates a temporary SSH agent with the given private key
-// Returns the socket path for use with SSH_AUTH_SOCK
+// CreateTemporaryAgent creates a temporary SSH agent with the given private key.
+// It returns the socket path for use with SSH_AUTH_SOCK and a cleanup function
+// that the caller must invoke (typically via defer) once the git operation is done.
 func CreateTemporaryAgent(privateKey ed25519.PrivateKey) (string, func(), error) {
 	agent, err := NewSSHAgent(privateKey)
 	if err != nil {
 		return "", nil, err
 	}
-
-	agentID := util.CryptoRandomString(16)
-
-	globalAgentManager.mu.Lock()
-	globalAgentManager.agents[agentID] = agent
-	globalAgentManager.mu.Unlock()
-
-	cleanup := func() {
-		globalAgentManager.mu.Lock()
-		defer globalAgentManager.mu.Unlock()
-
-		if agent, exists := globalAgentManager.agents[agentID]; exists {
-			agent.Close()
-			delete(globalAgentManager.agents, agentID)
-		}
-	}
-
-	return agent.GetSocketPath(), cleanup, nil
-}
-
-// CleanupAllAgents closes all active SSH agents (should be called on shutdown)
-func CleanupAllAgents() {
-	globalAgentManager.mu.Lock()
-	defer globalAgentManager.mu.Unlock()
-
-	for id, agent := range globalAgentManager.agents {
-		agent.Close()
-		delete(globalAgentManager.agents, id)
-	}
+	return agent.GetSocketPath(), func() { _ = agent.Close() }, nil
 }

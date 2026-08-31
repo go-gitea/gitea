@@ -69,8 +69,8 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
-func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
-	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration, envs []string, sshAuth gitcmd.SSHAuth) error {
+	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuth(sshAuth)
 	git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 	stdout, _, pruneErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
@@ -156,7 +156,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout)
+			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout, envs, sshAuth)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
 				fetchStdout, fetchStderr, err = cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
@@ -238,7 +238,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 				err = nil
 
 				// Attempt prune
-				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout)
+				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout, envs, sshAuth)
 				if pruneErr == nil {
 					// Successful prune - reattempt mirror
 					stdout, stderr, err = cmdRemoteUpdatePrune().WithRepo(m.Repo.WikiStorageRepo()).RunStdString(ctx)

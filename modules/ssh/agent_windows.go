@@ -32,8 +32,5 @@ func createAgentListener() (net.Listener, string, func(), error) {
 	return listener, pipePath, cleanup, nil
 }
 
-// setListenerAcceptDeadline is a no-op on Windows; named pipes don't support SetDeadline.
-func setListenerAcceptDeadline(_ net.Listener) {}
-
 // cleanupAgentSocket is a no-op on Windows; named pipes are automatically cleaned up when closed.
 func cleanupAgentSocket(_ string) {}

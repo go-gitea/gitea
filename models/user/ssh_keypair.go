@@ -155,10 +155,7 @@ func DeleteSSHKeypair(ctx context.Context, ownerID int64) error {
 		if err := DeleteUserSetting(ctx, ownerID, UserSSHMirrorPrivPem); err != nil {
 			return err
 		}
-		if err := DeleteUserSetting(ctx, ownerID, UserSSHMirrorPubPem); err != nil {
-			return err
-		}
-		return DeleteUserSetting(ctx, ownerID, UserSSHMirrorFingerprint)
+		return DeleteUserSetting(ctx, ownerID, UserSSHMirrorPubPem)
 	})
 }
 

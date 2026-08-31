@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 // createAgentListener creates a Unix domain socket listener for the SSH agent.
@@ -47,13 +46,6 @@ func createAgentListener() (net.Listener, string, func(), error) {
 	}
 
 	return listener, socketPath, cleanup, nil
-}
-
-// setListenerAcceptDeadline sets a short deadline on the listener for non-blocking accept loops.
-func setListenerAcceptDeadline(listener net.Listener) {
-	if unixListener, ok := listener.(*net.UnixListener); ok {
-		_ = unixListener.SetDeadline(time.Now().Add(100 * time.Millisecond))
-	}
 }
 
 // cleanupAgentSocket removes the socket file and its temporary directory.

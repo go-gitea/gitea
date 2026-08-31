@@ -20,7 +20,6 @@
 		{{end}}
 		<div class="field">
 			<form action="{{.Link}}/managed-ssh/regenerate" method="post">
-				{{.CsrfTokenHtml}}
 				<button class="ui primary button" type="submit">
 					{{if .HasManagedSSHKey}}
 						{{ctx.Locale.Tr "settings.managed_ssh_regenerate"}}
