@@ -89,7 +89,7 @@ func loadIndexerFrom(rootCfg ConfigProvider) {
 	Indexer.ExcludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_EXCLUDE").MustString(""))
 	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
-	Indexer.StartupTimeout = ConfigKeyMustDurationWithNegativeOne(sec.Key("STARTUP_TIMEOUT"), 30*time.Second)
+	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
 	Indexer.TypeBleveMaxFuzzniess = sec.Key("TYPE_BLEVE_MAX_FUZZINESS").MustInt(0)
 }
 

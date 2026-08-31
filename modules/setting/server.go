@@ -211,10 +211,10 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	ProxyProtocolHeaderTimeout = sec.Key("PROXY_PROTOCOL_HEADER_TIMEOUT").MustDuration(5 * time.Second)
 	ProxyProtocolAcceptUnknown = sec.Key("PROXY_PROTOCOL_ACCEPT_UNKNOWN").MustBool(false)
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
-	GracefulHammerTime = ConfigKeyMustDurationWithNegativeOne(sec.Key("GRACEFUL_HAMMER_TIME"), 60*time.Second)
+	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
-	PerWriteTimeout = ConfigKeyMustDurationWithNegativeOne(sec.Key("PER_WRITE_TIMEOUT"), PerWriteTimeout)
-	PerWritePerKbTimeout = ConfigKeyMustDurationWithNegativeOne(sec.Key("PER_WRITE_PER_KB_TIMEOUT"), PerWritePerKbTimeout)
+	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
+	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
 	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
