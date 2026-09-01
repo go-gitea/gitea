@@ -141,7 +141,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   minimum: 0
 	// - name: includes
 	//   in: query
-	//   description: 'comma-separated list of additional fields: "dependencies" adds blocked_by and blocking issue IDs'
+	//   description: 'comma-separated list of extra fields to include. "dependencies" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read'
 	//   type: string
 	//   required: false
 	// responses:
@@ -352,7 +352,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: integer
 	// - name: includes
 	//   in: query
-	//   description: 'comma-separated list of additional fields: "dependencies" adds blocked_by and blocking issue IDs'
+	//   description: 'comma-separated list of extra fields to include. "dependencies" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read'
 	//   type: string
 	//   required: false
 	// responses:
@@ -547,7 +547,7 @@ func GetIssue(ctx *context.APIContext) {
 	//   required: true
 	// - name: includes
 	//   in: query
-	//   description: 'comma-separated list of additional fields: "dependencies" adds blocked_by and blocking issue IDs'
+	//   description: 'comma-separated list of extra fields to include. "dependencies" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read'
 	//   type: string
 	//   required: false
 	// responses:
