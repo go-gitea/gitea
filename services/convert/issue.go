@@ -25,11 +25,12 @@ import (
 // ToIssueOptions controls optional data included in issue API responses
 type ToIssueOptions struct {
 	IncludeDependencies bool
-	filteredDeps        map[int64][2]*issue_service.FilteredDependencies
+	// dependencies is filled by prepareIssueListOpts so a list converts with one batch load
+	dependencies map[int64]*issue_service.VisibleDependencies
 }
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
-	return toIssue(ctx, doer, issue, WebAssetDownloadURL, firstOpt(opts))
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL, util.OptionalArg(opts))
 }
 
 // ToAPIIssue converts an Issue to API format
@@ -37,26 +38,20 @@ func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
-	return toIssue(ctx, doer, issue, APIAssetDownloadURL, firstOpt(opts))
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL, util.OptionalArg(opts))
 }
 
-func toIssueMetas(refs []issues_model.DependencyRef) []*api.IssueMeta {
-	result := make([]*api.IssueMeta, len(refs))
-	for i, r := range refs {
-		result[i] = &api.IssueMeta{
-			Owner: r.OwnerName,
-			Name:  r.RepoName,
-			Index: r.Index,
-		}
+// toIssueMetas always returns a non-nil slice so an issue with no dependencies serializes as []
+func toIssueMetas(issues []*issues_model.Issue) []*api.IssueMeta {
+	result := make([]*api.IssueMeta, 0, len(issues))
+	for _, issue := range issues {
+		result = append(result, &api.IssueMeta{
+			Owner: issue.Repo.OwnerName,
+			Name:  issue.Repo.Name,
+			Index: issue.Index,
+		})
 	}
 	return result
-}
-
-func firstOpt(opts []ToIssueOptions) ToIssueOptions {
-	if len(opts) > 0 {
-		return opts[0]
-	}
-	return ToIssueOptions{}
 }
 
 func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(ctx context.Context, repo *repo_model.Repository, attach *repo_model.Attachment) string, opts ToIssueOptions) *api.Issue {
@@ -158,22 +153,17 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	}
 
 	if opts.IncludeDependencies {
-		var blockedBy, blocking *issue_service.FilteredDependencies
-		if opts.filteredDeps != nil {
-			if deps, ok := opts.filteredDeps[issue.ID]; ok {
-				blockedBy, blocking = deps[0], deps[1]
-			}
-		}
-		if blockedBy == nil {
-			var err error
-			blockedBy, blocking, err = issue_service.GetFilteredDependencyRefs(ctx, doer, issue)
+		deps := opts.dependencies[issue.ID]
+		if deps == nil { // single-issue path: no list batch was prepared
+			loaded, err := issue_service.LoadVisibleDependencies(ctx, doer, issues_model.IssueList{issue})
 			if err != nil {
-				log.Error("GetFilteredDependencyRefs: %v", err)
+				log.Error("LoadVisibleDependencies: %v", err)
 				return apiIssue
 			}
+			deps = loaded[issue.ID]
 		}
-		apiIssue.BlockedBy = toIssueMetas(blockedBy.Visible)
-		apiIssue.Blocking = toIssueMetas(blocking.Visible)
+		apiIssue.BlockedBy = toIssueMetas(deps.BlockedBy)
+		apiIssue.Blocking = toIssueMetas(deps.Blocking)
 	}
 
 	return apiIssue
@@ -181,7 +171,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 
 // ToIssueList converts an IssueList to API format
 func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
-	o := prepareIssueListOpts(ctx, doer, il, firstOpt(opts))
+	o := prepareIssueListOpts(ctx, doer, il, util.OptionalArg(opts))
 	result := make([]*api.Issue, len(il))
 	for i := range il {
 		result[i] = ToIssue(ctx, doer, il[i], o)
@@ -191,7 +181,7 @@ func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.Iss
 
 // ToAPIIssueList converts an IssueList to API format
 func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
-	o := prepareIssueListOpts(ctx, doer, il, firstOpt(opts))
+	o := prepareIssueListOpts(ctx, doer, il, util.OptionalArg(opts))
 	result := make([]*api.Issue, len(il))
 	for i := range il {
 		result[i] = ToAPIIssue(ctx, doer, il[i], o)
@@ -201,14 +191,16 @@ func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.
 
 func prepareIssueListOpts(ctx context.Context, doer *user_model.User, il issues_model.IssueList, o ToIssueOptions) ToIssueOptions {
 	_ = il.LoadPinOrder(ctx)
-	if o.IncludeDependencies {
-		deps, err := issue_service.GetFilteredDependencyRefsForList(ctx, doer, il)
-		if err != nil {
-			log.Error("GetFilteredDependencyRefsForList: %v", err)
-		} else {
-			o.filteredDeps = deps
-		}
+	if !o.IncludeDependencies {
+		return o
 	}
+	deps, err := issue_service.LoadVisibleDependencies(ctx, doer, il)
+	if err != nil {
+		log.Error("LoadVisibleDependencies: %v", err)
+		o.IncludeDependencies = false // do not retry per issue after the batch failed
+		return o
+	}
+	o.dependencies = deps
 	return o
 }
 
