@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -29,6 +28,7 @@ import (
 	"gitea.dev/modules/process"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/agit"
 	"gitea.dev/services/lfs"
 
 	"github.com/kballard/go-shellquote"
@@ -139,13 +139,13 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	if setting.SSH.Disabled {
-		println("Gitea: SSH has been disabled")
+		cprintln(c, "Gitea: SSH has been disabled")
 		return nil
 	}
 
 	if c.NArg() < 1 {
 		if err := cli.ShowSubcommandHelp(c); err != nil {
-			fmt.Printf("error showing subcommand help: %v\n", err)
+			cprintf(c, "error showing subcommand help: %v\n", err)
 		}
 		return nil
 	}
@@ -171,15 +171,19 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		if err != nil {
 			return fail(ctx, "Key check failed", "Failed to check provided key: %v", err)
 		}
+		var authSuccessMsg string
 		switch key.Type {
 		case asymkey_model.KeyTypeDeploy:
-			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
+			authSuccessMsg = "Hi there! You've successfully authenticated with an SSH deploy key."
 		case asymkey_model.KeyTypePrincipal:
-			println("Hi there! You've successfully authenticated with the principal " + key.Content + ", but Gitea does not provide shell access.")
+			authSuccessMsg = "Hi there! You've successfully authenticated with the SSH principal " + key.Content + "."
 		default:
-			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
+			authSuccessMsg = "Hi there, " + user.Name + "! You've successfully authenticated with the SSH key named " + key.Name + "."
 		}
-		println("If this is unexpected, please log in with password and setup Gitea under another user.")
+		_, _ = fmt.Fprintf(c.ErrWriter, "%s\n%s",
+			authSuccessMsg,
+			"Gitea does not provide shell access. If this is unexpected, please setup Gitea under another SSH user or use container to deploy.",
+		)
 		return nil
 	} else if c.Bool("debug") {
 		log.Debug("SSH_ORIGINAL_COMMAND: %s", os.Getenv("SSH_ORIGINAL_COMMAND"))
@@ -194,7 +198,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
-				fmt.Print(`{"type":"agit","version":1}`)
+				cprintf(c, "%s", agit.SshInfoJson)
 				return nil
 			}
 		}
@@ -289,7 +293,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return nil
 	}
 
-	var command *exec.Cmd
+	var command *process.Cmd
 	gitBinPath := filepath.Dir(gitcmd.GitExecutable) // e.g. /usr/bin
 	gitBinVerb := filepath.Join(gitBinPath, verb)    // e.g. /usr/bin/git-upload-pack
 	if _, err := os.Stat(gitBinVerb); err != nil {
@@ -298,15 +302,14 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		verbFields := strings.SplitN(verb, "-", 2)
 		if len(verbFields) == 2 {
 			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
-			command = exec.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], results.RepoStoragePath)
+			command = process.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], results.RepoStoragePath)
 		}
 	}
 	if command == nil {
 		// by default, use the verb (it has been checked above by allowedCommands)
-		command = exec.CommandContext(ctx, gitBinVerb, results.RepoStoragePath)
+		command = process.CommandContext(ctx, gitBinVerb, results.RepoStoragePath)
 	}
 
-	process.SetSysProcAttribute(command)
 	command.Dir = setting.RepoRootPath
 	command.Stdout = os.Stdout
 	command.Stdin = os.Stdin

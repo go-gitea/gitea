@@ -20,6 +20,8 @@ import {
   startDaysBetween,
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
+  type DayData,
+  type DayDataObject,
 } from '../utils/time.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
@@ -67,12 +69,22 @@ function roundUpMax(maxValue: number) {
   return Math.ceil(coefficient) * 10 ** exp;
 }
 
-type ContributorsData = {
-  total: {
-    weeks: Record<string, any>,
-  },
-  [other: string]: Record<string, Record<string, any>>,
-}
+type ContributorInfo = {
+  name: string,
+  avatar_link: string,
+  home_link: string,
+};
+
+type ContributorStats = ContributorInfo & {weeks: DayData[]};
+
+type Contributor = ContributorStats & {
+  email: string,
+  total_commits: number,
+  total_additions: number,
+  total_deletions: number,
+  max_contribution_type: number,
+};
+type ContributorsData = Record<string, ContributorInfo & {weeks: DayDataObject}>;
 
 const props = defineProps<{
   locale: {
@@ -89,10 +101,10 @@ const props = defineProps<{
 
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
-const totalStats = shallowRef<Record<string, any>>({});
-const sortedContributors = shallowRef<Array<Record<string, any>>>([]);
+const totalStats = shallowRef<DayData[]>([]);
+const sortedContributors = shallowRef<Contributor[]>([]);
 const type = shallowRef<ContributionType>('commits');
-let contributorsStats: Record<string, any> = {};
+let contributorsStats: Record<string, ContributorStats> = {};
 // plain values, so the main chart options do not follow the zoomed range
 let xAxisStart: number | null = null;
 let xAxisEnd: number | null = null;
@@ -113,7 +125,7 @@ onMounted(() => {
 });
 
 function sortContributors() {
-  const criteria = `total_${type.value}`;
+  const criteria = `total_${type.value}` as const;
   sortedContributors.value = filterContributorWeeksByDateRange()
     .filter((contributor) => contributor[criteria] !== 0)
     .sort((a, b) => b[criteria] - a[criteria])
@@ -142,23 +154,22 @@ async function fetchGraphData() {
       }
     } while (response.status === 202);
     if (response.ok) {
-      const data = await response.json() as ContributorsData;
+      const data: ContributorsData = await response.json();
       const {total, ...other} = data;
       // below line might be deleted if we are sure go produces map always sorted by keys
-      total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
+      const totalWeeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
-      const weekValues = Object.values(total.weeks);
+      const weekValues = Object.values(totalWeeks);
       xAxisStart = weekValues[0].week;
       xAxisEnd = firstStartDateAfterDate(new Date());
       const startDays = startDaysBetween(xAxisStart, xAxisEnd);
-      total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
       xAxisMin.value = xAxisStart;
       xAxisMax.value = xAxisEnd;
       contributorsStats = Object.fromEntries(Object.entries(other).map(([email, user]) => {
         return [email, {...user, weeks: fillEmptyStartDaysWithZeroes(startDays, user.weeks)}];
       }));
       sortContributors();
-      totalStats.value = total;
+      totalStats.value = fillEmptyStartDaysWithZeroes(startDays, totalWeeks);
       errorText.value = '';
     } else {
       errorText.value = response.statusText;
@@ -171,22 +182,22 @@ async function fetchGraphData() {
 }
 
 function filterContributorWeeksByDateRange() {
-  const filteredData: Array<Record<string, any>> = [];
+  const filteredData: Contributor[] = [];
   const minTime = xAxisMin.value! - oneWeek;
   const maxTime = xAxisMax.value! + oneWeek;
   const contributionType = type.value;
   for (const [key, user] of Object.entries(contributorsStats)) {
-    user.total_commits = 0;
-    user.total_additions = 0;
-    user.total_deletions = 0;
-    user.max_contribution_type = 0;
-    const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
+    let totalCommits = 0;
+    let totalAdditions = 0;
+    let totalDeletions = 0;
+    let maxContributionType = 0;
+    const filteredWeeks = user.weeks.filter((week) => {
       if (week.week >= minTime && week.week <= maxTime) {
-        user.total_commits += week.commits;
-        user.total_additions += week.additions;
-        user.total_deletions += week.deletions;
-        if (week[contributionType] > user.max_contribution_type) {
-          user.max_contribution_type = week[contributionType];
+        totalCommits += week.commits;
+        totalAdditions += week.additions;
+        totalDeletions += week.deletions;
+        if (week[contributionType] > maxContributionType) {
+          maxContributionType = week[contributionType];
         }
         return true;
       }
@@ -194,24 +205,32 @@ function filterContributorWeeksByDateRange() {
     });
     // this line is required. See https://github.com/sahinakkaya/gitea/pull/3#discussion_r1396495722
     // for details.
-    user.max_contribution_type += 1;
+    maxContributionType += 1;
 
-    filteredData.push({...user, weeks: filteredWeeks, email: key});
+    filteredData.push({
+      ...user,
+      weeks: filteredWeeks,
+      total_commits: totalCommits,
+      total_additions: totalAdditions,
+      total_deletions: totalDeletions,
+      max_contribution_type: maxContributionType,
+      email: key,
+    });
   }
 
   return filteredData;
 }
 
 const maxMainGraph = computed(() => {
-  return roundUpMax(Math.max(...totalStats.value.weeks.map((o: Record<string, any>) => o[type.value])));
+  return roundUpMax(Math.max(...totalStats.value.map((o) => o[type.value])));
 });
 
 // one shared maximum, otherwise the contributor graphs cannot be compared
 const maxContributorGraph = computed(() => {
-  return roundUpMax(Math.max(...sortedContributors.value.map((c: Record<string, any>) => c.max_contribution_type)));
+  return roundUpMax(Math.max(...sortedContributors.value.map((c) => c.max_contribution_type)));
 });
 
-function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
+function toGraphData(data: DayData[]): ChartData<'line'> {
   const contributionType = type.value;
   return {
     datasets: [
@@ -319,7 +338,7 @@ function getOptions(chartType: ChartType): LineOptions {
 }
 
 const mainChart = computed(() => ({
-  graphData: toGraphData(totalStats.value.weeks),
+  graphData: toGraphData(totalStats.value),
   chartOptions: getOptions('main'),
 }));
 
@@ -390,7 +409,7 @@ const contributorCharts = computed(() => sortedContributors.value.map((contribut
         </div>
       </div>
       <ChartCanvas
-        v-if="Object.keys(totalStats).length !== 0"
+        v-if="totalStats.length"
         type="line" :data="mainChart.graphData" :options="mainChart.chartOptions"
       />
     </div>

@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
@@ -49,6 +48,6 @@ func runGenerateActionsRunnerToken(ctx context.Context, c *cli.Command) error {
 	if extra.HasError() {
 		return handleCliResponseExtra(extra)
 	}
-	_, _ = fmt.Printf("%s\n", respText.Text)
+	cprintln(c, respText.Text)
 	return nil
 }
