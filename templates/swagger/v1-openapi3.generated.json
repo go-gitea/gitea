@@ -7165,6 +7165,7 @@
             "x-go-name": "Assignees"
           },
           "blocked_by": {
+            "description": "Set only when the request includes \"dependencies\"; issues blocking this one that the caller may read",
             "items": {
               "$ref": "#/components/schemas/IssueMeta"
             },
@@ -7172,6 +7173,7 @@
             "x-go-name": "BlockedBy"
           },
           "blocking": {
+            "description": "Set only when the request includes \"dependencies\"; issues this one blocks that the caller may read",
             "items": {
               "$ref": "#/components/schemas/IssueMeta"
             },

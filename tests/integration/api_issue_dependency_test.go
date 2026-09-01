@@ -211,12 +211,8 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 		var raw map[string]any
 		DecodeJSON(t, resp, &raw)
 
-		blockedBy, present := raw["blocked_by"]
-		assert.True(t, present, "blocked_by key should be present in response")
-		assert.Nil(t, blockedBy, "blocked_by should be null without includes=dependencies")
-		blocking, present := raw["blocking"]
-		assert.True(t, present, "blocking key should be present in response")
-		assert.Nil(t, blocking, "blocking should be null without includes=dependencies")
+		assert.NotContains(t, raw, "blocked_by", "blocked_by must be omitted without includes=dependencies")
+		assert.NotContains(t, raw, "blocking", "blocking must be omitted without includes=dependencies")
 	})
 
 	t.Run("ListIssuesWithIncludes", func(t *testing.T) {
@@ -261,13 +257,8 @@ func TestAPIIssueDependencyIncludes(t *testing.T) {
 		var raw map[string]any
 		DecodeJSON(t, resp, &raw)
 
-		blockedBy, ok := raw["blocked_by"]
-		assert.True(t, ok, "blocked_by should be present as empty array")
-		assert.NotNil(t, blockedBy)
-
-		blocking, ok := raw["blocking"]
-		assert.True(t, ok, "blocking should be present as empty array")
-		assert.NotNil(t, blocking)
+		assert.Equal(t, []any{}, raw["blocked_by"], "blocked_by must be an empty array, not null or missing")
+		assert.Equal(t, []any{}, raw["blocking"], "blocking must be an empty array, not null or missing")
 	})
 
 	t.Run("CrossRepoDepsFilteredByPermission", func(t *testing.T) {
