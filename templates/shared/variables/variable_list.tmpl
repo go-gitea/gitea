@@ -3,7 +3,7 @@
 	<div class="ui right">
 		<button class="ui primary tiny button show-modal"
 			data-modal="#edit-variable-modal"
-			data-modal-form.action="{{.Link}}/new"
+			data-modal-form.url="{{.Link}}/new"
 			data-modal-header="{{ctx.Locale.Tr "actions.variables.creation"}}"
 			data-modal-dialog-variable-name=""
 			data-modal-dialog-variable-data=""
@@ -33,13 +33,13 @@
 				</div>
 			</div>
 			<div class="item-trailing">
-				<span class="color-text-light-2">
+				<span>
 					{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
 				</span>
 				<button class="btn interact-bg tw-p-2 show-modal"
 					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal="#edit-variable-modal"
-					data-modal-form.action="{{$.Link}}/{{.ID}}/edit"
+					data-modal-form.url="{{$.Link}}/{{.ID}}/edit"
 					data-modal-header="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal-dialog-variable-name="{{.Name}}"
 					data-modal-dialog-variable-data="{{.Data}}"

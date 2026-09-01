@@ -37,7 +37,7 @@ export function firstStartDateAfterDate(inputDate: Date): number {
   }
   const dayOfWeek = inputDate.getUTCDay();
   const daysUntilSunday = 7 - dayOfWeek;
-  const resultDate = new Date(inputDate.getTime());
+  const resultDate = new Date(inputDate);
   resultDate.setUTCDate(resultDate.getUTCDate() + daysUntilSunday);
   return resultDate.valueOf();
 }
@@ -54,7 +54,7 @@ export type DayDataObject = {
 };
 
 export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
-  const result: Record<string, any> = {};
+  const result: DayDataObject = {};
 
   for (const startDay of startDays) {
     result[startDay] = data[startDay] || {'week': startDay, 'additions': 0, 'deletions': 0, 'commits': 0};

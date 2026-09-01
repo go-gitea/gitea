@@ -18,7 +18,9 @@ test('comment on and close an issue', async ({page, request}) => {
   await page.getByRole('button', {name: 'Comment', exact: true}).click();
   await expect(page.locator('.comment-body').filter({hasText: body})).toBeVisible();
 
-  // posting reloaded the page with an empty box, so the status button now reads "Close Issue"
+  // wait for the form to re-initialize (the empty box disables the comment button); a close click
+  // before that does a native submit which lands on a raw JSON page instead of reloading the issue
+  await expect(page.getByRole('button', {name: 'Comment', exact: true})).toBeDisabled();
   await page.getByRole('button', {name: 'Close Issue'}).click();
   await expect(page.getByRole('button', {name: 'Reopen Issue'})).toBeVisible();
 });

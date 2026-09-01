@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +27,7 @@ type TestingT interface {
 	require.TestingT
 	assert.TestingT
 	Context() context.Context
+	Helper()
 }
 
 type testCond struct {
@@ -47,7 +48,7 @@ func OrderBy(orderBy string) any {
 }
 
 func whereOrderConditions(e db.Engine, conditions []any) db.Engine {
-	orderBy := "id" // query must have the "ORDER BY", otherwise the result is not deterministic
+	orderBy := "id" // query must have the "ORDER BY", otherwise the result is not deterministic. FIXME: some tables do not have "id" column
 	for _, condition := range conditions {
 		switch cond := condition.(type) {
 		case *testCond:
@@ -77,6 +78,7 @@ func GetBean[T any](t TestingT, bean T, conditions ...any) (ret T) {
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test database
 func AssertExistsAndLoadBean[T any](t TestingT, bean T, conditions ...any) T {
+	t.Helper()
 	exists, err := getBeanIfExists(t, bean, conditions...)
 	require.NoError(t, err)
 	require.True(t, exists,
@@ -87,6 +89,7 @@ func AssertExistsAndLoadBean[T any](t TestingT, bean T, conditions ...any) T {
 
 // AssertExistsAndLoadMap assert that a row exists and load it from the test database
 func AssertExistsAndLoadMap(t TestingT, table string, conditions ...any) map[string]string {
+	t.Helper()
 	e := db.GetEngine(t.Context()).Table(table)
 	res, err := whereOrderConditions(e, conditions).Query()
 	assert.NoError(t, err)
@@ -123,6 +126,7 @@ func GetCount(t TestingT, bean any, conditions ...any) int {
 
 // AssertNotExistsBean assert that a bean does not exist in the test database
 func AssertNotExistsBean(t TestingT, bean any, conditions ...any) {
+	t.Helper()
 	exists, err := getBeanIfExists(t, bean, conditions...)
 	assert.NoError(t, err)
 	assert.False(t, exists)
@@ -130,17 +134,20 @@ func AssertNotExistsBean(t TestingT, bean any, conditions ...any) {
 
 // AssertCount assert the count of a bean
 func AssertCount(t TestingT, bean, expected any) bool {
+	t.Helper()
 	return assert.EqualValues(t, expected, GetCount(t, bean))
 }
 
 // AssertInt64InRange assert value is in range [low, high]
-func AssertInt64InRange(t assert.TestingT, low, high, value int64) {
+func AssertInt64InRange(t TestingT, low, high, value int64) {
+	t.Helper()
 	assert.True(t, value >= low && value <= high,
 		"Expected value in range [%d, %d], found %d", low, high, value)
 }
 
 // GetCountByCond get the count of database entries matching bean
 func GetCountByCond(t TestingT, tableName string, cond builder.Cond) int64 {
+	t.Helper()
 	e := db.GetEngine(t.Context())
 	count, err := e.Table(tableName).Where(cond).Count()
 	assert.NoError(t, err)

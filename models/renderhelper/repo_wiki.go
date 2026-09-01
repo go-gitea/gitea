@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"path"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/util"
 )
 
 type RepoWiki struct {
@@ -36,9 +36,9 @@ func (r *RepoWiki) ResolveLink(link, preferLinkType string) (finalLink string) {
 	case markup.LinkTypeRoot:
 		finalLink = r.ctx.ResolveLinkRoot(link)
 	case markup.LinkTypeMedia, markup.LinkTypeRaw:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki/raw", r.opts.currentRefSubURL), r.opts.currentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki/raw", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.currentTreePath), link)
 	default:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefSubURL), r.opts.currentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.currentTreePath), link)
 	}
 	return finalLink
 }
@@ -57,9 +57,9 @@ type RepoWikiOptions struct {
 func NewRenderContextRepoWiki(ctx context.Context, repo *repo_model.Repository, opts ...RepoWikiOptions) *markup.RenderContext {
 	helper := &RepoWiki{opts: util.OptionalArg(opts)}
 	rctx := markup.NewRenderContext(ctx).WithMarkupType(markdown.MarkupName)
+	helper.commitChecker = newCommitChecker(ctx, repo)
 	if repo != nil {
 		helper.repoLink = repo.Link()
-		helper.commitChecker = newCommitChecker(ctx, repo)
 		rctx = rctx.WithMetas(repo.ComposeWikiMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests

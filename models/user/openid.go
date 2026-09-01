@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // UserOpenID is the list of all OpenID identities of a user.
@@ -43,7 +45,7 @@ func isOpenIDUsed(ctx context.Context, uri string) (bool, error) {
 		return true, nil
 	}
 
-	return db.GetEngine(ctx).Get(&UserOpenID{URI: uri})
+	return db.Exist[UserOpenID](ctx, builder.Eq{"uri": uri})
 }
 
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.

@@ -16,7 +16,7 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button delete-button" data-modal-id="delete-registration" data-url="{{$.Link}}/webauthn/delete" data-id="{{.ID}}">
+					<button class="ui red tiny button link-action" data-modal-confirm="#delete-registration" data-url="{{$.Link}}/webauthn/delete?id={{.ID}}">
 					{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
@@ -30,7 +30,7 @@
 		</div>
 		<button id="register-webauthn" class="ui primary button">{{svg "octicon-key"}} {{ctx.Locale.Tr "settings.webauthn_register_key"}}</button>
 	</div>
-	<div class="ui g-modal-confirm delete modal" id="delete-registration">
+	<div class="ui small modal" id="delete-registration">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.webauthn_delete_key"}}

@@ -9,10 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 type state uint8
@@ -62,9 +61,6 @@ func InitManager(ctx context.Context) {
 func initManager(ctx context.Context) {
 	initOnce.Do(func() {
 		manager = newGracefulManager(ctx)
-
-		// Set the process default context to the HammerContext
-		process.DefaultContext = manager.HammerContext()
 	})
 }
 

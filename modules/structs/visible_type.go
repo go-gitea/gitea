@@ -18,10 +18,10 @@ const (
 )
 
 // VisibilityModes is a map of Visibility types
-var VisibilityModes = map[string]VisibleType{
-	"public":  VisibleTypePublic,
-	"limited": VisibleTypeLimited,
-	"private": VisibleTypePrivate,
+var VisibilityModes = map[VisibilityString]VisibleType{
+	VisibilityStringPublic:  VisibleTypePublic,
+	VisibilityStringLimited: VisibleTypeLimited,
+	VisibilityStringPrivate: VisibleTypePrivate,
 }
 
 // IsPublic returns true if VisibleType is public
@@ -43,27 +43,27 @@ func (vt VisibleType) IsPrivate() bool {
 func (vt VisibleType) String() string {
 	for k, v := range VisibilityModes {
 		if vt == v {
-			return k
+			return string(k)
 		}
 	}
 	return ""
 }
 
-// ExtractKeysFromMapString provides a slice of keys from map
-func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
-	for k := range in {
-		keys = append(keys, k)
+// VisibilityModeKeys returns the visibility mode names (public, limited, private)
+func VisibilityModeKeys() (keys []string) {
+	for k := range VisibilityModes {
+		keys = append(keys, string(k))
 	}
 	return keys
 }
 
-// UserVisibility defines the visibility level of a user or organization as
-// rendered in API payloads. The DB representation is VisibleType (int).
-// swagger:enum UserVisibility
-type UserVisibility string
+// VisibilityString defines the visibility level of a user/organization/team as
+// rendered in API and config payloads. The DB representation is VisibleType (int).
+// swagger:enum VisibilityString
+type VisibilityString string
 
 const (
-	UserVisibilityPublic  UserVisibility = "public"
-	UserVisibilityLimited UserVisibility = "limited"
-	UserVisibilityPrivate UserVisibility = "private"
+	VisibilityStringPublic  VisibilityString = "public"
+	VisibilityStringLimited VisibilityString = "limited"
+	VisibilityStringPrivate VisibilityString = "private"
 )

@@ -6,9 +6,9 @@ package versioned_migration
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
-	"code.gitea.io/gitea/modules/globallock"
+	"gitea.dev/modelmigration"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/globallock"
 )
 
 func Migrate(ctx context.Context, x db.EngineMigration) error {
@@ -19,5 +19,5 @@ func Migrate(ctx context.Context, x db.EngineMigration) error {
 	}
 	defer release()
 
-	return migrations.Migrate(ctx, x)
+	return modelmigration.Migrate(ctx, x)
 }

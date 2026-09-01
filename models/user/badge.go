@@ -6,8 +6,8 @@ package user
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -245,7 +245,7 @@ func (opts *SearchBadgeOptions) ToConds() builder.Cond {
 }
 
 func (opts *SearchBadgeOptions) ToOrders() string {
-	return opts.OrderBy.String()
+	return util.IfZero(opts.OrderBy.String(), "id")
 }
 
 // SearchBadges returns badges based on the provided SearchBadgeOptions options

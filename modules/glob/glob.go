@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // Reference: https://github.com/gobwas/glob/blob/master/glob.go

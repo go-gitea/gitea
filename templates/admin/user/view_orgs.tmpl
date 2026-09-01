@@ -1,0 +1,53 @@
+{{$user := .User}}
+{{$userOrgs := .UserOrgs}}
+{{$userOrgsTotal := (len $userOrgs)}}
+<h4 class="ui top attached header flex-left-right">
+	<span>{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" $userOrgsTotal}})</span>
+	{{if $userOrgs}}
+		<button class="ui red tiny button show-modal" data-modal="#remove-all-orgs-modal">{{ctx.Locale.Tr "remove_all"}}</button>
+		<form class="ui small modal form-fetch-action" id="remove-all-orgs-modal" method="post" action="{{ctx.RootData.Link}}/orgs/remove-all">
+			<div class="header">
+				{{ctx.Locale.Tr "admin.users.remove_all_orgs_title"}}
+			</div>
+			<div class="content">
+				<p>{{ctx.Locale.Tr "admin.users.remove_all_orgs_desc" $user.Name $userOrgsTotal}}</p>
+			</div>
+			<div class="actions">
+				<div class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</div>
+				<button class="ui red button" type="submit">{{ctx.Locale.Tr "remove_all"}}</button>
+			</div>
+		</form>
+	{{end}}
+</h4>
+
+{{if $userOrgs}}
+<div class="ui attached segment">
+	<div class="flex-divided-list items-with-main">
+		{{range $org := $userOrgs}}
+			<div class="item tw-items-center">
+				<div class="item-leading">
+					{{ctx.AvatarUtils.Avatar $org 48}}
+				</div>
+				<div class="item-main">
+					<div class="item-title">
+						{{template "shared/user/name" $org}}
+						{{if $org.Visibility.IsPrivate}}
+							<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
+						{{end}}
+					</div>
+					<div class="item-body">
+						<span class="flex-text-inline">
+							{{svg "octicon-calendar"}} {{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort $org.CreatedUnix)}}
+						</span>
+					</div>
+				</div>
+				<div class="item-trailing">
+					<button class="ui red tiny button link-action" type="button" data-url="{{ctx.RootData.Link}}/orgs/{{$org.ID}}/remove"
+						data-modal-confirm="{{ctx.Locale.Tr "confirm_remove"}}"
+					>{{ctx.Locale.Tr "remove"}}</button>
+				</div>
+			</div>
+		{{end}}
+	</div>
+</div>
+{{end}}

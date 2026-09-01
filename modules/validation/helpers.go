@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/setting"
 )
 
 type globalVarsStruct struct {
@@ -64,12 +64,12 @@ func IsEmailDomainListed(globs []glob.Glob, email string) bool {
 		return false
 	}
 
-	n := strings.LastIndex(email, "@")
-	if n <= 0 {
+	localPart, domain, found := strings.CutLast(email, "@")
+	if !found || localPart == "" {
 		return false
 	}
 
-	domain := strings.ToLower(email[n+1:])
+	domain = strings.ToLower(domain)
 
 	for _, g := range globs {
 		if g.Match(domain) {

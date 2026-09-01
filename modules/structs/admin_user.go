@@ -11,7 +11,6 @@ type CreateUserOption struct {
 	// The authentication source ID to associate with the user
 	SourceID int64 `json:"source_id"`
 	// identifier of the user, provided by the external authenticator (if configured)
-	// default: empty
 	LoginName string `json:"login_name"`
 	// username of the user
 	// required: true
@@ -19,7 +18,6 @@ type CreateUserOption struct {
 	// The full display name of the user
 	FullName string `json:"full_name" binding:"MaxSize(100)"`
 	// required: true
-	// swagger:strfmt email
 	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
 	// The plain text password for the user
 	Password string `json:"password" binding:"MaxSize(255)"`
@@ -30,7 +28,7 @@ type CreateUserOption struct {
 	// Whether the user has restricted access privileges
 	Restricted *bool `json:"restricted"`
 	// User visibility level: public, limited, or private
-	Visibility UserVisibility `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 
 	// For explicitly setting the user creation timestamp. Useful when users are
 	// migrated from other systems. When omitted, the user's creation timestamp
@@ -44,9 +42,7 @@ type EditUserOption struct {
 	// The authentication source ID to associate with the user
 	SourceID int64 `json:"source_id"`
 	// identifier of the user, provided by the external authenticator (if configured)
-	// default: empty
-	// required: true
-	LoginName string `json:"login_name" binding:"Required"`
+	LoginName *string `json:"login_name"`
 	// swagger:strfmt email
 	// The email address of the user
 	Email *string `json:"email" binding:"MaxSize(254)"`
@@ -79,5 +75,5 @@ type EditUserOption struct {
 	// Whether the user has restricted access privileges
 	Restricted *bool `json:"restricted"`
 	// User visibility level: public, limited, or private
-	Visibility UserVisibility `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 }

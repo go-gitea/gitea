@@ -185,12 +185,12 @@
 					</div>
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.object_format"}}</label>
-						<div class="ui selection owner dropdown">
-							<input type="hidden" id="object_format_name" name="object_format_name" value="{{or .object_format_name .DefaultObjectFormat.Name}}" required>
+						<div class="ui selection dropdown">
+							<input type="hidden" name="object_format_name" value="{{or .object_format_name .DefaultObjectFormat.Name}}">
 							<div class="default text">{{.DefaultObjectFormat.Name}}</div>
 							<div class="menu">
-								{{range .SupportedObjectFormats}}
-									<div class="item" data-value="{{.Name}}">{{.Name}}</div>
+								{{range $objFmt := .SupportedObjectFormats}}
+									<div class="item" data-value="{{$objFmt.Name}}">{{$objFmt.Name}}</div>
 								{{end}}
 							</div>
 						</div>

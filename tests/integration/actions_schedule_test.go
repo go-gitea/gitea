@@ -9,21 +9,25 @@ import (
 	"strings"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/migration"
-	api "code.gitea.io/gitea/modules/structs"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	repo_service "code.gitea.io/gitea/services/repository"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	migrations_service "gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScheduleUpdate(t *testing.T) {
@@ -38,7 +42,7 @@ func testScheduleUpdatePush(t *testing.T) {
 	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 		newCron := "30 5 * * 1,3"
 		pushScheduleChange(t, u, repo, newCron)
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		return branch.CommitID, newCron
 	})
@@ -144,6 +148,11 @@ jobs:
 
 func testScheduleUpdateMirrorSync(t *testing.T) {
 	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+		// the mirror sync re-validates the remote URL, which rejects the local test server unless local
+		// networks are allowed; migrations.Init rebuilds the host allow-list from the setting
+		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+		require.NoError(t, migrations_service.Init())
+
 		// create mirror repo
 		opts := migration.MigrateOptions{
 			RepoName:    "actions-schedule-mirror",
@@ -178,13 +187,13 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 		// update remote repo
 		newCron := "30 5,17 * * 2,4"
 		pushScheduleChange(t, u, repo, newCron)
-		repoDefaultBranch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		repoDefaultBranch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// sync
 		ok := mirror_service.SyncPullMirror(t.Context(), mirrorRepo.ID)
 		assert.True(t, ok)
-		mirrorRepoDefaultBranch, err := git_model.GetBranch(t.Context(), mirrorRepo.ID, mirrorRepo.DefaultBranch)
+		mirrorRepoDefaultBranch, err := git_model.GetBranchExisting(t.Context(), mirrorRepo.ID, mirrorRepo.DefaultBranch)
 		assert.NoError(t, err)
 		assert.Equal(t, repoDefaultBranch.CommitID, mirrorRepoDefaultBranch.CommitID)
 
@@ -206,7 +215,7 @@ func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			Archived: new(false),
 		})(t)
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		return branch.CommitID, "@every 1m"
 	})
@@ -221,7 +230,7 @@ func testScheduleUpdateDisableAndEnableActionsUnit(t *testing.T) {
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: new(true),
 		})(t)
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		return branch.CommitID, "@every 1m"
 	})

@@ -10,21 +10,20 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/indexer/code/internal"
-	es "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/analyze"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/indexer/code/internal"
+	es "gitea.dev/modules/indexer/internal/elasticsearch"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -134,7 +133,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +182,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) es.Bul
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	ops := make([]es.BulkOp, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := gitrepo.NewBatch(ctx, repo)
+		batch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
@@ -262,12 +261,21 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 			return 0, nil, nil, err
 		}
 
+		content, okContent := res["content"].(string)
+		language, okLanguage := res["language"].(string)
+		commitID, okCommitID := res["commit_id"].(string)
+		updatedAt, okUpdatedAt := res["updated_at"].(float64)
+		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt {
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hit.Source))
+			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+		}
+
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
 		var startIndex, endIndex int
 		if c, ok := hit.Highlight["filename"]; ok && len(c) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(res["content"].(string))
+			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
 		} else if c, ok := hit.Highlight["content"]; ok && len(c) > 0 {
 			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
 			// now we should find the positions. But how to avoid html content which contains the
@@ -280,14 +288,12 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
 
-		language := res["language"].(string)
-
 		hits = append(hits, &internal.SearchResult{
 			RepoID:      repoID,
 			Filename:    fileName,
-			CommitID:    res["commit_id"].(string),
-			Content:     res["content"].(string),
-			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
+			CommitID:    commitID,
+			Content:     content,
+			UpdatedUnix: timeutil.TimeStamp(updatedAt),
 			Language:    language,
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,

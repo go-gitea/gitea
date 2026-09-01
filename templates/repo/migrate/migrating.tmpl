@@ -63,7 +63,7 @@
 			{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 			{{end}}
 		</div>
-		<form class="ui form" action="{{.Link}}/settings" method="post">
+		<form class="ui form form-fetch-action" action="{{.Link}}/settings" method="post">
 			<input type="hidden" name="action" value="delete">
 			<div class="field">
 				<label>
@@ -88,7 +88,7 @@
 	<div class="header">
 		{{ctx.Locale.Tr "repo.migrate.cancel_migrating_title"}}
 	</div>
-	<form action="{{.Link}}/settings/migrate/cancel" method="post">
+	<form class="form-fetch-action" action="{{.Link}}/settings/migrate/cancel" method="post">
 		<div class="content">
 			{{ctx.Locale.Tr "repo.migrate.cancel_migrating_confirm"}}
 		</div>

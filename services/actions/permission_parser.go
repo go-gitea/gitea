@@ -4,11 +4,11 @@
 package actions
 
 import (
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/actions/jobparser"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/setting"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -40,17 +40,13 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 		return nil
 	}
 
-	// Unwrap DocumentNode and resolve AliasNode
+	// Unwrap DocumentNode
 	node := rawPerms
-	for node.Kind == yaml.DocumentNode || node.Kind == yaml.AliasNode {
-		if node.Kind == yaml.DocumentNode {
-			if len(node.Content) == 0 {
-				return nil
-			}
-			node = node.Content[0]
-		} else {
-			node = node.Alias
+	for node.Kind == yaml.DocumentNode {
+		if len(node.Content) == 0 {
+			return nil
 		}
+		node = node.Content[0]
 	}
 
 	if node.Kind == yaml.ScalarNode && node.Value == "" {

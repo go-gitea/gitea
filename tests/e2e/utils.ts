@@ -12,8 +12,6 @@ export function randomString(length: number): string {
   return result;
 }
 
-export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
-
 export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
@@ -67,18 +65,28 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
-export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message}: {branch?: string; newBranch?: string; message?: string} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
-    headers: apiHeaders(),
-    data: {content: Buffer.from(content, 'utf8').toString('base64'), branch, new_branch: newBranch, message},
-  }), 'apiCreateFile');
+/** Commit one or more files in a single API call. */
+export async function apiCreateFiles(requestContext: APIRequestContext, owner: string, repo: string, files: Array<{path: string; content: string}>, {branch, newBranch, headers}: {branch?: string; newBranch?: string; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: headers || apiHeaders(),
+    data: {
+      branch, new_branch: newBranch,
+      files: files.map((file) => ({operation: 'create', path: file.path, content: Buffer.from(file.content, 'utf8').toString('base64')})),
+    },
+  }), 'apiCreateFiles');
 }
 
-export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
-    headers: apiHeaders(),
-    data: {new_branch_name: newBranch},
-  }), 'apiCreateBranch');
+export async function apiCancelStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/delete`, {
+    headers: headers || apiHeaders(),
+  }), 'apiCancelStopwatch');
+}
+
+export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
+    headers: headers || apiHeaders(),
+    data: {state: 'closed'},
+  }), 'apiCloseIssue');
 }
 
 /** Create a PR via API. Returns the PR index for subsequent operations. */
@@ -123,7 +131,7 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
 }
 
 /** Password shared by all test users — used for both API user creation and browser login. */
-const testUserPassword = 'e2e-password!aA1';
+export const testUserPassword = 'e2e-password!aA1';
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);
@@ -159,7 +167,7 @@ export async function createProject(
   await page.waitForURL(new RegExp(`/${owner}/${repo}/projects$`));
 
   // Extract the project ID from the project link in the list
-  const projectLink = page.locator('.milestone-list .milestone-card').filter({hasText: title}).locator('a').first();
+  const projectLink = page.locator('.milestone-list > .item').filter({hasText: title}).locator('a').first();
   const href = await projectLink.getAttribute('href');
   const match = /\/projects\/(\d+)/.exec(href || '');
   const id = match ? parseInt(match[1]) : 0;

@@ -1,11 +1,10 @@
 import {generateElemId} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {isDarkTheme} from '../utils.ts';
-import {GET} from '../modules/fetch.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
-    const url = new URL(`${link}`, window.location.href);
+    const url = new URL(link, window.location.href);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
       console.error(`Unsupported link protocol: ${link}`);
       return null;
@@ -65,9 +64,31 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   u.searchParams.set('gitea-iframe-id', iframe.id);
   u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
 
-  // It must use "srcdoc" here, because our backend always sends CSP sandbox directive for the rendered content
-  // (to protect from XSS risks), so we can't use "src" to load the content directly, otherwise there will be console errors like:
-  // Unsafe attempt to load URL http://localhost:3000/test from frame with URL http://localhost:3000/test
-  const resp = await GET(u.href);
-  iframe.srcdoc = await resp.text();
+  // There are 3 kinds of external render modes:
+  // * external frontend render:
+  //   * parent page creates iframe, iframe navigates to render page
+  //   * render generates frame page with external-render-helper (injected), external-render-frontend and file content (hidden textarea)
+  //   * frame page executes external-render-frontend JS code to finds a frontend plugin to render
+  // * external backend render (HTML)
+  //   * parent page creates iframe, iframe navigates to render page
+  //   * render executes command to generate rendered HTML content with external-render-helper (injected)
+  //   * frame page displays the rendered content
+  // * external backend render (non-HTML, e.g.: PDF, image)
+  //   * parent page creates iframe, iframe navigates to render page
+  //   * render executes command to generate rendered content
+  //   * response header is automatically detected from rendered content
+
+  // It must use "src" here, because the frame content should not inherit parent's CSP.
+  // Otherwise, "srcdoc" makes the frame content inherit the parent's CSP,
+  // then some renders like "asciicast (asciinema)" which require "unsafe-eval" won't work.
+  //
+  // When using "src", Chrome can report false-alarm error like:
+  // * Unsafe attempt to load URL http://localhost/owner/repo/render/branch/main/file from frame with URL http://localhost/owner/repo/render/branch/main/file. Domains, protocols and ports must match.
+  // (only for the first time that the developer opens the browser console)
+  // Such error log can also appear even if you access the link "http://.../owner/repo/render/branch/main/file" directly.
+  // Everything just works, it is just a false-alarm caused by Chrome's Developer Tools, so such error log can be ignored.
+  //
+  // Another reason for why "src" is a must: if the render outputs non-HTML contents like PDF or image,
+  // Only "src" can correctly load and display the rendered content, "srcdoc" won't work.
+  iframe.src = u.href;
 }

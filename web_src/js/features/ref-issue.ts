@@ -3,7 +3,7 @@ import {GET} from '../modules/fetch.ts';
 import {createApp} from 'vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
-import type {Issue} from '../types.ts';
+import type {Issue, TimeoutId} from '../types.ts';
 
 type IssueInfo = {
   convertedIssue: Issue,
@@ -49,13 +49,13 @@ async function showRefIssuePopup(link: HTMLAnchorElement) {
 export function initRefIssueContextPopup() {
   const selector = 'a[href]:not([data-ref-issue-popup]):not(.ref-external-issue)';
   addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
-    if (!parseIssueHref(link.getAttribute('href')!).ownerName) return;
+    if (!parseIssueHref(link.getAttribute('href')!)) return;
     if (!link.classList.contains('ref-issue') && !link.closest('[data-ref-issue-container]')) return;
     if (getAttachedTippyInstance(link)) return;
     link.setAttribute('data-ref-issue-popup', '');
 
     // delay so a mouse passing over the link doesn't fire a fetch
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: TimeoutId;
     const cancel = () => {
       clearTimeout(timer);
       link.removeAttribute('data-ref-issue-popup');

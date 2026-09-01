@@ -13,7 +13,7 @@
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
-					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}</span>
+					<span {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FormatByteSize .Repository.Size}}</span>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
@@ -780,7 +780,7 @@
 		</div>
 		{{end}}
 
-		{{if .Permission.IsOwner}}
+		{{if $.CanManagerDangerZone}}
 		<h4 class="ui top attached error header">
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
@@ -899,7 +899,7 @@
 	</div>
 {{template "repo/settings/layout_footer" .}}
 
-{{if .Permission.IsOwner}}
+{{if $.CanManagerDangerZone}}
 	{{if .Repository.IsMirror}}
 		<div class="ui small modal" id="convert-mirror-repo-modal">
 			<div class="header">

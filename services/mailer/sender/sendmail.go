@@ -6,13 +6,12 @@ package sender
 import (
 	"fmt"
 	"io"
-	"os/exec"
 	"strings"
 
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
 )
 
 // SendmailSender Sender sendmail mail sender
@@ -47,12 +46,11 @@ func (s *SendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	ctx, _, finished := process.GetManager().AddContextTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout, desc)
 	defer finished()
 
-	cmd := exec.CommandContext(ctx, setting.MailService.SendmailPath, args...)
+	cmd := process.CommandContext(ctx, setting.MailService.SendmailPath, args...)
 	pipe, err := cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
-	process.SetSysProcAttribute(cmd)
 
 	if err = cmd.Start(); err != nil {
 		_ = pipe.Close()

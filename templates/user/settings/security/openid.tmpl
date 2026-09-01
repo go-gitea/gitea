@@ -29,7 +29,7 @@
 							</button>
 						{{end}}
 					</form>
-					<button class="ui red tiny button delete-button" data-modal-id="delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete" data-id="{{.ID}}">
+					<button class="ui red tiny button link-action" data-modal-confirm="#delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete?id={{.ID}}">
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
@@ -48,7 +48,7 @@
 		</button>
 	</form>
 
-	<div class="ui g-modal-confirm delete modal" id="delete-openid">
+	<div class="ui small modal" id="delete-openid">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.openid_deletion"}}

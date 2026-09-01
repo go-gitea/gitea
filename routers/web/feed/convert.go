@@ -12,15 +12,15 @@ import (
 	"strconv"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 
 	"github.com/gorilla/feeds"
 )
@@ -301,7 +301,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		items = append(items, &feeds.Item{
 			Title:   title,
 			Link:    link,
-			Created: rel.CreatedUnix.AsTime(),
+			Created: rel.PublishedUnix.AsTime(),
 			Author: &feeds.Author{
 				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),

@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,9 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/json"
-	base "code.gitea.io/gitea/modules/migration"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/json"
+	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
@@ -357,6 +358,28 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			State:        "APPROVED",
 		},
 	}, rvs)
+}
+
+func TestGitlabVersionProbeUsesMigrationContext(t *testing.T) {
+	started := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	result := make(chan error, 1)
+	go func() {
+		_, err := NewGitlabDownloader(ctx, server.URL, "owner/repo", "")
+		result <- err
+	}()
+
+	<-started
+	cancel()
+	assert.Error(t, <-result)
 }
 
 func gitlabClientMockSetup(t *testing.T) (*http.ServeMux, *httptest.Server, *gitlab.Client) {

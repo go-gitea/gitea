@@ -11,13 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/user"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/user"
+	"gitea.dev/modules/util"
 )
 
-// settings
+const IsWindows = runtime.GOOS == "windows"
+
 var (
 	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
 	AppVer string
@@ -27,7 +28,6 @@ var (
 	AppStartTime time.Time
 
 	CfgProvider ConfigProvider
-	IsWindows   bool
 
 	// IsInTesting indicates whether the testing is running (unit test or integration test). It can be used for:
 	// * Skip nonsense error logs during testing caused by unreliable code (TODO: this is only a temporary solution, we should make the test code more reliable)
@@ -37,7 +37,6 @@ var (
 )
 
 func init() {
-	IsWindows = runtime.GOOS == "windows"
 	if AppVer == "" {
 		AppVer = "dev"
 	}
@@ -157,6 +156,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadGitFrom(cfg)
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
+	loadRedisFrom(cfg)
 	loadGlobalLockFrom(cfg)
 	loadOtherFrom(cfg)
 	return nil
@@ -221,6 +221,7 @@ func LoadSettings() {
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	loadCacheFrom(CfgProvider)
+	loadWebsocketFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)
 	loadMailsFrom(CfgProvider)
@@ -256,5 +257,5 @@ func PanicInDevOrTesting(msg string, a ...any) {
 	if !IsProd || IsInTesting {
 		panic(fmt.Sprintf(msg, a...))
 	}
-	log.Error(msg, a...)
+	log.ErrorWithSkip(1, msg, a...)
 }

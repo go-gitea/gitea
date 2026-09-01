@@ -12,18 +12,20 @@ import type Dropzone from '@deltablot/dropzone';
 
 let uploadIdCounter = 0;
 
+type UploadFile = File & {_giteaUploadId?: number, uuid?: string};
+
 export const EventUploadStateChanged = 'ce-upload-state-changed';
 
 export function triggerUploadStateChanged(target: HTMLElement) {
   target.dispatchEvent(new CustomEvent(EventUploadStateChanged, {bubbles: true}));
 }
 
-function uploadFile(dropzoneEl: HTMLElement, file: File) {
-  return new Promise((resolve) => {
+function uploadFile(dropzoneEl: HTMLElement, file: UploadFile) {
+  return new Promise<UploadFile>((resolve) => {
     const curUploadId = uploadIdCounter++;
-    (file as any)._giteaUploadId = curUploadId;
+    file._giteaUploadId = curUploadId;
     const dropzoneInst = dropzoneEl.dropzone;
-    const onUploadDone = ({file}: {file: any}) => {
+    const onUploadDone = ({file}: {file: UploadFile}) => {
       if (file._giteaUploadId === curUploadId) {
         dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
         resolve(file);
@@ -131,7 +133,7 @@ function getPastedImages(e: ClipboardEvent) {
 }
 
 export function initEasyMDEPaste(easyMDE: EasyMDE, dropzoneEl: HTMLElement) {
-  const editor = new CodeMirrorEditor(easyMDE.codemirror as any);
+  const editor = new CodeMirrorEditor(easyMDE.codemirror as CodeMirror.EditorFromTextArea);
   easyMDE.codemirror.on('paste', (_, e) => {
     const images = getPastedImages(e);
     if (!images.length) return;

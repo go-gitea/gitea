@@ -1,4 +1,4 @@
-import {svg} from '../svg.ts';
+import {svgRaw} from '../svg.ts';
 import {html} from '../utils/html.ts';
 import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
 import {GET, POST} from '../modules/fetch.ts';
@@ -9,6 +9,7 @@ import {isImageFile, isVideoFile} from '../utils.ts';
 import type Dropzone from '@deltablot/dropzone';
 
 type CustomDropzoneFile = Dropzone.DropzoneFile & {uuid: string};
+type UploadResponse = {uuid: string};
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
@@ -45,10 +46,11 @@ export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFi
 function addCopyLink(file: Partial<CustomDropzoneFile>) {
   // Create a "Copy Link" element, to conveniently copy the image or file link as Markdown to the clipboard
   // The "<a>" element has a hardcoded cursor: pointer because the default is overridden by .dropzone
-  const copyLinkEl = createElementFromHTML<HTMLDivElement>(`
-<div class="tw-text-center">
-  <a href="#" class="tw-cursor-pointer">${svg('octicon-copy', 14)} Copy link</a>
-</div>`);
+  const copyLinkEl = createElementFromHTML<HTMLDivElement>(html`
+    <div class="tw-text-center">
+      <a href="#" class="tw-cursor-pointer">${svgRaw('octicon-copy', 14)} Copy link</a>
+    </div>
+  `);
   copyLinkEl.addEventListener('click', async (e) => {
     e.preventDefault();
     await copyToClipboardWithFeedback(copyLinkEl, generateMarkdownLinkForAttachment(file));
@@ -68,19 +70,20 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
   let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
-  const opts: Record<string, any> = {
-    url: dropzoneEl.getAttribute('data-upload-url'),
-    acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')!) ? null : dropzoneEl.getAttribute('data-accepts'),
+  const opts: Dropzone.DropzoneOptions = {
+    url: dropzoneEl.getAttribute('data-upload-url')!,
     addRemoveLinks: true,
-    dictDefaultMessage: dropzoneEl.getAttribute('data-default-message'),
-    dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type'),
-    dictFileTooBig: dropzoneEl.getAttribute('data-file-too-big'),
-    dictRemoveFile: dropzoneEl.getAttribute('data-remove-file'),
+    dictDefaultMessage: dropzoneEl.getAttribute('data-default-message')!,
+    dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type')!,
+    dictFileTooBig: dropzoneEl.getAttribute('data-file-too-big')!,
+    dictRemoveFile: dropzoneEl.getAttribute('data-remove-file')!,
     timeout: 0,
     thumbnailMethod: 'contain',
     thumbnailWidth: 480,
     thumbnailHeight: 480,
   };
+  const accepts = dropzoneEl.getAttribute('data-accepts')!;
+  if (!['*/*', ''].includes(accepts)) opts.acceptedFiles = accepts;
   if (dropzoneEl.hasAttribute('data-max-file')) opts.maxFiles = Number(dropzoneEl.getAttribute('data-max-file'));
   if (dropzoneEl.hasAttribute('data-max-size')) opts.maxFilesize = Number(dropzoneEl.getAttribute('data-max-size'));
 
@@ -88,7 +91,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
-  dzInst.on('success', (file: CustomDropzoneFile, resp: any) => {
+  dzInst.on('success', (file: CustomDropzoneFile, resp: UploadResponse) => {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
@@ -109,8 +112,8 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   });
 
   dzInst.on('submit', () => {
-    for (const fileUuid of Object.keys(fileUuidDict)) {
-      fileUuidDict[fileUuid].submitted = true;
+    for (const value of Object.values(fileUuidDict)) {
+      value.submitted = true;
     }
   });
 
@@ -124,7 +127,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
       dzInst.removeAllFiles(true);
       disableRemovedfileEvent = false;
 
-      dropzoneEl.querySelector('.files')!.innerHTML = '';
+      dropzoneEl.querySelector('.files')!.replaceChildren();
       for (const el of dropzoneEl.querySelectorAll('.dz-preview')) el.remove();
       fileUuidDict = {};
       for (const attachment of respData) {

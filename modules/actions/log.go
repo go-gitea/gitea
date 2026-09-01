@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/dbfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/zstd"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	"gitea.dev/models/dbfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/zstd"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -192,16 +192,22 @@ func OpenLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeek
 		return nil, fmt.Errorf("storage open %q: %w", filename, err)
 	}
 
-	var reader io.ReadSeekCloser = f
 	if strings.HasSuffix(filename, ".zst") {
-		r, err := zstd.NewSeekableReader(f)
+		reader, err := zstd.NewSeekableReader(f) // reads the seek table, so a lazily opened object already fails here
 		if err != nil {
-			return nil, fmt.Errorf("zstd NewSeekableReader: %w", err)
+			f.Close()
+			return nil, fmt.Errorf("zstd NewSeekableReader %q: %w", filename, err)
 		}
-		reader = r
+		return reader, nil
 	}
 
-	return reader, nil
+	// object storage opens lazily, force a missing object to surface before the caller commits a response
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		f.Close()
+		return nil, fmt.Errorf("storage open %q: %w", filename, err)
+	}
+
+	return f, nil
 }
 
 func FormatLog(timestamp time.Time, content string) string {

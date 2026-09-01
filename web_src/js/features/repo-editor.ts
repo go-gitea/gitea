@@ -6,7 +6,7 @@ import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
-import {submitFormFetchAction} from './common-fetch-action.ts';
+import {submitFormFetchAction} from '../modules/fetch-action.ts';
 import {dirname} from '../utils.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {showErrorToast} from '../modules/toast.ts';

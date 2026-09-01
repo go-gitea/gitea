@@ -16,14 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
 )
 
 // RedirectToUser redirect to a differently-named user
@@ -101,20 +101,6 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 	} else {
 		ctx.PlainText(http.StatusInternalServerError, "Unable to render status/500 page, the template system is broken, or Gitea can't find your template files.")
 		return
-	}
-}
-
-// JSONTemplate renders the template as JSON response
-// keep in mind that the template is processed in HTML context, so JSON things should be handled carefully, e.g.: use JSEscape
-func (ctx *Context) JSONTemplate(tmpl templates.TplName) {
-	t, err := ctx.Render.TemplateLookup(string(tmpl), nil)
-	if err != nil {
-		ctx.ServerError("unable to find template", err)
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json")
-	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
-		ctx.ServerError("unable to execute template", err)
 	}
 }
 

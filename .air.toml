@@ -11,7 +11,7 @@ include_file = ["main.go"]
 include_dir = ["cmd", "models", "modules", "options", "routers", "services"]
 exclude_dir = [
   "models/fixtures",
-  "models/migrations/fixtures",
+  "modelmigration/fixtures",
   "modules/avatar/identicon/testdata",
   "modules/avatar/testdata",
   "modules/git/tests",

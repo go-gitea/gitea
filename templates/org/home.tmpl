@@ -9,6 +9,7 @@
 					<div id="readme_profile" class="render-content markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
 				{{end}}
 				{{template "shared/repo/search" .}}
+				<div class="divider"></div>
 				{{if not .Repos}}
 					<div class="empty-placeholder">
 						{{svg "octicon-repo" 48}}

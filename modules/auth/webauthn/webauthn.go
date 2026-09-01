@@ -8,10 +8,10 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -28,13 +28,10 @@ func Init() {
 
 	WebAuthn = &webauthn.WebAuthn{
 		Config: &webauthn.Config{
-			RPDisplayName: setting.AppName,
-			RPID:          setting.Domain,
-			RPOrigins:     []string{appURL},
-			AuthenticatorSelection: protocol.AuthenticatorSelection{
-				UserVerification: protocol.VerificationDiscouraged,
-			},
-			AttestationPreference: protocol.PreferDirectAttestation,
+			RPDisplayName:         setting.AppName,
+			RPID:                  setting.Domain,
+			RPOrigins:             []string{appURL},
+			AttestationPreference: protocol.PreferNoAttestation, // Gitea never verifies attestation
 		},
 	}
 }

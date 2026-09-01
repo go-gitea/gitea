@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -243,5 +243,12 @@ func TestToUTF8WithFallbackReader(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, "UTF-8", encoding)
 		}
+	}
+}
+
+func TestDefaultDetectedCharsetsOrder(t *testing.T) {
+	for _, charsetName := range setting.DefaultDetectedCharsetsOrder() {
+		e, _ := Lookup(charsetName)
+		assert.NotNil(t, e, "charset %s is not registered", charsetName)
 	}
 }

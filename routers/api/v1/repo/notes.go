@@ -4,13 +4,12 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // GetNote Get a note corresponding to a single commit from a repository
@@ -60,36 +59,23 @@ func GetNote(ctx *context.APIContext) {
 	getNote(ctx, sha)
 }
 
-func getNote(ctx *context.APIContext, identifier string) {
-	if ctx.Repo.GitRepo == nil {
-		ctx.APIErrorInternal(errors.New("no open git repo"))
-		return
-	}
-
-	commitID, err := ctx.Repo.GitRepo.ConvertToGitID(identifier)
+func getNote(ctx *context.APIContext, ref string) {
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, ref)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
-	var note git.Note
-	if err := git.GetNote(ctx, ctx.Repo.GitRepo, commitID.String(), &note); err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
-			return
-		}
-		ctx.APIErrorInternal(err)
+	note, lastCommit, err := git.GetNoteWithLastCommit(ctx, ctx.Repo.GitRepo, commit.ID.String())
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, note.Commit, nil,
+	cmt, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, lastCommit, nil,
 		convert.ToCommitOptions{
 			Stat:         true,
 			Verification: verification,
@@ -99,6 +85,6 @@ func getNote(ctx *context.APIContext, identifier string) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	apiNote := api.Note{Message: string(note.Message), Commit: cmt}
+	apiNote := api.Note{Message: note.BlobMessage.MessageUTF8(), Commit: cmt}
 	ctx.JSON(http.StatusOK, apiNote)
 }

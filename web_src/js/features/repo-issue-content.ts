@@ -1,10 +1,12 @@
-import {svg} from '../svg.ts';
+import {svgRaw} from '../svg.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {createElementFromHTML, showElem} from '../utils/dom.ts';
 import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
+import {html, htmlRaw} from '../utils/html.ts';
+import type {JQueryElem} from '../types.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;
@@ -12,28 +14,29 @@ let i18nTextDeleteFromHistory: string;
 let i18nTextDeleteFromHistoryConfirm: string;
 
 function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
-  const elDetailDialog = createElementFromHTML(`
-<div class="ui modal content-history-detail-dialog">
-  ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header flex-left-right">
-    <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
-      ${i18nTextOptions}
-      ${svg('octicon-triangle-down', 14, 'dropdown icon')}
-      <div class="menu">
-        <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+  const elDetailDialog = createElementFromHTML(html`
+    <div class="ui modal content-history-detail-dialog">
+      ${svgRaw('octicon-x', 16, 'close icon inside')}
+      <div class="header flex-left-right">
+        <div>${htmlRaw(itemTitleHtml)}</div>
+        <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
+          ${i18nTextOptions}
+          ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
+          <div class="menu">
+            <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+          </div>
+        </div>
       </div>
+      <div class="comment-diff-data is-loading"></div>
     </div>
-  </div>
-  <div class="comment-diff-data is-loading"></div>
-</div>`);
+  `);
   document.body.append(elDetailDialog);
   const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
   const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
   $fomanticDropdownOptions.dropdown({
     showOnFocus: false,
     allowReselection: true,
-    async onChange(_value: string, _text: string, $item: any) {
+    async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
@@ -93,12 +96,13 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
-  const menuHtml = `
-  <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
-    &bull; ${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon')}
-    <div class="menu">
+  const menuHtml = html`
+    <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
+      &bull; ${i18nTextEdited}${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
+      <div class="menu">
+      </div>
     </div>
-  </div>`;
+  `;
 
   elHeaderLeft.querySelector(`.ui.dropdown.content-history-menu`)?.remove(); // remove the old one if exists
   elHeaderLeft.append(createElementFromHTML(menuHtml));
@@ -108,14 +112,12 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
   $fomanticDropdown.dropdown({
     action: 'hide',
     apiSettings: {
-      cache: false,
       url: `${issueBaseUrl}/content-history/list?comment_id=${commentId}`,
     },
-    saveRemoteData: false,
     onHide() {
       $fomanticDropdown.dropdown('change values', null);
     },
-    onChange(value: string, itemHtml: string, $item: any) {
+    onChange(value: string, itemHtml: string, $item: JQueryElem) {
       if (value && !$item.find('[data-history-is-deleted=1]').length) {
         showContentHistoryDetail(issueBaseUrl, commentId, value, itemHtml);
       }
@@ -145,7 +147,7 @@ export async function initRepoIssueContentHistory() {
     if (resp.editedHistoryCountMap[0] && elIssueDescription) {
       showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');
     }
-    for (const [commentId, _editedCount] of Object.entries(resp.editedHistoryCountMap)) {
+    for (const commentId of Object.keys(resp.editedHistoryCountMap)) {
       if (commentId === '0') continue;
       const elIssueComment = document.querySelector(`#issuecomment-${commentId}`);
       if (elIssueComment) showContentHistoryMenu(issueBaseUrl, elIssueComment, commentId);

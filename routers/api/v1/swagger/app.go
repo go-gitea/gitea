@@ -4,7 +4,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
+	api "gitea.dev/modules/structs"
 )
 
 // OAuth2Application
@@ -19,4 +19,11 @@ type swaggerResponseOAuth2Application struct {
 type swaggerResponseAccessToken struct {
 	// in:body
 	Body api.AccessToken `json:"body"`
+}
+
+// CurrentAccessToken represents the currently authenticated access token.
+// swagger:response CurrentAccessToken
+type swaggerResponseCurrentAccessToken struct {
+	// in:body
+	Body api.CurrentAccessToken `json:"body"`
 }

@@ -14,14 +14,14 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"uuid"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
-	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"xorm.io/builder"
@@ -82,6 +82,11 @@ func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 		ConfigName:   "tea",
 		DisplayName:  "tea",
 		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+	}
+	m["b757811a-05c8-4c76-8d74-a5ee3d2073f2"] = &BuiltinOAuth2Application{
+		ConfigName:   "gitea-app",
+		DisplayName:  "Gitea App",
+		RedirectURIs: []string{"com.gitea.app://oauth/callback"},
 	}
 	return m
 }

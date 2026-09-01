@@ -11,18 +11,19 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	conan_model "code.gitea.io/gitea/models/packages/conan"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	conan_module "code.gitea.io/gitea/modules/packages/conan"
-	"code.gitea.io/gitea/modules/setting"
-	conan_router "code.gitea.io/gitea/routers/api/packages/conan"
-	package_service "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	conan_model "gitea.dev/models/packages/conan"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	conan_module "gitea.dev/modules/packages/conan"
+	"gitea.dev/modules/setting"
+	conan_router "gitea.dev/routers/api/packages/conan"
+	package_service "gitea.dev/services/packages"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -327,8 +328,8 @@ func TestPackageConan(t *testing.T) {
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, name, pd.Package.Name)
 				assert.Equal(t, version1, pd.Version.Version)
-				assert.IsType(t, &conan_module.Metadata{}, pd.Metadata)
-				metadata := pd.Metadata.(*conan_module.Metadata)
+				metadata, ok := pd.Metadata.(*conan_module.Metadata)
+				require.True(t, ok)
 				assert.Equal(t, conanLicense, metadata.License)
 				assert.Equal(t, conanAuthor, metadata.Author)
 				assert.Equal(t, conanHomepage, metadata.ProjectURL)

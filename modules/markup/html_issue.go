@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/regexplru"
-	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/references"
+	"gitea.dev/modules/regexplru"
+	"gitea.dev/modules/templates/vars"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -149,7 +149,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if hasExtTrackFormat && !ref.IsPull {
 			ctx.RenderOptions.Metas["index"] = ref.Issue
 
-			res, err := vars.Expand(ctx.RenderOptions.Metas["format"], ctx.RenderOptions.Metas)
+			res, err := vars.ExpandCurlyBrace(ctx.RenderOptions.Metas["format"], ctx.RenderOptions.Metas)
 			if err != nil {
 				// here we could just log the error and continue the rendering
 				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)

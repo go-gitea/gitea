@@ -9,18 +9,18 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	repo_service "gitea.dev/services/repository"
 
 	"xorm.io/builder"
 )
@@ -110,12 +110,12 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 
 		sess := db.GetEngine(ctx)
 		if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
-			"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
+			"can_create_org_repo", "authorize", "includes_all_repositories", "visibility").Update(t); err != nil {
 			return fmt.Errorf("update: %w", err)
 		}
 
-		// update units for team
-		if len(t.Units) > 0 {
+		if authChanged {
+			// update units for team
 			for _, unit := range t.Units {
 				unit.TeamID = t.ID
 			}
@@ -125,13 +125,13 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 				Delete(new(organization.TeamUnit)); err != nil {
 				return err
 			}
-			if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
-				return err
+			if len(t.Units) > 0 {
+				if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
+					return err
+				}
 			}
-		}
 
-		// Update access for team members if needed.
-		if authChanged {
+			// Update access for team members if needed.
 			repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 				TeamID: t.ID,
 			})
@@ -263,7 +263,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepo(graceful.GetManager().ShutdownContext(), user, repo, true); err != nil {
+				if err = repo_model.WatchRepoAuto(graceful.GetManager().ShutdownContext(), user, repo, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}

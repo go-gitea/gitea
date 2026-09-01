@@ -4,106 +4,118 @@
 package setting
 
 import (
+	"errors"
 	"net/http"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
+	"gitea.dev/models/perm"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
-// DeployKeys render the deploy keys list of a repository page
 func DeployKeys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys") + " / " + ctx.Tr("secrets.secrets")
-	ctx.Data["PageIsSettingsKeys"] = true
-	ctx.Data["DisableSSH"] = setting.SSH.Disabled
-
-	keys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
-	if err != nil {
-		ctx.ServerError("ListDeployKeys", err)
-		return
-	}
-	ctx.Data["Deploykeys"] = keys
-
-	ctx.HTML(http.StatusOK, tplDeployKeys)
-}
-
-// DeployKeysPost response for adding a deploy key of a repository
-func DeployKeysPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := db.Find[deploykey_model.DeployKey](ctx, deploykey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
 	}
-	ctx.Data["Deploykeys"] = keys
+	ctx.Data["RepoDeployKeys"] = keys
+	ctx.HTML(http.StatusOK, tplDeployKeys)
+}
 
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplDeployKeys)
+func DeployKeysPost(ctx *context.Context) {
+	form := context.GetFetchActionForm[*forms.AddKeyForm](ctx)
+	if form == nil {
 		return
 	}
-
 	content, err := asymkey_model.CheckPublicKeyString(form.Content)
 	if err != nil {
 		if db.IsErrSSHDisabled(err) {
-			ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
+			ctx.JSONError(ctx.Tr("settings.ssh_disabled"))
 		} else if asymkey_model.IsErrKeyUnableVerify(err) {
-			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
-		} else if err == asymkey_model.ErrKeyIsPrivate {
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Content"] = true
-			ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
+			ctx.JSONErrorWithField(ctx.Tr("form.unable_verify_ssh_key"), "content")
+		} else if errors.Is(err, asymkey_model.ErrKeyIsPrivate) {
+			ctx.JSONErrorWithField(ctx.Tr("form.must_use_public_key"), "content")
 		} else {
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Content"] = true
-			ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
+			ctx.JSONErrorWithField(ctx.Tr("form.invalid_ssh_key", err.Error()), "content")
 		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 		return
 	}
 
-	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
+	accessMode := util.Iif(form.IsWritable, perm.AccessModeWrite, perm.AccessModeRead)
+	key, err := deploykey_model.AddDeployKeySSH(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
 	if err != nil {
-		ctx.Data["HasError"] = true
 		switch {
-		case asymkey_model.IsErrDeployKeyAlreadyExist(err):
-			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+		case deploykey_model.IsErrDeployKeyAlreadyExist(err):
+			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_been_used"), "content")
 		case asymkey_model.IsErrKeyAlreadyExist(err):
-			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
-		case asymkey_model.IsErrKeyNameAlreadyUsed(err):
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
-		case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+			ctx.JSONErrorWithField(ctx.Tr("settings.ssh_key_been_used"), "content")
+		case asymkey_model.IsErrKeyNameAlreadyUsed(err), deploykey_model.IsErrDeployKeyNameAlreadyUsed(err):
+			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_name_used"), "title")
 		default:
 			ctx.ServerError("AddDeployKey", err)
 		}
 		return
 	}
 
-	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
-// DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
-	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
-		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
+	key, err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id"))
+	if err != nil && !deploykey_model.IsErrDeployKeyNotExist(err) { // a key that is already gone leaves the caller with the state it asked for
+		ctx.ServerError("DeleteDeployKey", err)
+		return
+	}
+	if key != nil {
+		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success", key.Name))
+	}
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
+}
+
+func DeployKeyGenerateToken(ctx *context.Context) {
+	form := context.GetFetchActionForm[*forms.AddDeployTokenForm](ctx)
+	if form == nil {
+		return
 	}
 
+	accessMode := util.Iif(form.IsWritable, perm.AccessModeWrite, perm.AccessModeRead)
+	key, err := deploykey_model.AddDeployKeyToken(ctx, ctx.Repo.Repository.ID, form.Title, accessMode)
+	if err != nil {
+		if deploykey_model.IsErrDeployKeyNameAlreadyUsed(err) {
+			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_name_used"), "title")
+		} else {
+			ctx.ServerError("AddDeployToken", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.generate_deploy_token_success", htmlutil.HTMLFormat("<code>%s</code>", key.Token)))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
+}
+
+func DeployKeyRegenerateToken(ctx *context.Context) {
+	key, err := deploykey_model.RegenerateDeployKeyToken(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	if err != nil {
+		if deploykey_model.IsErrDeployKeyNotExist(err) {
+			ctx.JSONErrorNotFound()
+		} else {
+			ctx.ServerError("RegenerateDeployToken", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.regenerate_deploy_token_success", htmlutil.HTMLFormat("<code>%s</code>", key.Token)))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }

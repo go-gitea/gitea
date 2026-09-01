@@ -6,8 +6,8 @@ package repo_test
 import (
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,12 +19,4 @@ func TestRepository_WikiCloneLink(t *testing.T) {
 	cloneLink := repo.WikiCloneLink(t.Context(), nil)
 	assert.Equal(t, "ssh://sshuser@try.gitea.io:3000/user2/repo1.wiki.git", cloneLink.SSH)
 	assert.Equal(t, "https://try.gitea.io/user2/repo1.wiki.git", cloneLink.HTTPS)
-}
-
-func TestRepository_RelativeWikiPath(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	assert.Equal(t, "user2/repo1.wiki.git", repo_model.RelativeWikiPath(repo.OwnerName, repo.Name))
-	assert.Equal(t, "user2/repo1.wiki.git", repo.WikiStorageRepo().RelativePath())
 }

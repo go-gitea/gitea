@@ -9,14 +9,13 @@ import (
 	"os"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	asymkey_service "gitea.dev/services/asymkey"
 )
 
 // initRepoCommit temporarily changes with work directory.
@@ -68,7 +67,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git commit: %w", err)
 	}
 
-	if err := gitrepo.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
+	if err := git.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
 		LocalRefName: "HEAD",
 		Branch:       repo.DefaultBranch,
 		Env:          repo_module.InternalPushingEnvironment(u, repo),

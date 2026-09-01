@@ -19,10 +19,12 @@ func TestRefName(t *testing.T) {
 	assert.Equal(t, "release/foo", RefName("refs/tags/release/foo").TagName())
 
 	// Test pull names
-	assert.Equal(t, "1", RefName("refs/pull/1/head").PullName())
+	pullIndex, ok := RefName("refs/pull/1/head").PullIndex()
+	assert.True(t, ok)
+	assert.EqualValues(t, 1, pullIndex)
 	assert.True(t, RefName("refs/pull/1/head").IsPull())
 	assert.True(t, RefName("refs/pull/1/merge").IsPull())
-	assert.Equal(t, "my/pull", RefName("refs/pull/my/pull/head").PullName())
+	assert.Equal(t, "my/pull", RefName("refs/pull/my/pull/head").ShortName())
 
 	// Test for branch names
 	assert.Equal(t, "main", RefName("refs/for/main").ForBranchName())
@@ -36,4 +38,23 @@ func TestRefWebLinkPath(t *testing.T) {
 	assert.Equal(t, "branch/foo", RefName("refs/heads/foo").RefWebLinkPath())
 	assert.Equal(t, "tag/foo", RefName("refs/tags/foo").RefWebLinkPath())
 	assert.Equal(t, "commit/c0ffee", RefName("c0ffee").RefWebLinkPath())
+}
+
+func TestParseRefSuffix(t *testing.T) {
+	cases := []struct {
+		ref, name, suffix string
+	}{
+		{"main", "main", ""},
+		{"main^", "main", "^"},
+		{"main^2", "main", "^2"},
+		{"main~3", "main", "~3"},
+		{"main@{yesterday}", "main", "@{yesterday}"},
+		{"main~2^", "main", "~2^"},
+		{"main^~2", "main", "^~2"},
+	}
+	for _, c := range cases {
+		name, suffix := ParseRefSuffix(c.ref)
+		assert.Equal(t, c.name, name, "ref: %s", c.ref)
+		assert.Equal(t, c.suffix, suffix, "ref: %s", c.ref)
+	}
 }

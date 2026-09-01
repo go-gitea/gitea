@@ -44,7 +44,7 @@
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
-				<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
+				<div class="item issue-action" data-element-id="" data-url="{{$.Link}}/milestone">
 				{{ctx.Locale.Tr "repo.issues.action_milestone_no_select"}}
 				</div>
 				{{if .OpenMilestones}}
@@ -75,7 +75,7 @@
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
-				<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
+				<div class="item issue-action" data-element-id="" data-url="{{$.Link}}/projects">
 				{{ctx.Locale.Tr "repo.issues.new.clear_projects"}}
 				</div>
 				{{if .OpenProjects}}
@@ -112,9 +112,6 @@
 			<div class="menu">
 				<div class="item issue-action" data-action="clear" data-url="{{$.Link}}/assignee">
 					{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}
-				</div>
-				<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/assignee">
-					{{ctx.Locale.Tr "repo.issues.action_assignee_no_select"}}
 				</div>
 				{{range .Assignees}}
 					<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/assignee">

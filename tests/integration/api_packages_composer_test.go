@@ -5,20 +5,22 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	neturl "net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	composer_module "code.gitea.io/gitea/modules/packages/composer"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/routers/api/packages/composer"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	composer_module "gitea.dev/modules/packages/composer"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/routers/api/packages/composer"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -56,6 +58,7 @@ func TestPackageComposer(t *testing.T) {
 		]
 	}`,
 	}).Bytes()
+	contentChecksum := sha1.Sum(content)
 
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
@@ -209,7 +212,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pkgs[0].Authors, 1)
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Equal(t, hex.EncodeToString(contentChecksum[:]), pkgs[0].Dist.Checksum)
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 
@@ -239,7 +242,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pkgs[0].Authors, 1)
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Equal(t, hex.EncodeToString(contentChecksum[:]), pkgs[0].Dist.Checksum)
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)

@@ -64,6 +64,24 @@ func TestDetermineEndpoint(t *testing.T) {
 			lfsurl:   "git://gitlfs.com/repo",
 			expected: str2url("https://gitlfs.com/repo"),
 		},
+		// case 7
+		{
+			cloneurl: "ssh://git@git.com/owner/repo.git",
+			lfsurl:   "",
+			expected: str2url("https://git.com/owner/repo.git/info/lfs"),
+		},
+		// case 8
+		{
+			cloneurl: "git@git.com:owner/repo.git",
+			lfsurl:   "",
+			expected: str2url("https://git.com/owner/repo.git/info/lfs"),
+		},
+		// case 9
+		{
+			cloneurl: "",
+			lfsurl:   "ssh://git@gitlfs.com/owner/repo.git/info/lfs",
+			expected: str2url("https://gitlfs.com/owner/repo.git/info/lfs"),
+		},
 	}
 
 	for n, c := range cases {

@@ -11,12 +11,15 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -60,12 +63,13 @@ func (a *Attachment) RelativePath() string {
 }
 
 // DownloadURL returns the download url of the attached file
-func (a *Attachment) DownloadURL() string {
+func (a *Attachment) DownloadURL(optCtx ...context.Context) string {
+	// mail template doesn't have context, so we need to use a default one
+	ctx := util.OptionalArg(optCtx, context.TODO())
 	if a.CustomDownloadURL != "" {
 		return a.CustomDownloadURL
 	}
-
-	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
+	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/attachments/"+url.PathEscape(a.UUID))
 }
 
 // ErrAttachmentNotExist represents a "AttachmentNotExist" kind of error.
@@ -156,8 +160,7 @@ func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachm
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
-	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
-	has, err := db.GetEngine(ctx).Get(attach)
+	attach, has, err := db.Get[Attachment](ctx, builder.Eq{"release_id": releaseID, "`name`": fileName})
 	if err != nil {
 		return nil, err
 	} else if !has {

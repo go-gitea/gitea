@@ -4,7 +4,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
+	api "gitea.dev/modules/structs"
 )
 
 // Issue
@@ -96,13 +96,6 @@ type swaggerIssueDeadline struct {
 type swaggerIssueTemplates struct {
 	// in:body
 	Body []api.IssueTemplate `json:"body"`
-}
-
-// StopWatch
-// swagger:response StopWatch
-type swaggerResponseStopWatch struct {
-	// in:body
-	Body api.StopWatch `json:"body"`
 }
 
 // StopWatchList

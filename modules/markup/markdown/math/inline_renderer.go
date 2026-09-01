@@ -6,7 +6,7 @@ package math
 import (
 	"bytes"
 
-	"code.gitea.io/gitea/modules/markup/internal"
+	"gitea.dev/modules/markup/internal"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer"
@@ -30,7 +30,7 @@ func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Nod
 	if entering {
 		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(`<code class="language-math">`)))
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-			segment := c.(*ast.Text).Segment
+			segment := c.(*ast.Text).Segment //nolint:forcetypeassert // an inline math node only holds text children
 			value := util.EscapeHTML(segment.Value(source))
 			if bytes.HasSuffix(value, []byte("\n")) {
 				_, _ = w.Write(value[:len(value)-1])

@@ -48,7 +48,7 @@ async function initRepoProjectSortable(): Promise<void> {
     handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
+    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, the body catches its own errors
       boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
 
       const columnSorting = {
@@ -72,8 +72,8 @@ async function initRepoProjectSortable(): Promise<void> {
     const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
-      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
+      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
+      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
       delayOnTouchOnly: true,
       delay: 500,
     });
@@ -120,11 +120,11 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
       }
 
       // update the newly saved column title and color in the project board (to avoid reload)
-      const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${attrDataColumnId}="${columnId}"]`)!;
+      const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${CSS.escape(attrDataColumnId)}="${CSS.escape(columnId)}"]`)!;
       elEditButton.setAttribute(attrDataColumnTitle, elColumnTitle.value);
       elEditButton.setAttribute(attrDataColumnColor, elColumnColor.value);
 
-      const elBoardColumn = writableProjectBoard.querySelector<HTMLElement>(`.project-column[data-id="${columnId}"]`)!;
+      const elBoardColumn = writableProjectBoard.querySelector<HTMLElement>(`.project-column[data-id="${CSS.escape(columnId)}"]`)!;
       const elBoardColumnTitle = elBoardColumn.querySelector<HTMLElement>(`.project-column-title-text`)!;
       elBoardColumnTitle.textContent = elColumnTitle.value;
       if (elColumnColor.value) {

@@ -95,13 +95,13 @@ type Icon struct {
 // ColorPreview is an inline for a color preview
 type ColorPreview struct {
 	ast.BaseInline
-	Color []byte
+	Color string
 }
 
 // Dump implements Node.Dump.
 func (n *ColorPreview) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Color"] = string(n.Color)
+	m["Color"] = n.Color
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
@@ -114,7 +114,7 @@ func (n *ColorPreview) Kind() ast.NodeKind {
 }
 
 // NewColorPreview returns a new Span node.
-func NewColorPreview(color []byte) *ColorPreview {
+func NewColorPreview(color string) *ColorPreview {
 	return &ColorPreview{
 		BaseInline: ast.BaseInline{},
 		Color:      color,
@@ -169,4 +169,15 @@ func (n *RawHTML) Kind() ast.NodeKind {
 
 func NewRawHTML(rawHTML template.HTML) *RawHTML {
 	return &RawHTML{rawHTML: rawHTML}
+}
+
+func childSingleText(node ast.Node, source []byte) (string, bool) {
+	if node.FirstChild() == nil || node.FirstChild() != node.LastChild() {
+		return "", false
+	}
+	c, ok := node.FirstChild().(*ast.Text)
+	if !ok {
+		return "", false
+	}
+	return string(c.Segment.Value(source)), true
 }

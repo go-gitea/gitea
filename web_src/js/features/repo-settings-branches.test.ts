@@ -3,13 +3,8 @@ import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';
 import type {SortableEvent} from 'sortablejs';
 
-vi.mock('../modules/fetch.ts', () => ({
-  POST: vi.fn(),
-}));
-
-vi.mock('../modules/sortable.ts', () => ({
-  createSortable: vi.fn(),
-}));
+vi.mock('../modules/fetch.ts', () => ({POST: vi.fn()}));
+vi.mock('../modules/sortable.ts', () => ({createSortable: vi.fn()}));
 
 const branchesHTML = `
   <div id="protected-branches-list" data-update-priority-url="some/repo/branches/priority">
@@ -26,29 +21,29 @@ const branchesHTML = `
 `;
 
 describe('Repository Branch Settings', () => {
+  beforeEach(() => {
+    vi.mocked(createSortable).mockClear();
+    vi.mocked(POST).mockClear();
+  });
+
   test('should initialize sortable for protected branches list', () => {
     document.body.innerHTML = branchesHTML;
-    const callsBefore = vi.mocked(createSortable).mock.calls.length;
     initRepoSettingsBranchesDrag();
-    const newCalls = vi.mocked(createSortable).mock.calls.slice(callsBefore);
-    expect(newCalls).toHaveLength(1);
-    expect(newCalls[0][0]).toBe(document.querySelector('#protected-branches-list'));
-    expect(newCalls[0][1]).toMatchObject({handle: '.drag-handle', animation: 150});
+    expect(createSortable).toHaveBeenCalledTimes(1);
+    expect(createSortable).toHaveBeenCalledWith(document.querySelector('#protected-branches-list'), expect.objectContaining({handle: '.drag-handle', animation: 150}));
   });
 
   test('should not initialize if protected branches list is not present', () => {
-    document.querySelector('#protected-branches-list')?.remove();
-    const callsBefore = vi.mocked(createSortable).mock.calls.length;
+    document.body.replaceChildren();
     initRepoSettingsBranchesDrag();
-    expect(vi.mocked(createSortable).mock.calls.length).toBe(callsBefore);
+    expect(createSortable).toHaveBeenCalledTimes(0);
   });
 
   test('should post new order after sorting', () => {
     document.body.innerHTML = branchesHTML;
     vi.mocked(POST).mockResolvedValue({ok: true} as Response);
-    const callsBefore = vi.mocked(createSortable).mock.calls.length;
     initRepoSettingsBranchesDrag();
-    const onEnd = vi.mocked(createSortable).mock.calls[callsBefore][1]!.onEnd!;
+    const onEnd = vi.mocked(createSortable).mock.calls[0][1]!.onEnd!;
     onEnd(new Event('SortableEvent') as SortableEvent);
     expect(POST).toHaveBeenCalledWith(
       'some/repo/branches/priority',

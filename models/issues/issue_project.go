@@ -6,10 +6,10 @@ package issues
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	project_model "gitea.dev/models/project"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 )
 
 // LoadProjects loads all projects the issue is assigned to
@@ -27,7 +27,8 @@ func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 	return err
 }
 
-func (issue *Issue) projectIDs(ctx context.Context) (projectIDs []int64, _ error) {
+// ProjectIDs lists the IDs of the projects this issue belongs to.
+func (issue *Issue) ProjectIDs(ctx context.Context) (projectIDs []int64, _ error) {
 	err := db.GetEngine(ctx).Table("project_issue").Where("issue_id = ?", issue.ID).Cols("project_id").Find(&projectIDs)
 	return projectIDs, err
 }
@@ -72,7 +73,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return err
 		}
 
-		oldProjectIDs, err := issue.projectIDs(ctx)
+		oldProjectIDs, err := issue.ProjectIDs(ctx)
 		if err != nil {
 			return err
 		}
@@ -119,7 +120,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 					return err
 				}
 
-				newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, defaultColumn.ID)
+				newSorting, err := project_model.GetColumnIssueNextSorting(ctx, defaultColumn)
 				if err != nil {
 					return err
 				}

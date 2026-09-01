@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/contexttest"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/services/context"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -117,7 +117,7 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 
 func TestDashboardPagination(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	page := context.NewPagination(10, 3, 1, 3)
+	page := context.NewPagerBuilder(ctx).TotalCount(10).PerPageLimit(3).CurPage(1).NavPageNum(3).Build()
 
 	setting.AppSubURL = "/SubPath"
 	out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})

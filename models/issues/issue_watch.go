@@ -6,10 +6,11 @@ package issues
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // IssueWatch is connection request for receiving issue notification.
@@ -81,7 +82,10 @@ func CheckIssueWatch(ctx context.Context, user *user_model.User, issue *Issue) (
 	if err != nil {
 		return false, err
 	}
-	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(ctx, user, issue), nil
+	if repo_model.IsWatchModeWatching(w.Mode) && util.Iif(issue.IsPull, w.IncludePullRequests, w.IncludeIssues) {
+		return true, nil
+	}
+	return IsUserParticipantsOfIssue(ctx, user, issue), nil
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id

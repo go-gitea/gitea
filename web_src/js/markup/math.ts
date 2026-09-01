@@ -1,14 +1,15 @@
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
 
-function targetElement(el: Element): {target: Element, displayAsBlock: boolean} {
+function targetElement(elCode: Element): {target: Element, displayAsBlock: boolean} {
   // The target element is either the parent "code block with loading indicator", or itself
   // It is designed to work for 2 cases (guaranteed by backend code):
-  // * <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
+  // * <pre class="code-block"><code class="language-math">...</code></pre>
   // * <code class="language-math">...</code>
+  const elPre = elCode.parentElement?.matches('pre.code-block') ? elCode.parentElement : null;
   return {
-    target: el.closest('.code-block.is-loading') ?? el,
-    displayAsBlock: el.classList.contains('display'),
+    target: elPre ?? elCode,
+    displayAsBlock: elPre !== null,
   };
 }
 

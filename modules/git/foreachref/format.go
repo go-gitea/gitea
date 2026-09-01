@@ -16,7 +16,7 @@ var (
 )
 
 // Format supports specifying and parsing an output format for 'git
-// for-each-ref'. See See git-for-each-ref(1) for available fields.
+// for-each-ref'. See git-for-each-ref(1) for available fields.
 type Format struct {
 	// fieldNames hold %(fieldname)s to be passed to the '--format' flag of
 	// for-each-ref. See git-for-each-ref(1) for available fields.

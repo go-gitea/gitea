@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // ListMilestones list milestones for a repository
@@ -147,7 +147,7 @@ func CreateMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
+	form := web.GetForm[*api.CreateMilestoneOption](ctx)
 
 	var deadlineUnix int64
 	if form.Deadline != nil {
@@ -207,7 +207,7 @@ func EditMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditMilestoneOption)
+	form := web.GetForm[*api.EditMilestoneOption](ctx)
 	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
 		return

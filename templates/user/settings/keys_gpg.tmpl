@@ -68,7 +68,7 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button delete-button" data-modal-id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
+					<button class="ui red tiny button link-action" data-modal-confirm="#delete-gpg" data-url="{{$.Link}}/delete?type=gpg&id={{.ID}}">
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
@@ -108,7 +108,7 @@
 			{{end}}
 		{{end}}
 	</div>
-	<div class="ui g-modal-confirm delete modal" id="delete-gpg">
+	<div class="ui small modal" id="delete-gpg">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.gpg_key_deletion"}}

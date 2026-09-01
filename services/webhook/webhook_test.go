@@ -6,17 +6,17 @@ package webhook
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/services/convert"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/services/convert"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,6 +30,7 @@ func TestWebhookService(t *testing.T) {
 	t.Run("PrepareBranchFilterNoMatch", testWebhookPrepareBranchFilterNoMatch)
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
+	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
 }
 
 func testWebhookGetSlackHook(t *testing.T) {
@@ -131,4 +132,38 @@ func testWebhookCheckBranchFilter(t *testing.T) {
 	for _, v := range cases {
 		assert.Equal(t, v.match, checkBranchFilter(v.filter, v.ref), "filter: %q ref: %q", v.filter, v.ref)
 	}
+}
+
+func testPrepareTestWebhookIgnoresGates(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-prepare_test_webhook",
+		ContentType: webhook_model.ContentTypeJSON,
+		IsActive:    true,
+		HookEvent: &webhook_module.HookEvent{
+			ChooseEvents: true,
+			BranchFilter: "dev",
+			HookEvents: webhook_module.HookEvents{
+				webhook_module.HookEventWorkflowRun: true,
+			},
+		},
+	}
+	require.NoError(t, hook.UpdateEvent())
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	payload := &api.PushPayload{
+		Ref:     "refs/heads/master",
+		Commits: []*api.PayloadCommit{{}},
+	}
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
+
+	// Real deliveries stay gated: no push event + branch filter mismatch => nothing queued.
+	unittest.AssertNotExistsBean(t, hookTask)
+	require.NoError(t, PrepareWebhook(t.Context(), hook, webhook_module.HookEventPush, payload))
+	unittest.AssertNotExistsBean(t, hookTask)
+
+	// Manual test delivery always queues so the endpoint can be verified.
+	require.NoError(t, PrepareTestWebhook(t.Context(), hook, webhook_module.HookEventPush, payload))
+	unittest.AssertExistsAndLoadBean(t, hookTask)
 }

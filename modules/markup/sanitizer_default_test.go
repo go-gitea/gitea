@@ -61,6 +61,9 @@ func TestSanitizer(t *testing.T) {
 		// picture
 		`<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`, `<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`,
 
+		// MathML
+		`<math display="display" class="foo"><mi mathcolor="c" class="bar"></mi></math>`, `<math display="display"><mi mathcolor="c"></mi></math>`,
+
 		// Disallow dangerous url schemes
 		`<a href="javascript:alert('xss')">bad</a>`, `bad`,
 		`<a href="vbscript:no">bad</a>`, `bad`,
@@ -72,6 +75,6 @@ func TestSanitizer(t *testing.T) {
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		assert.Equal(t, testCases[i+1], string(Sanitize(testCases[i])))
+		assert.Equal(t, testCases[i+1], string(Sanitize(testCases[i])), "input: %s", testCases[i])
 	}
 }

@@ -10,15 +10,15 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 /*
@@ -47,7 +47,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (shortRelease) TableName() string {
 // repositories like https://github.com/vim/vim (with over 13000 tags).
 func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) ([]*SyncResult, error) {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	tags, _, err := gitRepo.GetTagInfos(ctx, 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
@@ -210,7 +210,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(tag.Name),
 				OldCommitID: "",
-				NewCommitID: tag.Object.String(),
+				NewCommitID: tag.Object.RefName(),
 			})
 		}
 		for _, deleteID := range deletes {
@@ -220,20 +220,20 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 			}
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(release.TagName),
-				OldCommitID: release.Sha1,
+				OldCommitID: git.RefNameFromCommit(release.Sha1),
 				NewCommitID: "",
 			})
 		}
 		for _, tag := range updates {
 			release := dbReleasesByTag[tag.Name]
-			oldSha := ""
+			var oldCommitID git.RefName
 			if release != nil {
-				oldSha = release.Sha1
+				oldCommitID = git.RefNameFromCommit(release.Sha1)
 			}
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(tag.Name),
-				OldCommitID: oldSha,
-				NewCommitID: tag.Object.String(),
+				OldCommitID: oldCommitID,
+				NewCommitID: tag.Object.RefName(),
 			})
 		}
 		//
@@ -246,9 +246,10 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				LowerTagName: strings.ToLower(tag.Name),
 				Sha1:         tag.Object.String(),
 				// NOTE: ignored, The NumCommits value is calculated and cached on demand when the UI requires it.
-				NumCommits:  -1,
-				CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
-				IsTag:       true,
+				NumCommits:    -1,
+				CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
+				PublishedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
+				IsTag:         true,
 			}
 			if err := db.Insert(ctx, release); err != nil {
 				return fmt.Errorf("unable insert tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
@@ -266,10 +267,11 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 
 		for _, tag := range updates {
 			if _, err := db.GetEngine(ctx).Where("repo_id = ? AND lower_tag_name = ?", repo.ID, strings.ToLower(tag.Name)).
-				Cols("sha1", "created_unix").
+				Cols("sha1", "created_unix", "published_unix").
 				Update(&repo_model.Release{
-					Sha1:        tag.Object.String(),
-					CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
+					Sha1:          tag.Object.String(),
+					CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
+					PublishedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
 				}); err != nil {
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}

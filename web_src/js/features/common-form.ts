@@ -16,17 +16,13 @@ export function initGlobalEnterQuickSubmit() {
   document.addEventListener('keydown', (e) => {
     if (e.isComposing) return;
     if (e.key !== 'Enter') return;
+    const el = e.target as HTMLElement;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
-    if (hasCtrlOrMeta && (e.target as HTMLElement).matches('textarea')) {
-      if (handleGlobalEnterQuickSubmit(e.target as HTMLElement)) {
-        e.preventDefault();
-      }
-    } else if ((e.target as HTMLElement).matches('input') && !(e.target as HTMLElement).closest('form')) {
-      // input in a normal form could handle Enter key by default, so we only handle the input outside a form
-      // eslint-disable-next-line unicorn/no-lonely-if
-      if (handleGlobalEnterQuickSubmit(e.target as HTMLElement)) {
-        e.preventDefault();
-      }
+    const isCtrlEnterInTextarea = hasCtrlOrMeta && el.matches('textarea');
+    // an input in a normal form could handle Enter key by default, so we only handle the input outside a form
+    const isEnterInBareInput = el.matches('input') && !el.closest('form');
+    if ((isCtrlEnterInTextarea || isEnterInBareInput) && handleGlobalEnterQuickSubmit(el)) {
+      e.preventDefault();
     }
   });
 }

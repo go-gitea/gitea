@@ -20,6 +20,7 @@ export async function initRepoContributors() {
         loadingTitle: el.getAttribute('data-locale-loading-title'),
         loadingTitleFailed: el.getAttribute('data-locale-loading-title-failed'),
         loadingInfo: el.getAttribute('data-locale-loading-info'),
+        chartZoomHint: el.getAttribute('data-locale-chart-zoom-hint'),
       },
     });
     View.mount(el);

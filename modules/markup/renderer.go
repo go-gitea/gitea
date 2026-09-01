@@ -8,8 +8,8 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/typesniffer"
 )
 
 // Renderer defines an interface for rendering markup file to HTML

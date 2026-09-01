@@ -6,9 +6,9 @@ package system
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/system"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 )
 
 // DBStore can be used to store app state items in local filesystem

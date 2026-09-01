@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -264,4 +264,12 @@ func TestMakeRepositoryBaseLink(t *testing.T) {
 	u, err = ParseRepositoryURL(t.Context(), "git+ssh://other:123/owner/repo.git")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://other/owner/repo", MakeRepositoryWebLink(u))
+
+	u, err = ParseRepositoryURL(t.Context(), "git+ssh://[::1]/owner/repo.git")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://[::1]/owner/repo", MakeRepositoryWebLink(u))
+
+	u, err = ParseRepositoryURL(t.Context(), "git+ssh://[::1]:2222/owner/repo.git")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://[::1]/owner/repo", MakeRepositoryWebLink(u))
 }

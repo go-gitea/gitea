@@ -8,29 +8,31 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // env keys for git hooks need
 const (
-	EnvRepoName      = "GITEA_REPO_NAME"
-	EnvRepoUsername  = "GITEA_REPO_USER_NAME"
-	EnvRepoID        = "GITEA_REPO_ID"
-	EnvRepoIsWiki    = "GITEA_REPO_IS_WIKI"
-	EnvPusherName    = "GITEA_PUSHER_NAME"
-	EnvPusherEmail   = "GITEA_PUSHER_EMAIL"
-	EnvPusherID      = "GITEA_PUSHER_ID"
-	EnvKeyID         = "GITEA_KEY_ID" // public key ID
-	EnvDeployKeyID   = "GITEA_DEPLOY_KEY_ID"
-	EnvPRID          = "GITEA_PR_ID"
-	EnvPRIndex       = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
-	EnvPushTrigger   = "GITEA_PUSH_TRIGGER"
-	EnvIsInternal    = "GITEA_INTERNAL_PUSH"
-	EnvAppURL        = "GITEA_ROOT_URL"
-	EnvActionsTaskID = "GITEA_ACTIONS_TASK_ID"
+	EnvRepoName     = "GITEA_REPO_NAME"
+	EnvRepoUsername = "GITEA_REPO_USER_NAME" // owner name
+	EnvRepoID       = "GITEA_REPO_ID"
+	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
+
+	EnvKeyID = "GITEA_KEY_ID" // public key ID
+
+	EnvPusherName        = "GITEA_PUSHER_NAME"
+	EnvPusherEmail       = "GITEA_PUSHER_EMAIL"
+	EnvPusherID          = "GITEA_PUSHER_ID"
+	EnvPusherExtDoerData = "GITEA_PUSHER_EXT_DOER_DATA"
+
+	EnvPRID        = "GITEA_PR_ID"
+	EnvPRIndex     = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
+	EnvPushTrigger = "GITEA_PUSH_TRIGGER"
+	EnvIsInternal  = "GITEA_INTERNAL_PUSH"
+	EnvAppURL      = "GITEA_ROOT_URL"
 )
 
 type PushTrigger string
@@ -68,8 +70,8 @@ func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, 
 	if !doer.KeepEmailPrivate {
 		env = append(env, EnvPusherEmail+"="+doer.Email)
 	}
-	if taskID, isActionsUser := user_model.GetActionsUserTaskID(doer); isActionsUser {
-		env = append(env, EnvActionsTaskID+"="+strconv.FormatInt(taskID, 10))
+	if doer.ExtDoerData != nil {
+		env = append(env, EnvPusherExtDoerData+"="+doer.ExtDoerData.EncodeToString())
 	}
 	return env
 }

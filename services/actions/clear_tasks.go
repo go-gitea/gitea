@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 // StopZombieTasks stops tasks in running/cancelling status that haven't been updated for a long time
@@ -26,11 +26,13 @@ func StopZombieTasks(ctx context.Context) error {
 	}, actions_model.StatusRunning, actions_model.StatusCancelling)
 }
 
-// StopEndlessTasks stops tasks in running/cancelling status with continuous updates that don't end for a long time
+// StopEndlessTasks stops running tasks with continuous updates that don't end for a long time.
+// StatusRunning only: the threshold is the task's *start* time, so including StatusCancelling would kill a
+// task mid post-cancel cleanup. StopZombieTasks covers a stalled one, keying off the last update instead.
 func StopEndlessTasks(ctx context.Context) error {
 	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
-	}, actions_model.StatusRunning, actions_model.StatusCancelling)
+	}, actions_model.StatusRunning)
 }
 
 func stopTasksByStatuses(ctx context.Context, opts actions_model.FindTaskOptions, statuses ...actions_model.Status) error {
@@ -180,7 +182,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		return err
 	}
 
-	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs)
+	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs, false)
 	if err != nil {
 		log.Warn("cancel abandoned jobs: %v", err)
 	}

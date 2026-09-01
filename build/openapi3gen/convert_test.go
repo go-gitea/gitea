@@ -12,9 +12,9 @@ import (
 
 func TestDeriveEnumName_hit(t *testing.T) {
 	key := EnumKey([]any{"red", "green", "blue"})
-	astMap := map[string]string{key: "Color"}
+	astMap := map[string][]string{key: {"Color"}}
 	usages := []enumUsage{{schemaName: "Paint", propName: "color"}}
-	got, err := deriveEnumName(key, usages, astMap)
+	got, err := deriveEnumName(key, "", usages, astMap)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestDeriveEnumName_hit(t *testing.T) {
 func TestDeriveEnumName_miss(t *testing.T) {
 	key := EnumKey([]any{"x", "y"})
 	usages := []enumUsage{{schemaName: "Thing", propName: "kind"}}
-	_, err := deriveEnumName(key, usages, map[string]string{})
+	_, err := deriveEnumName(key, "", usages, map[string][]string{})
 	if err == nil {
 		t.Fatal("expected miss error, got nil")
 	}
@@ -64,7 +64,7 @@ func TestExtractSharedEnums_usesASTMap(t *testing.T) {
 			},
 		},
 	}
-	astMap := map[string]string{EnumKey([]any{"red", "green", "blue"}): "Color"}
+	astMap := map[string][]string{EnumKey([]any{"red", "green", "blue"}): {"Color"}}
 	if err := extractSharedEnums(doc, astMap); err != nil {
 		t.Fatalf("extractSharedEnums: %v", err)
 	}
@@ -139,6 +139,54 @@ func TestFixFileSchemas_recursesIntoNested(t *testing.T) {
 	}
 }
 
+func TestExtractEnumTypeName_TeamVisibility(t *testing.T) {
+	enum := []any{"public", "limited", "private"}
+	key := EnumKey(enum)
+	astMap := map[string][]string{key: {"UserVisibility", "TeamVisibility"}}
+	schema := &openapi3.Schema{
+		Type: &openapi3.Types{"string"},
+		Enum: enum,
+		Extensions: map[string]any{
+			"x-go-enum-desc": "public TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate",
+		},
+	}
+	if got := extractEnumTypeName(schema, astMap); got != "TeamVisibility" {
+		t.Fatalf("got %q, want %q", got, "TeamVisibility")
+	}
+}
+
+func TestExtractEnumTypeName_ambiguousPrefixTie(t *testing.T) {
+	enum := []any{"one", "two"}
+	key := EnumKey(enum)
+	astMap := map[string][]string{key: {"AB", "AC"}}
+	schema := &openapi3.Schema{
+		Type: &openapi3.Types{"string"},
+		Enum: enum,
+		Extensions: map[string]any{
+			"x-go-enum-desc": "one ABOne\ntwo ACTwo",
+		},
+	}
+	if got := extractEnumTypeName(schema, astMap); got != "" {
+		t.Fatalf("got %q, want empty string for ambiguous tie", got)
+	}
+}
+
+func TestExtractEnumTypeName_rejectsIncidentalPrefix(t *testing.T) {
+	enum := []any{"a", "b"}
+	key := EnumKey(enum)
+	astMap := map[string][]string{key: {"Alpha", "Alphabet"}}
+	schema := &openapi3.Schema{
+		Type: &openapi3.Types{"string"},
+		Enum: enum,
+		Extensions: map[string]any{
+			"x-go-enum-desc": "a AlphabetA\nb AlphabetB",
+		},
+	}
+	if got := extractEnumTypeName(schema, astMap); got != "Alphabet" {
+		t.Fatalf("got %q, want %q", got, "Alphabet")
+	}
+}
+
 func TestExtractSharedEnums_missReturnsError(t *testing.T) {
 	doc := &openapi3.T{
 		Components: &openapi3.Components{
@@ -164,7 +212,7 @@ func TestExtractSharedEnums_missReturnsError(t *testing.T) {
 			},
 		},
 	}
-	if err := extractSharedEnums(doc, map[string]string{}); err == nil {
+	if err := extractSharedEnums(doc, map[string][]string{}); err == nil {
 		t.Fatal("expected miss error")
 	}
 }

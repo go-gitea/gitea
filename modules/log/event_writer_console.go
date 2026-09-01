@@ -6,7 +6,7 @@ package log
 import (
 	"os"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 type WriterConsoleOption struct {
@@ -21,7 +21,7 @@ var _ EventWriter = (*eventWriterConsole)(nil)
 
 func NewEventWriterConsole(name string, mode WriterMode) EventWriter {
 	w := &eventWriterConsole{EventWriterBaseImpl: NewEventWriterBase(name, "console", mode)}
-	opt := mode.WriterOption.(WriterConsoleOption)
+	opt := mode.WriterOption.(WriterConsoleOption) //nolint:forcetypeassert // a console writer is only created with WriterConsoleOption
 	if opt.Stderr {
 		w.OutputWriteCloser = util.NopCloser{Writer: os.Stderr}
 	} else {

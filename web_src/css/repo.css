@@ -163,14 +163,6 @@ td .commit-summary {
   font-size: 1em;
 }
 
-.non-diff-file-content .header .small.icon {
-  font-size: 0.75em;
-}
-
-.non-diff-file-content .header .tiny.icon {
-  font-size: 0.5em;
-}
-
 .non-diff-file-content .header .file-actions .btn-octicon {
   line-height: var(--line-height-default);
   padding: 8px;
@@ -208,10 +200,6 @@ td .commit-summary {
 
 .non-diff-file-content pre {
   overflow: auto;
-}
-
-.non-diff-file-content .asciicast {
-  padding: 0 !important;
 }
 
 .repo-editor-header {
@@ -375,10 +363,6 @@ td .commit-summary {
   color: var(--color-text-light-2);
 }
 
-.issue-title .label {
-  margin-right: 10px;
-}
-
 .issue-state-label {
   display: flex !important;
   align-items: center !important;
@@ -395,17 +379,6 @@ td .commit-summary {
 .repository.view.issue .pull-desc code {
   color: var(--color-primary);
   background: transparent;
-}
-
-.repository.view.issue .pull-desc a[data-clipboard-text] {
-  cursor: pointer;
-}
-
-.repository.view.issue .pull-desc a[data-clipboard-text] svg {
-  vertical-align: middle;
-  position: relative;
-  top: -2px;
-  right: 1px;
 }
 
 .repository.view.issue .pull.tabs.container {
@@ -515,18 +488,22 @@ td .commit-summary {
   margin-left: -16px;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line {
+.comment-text-line {
   color: var(--color-text-light);
   flex: 1;
   min-width: 0;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
+.comment-text-line .ui.label {
   line-height: 1.5; /* label has background, so it can't use parent's line-height */
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line a {
+.comment-text-line a {
   color: inherit;
+}
+
+.comment-text-line a:hover {
+  color: var(--color-primary);
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list {
@@ -593,14 +570,6 @@ td .commit-summary {
   overflow: hidden;
 }
 
-.repository.view.issue .comment-list .comment .ui.form .field .tab.markup {
-  min-height: 5rem;
-}
-
-.repository.view.issue .comment-list .comment .edit.buttons {
-  margin-top: 10px;
-}
-
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
   padding: 8px;
@@ -651,6 +620,13 @@ td .commit-summary {
 
 .repository.view.issue .ui.depending .item.is-closed .issue-dependency-title {
   text-decoration: line-through;
+}
+
+.repository.view.issue .ui.depending .item .item-left {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .repository .comment.form .content .field:first-child {
@@ -717,6 +693,12 @@ td .commit-summary {
   left: 0;
 }
 
+@media (forced-colors: active) {
+  .repository.branches .commit-divergence .bar {
+    background: CanvasText;
+  }
+}
+
 .repository.commits .header .search input {
   font-weight: var(--font-weight-normal);
   padding: 5px 10px;
@@ -774,20 +756,17 @@ td .commit-summary {
 }
 
 .repository .data-table td.added,
-.repository .data-table th.added,
-.repository .data-table tr.added {
+.repository .data-table th.added {
   background-color: var(--color-diff-added-row-bg) !important;
 }
 
 .repository .data-table td.removed,
-.repository .data-table th.removed,
-.repository .data-table tr.removed {
+.repository .data-table th.removed {
   background-color: var(--color-diff-removed-row-bg) !important;
 }
 
 .repository .data-table td.moved,
-.repository .data-table th.moved,
-.repository .data-table tr.moved {
+.repository .data-table th.moved {
   background-color: var(--color-diff-moved-row-bg) !important;
 }
 
@@ -816,9 +795,9 @@ td .commit-summary {
   position: sticky;
   top: 0;
   z-index: 8;
-  padding: 7px 5px;
+  padding: 4px 5px;
   margin: 0 -5px; /* negative margin so it covers active file shadow */
-  height: 44px; /* this height should match sticky-2nd-row */
+  height: 41px; /* this height should match sticky-2nd-row */
   background: var(--color-body);
 }
 
@@ -827,6 +806,7 @@ td .commit-summary {
     flex-wrap: wrap;
   }
 }
+
 .repository .diff-detail-box .diff-detail-stats strong {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -865,30 +845,6 @@ td .commit-summary {
   margin-right: 0 !important;
 }
 
-.repository .diff-detail-box span.status {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-.repository .diff-detail-box span.status.modify {
-  background-color: var(--color-yellow);
-}
-
-.repository .diff-detail-box span.status.add {
-  background-color: var(--color-green);
-}
-
-.repository .diff-detail-box span.status.del {
-  background-color: var(--color-red);
-}
-
-.repository .diff-detail-box span.status.rename {
-  background-color: var(--color-teal);
-}
-
 .repository .diff-detail-box .ui.button {
   padding: 0 12px;
   height: 30px;
@@ -907,11 +863,6 @@ td .commit-summary {
   text-align: right;
 }
 
-.repository .diff-file-box .file-body.file-code .lines-num span.fold {
-  display: block;
-  text-align: center;
-}
-
 .repository .diff-file-box .code-diff td {
   padding: 0 0 0 10px !important;
   border-top: 0;
@@ -928,10 +879,6 @@ td .commit-summary {
 
 .repository .diff-file-box .code-diff table {
   table-layout: fixed;
-}
-
-.repository .diff-file-box .code-diff tbody tr td.center {
-  text-align: center;
 }
 
 .repository .diff-file-box .code-diff tbody tr [data-line-num]::before {
@@ -959,25 +906,16 @@ td .commit-summary {
   width: 100%;
 }
 
-.repository .diff-file-box.file-content {
-  clear: right;
-}
-
 .repository .diff-file-box.file-content .image-diff img {
   max-width: 100%;
   padding: 0;
   border-radius: 0;
 }
 
-.repository .diff-file-box .ui.bottom.attached.table.segment {
-  padding-top: 5px;
-  padding-bottom: 5px;
-}
-
 .diff-file-box {
   border: 1px solid transparent;
   border-radius: var(--border-radius);
-  scroll-margin-top: 47px; /* match .repository .diff-detail-box */
+  scroll-margin-top: 44px; /* .diff-detail-box height plus the :target shadow */
 }
 
 .file.editor .diff-file-box {
@@ -996,26 +934,6 @@ td .commit-summary {
   max-width: initial; /* remove fomantic over 100% width */
 }
 
-.repository .diff-stats {
-  clear: both;
-  margin-bottom: 5px;
-  max-height: 200px;
-  height: fit-content;
-  overflow: auto;
-  padding-left: 0;
-}
-
-.repository .diff-stats li {
-  list-style: none;
-  padding-bottom: 4px;
-  margin-bottom: 4px;
-  padding-left: 6px;
-}
-
-.repository .diff-stats li + li {
-  border-top: 1px solid var(--color-secondary);
-}
-
 .repository .repo-search-result {
   padding-top: 10px;
   padding-bottom: 10px;
@@ -1023,14 +941,6 @@ td .commit-summary {
 
 .repository .repo-search-result .lines-num a {
   color: inherit;
-}
-
-.repository.quickstart .guide .item {
-  padding: 1em;
-}
-
-.repository.quickstart .guide .item small {
-  font-weight: var(--font-weight-normal);
 }
 
 .repository .activity-header {
@@ -1059,10 +969,6 @@ td .commit-summary {
   font-size: 13px;
   margin-left: 26px;
   padding-top: 0;
-}
-
-.repository .ui.fluid.action.input .ui.search.action.input {
-  flex: auto;
 }
 
 .repository .repository-summary {
@@ -1202,38 +1108,6 @@ td .commit-summary {
     flex-direction: column;
     align-items: stretch;
   }
-}
-
-.settings.webhooks .list > .item:not(:first-child),
-.settings.githooks .list > .item:not(:first-child),
-.settings.actions .list > .item:not(:first-child) {
-  padding: 0.25rem 1rem;
-  margin: 12px -1rem -1rem;
-}
-
-.settings .list > .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-  padding: 1rem;
-  margin: 16px -1rem -1rem;
-}
-
-.settings .list > .item > .svg {
-  display: table-cell;
-}
-
-.settings .list > .item > .svg + .content {
-  display: table-cell;
-  padding: 0 0 0 0.5em;
-  vertical-align: top;
-}
-
-.settings .list > .item .info {
-  margin-top: 10px;
-}
-
-.settings .list > .item .info .tab.segment {
-  border: 0;
-  padding: 10px 0 0;
 }
 
 .comment:target .comment-container {
@@ -1386,19 +1260,12 @@ tbody.commit-list {
   vertical-align: baseline;
 }
 
-.message-wrapper,
-.author-wrapper {
+.message-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
   display: inline-block;
   vertical-align: middle;
-}
-
-.author-wrapper {
-  max-width: 180px;
-  align-self: center;
-  white-space: nowrap;
 }
 
 .latest-commit .message-wrapper {
@@ -1409,33 +1276,6 @@ tbody.commit-list {
 .commit-list .message-wrapper {
   display: inline;
   overflow-wrap: anywhere;
-}
-
-@media (max-width: 767.98px) {
-  tr.commit-list {
-    width: 100%;
-  }
-  .author-wrapper {
-    max-width: 80px;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-  tr.commit-list {
-    width: 723px;
-  }
-}
-
-@media (min-width: 992px) and (max-width: 1200px) {
-  tr.commit-list {
-    width: 933px;
-  }
-}
-
-@media (min-width: 1201px) {
-  tr.commit-list {
-    width: 1127px;
-  }
 }
 
 .commit-body {
@@ -1581,24 +1421,34 @@ tbody.commit-list {
   gap: var(--page-spacing);
 }
 
-#diff-file-boxes {
+#diff-boxes-column {
   flex: 1;
-  max-width: 100%;
+  min-width: 0;
+}
+
+#diff-file-boxes {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 #diff-file-tree {
-  flex: 0 0 20%;
-  max-width: 380px;
+  flex: 0 0 256px;
+  min-width: 0;
   line-height: inherit;
   position: sticky;
   padding-top: 0;
-  top: 47px;
-  max-height: calc(100vh - 47px);
+  top: 44px; /* match .diff-file-box scroll-margin-top */
+  max-height: calc(100vh - 44px);
   height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 1201px) {
+  #diff-file-tree {
+    flex-basis: 320px;
+  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -1687,7 +1537,7 @@ tbody.commit-list {
 
 .ui.attached.header.diff-file-header.sticky-2nd-row {
   position: sticky;
-  top: 44px; /* match .repository .diff-detail-box */
+  top: 41px; /* dock right below .repository .diff-detail-box */
   z-index: 7;
 }
 
@@ -1816,14 +1666,6 @@ tbody.commit-list {
   box-shadow: 0 0.5rem 1rem var(--color-shadow) !important;
 }
 
-.commits-table .commits-table-right form {
-  display: flex;
-  align-items: center;
-  gap: 0.75em;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 @media (max-width: 767.98px) {
   .repository.view.issue .comment-list,
   .repository.view.issue .comment-list .timeline-item {
@@ -1848,22 +1690,6 @@ tbody.commit-list {
     flex-basis: auto !important;
     margin-bottom: 0.5rem !important;
   }
-  .commits-table {
-    flex-direction: column;
-  }
-  .commits-table .commits-table-left {
-    align-items: initial !important;
-    margin-bottom: 6px;
-  }
-  .commits-table .commits-table-right form > div:nth-child(1) {
-    order: 1; /* the "commit search" input */
-  }
-  .commits-table .commits-table-right form > div:nth-child(2) {
-    order: 3; /* the "search all" checkbox */
-  }
-  .commits-table .commits-table-right form > button:nth-child(3) {
-    order: 2; /* the "search" button */
-  }
   .commit-table {
     overflow-x: auto;
   }
@@ -1873,15 +1699,6 @@ tbody.commit-list {
   }
 }
 
-.commit-status-header {
-  /* reset the default ".ui.attached.header" styles, to use the outer border */
-  border: none !important;
-  /* add a bottom border to make sure the there is always a divider between the header and list when the list is scrolling */
-  border-bottom: 1px solid var(--color-secondary) !important;
-  /* use negative margin to avoid the newly added border conflict with the list's top border */
-  margin: 0 0 -1px !important;
-}
-
 .commit-status-list {
   max-height: 240px; /* fit exactly 6 items, commit-status-item.height * 6 */
   overflow-x: hidden;
@@ -1889,8 +1706,10 @@ tbody.commit-list {
   width: 100%;
 }
 
-.commit-status-item {
+.commit-status-item { /* the item is used in the PR merge box and the commit status popup, both are commit-status-list */
   height: 40px;
+  padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
+  padding-bottom: 0 !important;
   display: flex;
   gap: var(--gap-block);
   align-items: center;
@@ -1899,15 +1718,19 @@ tbody.commit-list {
 }
 
 .username-display {
-  max-width: 100%; /* the inner part might have "gt-ellipsis" */
-  min-width: 0; /* if it is the top flex container, "max-width" works; but if it is inside another flex container, the parent needs to handle the x-axis and here also needs "min-width" */
   display: inline-flex;
   gap: var(--gap-inline);
   align-items: center;
+  max-width: 100%; /* min/max widths are for "gt-ellipsis", see the comment of other "flex-xxx" family classes */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .username-display > .username-fullname {
   color: var(--color-text-light-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 #issue-pins {

@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/http"
 
-	web_types "code.gitea.io/gitea/modules/web/types"
+	web_types "gitea.dev/modules/web/types"
 )
 
 // ResponseWriter represents a response writer for HTTP

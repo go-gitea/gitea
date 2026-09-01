@@ -53,7 +53,7 @@
 							{{DateUtils.TimeSince $one.UpdatedUnix}}
 						{{end}}
 					</div>
-					<form class="notifications-buttons form-fetch-action" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
+					<form class="notifications-buttons form-fetch-action" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginator.Current}}&perPage={{$.Page.Paginator.PagingNum}}" method="post"
 								data-fetch-sync="$body #notification_div"
 					>
 						<input type="hidden" name="notification_id" value="{{$one.ID}}">

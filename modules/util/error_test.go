@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestErrorTranslatable(t *testing.T) {
@@ -16,8 +17,10 @@ func TestErrorTranslatable(t *testing.T) {
 	err = ErrorWrapTranslatable(io.EOF, "key", 1)
 	assert.ErrorIs(t, err, io.EOF)
 	assert.Equal(t, "EOF", err.Error())
-	assert.Equal(t, "key", err.(*errorTranslatableWrapper).trKey)
-	assert.Equal(t, []any{1}, err.(*errorTranslatableWrapper).trArgs)
+	wrapped, ok := err.(*errorTranslatableWrapper)
+	require.True(t, ok)
+	assert.Equal(t, "key", wrapped.trKey)
+	assert.Equal(t, []any{1}, wrapped.trArgs)
 
 	err = ErrorWrap(err, "new msg %d", 100)
 	assert.ErrorIs(t, err, io.EOF)
@@ -25,5 +28,7 @@ func TestErrorTranslatable(t *testing.T) {
 
 	errTr := ErrorAsTranslatable(err)
 	assert.Equal(t, "EOF", errTr.Error())
-	assert.Equal(t, "key", errTr.(*errorTranslatableWrapper).trKey)
+	wrapped, ok = errTr.(*errorTranslatableWrapper)
+	require.True(t, ok)
+	assert.Equal(t, "key", wrapped.trKey)
 }

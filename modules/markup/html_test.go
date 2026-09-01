@@ -8,12 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	testModule "code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	testModule "gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -135,10 +136,10 @@ func TestRender_links(t *testing.T) {
 	defer func() {
 		setting.Markdown.CustomURLSchemes = oldCustomURLSchemes
 		markup.ResetDefaultSanitizerForTesting()
-		markup.CustomLinkURLSchemes(oldCustomURLSchemes)
+		common.InitLinkURLSchemes(oldCustomURLSchemes)
 	}()
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+	common.InitLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	// Text that should be turned into URL
 	test(
@@ -377,6 +378,9 @@ func TestRender_emoji(t *testing.T) {
 	test(":100:200", `<p>:100:200</p>`)
 	test("std::thread::something", `<p>std::thread::something</p>`)
 	test(":not exist:", `<p>:not exist:</p>`)
+	test("foo `:smile:", "<p>foo `:smile:</p>")
+	test("foo `:smile:`", `<p>foo <code>:smile:</code></p>`)
+	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" aria-label=\"grinning face with smiling eyes\">😄</span></p>")
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -399,7 +403,6 @@ func TestRender_ShortLinks(t *testing.T) {
 	renderableFileURL := tree + "/markdown_file.md"
 	unrenderableFileURL := tree + "/file.zip"
 	favicon := "http://google.com/favicon.ico"
-
 	test(
 		"[[Link]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
@@ -593,11 +596,4 @@ func TestIssue18471(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
-}
-
-func TestIsFullURL(t *testing.T) {
-	assert.True(t, markup.IsFullURLString("https://example.com"))
-	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
-	assert.True(t, markup.IsFullURLString("data:image/11111"))
-	assert.False(t, markup.IsFullURLString("/foo:bar"))
 }

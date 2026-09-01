@@ -14,16 +14,14 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-
-	"github.com/dustin/go-humanize"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // EncodeSha256 string to sha256 hex value.
 func EncodeSha256(str string) string {
 	h := sha256.New()
-	_, _ = h.Write([]byte(str))
+	_, _ = h.Write(util.UnsafeStringToBytes(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -64,15 +62,17 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 	const format = "200601021504"
 
 	var start time.Time
-	var startTimeAny any = startTimeGeneric
-	if t, ok := startTimeAny.(time.Time); ok {
-		start = t
-	} else {
+	switch startTime := any(startTimeGeneric).(type) {
+	case time.Time:
+		start = startTime
+	case string:
 		var err error
-		start, err = time.ParseInLocation(format, startTimeAny.(string), time.Local)
+		start, err = time.ParseInLocation(format, startTime, time.Local)
 		if err != nil {
 			return "" // return an invalid code because the "parse" failed
 		}
+	default:
+		panic(fmt.Sprintf("unsupported start time type %T", startTime)) // it shouldn't happen
 	}
 	startStr := start.Format(format)
 	end := start.Add(time.Minute * time.Duration(minutes))
@@ -88,11 +88,6 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 		panic("there is a hard requirement for the length of time-limited code") // it shouldn't happen
 	}
 	return code
-}
-
-// FileSize calculates the file size and generate user-friendly string.
-func FileSize(s int64) string {
-	return humanize.IBytes(uint64(s))
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.

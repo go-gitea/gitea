@@ -42,7 +42,7 @@ export function initRepoGraphGit() {
 
     elGraphBody.classList.add('is-loading');
     try {
-      const resp = await GET(ajaxUrl.toString());
+      const resp = await GET(ajaxUrl.href);
       elGraphBody.innerHTML = await resp.text();
     } finally {
       elGraphBody.classList.remove('is-loading');
@@ -51,7 +51,7 @@ export function initRepoGraphGit() {
 
   const dropdownSelected = params.getAll('branch');
   if (params.has('hide-pr-refs') && params.get('hide-pr-refs') === 'true') {
-    dropdownSelected.splice(0, 0, '...flow-hide-pr-refs');
+    dropdownSelected.unshift('...flow-hide-pr-refs');
   }
 
   const $dropdown = fomanticQuery('#flow-select-refs-dropdown');

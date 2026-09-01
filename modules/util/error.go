@@ -99,8 +99,7 @@ func ErrorWrapTranslatable(err error, trKey string, trArgs ...any) ErrorTranslat
 }
 
 func ErrorAsTranslatable(err error) ErrorTranslatable {
-	var e *errorTranslatableWrapper
-	if errors.As(err, &e) {
+	if e, ok := errors.AsType[*errorTranslatableWrapper](err); ok {
 		return e
 	}
 	return nil

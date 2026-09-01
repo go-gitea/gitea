@@ -1,5 +1,6 @@
 import {toggleElem} from '../utils/dom.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {trString} from '../modules/i18n.ts';
 
 export function initRepoBranchButton() {
   initRepoCreateBranchButton();
@@ -36,7 +37,7 @@ function initRepoRenameBranchButton() {
       toggleElem(warn, el.getAttribute('data-is-default-branch') === 'true');
 
       const text = modal.querySelector('[data-rename-branch-to]')!;
-      text.textContent = text.getAttribute('data-rename-branch-to')!.replace('%s', oldBranchName);
+      text.textContent = trString(text.getAttribute('data-rename-branch-to')!, oldBranchName);
     });
   }
 }

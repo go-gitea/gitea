@@ -41,26 +41,26 @@
 	</div>
 </div>
 
-<div class="milestone-list">
+<div class="flex-divided-list milestone-list">{{/* the milestone-list class is kept because many tests depend on it */}}
 	{{range .Projects}}
-		<li class="milestone-card">
-			<h3 class="flex-text-block tw-m-0 tw-gap-3">
+		<div class="item flex-relaxed-list">
+			<span class="list-item-large-title">
 				{{svg .IconName 16}}
-				<a class="muted tw-break-anywhere" href="{{.Link ctx}}">{{.Title}}</a>
-			</h3>
-			<div class="milestone-toolbar">
-				<div class="group">
-					<div class="flex-text-block">
+				<a class="muted" href="{{.Link ctx}}">{{.Title}}</a>
+			</span>
+			<div class="list-item-secondary-bar">
+				<div class="flex-text-block tw-flex-wrap">
+					<div class="flex-text-inline">
 						{{svg "octicon-issue-opened" 14}}
 						{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 					</div>
-					<div class="flex-text-block">
+					<div class="flex-text-inline">
 						{{svg "octicon-check" 14}}
 						{{ctx.Locale.PrettyNumber .NumClosedIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
 					</div>
 				</div>
 				{{if and $.CanWriteProjects (not $.Repository.IsArchived)}}
-				<div class="group">
+				<div class="flex-text-block tw-flex-wrap">
 					<a class="flex-text-inline" href="{{.Link ctx}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 					{{if .IsClosed}}
 						<a class="link-action flex-text-inline" href data-url="{{.Link ctx}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.projects.open"}}</a>
@@ -74,7 +74,7 @@
 			{{if .Description}}
 				<div class="render-content markup">{{.RenderedContent}}</div>
 			{{end}}
-		</li>
+		</div>
 	{{else}}
 		{{if and (eq .OpenCount 0) (eq .ClosedCount 0)}}
 			<div class="empty-placeholder">

@@ -6,7 +6,7 @@ package math
 import (
 	"bytes"
 
-	giteaUtil "code.gitea.io/gitea/modules/util"
+	giteaUtil "gitea.dev/modules/util"
 
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
@@ -86,7 +86,7 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 
 // Continue parses the current line and returns a result of parsing.
 func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Context) parser.State {
-	block := node.(*Block)
+	block := node.(*Block) //nolint:forcetypeassert // this parser only ever opens *Block nodes
 	if block.Closed {
 		return parser.Close
 	}

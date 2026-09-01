@@ -7,12 +7,13 @@ import (
 	"context"
 	"slices"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -99,6 +100,10 @@ type FindRunJobOptions struct {
 	UpdatedBefore    timeutil.TimeStamp
 	ConcurrencyGroup string
 	OrderBy          db.SearchOrderBy
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
 }
 
 var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
@@ -132,6 +137,9 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 		}
 		cond = cond.And(builder.Eq{"`action_run_job`.concurrency_group": opts.ConcurrencyGroup})
 	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run_job`.repo_id", opts.AccessibleRepoIDsSubQuery))
+	}
 	return cond
 }
 
@@ -148,7 +156,16 @@ func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunJobOptions) ToOrders() string {
-	return string(opts.OrderBy)
+	return util.IfZero(string(opts.OrderBy), "action_run_job.id")
 }
 
-var _ db.FindOptionsOrder = FindRunJobOptions{}
+var _ db.FindOptions = (*FindRunJobOptions)(nil)
+
+// CountRunJobsByRunAndAttemptID counts the jobs belonging to the given run attempt.
+// It is used to enforce MaxJobNumPerRun when reusable-workflow expansion inserts new jobs.
+func CountRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64) (int64, error) {
+	return db.Count[ActionRunJob](ctx, FindRunJobOptions{
+		RunID:        runID,
+		RunAttemptID: optional.Some(runAttemptID),
+	})
+}

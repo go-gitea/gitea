@@ -2,15 +2,7 @@
 {{if not .LatestCommit}}
 	…
 {{else}}
-	<span class="author-wrapper">
-	{{- if .LatestCommitUser -}}
-		{{- ctx.AvatarUtils.Avatar .LatestCommitUser 20 "tw-mr-2" -}}
-		<strong>{{.LatestCommitUser.GetShortDisplayNameLinkHTML}}</strong>
-	{{- else if .LatestCommit.Author -}}
-		{{- ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 20 "tw-mr-2" -}}
-		<strong>{{.LatestCommit.Author.Name}}</strong>
-	{{- end -}}
-	</span>
+	{{ctx.RenderUtils.AvatarStackWithNames .LatestCommitAvatarStackData}}
 
 	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 

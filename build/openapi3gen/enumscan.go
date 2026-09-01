@@ -34,13 +34,16 @@ func EnumKey(values []any) string {
 var rxSwaggerEnum = regexp.MustCompile(`swagger:enum\s+(\w+)`)
 
 // ScanSwaggerEnumTypes walks .go files under each dir and returns a map from
-// a canonical value-set key (see EnumKey) to the Go type name declared with
-// // swagger:enum TypeName.
+// a canonical value-set key (see EnumKey) to the Go type names declared with
+// // swagger:enum TypeName. Multiple type names per key are allowed (e.g.
+// distinct enum types that happen to share a value set such as
+// {public, limited, private}); callers must disambiguate per-usage (typically
+// by parsing the property's x-go-enum-desc extension to recover the const
+// type prefix).
 //
-// Returns an error on parse failure, on an annotation for a type whose
-// constants can't be extracted, or on value-set collisions between two
-// different enum types.
-func ScanSwaggerEnumTypes(dirs []string) (map[string]string, error) {
+// Returns an error on parse failure or on an annotation for a type whose
+// constants can't be extracted.
+func ScanSwaggerEnumTypes(dirs []string) (map[string][]string, error) {
 	fset := token.NewFileSet()
 	parsed := []*ast.File{}
 
@@ -92,17 +95,18 @@ func ScanSwaggerEnumTypes(dirs []string) (map[string]string, error) {
 		}
 	}
 
-	result := map[string]string{}
+	result := map[string][]string{}
 	for typeName := range enumTypes {
 		values, ok := enumValues[typeName]
 		if !ok || len(values) == 0 {
 			return nil, fmt.Errorf("swagger:enum %s has no const block with typed string values", typeName)
 		}
 		key := EnumKey(values)
-		if existing, ok := result[key]; ok && existing != typeName {
-			return nil, fmt.Errorf("swagger:enum value-set collision: %s and %s both use %q", existing, typeName, key)
-		}
-		result[key] = typeName
+		result[key] = append(result[key], typeName)
+	}
+	for key, names := range result {
+		sort.Strings(names)
+		result[key] = names
 	}
 	return result, nil
 }
