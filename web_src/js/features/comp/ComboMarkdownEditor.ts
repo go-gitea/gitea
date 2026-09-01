@@ -222,12 +222,18 @@ export class ComboMarkdownEditor {
     initTabSwitcher(elTabular);
 
     this.tabEditor.addEventListener('click', () => {
+      if (this.dropzone) {
+        showElem(this.dropzone.closest('.form-field-dropzone, .field') ?? this.dropzone);
+      }
       requestAnimationFrame(() => {
         this.focus();
       });
     });
 
     this.tabPreviewer.addEventListener('click', async () => {
+      if (this.dropzone) {
+        hideElem(this.dropzone.closest('.form-field-dropzone, .field') ?? this.dropzone);
+      }
       const formData = new FormData();
       formData.append('mode', this.previewMode);
       formData.append('context', this.previewContext);
