@@ -340,3 +340,63 @@ func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 	unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{IssueID: targetIssue.ID, DependencyID: dependencyIssue.ID})
 }
+
+func TestAPIGetIssueBlocks(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	publicRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.False(t, publicRepo.IsPrivate)
+	assert.True(t, privateRepo.IsPrivate)
+
+	// repo1#1 blocks repo1#2 and repo2#1
+	blocker := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: publicRepo.ID, Index: 1})
+	publicBlocked := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: publicRepo.ID, Index: 2})
+	privateBlocked := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: privateRepo.ID, Index: 1})
+
+	enableRepoDependencies(t, publicRepo.ID)
+	enableRepoDependencies(t, privateRepo.ID)
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, publicBlocked, blocker))
+	assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, privateBlocked, blocker))
+
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: publicRepo.OwnerID})
+	url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/blocks", owner.Name, publicRepo.Name, blocker.Index)
+
+	t.Run("OwnerSeesBoth", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var blocked []*api.Issue
+		DecodeJSON(t, resp, &blocked)
+
+		got := make([]string, 0, len(blocked))
+		for _, iss := range blocked {
+			got = append(got, fmt.Sprintf("%s#%d", iss.Repo.FullName, iss.Index))
+		}
+		assert.ElementsMatch(t, []string{
+			fmt.Sprintf("%s#%d", publicRepo.FullName(), publicBlocked.Index),
+			fmt.Sprintf("%s#%d", privateRepo.FullName(), privateBlocked.Index),
+		}, got)
+	})
+
+	t.Run("OutsiderSeesOnlyPublic", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		token := getUserToken(t, outsider.Name, auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var blocked []*api.Issue
+		DecodeJSON(t, resp, &blocked)
+
+		assert.Len(t, blocked, 1)
+		assert.Equal(t, publicRepo.FullName(), blocked[0].Repo.FullName)
+		assert.Equal(t, publicBlocked.Index, blocked[0].Index)
+	})
+}
