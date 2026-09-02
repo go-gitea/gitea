@@ -59,28 +59,13 @@
 		<div class="ui warning message">
 			{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
 			{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName}}
-			{{if .Repository.NumForks}}<br>
-			{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
-			{{end}}
 		</div>
-		<form class="ui form form-fetch-action" action="{{.Link}}/settings" method="post">
-			<input type="hidden" name="action" value="delete">
-			<div class="field">
-				<label>
-					{{ctx.Locale.Tr "repo.settings.enter_repo_name_to_confirm"}}
-					<span class="tw-text-red">{{.Repository.FullName}}</span>
-				</label>
-			</div>
-			<div class="required field">
-				<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
-				<input name="repo_name" required>
-			</div>
-
-			<div class="actions">
-				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-				<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_delete"}}</button>
-			</div>
-		</form>
+		{{template "repo/settings/dangerous_operation_form" (dict
+			"RepoFullName" .Repository.FullName
+			"RepoOperationLink" (print $.Link "/settings")
+			"RepoOperationAction" "delete"
+			"RepoOperationText" (ctx.Locale.Tr "repo.settings.confirm_delete")
+		)}}
 	</div>
 </div>
 
