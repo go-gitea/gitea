@@ -29,10 +29,23 @@
 				</div>
 			{{end}}
 			{{range $infoSection := $data.InfoSections}}
-				{{if $infoSection.InfoItems}}
+				{{if $infoSection.HasItems}}
 				<div class="item">
+					{{with $infoSection.HeadingItem}}
+						<div class="flex-text-block">{{.SvgIconHTML}} {{.InfoHTML}}</div>
+					{{end}}
+					{{range $subItem := $infoSection.SubItems}}
+						<div class="flex-text-block tw-pl-6 tw-text-text-light">{{$subItem.SvgIconHTML}} {{$subItem.InfoHTML}}</div>
+						{{if $subItem.ListItems}}
+							<ul class="tw-pl-[60px] tw-text-text-light">{{/* align with the sub-item icon and text */}}
+								{{range $listItem := $subItem.ListItems}}
+									<li>{{$listItem}}</li>
+								{{end}}
+							</ul>
+						{{end}}
+					{{end}}
 					{{range $infoItem := $infoSection.InfoItems}}
-						<div class="flex-text-block {{$infoItem.ExtraClass}}">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
+						<div class="flex-text-block">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
 						{{if $infoItem.ListItems}}
 							<ul class="tw-pl-[36px]">{{/* align with the info icon and text */}}
 								{{range $listItem := $infoItem.ListItems}}

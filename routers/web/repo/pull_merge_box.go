@@ -16,16 +16,38 @@ type pullMergeBoxInfoItem struct {
 	SvgIconHTML template.HTML
 	InfoHTML    template.HTML
 	ListItems   []template.HTML
-	ExtraClass  string
 }
 
 type pullMergeBoxInfoItemCollection struct {
-	items      []*pullMergeBoxInfoItem
-	errorCount int
+	infoItems  []*pullMergeBoxInfoItem
+	errorItems []*pullMergeBoxInfoItem
 }
 
+func (c *pullMergeBoxInfoItemCollection) isEmpty() bool {
+	return len(c.infoItems) == 0 && len(c.errorItems) == 0
+}
+
+// pullInfoSection is one rendered block of the merge box: the error items are rendered
+// as sub-items of the heading item, the info items are rendered as top-level rows below them
 type pullInfoSection struct {
-	InfoItems []*pullMergeBoxInfoItem
+	HeadingItem *pullMergeBoxInfoItem
+	SubItems    []*pullMergeBoxInfoItem
+	InfoItems   []*pullMergeBoxInfoItem
+}
+
+func (s *pullInfoSection) HasItems() bool {
+	return s.HeadingItem != nil || len(s.SubItems) > 0 || len(s.InfoItems) > 0
+}
+
+func newPullInfoSection(ctx *context.Context, c *pullMergeBoxInfoItemCollection) *pullInfoSection {
+	section := &pullInfoSection{SubItems: c.errorItems, InfoItems: c.infoItems}
+	if len(section.SubItems) > 0 {
+		section.HeadingItem = &pullMergeBoxInfoItem{
+			SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
+			InfoHTML:    htmlutil.HTMLFormat("<strong>%s</strong>", ctx.Locale.Tr("repo.pulls.merging_is_blocked")),
+		}
+	}
+	return section
 }
 
 func escapeStringSliceToHTML(s []string) (ret []template.HTML) {
@@ -36,22 +58,20 @@ func escapeStringSliceToHTML(s []string) (ret []template.HTML) {
 }
 
 func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, optItems ...[]template.HTML) {
-	c.items = append(c.items, &pullMergeBoxInfoItem{
+	c.infoItems = append(c.infoItems, &pullMergeBoxInfoItem{
 		SvgIconHTML: svg,
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
 	})
 }
 
-// AddErrorItem adds a blocking reason, rendered as a muted sub-row of the "merging is blocked" heading
+// AddErrorItem adds a blocking reason, it is rendered as a sub-item of the "merging is blocked" heading
 func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
-	c.items = append(c.items, &pullMergeBoxInfoItem{
+	c.errorItems = append(c.errorItems, &pullMergeBoxInfoItem{
 		SvgIconHTML: svg.RenderHTML("octicon-dot-fill", 16, "tw-text-text-light"),
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
-		ExtraClass:  "tw-pl-6 tw-text-text-light",
 	})
-	c.errorCount++
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
@@ -71,7 +91,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
 			((mergeBoxData.enableStatusCheck || mergeBoxData.hasRequiredStatusContexts) && (statusCheckData.RequiredChecksState.IsWarning() || statusCheckData.RequiredChecksState.IsPending()))
 	}
 
-	hasBlockers := len(mergeBoxData.infoCommitBlockers.items) > 0 || len(mergeBoxData.infoProtectionBlockers.items) > 0
+	hasBlockers := !mergeBoxData.infoCommitBlockers.isEmpty() || !mergeBoxData.infoProtectionBlockers.isEmpty()
 
 	switch {
 	case pull.HasMerged:
@@ -178,18 +198,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	if len(data.infoCommitBlockers.items) > 0 {
-		data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoCommitBlockers.items})
-	} else {
-		items := data.infoProtectionBlockers.items
-		if data.infoProtectionBlockers.errorCount > 0 {
-			heading := &pullMergeBoxInfoItem{
-				SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
-				InfoHTML:    htmlutil.HTMLFormat("<strong>%s</strong>", ctx.Locale.Tr("repo.pulls.merging_is_blocked")),
-			}
-			items = append([]*pullMergeBoxInfoItem{heading}, items...)
-		}
-		data.InfoSections = append(data.InfoSections, &pullInfoSection{items})
+	blockers := &data.infoCommitBlockers
+	if blockers.isEmpty() {
+		blockers = &data.infoProtectionBlockers
 	}
-	data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoMergePrompts.items})
+	data.InfoSections = append(data.InfoSections, newPullInfoSection(ctx, blockers), newPullInfoSection(ctx, &data.infoMergePrompts))
 }
