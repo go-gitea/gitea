@@ -914,7 +914,6 @@
   "repo.diff.bin": "BINáris",
   "repo.diff.view_file": "Fájl megtekintése",
   "repo.diff.file_byte_size": "Méret",
-  "repo.diff.file_suppressed": "A különbségek nem kerülnek megjelenítésre, mivel a fájl túl nagy",
   "repo.diff.comment.placeholder": "Hozzászólás létrehozása",
   "repo.diff.comment.add_single_comment": "Egyszerű hozzászólás hozzáadása",
   "repo.diff.comment.reply": "Válasz",

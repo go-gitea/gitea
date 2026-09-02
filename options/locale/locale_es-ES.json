@@ -1949,8 +1949,6 @@
   "repo.diff.file_image_width": "Anchura",
   "repo.diff.file_image_height": "Altura",
   "repo.diff.file_byte_size": "Tamaño",
-  "repo.diff.file_suppressed": "La diferencia del archivo ha sido suprimido porque es demasiado grande",
-  "repo.diff.file_suppressed_line_too_long": "Las diferiencias del archivo han sido suprimidas porque una o mas lineas son muy largas",
   "repo.diff.comment.add_line_comment": "Añadir comentario en línea",
   "repo.diff.comment.placeholder": "Deja un comentario",
   "repo.diff.comment.add_single_comment": "Añadir solo comentario",
