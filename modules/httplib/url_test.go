@@ -99,6 +99,19 @@ func TestGuessCurrentHostURL(t *testing.T) {
 		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 	})
+
+	t.Run("InternalAPI", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLAuto)()
+
+		// Under PublicURLAuto, a normal request would guess req-host:3000
+		reqNormal, _ := http.NewRequest("GET", "http://req-host:3000/any/path", nil)
+		ctxNormal := context.WithValue(t.Context(), RequestContextKey, reqNormal)
+		assert.Equal(t, "http://req-host:3000", GuessCurrentHostURL(ctxNormal))
+
+		// Under PublicURLAuto, an internal request marked with IsInternalRequestKey must skip guessing and fallback to cfg-host
+		ctxMarker := context.WithValue(ctxNormal, IsInternalRequestKey, true)
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctxMarker))
+	})
 }
 
 func TestMakeAbsoluteURL(t *testing.T) {

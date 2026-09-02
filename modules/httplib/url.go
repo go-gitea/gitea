@@ -18,6 +18,10 @@ type RequestContextKeyStruct struct{}
 
 var RequestContextKey = RequestContextKeyStruct{}
 
+type isInternalRequestKeyType struct{}
+
+var IsInternalRequestKey = isInternalRequestKeyType{}
+
 func urlIsRelative(s string, u *url.URL) bool {
 	// Unfortunately, browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
 	// Therefore we should ignore these redirect locations to prevent open redirects
@@ -79,6 +83,11 @@ func GuessCurrentAppURL(ctx context.Context) string {
 
 // GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
 func GuessCurrentHostURL(ctx context.Context) string {
+	// Skip public host URL guessing for internal/private API request contexts (marked in context)
+	// to prevent leaking localhost/internal hostnames in public contexts like email notifications.
+	if isInternal, ok := ctx.Value(IsInternalRequestKey).(bool); ok && isInternal {
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
+	}
 	// "never" means always trust ROOT_URL and skip any request header detection.
 	if setting.PublicURLDetection == setting.PublicURLNever {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
