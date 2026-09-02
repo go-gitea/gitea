@@ -23,7 +23,7 @@
 										{{else}}
 											<span class="icon">{{svg "octicon-repo"}}</span>
 										{{end}}
-										<a class="muted name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
+										<a class="muted name" href="{{$repo.Link}}" {{if ne $repo.DisplayName $repo.Name}}title="{{$repo.FullName}}"{{end}}>{{$repo.OwnerName}}/{{$repo.DisplayName}}</a>
 										<span class="tw-text-text-light-3" {{if not (eq $repo.Size 0)}} data-tooltip-content="{{$repo.SizeDetailsString}}"{{end}}>{{FormatByteSize $repo.Size}}</span>
 										{{if $repo.IsFork}}
 											{{ctx.Locale.Tr "repo.forked_from"}}
@@ -94,7 +94,7 @@
 									{{else}}
 										{{svg "octicon-repo"}}
 									{{end}}
-									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
+									<a class="name" href="{{.Link}}" {{if ne .DisplayName .Name}}title="{{.FullName}}"{{end}}>{{.OwnerName}}/{{.DisplayName}}</a>
 									<span>{{FormatByteSize .Size}}</span>
 									{{if .IsFork}}
 										{{ctx.Locale.Tr "repo.forked_from"}}
