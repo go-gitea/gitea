@@ -26,6 +26,11 @@
 					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
 					<textarea id="description" name="description" rows="2" maxlength="2048">{{.Repository.Description}}</textarea>
 				</div>
+				<div class="field {{if .Err_CustomName}}error{{end}}">
+					<label for="custom_name">{{ctx.Locale.Tr "repo.settings.custom_name"}}</label>
+					<input id="custom_name" name="custom_name" maxlength="100" value="{{.Repository.CustomName}}">
+					<span class="help">{{ctx.Locale.Tr "repo.settings.custom_name_helper"}}</span>
+				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{ctx.Locale.Tr "repo.settings.site"}}</label>
 					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">

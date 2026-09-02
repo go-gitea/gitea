@@ -263,6 +263,7 @@ func CreatePost(ctx *context.Context) {
 		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 			Name:             form.RepoName,
 			Description:      form.Description,
+			CustomName:       form.CustomName,
 			Gitignores:       form.Gitignores,
 			IssueLabels:      form.IssueLabels,
 			License:          form.License,
