@@ -13,7 +13,7 @@
 			{{template "repo/actions/sidebar" .}}
 			<div class="flex-container-main">
 				<div class="ui top attached header flex-left-right">
-					<strong>{{ctx.Locale.TrN .Page.Paginater.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginater.Total}}</strong>
+					<strong>{{ctx.Locale.TrN .Page.Paginator.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginator.Total}}</strong>
 					<div class="ui secondary filter menu flex-text-block tw-m-0">
 						<!-- Actor -->
 						<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">

@@ -7,28 +7,32 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-// AddQueueRankToActionRunJob adds the QueueRank column to ActionRunJob, used to manually
-// reorder waiting jobs in the build queue. All existing jobs default to 0 (natural FIFO order).
-//
-// It also adds the "pickup" composite index (task_id, status, queue_rank, updated) matching the
-// runner-poll query's WHERE task_id=0 AND status=waiting ORDER BY queue_rank, updated, id: queue_rank
-// alone is a poor sort key (0 for nearly every row), so task_id/status must lead it to stay index-ordered.
-func AddQueueRankToActionRunJob(_ context.Context, x base.EngineMigration) error {
-	type ActionRunJob struct {
-		TaskID    int64              `xorm:"index(pickup)"`
-		Status    int                `xorm:"index(pickup)"`
-		QueueRank int64              `xorm:"index index(pickup) NOT NULL DEFAULT 0"`
-		Updated   timeutil.TimeStamp `xorm:"index(pickup)"`
+func AddTokenToDeployKey(ctx context.Context, x base.EngineMigration) error {
+	// Drop the old UNIQUE(s) index on (key_id, repo_id). Every token row carries key
+	// id 0, so the pair can no longer be unique. AddDeployKey still checks it in code.
+	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "deploy_key")
+	if err != nil {
+		return err
+	}
+	if idx, ok := indexes["s"]; ok {
+		if _, err := x.Exec(x.Dialect().DropIndexSQL("deploy_key", idx)); err != nil {
+			return err
+		}
 	}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
+	type DeployKey struct {
+		KeyID     int64  `xorm:"INDEX"`
+		RepoID    int64  `xorm:"INDEX"`
+		KeyType   int    `xorm:"NOT NULL DEFAULT 1"` // every existing row is an SSH key
+		TokenHash string `xorm:"INDEX"`
+	}
+	_, err = x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
-	}, new(ActionRunJob))
+		IgnoreDropIndices: true, // the bean only describes the new columns
+	}, new(DeployKey))
 	return err
 }

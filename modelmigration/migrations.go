@@ -425,7 +425,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(349, "Expand action_schedule content column", v28.ExpandActionScheduleContent),
 		newMigration(350, "Add published_unix column to release", v28.AddPublishedUnixToRelease),
 		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
-		newMigration(352, "Add QueueRank column to ActionRunJob for build queue reordering", v28.AddQueueRankToActionRunJob),
+		newMigration(352, "Add token columns to deploy_key", v28.AddTokenToDeployKey),
+		newMigration(353, "Add QueueRank column to ActionRunJob for build queue reordering", v28.AddQueueRankToActionRunJob),
 	}
 	return preparedMigrations
 }

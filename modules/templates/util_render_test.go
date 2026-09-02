@@ -62,7 +62,7 @@ func TestMain(m *testing.M) {
 }
 
 func newTestRenderUtils(t *testing.T) *RenderUtils {
-	ctx := reqctx.NewRequestContextForTest(t.Context())
+	ctx := reqctx.NewRequestContextForTest(t)
 	ctx.SetContextValue(translation.ContextKey, &translation.MockLocale{})
 	return NewRenderUtils(ctx)
 }

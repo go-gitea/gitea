@@ -161,8 +161,7 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	ctx.Data["CanReorder"] = s.CanReorder && page == 1 && !filtered
 	ctx.Data["QueueMoveLink"] = s.MoveLink
 
-	pager := context.NewPagination(queuedTotal, pageSize, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(queuedTotal).PerPageLimit(pageSize).CurPage(page).Build()
 	pager.RemoveParam(container.SetOf("refresh")) // keep the auto-refresh flag out of the page links
 	ctx.Data["Page"] = pager
 

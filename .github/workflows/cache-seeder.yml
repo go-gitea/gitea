@@ -37,7 +37,7 @@ jobs:
       - uses: ./.github/actions/go-setup
       - run: make deps-backend deps-tools
       - run: TAGS="bindata" make backend
-      - run: TAGS="bindata gogit" GOEXPERIMENT="" make backend
+      - run: TAGS="bindata gogit" make backend
       - name: warm test compile cache (bindata)
         env:
           TAGS: bindata
@@ -46,13 +46,12 @@ jobs:
       - name: warm test compile cache (bindata gogit)
         env:
           TAGS: bindata gogit
-          GOEXPERIMENT:
           GOTEST_FLAGS: -race -list=^$$ -count=1
         run: make test-backend
       - name: warm integration compile cache
         run: |
           TAGS="bindata" make test-integration-compile
-          TAGS="bindata gogit" GOEXPERIMENT="" make test-integration-compile
+          TAGS="bindata gogit" make test-integration-compile
           TAGS="bindata gogit" GOTEST_FLAGS="-race" make test-integration-compile
 
   lint:

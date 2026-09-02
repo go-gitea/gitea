@@ -106,10 +106,10 @@ func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 		return err
 	}
 
-	fmt.Printf("%s", internalToken)
+	cprintf(c, "%s", internalToken)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		fmt.Printf("\n")
+		cprintf(c, "\n")
 	}
 
 	return nil
@@ -117,10 +117,10 @@ func runGenerateInternalToken(_ context.Context, c *cli.Command) error {
 
 func runGenerateLfsJwtSecret(_ context.Context, c *cli.Command) error {
 	_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
-	fmt.Printf("%s", jwtSecretBase64)
+	cprintf(c, "%s", jwtSecretBase64)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		fmt.Printf("\n")
+		cprintf(c, "\n")
 	}
 
 	return nil
@@ -133,10 +133,10 @@ func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 	}
 
 	// codeql[disable-next-line=go/clear-text-logging]
-	fmt.Printf("%s", secretKey)
+	cprintf(c, "%s", secretKey)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		fmt.Printf("\n")
+		cprintf(c, "\n")
 	}
 
 	return nil
@@ -168,14 +168,14 @@ func runGenerateKeyPair(_ context.Context, c *cli.Command) error {
 	// Check if file exists to prevent overwriting
 	if _, err := os.Stat(file); err == nil {
 		if !confirm(c.Reader, c.Writer, "%s already exists.\nOverwrite (y/n)? ", file) {
-			fmt.Println("Aborting")
+			cprintln(c, "Aborting")
 			return nil
 		}
 	}
 	bits := c.Int("bits")
 	err := ssh.GenKeyPair(file, generate.SSHKeyType(keyType), bits)
 	if err == nil {
-		fmt.Printf("Your SSH key has been saved in %s\n", file)
+		cprintf(c, "Your SSH key has been saved in %s\n", file)
 	}
 	return err
 }

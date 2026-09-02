@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/glob"
-	"gitea.dev/modules/graceful"
 	issue_template "gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -872,6 +871,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
@@ -1002,9 +1002,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
-	// The update process should not be canceled by the user
-	// so we set the context to be a background context
-	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), issue.PullRequest, ctx.Doer, message, rebase); err != nil {
+	if err = pull_service.Update(issue.PullRequest, ctx.Doer, message, rebase); err != nil {
 		if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.merge_conflict"),
@@ -1149,7 +1147,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
@@ -1213,12 +1211,13 @@ func MergePullRequest(ctx *context.Context) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
+	// FIXME: calling it here is wrong.
+	// 1. the ctx might have been canceled ("Merge" might take a very long time and the user closes their browser)
+	// 2. it is inconsistent with API/AutoMerge which all miss the call
 	if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {
 		ctx.ServerError("stopTimerIfAvailable", err)
 		return
 	}
-
-	log.Trace("Pull request merged: %d", pr.ID)
 
 	if deleteBranchAfterMerge {
 		deleteBranchAfterMergeAndFlashMessage(ctx, pr.ID)
@@ -1299,18 +1298,19 @@ func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *is
 }
 
 func PullsNewRedirect(ctx *context.Context) {
-	branch := ctx.PathParam("*")
-	redirectRepo := ctx.Repo.Repository
-	repo := ctx.Repo.Repository
-	if repo.IsFork {
-		if err := repo.GetBaseRepo(ctx); err != nil {
+	branchName := ctx.PathParam("*")
+	baseRepo, headRepo := ctx.Repo.Repository, ctx.Repo.Repository
+	if headRepo.IsFork {
+		if err := headRepo.GetBaseRepo(ctx); err != nil {
 			ctx.ServerError("GetBaseRepo", err)
 			return
 		}
-		redirectRepo = repo.BaseRepo
-		branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
+		baseRepo = headRepo.BaseRepo
 	}
-	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", redirectRepo.Link(), util.PathEscapeSegments(redirectRepo.DefaultBranch), util.PathEscapeSegments(branch)))
+	ctx.Redirect(fmt.Sprintf("%s/compare/%s...%s?expand=1", baseRepo.Link(),
+		util.PathEscapeSegments(baseRepo.DefaultBranch),
+		util.PathEscapeSegments(context.CompareHeadRef(baseRepo, headRepo, branchName)),
+	))
 }
 
 // CompareAndPullRequestPost response for creating pull request

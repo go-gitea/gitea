@@ -11,7 +11,6 @@ import (
 
 	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
 )
 
@@ -62,9 +61,6 @@ func InitManager(ctx context.Context) {
 func initManager(ctx context.Context) {
 	initOnce.Do(func() {
 		manager = newGracefulManager(ctx)
-
-		// Set the process default context to the HammerContext
-		process.DefaultContext = manager.HammerContext()
 	})
 }
 

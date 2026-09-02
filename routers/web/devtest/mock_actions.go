@@ -130,7 +130,7 @@ func MockActionsQueue(ctx *context.Context) {
 	ctx.Data["QueueRefreshLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "refresh", "1")
 	// Refresh rarely so the auto-morph doesn't revert a manual drag while testing the interaction.
 	ctx.Data["QueueRefreshIntervalMs"] = int64(3600000)
-	ctx.Data["Page"] = context.NewPagination(int64(len(queued)), 50, 1, 5)
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(int64(len(queued))).PerPageLimit(50).CurPage(1).Build()
 
 	if ctx.FormBool("refresh") {
 		ctx.HTML(http.StatusOK, "shared/actions/queue_list")
