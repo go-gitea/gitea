@@ -218,7 +218,7 @@ export class ComboMarkdownEditor {
     this.tabEditor = this.container.querySelector('[data-tab-for="markdown-writer"]')!;
     this.tabPreviewer = this.container.querySelector('[data-tab-for="markdown-previewer"]')!;
     const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]')!;
-    const panelPreviewer = this.container.querySelector('.ui.tab[data-tab-panel="markdown-previewer"]')!;
+    const panelPreviewer = this.container.querySelector<HTMLElement>('.ui.tab[data-tab-panel="markdown-previewer"]')!;
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
@@ -237,6 +237,8 @@ export class ComboMarkdownEditor {
     });
 
     this.tabPreviewer.addEventListener('click', async () => {
+      // use capture to get the event before Fomantic Tab switches the tab, so that we can set the minHeight of the previewer panel to avoid flickering.
+      panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
       this.updateEditorContainerTabPage('previewer');
       const formData = new FormData();
       formData.append('mode', this.previewMode);
@@ -259,7 +261,7 @@ export class ComboMarkdownEditor {
           triggerEditorContentChanged(this.container);
         });
       }
-    });
+    }, {capture: true});
   }
 
   generateMarkdownTable(rows: number, cols: number): string {
