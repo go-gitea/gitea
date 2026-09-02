@@ -35,6 +35,7 @@ type RepoActionViewLocale = ActionRunSummaryViewLocale & ActionRunJobViewLocale 
   artifactExpiresAt: string,
   artifactExpiredAt: string,
   confirmDeleteArtifact: string,
+  downloadFile: string,
   workflowFile: string,
   workflowFileNoPermission: string,
   runDetails: string,
