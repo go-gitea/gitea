@@ -706,6 +706,7 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 	attemptQuery := ""
 	if runAttempt > 0 {
 		backToRunURL += fmt.Sprintf("/attempts/%d", runAttempt)
+		runPreviewURL = backToRunURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
 		attemptQuery = fmt.Sprintf("?attempt=%d", runAttempt)
 	}
 
@@ -718,6 +719,7 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 	ctx.Data["PreviewRawURL"] = runPreviewURL + "/raw"
 	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName) + attemptQuery
 	ctx.Data["SelectedPath"] = selectedPath
+	ctx.Data["PreviewIsPDF"] = strings.EqualFold(path.Ext(selectedPath), ".pdf")
 	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
 	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
 	return true

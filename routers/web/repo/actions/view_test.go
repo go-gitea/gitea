@@ -159,6 +159,11 @@ func TestArtifactPreviewContentTypeUsesPreviewableExtensions(t *testing.T) {
 	assert.Equal(t, "text/plain", artifactPreviewContentType("output.txt", sniffedText))
 }
 
+func TestIsPDFArtifactPreviewPath(t *testing.T) {
+	assert.True(t, isPDFArtifactPreviewPath("reports/result.PDF"))
+	assert.False(t, isPDFArtifactPreviewPath("reports/result.pdf.txt"))
+}
+
 func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T) {
 	task := &actions_model.ActionTask{
 		Status: actions_model.StatusCancelling,

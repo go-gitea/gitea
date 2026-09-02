@@ -6,12 +6,14 @@ package integration
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
@@ -113,6 +115,26 @@ func TestActionsArtifactPreview(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 
+	t.Run("AttemptLinks", func(t *testing.T) {
+		attempt := &actions_model.ActionRunAttempt{RepoID: repo.ID, RunID: 791, Attempt: 2, TriggerUserID: 1, Status: actions_model.StatusSuccess}
+		require.NoError(t, db.Insert(t.Context(), attempt))
+		for _, artifactID := range []int64{19, 20} {
+			_, err := db.GetEngine(t.Context()).ID(artifactID).Cols("run_attempt_id").Update(&actions_model.ActionArtifact{RunAttemptID: attempt.ID})
+			require.NoError(t, err)
+		}
+
+		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/multi-file-download/preview?path=%s&attempt=2", repo.FullName(), url.QueryEscape("xyz/def.txt"))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		body := resp.Body.String()
+		assert.Contains(t, body, `/preview?path=abc.txt&amp;attempt=2" title="abc.txt"`)
+		assert.Contains(t, body, `/runs/791/attempts/2/artifacts/multi-file-download/preview/raw/xyz/def.txt`)
+		assert.Contains(t, body, `href="/user5/repo4/actions/runs/791/attempts/2"`)
+
+		req = NewRequestf(t, "GET", "/%s/actions/runs/791/attempts/2/artifacts/multi-file-download/preview/raw/xyz/def.txt", repo.FullName())
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, strings.Repeat("C", 1024), resp.Body.String())
+	})
+
 	t.Run("UnsupportedType", func(t *testing.T) {
 		overwriteArtifactStorageContent(t, 1, []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0x00, 0x00, 0x00, 0x0d})
 		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw", repo.FullName())
@@ -125,6 +147,30 @@ func TestActionsArtifactPreview(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "sandbox allow-scripts", resp.Header().Get("Content-Security-Policy"))
 		assert.Contains(t, resp.Header().Get("Content-Type"), "text/html")
+	})
+
+	t.Run("PDFWithoutSandbox", func(t *testing.T) {
+		artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: 1})
+		artifact.ArtifactPath = "report.pdf"
+		_, err := db.GetEngine(t.Context()).ID(artifact.ID).Cols("artifact_path").Update(artifact)
+		require.NoError(t, err)
+		defer func() {
+			artifact.ArtifactPath = "abc.txt"
+			_, err := db.GetEngine(context.Background()).ID(artifact.ID).Cols("artifact_path").Update(artifact)
+			require.NoError(t, err)
+		}()
+		overwriteArtifactStorageContent(t, artifact.ID, []byte("%PDF-1.7\n"))
+		defer overwriteArtifactStorageContent(t, artifact.ID, []byte(strings.Repeat("A", 1024)))
+
+		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview?path=report.pdf", repo.FullName())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), `<iframe class="artifact-preview-frame"`)
+		assert.NotContains(t, resp.Body.String(), `sandbox="allow-scripts"`)
+
+		req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/report.pdf", repo.FullName())
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Header().Get("Content-Type"), "application/pdf")
+		assert.NotContains(t, resp.Header().Get("Content-Security-Policy"), "sandbox")
 	})
 
 	t.Run("ArtifactTooLarge", func(t *testing.T) {

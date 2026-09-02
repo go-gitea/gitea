@@ -122,7 +122,6 @@ func serveSetHeadersByUserContent(w http.ResponseWriter, contentPrefetchBuf []by
 		if sniffedType.IsBrowsableBinaryType() {
 			opts.ContentType = sniffedType.GetMimeType()
 		} else if sniffedType.IsText() {
-			//  intentionally do not render user's HTML content as a page, for safety, and avoid content spamming & abusing
 			opts.ContentType = "text/plain"
 			detectCharset = true
 		} else {

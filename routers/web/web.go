@@ -1565,6 +1565,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Combo("").
 					Get(actions.View).
 					Post(web.Bind[*actions.ViewRequest](), actions.ViewPost)
+				m.Get("/artifacts/{artifact_name}/preview/raw", reqSignIn, actions.ArtifactsPreviewRawView)
+				m.Get("/artifacts/{artifact_name}/preview/raw/*", reqSignIn, actions.ArtifactsPreviewRawView)
 			})
 			m.Group("/jobs/{job}", func() {
 				m.Combo("").
@@ -1790,6 +1792,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)
 			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview/raw", devtest.MockActionsArtifactPreviewRaw)
 			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview/raw/*", devtest.MockActionsArtifactPreviewRaw)
+			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}/artifacts/{artifact_name}/preview/raw", devtest.MockActionsArtifactPreviewRaw)
+			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}/artifacts/{artifact_name}/preview/raw/*", devtest.MockActionsArtifactPreviewRaw)
 			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind[*actions.ViewRequest](), devtest.MockActionsRunsJobs)

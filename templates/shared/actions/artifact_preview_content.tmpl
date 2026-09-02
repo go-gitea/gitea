@@ -50,7 +50,7 @@
 	{{if .ShowPreviewContent}}
 		<div class="artifact-preview-content">
 			<div class="ui warning message tw-mt-0">{{ctx.Locale.Tr "actions.artifacts.preview_generated_content"}}</div>
-			<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}{{if .RunAttempt}}?attempt={{.RunAttempt}}{{end}}" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+			<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}" {{if not .PreviewIsPDF}}sandbox="allow-scripts" {{end}}referrerpolicy="no-referrer"></iframe>
 		</div>
 	{{end}}
 </div>

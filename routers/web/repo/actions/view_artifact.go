@@ -86,14 +86,19 @@ func (r *readAtBySeeker) ReadAt(p []byte, off int64) (int, error) {
 	return n, err
 }
 
-// resolveArtifactAttemptIDFromQuery resolves the run_attempt_id used to scope artifact lookups.
-// If the `attempt` query parameter is present and valid, it returns the matching attempt's ID.
+// resolveArtifactAttemptIDFromRequest resolves the run_attempt_id used to scope artifact lookups.
+// If an `attempt` path or query parameter is present and valid, it returns the matching attempt's ID.
 // Otherwise it falls back to run.LatestAttemptID, which is 0 only for legacy runs created before ActionRunAttempt existed.
-func resolveArtifactAttemptIDFromQuery(ctx *context_module.Context, run *actions_model.ActionRun) (int64, error) {
-	if ctx.FormString("attempt") == "" {
-		return run.LatestAttemptID, nil
+func resolveArtifactAttemptIDFromRequest(ctx *context_module.Context, run *actions_model.ActionRun) (int64, error) {
+	var attemptNum int64
+	if ctx.PathParam("attempt") != "" {
+		attemptNum = ctx.PathParamInt64("attempt")
+	} else {
+		if ctx.FormString("attempt") == "" {
+			return run.LatestAttemptID, nil
+		}
+		attemptNum = ctx.FormInt64("attempt")
 	}
-	attemptNum := ctx.FormInt64("attempt")
 	if attemptNum <= 0 {
 		return 0, util.ErrNotExist
 	}
@@ -110,9 +115,9 @@ func getCurrentRunAndUploadedArtifacts(ctx *context_module.Context, artifactName
 		return nil, nil, false
 	}
 
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
+	resolvedAttemptID, err := resolveArtifactAttemptIDFromRequest(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
+		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromRequest", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return nil, nil, false
@@ -396,6 +401,10 @@ func artifactPreviewContentType(filename string, st typesniffer.SniffedType) str
 	return st.GetMimeType()
 }
 
+func isPDFArtifactPreviewPath(path string) bool {
+	return strings.EqualFold(pathpkg.Ext(path), ".pdf")
+}
+
 func artifactPreviewServeHeaderOptions(path string, st typesniffer.SniffedType) context_module.ServeHeaderOptions {
 	contentType := artifactPreviewContentType(path, st)
 	opts := context_module.ServeHeaderOptions{
@@ -522,12 +531,14 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	backToRunURL := runURL
 	artifactPath := url.PathEscape(artifactName)
 	previewURL := runURL + "/artifacts/" + artifactPath + "/preview"
+	previewRawURL := previewURL + "/raw"
 	downloadURL := runURL + "/artifacts/" + artifactPath
 	attemptQuery := ""
 	runAttempt := int64(0)
 	if attempt := ctx.FormString("attempt"); attempt != "" {
 		attemptQuery = "?attempt=" + url.QueryEscape(attempt)
 		backToRunURL += "/attempts/" + url.PathEscape(attempt)
+		previewRawURL = backToRunURL + "/artifacts/" + artifactPath + "/preview/raw"
 		runAttempt = ctx.FormInt64("attempt")
 	}
 
@@ -538,9 +549,10 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	ctx.Data["RunAttempt"] = runAttempt
 	ctx.Data["ArtifactName"] = artifactName
 	ctx.Data["PreviewURL"] = previewURL
-	ctx.Data["PreviewRawURL"] = previewURL + "/raw"
+	ctx.Data["PreviewRawURL"] = previewRawURL
 	ctx.Data["DownloadURL"] = downloadURL + attemptQuery
 	ctx.Data["SelectedPath"] = selectedPath
+	ctx.Data["PreviewIsPDF"] = isPDFArtifactPreviewPath(selectedPath)
 	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
 	// only claim the file is missing when a listing was actually computed, otherwise an over-sized artifact reports both warnings
 	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == "" && !previewTooLarge
@@ -663,9 +675,9 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
+	resolvedAttemptID, err := resolveArtifactAttemptIDFromRequest(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
+		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromRequest", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
@@ -683,9 +695,9 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
+	resolvedAttemptID, err := resolveArtifactAttemptIDFromRequest(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
+		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromRequest", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
