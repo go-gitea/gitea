@@ -235,3 +235,17 @@ func TestIsValidSSHAccessRepoName(t *testing.T) {
 	assert.False(t, IsValidSSHAccessRepoName("foo.git"))
 	assert.False(t, IsValidSSHAccessRepoName("foo.RSS"))
 }
+
+func TestRepository_DisplayName(t *testing.T) {
+	repo := &Repository{Name: "repo1"}
+
+	// falls back to the repository name when no custom name is set
+	assert.Equal(t, "repo1", repo.DisplayName())
+
+	// whitespace-only custom names fall back too
+	repo.CustomName = "  "
+	assert.Equal(t, "repo1", repo.DisplayName())
+
+	repo.CustomName = "中文名"
+	assert.Equal(t, "中文名", repo.DisplayName())
+}
