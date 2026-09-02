@@ -1,0 +1,92 @@
+# Build the production Dockerfile on every pull request as a smoke test of the
+# release assembly path: frontend build, `make backend` with the production tag
+# set, and final alpine packaging must all complete. The image is loaded for a
+# self-check (no push, no registry credentials); the existence of a fresh
+# `gitea-local` image plus the binary answering `--version` is the signal.
+#
+# Lives in its own file so the image build never appears in the PR check
+# circle as required: branch protection already lists each lane in ci.yml by
+# name, and adding `docker` there would silently change the required set.
+name: docker image dry-run
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A superseded push cancels its previous build so only the latest head holds
+  # a runner; the alpine builders are large enough that two parallel builds
+  # would otherwise sit on a single hosted Linux pool slot for minutes.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Matches the `dsh-ubuntu-24-04-16core` and `dsh-windows-2025-16core`
+  # conventions elsewhere: only the consumed action versions matter, not the
+  # runner label, which is why a standard hosted Linux runner is fine here.
+  PRIMARY_NODE_VERSION: '24'
+
+jobs:
+  build:
+    name: docker image / ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    # A broken Dockerfile is a release blocker even when every other lane is
+    # green; failing the dry-run surfaces that without waiting for a tag.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - dockerfile: Dockerfile
+            image: gitea
+          - dockerfile: Dockerfile.rootless
+            image: gitea-rootless
+    steps:
+      # Complete .git because the Dockerfile mounts `.git/` as a build-time
+      # bind so the version string resolves; a shallow checkout leaves the
+      # mount empty and `make backend` reports a missing revision.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Bound the dry-run to the runner's local daemon: no `push: true` and
+      # no `cache-to` means no external traffic, no credentials, and the
+      # produced image stays on the runner for the subsequent smoke test.
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          file: ${{ matrix.dockerfile }}
+          context: .
+          tags: gitea-local:${{ matrix.image }}
+          load: true
+          # `--pull=false` would normally skip base-image freshness, but on a
+          # dry-run we want the same pull behavior CI later on a tag would
+          # see; pulling keeps the local cache honest about its inputs.
+          pull: true
+          # Reuse the runner-local build cache across matrix entries when the
+          # same sha lands twice on the same runner (rerun / matrix leg).
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          provenance: false
+          sbom: false
+
+      # Layer-cache restore is intentionally per-job, not across jobs: the
+      # cache location (`/tmp/.buildx-cache`) lives on the runner's scratch
+      # disk and evaporates between jobs anyway, so reading it gives nothing.
+      - name: Smoke-test the binary
+        run: |
+          set -euo pipefail
+          # Pin the volume mount to a path that exists inside both images
+          # (the rootless image's entrypoint drops privileges to uid 1000 and
+          # the root one expects /data for the git user); a missing /data
+          # surfaces as a permission warning the entrypoint handles, but we
+          # want the dry-run to assert the binary itself, not the data dir.
+          docker run --rm \
+            -e GITEA_WORK_DIR=/tmp \
+            -e GITEA_CUSTOM=/tmp/.gitea \
+            gitea-local:${{ matrix.image }} \
+            --version
