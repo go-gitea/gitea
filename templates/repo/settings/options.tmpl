@@ -972,7 +972,7 @@
 			</div>
 			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 				<input type="hidden" name="action" value="delete">
-				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
+				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.FullName)}}
 				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_delete"))}}
 			</form>
 		</div>
