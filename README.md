@@ -62,9 +62,7 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
 Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language, ask one of the managers in the Crowdin project to add a new language there.
 
-You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty, but we hope to fill it as questions pop up.
-
-Get more information from [documentation](https://docs.gitea.com/contributing/localization).
+You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord.
 
 ## Official and Third-Party Projects
 
