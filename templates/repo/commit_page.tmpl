@@ -125,7 +125,7 @@
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
 
-		<div class="ui bottom attached segment flex-text-block tw-flex-wrap">
+		<div class="ui attached segment flex-text-block tw-flex-wrap">
 			<div class="flex-text-inline">
 				{{if .Author}}
 					{{ctx.AvatarUtils.Avatar .Author 20}}
@@ -191,6 +191,13 @@
 				</div>
 			</div>
 		</div>
+
+		{{if .ShowDiffSummaryInCommitHeader}}
+			<div class="ui attached segment flex-left-right">
+				<strong>{{ctx.Locale.TrN .DiffShortStat.NumFiles "repo.diff.num_files_changed_1" "repo.diff.num_files_changed_n" .DiffShortStat.NumFiles}}</strong>
+				{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion}}
+			</div>
+		{{end}}
 
 		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">

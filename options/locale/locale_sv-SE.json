@@ -1,5 +1,5 @@
 {
-  "home_title": "Startsida",
+  "home_title": "Hem",
   "dashboard": "Instrumentpanel",
   "explore_title": "Utforska",
   "help": "Hjälp",
@@ -13,7 +13,7 @@
   "page": "Sida",
   "template": "Mall",
   "language": "Språk",
-  "notifications": "Notiser",
+  "notifications": "Aviseringar",
   "create_new": "Skapa…",
   "user_profile_and_more": "Profil och Inställningar…",
   "signed_in_as": "Inloggad som",
@@ -1201,7 +1201,6 @@
   "repo.diff.file_image_width": "Bredd",
   "repo.diff.file_image_height": "Höjd",
   "repo.diff.file_byte_size": "Storlek",
-  "repo.diff.file_suppressed": "Filskillnaden har hållits tillbaka eftersom den är för stor",
   "repo.diff.comment.placeholder": "Lämna en kommentar",
   "repo.diff.comment.add_single_comment": "Lägg till en kommentar",
   "repo.diff.comment.add_review_comment": "Lägg till kommentar",
