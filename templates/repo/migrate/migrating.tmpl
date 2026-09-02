@@ -62,7 +62,7 @@
 		</div>
 		{{template "repo/settings/dangerous_operation_form" (dict
 			"RepoFullName" .Repository.FullName
-			"RepoOperationLink" (print $.Link "/settings")
+			"RepoOperationLink" (print .Repository.Link "/settings")
 			"RepoOperationAction" "delete"
 			"RepoOperationText" (ctx.Locale.Tr "repo.settings.confirm_delete")
 		)}}
