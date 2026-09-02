@@ -388,7 +388,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		// Archive the repository
 		req := NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
-				"repo_name": repo,
+				"repo_name": user + "/" + repo,
 				"action":    "archive",
 			},
 		)
@@ -402,7 +402,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		// Unfork the repository
 		req = NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
-				"repo_name": repo,
+				"repo_name": user + "/" + repo,
 				"action":    "convert_fork",
 			},
 		)
