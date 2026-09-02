@@ -229,7 +229,6 @@ func NewBaseContextForTest(t reqctx.TestingT, resp http.ResponseWriter, req *htt
 		panic("This function is only for testing")
 	}
 	ctx := reqctx.NewRequestContextForTest(t)
-	httplib.MarkRequestSupportPublicURL(ctx)
 	*req = *req.WithContext(ctx)
 	return NewBaseContext(resp, req)
 }

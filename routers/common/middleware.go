@@ -70,7 +70,6 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			respWriter := context.WrapResponseWriter(respOrig)
 
 			profDesc := fmt.Sprintf("HTTP: %s %s", req.Method, req.RequestURI)
-
 			ctx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
 			defer finished()
 

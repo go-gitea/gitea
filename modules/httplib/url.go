@@ -22,6 +22,8 @@ var (
 	contextKeySupportPublicURL = contextKeyType("support-public-url")
 )
 
+// RequestWithContext returns a request with the given context and adds a cleanup function to remove temporary files.
+// It also sets the request in the context for later retrieval.
 func RequestWithContext(req *http.Request, ctx reqctx.RequestContext) *http.Request {
 	req = req.WithContext(ctx)
 	ctx.AddCleanUp(func() {
@@ -33,6 +35,7 @@ func RequestWithContext(req *http.Request, ctx reqctx.RequestContext) *http.Requ
 	return req
 }
 
+// MarkRequestSupportPublicURL marks the request context to support public URL detection from request headers.
 func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
 	ctx.SetContextValue(contextKeySupportPublicURL, true)
 }
