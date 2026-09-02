@@ -81,20 +81,6 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 	return resp
 }
 
-func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "pulls", pullnum))
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	// Click the little button to create a pull
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Attr("data-url")
-	assert.True(t, exists, "The template has changed, can not find delete button url")
-	req = NewRequest(t, "POST", link)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	return resp
-}
-
 func preparePullMergeWebhook(t *testing.T, repoID int64) {
 	require.NoError(t, db.TruncateBeans(t.Context(), &webhook.Webhook{}, &webhook.HookTask{}))
 	require.NoError(t, db.Insert(t.Context(), &webhook.Webhook{
@@ -267,7 +253,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 	})
 }
 
-func TestPullCleanUpAfterMerge(t *testing.T) {
+func TestPullCleanUpAfterClose(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -277,39 +263,60 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		assert.Equal(t, 3, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
+		getDeleteBranchLink := func(t *testing.T, session *TestSession, user, repo, pullnum string) string {
+			req := NewRequest(t, "GET", "/"+path.Join(user, repo, "pulls", pullnum))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			return htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").AttrOr("data-url", "")
+		}
 
-		elem := strings.Split(test.RedirectURL(resp), "/")
-		assert.Equal(t, "pulls", elem[3])
+		var closedPullNumStr string
+		t.Run("CreateAndClosePR", func(t *testing.T) {
+			resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
+			_, pullNumStr, _ := strings.CutLast(test.RedirectURL(resp), "/")
 
-		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
-		assert.Equal(t, 4, repo.NumPulls)
-		assert.Equal(t, 4, repo.NumOpenPulls)
+			testIssueClose(t, session, "user2", "repo1", pullNumStr)
 
-		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
-			Style:        repo_model.MergeStyleMerge,
-			DeleteBranch: false,
+			repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+			assert.Equal(t, 4, repo.NumPulls)
+			assert.Equal(t, 3, repo.NumOpenPulls)
+
+			closedPullNumStr = pullNumStr
+
+			// the closed but unmerged PR should have the "delete branch" button
+			link := getDeleteBranchLink(t, session, "user2", "repo1", closedPullNumStr)
+			assert.NotEmpty(t, link)
 		})
 
-		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
-		assert.Equal(t, 4, repo.NumPulls)
-		assert.Equal(t, 3, repo.NumOpenPulls)
+		t.Run("CreateAndMergePR", func(t *testing.T) {
+			resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
+			_, pullNumStr, _ := strings.CutLast(test.RedirectURL(resp), "/")
 
-		// Check PR branch deletion
-		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
-		respJSON := test.ParseJSONRedirect(resp.Body.Bytes())
-		require.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
+			// the closed but unmerged PR should not have the "delete branch" button because there is a new PR for the same branch
+			link := getDeleteBranchLink(t, session, "user2", "repo1", closedPullNumStr)
+			assert.Empty(t, link)
 
-		elem = strings.Split(*respJSON.Redirect, "/")
-		assert.Equal(t, "pulls", elem[3])
+			testPullMerge(t, session, "user2", "repo1", pullNumStr, MergeOptions{
+				Style:        repo_model.MergeStyleMerge,
+				DeleteBranch: false,
+			})
 
-		// Check branch deletion result
-		req := NewRequest(t, "GET", *respJSON.Redirect)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+			// Check PR branch deletion
+			link = getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr)
+			assert.NotEmpty(t, link)
+			resp = session.MakeRequest(t, NewRequest(t, "POST", link), http.StatusOK)
 
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		resultMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.message.flash-message").Text())
-		assert.Equal(t, `Branch "user1/repo1:feature/test" has been deleted.`, resultMsg)
+			// Check branch deletion result
+			req := NewRequest(t, "GET", test.RedirectURL(resp))
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			resultMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.message.flash-message").Text())
+			assert.Equal(t, `Branch "user1/repo1:feature/test" has been deleted.`, resultMsg)
+
+			// the "delete branch" button should be gone since the PR has been merged
+			link = getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr)
+			assert.Empty(t, link)
+		})
 	})
 }
 
