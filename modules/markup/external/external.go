@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	"gitea.dev/modules/markup"
@@ -147,7 +146,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", cmdProg, baseLinkSrc))
 	defer finished()
 
-	cmd := exec.CommandContext(processCtx, cmdProg, cmdArgs...)
+	cmd := process.CommandContext(processCtx, cmdProg, cmdArgs...)
 	cmd.Env = append(
 		os.Environ(),
 		"GITEA_PREFIX_SRC="+baseLinkSrc,
@@ -159,7 +158,6 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	var stderr bytes.Buffer
 	cmd.Stdout = output
 	cmd.Stderr = &stderr
-	process.SetSysProcAttribute(cmd)
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), cmdProg, shellquote.Join(cmdArgs...), err, stderr.String())
