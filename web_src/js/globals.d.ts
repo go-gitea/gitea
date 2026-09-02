@@ -1,5 +1,8 @@
 interface JQuery {
-  fomanticExt: any; // fomantic extension
+  fomanticExt: {
+    onDropdownAfterFiltered?: (this: HTMLElement) => void,
+    onModalBeforeHidden?: (this: HTMLElement) => void,
+  }; // fomantic extension
   api: any, // fomantic
   dimmer: any, // fomantic
   dropdown: any; // fomantic
@@ -23,7 +26,7 @@ interface Window {
     sharedWorkerUri: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
-    pageData: Record<string, any> & {
+    pageData: {
       adminUserListSearchForm?: {
         SortType: string,
         StatusFilterMap: Record<string, string>,
@@ -38,8 +41,14 @@ interface Window {
       FolderIcon?: string,
       FolderOpenIcon?: string,
       repoLink?: string,
-      repoActivityTopAuthors?: any[],
-      dashboardRepoList?: Record<string, any>,
+      repoActivityTopAuthors?: Array<{
+        avatar_link: string,
+        commits: number,
+        home_link: string,
+        login: string,
+        name: string,
+      }>,
+      dashboardRepoList?: Record<string, unknown>,
     },
     notificationSettings: {
       MinTimeout: number,
@@ -70,7 +79,7 @@ interface Window {
   giteaExternalRenderHelper?: {
     isValidCssColor(s: string | null): boolean,
     queryParams: URLSearchParams,
-    postIframeMsg(cmd: string, data: Record<string, any> = {}),
+    postIframeMsg(cmd: 'resize' | 'open-link', data: Record<string, string | number | null>): void,
   }
 
   // do not add more properties here unless it is a must
