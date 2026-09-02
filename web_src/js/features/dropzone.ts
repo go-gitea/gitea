@@ -43,15 +43,16 @@ export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFi
   return fileMarkdown;
 }
 
-export function decorateAttachmentPreview(file: Partial<CustomDropzoneFile>, attachmentBaseLinkUrl?: string) {
-  if (!file.previewTemplate || !file.uuid) return;
+export function decorateAttachmentPreview(file: Partial<CustomDropzoneFile>, attachmentBaseLinkUrl: string) {
+  // previewTemplate always exists, but tsc doesnt know about it
+  const el = file.previewTemplate!;
 
-  const fileUrl = attachmentBaseLinkUrl ? `${attachmentBaseLinkUrl}/${file.uuid}` : `/attachments/${file.uuid}`;
+  const fileUrl = `${attachmentBaseLinkUrl}/${file.uuid}`;
   const markdownLink = generateMarkdownLinkForAttachment(file);
 
-  file.previewTemplate.setAttribute('data-tooltip-content', `/attachments/${file.uuid}`);
+  el.setAttribute('data-tooltip-content', `/attachments/${file.uuid}`);
 
-  const nameSpan = file.previewTemplate.querySelector<HTMLElement>('[data-dz-name]');
+  const nameSpan = el.querySelector<HTMLElement>('[data-dz-name]');
   if (nameSpan && !nameSpan.closest('a')) {
     const linkEl = document.createElement('a');
     linkEl.href = fileUrl;
@@ -63,7 +64,7 @@ export function decorateAttachmentPreview(file: Partial<CustomDropzoneFile>, att
     linkEl.append(nameSpan);
   }
 
-  const imgEl = file.previewTemplate.querySelector<HTMLImageElement>('.dz-image img');
+  const imgEl = el.querySelector<HTMLImageElement>('.dz-image img');
   if (imgEl && !imgEl.closest('a')) {
     const linkEl = document.createElement('a');
     linkEl.href = fileUrl;
@@ -73,18 +74,17 @@ export function decorateAttachmentPreview(file: Partial<CustomDropzoneFile>, att
     linkEl.append(imgEl);
   }
 
-  let copyButton = file.previewTemplate.querySelector<HTMLButtonElement>('.dz-copy-link');
-  if (!copyButton) {
-    copyButton = createElementFromHTML<HTMLButtonElement>(html`
+  if (!el.querySelector('.dz-copy-link')) {
+    const copyButton = createElementFromHTML<HTMLButtonElement>(html`
       <button type="button" class="dz-copy-link tw-block tw-w-full tw-text-center tw-mt-1 tw-bg-transparent tw-p-0 tw-text-text-light hover:tw-text-text" data-tooltip-content="${markdownLink}">
         ${svgRaw('octicon-copy', 14)} Copy link
       </button>
     `);
     copyButton.addEventListener('click', async (e) => {
       e.preventDefault();
-      await copyToClipboardWithFeedback(copyButton!, markdownLink);
+      await copyToClipboardWithFeedback(copyButton, markdownLink);
     });
-    file.previewTemplate.append(copyButton);
+    el.append(copyButton);
   }
 }
 
@@ -164,7 +164,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         const file = {name: attachment.name, uuid: attachment.uuid, size: attachment.size};
         dzInst.emit('addedfile', file);
         dzInst.emit('complete', file);
-        if (isImageFile(file.name)) {
+        if (isImageFile(file)) {
           const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
           dzInst.emit('thumbnail', file, imgSrc);
         }
