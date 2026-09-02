@@ -107,6 +107,13 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
+	// The managed SSH key must belong to the doer or the migration target owner,
+	// never to an arbitrary third party (0 means "the target owner's key").
+	if form.SSHKeyOwnerID != 0 && form.SSHKeyOwnerID != ctx.Doer.ID && form.SSHKeyOwnerID != repoOwner.ID {
+		ctx.APIError(http.StatusForbidden, "ssh_key_owner_id must be 0, the authenticated user, or the repository owner")
+		return
+	}
+
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {

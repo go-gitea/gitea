@@ -238,6 +238,13 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
+	// The managed SSH key must belong to the doer or the migration target owner,
+	// never to an arbitrary third party (0 means "the target owner's key").
+	if form.SSHKeyOwnerID != 0 && form.SSHKeyOwnerID != ctx.Doer.ID && form.SSHKeyOwnerID != ctxUser.ID {
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.invalid_ssh_key_owner"), tpl, form)
+		return
+	}
+
 	remoteAddr, err := git.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
