@@ -194,6 +194,7 @@ func TestSearchRepository(t *testing.T) {
 	t.Run("SearchRepositoryNonExistingOwner", testSearchRepositoryNonExistingOwner)
 	t.Run("SearchRepositoryWithInDescription", testSearchRepositoryWithInDescription)
 	t.Run("SearchRepositoryNotInDescription", testSearchRepositoryNotInDescription)
+	t.Run("SearchRepositoryWithInCustomName", testSearchRepositoryWithInCustomName)
 	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
 }
 
@@ -361,6 +362,23 @@ func testSearchRepositoryNotInDescription(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
+}
+
+func testSearchRepositoryWithInCustomName(t *testing.T) {
+	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: 10,
+		},
+		Keyword:     "中文显示名14",
+		Collaborate: optional.Some(false),
+	})
+
+	assert.NoError(t, err)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_14", repos[0].Name)
+	}
+	assert.Equal(t, int64(1), count)
 }
 
 func testSearchRepositoryCases(t *testing.T) {
