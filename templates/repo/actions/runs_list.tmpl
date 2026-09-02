@@ -18,7 +18,7 @@
 			</div>
 			<div class="item-main">
 				<div class="item-title">
-					{{$title := or $run.Title (ctx.Locale.Tr "actions.runs.empty_commit_message")}}
+					{{$title := or $run.Title (ctx.Locale.TrString "actions.runs.empty_commit_message")}}
 					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $title $run.Link $run.Repo}}
 				</div>
 				<div class="item-body">
