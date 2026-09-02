@@ -24,7 +24,7 @@ type QueueScope struct {
 	OwnerID int64 // >0: an org/user; both 0: the whole instance
 	IsRepo  bool  // repo scope hides the (redundant) repository column
 
-	CanReorder bool // the viewer may drag-reorder queued jobs (further limited to the first page)
+	CanReorder bool // the viewer may drag-reorder queued jobs (site admins only, further limited to the first page)
 
 	MoveLink     string            // POST target for reordering
 	FullTemplate templates.TplName // full-page template for the initial (non-refresh) render
@@ -293,19 +293,15 @@ func runningJobRunnerNames(ctx *context.Context, jobs []*actions_model.ActionRun
 }
 
 // QueueMovePost reorders a queued job on the admin queue settings page (site-admin gated by the route group).
+// Reordering is site-admin only: queue_rank orders the whole instance, so a repo-scoped reorder would move
+// that repo's jobs ahead of every other repository's.
 func QueueMovePost(ctx *context.Context) {
-	HandleQueueMove(ctx, 0, 0)
-}
-
-// HandleQueueMove applies a drag-and-drop reorder for the given queue scope and writes the HTTP response.
-// Callers are responsible for permission checks (only admins of the scope may reorder).
-func HandleQueueMove(ctx *context.Context, repoID, ownerID int64) {
 	movedID := ctx.FormInt64("id")
 	if movedID == 0 {
 		ctx.HTTPError(http.StatusBadRequest, "missing job id")
 		return
 	}
-	ok, err := actions_model.MoveQueuedJob(ctx, repoID, ownerID, movedID, ctx.FormInt64("after"))
+	ok, err := actions_model.MoveQueuedJob(ctx, movedID, ctx.FormInt64("after"))
 	if err != nil {
 		ctx.ServerError("MoveQueuedJob", err)
 		return

@@ -12,7 +12,8 @@ import (
 )
 
 // Queue renders this repository's Actions build queue (queued jobs in pickup order plus running jobs)
-// inside the Actions tab. Any actions reader may view it; only repo admins get the drag-to-reorder handles.
+// inside the Actions tab. The view is read-only: reordering is site-admin only, because queue_rank is a
+// global ordering key (see actions_model.MoveQueuedJob).
 func Queue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
@@ -26,8 +27,6 @@ func Queue(ctx *context.Context) {
 	shared_actions.RenderQueue(ctx, shared_actions.QueueScope{
 		RepoID:       ctx.Repo.Repository.ID,
 		IsRepo:       true,
-		CanReorder:   ctx.Repo.Permission.IsAdmin(),
-		MoveLink:     ctx.Repo.RepoLink + "/actions/queue/move",
 		FullTemplate: "repo/actions/queue",
 	})
 }
@@ -51,9 +50,4 @@ func prepareActionsSidebar(ctx *context.Context) {
 		return
 	}
 	prepareOtherWorkflows(ctx, workflows, scopedNames, "")
-}
-
-// QueueMovePost applies a drag-and-drop reorder of this repository's queue. The route is gated to repo admins.
-func QueueMovePost(ctx *context.Context) {
-	shared_actions.HandleQueueMove(ctx, ctx.Repo.Repository.ID, 0)
 }

@@ -1550,10 +1550,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}/actions", func() {
 		m.Get("", actions.List)
-		m.Group("/queue", func() {
-			m.Get("", actions.Queue)
-			m.Post("/move", reqRepoAdmin, actions.QueueMovePost)
-		})
+		m.Get("/queue", actions.Queue)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)

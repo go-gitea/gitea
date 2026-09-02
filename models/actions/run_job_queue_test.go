@@ -17,7 +17,8 @@ func TestMoveQueuedJob(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// A repo id no fixture or other test uses, so ordering below is not polluted.
+	// A repo id no fixture or other test uses: the move renumbers the instance-wide queue, so the
+	// assertions below read back only this repo's slice of it.
 	const repoID int64 = 987655
 
 	insert := func(name string, updated int64) *ActionRunJob {
@@ -55,19 +56,19 @@ func TestMoveQueuedJob(t *testing.T) {
 	assert.Equal(t, []string{"j1", "j2", "j3", "j4", "j5"}, queueOrder())
 
 	// Promote j5 to the top (dropped above j1 → afterID=0).
-	ok, err := MoveQueuedJob(ctx, repoID, 0, j5.ID, 0)
+	ok, err := MoveQueuedJob(ctx, j5.ID, 0)
 	require.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"j5", "j1", "j2", "j3", "j4"}, queueOrder())
 
 	// Move j1 into the middle (after j3 in the current order).
-	ok, err = MoveQueuedJob(ctx, repoID, 0, j1.ID, j3.ID)
+	ok, err = MoveQueuedJob(ctx, j1.ID, j3.ID)
 	require.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"j5", "j2", "j3", "j1", "j4"}, queueOrder())
 
 	// Send j5 to the bottom (after j4, the current last remaining neighbour).
-	ok, err = MoveQueuedJob(ctx, repoID, 0, j5.ID, j4.ID)
+	ok, err = MoveQueuedJob(ctx, j5.ID, j4.ID)
 	require.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"j2", "j3", "j1", "j4", "j5"}, queueOrder())
@@ -79,7 +80,7 @@ func TestMoveQueuedJob(t *testing.T) {
 	// Moving a job that has left the queue reports a stale view instead of erroring.
 	_, err = db.GetEngine(ctx).Exec("UPDATE `action_run_job` SET status = ? WHERE id = ?", StatusRunning, j2.ID)
 	require.NoError(t, err)
-	ok, err = MoveQueuedJob(ctx, repoID, 0, j2.ID, 0)
+	ok, err = MoveQueuedJob(ctx, j2.ID, 0)
 	require.NoError(t, err)
 	assert.False(t, ok, "moving a no-longer-queued job signals the caller to refresh")
 }

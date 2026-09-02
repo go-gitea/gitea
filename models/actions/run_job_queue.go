@@ -61,9 +61,10 @@ func QueueFilterRepoIDs(ctx context.Context, repoID, ownerID int64, limit int) (
 		Distinct("`action_run_job`.repo_id").Cols("`action_run_job`.repo_id").Limit(limit).Find(&ids)
 }
 
-// MoveQueuedJob repositions a waiting job at the head of the build queue (first page only).
+// MoveQueuedJob repositions a waiting job in the instance-wide build queue (first page only).
+// QueueRank is a global ordering key, so the window renumbered here is always the instance-wide queue:
+// renumbering a repo- or owner-scoped window would let its jobs jump every other repository's queue.
 //
-// scope: repoID>0 for a repo queue; ownerID>0 for an org/user queue; both 0 for the instance-wide queue.
 // afterID is the id of the row that should end up immediately before the moved job (0 = move to head).
 //
 // The first page is renumbered into evenly spaced negative ranks (more negative = picked earlier),
@@ -73,9 +74,9 @@ func QueueFilterRepoIDs(ctx context.Context, repoID, ownerID int64, limit int) (
 //
 // It returns false (with a nil error) when the moved job or afterID neighbour is no longer on the
 // first page, i.e. the client's view is stale and should refresh.
-func MoveQueuedJob(ctx context.Context, repoID, ownerID, movedID, afterID int64) (bool, error) {
+func MoveQueuedJob(ctx context.Context, movedID, afterID int64) (bool, error) {
 	err := db.WithTx(ctx, func(ctx context.Context) error {
-		opts := QueuedJobsOptions(repoID, ownerID)
+		opts := QueuedJobsOptions(0, 0)
 		// One row past the page is the rebalance anchor, so the page costs a single query.
 		opts.ListOptions = db.ListOptions{Page: 1, PageSize: QueuePageSize + 1}
 		window, err := db.Find[ActionRunJob](ctx, opts)

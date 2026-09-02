@@ -69,11 +69,11 @@ func TestActionsQueue(t *testing.T) {
 
 	const repoQueue = "/user2/repo1/actions/queue"
 
-	// Repo Actions-tab queue: a repo admin sees the queued job and the drag-to-reorder handles.
+	// Repo Actions-tab queue: a repo admin sees the queued job, but the view is read-only.
 	body := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()
 	assert.Contains(t, body, queuedJobName)
 	assert.Contains(t, body, "actions-queue-tbody")
-	assert.Contains(t, body, "drag-handle", "repo admins get reorder handles")
+	assert.NotContains(t, body, "drag-handle", "the repo queue is read-only, reordering is site-admin only")
 	assert.Contains(t, body, "actions-management", "queue sits under Management in the Actions sidebar")
 	assert.Contains(t, body, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`)
 
@@ -83,10 +83,10 @@ func TestActionsQueue(t *testing.T) {
 	assert.Contains(t, listBody, `href="/user2/repo1/actions/queue"`)
 	assert.NotContains(t, listBody, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`, "Queue is not selected on the runs list")
 
-	// A non-admin reader of the public repo may view the queue but gets no reorder handles.
+	// A non-admin reader of the public repo may view the queue too.
 	body4 := sessionUser4.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()
 	assert.Contains(t, body4, queuedJobName)
-	assert.NotContains(t, body4, "drag-handle", "non-admins get no reorder handles")
+	assert.NotContains(t, body4, "drag-handle")
 
 	// The instance-wide admin queue lists the same job.
 	const adminQueue = "/-/admin/actions/queue"
@@ -120,10 +120,14 @@ func TestActionsQueue(t *testing.T) {
 	assert.Contains(t, refresh, queuedJobName)
 	assert.NotContains(t, refresh, `<html`, "the refresh response is a fragment, not a full page")
 
-	// Reordering is repo-admin only.
+	// queue_rank orders the whole instance, so repos have no reorder endpoint at all: a repo admin could
+	// otherwise push their jobs ahead of every other repository's.
 	moveForm := map[string]string{"id": strconv.FormatInt(job.ID, 10)}
+	sessionUser2.MakeRequest(t, NewRequestWithValues(t, "POST", repoQueue+"/move", moveForm), http.StatusNotFound)
 	sessionUser4.MakeRequest(t, NewRequestWithValues(t, "POST", repoQueue+"/move", moveForm), http.StatusNotFound)
-	sessionUser2.MakeRequest(t, NewRequestWithValues(t, "POST", repoQueue+"/move", moveForm), http.StatusNoContent)
+	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).QueueRank)
+
+	sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", adminQueue+"/move", moveForm), http.StatusNoContent)
 
 	// The admin move promoted the job: it now carries a negative queue rank.
 	moved := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID})
