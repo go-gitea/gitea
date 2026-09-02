@@ -10,17 +10,32 @@ import (
 	"net/url"
 	"strings"
 
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-type RequestContextKeyStruct struct{}
+type contextKeyType string
 
-var RequestContextKey = RequestContextKeyStruct{}
+var (
+	contextKeyRequest          = contextKeyType("request")
+	contextKeySupportPublicURL = contextKeyType("support-public-url")
+)
 
-type isInternalRequestKeyType struct{}
+func RequestWithContext(req *http.Request, ctx reqctx.RequestContext) *http.Request {
+	req = req.WithContext(ctx)
+	ctx.AddCleanUp(func() {
+		if req.MultipartForm != nil {
+			_ = req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+		}
+	})
+	ctx.SetContextValue(contextKeyRequest, req)
+	return req
+}
 
-var IsInternalRequestKey = isInternalRequestKeyType{}
+func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
+	ctx.SetContextValue(contextKeySupportPublicURL, true)
+}
 
 func urlIsRelative(s string, u *url.URL) bool {
 	// Unfortunately, browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
@@ -83,13 +98,9 @@ func GuessCurrentAppURL(ctx context.Context) string {
 
 // GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
 func GuessCurrentHostURL(ctx context.Context) string {
-	// Skip public host URL guessing for internal/private API request contexts (marked in context)
-	// to prevent leaking localhost/internal hostnames in public contexts like email notifications.
-	if isInternal, ok := ctx.Value(IsInternalRequestKey).(bool); ok && isInternal {
-		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
-	}
 	// "never" means always trust ROOT_URL and skip any request header detection.
-	if setting.PublicURLDetection == setting.PublicURLNever {
+	detectPublicURL := setting.PublicURLDetection != setting.PublicURLNever && ctx.Value(contextKeySupportPublicURL) == true
+	if !detectPublicURL {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	// Try the best guess to get the current host URL (will be used for public URL) by http headers.
@@ -101,7 +112,7 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	// Without more information, Gitea is impossible to distinguish between case 2 and case 3, then case 2 would result in
 	// wrong guess like guessed public URL becomes "http://gitea:3000/" behind a "https" reverse proxy, which is not accessible by end users.
 	// So we introduced "PUBLIC_URL_DETECTION" option, to control the guessing behavior to satisfy different use cases.
-	req, ok := ctx.Value(RequestContextKey).(*http.Request)
+	req, ok := ctx.Value(contextKeyRequest).(*http.Request)
 	if !ok {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}

@@ -11,7 +11,6 @@ import (
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
@@ -80,8 +79,6 @@ func PrivateContexter() func(http.Handler) http.Handler {
 			base := NewBaseContext(w, req)
 			ctx := &PrivateContext{Base: base}
 			ctx.SetContextValue(privateContextKey, ctx)
-			// Mark this request context as internal to skip public host URL guessing.
-			ctx.SetContextValue(httplib.IsInternalRequestKey, true)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

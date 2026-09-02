@@ -17,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
@@ -119,6 +120,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
 	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
 	ctx.SetContextValue(WebContextKey, ctx)
+	httplib.MarkRequestSupportPublicURL(ctx)
 	return ctx
 }
 

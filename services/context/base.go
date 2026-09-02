@@ -218,10 +218,9 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 		Locale: middleware.Locale(resp, req),
 		Data:   reqCtx.GetData(),
 	}
-	b.Req = b.Req.WithContext(b)
+	b.Req = httplib.RequestWithContext(b.Req, reqCtx)
 	reqCtx.SetContextValue(BaseContextKey, b)
 	reqCtx.SetContextValue(translation.ContextKey, b.Locale)
-	reqCtx.SetContextValue(httplib.RequestContextKey, b.Req)
 	return b
 }
 
@@ -230,6 +229,7 @@ func NewBaseContextForTest(t reqctx.TestingT, resp http.ResponseWriter, req *htt
 		panic("This function is only for testing")
 	}
 	ctx := reqctx.NewRequestContextForTest(t)
+	httplib.MarkRequestSupportPublicURL(ctx)
 	*req = *req.WithContext(ctx)
 	return NewBaseContext(resp, req)
 }
