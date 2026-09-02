@@ -86,6 +86,7 @@ export class ComboMarkdownEditor {
 
   buttonMonospace!: HTMLButtonElement;
 
+  dropzoneParentContainer: HTMLElement | null = null;
   dropzone: HTMLElement | null = null;
   attachedDropzoneInst?: Dropzone;
 
@@ -117,11 +118,17 @@ export class ComboMarkdownEditor {
     if (heights.maxHeight) el.style.maxHeight = heights.maxHeight;
   }
 
+  updateEditorContainerTabPage(page: 'writer' | 'previewer') {
+    this.dropzoneParentContainer?.classList.add('combo-editor-container');
+    this.dropzoneParentContainer?.setAttribute('data-combo-editor-page', page);
+  }
+
   setupContainer() {
     this.supportEasyMDE = this.container.getAttribute('data-support-easy-mde') === 'true';
     this.previewMode = this.container.getAttribute('data-content-mode')!;
     this.previewUrl = this.container.getAttribute('data-preview-url')!;
     this.previewContext = this.container.getAttribute('data-preview-context')!;
+    this.updateEditorContainerTabPage('writer');
     initTextExpander(this.container.querySelector('text-expander')!);
   }
 
@@ -170,9 +177,10 @@ export class ComboMarkdownEditor {
   }
 
   async setupDropzone() {
-    const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
-    if (!dropzoneParentContainer) return;
-    this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container')!)?.querySelector('.dropzone') ?? null;
+    const containerSelector = this.container.getAttribute('data-dropzone-parent-container');
+    if (!containerSelector) return;
+    this.dropzoneParentContainer = this.container.closest(containerSelector);
+    this.dropzone = this.dropzoneParentContainer?.querySelector('.dropzone') ?? null;
     if (!this.dropzone) return;
 
     this.attachedDropzoneInst = await initDropzone(this.dropzone);
@@ -222,18 +230,14 @@ export class ComboMarkdownEditor {
     initTabSwitcher(elTabular);
 
     this.tabEditor.addEventListener('click', () => {
-      if (this.dropzone) {
-        showElem(this.dropzone.closest('.form-field-dropzone, .field') ?? this.dropzone);
-      }
+      this.updateEditorContainerTabPage('writer');
       requestAnimationFrame(() => {
         this.focus();
       });
     });
 
     this.tabPreviewer.addEventListener('click', async () => {
-      if (this.dropzone) {
-        hideElem(this.dropzone.closest('.form-field-dropzone, .field') ?? this.dropzone);
-      }
+      this.updateEditorContainerTabPage('previewer');
       const formData = new FormData();
       formData.append('mode', this.previewMode);
       formData.append('context', this.previewContext);
