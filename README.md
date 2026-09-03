@@ -64,6 +64,8 @@ Translations are done through [Crowdin](https://translate.gitea.com). If you wan
 
 You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord.
 
+Get more information from [the translation section of our contributing guide](https://github.com/go-gitea/gitea/blob/main/CONTRIBUTING.md#translation).
+
 ## Official and Third-Party Projects
 
 We provide an official [go-sdk](https://gitea.com/gitea/go-sdk), a CLI tool called [tea](https://gitea.com/gitea/tea) and an [action runner](https://gitea.com/gitea/runner) for Gitea Action.
