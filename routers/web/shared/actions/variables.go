@@ -29,12 +29,24 @@ const (
 type variablesCtx struct {
 	OwnerID           int64
 	RepoID            int64
+	EnvironmentID     int64
 	IsRepo            bool
 	IsOrg             bool
 	IsUser            bool
 	IsGlobal          bool
 	VariablesTemplate templates.TplName
 	RedirectLink      string
+}
+
+// environmentVariablesCtx scopes variable writes to a repository deployment environment. The environment
+// page renders itself, so it needs no VariablesTemplate.
+func environmentVariablesCtx(repoID, envID int64, redirectLink string) *variablesCtx {
+	return &variablesCtx{
+		RepoID:        repoID,
+		EnvironmentID: envID,
+		IsRepo:        true,
+		RedirectLink:  redirectLink,
+	}
 }
 
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
@@ -97,8 +109,9 @@ func Variables(ctx *context.Context) {
 	}
 
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		OwnerID: vCtx.OwnerID,
-		RepoID:  vCtx.RepoID,
+		OwnerID:       vCtx.OwnerID,
+		RepoID:        vCtx.RepoID,
+		EnvironmentID: vCtx.EnvironmentID,
 	})
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
@@ -116,7 +129,15 @@ func VariableCreate(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
+	performVariableCreate(ctx, vCtx)
+}
 
+// PerformEnvVariableCreate creates a variable scoped to a repository deployment environment.
+func PerformEnvVariableCreate(ctx *context.Context, repoID, envID int64, redirectLink string) {
+	performVariableCreate(ctx, environmentVariablesCtx(repoID, envID, redirectLink))
+}
+
+func performVariableCreate(ctx *context.Context, vCtx *variablesCtx) {
 	if ctx.HasError() { // form binding validation error
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -124,7 +145,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, vCtx.EnvironmentID, form.Name, form.Data, form.Description)
 	if err != nil {
 		log.Error("CreateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
@@ -141,7 +162,15 @@ func VariableUpdate(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
+	performVariableUpdate(ctx, vCtx)
+}
 
+// PerformEnvVariableUpdate updates a variable scoped to a repository deployment environment.
+func PerformEnvVariableUpdate(ctx *context.Context, repoID, envID int64, redirectLink string) {
+	performVariableUpdate(ctx, environmentVariablesCtx(repoID, envID, redirectLink))
+}
+
+func performVariableUpdate(ctx *context.Context, vCtx *variablesCtx) {
 	if ctx.HasError() { // form binding validation error
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -170,7 +199,8 @@ func VariableUpdate(ctx *context.Context) {
 
 func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
 	opts := actions_model.FindVariablesOpts{
-		IDs: []int64{id},
+		IDs:           []int64{id},
+		EnvironmentID: vCtx.EnvironmentID,
 	}
 	switch {
 	case vCtx.IsRepo:
@@ -206,7 +236,15 @@ func VariableDelete(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
+	performVariableDelete(ctx, vCtx)
+}
 
+// PerformEnvVariableDelete deletes a variable scoped to a repository deployment environment.
+func PerformEnvVariableDelete(ctx *context.Context, repoID, envID int64, redirectLink string) {
+	performVariableDelete(ctx, environmentVariablesCtx(repoID, envID, redirectLink))
+}
+
+func performVariableDelete(ctx *context.Context, vCtx *variablesCtx) {
 	id := ctx.PathParamInt64("variable_id")
 
 	variable := findActionsVariable(ctx, id, vCtx)

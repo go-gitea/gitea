@@ -49,6 +49,8 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		return fmt.Errorf("FindRunJob: %w", err)
 	}
 
+	EnsureEnvironments(ctx, run, allJobs)
+
 	CreateCommitStatusForRunJobs(ctx, run, allJobs...)
 
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, allJobs)
@@ -219,6 +221,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
+		EnvironmentName:         jobEnvironmentName(job),
 		IsMatrixDeferred:        isMatrixDeferred,
 		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
 	}

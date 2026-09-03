@@ -4,8 +4,16 @@
 package actions
 
 import (
+	actions_model "gitea.dev/models/actions"
 	webhook_module "gitea.dev/modules/webhook"
 )
+
+// IsUntrustedForkRun reports whether a run's workflow came from a fork, so that it must neither
+// receive the repository's secrets nor write to its settings. A pull_request_target workflow is
+// the base repository's own and is therefore trusted.
+func IsUntrustedForkRun(run *actions_model.ActionRun) bool {
+	return run.IsForkPullRequest && run.TriggerEvent != GithubEventPullRequestTarget
+}
 
 const (
 	GithubEventPullRequest              = "pull_request"

@@ -121,6 +121,7 @@ type Job struct {
 	RawSecrets         yaml.Node                 `yaml:"secrets,omitempty"`
 	RawConcurrency     *model.RawConcurrency     `yaml:"concurrency,omitempty"`
 	RawPermissions     yaml.Node                 `yaml:"permissions,omitempty"`
+	RawEnvironment     yaml.Node                 `yaml:"environment,omitempty"` // deployment environment
 }
 
 // GetContinueOnError decodes the continue-on-error field to a bool.
@@ -159,6 +160,7 @@ func (j *Job) Clone() *Job {
 		RawSecrets:         j.RawSecrets,
 		RawConcurrency:     j.RawConcurrency,
 		RawPermissions:     j.RawPermissions,
+		RawEnvironment:     j.RawEnvironment,
 	}
 }
 
@@ -173,6 +175,33 @@ func (j *Job) EraseNeeds() *Job {
 
 func (j *Job) RunsOn() []string {
 	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
+}
+
+// DeploymentEnvironmentName returns the job's "environment:" name, in either the scalar
+// ("environment: production") or the object form ("environment: {name: production, url: ...}").
+// The "url" is ignored: GitHub evaluates it on the runner.
+// An expression that resolved to nothing decodes as "", so the job deploys to no environment,
+// as on GitHub.
+func (j *Job) DeploymentEnvironmentName() string {
+	if HasDeferredMatrix(j) {
+		return "" // still holds the raw expression, which only the expanded combinations resolve
+	}
+	var name string
+	switch j.RawEnvironment.Kind {
+	case yaml.ScalarNode:
+		if err := j.RawEnvironment.Decode(&name); err != nil {
+			return ""
+		}
+	case yaml.MappingNode:
+		var envMap struct {
+			Name string `yaml:"name"`
+		}
+		if err := j.RawEnvironment.Decode(&envMap); err != nil {
+			return ""
+		}
+		name = envMap.Name
+	}
+	return name
 }
 
 type Step struct {

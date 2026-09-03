@@ -43,6 +43,7 @@ jobs:
 %s    strategy:
       matrix:
         value: %s
+    environment: ${{ matrix.value }}
     steps: [{run: echo}]
 `, ifLine, matrixValue))
 	require.NoError(t, err)
@@ -114,6 +115,7 @@ func TestExpandDeferredMatrix(t *testing.T) {
 
 		// The placeholder is reused as the first combination and stays blocked for the `if:` gate.
 		assert.Equal(t, "build (a)", job.Name)
+		assert.Equal(t, "a", job.EnvironmentName)
 		assert.False(t, job.IsMatrixDeferred)
 		assert.Equal(t, actions_model.StatusBlocked, job.Status)
 
@@ -128,11 +130,13 @@ func TestExpandDeferredMatrix(t *testing.T) {
 			assert.Equal(t, "abc123", sibling.WorkflowSourceCommitSHA)
 			assert.Greater(t, sibling.AttemptJobID, job.AttemptJobID, "siblings take fresh ids from the run-wide counter")
 			assert.Empty(t, sibling.DeferredMatrixPayload, "only the placeholder anchors the group with the raw payload")
+			assert.NotEmpty(t, sibling.EnvironmentName, "a sibling must keep the environment its combination resolved to")
 		}
 		assert.ElementsMatch(t, []string{"build (a)", "build (b)", "build (c)"}, names)
 
 		reloaded := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID})
 		assert.Equal(t, "build (a)", reloaded.Name)
+		assert.Equal(t, "a", reloaded.EnvironmentName, "the claim must persist the combination's environment, not leave the job unbound")
 		assert.False(t, reloaded.IsMatrixDeferred)
 		assert.NotEmpty(t, reloaded.DeferredMatrixPayload, "the claim must not erase the raw payload")
 	})

@@ -90,6 +90,8 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	}); err != nil {
 		return err
 	}
+	// covers the children a reusable caller or a deferred matrix expanded in an earlier pass
+	EnsureEnvironments(ctx, run, result.Jobs)
 	// Re-emit AFTER the transaction commits; doing this inside WithTx would deadlock under
 	// immediate-mode queues (the inline handler reopens checkJobsByRunID and asks for a
 	// nested writer transaction while the outer one is still open).

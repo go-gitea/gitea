@@ -10,22 +10,23 @@ import (
 	secret_model "gitea.dev/models/secret"
 )
 
-func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data, description string) (*secret_model.Secret, bool, error) {
+func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID, environmentID int64, name, data, description string) (*secret_model.Secret, bool, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, false, err
 	}
 
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    name,
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		EnvironmentID: environmentID,
+		Name:          name,
 	})
 	if err != nil {
 		return nil, false, err
 	}
 
 	if len(s) == 0 {
-		s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, name, data, description)
+		s, err := secret_model.InsertEncryptedSecret(ctx, ownerID, repoID, environmentID, name, data, description)
 		if err != nil {
 			return nil, false, err
 		}
@@ -39,11 +40,12 @@ func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data
 	return s[0], false, nil
 }
 
-func DeleteSecretByID(ctx context.Context, ownerID, repoID, secretID int64) error {
+func DeleteSecretByID(ctx context.Context, ownerID, repoID, environmentID, secretID int64) error {
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID:  ownerID,
-		RepoID:   repoID,
-		SecretID: secretID,
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		EnvironmentID: environmentID,
+		SecretID:      secretID,
 	})
 	if err != nil {
 		return err
@@ -55,11 +57,12 @@ func DeleteSecretByID(ctx context.Context, ownerID, repoID, secretID int64) erro
 	return deleteSecret(ctx, s[0])
 }
 
-func DeleteSecretByName(ctx context.Context, ownerID, repoID int64, name string) error {
+func DeleteSecretByName(ctx context.Context, ownerID, repoID, environmentID int64, name string) error {
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		OwnerID: ownerID,
-		RepoID:  repoID,
-		Name:    name,
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		EnvironmentID: environmentID,
+		Name:          name,
 	})
 	if err != nil {
 		return err
