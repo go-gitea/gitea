@@ -246,8 +246,8 @@ func (ctx *Context) JSONOK() {
 	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
 }
 
-func buildJsonErrorMap(msg any) map[string]any {
-	switch v := msg.(type) {
+func buildJsonErrorMap[T string | template.HTML](msg T) map[string]any {
+	switch v := any(msg).(type) {
 	case string:
 		return map[string]any{"errorMessage": v, "renderFormat": "text"}
 	case template.HTML:
