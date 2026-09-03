@@ -16,7 +16,7 @@
 		)}}
 
 		{{if .root.IsAttachmentEnabled}}
-		<div class="tw-mt-4 form-field-dropzone tw-hidden">
+		<div class="tw-mt-4 form-field-dropzone tw-hidden">{{/*TODO: need to refactor the "repo/upload" template and remove this wrapper */}}
 			{{template "repo/upload" .root}}
 		</div>
 		{{end}}
