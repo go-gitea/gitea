@@ -47,11 +47,11 @@
 						<a class="ui primary basic button" href="{{.RepoLink}}/milestones">
 							{{ctx.Locale.Tr "repo.milestones.cancel"}}
 						</a>
-						<button class="ui primary button">
+						<button type="submit" class="ui primary button">
 							{{ctx.Locale.Tr "repo.milestones.modify"}}
 						</button>
 					{{else}}
-						<button class="ui primary button">
+						<button type="submit" class="ui primary button">
 							{{ctx.Locale.Tr "repo.milestones.create"}}
 						</button>
 					{{end}}

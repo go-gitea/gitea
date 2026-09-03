@@ -10,7 +10,7 @@
 								<input type="hidden" name="oid" value="{{.Oid}} {{.Size}}">
 							{{end}}
 						{{end}}
-						<button class="ui primary tiny button">{{ctx.Locale.Tr "repo.settings.lfs_pointers.associateAccessible" $.NumAssociatable}}</button>
+						<button type="submit" class="ui primary tiny button">{{ctx.Locale.Tr "repo.settings.lfs_pointers.associateAccessible" $.NumAssociatable}}</button>
 					</form>
 				</div>
 			{{end}}

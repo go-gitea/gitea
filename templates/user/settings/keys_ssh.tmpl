@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
-		<button id="add-ssh-button" class="ui primary tiny show-panel toggle button" data-panel="#add-ssh-key-panel">
+		<button type="button" id="add-ssh-button" class="ui primary tiny show-panel toggle button" data-panel="#add-ssh-key-panel">
 			{{ctx.Locale.Tr "settings.add_key"}}
 		</button>
 	</div>
@@ -18,10 +18,10 @@
 				<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
-			<button class="ui primary button">
+			<button type="submit" class="ui primary button">
 				{{ctx.Locale.Tr "settings.add_key"}}
 			</button>
-			<button id="cancel-ssh-button" class="ui hide-panel button" data-panel="#add-ssh-key-panel">
+			<button type="button" id="cancel-ssh-button" class="ui hide-panel button" data-panel="#add-ssh-key-panel">
 				{{ctx.Locale.Tr "cancel"}}
 			</button>
 		</form>
@@ -56,7 +56,7 @@
 						</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button link-action{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-confirm="#delete-ssh" data-url="{{$.Link}}/delete?type=ssh&id={{.ID}}"{{if index $.ExternalKeys $index}} title="{{ctx.Locale.Tr "settings.ssh_externally_managed"}}"{{end}}>
+					<button type="button" class="ui red tiny button link-action{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-confirm="#delete-ssh" data-url="{{$.Link}}/delete?type=ssh&id={{.ID}}"{{if index $.ExternalKeys $index}} title="{{ctx.Locale.Tr "settings.ssh_externally_managed"}}"{{end}}>
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
@@ -93,7 +93,7 @@
 							<textarea id="ssh-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
-						<button class="ui primary button">
+						<button type="submit" class="ui primary button">
 							{{ctx.Locale.Tr "settings.ssh_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">

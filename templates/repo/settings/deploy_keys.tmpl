@@ -4,11 +4,11 @@
 		{{ctx.Locale.Tr "repo.settings.deploy_keys"}}
 		<div class="ui right">
 			{{if not .DisableSSH}}
-			<button class="ui primary compact tiny button show-panel toggle" data-panel="#add-deploy-key-ssh-panel" data-panel-hide="#add-deploy-key-token-panel">{{ctx.Locale.Tr "repo.settings.add_deploy_key_ssh"}}</button>
+			<button type="button" class="ui primary compact tiny button show-panel toggle" data-panel="#add-deploy-key-ssh-panel" data-panel-hide="#add-deploy-key-token-panel">{{ctx.Locale.Tr "repo.settings.add_deploy_key_ssh"}}</button>
 			{{else}}
-			<button class="ui primary compact tiny button disabled">{{ctx.Locale.Tr "settings.ssh_disabled"}}</button>
+			<button type="button" class="ui primary compact tiny button disabled">{{ctx.Locale.Tr "settings.ssh_disabled"}}</button>
 			{{end}}
-			<button class="ui primary compact tiny button show-panel toggle" data-panel="#add-deploy-key-token-panel" data-panel-hide="#add-deploy-key-ssh-panel">{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}</button>
+			<button type="button" class="ui primary compact tiny button show-panel toggle" data-panel="#add-deploy-key-token-panel" data-panel-hide="#add-deploy-key-ssh-panel">{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}</button>
 		</div>
 	</h4>
 	<div class="ui attached segment">
@@ -30,8 +30,8 @@
 						<small class="tw-pl-[20px]">{{ctx.Locale.Tr "repo.settings.is_writable_info"}}</small>
 					</div>
 				</div>
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_deploy_key_ssh"}}</button>
-				<button class="ui hide-panel button" data-panel="#add-deploy-key-ssh-panel">{{ctx.Locale.Tr "cancel"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_deploy_key_ssh"}}</button>
+				<button type="button" class="ui hide-panel button" data-panel="#add-deploy-key-ssh-panel">{{ctx.Locale.Tr "cancel"}}</button>
 			</form>
 			<div class="divider"></div>
 		</div>
@@ -50,8 +50,8 @@
 						<small class="tw-pl-[20px]">{{ctx.Locale.Tr "repo.settings.is_writable_info"}}</small>
 					</div>
 				</div>
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}</button>
-				<button class="ui hide-panel button" data-panel="#add-deploy-key-token-panel">{{ctx.Locale.Tr "cancel"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}</button>
+				<button type="button" class="ui hide-panel button" data-panel="#add-deploy-key-token-panel">{{ctx.Locale.Tr "cancel"}}</button>
 			</form>
 			<div class="divider"></div>
 		</div>
