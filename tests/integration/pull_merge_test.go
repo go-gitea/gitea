@@ -273,7 +273,7 @@ func TestPullCleanUpAfterClose(t *testing.T) {
 		var closedPullNumStr string
 		t.Run("CreateAndClosePR", func(t *testing.T) {
 			resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
-			_, pullNumStr, _ := strings.CutLast(test.RedirectURL(resp), "/")
+			pullNumStr := path.Base(test.RedirectURL(resp))
 
 			testIssueClose(t, session, "user2", "repo1", pullNumStr)
 
@@ -290,7 +290,7 @@ func TestPullCleanUpAfterClose(t *testing.T) {
 
 		t.Run("CreateAndMergePR", func(t *testing.T) {
 			resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
-			_, pullNumStr, _ := strings.CutLast(test.RedirectURL(resp), "/")
+			pullNumStr := path.Base(test.RedirectURL(resp))
 
 			// the closed but unmerged PR should not have the "delete branch" button because there is a new PR for the same branch
 			link := getDeleteBranchLink(t, session, "user2", "repo1", closedPullNumStr)
