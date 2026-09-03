@@ -268,7 +268,7 @@ func (ctx *Context) JSONErrorAuto(err error) {
 		return
 	}
 	log.ErrorWithSkip(1, "JSONErrorAuto: server internal error: %v", err)
-	ctx.JSON(http.StatusBadGateway, buildJsonErrorMap(ctx.Locale.TrString("error.occurred")))
+	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(ctx.Locale.TrString("error.occurred")))
 }
 
 func (ctx *Context) JSONError[T string | template.HTML](msg T) {
