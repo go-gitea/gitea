@@ -63,6 +63,19 @@ func TestActionsQueue(t *testing.T) {
 	job := insertQueuedJob(repo1, 8801, queuedJobName)
 	insertQueuedJob(repo3, 8802, otherJobName)
 
+	// A reusable-workflow caller lives in the same run as its children and turns Running by aggregating their status,
+	// but caller should not be in the running job list since it is never claimed by a runner.
+	const callerJobName = "reusable-caller-marker"
+	require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+		RunID:            job.RunID,
+		RepoID:           repo1.ID,
+		OwnerID:          repo1.OwnerID,
+		Name:             callerJobName,
+		JobID:            callerJobName,
+		Status:           actions_model.StatusRunning,
+		IsReusableCaller: true,
+	}))
+
 	sessionAdmin := loginUser(t, "user1") // site admin
 	sessionUser2 := loginUser(t, user2.Name)
 	sessionUser4 := loginUser(t, "user4") // unrelated user (repo1 is public, so may read but not reorder)
@@ -75,6 +88,7 @@ func TestActionsQueue(t *testing.T) {
 	assert.Contains(t, body, "actions-queue-tbody")
 	assert.NotContains(t, body, "drag-handle", "the repo queue is read-only, reordering is site-admin only")
 	assert.Contains(t, body, "actions-management", "queue sits under Management in the Actions sidebar")
+	assert.NotContains(t, body, callerJobName, "a reusable caller occupies no runner, so it is not a running job")
 	assert.Contains(t, body, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`)
 
 	// The Actions runs list exposes Queue under Management, not as a top tab.
@@ -102,6 +116,7 @@ func TestActionsQueue(t *testing.T) {
 
 	// Filters narrow the merged list: by status, by owner and by repository.
 	assert.NotContains(t, adminBody("?status=running"), queuedJobName, "a waiting job is hidden by the running filter")
+	assert.NotContains(t, adminBody("?status=running"), callerJobName)
 	assert.Contains(t, adminBody("?status=waiting"), queuedJobName)
 
 	byOwner := adminBody("?owner_id=" + strconv.FormatInt(user2.ID, 10))

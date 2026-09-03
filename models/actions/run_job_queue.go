@@ -40,6 +40,17 @@ func QueuedJobsOptions(repoID, ownerID int64) FindRunJobOptions {
 	}
 }
 
+// RunningJobsOptions selects the jobs currently occupying a runner.
+func RunningJobsOptions(repoID, ownerID int64) FindRunJobOptions {
+	return FindRunJobOptions{
+		RepoID:           repoID,
+		OwnerID:          ownerID,
+		Statuses:         []Status{StatusRunning},
+		IsReusableCaller: optional.Some(false),
+		OrderBy:          RunningJobsOrderBy,
+	}
+}
+
 // QueueFilterRepoIDs returns the ids of the repositories that currently have a queued or running job in
 // the given scope (see QueuedJobsOptions), so the build-queue filters only offer values that can match.
 // At most limit ids are returned; the list is bounded by pending work rather than by repository count.

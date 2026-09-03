@@ -118,14 +118,9 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	// they head the list on every page instead of taking part in the queued-job pagination.
 	var runningJobs []*actions_model.ActionRunJob
 	if filterStatus != QueueFilterWaiting {
-		runningOpts := actions_model.FindRunJobOptions{
-			RepoID:      scopeRepoID,
-			OwnerID:     scopeOwnerID,
-			ListOptions: db.ListOptions{Page: 1, PageSize: 100},
-			Statuses:    []actions_model.Status{actions_model.StatusRunning},
-			OrderBy:     actions_model.RunningJobsOrderBy,
-			Cols:        queueViewJobCols,
-		}
+		runningOpts := actions_model.RunningJobsOptions(scopeRepoID, scopeOwnerID)
+		runningOpts.ListOptions = db.ListOptions{Page: 1, PageSize: 100}
+		runningOpts.Cols = queueViewJobCols
 		var err error
 		runningJobs, err = db.Find[actions_model.ActionRunJob](ctx, runningOpts)
 		if err != nil {
