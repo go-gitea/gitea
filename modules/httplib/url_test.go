@@ -9,8 +9,10 @@ import (
 	"net/http"
 	"testing"
 
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -43,6 +45,15 @@ func TestIsRelativeURL(t *testing.T) {
 	}
 }
 
+func testCtxWithPublicURL(t *testing.T, req *http.Request, supportPublicURL ...bool) context.Context {
+	reqCtx := reqctx.NewRequestContextForTest(t)
+	_ = RequestWithContext(req, reqCtx)
+	if util.OptionalArg(supportPublicURL, true) {
+		MarkRequestSupportPublicURL(reqCtx)
+	}
+	return reqCtx
+}
+
 func TestGuessCurrentHostURL(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "http://cfg-host/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
@@ -55,14 +66,14 @@ func TestGuessCurrentHostURL(t *testing.T) {
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
 
 		// legacy: "Host" is not used when there is no "X-Forwarded-Proto" header
-		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		ctx := testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000"})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 
 		// if "X-Forwarded-Proto" exists, then use it and "Host" header
-		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
 
-		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: maliciousProtoHeaders})
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", Header: maliciousProtoHeaders})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 	})
 
@@ -72,17 +83,20 @@ func TestGuessCurrentHostURL(t *testing.T) {
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
 
 		// auto: always use "Host" header, the scheme is determined by "X-Forwarded-Proto" header, or TLS config if no "X-Forwarded-Proto" header
-		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		ctx := testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000"})
 		assert.Equal(t, "http://req-host:3000", GuessCurrentHostURL(ctx))
 
-		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host", TLS: &tls.ConnectionState{}})
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host", TLS: &tls.ConnectionState{}})
 		assert.Equal(t, "https://req-host", GuessCurrentHostURL(ctx))
 
-		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "https://req-host:3000", GuessCurrentHostURL(ctx))
 
-		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: maliciousProtoHeaders})
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", Header: maliciousProtoHeaders})
 		assert.Equal(t, "http://req-host:3000", GuessCurrentHostURL(ctx))
+
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", Header: maliciousProtoHeaders}, false)
+		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 	})
 
 	t.Run("Never", func(t *testing.T) {
@@ -90,13 +104,13 @@ func TestGuessCurrentHostURL(t *testing.T) {
 
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(t.Context()))
 
-		ctx := context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000"})
+		ctx := testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000"})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 
-		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", TLS: &tls.ConnectionState{}})
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", TLS: &tls.ConnectionState{}})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 
-		ctx = context.WithValue(t.Context(), RequestContextKey, &http.Request{Host: "req-host:3000", Header: headersWithProto})
+		ctx = testCtxWithPublicURL(t, &http.Request{Host: "req-host:3000", Header: headersWithProto})
 		assert.Equal(t, "http://cfg-host", GuessCurrentHostURL(ctx))
 	})
 }
@@ -112,12 +126,12 @@ func TestMakeAbsoluteURL(t *testing.T) {
 	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 	assert.Equal(t, "http://other/foo", MakeAbsoluteURL(ctx, "http://other/foo"))
 
-	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+	ctx = testCtxWithPublicURL(t, &http.Request{
 		Host: "user-host",
 	})
 	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 
-	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+	ctx = testCtxWithPublicURL(t, &http.Request{
 		Host: "user-host",
 		Header: map[string][]string{
 			"X-Forwarded-Host": {"forwarded-host"},
@@ -125,7 +139,7 @@ func TestMakeAbsoluteURL(t *testing.T) {
 	})
 	assert.Equal(t, "http://cfg-host/foo", MakeAbsoluteURL(ctx, "/foo"))
 
-	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+	ctx = testCtxWithPublicURL(t, &http.Request{
 		Host: "user-host",
 		Header: map[string][]string{
 			"X-Forwarded-Host":  {"forwarded-host"},
@@ -173,7 +187,7 @@ func TestIsCurrentGiteaSiteURL(t *testing.T) {
 	assert.False(t, IsCurrentGiteaSiteURL(ctx, "http://localhost"))
 	assert.True(t, IsCurrentGiteaSiteURL(ctx, "http://localhost:3000?key=val"))
 
-	ctx = context.WithValue(ctx, RequestContextKey, &http.Request{
+	ctx = testCtxWithPublicURL(t, &http.Request{
 		Host: "user-host",
 		Header: map[string][]string{
 			"X-Forwarded-Host":  {"forwarded-host"},
