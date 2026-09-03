@@ -11,17 +11,17 @@ import (
 
 func TestValidateName(t *testing.T) {
 	cases := []struct {
-		name        string
-		valid       bool
 		errorContains string // substring that should appear in error message
+		name          string
+		valid         bool
 	}{
-		{"FOO", true, ""},
-		{"FOO1_BAR2", true, ""},
-		{"_FOO", true, ""},
-		{"1FOO", false, "start with a letter or underscore"},
-		{"giteA_xx", false, "GITEA_"},
-		{"githuB_xx", false, "GITHUB_"},
-		{"cI", false, "reserved"},
+		{"", "FOO", true},
+		{"", "FOO1_BAR2", true},
+		{"", "_FOO", true},
+		{"start with a letter or underscore", "1FOO", false},
+		{"GITEA_", "giteA_xx", false},
+		{"GITHUB_", "githuB_xx", false},
+		{"reserved", "cI", false},
 	}
 	for _, c := range cases {
 		err := ValidateName(c.name)
