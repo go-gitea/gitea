@@ -3751,7 +3751,7 @@
   "secrets.description": "Secrets will be passed to certain actions and cannot be read otherwise.",
   "secrets.none": "There are no secrets yet.",
   "secrets.creation.description": "Description",
-  "secrets.creation.name_pattern": "Name must start with a letter or underscore, contain only uppercase letters, numbers and underscores, and cannot start with GITEA_ or GITHUB_",
+  "secrets.creation.name_pattern": "Name must start with a letter or underscore, contain only letters, numbers and underscores, and cannot start with GITEA_ or GITHUB_",
   "secrets.creation.value_placeholder": "Input any content. Whitespace at the start and end will be omitted.",
   "secrets.creation.description_placeholder": "Enter short description (optional).",
   "secrets.save_success": "The secret \"%s\" has been saved.",

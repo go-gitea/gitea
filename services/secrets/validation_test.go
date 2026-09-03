@@ -11,27 +11,25 @@ import (
 
 func TestValidateName(t *testing.T) {
 	cases := []struct {
-		errorContains string // substring that should appear in error message
-		name          string
-		valid         bool
+		name   string
+		errMsg string // substring that should appear in error message
 	}{
-		{"", "FOO", true},
-		{"", "FOO1_BAR2", true},
-		{"", "_FOO", true},
-		{"start with a letter or underscore", "1FOO", false},
-		{"GITEA_", "giteA_xx", false},
-		{"GITHUB_", "githuB_xx", false},
-		{"reserved", "cI", false},
+		{"FOO", ""},
+		{"FOO1_BAR2", ""},
+		{"_Foo", ""},
+
+		{"FOO.BAR", "contain only letters, numbers and underscores"},
+		{"1FOO", "name must start with a letter or underscore"},
+		{"giteA_xx", "name cannot start with"},
+		{"githuB_xx", "name cannot start with"},
+		{"cI", "is a reserved name"},
 	}
 	for _, c := range cases {
 		err := ValidateName(c.name)
-		if c.valid {
+		if c.errMsg == "" {
 			assert.NoError(t, err, "ValidateName(%q) should be valid", c.name)
 		} else {
-			assert.Error(t, err, "ValidateName(%q) should be invalid", c.name)
-			if c.errorContains != "" {
-				assert.Contains(t, err.Error(), c.errorContains, "ValidateName(%q) error message should mention %q", c.name, c.errorContains)
-			}
+			assert.ErrorContains(t, err, c.errMsg, "ValidateName(%q) error message should mention %q", c.name, c.errMsg)
 		}
 	}
 }
