@@ -18,7 +18,7 @@ func TestValidateName(t *testing.T) {
 		{"FOO1_BAR2", ""},
 		{"_Foo", ""},
 
-		{"FOO.BAR", "contain only letters, numbers and underscores"},
+		{"FOO.BAR", "contain only letters, numbers, and underscores"},
 		{"1FOO", "name must start with a letter or underscore"},
 		{"giteA_xx", "name cannot start with"},
 		{"githuB_xx", "name cannot start with"},
