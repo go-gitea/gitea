@@ -126,21 +126,20 @@
 		</div>
 
 		<div class="ui attached segment flex-text-block tw-flex-wrap">
-			<div class="flex-text-inline">
-				{{ctx.RenderUtils.AvatarStackWithNames .CommitAvatarStackData}}
-				{{$committerIsAuthor := and (eq .Commit.Committer.Name .Commit.Author.Name) (eq .Commit.Committer.Email .Commit.Author.Email)}}
-				{{if not $committerIsAuthor}}
-					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.authored"}} {{ctx.Locale.Tr "repo.commits.avatar_stack_and"}}</span>
-					{{if .Verification.CommittingUser}}
-						{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
-						<strong>{{.Verification.CommittingUser.GetShortDisplayNameLinkHTML}}</strong>
-					{{else}}
-						{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20}}
-						<strong>{{.Commit.Committer.Name}}</strong>
-					{{end}}
+			{{$authors := ctx.RenderUtils.AvatarStackWithNames .CommitAvatarStackData}}
+			{{$committedAt := DateUtils.TimeSince .Commit.Committer.When}}
+			{{$committerIsAuthor := and (eq .Commit.Committer.Name .Commit.Author.Name) (eq .Commit.Committer.Email .Commit.Author.Email)}}
+			{{if $committerIsAuthor}}
+				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_at" $authors $committedAt}}</span>
+			{{else}}
+				{{$committer := ""}}
+				{{if .Verification.CommittingUser}}
+					{{$committer = HTMLFormat `%s <strong>%s</strong>` (ctx.AvatarUtils.Avatar .Verification.CommittingUser 20) .Verification.CommittingUser.GetShortDisplayNameLinkHTML}}
+				{{else}}
+					{{$committer = HTMLFormat `%s <strong>%s</strong>` (ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20) .Commit.Committer.Name}}
 				{{end}}
-				<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed"}} {{DateUtils.TimeSince .Commit.Committer.When}}</span>
-			</div>
+				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.authored_committed_at" $authors $committer $committedAt}}</span>
+			{{end}}
 
 			{{if and .Verification (or .Verification.Verified .Verification.Warning)}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}
@@ -158,7 +157,7 @@
 					</div>
 				{{end}}
 				<div class="flex-text-inline">
-					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.commit"}}</span>
+					<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.commit"}}</span>
 					<a class="ui sha label" href="{{$commitLinkBase}}/{{PathEscape .CommitID}}">{{ShortSha .CommitID}}</a>
 					<button class="btn interact-fg tw-p-1" data-clipboard-text="{{.CommitID}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
 				</div>
