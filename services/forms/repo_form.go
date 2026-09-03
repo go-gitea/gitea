@@ -79,7 +79,7 @@ type MigrateRepoForm struct {
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	middleware.FormDefaultValidator
-	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	RepoName               string `binding:"TrimSpace;Required;AlphaDashDot;MaxSize(100)"`
 	Description            string `binding:"MaxSize(2048)"`
 	Website                string `binding:"ValidUrl;MaxSize(1024)"`
 	Interval               string
@@ -575,4 +575,11 @@ type AddTimeManuallyForm struct {
 type SaveTopicForm struct {
 	middleware.FormDefaultValidator
 	Topics []string `binding:"topics;Required;"`
+}
+
+// AddDeployTokenForm form for adding a deploy token to a repository
+type AddDeployTokenForm struct {
+	middleware.FormDefaultValidator
+	Title      string `binding:"Required;MaxSize(50)"`
+	IsWritable bool
 }
