@@ -46,7 +46,7 @@ function bindActionQueueList(el: HTMLElement): void {
       // Table rows don't drag reliably with native HTML5 DnD; use sortable's mouse-based fallback.
       forceFallback: true,
       fallbackOnBody: true,
-      onChoose() {
+      onStart() {
         reordering = true;
       },
       async onEnd(e) { // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable requires an async callback to persist the reordered job.
