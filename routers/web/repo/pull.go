@@ -742,6 +742,9 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			return
 		}
 		beforeCommitID = beforeCommit.ID.String()
+	} else if beforeCommitID == "" && prCompareInfo.CompareBase == "" {
+		// no merge base (unrelated histories): the pull request brings in the whole head tree
+		beforeCommitID = afterCommit.ID.Type().EmptyTree().String()
 	} else {
 		beforeCommitID = util.IfZero(beforeCommitID, prCompareInfo.CompareBase)
 		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
@@ -753,10 +756,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 				return
 			}
 		}
-	}
-	if beforeCommit == nil {
-		ctx.NotFound(nil)
-		return
+		if beforeCommit == nil {
+			ctx.NotFound(nil)
+			return
+		}
 	}
 
 	ctx.Data["CompareInfo"] = prCompareInfo
