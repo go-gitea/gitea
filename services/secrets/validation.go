@@ -25,7 +25,7 @@ var globalVars = sync.OnceValue(func() (ret struct {
 func ValidateName(name string) error {
 	vars := globalVars()
 	if !vars.namePattern.MatchString(name) {
-		return util.NewInvalidArgumentErrorf("name must start with a letter or underscore, contain only letters, numbers and underscores")
+		return util.NewInvalidArgumentErrorf("name must start with a letter or underscore and contain only letters, numbers, and underscores")
 	}
 	if vars.forbiddenPrefixPattern.MatchString(name) {
 		return util.NewInvalidArgumentErrorf("name cannot start with 'GITEA_' or 'GITHUB_'")
