@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -56,6 +55,6 @@ func runChangeUserType(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	fmt.Printf("%s's type has been successfully changed to %s!\n", user.Name, c.String("user-type"))
+	cprintf(c, "%s's type has been successfully changed to %s!\n", user.Name, c.String("user-type"))
 	return nil
 }

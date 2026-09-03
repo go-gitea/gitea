@@ -152,9 +152,6 @@ linters:
           - dupl
         path: modelmigration/v
       - linters:
-          - forbidigo
-        path: cmd
-      - linters:
           - dupl
         text: (?i)webhook
       - linters:
