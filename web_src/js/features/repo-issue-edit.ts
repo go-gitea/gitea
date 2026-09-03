@@ -120,26 +120,29 @@ function extractSelectedMarkdown(container: HTMLElement) {
   return convertHtmlToMarkdown(el);
 }
 
-async function tryOnQuoteReply(e: Event) {
-  const clickTarget = (e.target as HTMLElement).closest('.quote-reply');
-  if (!clickTarget) return;
+function findSelectedCommentMarkup(): HTMLElement | null {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount || selection.isCollapsed) return null;
+  const node = selection.getRangeAt(0).commonAncestorContainer;
+  const el = node instanceof HTMLElement ? node : node.parentElement;
+  return el?.closest<HTMLElement>('.render-content.markup') ?? null; // null when the selection spans two comments
+}
 
-  e.preventDefault();
-  const contentToQuoteId = clickTarget.getAttribute('data-target');
-  const targetRawToQuote = document.querySelector<HTMLElement>(`#${contentToQuoteId}.raw-content`)!;
-  const targetMarkupToQuote = targetRawToQuote.parentElement!.querySelector<HTMLElement>('.render-content.markup')!;
-  let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
-  if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
+// absent for anonymous users and archived repos, where the context menu was not rendered either
+async function resolveReplyEditor(targetMarkupToQuote: HTMLElement) {
+  const codeCloud = targetMarkupToQuote.closest('.comment-code-cloud');
+  if (codeCloud) {
+    const replyBtn = codeCloud.querySelector<HTMLElement>('button.comment-form-reply');
+    return replyBtn ? await handleReply(replyBtn) : null;
+  }
+  return getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'));
+}
+
+async function quoteToEditor(targetMarkupToQuote: HTMLElement, contentToQuote: string) {
   const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
-  let editor;
-  if (clickTarget.classList.contains('quote-reply-diff')) {
-    const replyBtn = clickTarget.closest('.comment-code-cloud')!.querySelector<HTMLElement>('button.comment-form-reply')!;
-    editor = await handleReply(replyBtn);
-  } else {
-    // for normal issue/comment page
-    editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'))!;
-  }
+  const editor = await resolveReplyEditor(targetMarkupToQuote);
+  if (!editor) return;
 
   if (editor.value()) {
     editor.value(`${editor.value()}\n\n${quotedContent}`);
@@ -150,9 +153,37 @@ async function tryOnQuoteReply(e: Event) {
   editor.moveCursorToEnd();
 }
 
+async function tryOnQuoteReply(e: Event) {
+  const clickTarget = (e.target as HTMLElement).closest('.quote-reply');
+  if (!clickTarget) return;
+
+  e.preventDefault();
+  const contentToQuoteId = clickTarget.getAttribute('data-target');
+  const targetRawToQuote = document.querySelector<HTMLElement>(`#${contentToQuoteId}.raw-content`)!;
+  const targetMarkupToQuote = targetRawToQuote.parentElement!.querySelector<HTMLElement>('.render-content.markup')!;
+  let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
+  if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
+  await quoteToEditor(targetMarkupToQuote, contentToQuote);
+}
+
+async function tryOnQuoteReplyShortcut(e: KeyboardEvent) {
+  if (e.key !== 'r' || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || e.repeat) return;
+  const target = e.target as HTMLElement;
+  if (target.matches('input, textarea, select') || target.isContentEditable) return;
+
+  const targetMarkupToQuote = findSelectedCommentMarkup();
+  if (!targetMarkupToQuote) return;
+  const contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
+  if (!contentToQuote) return;
+
+  e.preventDefault(); // before the first await, otherwise the key could still reach the page
+  await quoteToEditor(targetMarkupToQuote, contentToQuote);
+}
+
 export function initRepoIssueCommentEdit() {
   document.addEventListener('click', (e) => {
     tryOnEditContent(e); // Edit issue or comment content
     tryOnQuoteReply(e); // Quote reply to the comment editor
   });
+  document.addEventListener('keydown', tryOnQuoteReplyShortcut); // "r": quote the selected text
 }
