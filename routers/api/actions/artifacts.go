@@ -130,13 +130,18 @@ func ArtifactsRoutes(prefix string) *web.Router {
 	return m
 }
 
+func newArtifactContext(resp http.ResponseWriter, req *http.Request) *ArtifactContext {
+	base := context.NewBaseContext(resp, req)
+	ctx := &ArtifactContext{Base: base}
+	ctx.SetContextValue(artifactContextKey, ctx)
+	httplib.MarkRequestSupportPublicURL(ctx)
+	return ctx
+}
+
 func ArtifactContexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base := context.NewBaseContext(resp, req)
-
-			ctx := &ArtifactContext{Base: base}
-			ctx.SetContextValue(artifactContextKey, ctx)
+			ctx := newArtifactContext(resp, req)
 
 			// action task call server api with Bearer ACTIONS_RUNTIME_TOKEN
 			// we should verify the ACTIONS_RUNTIME_TOKEN
