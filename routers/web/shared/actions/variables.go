@@ -127,7 +127,7 @@ func VariableCreate(ctx *context.Context) {
 	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
 	if err != nil {
 		log.Error("CreateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
+		ctx.JSONError(err.Error())
 		return
 	}
 
@@ -161,7 +161,11 @@ func VariableUpdate(ctx *context.Context) {
 
 	if ok, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil || !ok {
 		log.Error("UpdateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
+		if err != nil {
+			ctx.JSONError(err.Error())
+		} else {
+			ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
+		}
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))
