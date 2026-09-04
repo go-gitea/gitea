@@ -29,7 +29,3 @@ func EntryInfoFromGitTreeEntry(ctx context.Context, gitRepo *git.Repository, com
 func EntryInfoFolder() *EntryInfo {
 	return &EntryInfo{EntryMode: git.EntryModeTree}
 }
-
-func EntryInfoFolderOpen() *EntryInfo {
-	return &EntryInfo{EntryMode: git.EntryModeTree, IsOpen: true}
-}

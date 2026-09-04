@@ -20,7 +20,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
@@ -373,11 +372,7 @@ func Diff(ctx *context.Context) {
 			return
 		}
 
-		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
-		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
-		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
-		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+		setDiffFileTreeData(ctx, diffTree, nil)
 	}
 
 	statuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptionsAll)

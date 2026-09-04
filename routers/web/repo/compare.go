@@ -24,7 +24,6 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	csv_module "gitea.dev/modules/csv"
-	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
@@ -447,11 +446,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 			return
 		}
 
-		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, nil)
-		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
-		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
-		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+		setDiffFileTreeData(ctx, diffTree, nil)
 	}
 
 	headCommit, err := ci.HeadGitRepo.GetCommit(ctx, headCommitID)

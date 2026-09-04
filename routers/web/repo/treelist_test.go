@@ -38,46 +38,37 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 		"dir-a/dir-a-x/file-deep": pull_model.Viewed,
 	})
 
-	mockIconForFile := func(id string) template.HTML {
-		return template.HTML(`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use href="#` + id + `"></use></svg>`)
-	}
 	assert.Equal(t, WebDiffFileTree{
 		TreeRoot: WebDiffFileItem{
 			Children: []*WebDiffFileItem{
 				{
 					EntryMode:   "tree",
 					DisplayName: "dir-a/dir-a-x",
-					FullName:    "dir-a/dir-a-x",
 					Children: []*WebDiffFileItem{
 						{
 							EntryMode:   "",
 							DisplayName: "file-deep",
-							FullName:    "dir-a/dir-a-x/file-deep",
 							NameHash:    "4acf7eef1c943a09e9f754e93ff190db8583236b",
 							DiffStatus:  "changed",
 							IsViewed:    true,
-							FileIcon:    mockIconForFile(`svg-mfi-file`),
 						},
 					},
 				},
 				{
 					EntryMode:   "",
 					DisplayName: "file1",
-					FullName:    "file1",
 					NameHash:    "60b27f004e454aca81b0480209cce5081ec52390",
 					DiffStatus:  "added",
-					FileIcon:    mockIconForFile(`svg-mfi-file`),
 				},
 				{
 					EntryMode:   "",
 					DisplayName: "file2",
-					FullName:    "file2",
 					OldFullName: "file2-old",
 					NameHash:    "cb99b709a1978bd205ab9dfd4c5aaa1fc91c7523",
 					DiffStatus:  "renamed",
-					FileIcon:    mockIconForFile(`svg-mfi-file`),
 				},
 			},
 		},
+		Icons: []template.HTML{`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use href="#svg-mfi-file"></use></svg>`},
 	}, ret)
 }

@@ -61,6 +61,8 @@
 		{{end}}
 	{{end}}
 	<div id="diff-container">
+		{{/* the viewed-file checkbox reads this store too, so it is not tied to $showFileTree */}}
+		{{if $.DiffFileTree}}<script type="application/json" id="diff-file-tree-data">{{$.DiffFileTree}}</script>{{end}}
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
 			<div id="diff-file-tree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict

@@ -25,7 +25,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/emoji"
-	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/glob"
@@ -856,11 +855,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 			filesViewedState = reviewState.UpdatedFiles
 		}
 
-		renderedIconPool := fileicon.NewRenderedIconPool()
-		ctx.PageData["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, filesViewedState)
-		ctx.PageData["FolderIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
-		ctx.PageData["FolderOpenIcon"] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
-		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
+		setDiffFileTreeData(ctx, diffTree, filesViewedState)
 	}
 
 	ctx.Data["Diff"] = diff
