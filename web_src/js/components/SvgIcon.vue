@@ -5,7 +5,7 @@ import {html, htmlRaw} from '../utils/html.ts';
 
 const props = withDefaults(defineProps<{
   name?: SvgName,
-  useHref?: string, // render svg body as `<use href>`
+  useHref?: string,
   size?: number,
   symbolId?: string,
 }>(), {
