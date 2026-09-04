@@ -1,81 +1,66 @@
 import {countMatchingFiles, diffTreeStoreSetViewed, extensionFilterFromUrl, extensionFilterToUrl, filterDiffTree, getDiffTreeExtensionStats, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
 
-function file(name: string, oldName?: string): DiffTreeEntry {
-  return {
-    FullName: '',
-    OldFullName: oldName,
-    DisplayName: name.split('/').pop()!,
-    DiffStatus: 'added',
-    NameHash: name,
-    Icon: 0,
-  };
+function file(name: string, oldPath?: string): DiffTreeEntry {
+  return {Name: name, OldPath: oldPath, Icon: '', IconClass: ''};
 }
 
 function dir(name: string, children: DiffTreeEntry[]): DiffTreeEntry {
-  return {
-    FullName: '',
-    DisplayName: name.split('/').pop()!,
-    EntryMode: 'tree',
-    NameHash: name,
-    Icon: 0,
-    Children: children,
-  };
+  return {Name: name, Icon: '', IconClass: '', Children: children};
 }
 
 function makeStore(children: DiffTreeEntry[]) {
   return reactiveDiffTreeStore({
-    TreeRoot: {FullName: '', DisplayName: '', EntryMode: 'tree', NameHash: 'root', Icon: 0, Children: children},
-    Icons: [''],
+    TreeRoot: {Name: '', Icon: '', IconClass: '', Children: children},
     FolderIcon: '',
     FolderOpenIcon: '',
   });
 }
 
-function visibleNames(root: DiffTreeEntry | null): string[] {
+function visiblePaths(root: DiffTreeEntry | null): string[] {
   if (!root) return [];
   const out: string[] = [];
-  const visit = (e: DiffTreeEntry) => {
-    if (e.EntryMode !== 'tree') out.push(e.FullName);
-    for (const c of e.Children ?? []) visit(c);
+  const visit = (e: DiffTreeEntry, path: string) => {
+    if (!e.Children) out.push(path);
+    for (const c of e.Children ?? []) visit(c, path ? `${path}/${c.Name}` : c.Name);
   };
-  visit(root);
+  visit(root, '');
   return out;
 }
 
 test('diff-tree', () => {
   const store = makeStore([
-    dir('dir1', [file('dir1/test.txt')]),
+    dir('dir1', [file('test.txt')]),
     file('other.txt'),
   ]);
   diffTreeStoreSetViewed(store, 'dir1/test.txt', true);
-  expect(store.fullNameMap['dir1/test.txt'].IsViewed).toBe(true);
-  expect(store.fullNameMap['dir1'].IsViewed).toBe(true);
+  expect(store.pathMap.get('dir1/test.txt')!.IsViewed).toBe(true);
+  expect(store.TreeRoot.Children![0].IsViewed).toBe(true);
 });
 
 test('filterDiffTree', () => {
   const store = makeStore([
-    dir('dir1', [file('dir1/test.txt')]),
+    dir('dir1', [file('test.txt')]),
     file('other.ts'),
     file('other.TS'),
   ]);
 
   store.filenameFilterQuery = 'TesT';
-  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/test.txt']);
+  expect(visiblePaths(filterDiffTree(store))).toEqual(['dir1/test.txt']);
 
   store.filenameFilterQuery = '';
   store.activeExtensions = ['.ts'];
-  expect(visibleNames(filterDiffTree(store))).toEqual(['other.ts', 'other.TS']);
+  expect(visiblePaths(filterDiffTree(store))).toEqual(['other.ts', 'other.TS']);
 
   store.activeExtensions = [];
-  expect(visibleNames(filterDiffTree(store))).toEqual([]);
+  expect(visiblePaths(filterDiffTree(store))).toEqual([]);
 
   store.activeExtensions = 'all';
-  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/test.txt', 'other.ts', 'other.TS']);
+  expect(visiblePaths(filterDiffTree(store))).toEqual(['dir1/test.txt', 'other.ts', 'other.TS']);
 });
 
 test('getDiffTreeExtensionStats', () => {
   const store = makeStore([
-    dir('dir1', [file('dir1/test.txt'), file('dir1/Makefile'), file('dir1/.gitignore')]),
+    dir('dir1', [file('test.txt'), file('Makefile'), file('.gitignore')]),
     file('.eslintrc.json'), // a dotfile with an extension keeps that extension
     file('other.ts'),
     file('other.TXT'), // case-insensitive
@@ -91,7 +76,7 @@ test('getDiffTreeExtensionStats', () => {
 
 test('countMatchingFiles', () => {
   const store = makeStore([
-    dir('dir1', [file('dir1/new-name.md', 'dir1/old-name.txt')]),
+    dir('dir1', [file('new-name.md', 'dir1/old-name.txt')]),
     file('other.ts'),
   ]);
 
@@ -99,16 +84,16 @@ test('countMatchingFiles', () => {
 
   // search query also matches the pre-rename path
   store.filenameFilterQuery = 'old-name';
-  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
+  expect(visiblePaths(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
   expect(countMatchingFiles(store)).toBe(1);
 
   // extension filter only applies to new name
   store.filenameFilterQuery = '';
   store.activeExtensions = ['.txt'];
-  expect(visibleNames(filterDiffTree(store))).toEqual([]);
+  expect(visiblePaths(filterDiffTree(store))).toEqual([]);
   expect(countMatchingFiles(store)).toBe(0);
   store.activeExtensions = ['.md'];
-  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
+  expect(visiblePaths(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
 
   store.activeExtensions = ['.md', '.ts'];
   expect(countMatchingFiles(store)).toBe(2);

@@ -6,7 +6,6 @@ package repo
 import (
 	"html/template"
 	"net/http"
-	"path"
 	"strings"
 
 	pull_model "gitea.dev/models/pull"
@@ -62,25 +61,23 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 
 // WebDiffFileItem is used by frontend, check the field names in frontend before changing
 type WebDiffFileItem struct {
-	OldFullName string `json:",omitzero"`
-	DisplayName string
-	NameHash    string             `json:",omitzero"`
-	DiffStatus  string             `json:",omitzero"`
-	EntryMode   string             `json:",omitzero"`
-	IsViewed    bool               `json:",omitzero"`
-	Children    []*WebDiffFileItem `json:",omitzero"`
-	Icon        int                // index into WebDiffFileTree.Icons
+	OldPath    string `json:",omitzero"`
+	Name       string
+	NameHash   string             `json:",omitzero"`
+	DiffStatus string             `json:",omitzero"`
+	IsViewed   bool               `json:",omitzero"`
+	Children   []*WebDiffFileItem `json:",omitzero"`
+	Icon       string             // SVG ID in FileIconPoolHTML
+	IconClass  string
 }
 
 // WebDiffFileTree is used by frontend, check the field names in frontend before changing
 type WebDiffFileTree struct {
 	TreeRoot       WebDiffFileItem
-	Icons          []template.HTML // deduplicated, the items only carry an index into it
 	FolderIcon     template.HTML
 	FolderOpenIcon template.HTML
 }
 
-// setDiffFileTreeData renders the diff file tree and the icon definitions it references
 func setDiffFileTreeData(ctx *context.Context, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	ctx.Data["DiffFileTree"] = transformDiffTreeForWeb(renderedIconPool, diffTree, filesViewedState)
@@ -93,24 +90,13 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 	dft.FolderIcon = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
 	dft.FolderOpenIcon = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
 
-	iconIndexes := map[template.HTML]int{}
-	iconIndex := func(icon template.HTML) int {
-		idx, ok := iconIndexes[icon]
-		if !ok {
-			idx = len(dft.Icons)
-			iconIndexes[icon] = idx
-			dft.Icons = append(dft.Icons, icon)
-		}
-		return idx
-	}
-
 	dirNodes := map[string]*WebDiffFileItem{"": &dft.TreeRoot}
-	addItem := func(fullName string, item *WebDiffFileItem) {
+	addItem := func(path string, item *WebDiffFileItem) {
 		var parentPath string
-		if dir, name, found := strings.CutLast(fullName, "/"); found {
-			parentPath, item.DisplayName = dir, name
+		if dir, name, found := strings.CutLast(path, "/"); found {
+			parentPath, item.Name = dir, name
 		} else {
-			item.DisplayName = fullName
+			item.Name = path
 		}
 		parentNode, parentExists := dirNodes[parentPath]
 		if !parentExists {
@@ -120,7 +106,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 				nodePath := strings.Join(fields[:idx+1], "/")
 				node, ok := dirNodes[nodePath]
 				if !ok {
-					node = &WebDiffFileItem{EntryMode: "tree", DisplayName: field}
+					node = &WebDiffFileItem{Name: field}
 					dirNodes[nodePath] = node
 					parentNode.Children = append(parentNode.Children, node)
 				}
@@ -133,35 +119,19 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 	for _, file := range diffTree.Files {
 		item := &WebDiffFileItem{DiffStatus: file.Status}
 		if file.BasePath != file.HeadPath {
-			item.OldFullName = file.BasePath
+			item.OldPath = file.BasePath
 		}
 		item.IsViewed = filesViewedState[file.HeadPath] == pull_model.Viewed
 		item.NameHash = git.HashFilePathForWebUI(file.HeadPath)
-		item.Icon = iconIndex(fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{BaseName: path.Base(file.HeadPath), EntryMode: file.HeadMode}))
-
-		switch file.HeadMode {
-		case git.EntryModeTree:
-			item.EntryMode = "tree"
-		case git.EntryModeCommit:
-			item.EntryMode = "commit" // submodule
-		default:
-			// default to empty, and will be treated as "blob" file because there is no "symlink" support yet
-		}
 		addItem(file.HeadPath, item)
-	}
-
-	var mergeSingleDir func(node *WebDiffFileItem)
-	mergeSingleDir = func(node *WebDiffFileItem) {
-		if len(node.Children) == 1 {
-			if child := node.Children[0]; child.EntryMode == "tree" {
-				node.DisplayName = node.DisplayName + "/" + child.DisplayName
-				node.Children = child.Children
-				mergeSingleDir(node)
-			}
-		}
+		item.Icon, item.IconClass = fileicon.RenderEntryIconID(renderedIconPool, &fileicon.EntryInfo{BaseName: item.Name, EntryMode: file.HeadMode})
 	}
 	for _, node := range dft.TreeRoot.Children {
-		mergeSingleDir(node)
+		for len(node.Children) == 1 && node.Children[0].Children != nil {
+			child := node.Children[0]
+			node.Name += "/" + child.Name
+			node.Children = child.Children
+		}
 	}
 	return dft
 }
