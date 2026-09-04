@@ -16,11 +16,11 @@ func loadTaskFrom(rootCfg ConfigProvider) {
 
 	switch taskSec.Key("QUEUE_TYPE").MustString("channel") {
 	case "channel":
-		queueTaskSec.Key("TYPE").MustString("persistable-channel")
-		queueTaskSec.Key("CONN_STR").MustString(taskSec.Key("QUEUE_CONN_STR").MustString(""))
+		queueTaskSec.Key("TYPE").MustString("persistable-channel")                            // FIXME: INI-MUST-SIDE-EFFECT
+		queueTaskSec.Key("CONN_STR").MustString(taskSec.Key("QUEUE_CONN_STR").MustString("")) // FIXME: INI-MUST-SIDE-EFFECT
 	case "redis":
-		queueTaskSec.Key("TYPE").MustString("redis")
-		queueTaskSec.Key("CONN_STR").MustString(taskSec.Key("QUEUE_CONN_STR").MustString("addrs=127.0.0.1:6379 db=0"))
+		queueTaskSec.Key("TYPE").MustString("redis")                                                                   // FIXME: INI-MUST-SIDE-EFFECT
+		queueTaskSec.Key("CONN_STR").MustString(taskSec.Key("QUEUE_CONN_STR").MustString("addrs=127.0.0.1:6379 db=0")) // FIXME: INI-MUST-SIDE-EFFECT
 	}
-	queueTaskSec.Key("LENGTH").MustInt(taskSec.Key("QUEUE_LENGTH").MustInt(1000))
+	queueTaskSec.Key("LENGTH").MustInt(taskSec.Key("QUEUE_LENGTH").MustInt(1000)) // FIXME: INI-MUST-SIDE-EFFECT
 }

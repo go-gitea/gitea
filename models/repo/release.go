@@ -444,7 +444,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 		// If the names unique, use the URL with the Name instead of the UUID
 		if !hasDuplicateName(release.Attachments) {
 			for _, attachment := range release.Attachments {
-				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
+				attachment.CustomDownloadURL = release.Repo.HTMLURL(ctx) + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
 			}
 		}
 	}

@@ -792,7 +792,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.Name != form.RepoName {
+	if repo.FullName() != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -826,7 +826,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		ctx.ServerError("Convert Fork", err)
 		return
 	}
-	if repo.Name != form.RepoName {
+	if repo.FullName() != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -862,7 +862,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.Name != form.RepoName {
+	if repo.FullName() != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -953,7 +953,7 @@ func handleSettingsPostDelete(ctx *context.Context) {
 
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.Name != form.RepoName {
+	if repo.FullName() != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}
@@ -979,7 +979,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 	}
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if repo.Name != form.RepoName {
+	if repo.FullName() != form.RepoName {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_repo_name"))
 		return
 	}

@@ -17,6 +17,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
@@ -119,6 +121,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
 	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
 	ctx.SetContextValue(WebContextKey, ctx)
+	httplib.MarkRequestSupportPublicURL(ctx)
 	return ctx
 }
 
@@ -243,8 +246,8 @@ func (ctx *Context) JSONOK() {
 	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
 }
 
-func buildJsonErrorMap(msg any) map[string]any {
-	switch v := msg.(type) {
+func buildJsonErrorMap[T string | template.HTML](msg T) map[string]any {
+	switch v := any(msg).(type) {
 	case string:
 		return map[string]any{"errorMessage": v, "renderFormat": "text"}
 	case template.HTML:
@@ -253,11 +256,26 @@ func buildJsonErrorMap(msg any) map[string]any {
 	panic(fmt.Sprintf("unsupported type: %T", msg))
 }
 
-func (ctx *Context) JSONError(msg any) {
+func (ctx *Context) JSONErrorAuto(err error) {
+	if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+		msg := errTr.Translate(ctx.Locale)
+		ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
+		return
+	}
+	errMsg, httpCode := util.ErrorUnwrapForUser(err)
+	if errMsg != "" {
+		ctx.JSON(httpCode, buildJsonErrorMap(errMsg))
+		return
+	}
+	log.ErrorWithSkip(1, "JSONErrorAuto: server internal error: %v", err)
+	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(ctx.Locale.TrString("error.occurred")))
+}
+
+func (ctx *Context) JSONError[T string | template.HTML](msg T) {
 	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
 }
 
-func (ctx *Context) JSONErrorWithField(msg any, field string) {
+func (ctx *Context) JSONErrorWithField[T string | template.HTML](msg T, field string) {
 	m := buildJsonErrorMap(msg)
 	m["errorFields"] = []string{field}
 	ctx.JSON(http.StatusBadRequest, m)

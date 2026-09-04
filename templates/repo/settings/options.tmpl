@@ -916,11 +916,12 @@
 				<div class="ui warning message">
 					{{ctx.Locale.Tr "repo.settings.convert_notices_1"}}
 				</div>
-				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-					<input type="hidden" name="action" value="convert">
-					{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
-					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.convert_confirm"))}}
-				</form>
+				{{template "repo/settings/dangerous_operation_form" (dict
+					"RepoFullName" .Repository.FullName
+					"RepoOperationLink" .Link
+					"RepoOperationAction" "convert"
+					"RepoOperationText" (ctx.Locale.Tr "repo.settings.convert_confirm")
+				)}}
 			</div>
 		</div>
 	{{end}}
@@ -933,11 +934,12 @@
 				<div class="ui warning message">
 					{{ctx.Locale.Tr "repo.settings.convert_fork_notices_1"}}
 				</div>
-				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-					<input type="hidden" name="action" value="convert_fork">
-					{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
-					{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.convert_fork_confirm"))}}
-				</form>
+				{{template "repo/settings/dangerous_operation_form" (dict
+					"RepoFullName" .Repository.FullName
+					"RepoOperationLink" .Link
+					"RepoOperationAction" "convert_fork"
+					"RepoOperationText" (ctx.Locale.Tr "repo.settings.convert_fork_confirm")
+				)}}
 			</div>
 		</div>
 	{{end}}
@@ -952,16 +954,12 @@
 				{{ctx.Locale.Tr "repo.settings.transfer_notices_3"}} <br>
 				{{ctx.Locale.Tr "repo.settings.transfer_notices_4"}}
 			</div>
-			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-				<input type="hidden" name="action" value="transfer">
-				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
-				<div class="required field">
-					<label for="new_owner_name">{{ctx.Locale.Tr "repo.settings.transfer_owner"}}</label>
-					<input id="new_owner_name" name="new_owner_name" required>
-				</div>
-
-				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.transfer_perform"))}}
-			</form>
+			{{template "repo/settings/dangerous_operation_form" (dict
+				"RepoFullName" .Repository.FullName
+				"RepoOperationLink" .Link
+				"RepoOperationAction" "transfer"
+				"RepoOperationText" (ctx.Locale.Tr "repo.settings.transfer_perform")
+			)}}
 		</div>
 	</div>
 
@@ -977,11 +975,12 @@
 				{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 				{{end}}
 			</div>
-			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-				<input type="hidden" name="action" value="delete">
-				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
-				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_delete"))}}
-			</form>
+			{{template "repo/settings/dangerous_operation_form" (dict
+				"RepoFullName" .Repository.FullName
+				"RepoOperationLink" .Link
+				"RepoOperationAction" "delete"
+				"RepoOperationText" (ctx.Locale.Tr "repo.settings.confirm_delete")
+			)}}
 		</div>
 	</div>
 
@@ -1043,11 +1042,12 @@
 				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
 				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name}}
 			</div>
-			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-				<input type="hidden" name="action" value="delete-wiki">
-				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
-				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_wiki_delete"))}}
-			</form>
+			{{template "repo/settings/dangerous_operation_form" (dict
+				"RepoFullName" .Repository.FullName
+				"RepoOperationLink" .Link
+				"RepoOperationAction" "delete-wiki"
+				"RepoOperationText" (ctx.Locale.Tr "repo.settings.confirm_wiki_delete")
+			)}}
 		</div>
 	</div>
 	{{end}}

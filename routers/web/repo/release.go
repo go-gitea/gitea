@@ -626,14 +626,12 @@ func EditReleasePost(ctx *context.Context) {
 	rel.IsPrerelease = form.Prerelease
 	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
-		if upload.IsErrFileTypeForbidden(err) {
-			ctx.JSONError(err.Error())
-		} else if errors.Is(err, release_service.ErrImmutableRelease) {
+		if errors.Is(err, release_service.ErrImmutableRelease) {
 			ctx.JSONError(ctx.Tr("repo.release.immutable_locked"))
 		} else if errors.Is(err, release_service.ErrImmutableTag) {
 			ctx.JSONError(ctx.Tr("repo.release.tag_name_immutable"))
 		} else {
-			ctx.ServerError("UpdateRelease", err)
+			ctx.JSONErrorAuto(err)
 		}
 		return
 	}

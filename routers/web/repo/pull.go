@@ -1319,14 +1319,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	comparePageInfo := newComparePageInfo()
 	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.JSONErrorNotFound()
-		return
-	} else if errors.Is(err, util.ErrInvalidArgument) {
-		ctx.JSONError(err.Error())
-		return
-	} else if err != nil {
-		ctx.ServerError("ParseCompareInfo", err)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ci := comparePageInfo.compareInfo
