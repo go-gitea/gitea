@@ -168,7 +168,13 @@ func (c TemplateContext) WindowConfig() map[string]any {
 			"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
 			"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 		},
-		// this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData
+		// This global i18n object should only contain general texts.
+		// for specialized texts, it should be provided inside the related modules by:
+		// (1) API response (2) HTML data-attribute (3) PageData
+		//
+		// Maybe (if really needed) in the future we can introduce versioned frontend i18n data,
+		// make frontend cache i18n data in local storage and only update when the version is changed,
+		// then we can fill more keys here.
 		"i18n": map[string]any{
 			"error_occurred":   locale.Tr("error.occurred"),
 			"remove_label_str": locale.Tr("remove_label_str"),
