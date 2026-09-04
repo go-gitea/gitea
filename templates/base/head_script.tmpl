@@ -7,5 +7,5 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.addEventListener('unhandledrejection', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 </script>
-<script type="application/json" id="window-config">{{ctx.WindowConfig}}</script>
+<script type="application/json" id="global-window-config">{{ctx.WindowConfig}}</script>
 {{ctx.ScriptImport "web_src/js/iife.ts"}}

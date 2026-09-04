@@ -1,10 +1,8 @@
-// DO NOT IMPORT window.config HERE!
-// to make sure the error handler always works, we should never import `window.config`, because
-// some user's custom template breaks it.
 import {showGlobalErrorMessage, processWindowErrorEvent} from './modules/errors.ts';
 
+// window.config is initialized here
 try {
-  window.config = JSON.parse(document.querySelector('#window-config')!.textContent);
+  window.config = JSON.parse(document.querySelector('#global-window-config')!.textContent);
   // in case some pages don't render the pageData, we make sure it is an object to prevent null access
   window.config.pageData ??= {};
 } catch {
