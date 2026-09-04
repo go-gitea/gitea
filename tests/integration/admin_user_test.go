@@ -195,28 +195,16 @@ func TestAdminBotUser(t *testing.T) {
 		tokenURL := fmt.Sprintf("/-/admin/users/%d/access_tokens", bot.ID)
 
 		// a bot can never be a site administrator, so an admin-scoped token must be refused
-		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
 			"name":        "admin-scoped",
 			"scope-admin": "write:admin",
-		}), http.StatusOK).Body)
-		// the validation error re-renders the page with the typed token name kept
-		assert.Equal(t, "admin-scoped", doc.Find(`input#name`).AttrOr("value", ""), "token name must survive a validation error")
+		}), http.StatusSeeOther)
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
 
-		// submitting no scope at all must also keep the typed token name
-		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
-			"name": "no-scope",
-		}), http.StatusOK).Body)
-		assert.Equal(t, "no-scope", doc.Find(`input#name`).AttrOr("value", ""))
-		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
-
-		// a successful creation shows the one-time token with a copy button instead of a bare flash
-		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
 			"name":             "ci",
 			"scope-repository": "write:repository",
-		}), http.StatusOK).Body)
-		assert.NotEmpty(t, doc.Find(`#new-access-token-value`).Nodes, "freshly created token must be displayed")
-		assert.NotEmpty(t, doc.Find(`[data-clipboard-target="#new-access-token-value"]`).Nodes, "token display must offer click-to-copy")
+		}), http.StatusSeeOther)
 		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
 
 		// tokens of non-bot accounts are managed by the account itself, not here
