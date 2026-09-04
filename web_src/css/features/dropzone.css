@@ -14,7 +14,7 @@
 
 .dropzone.dropzone .dz-preview .dz-success-mark svg,
 .dropzone.dropzone .dz-preview .dz-error-mark svg {
-  fill: currentColor;
+  fill: currentcolor;
 }
 
 .dropzone.dropzone .dz-preview .dz-progress {

@@ -32,10 +32,10 @@ async function createDropzone(el: HTMLElement, opts: Dropzone.DropzoneOptions) {
   return new Dropzone(el, opts);
 }
 
-export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFile>, {width, dppx}: {width?: number, dppx?: number} = {}) {
+export function generateMarkdownLinkForAttachment(file: {uuid: string, name: string}, {width, dppx}: {width?: number, dppx?: number} = {}) {
   // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
   let fileMarkdown = `[${file.name}](attachments/${file.uuid})`;
-  if (isImageFile(file)) {
+  if (isImageFile({name: file.name, type: null})) {
     if (width && width > 0 && dppx && dppx > 1) {
       // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
       // method to change image size in Markdown that is supported by all implementations.
@@ -43,7 +43,7 @@ export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFi
     } else {
       fileMarkdown = `![${file.name}](attachments/${file.uuid})`;
     }
-  } else if (isVideoFile(file)) {
+  } else if (isVideoFile({name: file.name, type: null})) {
     fileMarkdown = html`<video src="attachments/${file.uuid}" title="${file.name}" controls></video>`;
   }
   return fileMarkdown;
@@ -159,7 +159,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         const file: CustomDropzoneFile = {name: attachment.name, uuid: attachment.uuid, size: attachment.size};
         dzInst.emit('addedfile', file);
         dzInst.emit('complete', file);
-        if (isImageFile(file)) {
+        if (isImageFile({name: file.name, type: null})) {
           const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
           dzInst.emit('thumbnail', file, imgSrc);
         }
