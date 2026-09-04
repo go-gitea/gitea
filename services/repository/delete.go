@@ -73,11 +73,6 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		}
 	}
 
-	// the immutable tag claims are kept on purpose, but must record the path this repo ends at
-	if err := repo_model.StampImmutableTagPath(ctx, repo); err != nil {
-		return err
-	}
-
 	// Query the action tasks of this repo, they will be needed after they have been deleted to remove the logs
 	tasks, err := db.Find[actions_model.ActionTask](ctx, actions_model.FindTaskOptions{RepoID: repoID})
 	if err != nil {

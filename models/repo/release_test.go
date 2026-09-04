@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"strings"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -126,23 +127,20 @@ func TestImmutableTag(t *testing.T) {
 	}
 
 	assert.False(t, isImmutable(repo, "V1.1"))
-	assert.NoError(t, db.Insert(t.Context(), &ImmutableTag{RepoID: repo.ID, TagName: "V1.1"}))
+	assert.NoError(t, db.Insert(t.Context(), &ImmutableTag{
+		LowerOwnerName: strings.ToLower(repo.OwnerName), LowerRepoName: repo.LowerName, TagName: "V1.1",
+	}))
 	assert.True(t, isImmutable(repo, "V1.1"))
 	assert.False(t, isImmutable(repo, "v1.1")) // a git ref, so the claim is on the exact name
 
-	// the claim is held by id, so a rename cannot shake it off and frees no path
-	renamed := &Repository{ID: repo.ID, OwnerID: repo.OwnerID, LowerName: "renamed"}
-	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: repo.LowerName}
-	assert.True(t, isImmutable(renamed, "V1.1"))
-	assert.False(t, isImmutable(successor, "V1.1"))
-
-	// only deletion stamps the path, which a repository recreated there inherits
-	assert.NoError(t, StampImmutableTagPath(t.Context(), renamed))
-	assert.True(t, isImmutable(&Repository{ID: successor.ID, OwnerID: repo.OwnerID, LowerName: "renamed"}, "V1.1"))
-	assert.False(t, isImmutable(successor, "V1.1"))
+	// the claim is held by path, so a repository created there inherits it and a rename leaves it behind
+	successor := &Repository{ID: repo.ID + 9999, OwnerName: repo.OwnerName, LowerName: repo.LowerName}
+	renamed := &Repository{ID: repo.ID, OwnerName: repo.OwnerName, LowerName: "renamed"}
+	assert.True(t, isImmutable(successor, "V1.1"))
+	assert.False(t, isImmutable(renamed, "V1.1"))
 
 	other := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2})
-	assert.False(t, isImmutable(other, "v1.1"))
+	assert.False(t, isImmutable(other, "V1.1"))
 
 	// only a release that still exists blocks its tag from being deleted
 	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})

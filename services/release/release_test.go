@@ -457,20 +457,24 @@ func TestRelease_Immutable(t *testing.T) {
 		return rel
 	}
 
-	t.Run("NotAppliedRetroactively", func(t *testing.T) {
+	t.Run("ExistingReleaseLocksOnEdit", func(t *testing.T) {
 		releasesConfig.ImmutableReleases = false
 		rel := newRelease(t, "v9.6")
 		assert.False(t, rel.IsImmutable)
 
-		// enabling the setting must not lock releases that are already published
+		// enabling the setting alone reaches nothing, but any edit republishes and locks
 		releasesConfig.ImmutableReleases = true
-		rel.Note = "typo fixed"
-		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
-		assert.False(t, rel.IsImmutable)
-
 		immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.6")
 		assert.NoError(t, err)
 		assert.False(t, immutable)
+
+		rel.Note = "typo fixed"
+		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
+		assert.True(t, rel.IsImmutable)
+
+		immutable, err = repo_model.IsTagImmutable(t.Context(), repo, "v9.6")
+		assert.NoError(t, err)
+		assert.True(t, immutable)
 	})
 
 	releasesConfig.ImmutableReleases = true
@@ -484,14 +488,14 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.False(t, draft.IsImmutable)
 
 		// the name is unchanged, so only the publish transition can catch a claim made meanwhile
-		predecessor := &repo_model.ImmutableTag{
-			RepoID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerRepoName: repo.LowerName, TagName: "v9.5",
+		claimed := &repo_model.ImmutableTag{
+			LowerOwnerName: strings.ToLower(repo.OwnerName), LowerRepoName: repo.LowerName, TagName: "v9.5",
 		}
-		assert.NoError(t, db.Insert(t.Context(), predecessor))
+		assert.NoError(t, db.Insert(t.Context(), claimed))
 		published := *draft
 		published.IsDraft = false
 		assert.ErrorIs(t, UpdateRelease(t.Context(), user, gitRepo, &published, nil, nil, nil), ErrImmutableTag)
-		assert.NoError(t, db.DeleteBeans(t.Context(), &repo_model.ImmutableTag{RepoID: predecessor.RepoID}))
+		assert.NoError(t, db.DeleteBeans(t.Context(), &repo_model.ImmutableTag{ID: claimed.ID}))
 
 		draft.IsDraft = false
 		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, draft, nil, nil, nil))

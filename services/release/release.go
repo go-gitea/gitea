@@ -314,7 +314,8 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	rel.IsImmutable = oldRelease.IsImmutable // server owned, a stale request must never clear it
-	isBeingPublished := !rel.IsDraft && !rel.IsTag && (oldRelease.IsDraft || oldRelease.IsTag)
+	// any edit of a published release locks it, so enabling the setting reaches existing releases too
+	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag
 
 	if oldRelease.IsImmutable && !oldRelease.IsTag { // the release owns its immutable tag name
 		switch {
@@ -327,7 +328,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		case len(addAttachmentUUIDs) > 0 || len(delAttachmentUUIDs) > 0 || len(editAttachments) > 0:
 			return errImmutableField("assets")
 		}
-	} else if isConvertedFromTag || isBeingPublished || rel.TagName != oldRelease.TagName {
+	} else if isConvertedFromTag || isBeingLocked || rel.TagName != oldRelease.TagName {
 		if err := assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 			return err
 		}
@@ -339,7 +340,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if isBeingPublished {
+		if isBeingLocked {
 			if err = repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
 				return err
 			}
