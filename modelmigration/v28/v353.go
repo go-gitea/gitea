@@ -34,9 +34,9 @@ func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
 		return err
 	}
 
-	// tag names are matched exactly now, so a fresh install no longer has this column
+	// a fresh install no longer has this column
 	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "release", "lower_tag_name")
-	if err != nil || !exist { // dropping an absent column fails outside sqlite, so a retried migration must not
+	if err != nil || !exist { // dropping an absent column fails outside sqlite
 		return err
 	}
 	sess := x.NewSession()

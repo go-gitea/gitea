@@ -29,13 +29,21 @@ func init() {
 	db.RegisterModel(new(ImmutableTag))
 }
 
+func newImmutableTag(repo *Repository, tagName string) *ImmutableTag {
+	return &ImmutableTag{
+		LowerOwnerName: strings.ToLower(repo.OwnerName),
+		LowerRepoName:  repo.LowerName,
+		TagName:        tagName,
+	}
+}
+
 // LockRelease must run in the transaction writing the release, so row and claim commit together.
 func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
 	if rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
 		return nil
 	}
 	rel.IsImmutable = true
-	if rel.ID != 0 { // an existing row needs the flag written here, UpdateRelease never writes it
+	if rel.ID != 0 { // UpdateRelease never writes the flag
 		affected, err := db.GetEngine(ctx).ID(rel.ID).Cols("is_immutable").Update(rel)
 		if err != nil {
 			return err
@@ -44,17 +52,9 @@ func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
 			return util.NewNotExistErrorf("release does not exist [id: %d]", rel.ID)
 		}
 	}
-	return db.Insert(ctx, &ImmutableTag{
-		LowerOwnerName: strings.ToLower(repo.OwnerName),
-		LowerRepoName:  repo.LowerName,
-		TagName:        rel.TagName,
-	})
+	return db.Insert(ctx, newImmutableTag(repo, rel.TagName))
 }
 
 func IsTagImmutable(ctx context.Context, repo *Repository, tagName string) (bool, error) {
-	return db.GetEngine(ctx).Exist(&ImmutableTag{
-		LowerOwnerName: strings.ToLower(repo.OwnerName),
-		LowerRepoName:  repo.LowerName,
-		TagName:        tagName,
-	})
+	return db.GetEngine(ctx).Exist(newImmutableTag(repo, tagName))
 }

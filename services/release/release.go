@@ -75,7 +75,7 @@ func errImmutableField(field string) error {
 // ErrImmutableTag is returned when an immutable release's tag changes or a claimed name is reused.
 var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was used by an immutable release")
 
-func assertReleaseMutable(old, rel *repo_model.Release, addUUIDs, delUUIDs []string, editAttachments map[string]string) error {
+func assertReleaseMutable(old, rel *repo_model.Release, assetsChanged bool) error {
 	if !old.IsImmutable || old.IsTag {
 		return nil
 	}
@@ -86,7 +86,7 @@ func assertReleaseMutable(old, rel *repo_model.Release, addUUIDs, delUUIDs []str
 		return errImmutableField("target_commitish")
 	case rel.IsDraft || rel.IsTag: // demoting to a tag would free the tag for deletion
 		return errImmutableField("state")
-	case len(addUUIDs) > 0 || len(delUUIDs) > 0 || len(editAttachments) > 0:
+	case assetsChanged:
 		return errImmutableField("assets")
 	}
 	return nil
@@ -333,8 +333,9 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	// server owned, and a locked tag re-locks at its current path
 	rel.IsImmutable = oldRelease.IsImmutable && !oldRelease.IsTag
 	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag && rel.Repo.IsImmutableReleasesEnabled(ctx)
+	assetsChanged := len(addAttachmentUUIDs) > 0 || len(delAttachmentUUIDs) > 0 || len(editAttachments) > 0
 
-	if err := assertReleaseMutable(oldRelease, rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
+	if err := assertReleaseMutable(oldRelease, rel, assetsChanged); err != nil {
 		return err
 	}
 	if isConvertedFromTag || isBeingLocked || rel.TagName != oldRelease.TagName {
@@ -349,12 +350,11 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// re-assert against the row as it stands now
 		current, err := repo_model.GetReleaseByID(ctx, rel.ID)
 		if err != nil {
 			return err
 		}
-		if err := assertReleaseMutable(current, rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
+		if err := assertReleaseMutable(current, rel, assetsChanged); err != nil {
 			return err
 		}
 

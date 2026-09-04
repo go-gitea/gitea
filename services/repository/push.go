@@ -396,7 +396,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.PublishedUnix = publishedUnix
 			} else {
 				if rel.IsDraft {
-					// the name may have been claimed since the hook checked it, and publishing claims it
+					// the name may have been claimed since the hook checked it
 					immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 					if err != nil {
 						return fmt.Errorf("IsTagImmutable: %w", err)
