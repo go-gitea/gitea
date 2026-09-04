@@ -4,6 +4,7 @@
 package util
 
 import (
+	"fmt"
 	"io"
 	"testing"
 
@@ -31,4 +32,20 @@ func TestErrorTranslatable(t *testing.T) {
 	wrapped, ok = errTr.(*errorTranslatableWrapper)
 	require.True(t, ok)
 	assert.Equal(t, "key", wrapped.trKey)
+}
+
+func TestErrorUnwrapForUser(t *testing.T) {
+	err := NewNotExistErrorf("test msg")
+	msg, code := ErrorUnwrapForUser(err)
+	assert.Equal(t, "test msg", msg)
+	assert.Equal(t, 404, code)
+
+	err = fmt.Errorf("other wrapper: %w", err)
+	msg, code = ErrorUnwrapForUser(err)
+	assert.Equal(t, "other wrapper: test msg", msg)
+	assert.Equal(t, 404, code)
+
+	msg, code = ErrorUnwrapForUser(io.EOF)
+	assert.Equal(t, "", msg)
+	assert.Equal(t, 0, code)
 }
