@@ -10,8 +10,6 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/util"
-
-	"xorm.io/builder"
 )
 
 // a pull mirror follows upstream refs, so it cannot promise a tag will never move
@@ -54,9 +52,9 @@ func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
 }
 
 func IsTagImmutable(ctx context.Context, repo *Repository, tagName string) (bool, error) {
-	return db.Exist[ImmutableTag](ctx, builder.Eq{
-		"lower_owner_name": strings.ToLower(repo.OwnerName),
-		"lower_repo_name":  repo.LowerName,
-		"tag_name":         tagName,
+	return db.GetEngine(ctx).Exist(&ImmutableTag{
+		LowerOwnerName: strings.ToLower(repo.OwnerName),
+		LowerRepoName:  repo.LowerName,
+		TagName:        tagName,
 	})
 }

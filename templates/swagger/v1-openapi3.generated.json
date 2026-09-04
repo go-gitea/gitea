@@ -6063,7 +6063,7 @@
             "x-go-name": "IgnoreWhitespaceConflicts"
           },
           "immutable_releases": {
-            "description": "Whether newly published releases become immutable, existing releases are not affected",
+            "description": "Whether published releases become immutable, existing releases lock when they are next edited",
             "type": "boolean",
             "x-go-name": "ImmutableReleases"
           },

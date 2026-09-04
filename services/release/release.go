@@ -72,7 +72,7 @@ func errImmutableField(field string) error {
 	return util.ErrorWrap(ErrImmutableRelease, "%s cannot be changed when release is immutable", field)
 }
 
-// ErrImmutableTag is returned when a claimed tag name would be created, moved or deleted.
+// ErrImmutableTag is returned when an immutable release's tag changes or a claimed name is reused.
 var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was used by an immutable release")
 
 func assertReleaseMutable(old, rel *repo_model.Release, addUUIDs, delUUIDs []string, editAttachments map[string]string) error {
