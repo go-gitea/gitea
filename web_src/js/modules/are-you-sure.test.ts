@@ -1,4 +1,4 @@
-import {applyAreYouSure, initGlobalFormDirtyLeaveConfirm, shouldTriggerAreYouSure} from './are-you-sure.ts';
+import {applyAreYouSure, ignoreAreYouSure, initGlobalFormDirtyLeaveConfirm, shouldTriggerAreYouSure} from './are-you-sure.ts';
 
 function createForm(fieldsHtml: string, wrapperClass = ''): HTMLFormElement {
   document.body.insertAdjacentHTML('beforeend', `<div class="${wrapperClass}"><form>${fieldsHtml}</form></div>`);
@@ -93,6 +93,6 @@ test('initGlobalFormDirtyLeaveConfirm guards beforeunload', () => {
   form.parentElement!.classList.add('tw-hidden');
   expect(isBeforeUnloadPrevented()).toBe(false);
   form.parentElement!.classList.remove('tw-hidden');
-  form.classList.add('ignore-dirty');
+  ignoreAreYouSure(form);
   expect(isBeforeUnloadPrevented()).toBe(false);
 });

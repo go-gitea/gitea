@@ -5,7 +5,7 @@ import {hideElem, queryElems, showElem, createElementFromHTML, onInputDebounce} 
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
-import {applyAreYouSure} from '../modules/are-you-sure.ts';
+import {applyAreYouSure, ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {submitFormFetchAction} from '../modules/fetch-action.ts';
 import {dirname} from '../utils.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
@@ -213,7 +213,7 @@ export function initRepoEditor() {
           header: elForm.getAttribute('data-text-empty-confirm-header')!,
           content: elForm.getAttribute('data-text-empty-confirm-content')!,
         })) {
-          elForm.classList.add('ignore-dirty');
+          ignoreAreYouSure(elForm);
           submitFormFetchAction(elForm);
         }
       }

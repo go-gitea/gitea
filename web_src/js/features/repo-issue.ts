@@ -16,6 +16,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {FomanticApiResponse} from '../types.ts';
 
@@ -419,7 +420,7 @@ export function initRepoIssueTitleEdit() {
           }
         }
       }
-      issueTitleEditor.classList.add('ignore-dirty');
+      ignoreAreYouSure(issueTitleEditor);
       window.location.reload();
     } catch (error) {
       console.error(error);

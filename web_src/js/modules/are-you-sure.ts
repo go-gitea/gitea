@@ -37,6 +37,10 @@ export function applyAreYouSure(form: HTMLFormElement, onDirtyChange?: (dirty: b
   for (const field of trackedFields(form)) originalValues.set(field, fieldValue(field));
 }
 
+export function ignoreAreYouSure(el: Element) {
+  el.classList.add('ignore-dirty');
+}
+
 export function shouldTriggerAreYouSure(): boolean {
   return Array.from(document.querySelectorAll<HTMLFormElement>('form:not(.ignore-dirty)')).some((form) => {
     return areYouSureStates.get(form)?.dirty && !form.closest('.tw-hidden');
