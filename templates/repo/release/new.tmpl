@@ -14,7 +14,7 @@
 		{{template "base/alert" .}}
 		{{if .IsImmutable}}
 			<div class="ui info message">{{ctx.Locale.Tr "repo.release.immutable_locked"}}</div>
-		{{else if and (.Repository.IsImmutableReleasesEnabled ctx) (or (not .PageIsEditRelease) .IsDraft)}}
+		{{else if .Repository.IsImmutableReleasesEnabled ctx}}
 			<div class="ui info message">{{ctx.Locale.Tr "repo.release.immutable_notice"}}</div>
 		{{end}}
 
