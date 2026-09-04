@@ -2170,7 +2170,7 @@
   "repo.settings.pulls.default_allow_edits_from_maintainers": "Allow edits from maintainers by default",
   "repo.settings.releases_desc": "Enable Repository Releases",
   "repo.settings.immutable_releases": "Enable release immutability",
-  "repo.settings.immutable_releases_desc": "Disallow the tag, target and assets from being changed once a release is published. Tag names used by immutable releases can never be reused. Existing releases are not affected.",
+  "repo.settings.immutable_releases_desc": "Disallow the tag, target and assets from being changed once a release is published. Tag names used by immutable releases can never be reused. Existing releases lock when they are next edited.",
   "repo.settings.packages_desc": "Enable Repository Packages Registry",
   "repo.settings.projects_desc": "Enable Projects",
   "repo.settings.projects_mode_desc": "Projects Mode (which kinds of projects to show)",

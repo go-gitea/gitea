@@ -21,13 +21,14 @@ import (
 	release_service "gitea.dev/services/release"
 )
 
-func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64) bool {
+// immutableMsg is worded as GitHub words it, so clients see the same message for the same refusal
+func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64, immutableMsg string) bool {
 	release := checkReleaseMatchRepo(ctx, releaseID)
 	if release == nil {
 		return false
 	}
 	if release.IsImmutable {
-		ctx.APIErrorAuto(release_service.ErrImmutableRelease)
+		ctx.APIErrorAuto(util.ErrorWrap(release_service.ErrImmutableRelease, "%s", immutableMsg))
 		return false
 	}
 	return true
@@ -207,7 +208,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseAssetsMutable(ctx, releaseID) {
+	if !checkReleaseAssetsMutable(ctx, releaseID, "Cannot upload assets to an immutable release.") {
 		return
 	}
 
@@ -269,7 +270,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 			log.Error("DeleteAttachment %s: %v", attach.UUID, err)
 		}
-		ctx.APIErrorAuto(release_service.ErrImmutableRelease)
+		ctx.APIErrorAuto(util.ErrorWrap(release_service.ErrImmutableRelease, "Cannot upload assets to an immutable release."))
 		return
 	}
 
@@ -324,7 +325,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseAssetsMutable(ctx, releaseID) {
+	if !checkReleaseAssetsMutable(ctx, releaseID, "name cannot be changed when release is immutable") {
 		return
 	}
 
@@ -397,7 +398,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseAssetsMutable(ctx, releaseID) {
+	if !checkReleaseAssetsMutable(ctx, releaseID, "Cannot delete asset from an immutable release") {
 		return
 	}
 

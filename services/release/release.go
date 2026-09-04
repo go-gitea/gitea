@@ -313,7 +313,8 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		rel.PublishedUnix = timeutil.TimeStampNow()
 	}
 
-	rel.IsImmutable = oldRelease.IsImmutable // server owned, a stale request must never clear it
+	// server owned, a stale request must never clear it, and a locked tag re-locks at its current path
+	rel.IsImmutable = oldRelease.IsImmutable && !oldRelease.IsTag
 	// any edit of a published release locks it, so enabling the setting reaches existing releases too
 	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag
 

@@ -33,10 +33,15 @@ func init() {
 // LockRelease claims the tag name of a release becoming published. Must run inside the transaction
 // that writes the release, so the row and its claim commit together.
 func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
-	if rel.IsImmutable || rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
+	if rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
 		return nil
 	}
 	rel.IsImmutable = true
+	if rel.ID != 0 { // an existing row needs the flag written here, UpdateRelease never writes it
+		if _, err := db.GetEngine(ctx).ID(rel.ID).Cols("is_immutable").Update(rel); err != nil {
+			return err
+		}
+	}
 	return db.Insert(ctx, &ImmutableTag{
 		LowerOwnerName: strings.ToLower(repo.OwnerName),
 		LowerRepoName:  repo.LowerName,

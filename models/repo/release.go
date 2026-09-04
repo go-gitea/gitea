@@ -175,10 +175,10 @@ func HasImmutableRelease(ctx context.Context, repoID int64, tagName string) (boo
 	})
 }
 
-// UpdateRelease updates all columns of a release
+// UpdateRelease updates all columns of a release, except the server owned immutable flag
 func UpdateRelease(ctx context.Context, rel *Release) error {
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
-	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel)
+	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Omit("is_immutable").Update(rel)
 	return err
 }
 

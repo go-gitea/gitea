@@ -149,11 +149,13 @@ func TestImmutableTag(t *testing.T) {
 		assert.NoError(t, err)
 		return has
 	}
-	rel.IsImmutable = true
-	assert.NoError(t, UpdateRelease(t.Context(), rel))
+	_, err := db.GetEngine(t.Context()).ID(rel.ID).Cols("is_immutable").Update(&Release{IsImmutable: true})
+	assert.NoError(t, err)
 	assert.True(t, hasRelease())
 
-	rel.IsTag = true
+	// UpdateRelease owns every column but the flag, so demoting to a tag cannot clear it either
+	rel.IsTag, rel.IsImmutable = true, false
 	assert.NoError(t, UpdateRelease(t.Context(), rel))
 	assert.False(t, hasRelease())
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &Release{ID: rel.ID}).IsImmutable)
 }

@@ -186,7 +186,7 @@ type EditRepoOption struct {
 	Private *bool `json:"private,omitempty"`
 	// either `true` to make this repository a template or `false` to make it a normal repository
 	Template *bool `json:"template,omitempty"`
-	// Whether newly published releases become immutable, existing releases are not affected
+	// Whether published releases become immutable, existing releases lock when they are next edited
 	ImmutableReleases *bool `json:"immutable_releases,omitempty"`
 	// either `true` to enable code for this repository or `false` to disable it.
 	HasCode *bool `json:"has_code,omitempty"`

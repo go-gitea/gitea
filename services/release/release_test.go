@@ -556,7 +556,18 @@ func TestRelease_Immutable(t *testing.T) {
 		err = UpdateRelease(t.Context(), user, gitRepo, tag, nil, nil, nil)
 		assert.ErrorIs(t, err, ErrImmutableTag)
 
+		// a locked tag whose claim no longer covers this path re-locks and claims here instead
+		assert.NoError(t, db.DeleteBeans(t.Context(), &repo_model.ImmutableTag{TagName: "v9.2"}))
+		tag.Repo = repo
+		tag.IsTag, tag.IsDraft = false, false
+		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, tag, nil, nil, nil))
+		assert.True(t, tag.IsImmutable)
+		reclaimed, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.2")
+		assert.NoError(t, err)
+		assert.True(t, reclaimed)
+
 		// once the release is gone the tag itself can be deleted, but the name stays claimed
+		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, false))
 		tag, err = repo_model.GetRelease(t.Context(), repo.ID, "v9.2")
 		assert.NoError(t, err)
 		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, true))
