@@ -332,7 +332,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	// server owned, and a locked tag re-locks at its current path
 	rel.IsImmutable = oldRelease.IsImmutable && !oldRelease.IsTag
-	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag
+	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag && rel.Repo.IsImmutableReleasesEnabled(ctx)
 
 	if err := assertReleaseMutable(oldRelease, rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
 		return err

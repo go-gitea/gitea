@@ -10,13 +10,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"xorm.io/xorm/schemas"
 )
 
 func TestAddImmutableReleases(t *testing.T) {
 	type Release struct {
 		ID           int64 `xorm:"pk autoincr"`
-		TagName      string
 		LowerTagName string
 	}
 
@@ -32,7 +30,7 @@ func TestAddImmutableReleases(t *testing.T) {
 	if x == nil || t.Failed() {
 		return
 	}
-	_, err := x.Insert(&Release{TagName: "v1.0", LowerTagName: "v1.0"})
+	_, err := x.Insert(&Release{LowerTagName: "v1.0"})
 	require.NoError(t, err)
 
 	require.NoError(t, AddImmutableReleases(t.Context(), x))
@@ -46,14 +44,7 @@ func TestAddImmutableReleases(t *testing.T) {
 	_, err = x.Insert(&ImmutableTag{LowerOwnerName: "o", LowerRepoName: "r2", TagName: "v1.0"})
 	assert.NoError(t, err)
 
-	tables, err := x.DBMetas()
-	require.NoError(t, err)
-	var release *schemas.Table
-	for _, table := range tables {
-		if table.Name == "release" {
-			release = table
-		}
-	}
+	release := migrationtest.LoadTableSchemasMap(t, x)["release"]
 	require.NotNil(t, release)
 	assert.NotNil(t, release.GetColumn("is_immutable"))
 	assert.Nil(t, release.GetColumn("lower_tag_name"))

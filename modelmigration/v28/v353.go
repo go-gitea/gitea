@@ -11,7 +11,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddImmutableReleases(_ context.Context, x base.EngineMigration) error {
+func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
 	type Release struct {
 		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
 	}
@@ -35,6 +35,10 @@ func AddImmutableReleases(_ context.Context, x base.EngineMigration) error {
 	}
 
 	// tag names are matched exactly now, so a fresh install no longer has this column
+	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "release", "lower_tag_name")
+	if err != nil || !exist { // dropping an absent column fails outside sqlite, so a retried migration must not
+		return err
+	}
 	sess := x.NewSession()
 	defer sess.Close()
 	return base.DropTableColumns(sess, "release", "lower_tag_name")

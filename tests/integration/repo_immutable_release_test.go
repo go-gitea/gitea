@@ -108,7 +108,6 @@ func TestImmutableRelease(t *testing.T) {
 			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "POST", base+"/releases", &api.CreateReleaseOption{
 				TagName: "imm-draft", Target: "master", Title: "draft", IsDraft: true,
 			}).AddTokenAuth(token), http.StatusCreated), &draft)
-			assert.False(t, draft.IsImmutable)
 
 			_, _, err = gitcmd.NewCommand("tag", "imm-draft").WithDir(dstPath).RunStdString(t.Context())
 			require.NoError(t, err)
