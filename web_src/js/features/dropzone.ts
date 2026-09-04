@@ -105,7 +105,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         <div class="dz-error-mark">${svgRaw('octicon-x-circle', 54, 'tw-text-red')}</div>
         <div class="dz-custom-buttons">
           <button type="button" class="btn" data-dz-remove>${dropzoneEl.getAttribute('data-remove-file')!}</button>
-          <button type="button" class="btn" data-dz-custom-copy-link>${svgRaw('octicon-copy', 14)} Copy link</button>
+          <button type="button" class="btn" data-dz-custom-copy-link>${svgRaw('octicon-copy', 14)} ${dropzoneEl.getAttribute('data-text-copy-link')!}</button>
         </div>
       </div>
     `,
