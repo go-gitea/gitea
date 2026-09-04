@@ -80,8 +80,8 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
   const opts: Dropzone.DropzoneOptions = {
     url: dropzoneEl.getAttribute('data-upload-url')!,
-    dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type')!,
-    dictFileTooBig: dropzoneEl.getAttribute('data-file-too-big')!,
+    dictInvalidFileType: dropzoneEl.getAttribute('data-text-invalid-input-type')!,
+    dictFileTooBig: dropzoneEl.getAttribute('data-text-file-too-big')!,
     timeout: 0,
     thumbnailMethod: 'contain',
     thumbnailWidth: 480,
@@ -90,7 +90,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     previewTemplate: html`
       <div class="dz-preview dz-file-preview">
         <div class="dz-default dz-message">
-          <button class="dz-button" type="button">${dropzoneEl.getAttribute('data-default-message')!}</button>
+          <button class="dz-button" type="button">${dropzoneEl.getAttribute('data-text-default-message')!}</button>
         </div>
         <div class="dz-image"><a data-dz-custom-link><img data-dz-thumbnail/></a></div>
         <div class="dz-details">
@@ -104,7 +104,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         <div class="dz-success-mark">${svgRaw('octicon-check-circle', 54, 'tw-text-green')}</div>
         <div class="dz-error-mark">${svgRaw('octicon-x-circle', 54, 'tw-text-red')}</div>
         <div class="dz-custom-buttons">
-          <button type="button" class="btn" data-dz-remove>${dropzoneEl.getAttribute('data-remove-file')!}</button>
+          <button type="button" class="btn" data-dz-remove>${dropzoneEl.getAttribute('data-text-remove-file')!}</button>
           <button type="button" class="btn" data-dz-custom-copy-link>${svgRaw('octicon-copy', 14)} ${dropzoneEl.getAttribute('data-text-copy-link')!}</button>
         </div>
       </div>
