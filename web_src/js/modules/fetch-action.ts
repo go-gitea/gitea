@@ -3,7 +3,6 @@ import {hideToastsAll, showErrorToast} from './toast.ts';
 import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage, errorName} from './errors.ts';
 import {confirmModal, createConfirmModal} from '../features/comp/ConfirmModal.ts';
-import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalSelectorFunc} from './observer.ts';
 import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
@@ -69,7 +68,7 @@ function toggleLoadingIndicator(el: HTMLElement, opt: FetchActionOpts, isLoading
 }
 
 export async function handleFetchActionSuccessJson(el: HTMLElement, respJson: {redirect?: unknown} | null) {
-  ignoreAreYouSure(el); // ignore the areYouSure check before reloading
+  el.classList.add('ignore-dirty'); // no leave prompt on the reload
   const redirect = respJson?.redirect;
   if (typeof redirect === 'string' && redirect) {
     fetchActionDoRedirect(redirect);

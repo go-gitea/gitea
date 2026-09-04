@@ -5,7 +5,7 @@ import {hideElem, queryElems, showElem, createElementFromHTML, onInputDebounce} 
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
-import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {applyAreYouSure} from '../modules/are-you-sure.ts';
 import {submitFormFetchAction} from '../modules/fetch-action.ts';
 import {dirname} from '../utils.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
@@ -181,24 +181,10 @@ export function initRepoEditor() {
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
 
-  // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
-  // to enable or disable the commit button
   const commitButton = document.querySelector<HTMLButtonElement>('#commit-button')!;
-  const dirtyFileClass = 'dirty-file';
-
-  const syncCommitButtonState = () => {
-    const dirty = elForm.classList.contains(dirtyFileClass);
-    commitButton.disabled = !dirty;
-  };
-  // Registering a custom listener for the file path and the file content
-  // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
-  applyAreYouSure(elForm, {
-    silent: true,
-    dirtyClass: dirtyFileClass,
-    fieldSelector: ':input:not(.commit-form-wrapper :input)',
-    change: syncCommitButtonState,
-  });
-  syncCommitButtonState(); // disable the "commit" button when no content changes
+  commitButton.disabled = true;
+  elForm.querySelector('.commit-form-wrapper')!.classList.add('ays-ignore'); // commit form fields don't count
+  applyAreYouSure(elForm, (dirty) => commitButton.disabled = !dirty);
 
   initEditPreviewTab(elForm);
 
@@ -207,7 +193,7 @@ export function initRepoEditor() {
     filenameInput.addEventListener('input', onInputDebounce(() => editor.updateFilename(filenameInput.value)));
 
     // Update the editor from query params, if available,
-    // only after the dirtyFileClass initialization
+    // only after the areYouSure initialization
     const params = new URLSearchParams(window.location.search);
     const value = params.get('value');
     if (value) {
@@ -227,7 +213,7 @@ export function initRepoEditor() {
           header: elForm.getAttribute('data-text-empty-confirm-header')!,
           content: elForm.getAttribute('data-text-empty-confirm-content')!,
         })) {
-          ignoreAreYouSure(elForm);
+          elForm.classList.add('ignore-dirty');
           submitFormFetchAction(elForm);
         }
       }
