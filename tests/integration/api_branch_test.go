@@ -359,6 +359,7 @@ func TestAPIBranchProtection(t *testing.T) {
 	t.Run("Basic", testAPIBranchProtectionBasic)
 	t.Run("BypassAllowlistValidation", testAPIBranchProtectionBypassAllowlistValidation)
 	t.Run("DeletionAllowlistValidation", testAPIBranchProtectionDeletionAllowlistValidation)
+	t.Run("DeletionTeamAllowlist", testAPIBranchProtectionDeletionTeamAllowlist)
 }
 
 func testAPIBranchProtectionBasic(t *testing.T) {
@@ -498,6 +499,39 @@ func testAPIBranchProtectionDeletionAllowlistValidation(t *testing.T) {
 			AddTokenAuth(token)
 		MakeRequest(t, deleteReq, http.StatusNoContent)
 	})
+}
+
+func testAPIBranchProtectionDeletionTeamAllowlist(t *testing.T) {
+	const repoName = "repo3"
+	const branchName = "test_branch"
+	ownerToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+	teamMemberToken := getUserToken(t, "user4", auth_model.AccessTokenScopeWriteRepository)
+
+	createProtectionReq := NewRequestWithJSON(t, "POST", "/api/v1/repos/org3/"+repoName+"/branch_protections", &api.CreateBranchProtectionOption{
+		RuleName:                branchName,
+		EnablePush:              true,
+		EnableDeletion:          true,
+		EnableDeletionAllowlist: true,
+		DeletionAllowlistTeams:  []string{"Owners"},
+	}).AddTokenAuth(ownerToken)
+	resp := MakeRequest(t, createProtectionReq, http.StatusCreated)
+	bp := DecodeJSON(t, resp, &api.BranchProtection{})
+	assert.Equal(t, []string{"Owners"}, bp.DeletionAllowlistTeams)
+
+	deleteBranchReq := NewRequestf(t, "DELETE", "/api/v1/repos/org3/%s/branches/%s", repoName, branchName).
+		AddTokenAuth(teamMemberToken)
+	MakeRequest(t, deleteBranchReq, http.StatusForbidden)
+
+	editProtectionReq := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/"+repoName+"/branch_protections/"+branchName, &api.EditBranchProtectionOption{
+		DeletionAllowlistTeams: []string{"team1"},
+	}).AddTokenAuth(ownerToken)
+	resp = MakeRequest(t, editProtectionReq, http.StatusOK)
+	bp = DecodeJSON(t, resp, &api.BranchProtection{})
+	assert.Equal(t, []string{"team1"}, bp.DeletionAllowlistTeams)
+
+	deleteBranchReq = NewRequestf(t, "DELETE", "/api/v1/repos/org3/%s/branches/%s", repoName, branchName).
+		AddTokenAuth(teamMemberToken)
+	MakeRequest(t, deleteBranchReq, http.StatusNoContent)
 }
 
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {
