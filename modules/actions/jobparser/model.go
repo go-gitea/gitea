@@ -7,10 +7,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
 	"gitea.dev/actionslib/pkg/expreval"
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
+	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -32,6 +34,11 @@ func (w *SingleWorkflow) Job() (string, *Job) {
 		return ids[0], jobs[0]
 	}
 	return "", nil
+}
+
+// WorkflowDispatchConfig returns the `on: workflow_dispatch` declaration, nil if there is none.
+func (w *SingleWorkflow) WorkflowDispatchConfig() *model.WorkflowDispatch {
+	return (&model.Workflow{RawOn: w.RawOn}).WorkflowDispatchConfig()
 }
 
 func (w *SingleWorkflow) jobs() ([]string, []*Job, error) {
@@ -169,17 +176,29 @@ func (j *Job) RunsOn() []string {
 }
 
 type Step struct {
-	ID               string            `yaml:"id,omitempty"`
-	If               yaml.Node         `yaml:"if,omitempty"`
-	Name             string            `yaml:"name,omitempty"`
-	Uses             string            `yaml:"uses,omitempty"`
-	Run              string            `yaml:"run,omitempty"`
-	WorkingDirectory string            `yaml:"working-directory,omitempty"`
-	Shell            string            `yaml:"shell,omitempty"`
-	Env              yaml.Node         `yaml:"env,omitempty"`
-	With             map[string]string `yaml:"with,omitempty"`
-	ContinueOnError  bool              `yaml:"continue-on-error,omitempty"`
-	TimeoutMinutes   string            `yaml:"timeout-minutes,omitempty"`
+	ID                 string            `yaml:"id,omitempty"`
+	If                 yaml.Node         `yaml:"if,omitempty"`
+	Name               string            `yaml:"name,omitempty"`
+	Uses               string            `yaml:"uses,omitempty"`
+	Run                string            `yaml:"run,omitempty"`
+	WorkingDirectory   string            `yaml:"working-directory,omitempty"`
+	Shell              string            `yaml:"shell,omitempty"`
+	Env                yaml.Node         `yaml:"env,omitempty"`
+	With               map[string]string `yaml:"with,omitempty"`
+	RawContinueOnError yaml.Node         `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
+	TimeoutMinutes     string            `yaml:"timeout-minutes,omitempty"`
+}
+
+// UnmarshalYAML canonicalizes booleans like continue-on-error
+func (s *Step) UnmarshalYAML(node *yaml.Node) error {
+	type rawStep Step
+	if err := node.Decode((*rawStep)(s)); err != nil {
+		return err
+	}
+	if raw := &s.RawContinueOnError; raw.Tag == "!!bool" {
+		raw.Value = strings.ToLower(raw.Value)
+	}
+	return nil
 }
 
 // String gets the name of step
@@ -253,9 +272,11 @@ func (evt *Event) Inputs() []WorkflowDispatchInput {
 }
 
 func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
-	w := new(model.Workflow)
-	err := yaml.NewDecoder(bytes.NewReader(content)).Decode(w)
-	return w.RawConcurrency, err
+	w, err := ReadWorkflow(content)
+	if err != nil {
+		return nil, err
+	}
+	return w.RawConcurrency, nil
 }
 
 func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (string, bool, error) {
@@ -294,7 +315,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 	if evaluated.RawExpression != "" {
 		return evaluated.RawExpression, false, nil
 	}
-	return evaluated.Group, evaluated.CancelInProgress == "true", nil
+	return evaluated.Group, util.ParseYamlBool(evaluated.CancelInProgress), nil
 }
 
 func toGitContext(input map[string]any) *model.GithubContext {

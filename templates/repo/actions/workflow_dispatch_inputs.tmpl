@@ -12,14 +12,14 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				<select class="ui selection dropdown" name="{{.Name}}">
+				<select class="ui search selection dropdown" name="{{.Name}}">
 					{{range .Options}}
 						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
 					{{end}}
 				</select>
 			{{else if eq .Type "boolean"}}
 				<label class="tw-flex flex-text-inline">
-					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
+					<input type="checkbox" name="{{.Name}}" {{if .IsDefaultTrue}}checked{{end}}>
 					{{or .Description .Name}}
 				</label>
 			{{else if eq .Type "number"}}

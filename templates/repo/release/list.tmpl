@@ -59,11 +59,11 @@
 								Ghost
 							{{end}}
 							</span>
-							<span class="released">
-								{{ctx.Locale.Tr "repo.released_this"}}
-							</span>
-							{{if $release.CreatedUnix}}
-								<span class="time">{{DateUtils.TimeSince $release.CreatedUnix}}</span>
+							{{if not $release.IsDraft}}
+								<span class="released">
+									{{ctx.Locale.Tr "repo.released_this"}}
+								</span>
+								<span class="time">{{DateUtils.TimeSince $release.PublishedUnix}}</span>
 							{{end}}
 							{{if and (gt $release.NumCommits 0) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>
@@ -80,11 +80,11 @@
 							<ul class="ui divided list attachment-list">
 								{{range $att := $release.Attachments}}
 									<li class="item">
-										<a target="_blank" class="tw-flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
+										<a target="_blank" class="tw-flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL ctx}}">
 											<strong class="flex-text-inline">{{svg "octicon-package" 16 "download-icon"}}<span class="gt-ellipsis">{{$att.Name}}</span></strong>
 										</a>
 										<div class="attachment-right-info flex-text-inline">
-											<span class="tw-pl-5">{{$att.Size | FileSize}}</span>
+											<span class="tw-pl-5">{{$att.Size | FormatByteSize}}</span>
 											<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber $att.DownloadCount)}}">
 												{{svg "octicon-info"}}
 											</span>

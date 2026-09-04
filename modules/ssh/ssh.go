@@ -75,7 +75,7 @@ func sessionHandler(session *sshSession) int {
 		}
 	}
 
-	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
+	cmd := process.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+session.rawCmd,
@@ -103,8 +103,6 @@ func sessionHandler(session *sshSession) int {
 		return 1
 	}
 	defer stdin.Close()
-
-	process.SetSysProcAttribute(cmd)
 
 	wg := &sync.WaitGroup{}
 

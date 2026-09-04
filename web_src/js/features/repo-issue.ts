@@ -18,6 +18,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import type {FomanticApiResponse} from '../types.ts';
 
 const {appSubUrl} = window.config;
 
@@ -197,8 +198,9 @@ export async function handleReply(el: HTMLElement) {
 }
 
 export function initRepoPullRequestReview() {
-  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
-    const commentDiv = document.querySelector(window.location.hash);
+  const currentHash = window.location.hash;
+  if (currentHash.startsWith('#issuecomment-') || currentHash.startsWith('#pullrequestreview-')) {
+    const commentDiv = document.querySelector(currentHash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
@@ -303,11 +305,9 @@ export function initRepoIssueReferenceIssue() {
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      cache: false,
-      rawResponse: true,
       url: `${appSubUrl}/repo/search?q={query}&limit=20`,
-      onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+      onResponse(response: {data: Array<{repository: {full_name: string}}>}) {
+        const filteredResponse: FomanticApiResponse<{name: string, value: string}> = {success: true, results: []};
         for (const repo of response.data) {
           filteredResponse.results.push({
             name: htmlEscape(repo.repository.full_name),

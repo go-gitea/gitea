@@ -7,11 +7,6 @@
   padding: 0 10px;
 }
 
-/* When notification message is present after navbar, hide border to avoid double border */
-#navbar:has(+ .ui.message) {
-  border-bottom: none;
-}
-
 #navbar .navbar-left,
 #navbar .navbar-right {
   display: flex;
@@ -99,10 +94,6 @@
   #navbar.navbar-menu-open .navbar-left .navbar-mobile-right {
     justify-content: flex-end;
     min-height: 49px;
-  }
-  #navbar #mobile-stopwatch-icon,
-  #navbar #mobile-notifications-icon {
-    margin-right: 6px;
   }
 }
 

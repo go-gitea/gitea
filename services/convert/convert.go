@@ -5,21 +5,22 @@
 package convert
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"time"
 
-	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -29,6 +30,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
@@ -168,7 +170,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	return &api.BranchProtection{
-		BranchName:                    branchName,
+		BranchName:                    branchName, //nolint:staticcheck // deprecated but useful to API response
 		RuleName:                      bp.RuleName,
 		Priority:                      bp.Priority,
 		EnablePush:                    bp.CanPush,
@@ -346,8 +348,8 @@ func loadPullRequestsForRun(ctx context.Context, run *actions_model.ActionRun) (
 	var prs issues_model.PullRequestList
 	switch {
 	case run.Event.IsPullRequest() || run.Event.IsPullRequestReview():
-		index, err := strconv.ParseInt(refName.PullName(), 10, 64)
-		if err != nil {
+		index, ok := refName.PullIndex()
+		if !ok {
 			return result, nil
 		}
 		pr, err := issues_model.GetPullRequestByIndex(ctx, run.RepoID, index)
@@ -564,7 +566,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	content, err := actions.GetContentFromEntry(ctx, gitRepo, entry)
 	name := entry.Name()
 	if err == nil {
-		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		workflow, err := jobparser.ReadWorkflow(content)
 		if err == nil {
 			// Only use the name when specified in the workflow file
 			if workflow.Name != "" {
@@ -845,18 +847,23 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 	}
 }
 
-// ToDeployKey convert asymkey_model.DeployKey to api.DeployKey
-func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
-	return &api.DeployKey{
-		ID:          key.ID,
-		KeyID:       key.KeyID,
-		Key:         key.Content,
-		Fingerprint: key.Fingerprint,
-		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
-		Title:       key.Name,
-		Created:     key.CreatedUnix.AsTime(),
-		ReadOnly:    key.Mode == perm.AccessModeRead, // All deploy keys are read-only.
+// ToDeployKey convert deploykey_model.DeployKey to api.DeployKey
+func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *deploykey_model.DeployKey) *api.DeployKey {
+	k := &api.DeployKey{
+		ID:          deployKey.ID,
+		KeyType:     util.Iif(deployKey.KeyType == deploykey_model.KeyTypeSSH, "ssh", "token"),
+		KeyID:       deployKey.KeyID,
+		Token:       deployKey.Token,
+		URL:         repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
+		Title:       deployKey.Name,
+		Fingerprint: deployKey.Fingerprint,
+		Created:     deployKey.CreatedUnix.AsTime(),
+		ReadOnly:    deployKey.IsReadOnly(),
 	}
+	if deployKey.KeyType == deploykey_model.KeyTypeSSH && deployKey.LoadPublicKey(ctx) == nil {
+		k.Key = deployKey.PublicKey.Content
+	}
+	return k
 }
 
 // ToOrganization convert user_model.User to api.Organization
@@ -894,6 +901,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			return nil, err
 		}
 
+		unitsMap := t.GetUnitsMap()
 		apiTeam := &api.Team{
 			ID:                      t.ID,
 			Name:                    t.Name,
@@ -901,7 +909,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
-			Units:                   t.GetUnitNames(),
+			Units:                   slices.Collect(maps.Keys(unitsMap)),
 			UnitsMap:                t.GetUnitsMap(),
 			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}

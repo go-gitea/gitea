@@ -141,7 +141,6 @@
 }
 
 /* Remove Menu Item Divider */
-.ui.dropdown .ui.menu > .item::before,
 .ui.menu .ui.dropdown .menu > .item::before {
   display: none;
 }
@@ -152,8 +151,6 @@
 }
 
 /* Automatically float dropdown menu right on last menu item */
-.ui.menu .right.menu .dropdown:last-child > .menu:not(.left),
-.ui.menu .right.dropdown.item > .menu:not(.left),
 .ui.buttons > .ui.dropdown:last-child > .menu:not(.left) {
   left: auto;
   right: 0;
@@ -193,8 +190,6 @@ select.ui.dropdown {
   z-index: 10;
 }
 
-.ui.selection.dropdown > .search.icon,
-.ui.selection.dropdown > .delete.icon,
 .ui.selection.dropdown > .dropdown.icon {
   cursor: pointer;
   position: absolute;
@@ -524,13 +519,11 @@ select.ui.dropdown {
   background: var(--color-active);
 }
 
-.ui.dropdown:not(.button) > .default.text,
-.ui.default.dropdown:not(.button) > .text {
+.ui.dropdown:not(.button) > .default.text {
   color: var(--color-placeholder-text);
 }
 
-.ui.dropdown:not(.button) > input:focus ~ .default.text,
-.ui.default.dropdown:not(.button) > input:focus ~ .text {
+.ui.dropdown:not(.button) > input:focus ~ .default.text {
   color: var(--color-placeholder-text);
 }
 
@@ -584,7 +577,6 @@ select.ui.dropdown {
   right: auto !important;
 }
 
-.ui.dropdown.selected,
 .ui.dropdown .menu .selected.item {
   color: var(--color-text);
   background: var(--color-hover);
@@ -615,11 +607,6 @@ select.ui.dropdown {
   bottom: 100%;
   box-shadow: 0 6px 18px var(--color-shadow);
   border-radius: 0.28571429rem 0.28571429rem 0 0;
-}
-
-.ui.dropdown .upward.menu {
-  top: auto !important;
-  bottom: 0 !important;
 }
 
 .ui.upward.selection.dropdown .menu {
@@ -814,12 +801,13 @@ select.ui.dropdown {
 
 /* Icons / Flags / Labels / Image */
 .ui.dropdown > .text > img,
-.ui.dropdown > .text > .image,
-.ui.dropdown .menu > .item > .image,
 .ui.dropdown .menu > .item > img {
-  margin-left: 0;
+  margin: -0.25rem 0.78571429rem -0.25rem 0;
   float: none;
-  margin-right: 0.78571429rem;
+  display: inline-block;
+  vertical-align: top;
+  width: auto;
+  max-height: 2em;
 }
 
 .ui.dropdown .menu > .item > svg {
@@ -831,18 +819,6 @@ select.ui.dropdown {
   margin-left: 0;
   float: none;
   margin-right: 0.78571429rem;
-}
-
-.ui.dropdown > .text > img,
-.ui.dropdown > .text > .image:not(.icon),
-.ui.dropdown .menu > .item > .image:not(.icon),
-.ui.dropdown .menu > .item > img {
-  display: inline-block;
-  vertical-align: top;
-  width: auto;
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
-  max-height: 2em;
 }
 
 .ui.dropdown .menu .item {
@@ -937,6 +913,10 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
 .ui.dropdown .menu.flex-items-menu > .item img,
 .ui.dropdown .menu.flex-items-menu > .item svg {
   margin: 0;
+}
+
+.ui.dropdown .menu.items-width-limit .item {
+  max-width: min(500px, calc(100vw - 2em));
 }
 
 .ui.dropdown.ellipsis-text-items {

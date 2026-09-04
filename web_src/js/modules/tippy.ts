@@ -7,7 +7,10 @@ import {stripTags} from '../utils.ts';
 type TippyOpts = {
   role?: string,
   theme?: 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare',
+  limitSizeToViewport?: {horizontal?: boolean, vertical?: boolean}, // cap to the viewport and scroll the content
 } & Partial<Props>;
+
+type PopperModifier = NonNullable<NonNullable<Props['popperOptions']>['modifiers']>[number];
 
 const visibleInstances = new Set<Instance>();
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
@@ -20,10 +23,46 @@ function arrowPadding({placement, reference}: {placement: Placement, reference: 
   return Math.max(0, Math.min(3, referenceLength / 2 - 8)); // 8 = half of arrow width
 }
 
+const viewportPadding = 8;
+
+// space left on the side the popup opens towards, the viewport on the other axis
+export function availableSizeForPlacement(referenceRect: DOMRect, placement: string, offset: number): {width: number, height: number} {
+  const gap = Math.abs(offset) + viewportPadding;
+  const spanWidth = window.innerWidth - viewportPadding * 2;
+  const spanHeight = window.innerHeight - viewportPadding * 2;
+  const side = placement.split('-')[0];
+  if (side === 'top') return {width: spanWidth, height: referenceRect.top - gap};
+  if (side === 'bottom') return {width: spanWidth, height: window.innerHeight - referenceRect.bottom - gap};
+  if (side === 'left') return {width: referenceRect.left - gap, height: spanHeight};
+  return {width: window.innerWidth - referenceRect.right - gap, height: spanHeight};
+}
+
+// popper does not constrain size, publish it for the styles. Replaced by floating-ui's "size" on migration
+function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): PopperModifier {
+  return {
+    name: 'tippyLimitSize',
+    enabled: true,
+    phase: 'beforeWrite',
+    requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
+    fn({state}) {
+      const offset = state.modifiersData.offset?.[state.placement];
+      const isVertical = state.placement.startsWith('top') || state.placement.startsWith('bottom');
+      const available = availableSizeForPlacement(
+        state.elements.reference.getBoundingClientRect(),
+        state.placement,
+        (isVertical ? offset?.y : offset?.x) ?? 0,
+      );
+      const {style} = state.elements.popper;
+      if (limit.horizontal) style.setProperty('--tippy-max-width', `${Math.max(0, Math.floor(available.width))}px`);
+      if (limit.vertical) style.setProperty('--tippy-max-height', `${Math.max(0, Math.floor(available.height))}px`);
+    },
+  };
+}
+
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
+  const {onHide, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
   // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
   const resolvedTheme = theme || role || 'default';
   const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
@@ -56,7 +95,10 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       return onShow?.(instance);
     },
     arrow: resolvedArrow,
-    popperOptions: {modifiers: [{name: 'arrow', options: {padding: arrowPadding}}]},
+    popperOptions: {modifiers: [
+      {name: 'arrow', options: {padding: arrowPadding}},
+      ...limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : [],
+    ]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
     theme: resolvedTheme,
@@ -68,6 +110,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   if (instance.props.role === 'menu') {
     target.setAttribute('aria-haspopup', 'true');
   }
+  if (limitSizeToViewport) instance.popper.setAttribute('data-tippy-limit-size', '');
 
   return instance;
 }
@@ -149,6 +192,7 @@ function attachLazyTooltip(el: HTMLElement): void {
       let ariaLabelValue = content;
       if (isHtml) ariaLabelValue = stripTags(content).replace(/\s+/g, ' ').trim();
       el.setAttribute('aria-label', ariaLabelValue);
+      el.removeAttribute('aria-hidden');
     }
   }
 }

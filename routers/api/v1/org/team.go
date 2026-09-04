@@ -6,6 +6,7 @@ package org
 
 import (
 	"errors"
+	"maps"
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
@@ -17,6 +18,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
@@ -150,42 +152,36 @@ func GetTeam(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiTeam)
 }
 
-func attachTeamUnits(team *organization.Team, defaultAccessMode perm.AccessMode, units []string) {
-	unitTypes, _ := unit_model.FindUnitTypes(units...)
-	team.Units = make([]*organization.TeamUnit, 0, len(units))
-	for _, tp := range unitTypes {
-		team.Units = append(team.Units, &organization.TeamUnit{
-			OrgID:      team.OrgID,
-			Type:       tp,
-			AccessMode: defaultAccessMode,
-		})
+// assignTeamPermissionUnits sets authorize + team_unit rows.
+func assignTeamPermissionUnits(team *organization.Team, permission string, units []string, unitsMap map[string]string) (changed bool, _ error) {
+	if len(units) > 0 && len(unitsMap) > 0 {
+		return false, util.NewInvalidArgumentErrorf("only one of units or units_map can be set")
 	}
-}
-
-func attachTeamUnitsMap(team *organization.Team, unitsMap map[string]string) {
-	team.Units = make([]*organization.TeamUnit, 0, len(unitsMap))
-	for unitKey, p := range unitsMap {
-		team.Units = append(team.Units, &organization.TeamUnit{
-			OrgID:      team.OrgID,
-			Type:       unit_model.TypeFromKey(unitKey),
-			AccessMode: perm.ParseAccessMode(p),
-		})
-	}
-}
-
-func attachAdminTeamUnits(team *organization.Team) {
-	team.Units = make([]*organization.TeamUnit, 0, len(unit_model.AllRepoUnitTypes))
-	for _, ut := range unit_model.AllRepoUnitTypes {
-		up := perm.AccessModeAdmin
-		if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
-			up = perm.AccessModeRead
+	if len(units) > 0 {
+		unitsMap = map[string]string{}
+		for _, unit := range units {
+			unitsMap[unit] = permission
 		}
-		team.Units = append(team.Units, &organization.TeamUnit{
-			OrgID:      team.OrgID,
-			Type:       ut,
-			AccessMode: up,
-		})
 	}
+
+	oldAccessMode := team.AccessMode
+	oldUnitPerms := team.GetUnitsMap()
+	if len(unitsMap) > 0 {
+		team.Units = make([]*organization.TeamUnit, 0, len(unitsMap))
+		for unitKey, p := range unitsMap {
+			unitType, unitPerm := unit_model.TypeFromKey(unitKey), perm.ParseAccessMode(p)
+			team.Units = append(team.Units, &organization.TeamUnit{OrgID: team.OrgID, Type: unitType, AccessMode: unitPerm})
+		}
+	} else {
+		requested := perm.ParseAccessMode(permission, perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
+		if requested == perm.AccessModeNone {
+			return false, util.NewInvalidArgumentErrorf("no permission specified")
+		}
+		team.AccessMode, team.Units = requested, nil
+	}
+
+	changed = oldAccessMode != team.AccessMode || !maps.Equal(oldUnitPerms, team.GetUnitsMap())
+	return changed, nil
 }
 
 // CreateTeam api for create a team
@@ -215,29 +211,18 @@ func CreateTeam(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm[*api.CreateTeamOption](ctx)
-	teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		AccessMode:              teamPermission,
 		Visibility:              organization.NormalizeTeamVisibility(form.Visibility),
 	}
-
-	if team.AccessMode < perm.AccessModeAdmin {
-		if len(form.UnitsMap) > 0 {
-			attachTeamUnitsMap(team, form.UnitsMap)
-		} else if len(form.Units) > 0 {
-			unitPerm := perm.ParseAccessMode(string(form.Permission), perm.AccessModeRead, perm.AccessModeWrite)
-			attachTeamUnits(team, unitPerm, form.Units)
-		} else {
-			ctx.APIErrorInternal(errors.New("units permission should not be empty"))
-			return
-		}
-	} else {
-		attachAdminTeamUnits(team)
+	_, err := assignTeamPermissionUnits(team, string(form.Permission), form.Units, form.UnitsMap)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
 	}
 
 	if err := org_service.NewTeam(ctx, team); err != nil {
@@ -307,28 +292,19 @@ func EditTeam(ctx *context.APIContext) {
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
-	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
-		teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
-		if team.AccessMode != teamPermission {
-			isAuthChanged = true
-			team.AccessMode = teamPermission
-		}
-
-		if form.IncludesAllRepositories != nil {
-			isIncludeAllChanged = true
-			team.IncludesAllRepositories = *form.IncludesAllRepositories
+	hasPermFields := form.Permission != "" || len(form.Units) > 0 || len(form.UnitsMap) > 0
+	if !team.IsOwnerTeam() && hasPermFields {
+		var err error
+		isAuthChanged, err = assignTeamPermissionUnits(team, string(form.Permission), form.Units, form.UnitsMap)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return
 		}
 	}
 
-	if team.AccessMode < perm.AccessModeAdmin {
-		if len(form.UnitsMap) > 0 {
-			attachTeamUnitsMap(team, form.UnitsMap)
-		} else if len(form.Units) > 0 {
-			unitPerm := perm.ParseAccessMode(string(form.Permission), perm.AccessModeRead, perm.AccessModeWrite)
-			attachTeamUnits(team, unitPerm, form.Units)
-		}
-	} else {
-		attachAdminTeamUnits(team)
+	if !team.IsOwnerTeam() && form.IncludesAllRepositories != nil {
+		isIncludeAllChanged = true
+		team.IncludesAllRepositories = *form.IncludesAllRepositories
 	}
 
 	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
@@ -637,7 +613,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, permission := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -653,11 +629,6 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
 	// The team may be reachable by a non-team-member via its visibility tier;
 	// don't confirm the existence of a repo the doer cannot access.
 	if !permission.HasAnyUnitAccessOrPublicAccess() {
@@ -665,34 +636,28 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, permission))
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx, repo, *permission))
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
-func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
+func getRepositoryByParams(ctx *context.APIContext) (*repo_model.Repository, *access_model.Permission) {
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Team.OrgID, ctx.PathParam("reponame"))
 	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return nil
+		ctx.APIErrorAuto(err)
+		return nil, nil
 	}
-	return repo
+	perm, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, nil
+	}
+	return repo, &perm
 }
 
-func canChangeTeamRepository(ctx *context.APIContext) bool {
-	if ctx.Org.Organization.RepoAdminChangeTeamAccess {
-		return true
-	}
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
-	if !isOwner {
-		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+func canManageRepoCollaboratorTeam(ctx *context.APIContext, repo *repo_model.Repository, perm *access_model.Permission) bool {
+	canChange := access_model.CanDoerManageOrgRepoCollaboratorTeam(ctx, repo, perm)
+	if !canChange {
+		ctx.APIError(http.StatusForbidden, "Must have permission to manage team repository access")
 		return false
 	}
 	return true
@@ -730,18 +695,11 @@ func AddTeamRepository(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx) {
-		return
-	}
-	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if access < perm.AccessModeAdmin {
-		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
+	if !canManageRepoCollaboratorTeam(ctx, repo, perm) {
 		return
 	}
 	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
@@ -785,18 +743,11 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	repo := getRepositoryByParams(ctx)
+	repo, perm := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx) {
-		return
-	}
-	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if access < perm.AccessModeAdmin {
-		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
+	if !canManageRepoCollaboratorTeam(ctx, repo, perm) {
 		return
 	}
 	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {

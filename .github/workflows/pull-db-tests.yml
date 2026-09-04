@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
+        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
+        image: postgres:14@sha256:156f0b253fd61366d5fc2107ad45955027d5612f695a8436ce20167f3fa79bff
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -96,7 +96,6 @@ jobs:
       - run: make backend
         env:
           TAGS: bindata gogit
-          GOEXPERIMENT:
       - run: GITEA_TEST_DATABASE=sqlite make test-migration
         env:
           TAGS: bindata gogit
@@ -107,7 +106,6 @@ jobs:
           # sqlite driver can contain large amount of Golang code, so don't use race detector for it, otherwise, extremely slow
           GOTEST_FLAGS: -timeout=40m
           TAGS: bindata gogit
-          GOEXPERIMENT:
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true'
@@ -125,13 +123,13 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1@sha256:d36e713e8f89483af1ab0d72011bbd503f5ab100b68ccbfad51c39e3f0a0567d
+        image: getmeili/meilisearch:v1@sha256:8d6643d86d71fad6ad3cba92cde7ccfce9e4d6c384bda67598eb553571c32431
         env:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:52334768d4a6594d8969f51a1a6fee3ffa7545f6359a4877229cdc754d2def82
+        image: redis:latest@sha256:76961cd2a0f40ef6fdd334b6b1b3a76a2bad1848d89f3030ca30a7521d4a9493
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -147,7 +145,7 @@ jobs:
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
         ports:
           - 10000:10000
     steps:
@@ -170,7 +168,6 @@ jobs:
         env:
           GOTEST_FLAGS: -race -timeout=20m
           TAGS: bindata gogit
-          GOEXPERIMENT:
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
           GITEA_TEST_CI_SKIP_EXTERNAL: true
       - run: make test-check
@@ -237,7 +234,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
         ports:
           - 10000:10000
     steps:

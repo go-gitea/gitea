@@ -49,16 +49,18 @@ type requestContext struct {
 
 // Claims is a JWT Token Claims
 type Claims struct {
-	RepoID int64
-	Op     string
-	UserID int64
+	RepoID          int64
+	Op              string
+	UserID          int64
+	UserExtDoerData string
 	jwt.RegisteredClaims
 }
 
 type AuthTokenOptions struct {
-	Op     string
-	UserID int64
-	RepoID int64
+	Op              string
+	UserID          int64
+	UserExtDoerData string
+	RepoID          int64
 }
 
 func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
@@ -68,9 +70,10 @@ func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
-		RepoID: opts.RepoID,
-		Op:     opts.Op,
-		UserID: opts.UserID,
+		RepoID:          opts.RepoID,
+		Op:              opts.Op,
+		UserID:          opts.UserID,
+		UserExtDoerData: opts.UserExtDoerData,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -544,15 +547,6 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		accessMode = perm_model.AccessModeWrite
 	}
 
-	if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
-		perm, err := access_model.GetActionsUserRepoPermission(ctx, repository, ctx.Doer, taskID)
-		if err != nil {
-			log.Error("Unable to GetActionsUserRepoPermission for task[%d] Error: %v", taskID, err)
-			return false
-		}
-		return perm.CanAccess(accessMode, unit.TypeCode)
-	}
-
 	// it works for both anonymous request and signed-in user, then perm.CanAccess will do the permission check
 	perm, err := access_model.GetDoerRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
@@ -604,9 +598,9 @@ func handleLFSToken(ctx stdCtx.Context, tokenSHA string, target *repo_model.Repo
 		return nil, errors.New("invalid token claim")
 	}
 
-	u, err := user_model.GetUserByID(ctx, claims.UserID)
+	u, err := user_model.GetDoerUser(ctx, claims.UserID, claims.UserExtDoerData)
 	if err != nil {
-		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
+		log.Error("Unable to GetDoerUser[%d]: Error: %v", claims.UserID, err)
 		return nil, err
 	}
 	if !u.IsActive || u.ProhibitLogin {
