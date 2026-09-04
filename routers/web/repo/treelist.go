@@ -61,13 +61,13 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 
 // WebDiffFileItem is used by frontend, check the field names in frontend before changing
 type WebDiffFileItem struct {
-	OldPath    string `json:",omitzero"`
 	Name       string
+	OldPath    string             `json:",omitzero"`
 	DiffStatus string             `json:",omitzero"`
 	IsViewed   bool               `json:",omitzero"`
 	Children   []*WebDiffFileItem `json:",omitzero"`
-	Icon       string             // SVG ID in FileIconPoolHTML
-	IconClass  string
+	Icon       string             `json:",omitzero"` // SVG ID in FileIconPoolHTML
+	IconClass  string             `json:",omitzero"` // only when it differs from WebDiffFileTree.FileIconClass
 }
 
 // WebDiffFileTree is used by frontend, check the field names in frontend before changing
@@ -75,6 +75,7 @@ type WebDiffFileTree struct {
 	TreeRoot       WebDiffFileItem
 	FolderIcon     template.HTML
 	FolderOpenIcon template.HTML
+	FileIconClass  string // the class nearly every file uses, items only carry the exceptions
 }
 
 func setDiffFileTreeData(ctx *context.Context, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) {
@@ -122,7 +123,13 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 		}
 		item.IsViewed = filesViewedState[file.HeadPath] == pull_model.Viewed
 		addItem(file.HeadPath, item)
-		item.Icon, item.IconClass = fileicon.RenderEntryIconID(renderedIconPool, &fileicon.EntryInfo{BaseName: item.Name, EntryMode: file.HeadMode})
+		icon, class := fileicon.RenderEntryIconID(renderedIconPool, &fileicon.EntryInfo{BaseName: item.Name, EntryMode: file.HeadMode})
+		item.Icon = icon
+		if dft.FileIconClass == "" {
+			dft.FileIconClass = class
+		} else if class != dft.FileIconClass {
+			item.IconClass = class
+		}
 	}
 	for _, node := range dft.TreeRoot.Children {
 		for len(node.Children) == 1 && node.Children[0].Children != nil {

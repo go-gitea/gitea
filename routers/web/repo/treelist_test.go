@@ -48,7 +48,6 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 							DiffStatus: "changed",
 							IsViewed:   true,
 							Icon:       "svg-mfi-file",
-							IconClass:  "svg git-entry-icon octicon-file",
 						},
 					},
 				},
@@ -56,18 +55,17 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 					Name:       "file1",
 					DiffStatus: "added",
 					Icon:       "svg-mfi-file",
-					IconClass:  "svg git-entry-icon octicon-file",
 				},
 				{
 					Name:       "file2",
 					OldPath:    "file2-old",
 					DiffStatus: "renamed",
 					Icon:       "svg-mfi-file",
-					IconClass:  "svg git-entry-icon octicon-file",
 				},
 			},
 		},
 		FolderIcon:     `<span>octicon-file-directory-fill(16/)</span>`,
+		FileIconClass:  "svg git-entry-icon octicon-file",
 		FolderOpenIcon: `<span>octicon-file-directory-open-fill(16/)</span>`,
 	}, ret)
 	assert.Contains(t, renderedIconPool.IconSVGs, "svg-mfi-file")

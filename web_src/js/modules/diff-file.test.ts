@@ -1,18 +1,19 @@
 import {countMatchingFiles, diffTreeStoreSetViewed, extensionFilterFromUrl, extensionFilterToUrl, filterDiffTree, getDiffTreeExtensionStats, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
 
 function file(name: string, oldPath?: string): DiffTreeEntry {
-  return {Name: name, OldPath: oldPath, Icon: '', IconClass: ''};
+  return {Name: name, OldPath: oldPath};
 }
 
 function dir(name: string, children: DiffTreeEntry[]): DiffTreeEntry {
-  return {Name: name, Icon: '', IconClass: '', Children: children};
+  return {Name: name, Children: children};
 }
 
 function makeStore(children: DiffTreeEntry[]) {
   return reactiveDiffTreeStore({
-    TreeRoot: {Name: '', Icon: '', IconClass: '', Children: children},
+    TreeRoot: {Name: '', Children: children},
     FolderIcon: '',
     FolderOpenIcon: '',
+    FileIconClass: '',
   });
 }
 

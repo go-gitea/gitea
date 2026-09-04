@@ -46,7 +46,7 @@ const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
     class="item-file" :class="{ 'selected': Boolean(boxId) && store.selectedItem === `#${boxId}`, 'viewed': item.IsViewed }"
     :title="item.Name" :href="boxId ? `#${boxId}` : undefined"
   >
-    <svg :class="item.IconClass" width="16" height="16" aria-hidden="true">
+    <svg :class="item.IconClass ?? store.FileIconClass" width="16" height="16" aria-hidden="true">
       <use :href="`#${item.Icon}`"/>
     </svg>
     <span class="gt-ellipsis tw-flex-1">{{ item.Name }}</span>

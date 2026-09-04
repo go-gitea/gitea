@@ -13,8 +13,8 @@ export type DiffTreeEntry = {
   DiffStatus?: DiffStatus,
   IsViewed?: boolean,
   Children?: DiffTreeEntry[],
-  Icon: string,
-  IconClass: string,
+  Icon?: string,
+  IconClass?: string, // only when it differs from the tree's FileIconClass
   ParentEntry?: DiffTreeEntry,
 };
 
@@ -22,6 +22,7 @@ type DiffFileTreeData = {
   TreeRoot: DiffTreeEntry,
   FolderIcon: string,
   FolderOpenIcon: string,
+  FileIconClass: string,
 };
 
 // activeExtensions: 'all' = no filter (every extension passes); string[] = exact set of extensions allowed (empty = nothing passes).
@@ -74,6 +75,13 @@ export function diffTreeStoreSetViewed(store: Reactive<DiffFileTree>, path: stri
   }
 }
 
+const queryFileBoxes = () => document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
+
+// the diff boxes are rendered lazily, so the tree can only link to the ones already in the DOM
+function refreshBoxIdMap(store: Reactive<DiffFileTree>, boxes: NodeListOf<HTMLElement>) {
+  store.boxIdMap = new Map(Array.from(boxes, (box) => [box.getAttribute('data-new-filename')!, box.id]));
+}
+
 function fillPathMap(map: Map<string, DiffTreeEntry>, entry: DiffTreeEntry, path: string) {
   if (!entry.Children) {
     map.set(path, entry);
@@ -97,7 +105,7 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData): Reactive<DiffFile
     boxIdMap: new Map(),
   });
   fillPathMap(store.pathMap, store.TreeRoot, '');
-  refreshBoxIdMap(store);
+  refreshBoxIdMap(store, queryFileBoxes());
   return store;
 }
 
@@ -195,17 +203,9 @@ function updateShowMoreButton(matchingBelow: number) {
   }
 }
 
-// the diff boxes are rendered lazily, so the tree can only link to the ones already in the DOM
-export function refreshBoxIdMap(store: Reactive<DiffFileTree>) {
-  store.boxIdMap = new Map(Array.from(
-    document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]'),
-    (box) => [box.getAttribute('data-new-filename')!, box.id],
-  ));
-}
-
 export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
-  refreshBoxIdMap(store); // boxes may have been added by "show more files"
-  const boxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
+  const boxes = queryFileBoxes();
+  refreshBoxIdMap(store, boxes); // boxes may have been added by "show more files"
   const matches = buildFilter(store);
   if (!matches) {
     for (const box of boxes) toggleElem(box, true);
