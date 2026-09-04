@@ -866,6 +866,99 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 	})
 }
 
+func TestPullAutoMergeAfterRebaseWithFailingCommitStatus(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		baseUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		forkOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, baseUser, forkOrg)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadHeadRepo(t.Context()))
+		require.NoError(t, pr.LoadIssue(t.Context()))
+		require.Equal(t, 1, pr.CommitsBehind)
+
+		baseSession := loginUser(t, baseUser.Name)
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", pr.BaseRepo.OwnerName, pr.BaseRepo.Name), map[string]string{
+			"rule_name":                pr.BaseBranch,
+			"enable_push":              "true",
+			"enable_status_check":      "true",
+			"status_check_contexts":    "*",
+			"block_on_outdated_branch": "true",
+		})
+		baseSession.MakeRequest(t, req, http.StatusSeeOther)
+		protectedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.ProtectedBranch{RepoID: pr.BaseRepo.ID, RuleName: pr.BaseBranch})
+		require.True(t, protectedBranch.EnableStatusCheck)
+		require.Equal(t, []string{"*"}, protectedBranch.StatusCheckContexts)
+		require.True(t, protectedBranch.BlockOnOutdatedBranch)
+
+		baseGitRepo, err := git.OpenRepository(t.Context(), pr.BaseRepo)
+		require.NoError(t, err)
+		oldHeadSHA, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
+		baseGitRepo.Close()
+		require.NoError(t, err)
+
+		require.NoError(t, commitstatus_service.CreateCommitStatus(t.Context(), pr.BaseRepo, baseUser, oldHeadSHA, &git_model.CommitStatus{
+			State:   commitstatus.CommitStatusPending,
+			Context: "gitea/actions",
+		}))
+
+		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), baseUser, pr, repo_model.MergeStyleMerge, "auto merge test", false)
+		require.NoError(t, err)
+		require.True(t, scheduled)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+
+		require.NoError(t, commitstatus_service.CreateCommitStatus(t.Context(), pr.BaseRepo, baseUser, oldHeadSHA, &git_model.CommitStatus{
+			State:   commitstatus.CommitStatusSuccess,
+			Context: "gitea/actions",
+		}))
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+
+		currentPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		require.False(t, currentPR.HasMerged)
+		require.Equal(t, 1, currentPR.CommitsBehind)
+		statusPass, err := pull_service.IsPullCommitStatusPass(t.Context(), pr)
+		require.NoError(t, err)
+		require.True(t, statusPass)
+		unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+
+		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, true)
+		updateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.BaseRepo, updateUser, perm.AccessModeWrite))
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.HeadRepo, updateUser, perm.AccessModeWrite))
+		updateSession := loginUser(t, updateUser.Name)
+		token := getTokenForLoggedInUser(t, updateSession, auth_model.AccessTokenScopeWriteRepository)
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		updateSession.MakeRequest(t, req, http.StatusOK)
+
+		headGitRepo, err := git.OpenRepository(t.Context(), pr.HeadRepo)
+		require.NoError(t, err)
+		newHeadSHA, err := headGitRepo.GetBranchCommitID(t.Context(), pr.HeadBranch)
+		headGitRepo.Close()
+		require.NoError(t, err)
+		require.NotEqual(t, oldHeadSHA, newHeadSHA)
+
+		require.NoError(t, commitstatus_service.CreateCommitStatus(t.Context(), pr.BaseRepo, baseUser, newHeadSHA, &git_model.CommitStatus{
+			State:   commitstatus.CommitStatusFailure,
+			Context: "gitea/actions",
+		}))
+		statusPass, err = pull_service.IsPullCommitStatusPass(t.Context(), pr)
+		require.NoError(t, err)
+		require.False(t, statusPass)
+
+		require.Eventually(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return pr.CommitsBehind == 0 && !pr.IsChecking()
+		}, 5*time.Second, 20*time.Millisecond)
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+
+		assert.Never(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return pr.HasMerged
+		}, time.Second, 20*time.Millisecond)
+		unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	})
+}
+
 func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
