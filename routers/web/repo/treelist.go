@@ -63,7 +63,6 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 type WebDiffFileItem struct {
 	OldPath    string `json:",omitzero"`
 	Name       string
-	NameHash   string             `json:",omitzero"`
 	DiffStatus string             `json:",omitzero"`
 	IsViewed   bool               `json:",omitzero"`
 	Children   []*WebDiffFileItem `json:",omitzero"`
@@ -122,7 +121,6 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 			item.OldPath = file.BasePath
 		}
 		item.IsViewed = filesViewedState[file.HeadPath] == pull_model.Viewed
-		item.NameHash = git.HashFilePathForWebUI(file.HeadPath)
 		addItem(file.HeadPath, item)
 		item.Icon, item.IconClass = fileicon.RenderEntryIconID(renderedIconPool, &fileicon.EntryInfo{BaseName: item.Name, EntryMode: file.HeadMode})
 	}

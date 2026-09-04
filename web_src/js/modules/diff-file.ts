@@ -10,7 +10,6 @@ export type DiffStatus = '' | 'added' | 'modified' | 'deleted' | 'renamed' | 'co
 export type DiffTreeEntry = {
   OldPath?: string,
   Name: string,
-  NameHash?: string,
   DiffStatus?: DiffStatus,
   IsViewed?: boolean,
   Children?: DiffTreeEntry[],
@@ -30,6 +29,7 @@ type ExtensionFilter = 'all' | string[];
 
 type DiffFileTree = DiffFileTreeData & {
   pathMap: Map<string, DiffTreeEntry>;
+  boxIdMap: Map<string, string>; // file path to the DOM id of its diff box, only for boxes already rendered
   fileTreeIsVisible: boolean;
   selectedItem: string;
   filenameFilterQuery: string;
@@ -94,8 +94,10 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData): Reactive<DiffFile
     filenameFilterQuery: '',
     activeExtensions: 'all',
     pathMap: new Map(),
+    boxIdMap: new Map(),
   });
   fillPathMap(store.pathMap, store.TreeRoot, '');
+  refreshBoxIdMap(store);
   return store;
 }
 
@@ -193,7 +195,16 @@ function updateShowMoreButton(matchingBelow: number) {
   }
 }
 
+// the diff boxes are rendered lazily, so the tree can only link to the ones already in the DOM
+export function refreshBoxIdMap(store: Reactive<DiffFileTree>) {
+  store.boxIdMap = new Map(Array.from(
+    document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]'),
+    (box) => [box.getAttribute('data-new-filename')!, box.id],
+  ));
+}
+
 export function applyFiltersToFileBoxes(store: Reactive<DiffFileTree>) {
+  refreshBoxIdMap(store); // boxes may have been added by "show more files"
   const boxes = document.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box[data-new-filename]');
   const matches = buildFilter(store);
   if (!matches) {

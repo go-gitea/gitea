@@ -3,9 +3,9 @@ import {createApp, h} from 'vue';
 import type {DiffStatus, DiffTreeEntry} from '../modules/diff-file.ts';
 
 function renderItem(diffStatus: string): string {
-  const item: DiffTreeEntry = {Name: 'a.txt', NameHash: 'hash', DiffStatus: diffStatus as DiffStatus, Icon: '', IconClass: ''};
+  const item: DiffTreeEntry = {Name: 'a.txt', DiffStatus: diffStatus as DiffStatus, Icon: '', IconClass: ''};
   const root = document.createElement('div');
-  createApp({render: () => h(DiffFileTreeItem, {item})}).mount(root);
+  createApp({render: () => h(DiffFileTreeItem, {item, path: item.Name})}).mount(root);
   return root.innerHTML;
 }
 

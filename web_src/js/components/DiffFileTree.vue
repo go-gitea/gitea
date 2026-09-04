@@ -108,7 +108,7 @@ function updateState(visible: boolean) {
       <DiffFileExtensionFilter :locale="props.locale"/>
     </div>
     <div class="diff-file-tree-items">
-      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.Name" :item="item"/>
+      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.Name" :item="item" :path="item.Name"/>
     </div>
   </div>
 </template>
