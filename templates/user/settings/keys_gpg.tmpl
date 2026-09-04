@@ -90,7 +90,6 @@
 								{{ctx.Locale.Tr "settings.gpg_token_help"}}
 								<pre class="command-block">{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` $.TokenToSign .PaddedKeyID}}</pre>
 							</div>
-							<br>
 						</div>
 						<div class="field">
 							<label for="signature">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
