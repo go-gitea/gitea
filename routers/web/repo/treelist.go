@@ -66,7 +66,7 @@ type WebDiffFileItem struct {
 	DiffStatus string             `json:",omitzero"`
 	IsViewed   bool               `json:",omitzero"`
 	Children   []*WebDiffFileItem `json:",omitzero"`
-	Icon       string             `json:",omitzero"` // SVG ID in FileIconPoolHTML
+	IconID     string             `json:",omitzero"`
 	IconClass  string             `json:",omitzero"` // only when it differs from WebDiffFileTree.FileIconClass
 }
 
@@ -123,8 +123,8 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 		}
 		item.IsViewed = filesViewedState[file.HeadPath] == pull_model.Viewed
 		addItem(file.HeadPath, item)
-		icon, class := fileicon.RenderEntryIconID(renderedIconPool, &fileicon.EntryInfo{BaseName: item.Name, EntryMode: file.HeadMode})
-		item.Icon = icon
+		iconID, class := fileicon.RenderEntryIconID(renderedIconPool, &fileicon.EntryInfo{BaseName: item.Name, EntryMode: file.HeadMode})
+		item.IconID = iconID
 		if dft.FileIconClass == "" {
 			dft.FileIconClass = class
 		} else if class != dft.FileIconClass {

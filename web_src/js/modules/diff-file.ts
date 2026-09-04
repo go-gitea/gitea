@@ -13,7 +13,7 @@ export type DiffTreeEntry = {
   DiffStatus?: DiffStatus,
   IsViewed?: boolean,
   Children?: DiffTreeEntry[],
-  Icon?: string,
+  IconID?: string,
   IconClass?: string, // only when it differs from the tree's FileIconClass
   ParentEntry?: DiffTreeEntry,
 };
@@ -87,11 +87,11 @@ function fillPathMap(map: Map<string, DiffTreeEntry>, entry: DiffTreeEntry, path
     map.set(path, entry);
     return;
   }
-  entry.IsViewed = isEntryViewed(entry);
   for (const child of entry.Children) {
     child.ParentEntry = entry;
     fillPathMap(map, child, joinPath(path, child.Name));
   }
+  entry.IsViewed = isEntryViewed(entry); // after the children, so nested directories roll up
 }
 
 export function reactiveDiffTreeStore(data: DiffFileTreeData): Reactive<DiffFileTree> {

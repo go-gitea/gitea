@@ -4,16 +4,23 @@ import {svgParseOuterInner, type SvgName} from '../svg.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 
 const props = withDefaults(defineProps<{
-  name: SvgName,
+  name?: SvgName,
+  useHref?: string, // render a reference to an icon already in the document instead of a bundled one
   size?: number,
   symbolId?: string,
 }>(), {
+  name: undefined,
+  useHref: undefined,
   size: 16,
   symbolId: undefined,
 });
 
 const icon = computed(() => {
-  let {svgOuter, svgInnerHtml} = svgParseOuterInner(props.name);
+  if (props.useHref) {
+    const attrs = {width: props.size, height: props.size, 'aria-hidden': 'true', innerHTML: html`<use href="${props.useHref}"></use>`};
+    return {attrs, classes: []};
+  }
+  let {svgOuter, svgInnerHtml} = svgParseOuterInner(props.name!);
   const attrs: Record<string, string | number> = {};
   for (const attr of svgOuter.attributes) {
     if (attr.name === 'class') continue;

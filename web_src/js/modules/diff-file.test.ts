@@ -30,12 +30,15 @@ function visiblePaths(root: DiffTreeEntry | null): string[] {
 
 test('diff-tree', () => {
   const store = makeStore([
-    dir('dir1', [file('test.txt')]),
+    dir('dir1', [dir('dir2', [{Name: 'seen.txt', IsViewed: true}])]),
+    dir('dir3', [file('test.txt')]),
     file('other.txt'),
   ]);
-  diffTreeStoreSetViewed(store, 'dir1/test.txt', true);
-  expect(store.pathMap.get('dir1/test.txt')!.IsViewed).toBe(true);
+  // a directory whose only child is a fully viewed directory is viewed too
   expect(store.TreeRoot.Children![0].IsViewed).toBe(true);
+  diffTreeStoreSetViewed(store, 'dir3/test.txt', true);
+  expect(store.pathMap.get('dir3/test.txt')!.IsViewed).toBe(true);
+  expect(store.TreeRoot.Children![1].IsViewed).toBe(true);
 });
 
 test('filterDiffTree', () => {
