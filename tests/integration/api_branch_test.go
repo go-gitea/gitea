@@ -52,7 +52,7 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 
 func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPriority, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
 		RuleName: branchName,
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, expectedHTTPStatus)
@@ -64,7 +64,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedPrio
 	}
 }
 
-func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.BranchProtection, expectedHTTPStatus int) {
+func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.EditBranchProtectionOption, expectedHTTPStatus int) {
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName, body).
 		AddTokenAuth(token)
@@ -358,6 +358,7 @@ func TestAPIBranchProtection(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("Basic", testAPIBranchProtectionBasic)
 	t.Run("BypassAllowlistValidation", testAPIBranchProtectionBypassAllowlistValidation)
+	t.Run("DeletionAllowlistValidation", testAPIBranchProtectionDeletionAllowlistValidation)
 }
 
 func testAPIBranchProtectionBasic(t *testing.T) {
@@ -379,13 +380,13 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 
 	testAPIGetBranchProtection(t, "master", http.StatusOK)
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
-		EnablePush: true,
+	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
+		EnablePush: new(true),
 	}, http.StatusOK)
 
 	// enable status checks, require the "test1" check to pass
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
-		EnableStatusCheck:   true,
+	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
+		EnableStatusCheck:   new(true),
 		StatusCheckContexts: []string{"test1"},
 	}, http.StatusOK)
 	bp := testAPIGetBranchProtection(t, "master", http.StatusOK)
@@ -393,8 +394,8 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 	assert.Equal(t, []string{"test1"}, bp.StatusCheckContexts)
 
 	// disable status checks, clear the list of required checks
-	testAPIEditBranchProtection(t, "master", &api.BranchProtection{
-		EnableStatusCheck:   false,
+	testAPIEditBranchProtection(t, "master", &api.EditBranchProtectionOption{
+		EnableStatusCheck:   new(false),
 		StatusCheckContexts: []string{},
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "master", http.StatusOK)
@@ -405,7 +406,34 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
+
+	// Protected branches remain non-deletable by default.
+	testAPICreateBranchProtection(t, "branch2", 3, http.StatusCreated)
+	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
+
+	// Enabling deletion with an empty allowlist still denies deletion.
+	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+		EnablePush:              new(true),
+		EnableDeletion:          new(true),
+		EnableDeletionAllowlist: new(true),
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.True(t, bp.EnableDeletion)
+	assert.True(t, bp.EnableDeletionAllowlist)
+	assert.Empty(t, bp.DeletionAllowlistUsernames)
+	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
+
+	// An allowlisted user with push access can delete the protected branch.
+	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+		EnablePush:                 new(true),
+		EnableDeletion:             new(true),
+		EnableDeletionAllowlist:    new(true),
+		DeletionAllowlistUsernames: []string{"user2"},
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
+	testAPIDeleteBranchProtection(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true
 	testAPIDeleteBranch(t, "no-such-branch", http.StatusNotFound) // non-existing branch, not exist in git or DB
 }
@@ -430,6 +458,39 @@ func testAPIBranchProtectionBypassAllowlistValidation(t *testing.T) {
 			RuleName:              ruleName,
 			EnableBypassAllowlist: false,
 			BypassAllowlistTeams:  []string{"nonexistent-team"},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		deleteReq := NewRequestf(t, "DELETE", "/api/v1/repos/org3/repo3/branch_protections/%s", ruleName).
+			AddTokenAuth(token)
+		MakeRequest(t, deleteReq, http.StatusNoContent)
+	})
+}
+
+func testAPIBranchProtectionDeletionAllowlistValidation(t *testing.T) {
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+
+	t.Run("IgnoreInvalidDeletionUsernamesWhenDisabled", func(t *testing.T) {
+		ruleName := "deletion-disabled-invalid-user"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.CreateBranchProtectionOption{
+			RuleName:                   ruleName,
+			EnablePush:                 true,
+			EnableDeletion:             true,
+			EnableDeletionAllowlist:    false,
+			DeletionAllowlistUsernames: []string{"nonexistent-user"},
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+		testAPIDeleteBranchProtection(t, ruleName, http.StatusNoContent)
+	})
+
+	t.Run("IgnoreInvalidDeletionTeamsWhenDisabled", func(t *testing.T) {
+		ruleName := "deletion-disabled-invalid-team"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/org3/repo3/branch_protections", &api.CreateBranchProtectionOption{
+			RuleName:                ruleName,
+			EnablePush:              true,
+			EnableDeletion:          true,
+			EnableDeletionAllowlist: false,
+			DeletionAllowlistTeams:  []string{"nonexistent-team"},
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)
 

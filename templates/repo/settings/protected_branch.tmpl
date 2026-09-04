@@ -160,6 +160,63 @@
 						</div>
 					</div>
 				</div>
+				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_branch_delete"}}</h5>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="enable_deletion" value="none" class="toggle-target-disabled" data-target="#deletion_allowlist_box" {{if not .Rule.CanDelete}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_disable_deletion"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_disable_deletion_desc"}}</p>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="enable_deletion" value="all" class="toggle-target-disabled" data-target="#deletion_allowlist_box" {{if and (.Rule.CanDelete) (not .Rule.EnableDeletionAllowlist)}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_all"}}</label>
+						<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_all_desc"}}</p>
+					</div>
+				</div>
+				<div class="grouped fields">
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="enable_deletion" value="whitelist" class="toggle-target-enabled" data-target="#deletion_allowlist_box" {{if and (.Rule.CanDelete) (.Rule.EnableDeletionAllowlist)}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_allowlist"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.protect_enable_deletion_allowlist_desc"}}</p>
+						</div>
+					</div>
+					<div id="deletion_allowlist_box" class="grouped fields {{if not .Rule.EnableDeletionAllowlist}}disabled{{end}}">
+						<div class="checkbox-sub-item field">
+							<label>{{ctx.Locale.Tr "repo.settings.protect_deletion_allowlist_users"}}</label>
+							<div class="ui multiple search selection dropdown">
+								<input type="hidden" name="deletion_allowlist_users" value="{{.deletion_allowlist_users}}">
+								<div class="default text">{{ctx.Locale.Tr "search.user_kind"}}</div>
+								<div class="menu">
+									{{range .Users}}
+										<div class="item" data-value="{{.ID}}">
+											{{ctx.AvatarUtils.Avatar . 28 "mini"}}{{template "repo/search_name" .}}
+										</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+						{{if .Owner.IsOrganization}}
+							<div class="checkbox-sub-item field">
+								<label>{{ctx.Locale.Tr "repo.settings.protect_deletion_allowlist_teams"}}</label>
+								<div class="ui multiple search selection dropdown">
+									<input type="hidden" name="deletion_allowlist_teams" value="{{.deletion_allowlist_teams}}">
+									<div class="default text">{{ctx.Locale.Tr "search.team_kind"}}</div>
+									<div class="menu">
+										{{range .Teams}}
+											<div class="item" data-value="{{.ID}}">
+												{{svg "octicon-people"}}
+												{{.Name}}
+											</div>
+										{{end}}
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_pull_request_approvals"}}</h5>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.protect_required_approvals"}}</label>
