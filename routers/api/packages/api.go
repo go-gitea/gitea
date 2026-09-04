@@ -129,6 +129,19 @@ func CommonRoutes() *web.Router {
 		&chef.Auth{},
 	}, verifyAuthOptions{})
 
+	r.Group("/go", func() {
+		r.Get("/sumdb/sum.golang.org/supported", http.NotFound)
+
+		// https://go.dev/ref/mod#goproxy-protocol
+		r.PathGroup("/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("GET", "/<name:*>/@<version:latest>", goproxy.GlobalPackageVersionMetadata)
+			g.MatchPath("GET", "/<name:*>/@v/list", goproxy.GlobalEnumeratePackageVersions)
+			g.MatchPath("GET", "/<name:*>/@v/<version>.zip", goproxy.GlobalDownloadPackageFile)
+			g.MatchPath("GET", "/<name:*>/@v/<version>.info", goproxy.GlobalPackageVersionMetadata)
+			g.MatchPath("GET", "/<name:*>/@v/<version>.mod", goproxy.GlobalPackageVersionGoModContent)
+		})
+	})
+
 	r.Group("/{username}", func() {
 		r.Group("/alpine", func() {
 			r.Get("/key", alpine.GetRepositoryKey)
