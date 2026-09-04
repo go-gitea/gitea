@@ -73,7 +73,6 @@ type Release struct {
 	TagName          string           `xorm:"INDEX UNIQUE(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
-	LowerTagName     string
 	Target           string
 	TargetBehind     string `xorm:"-"` // to handle non-existing or empty target
 	Title            string
@@ -85,6 +84,7 @@ type Release struct {
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
+	IsImmutable      bool               `xorm:"NOT NULL DEFAULT false"` // stays true after the release is deleted, the row is then a locked tag
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 	PublishedUnix    timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
@@ -162,13 +162,23 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 		return false, nil
 	}
 
-	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
+	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, TagName: tagName})
 }
 
-// UpdateRelease updates all columns of a release
+// HasImmutableRelease needs the release to still exist, unlike IsTagImmutable.
+func HasImmutableRelease(ctx context.Context, repoID int64, tagName string) (bool, error) {
+	return db.Exist[Release](ctx, builder.Eq{
+		"repo_id":      repoID,
+		"tag_name":     tagName,
+		"is_immutable": true,
+		"is_tag":       false,
+	})
+}
+
+// UpdateRelease updates all columns of a release, except the server owned immutable flag
 func UpdateRelease(ctx context.Context, rel *Release) error {
 	rel.Title = util.EllipsisDisplayString(rel.Title, 255)
-	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel)
+	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Omit("is_immutable").Update(rel)
 	return err
 }
 
@@ -202,22 +212,28 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
 		}
 
-		if attachments[i].ReleaseID != 0 {
+		// an issue or comment keeps its own mutation routes
+		if attachments[i].ReleaseID != 0 || attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
 			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
-		// No assign value could be 0, so ignore AllCols().
-		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("release_id").Update(attachments[i]); err != nil {
+		affected, err := db.GetEngine(ctx).ID(attachments[i].ID).
+			Where("release_id = 0 AND issue_id = 0 AND comment_id = 0").
+			Cols("release_id").Update(attachments[i])
+		if err != nil {
 			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
+		}
+		if affected == 0 {
+			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 	}
 
-	return err
+	return nil
 }
 
 // GetRelease returns release by given ID.
 func GetRelease(ctx context.Context, repoID int64, tagName string) (*Release, error) {
-	rel, has, err := db.Get[Release](ctx, builder.Eq{"repo_id": repoID, "lower_tag_name": strings.ToLower(tagName)})
+	rel, has, err := db.Get[Release](ctx, builder.Eq{"repo_id": repoID, "tag_name": tagName})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -296,16 +312,16 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 		}
 	}
 
+	// searching stays case insensitive, only resolving a tag to a release is a git ref match
 	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
-		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
+		cond = cond.And(db.BuildCaseInsensitiveLike("tag_name", opts.NamePattern.Value()))
 	}
 	if opts.TagFilter != "" {
-		pattern := strings.ToLower(opts.TagFilter)
-		pattern = strings.ReplaceAll(pattern, "\\", "\\\\")
+		pattern := strings.ReplaceAll(opts.TagFilter, "\\", "\\\\")
 		pattern = strings.ReplaceAll(pattern, "_", "\\_")
 		pattern = strings.ReplaceAll(pattern, "%", "\\%")
 		pattern = strings.ReplaceAll(pattern, "*", "%")
-		cond = cond.And(builder.Like{"lower_tag_name", pattern})
+		cond = cond.And(db.BuildCaseInsensitiveLike("tag_name", pattern))
 	}
 	return cond
 }
@@ -459,21 +475,17 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 	if len(tags) == 0 {
 		return nil
 	}
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
-
 	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, true).
-		In("lower_tag_name", lowerTags).
+		In("tag_name", tags).
 		Delete(new(Release)); err != nil {
 		return fmt.Errorf("Delete: %w", err)
 	}
 
+	// an immutable release stays published, reverting it to a draft would leave it uneditable
 	if _, err := db.GetEngine(ctx).
-		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
-		In("lower_tag_name", lowerTags).
+		Where("repo_id = ? AND is_tag = ? AND is_immutable = ?", repo.ID, false, false).
+		In("tag_name", tags).
 		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{
 			IsDraft: true,

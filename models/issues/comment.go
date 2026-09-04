@@ -644,7 +644,9 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 			}
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
-			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
+			// a stale read must not create a second owner
+			if _, err := db.GetEngine(ctx).ID(attachments[i].ID).Where("release_id = 0").
+				Cols("issue_id", "comment_id").Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
 			}
 		}

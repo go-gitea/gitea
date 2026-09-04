@@ -26,6 +26,7 @@ func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_mode
 		UploadURL:    r.APIUploadURL(),
 		IsDraft:      r.IsDraft,
 		IsPrerelease: r.IsPrerelease,
+		IsImmutable:  r.IsImmutable,
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  util.Iif(r.IsDraft, nil, r.PublishedUnix.AsTimePtr()),
 		Publisher:    ToUser(ctx, r.Publisher, nil),
