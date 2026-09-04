@@ -2,7 +2,7 @@ import {svgRaw} from '../svg.ts';
 import {html} from '../utils/html.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {createElementFromAttrs, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, hideElem, queryElems} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
 import type Dropzone from '@deltablot/dropzone';
@@ -49,20 +49,23 @@ export function generateMarkdownLinkForAttachment(file: {uuid: string, name: str
   return fileMarkdown;
 }
 
-export function decorateAttachmentPreview(file: CustomDropzoneFile, attachmentBaseLinkUrl: string) {
+export function decorateAttachmentPreview(dzInst: Dropzone, file: CustomDropzoneFile, attachmentBaseLinkUrl: string) {
   const el = file.previewElement!;
-  el.setAttribute('data-tooltip-content', `Name: ${file.name}\nUUID: ${file.uuid}`);
-
   const fileUrl = `${attachmentBaseLinkUrl}/${file.uuid}`;
-  const markdownLink = generateMarkdownLinkForAttachment(file);
-
   queryElems<HTMLAnchorElement>(el, 'a[data-dz-custom-link]', (elLink) => {
     elLink.target = '_blank';
     elLink.href = fileUrl;
   });
 
+  const needUuidLink = dzInst.element.getAttribute('data-need-uuid-link') === 'true';
   const elCopyLink = el.querySelector<HTMLButtonElement>('button[data-dz-custom-copy-link]')!;
-  elCopyLink.setAttribute('data-clipboard-text', markdownLink);
+  if (needUuidLink) {
+    const markdownLink = generateMarkdownLinkForAttachment(file);
+    el.setAttribute('data-tooltip-content', `Name: ${file.name}\nUUID: ${file.uuid}`);
+    elCopyLink.setAttribute('data-clipboard-text', markdownLink);
+  } else {
+    hideElem(elCopyLink);
+  }
 }
 
 /**
@@ -121,7 +124,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
     dropzoneEl.querySelector('.files')!.append(input);
-    decorateAttachmentPreview(file, attachmentBaseLinkUrl);
+    decorateAttachmentPreview(dzInst, file, attachmentBaseLinkUrl);
     dzInst.emit(DropzoneCustomEventUploadDone, {file});
   });
 
@@ -163,7 +166,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
           const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
           dzInst.emit('thumbnail', file, imgSrc);
         }
-        decorateAttachmentPreview(file, attachmentBaseLinkUrl); // it is from server response, so no "type"
+        decorateAttachmentPreview(dzInst, file, attachmentBaseLinkUrl); // it is from server response, so no "type"
         fileUuidDict[file.uuid] = {submitted: true};
         const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${file.uuid}`, value: file.uuid});
         dropzoneEl.querySelector('.files')!.append(input);
