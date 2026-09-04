@@ -33,7 +33,8 @@ func init() {
 // LockRelease claims the tag name of a release becoming published. Must run inside the transaction
 // that writes the release, so the row and its claim commit together.
 func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
-	if rel.IsDraft || rel.IsTag || !repo.IsImmutableReleasesEnabled(ctx) {
+	// a pull mirror follows upstream refs, so it cannot promise a tag will never move
+	if rel.IsDraft || rel.IsTag || repo.IsMirror || !repo.IsImmutableReleasesEnabled(ctx) {
 		return nil
 	}
 	rel.IsImmutable = true

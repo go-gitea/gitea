@@ -217,8 +217,10 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
-		// No assign value could be 0, so ignore AllCols().
-		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("release_id").Update(attachments[i]); err != nil {
+		// claim it only while still unowned, so a concurrent release cannot take it from this one
+		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).
+			Where("release_id = 0 AND issue_id = 0 AND comment_id = 0").
+			Cols("release_id").Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
 		}
 	}

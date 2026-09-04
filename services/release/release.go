@@ -75,6 +75,24 @@ func errImmutableField(field string) error {
 // ErrImmutableTag is returned when a claimed tag name would be created, moved or deleted.
 var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was used by an immutable release")
 
+// assertReleaseMutable rejects a change to a field that a published immutable release owns.
+func assertReleaseMutable(old, rel *repo_model.Release, addUUIDs, delUUIDs []string, editAttachments map[string]string) error {
+	if !old.IsImmutable || old.IsTag {
+		return nil
+	}
+	switch {
+	case rel.TagName != old.TagName:
+		return errImmutableField("tag_name")
+	case rel.Target != old.Target:
+		return errImmutableField("target_commitish")
+	case rel.IsDraft || rel.IsTag: // demoting to a tag would free the tag for deletion
+		return errImmutableField("state")
+	case len(addUUIDs) > 0 || len(delUUIDs) > 0 || len(editAttachments) > 0:
+		return errImmutableField("assets")
+	}
+	return nil
+}
+
 func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName string) error {
 	immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 	if err != nil || !immutable {
@@ -318,18 +336,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	// any edit of a published release locks it, so enabling the setting reaches existing releases too
 	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag
 
-	if oldRelease.IsImmutable && !oldRelease.IsTag { // the release owns its immutable tag name
-		switch {
-		case rel.TagName != oldRelease.TagName:
-			return errImmutableField("tag_name")
-		case rel.Target != oldRelease.Target:
-			return errImmutableField("target_commitish")
-		case rel.IsDraft || rel.IsTag: // demoting to a tag would free the tag for deletion
-			return errImmutableField("state")
-		case len(addAttachmentUUIDs) > 0 || len(delAttachmentUUIDs) > 0 || len(editAttachments) > 0:
-			return errImmutableField("assets")
-		}
-	} else if isConvertedFromTag || isBeingLocked || rel.TagName != oldRelease.TagName {
+	if err := assertReleaseMutable(oldRelease, rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
+		return err
+	}
+	if isConvertedFromTag || isBeingLocked || rel.TagName != oldRelease.TagName {
 		if err := assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 			return err
 		}
@@ -341,7 +351,16 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if isBeingLocked {
+		// the checks above ran on a snapshot, so re-assert against the row as it stands now
+		current, err := repo_model.GetReleaseByID(ctx, rel.ID)
+		if err != nil {
+			return err
+		}
+		if err := assertReleaseMutable(current, rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
+			return err
+		}
+
+		if isBeingLocked && (!current.IsImmutable || current.IsTag) { // not already a locked release
 			if err = repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
 				return err
 			}
@@ -433,7 +452,11 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
 func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *repo_model.Release, doer *user_model.User, delTag bool) error {
 	if delTag {
-		if rel.IsImmutable && !rel.IsTag { // the tag outlives the release it belongs to
+		current, err := repo_model.GetReleaseByID(ctx, rel.ID) // the caller's copy may predate a publication
+		if err != nil {
+			return err
+		}
+		if current.IsImmutable && !current.IsTag { // the tag outlives the release it belongs to
 			return ErrImmutableTag
 		}
 
