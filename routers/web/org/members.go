@@ -10,7 +10,6 @@ import (
 
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -130,6 +129,5 @@ func MembersAction(ctx *context.Context) {
 		return
 	}
 
-	log.Error("Action(%s): %v", ctx.PathParam("action"), err)
-	ctx.JSONError(err.Error()) // FIXME: legacy logic, errors are handled together, it's not right, need to distinguish between different errors
+	ctx.JSONErrorAuto(err)
 }
