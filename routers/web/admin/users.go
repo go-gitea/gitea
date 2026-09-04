@@ -298,6 +298,7 @@ type botAccessTokensData struct {
 	RegenerateURL   string // empty: an admin rotates a bot token by deleting and recreating it
 	NameValue       string
 	ErrName         bool
+	NewTokenValue   string // one-time value of a freshly created token, shown with a copy button
 }
 
 func ViewUser(ctx *context.Context) {
@@ -312,6 +313,16 @@ func ViewUser(ctx *context.Context) {
 		return
 	}
 
+	loadUserViewData(ctx, u)
+	if ctx.Written() {
+		return
+	}
+	ctx.HTML(http.StatusOK, tplUserView)
+}
+
+// loadUserViewData collects the per-user page data below the header, so the token POST handler can
+// re-render this page in place with the submitted form state instead of redirecting and losing it.
+func loadUserViewData(ctx *context.Context, u *user_model.User) {
 	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptionsAll,
 		OwnerID:     u.ID,
@@ -358,8 +369,6 @@ func ViewUser(ctx *context.Context) {
 			DeleteURL:       ctx.Link + "/access_tokens/delete",
 		}
 	}
-
-	ctx.HTML(http.StatusOK, tplUserView)
 }
 
 // getTargetUser loads the user an admin action operates on, without the page data prepareUserInfo collects
@@ -394,13 +403,28 @@ func NewBotTokenPost(ctx *context.Context) {
 	}
 
 	t, err := user_setting.NewAccessTokenFromForm(ctx, u, form.Name, false)
+	// render the user page in place, so a validation error keeps the typed token name and a
+	// successful creation can show the one-time token value with a copy button
+	renderPage := func(errName bool, newToken string) {
+		loadUserViewData(ctx, u)
+		if ctx.Written() {
+			return
+		}
+		if bat, ok := ctx.Data["BotAccessTokens"].(*botAccessTokensData); ok {
+			bat.NameValue, bat.ErrName, bat.NewTokenValue = form.Name, errName, newToken
+		}
+		ctx.HTML(http.StatusOK, tplUserView)
+	}
 	switch {
 	case errors.Is(err, user_setting.ErrAccessTokenNoPermission):
-		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"))
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
+		renderPage(true, "")
 	case errors.Is(err, user_setting.ErrAccessTokenAdminScope):
-		ctx.Flash.Error(ctx.Tr("settings.token_admin_scope_not_allowed"))
+		ctx.Flash.Error(ctx.Tr("settings.token_admin_scope_not_allowed"), true)
+		renderPage(true, "")
 	case errors.Is(err, user_setting.ErrAccessTokenNameDuplicate):
-		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", form.Name))
+		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", form.Name), true)
+		renderPage(true, "")
 	case errors.Is(err, user_setting.ErrAccessTokenScopeEscalation):
 		ctx.HTTPError(http.StatusForbidden, err.Error())
 		return
@@ -408,10 +432,9 @@ func NewBotTokenPost(ctx *context.Context) {
 		ctx.ServerError("NewAccessTokenFromForm", err)
 		return
 	default:
-		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-		ctx.Flash.Info(t.Token)
+		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"), true)
+		renderPage(false, t.Token)
 	}
-	ctx.Redirect(redirect)
 }
 
 // DeleteBotToken deletes an access token of a bot user on behalf of an admin

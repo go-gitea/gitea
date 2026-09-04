@@ -2,6 +2,15 @@
 	{{ctx.Locale.Tr "settings.manage_access_token"}}
 </h4>
 <div class="ui attached segment">
+	{{if .NewTokenValue}}
+		<div class="ui positive message flash-message flash-success">
+			<div class="tw-flex tw-items-center tw-justify-center tw-gap-2">
+				<span>{{ctx.Locale.Tr "settings.generate_token_success"}}</span>
+				<code id="new-access-token-value">{{.NewTokenValue}}</code>
+				<button class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#new-access-token-value" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+			</div>
+		</div>
+	{{end}}
 	<div class="flex-divided-list items-with-main">
 		<div class="item">
 			{{.Description}}
