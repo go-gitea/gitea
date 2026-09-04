@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
@@ -31,6 +32,10 @@ func IsErrFileTypeForbidden(err error) bool {
 
 func (err ErrFileTypeForbidden) Error() string {
 	return "This file cannot be uploaded or modified due to a forbidden file extension or type."
+}
+
+func (err ErrFileTypeForbidden) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 var wildcardTypeRe = regexp.MustCompile(`^[a-z]+/\*$`)
