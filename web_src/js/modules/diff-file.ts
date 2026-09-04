@@ -16,7 +16,7 @@ export type DiffTreeEntry = {
   EntryMode?: string,
   IsViewed?: boolean,
   Children?: DiffTreeEntry[],
-  Icon: number,
+  Icon: number, // index into DiffFileTreeData.Icons
   ParentEntry?: DiffTreeEntry,
 };
 
