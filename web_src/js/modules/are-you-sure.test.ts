@@ -16,7 +16,7 @@ const isBeforeUnloadPrevented = () => !window.dispatchEvent(new Event('beforeunl
 
 afterEach(() => document.body.replaceChildren());
 
-test('tracks changes via input, change and keyup, fires onDirtyChange on flips, submit and reset clear the state', () => {
+test('tracks field changes, clears on submit and reset', () => {
   const form = createForm(`
     <input name="title" value="a">
     <input type="checkbox" name="flag">
@@ -40,7 +40,7 @@ test('tracks changes via input, change and keyup, fires onDirtyChange on flips, 
   expect(shouldTriggerAreYouSure()).toBe(false);
 });
 
-test('ignores unnamed, ays-ignore, submit and button inputs and fields added after initialization', () => {
+test('ignores untracked fields', () => {
   const form = createForm(`
     <input value="a">
     <input name="dummy" class="ays-ignore" value="a">
@@ -54,7 +54,7 @@ test('ignores unnamed, ays-ignore, submit and button inputs and fields added aft
   expect(shouldTriggerAreYouSure()).toBe(false);
 });
 
-test('applying again resets the baseline, replaces the callback and re-evaluates ays-ignore, removed fields stop counting', () => {
+test('applying again resets the baseline', () => {
   const form = createForm(`
     <input name="title" value="a">
     <input name="extra" value="a">
@@ -75,7 +75,7 @@ test('applying again resets the baseline, replaces the callback and re-evaluates
   expect(onDirtyChange.mock.calls).toEqual([[true], [false], [true]]);
 });
 
-test('initGlobalFormDirtyLeaveConfirm skips the sign-in page and ignore-dirty forms, prevents beforeunload only while a visible non-ignored form is dirty', () => {
+test('initGlobalFormDirtyLeaveConfirm guards beforeunload', () => {
   const signin = createForm('<input name="user_name" value="a">', 'page-content user signin');
   initGlobalFormDirtyLeaveConfirm();
   set(field(signin, 'user_name'), {value: 'b'});
