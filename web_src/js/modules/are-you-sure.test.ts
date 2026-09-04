@@ -17,7 +17,11 @@ const isBeforeUnloadPrevented = () => !window.dispatchEvent(new Event('beforeunl
 afterEach(() => document.body.replaceChildren());
 
 test('tracks changes via input, change and keyup, fires onDirtyChange on flips, submit and reset clear the state', () => {
-  const form = createForm('<input name="title" value="a"><input type="checkbox" name="flag"><select name="pick"><option value="a" selected>a</option><option value="b">b</option></select>');
+  const form = createForm(`
+    <input name="title" value="a">
+    <input type="checkbox" name="flag">
+    <select name="pick"><option value="a" selected>a</option><option value="b">b</option></select>
+  `);
   const onDirtyChange = vi.fn();
   applyAreYouSure(form, onDirtyChange);
   set(field(form, 'title'), {value: 'b'}, 'input');
@@ -37,7 +41,13 @@ test('tracks changes via input, change and keyup, fires onDirtyChange on flips, 
 });
 
 test('ignores unnamed, ays-ignore, submit and button inputs and fields added after initialization', () => {
-  const form = createForm('<input value="a"><input name="dummy" class="ays-ignore" value="a"><div class="ays-ignore"><input name="summary" value="a"></div><input type="submit" name="send" value="a"><input type="button" name="act" value="a">');
+  const form = createForm(`
+    <input value="a">
+    <input name="dummy" class="ays-ignore" value="a">
+    <div class="ays-ignore"><input name="summary" value="a"></div>
+    <input type="submit" name="send" value="a">
+    <input type="button" name="act" value="a">
+  `);
   applyAreYouSure(form);
   form.insertAdjacentHTML('beforeend', '<input name="later" value="a">');
   for (const input of form.querySelectorAll('input')) set(input, {value: 'b'});
@@ -45,7 +55,11 @@ test('ignores unnamed, ays-ignore, submit and button inputs and fields added aft
 });
 
 test('applying again resets the baseline, replaces the callback and re-evaluates ays-ignore, removed fields stop counting', () => {
-  const form = createForm('<input name="title" value="a"><input name="extra" value="a"><div class="wrapper"><input name="summary" value="a"></div>');
+  const form = createForm(`
+    <input name="title" value="a">
+    <input name="extra" value="a">
+    <div class="wrapper"><input name="summary" value="a"></div>
+  `);
   const oldOnDirtyChange = vi.fn();
   const onDirtyChange = vi.fn();
   applyAreYouSure(form, oldOnDirtyChange);

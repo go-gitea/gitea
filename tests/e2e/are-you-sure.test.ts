@@ -7,7 +7,6 @@ test('leaving a new issue with an unsaved description asks for confirmation', as
   await Promise.all([apiCreateRepo(request, {name: repoName, autoInit: false}), login(page)]);
   await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/issues/new`);
   await page.getByPlaceholder('Leave a comment').press('a');
-
   const dialogPromise = page.waitForEvent('dialog');
   page.once('dialog', (dialog) => dialog.dismiss());
   await page.getByRole('link', {name: 'Dashboard'}).click();
