@@ -2917,6 +2917,10 @@
             "type": "string",
             "x-go-name": "Created"
           },
+          "deletion_allowlist_deploy_keys": {
+            "type": "boolean",
+            "x-go-name": "DeletionAllowlistDeployKeys"
+          },
           "deletion_allowlist_teams": {
             "items": {
               "type": "string"
@@ -3838,6 +3842,10 @@
             },
             "type": "array",
             "x-go-name": "BypassAllowlistUsernames"
+          },
+          "deletion_allowlist_deploy_keys": {
+            "type": "boolean",
+            "x-go-name": "DeletionAllowlistDeployKeys"
           },
           "deletion_allowlist_teams": {
             "items": {
@@ -5415,6 +5423,10 @@
             },
             "type": "array",
             "x-go-name": "BypassAllowlistUsernames"
+          },
+          "deletion_allowlist_deploy_keys": {
+            "type": "boolean",
+            "x-go-name": "DeletionAllowlistDeployKeys"
           },
           "deletion_allowlist_teams": {
             "items": {

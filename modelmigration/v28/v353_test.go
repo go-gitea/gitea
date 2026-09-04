@@ -32,10 +32,11 @@ func TestAddDeletionAllowlistToBranchProtection(t *testing.T) {
 	require.NoError(t, AddDeletionAllowlistToBranchProtection(t.Context(), x))
 
 	type protectedBranchAfterV353 struct {
-		CanDelete                bool
-		EnableDeletionAllowlist  bool
-		DeletionAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
+		CanDelete                   bool
+		EnableDeletionAllowlist     bool
+		DeletionAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
+		DeletionAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
+		DeletionAllowlistDeployKeys bool
 	}
 
 	var branch protectedBranchAfterV353
@@ -46,4 +47,5 @@ func TestAddDeletionAllowlistToBranchProtection(t *testing.T) {
 	assert.False(t, branch.EnableDeletionAllowlist)
 	assert.Nil(t, branch.DeletionAllowlistUserIDs)
 	assert.Nil(t, branch.DeletionAllowlistTeamIDs)
+	assert.False(t, branch.DeletionAllowlistDeployKeys)
 }

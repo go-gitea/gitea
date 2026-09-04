@@ -422,7 +422,24 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 	assert.True(t, bp.EnableDeletion)
 	assert.True(t, bp.EnableDeletionAllowlist)
 	assert.Empty(t, bp.DeletionAllowlistUsernames)
+	assert.False(t, bp.DeletionAllowlistDeployKeys)
 	testAPIDeleteBranch(t, "branch2", http.StatusForbidden)
+
+	// The deploy-key allowlist flag is exposed by the API and cleared when restricted deletion is disabled.
+	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+		EnableDeletion:              new(true),
+		EnableDeletionAllowlist:     new(true),
+		DeletionAllowlistDeployKeys: new(true),
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.True(t, bp.DeletionAllowlistDeployKeys)
+	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
+		EnableDeletion:          new(true),
+		EnableDeletionAllowlist: new(false),
+	}, http.StatusOK)
+	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
+	assert.False(t, bp.EnableDeletionAllowlist)
+	assert.False(t, bp.DeletionAllowlistDeployKeys)
 
 	// An allowlisted user with push access can delete the protected branch.
 	testAPIEditBranchProtection(t, "branch2", &api.EditBranchProtectionOption{
@@ -433,6 +450,7 @@ func testAPIBranchProtectionBasic(t *testing.T) {
 	}, http.StatusOK)
 	bp = testAPIGetBranchProtection(t, "branch2", http.StatusOK)
 	assert.Equal(t, []string{"user2"}, bp.DeletionAllowlistUsernames)
+	assert.False(t, bp.DeletionAllowlistDeployKeys)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranchProtection(t, "branch2", http.StatusNoContent)
 	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)        // deleted branch, there is a record in DB with IsDelete=true

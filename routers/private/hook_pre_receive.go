@@ -159,7 +159,14 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	//
 	// 1. Detect and prevent deletion of the branch
 	if newCommitID == objectFormat.EmptyObjectID().String() {
-		if !protectBranch.CanUserDelete(ctx, ctx.Doer) {
+		var canDelete bool
+		if ctx.opts.UserID == user_model.DeployKeyUserID {
+			canPush := protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
+			canDelete = protectBranch.CanDelete && canPush && (!protectBranch.EnableDeletionAllowlist || protectBranch.DeletionAllowlistDeployKeys)
+		} else {
+			canDelete = protectBranch.CanUserDelete(ctx, ctx.Doer)
+		}
+		if !canDelete {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
 		}
 		return

@@ -213,9 +213,11 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	case "all":
 		protectBranch.CanDelete = true
 		protectBranch.EnableDeletionAllowlist = false
+		protectBranch.DeletionAllowlistDeployKeys = false
 	case "whitelist":
 		protectBranch.CanDelete = true
 		protectBranch.EnableDeletionAllowlist = true
+		protectBranch.DeletionAllowlistDeployKeys = f.DeletionAllowlistDeployKeys
 		if strings.TrimSpace(f.DeletionAllowlistUsers) != "" {
 			deletionAllowlistUsers, _ = base.StringsToInt64s(strings.Split(f.DeletionAllowlistUsers, ","))
 		}
@@ -225,6 +227,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	default:
 		protectBranch.CanDelete = false
 		protectBranch.EnableDeletionAllowlist = false
+		protectBranch.DeletionAllowlistDeployKeys = false
 	}
 
 	protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist

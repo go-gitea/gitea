@@ -189,6 +189,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		EnableDeletionAllowlist:       bp.EnableDeletionAllowlist,
 		DeletionAllowlistUsernames:    deletionAllowlistUsernames,
 		DeletionAllowlistTeams:        deletionAllowlistTeams,
+		DeletionAllowlistDeployKeys:   bp.DeletionAllowlistDeployKeys,
 		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,

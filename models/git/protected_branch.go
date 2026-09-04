@@ -55,6 +55,7 @@ type ProtectedBranch struct {
 	EnableDeletionAllowlist       bool     `xorm:"NOT NULL DEFAULT false"`
 	DeletionAllowlistUserIDs      []int64  `xorm:"JSON TEXT"`
 	DeletionAllowlistTeamIDs      []int64  `xorm:"JSON TEXT"`
+	DeletionAllowlistDeployKeys   bool     `xorm:"NOT NULL DEFAULT false"`
 	EnableStatusCheck             bool     `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts           []string `xorm:"JSON TEXT"`
 	EnableApprovalsWhitelist      bool     `xorm:"NOT NULL DEFAULT false"`

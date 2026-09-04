@@ -13,10 +13,11 @@ import (
 
 func AddDeletionAllowlistToBranchProtection(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
-		CanDelete                bool    `xorm:"NOT NULL DEFAULT false"`
-		EnableDeletionAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
-		DeletionAllowlistUserIDs []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
+		CanDelete                   bool    `xorm:"NOT NULL DEFAULT false"`
+		EnableDeletionAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
+		DeletionAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
+		DeletionAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
+		DeletionAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{

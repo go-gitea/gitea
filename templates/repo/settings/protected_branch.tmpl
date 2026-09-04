@@ -215,6 +215,12 @@
 								</div>
 							</div>
 						{{end}}
+						<div class="checkbox-sub-item field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="deletion_allowlist_deploy_keys" {{if .Rule.DeletionAllowlistDeployKeys}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "repo.settings.protect_deletion_allowlist_deploy_keys"}}</label>
+							</div>
+						</div>
 					</div>
 				</div>
 				<h5 class="ui dividing header">{{ctx.Locale.Tr "repo.settings.event_pull_request_approvals"}}</h5>

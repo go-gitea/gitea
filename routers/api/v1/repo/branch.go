@@ -814,6 +814,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ForcePushAllowlistDeployKeys:  form.EnablePush && form.EnableForcePush && form.EnableForcePushAllowlist && form.ForcePushAllowlistDeployKeys,
 		CanDelete:                     form.EnablePush && form.EnableDeletion,
 		EnableDeletionAllowlist:       form.EnablePush && form.EnableDeletion && form.EnableDeletionAllowlist,
+		DeletionAllowlistDeployKeys:   form.EnablePush && form.EnableDeletion && form.EnableDeletionAllowlist && form.DeletionAllowlistDeployKeys,
 		EnableMergeWhitelist:          form.EnableMergeWhitelist,
 		EnableBypassAllowlist:         form.EnableBypassAllowlist,
 		EnableStatusCheck:             form.EnableStatusCheck,
@@ -922,6 +923,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			protectBranch.WhitelistDeployKeys = false
 			protectBranch.CanDelete = false
 			protectBranch.EnableDeletionAllowlist = false
+			protectBranch.DeletionAllowlistDeployKeys = false
 		} else {
 			protectBranch.CanPush = true
 			if form.EnablePushWhitelist != nil {
@@ -963,10 +965,19 @@ func EditBranchProtection(ctx *context.APIContext) {
 		if !*form.EnableDeletion || !protectBranch.CanPush {
 			protectBranch.CanDelete = false
 			protectBranch.EnableDeletionAllowlist = false
+			protectBranch.DeletionAllowlistDeployKeys = false
 		} else {
 			protectBranch.CanDelete = true
 			if form.EnableDeletionAllowlist != nil {
-				protectBranch.EnableDeletionAllowlist = *form.EnableDeletionAllowlist
+				if !*form.EnableDeletionAllowlist {
+					protectBranch.EnableDeletionAllowlist = false
+					protectBranch.DeletionAllowlistDeployKeys = false
+				} else {
+					protectBranch.EnableDeletionAllowlist = true
+					if form.DeletionAllowlistDeployKeys != nil {
+						protectBranch.DeletionAllowlistDeployKeys = *form.DeletionAllowlistDeployKeys
+					}
+				}
 			}
 		}
 	}
