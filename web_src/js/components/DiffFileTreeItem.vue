@@ -29,7 +29,8 @@ const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
     <div class="item-directory" :class="{ 'viewed': item.IsViewed }" :title="item.DisplayName" @click.stop="collapsed = !collapsed">
       <!-- directory -->
       <SvgIcon :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"/>
-      <SvgIcon :name="collapsed ? 'octicon-file-directory-fill' : 'octicon-file-directory-open-fill'"/>
+      <!-- eslint-disable-next-line vue/no-v-html -->
+      <span class="tw-contents" v-html="collapsed ? store.diffFileTree.FolderIcon : store.diffFileTree.FolderOpenIcon"/>
       <span class="gt-ellipsis">{{ item.DisplayName }}</span>
     </div>
 

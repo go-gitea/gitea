@@ -74,8 +74,10 @@ type WebDiffFileItem struct {
 
 // WebDiffFileTree is used by frontend, check the field names in frontend before changing
 type WebDiffFileTree struct {
-	TreeRoot WebDiffFileItem
-	Icons    []template.HTML // deduplicated, the items only carry an index into it
+	TreeRoot       WebDiffFileItem
+	Icons          []template.HTML // deduplicated, the items only carry an index into it
+	FolderIcon     template.HTML
+	FolderOpenIcon template.HTML
 }
 
 // setDiffFileTreeData renders the diff file tree and the icon definitions it references
@@ -88,6 +90,9 @@ func setDiffFileTreeData(ctx *context.Context, diffTree *gitdiff.DiffTree, files
 // transformDiffTreeForWeb transforms a gitdiff.DiffTree into a WebDiffFileTree for Web UI rendering
 // it also takes a map of file names to their viewed state, which is used to mark files as viewed
 func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTree *gitdiff.DiffTree, filesViewedState map[string]pull_model.ViewedState) (dft WebDiffFileTree) {
+	dft.FolderIcon = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
+	dft.FolderOpenIcon = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolderOpen())
+
 	iconIndexes := map[template.HTML]int{}
 	iconIndex := func(icon template.HTML) int {
 		idx, ok := iconIndexes[icon]

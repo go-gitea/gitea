@@ -10,7 +10,7 @@ function renderItem(diffStatus: string): string {
 }
 
 test('DiffFileTreeItem diff status icon', () => {
-  const data = {TreeRoot: {FullName: '', DisplayName: '', EntryMode: 'tree', Icon: 0, Children: []}, Icons: ['']};
+  const data = {TreeRoot: {FullName: '', DisplayName: '', EntryMode: 'tree', Icon: 0, Children: []}, Icons: [''], FolderIcon: '', FolderOpenIcon: ''};
   document.body.innerHTML = `<script type="application/json" id="diff-file-tree-data">${JSON.stringify(data)}</script>`;
   expect(renderItem('typechanged')).toContain('octicon-diff-modified');
   // a status the frontend does not know must fall back instead of failing to render

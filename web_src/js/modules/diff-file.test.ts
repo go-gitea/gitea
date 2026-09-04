@@ -26,6 +26,8 @@ function makeStore(children: DiffTreeEntry[]) {
   return reactiveDiffTreeStore({
     TreeRoot: {FullName: '', DisplayName: '', EntryMode: 'tree', NameHash: 'root', Icon: 0, Children: children},
     Icons: [''],
+    FolderIcon: '',
+    FolderOpenIcon: '',
   });
 }
 

@@ -23,6 +23,8 @@ export type DiffTreeEntry = {
 type DiffFileTreeData = {
   TreeRoot: DiffTreeEntry,
   Icons: string[],
+  FolderIcon: string,
+  FolderOpenIcon: string,
 };
 
 // activeExtensions: 'all' = no filter (every extension passes); string[] = exact set of extensions allowed (empty = nothing passes).

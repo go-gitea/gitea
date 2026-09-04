@@ -69,6 +69,8 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 				},
 			},
 		},
-		Icons: []template.HTML{`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use href="#svg-mfi-file"></use></svg>`},
+		Icons:          []template.HTML{`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use href="#svg-mfi-file"></use></svg>`},
+		FolderIcon:     `<span>octicon-file-directory-fill(16/)</span>`,
+		FolderOpenIcon: `<span>octicon-file-directory-open-fill(16/)</span>`,
 	}, ret)
 }
