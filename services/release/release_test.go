@@ -462,7 +462,6 @@ func TestRelease_Immutable(t *testing.T) {
 		rel := newRelease(t, "v9.6")
 		assert.False(t, rel.IsImmutable)
 
-		// enabling the setting alone reaches nothing, but any edit republishes and locks
 		releasesConfig.ImmutableReleases = true
 		immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.6")
 		assert.NoError(t, err)
@@ -487,7 +486,6 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.NoError(t, CreateRelease(t.Context(), gitRepo, draft, nil, ""))
 		assert.False(t, draft.IsImmutable)
 
-		// the name is unchanged, so only the publish transition can catch a claim made meanwhile
 		claimed := &repo_model.ImmutableTag{
 			LowerOwnerName: strings.ToLower(repo.OwnerName), LowerRepoName: repo.LowerName, TagName: "v9.5",
 		}
@@ -508,12 +506,10 @@ func TestRelease_Immutable(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, immutable)
 
-	// the title and notes of an immutable release stay editable
 	rel.Title = "changed title"
 	rel.Note = "changed note"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
 
-	// a request built without the flag must not clear it, UpdateRelease writes all columns
 	stale := *rel
 	stale.IsImmutable = false
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, &stale, nil, nil, nil))
@@ -540,23 +536,19 @@ func TestRelease_Immutable(t *testing.T) {
 	t.Run("TagLifecycle", func(t *testing.T) {
 		rel := newRelease(t, "v9.2")
 
-		// the tag cannot be deleted while the release exists
 		err := DeleteReleaseByID(t.Context(), repo, rel, user, true)
 		assert.ErrorIs(t, err, ErrImmutableTag)
 
-		// deleting the release itself is allowed, the tag remains as a locked tag
 		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, rel, user, false))
 		tag, err := repo_model.GetRelease(t.Context(), repo.ID, "v9.2")
 		assert.NoError(t, err)
 		assert.True(t, tag.IsTag)
 		assert.True(t, tag.IsImmutable)
 
-		// it cannot be turned back into a release, not even a draft
 		tag.IsTag, tag.IsDraft = false, true
 		err = UpdateRelease(t.Context(), user, gitRepo, tag, nil, nil, nil)
 		assert.ErrorIs(t, err, ErrImmutableTag)
 
-		// a locked tag whose claim no longer covers this path re-locks and claims here instead
 		assert.NoError(t, db.DeleteBeans(t.Context(), &repo_model.ImmutableTag{TagName: "v9.2"}))
 		tag.Repo = repo
 		tag.IsTag, tag.IsDraft = false, false
@@ -566,7 +558,6 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, reclaimed)
 
-		// once the release is gone the tag itself can be deleted, but the name stays claimed
 		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, false))
 		tag, err = repo_model.GetRelease(t.Context(), repo.ID, "v9.2")
 		assert.NoError(t, err)

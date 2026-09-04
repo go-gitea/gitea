@@ -304,7 +304,8 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) 
 				return err
 			}
 			attachments[i].IssueID = issueID
-			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
+			// only the claimed column, so a stale read cannot blank a release set meanwhile
+			if _, err := db.GetEngine(ctx).ID(attachments[i].ID).Cols("issue_id").Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
 			}
 		}

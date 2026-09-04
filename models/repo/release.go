@@ -212,20 +212,24 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
 		}
 
-		// an issue or comment keeps its own mutation routes, so it must not also own a release asset
+		// an issue or comment keeps its own mutation routes
 		if attachments[i].ReleaseID != 0 || attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
 			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 		attachments[i].ReleaseID = releaseID
-		// claim it only while still unowned, so a concurrent release cannot take it from this one
-		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).
+		// claim it only while unowned
+		affected, err := db.GetEngine(ctx).ID(attachments[i].ID).
 			Where("release_id = 0 AND issue_id = 0 AND comment_id = 0").
-			Cols("release_id").Update(attachments[i]); err != nil {
+			Cols("release_id").Update(attachments[i])
+		if err != nil {
 			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
+		}
+		if affected == 0 {
+			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
 	}
 
-	return err
+	return nil
 }
 
 // GetRelease returns release by given ID.

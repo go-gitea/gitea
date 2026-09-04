@@ -31,7 +31,6 @@ func TestMigrate_InsertReleases(t *testing.T) {
 func TestReleaseTagNameIsCaseSensitive(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// a tag name is a git ref, so "V1.1" and "v1.1" are two different tags
 	exist, err := IsReleaseExist(t.Context(), 1, "V1.1")
 	assert.NoError(t, err)
 	assert.False(t, exist)
@@ -42,7 +41,6 @@ func TestReleaseTagNameIsCaseSensitive(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "v1.1", rel.TagName)
 
-	// so both may exist side by side, each addressable on its own
 	assert.NoError(t, db.Insert(t.Context(), &Release{RepoID: 1, TagName: "V1.1", Sha1: "upper"}))
 	upper, err := GetRelease(t.Context(), 1, "V1.1")
 	assert.NoError(t, err)
@@ -131,9 +129,8 @@ func TestImmutableTag(t *testing.T) {
 		LowerOwnerName: strings.ToLower(repo.OwnerName), LowerRepoName: repo.LowerName, TagName: "V1.1",
 	}))
 	assert.True(t, isImmutable(repo, "V1.1"))
-	assert.False(t, isImmutable(repo, "v1.1")) // a git ref, so the claim is on the exact name
+	assert.False(t, isImmutable(repo, "v1.1"))
 
-	// the claim is held by path, so a repository created there inherits it and a rename leaves it behind
 	successor := &Repository{ID: repo.ID + 9999, OwnerName: repo.OwnerName, LowerName: repo.LowerName}
 	renamed := &Repository{ID: repo.ID, OwnerName: repo.OwnerName, LowerName: "renamed"}
 	assert.True(t, isImmutable(successor, "V1.1"))
@@ -142,7 +139,6 @@ func TestImmutableTag(t *testing.T) {
 	other := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2})
 	assert.False(t, isImmutable(other, "V1.1"))
 
-	// only a release that still exists blocks its tag from being deleted
 	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})
 	hasRelease := func() bool {
 		has, err := HasImmutableRelease(t.Context(), rel.RepoID, rel.TagName)
@@ -153,7 +149,6 @@ func TestImmutableTag(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, hasRelease())
 
-	// UpdateRelease owns every column but the flag, so demoting to a tag cannot clear it either
 	rel.IsTag, rel.IsImmutable = true, false
 	assert.NoError(t, UpdateRelease(t.Context(), rel))
 	assert.False(t, hasRelease())

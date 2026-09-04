@@ -75,7 +75,6 @@ func errImmutableField(field string) error {
 // ErrImmutableTag is returned when a claimed tag name would be created, moved or deleted.
 var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was used by an immutable release")
 
-// assertReleaseMutable rejects a change to a field that a published immutable release owns.
 func assertReleaseMutable(old, rel *repo_model.Release, addUUIDs, delUUIDs []string, editAttachments map[string]string) error {
 	if !old.IsImmutable || old.IsTag {
 		return nil
@@ -331,9 +330,9 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		rel.PublishedUnix = timeutil.TimeStampNow()
 	}
 
-	// server owned, a stale request must never clear it, and a locked tag re-locks at its current path
+	// server owned, and a locked tag re-locks at its current path
 	rel.IsImmutable = oldRelease.IsImmutable && !oldRelease.IsTag
-	// any edit of a published release locks it, so enabling the setting reaches existing releases too
+	// any edit of a published release locks it
 	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag
 
 	if err := assertReleaseMutable(oldRelease, rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
@@ -351,7 +350,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// the checks above ran on a snapshot, so re-assert against the row as it stands now
+		// re-assert against the row as it stands now
 		current, err := repo_model.GetReleaseByID(ctx, rel.ID)
 		if err != nil {
 			return err
@@ -360,6 +359,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			return err
 		}
 
+		rel.IsImmutable = current.IsImmutable                         // the snapshot may predate a publication
 		if isBeingLocked && (!current.IsImmutable || current.IsTag) { // not already a locked release
 			if err = repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
 				return err

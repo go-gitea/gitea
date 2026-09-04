@@ -49,7 +49,6 @@ func TestImmutableRelease(t *testing.T) {
 		})
 
 		t.Run("API", func(t *testing.T) {
-			// a repo edit that leaves the setting out must not clear it
 			var apiRepo api.Repository
 			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
 				HasReleases: new(true),
@@ -58,10 +57,8 @@ func TestImmutableRelease(t *testing.T) {
 
 			relURL := fmt.Sprintf("%s/releases/%d", base, rel.ID)
 
-			// the guard rejects the upload before the body is read
 			MakeRequest(t, NewRequest(t, "POST", relURL+"/assets?name=a.txt").AddTokenAuth(token), http.StatusUnprocessableEntity)
 
-			// the tag is locked, the title stays editable
 			MakeRequest(t, NewRequestWithJSON(t, "PATCH", relURL, &api.EditReleaseOption{
 				TagName: "imm-2",
 			}).AddTokenAuth(token), http.StatusUnprocessableEntity)
@@ -69,7 +66,6 @@ func TestImmutableRelease(t *testing.T) {
 				Title: "renamed",
 			}).AddTokenAuth(token), http.StatusOK)
 
-			// the setting alone must not enable the releases unit
 			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
 				HasReleases: new(false),
 			}).AddTokenAuth(token), http.StatusOK)
@@ -82,7 +78,6 @@ func TestImmutableRelease(t *testing.T) {
 				HasReleases: new(true), ImmutableReleases: new(true),
 			}).AddTokenAuth(token), http.StatusOK)
 
-			// the setting rewrites the unit row, which must keep its public access settings
 			releases := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeReleases})
 			releases.EveryoneAccessMode = perm.AccessModeRead
 			_, err := db.GetEngine(t.Context()).ID(releases.ID).Cols("everyone_access_mode").Update(releases)
@@ -116,12 +111,10 @@ func TestImmutableRelease(t *testing.T) {
 			_, _, err = gitcmd.NewCommand("push", "origin", ":refs/tags/imm-push").WithDir(dstPath).RunStdString(t.Context())
 			assert.ErrorContains(t, err, "Tag imm-push is immutable")
 
-			// once the release is gone the tag itself may be deleted
 			MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("%s/releases/%d", base, pushed.ID)).AddTokenAuth(token), http.StatusNoContent)
 			_, _, err = gitcmd.NewCommand("push", "origin", ":refs/tags/imm-push").WithDir(dstPath).RunStdString(t.Context())
 			assert.NoError(t, err)
 
-			// pushing the tag of a draft publishes it, which must lock it too
 			var draft api.Release
 			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "POST", base+"/releases", &api.CreateReleaseOption{
 				TagName: "imm-draft", Target: "master", Title: "draft", IsDraft: true,

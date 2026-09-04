@@ -31,11 +31,9 @@ func TestAddImmutableReleases(t *testing.T) {
 	_, err := x.Insert(&ImmutableTag{LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
 	require.NoError(t, err)
 
-	// the unique index must be created by the migration, not only on fresh installs
 	_, err = x.Insert(&ImmutableTag{LowerOwnerName: "o", LowerRepoName: "r", TagName: "v1.0"})
 	assert.Error(t, err)
 
-	// another path may claim the same tag name
 	_, err = x.Insert(&ImmutableTag{LowerOwnerName: "o", LowerRepoName: "r2", TagName: "v1.0"})
 	assert.NoError(t, err)
 }

@@ -18,20 +18,15 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/convert"
-	release_service "gitea.dev/services/release"
 )
 
-// immutableMsg is worded as GitHub words it, so clients see the same message for the same refusal
 func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64, immutableMsg string) bool {
 	release := checkReleaseMatchRepo(ctx, releaseID)
-	if release == nil {
+	if release != nil && release.IsImmutable {
+		ctx.APIError(http.StatusUnprocessableEntity, immutableMsg)
 		return false
 	}
-	if release.IsImmutable {
-		ctx.APIErrorAuto(util.ErrorWrap(release_service.ErrImmutableRelease, "%s", immutableMsg))
-		return false
-	}
-	return true
+	return release != nil
 }
 
 // checkReleaseMatchRepo returns nil once it has written the response itself.
@@ -260,8 +255,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	// the release may have been published while the upload was streaming, but only an actual lock
-	// may discard what was uploaded, a transient failure must not
+	// publication may have locked the release while the body streamed
 	release := checkReleaseMatchRepo(ctx, releaseID)
 	if release == nil {
 		return
@@ -270,7 +264,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 			log.Error("DeleteAttachment %s: %v", attach.UUID, err)
 		}
-		ctx.APIErrorAuto(util.ErrorWrap(release_service.ErrImmutableRelease, "Cannot upload assets to an immutable release."))
+		ctx.APIError(http.StatusUnprocessableEntity, "Cannot upload assets to an immutable release.")
 		return
 	}
 

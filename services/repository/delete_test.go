@@ -92,6 +92,5 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{RepoID: 1})
 
-	// claims outlive the repo, so a successor at the same path inherits them
 	unittest.AssertExistsAndLoadBean(t, &repo_model.ImmutableTag{LowerOwnerName: "user2", LowerRepoName: "repo1"})
 }
