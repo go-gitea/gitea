@@ -16,11 +16,11 @@ import (
 func TestDeterminePackageAccessModeForLimitedOwner(t *testing.T) {
 	owner := &user.User{ID: 1, Visibility: structs.VisibleTypeLimited}
 
-	accessMode, err := determineAccessMode(&Base{}, owner, &user.User{ID: 2, IsActive: true})
+	accessMode, err := determineAccessMode(&Base{}, owner, &user.User{ID: 2, IsActive: true}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, perm.AccessModeRead, accessMode)
 
-	accessMode, err = determineAccessMode(&Base{}, owner, &user.User{ID: 3, IsActive: true, IsRestricted: true})
+	accessMode, err = determineAccessMode(&Base{}, owner, &user.User{ID: 3, IsActive: true, IsRestricted: true}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, perm.AccessModeNone, accessMode)
 }

@@ -142,7 +142,7 @@ func CommonRoutes() *web.Router {
 					})
 				})
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("alpine"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/arch", func() {
 			r.Methods("HEAD,GET", "/repository.key", arch.GetRepositoryKey)
 			r.Methods("PUT", "" /* no repository */, reqPackageAccess(perm.AccessModeWrite), arch.UploadPackageFile)
@@ -151,7 +151,7 @@ func CommonRoutes() *web.Router {
 				g.MatchPath("HEAD,GET", "/<repository:*>/<architecture>/<filename>", arch.GetPackageOrRepositoryFile)
 				g.MatchPath("DELETE", "/<repository:*>/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), arch.DeletePackageVersion)
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("arch"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cargo", func() {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)
@@ -171,7 +171,7 @@ func CommonRoutes() *web.Router {
 			// Use dummy placeholders because these parts are not of interest
 			r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
 			r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("cargo"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/chef", func() {
 			r.Group("/api/v1", func() {
 				r.Get("/universe", chef.PackagesUniverse)
@@ -190,7 +190,7 @@ func CommonRoutes() *web.Router {
 					})
 				})
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("chef"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/composer", func() {
 			r.Get("/packages.json", composer.ServiceIndex)
 			r.Get("/search.json", composer.SearchPackages)
@@ -199,7 +199,7 @@ func CommonRoutes() *web.Router {
 			r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
 			r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
 			r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("composer"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/conan", func() {
 			r.Group("/v1", func() {
 				r.Get("/ping", conan.Ping)
@@ -287,12 +287,12 @@ func CommonRoutes() *web.Router {
 					}, conan.ExtractPathParameters)
 				})
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("conan"), reqPackageAccess(perm.AccessModeRead))
 		r.PathGroup("/conda/*", func(g *web.RouterPathGroup) {
 			g.MatchPath("GET", "/<architecture>/<filename>", conda.ListOrGetPackages)
 			g.MatchPath("GET", "/<channel:*>/<architecture>/<filename>", conda.ListOrGetPackages)
 			g.MatchPath("PUT", "/<channel:*>/<filename>", reqPackageAccess(perm.AccessModeWrite), conda.UploadPackageFile)
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("conda"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/cran", func() {
 			r.Group("/src", func() {
 				r.Group("/contrib", func() {
@@ -311,7 +311,7 @@ func CommonRoutes() *web.Router {
 				})
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadBinaryPackageFile)
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("cran"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/debian", func() {
 			r.Get("/repository.key", debian.GetRepositoryKey)
 			r.Group("/dists/{distribution}", func() {
@@ -329,7 +329,7 @@ func CommonRoutes() *web.Router {
 					r.Delete("/{name}/{version}/{architecture}", debian.DeletePackageFile)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("debian"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/go", func() {
 			r.Put("/upload", reqPackageAccess(perm.AccessModeWrite), goproxy.UploadPackage)
 			r.Get("/sumdb/sum.golang.org/supported", http.NotFound)
@@ -342,7 +342,7 @@ func CommonRoutes() *web.Router {
 				g.MatchPath("GET", "/<name:*>/@v/<version>.info", goproxy.PackageVersionMetadata)
 				g.MatchPath("GET", "/<name:*>/@v/<version>.mod", goproxy.PackageVersionGoModContent)
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("go"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
@@ -354,18 +354,18 @@ func CommonRoutes() *web.Router {
 					}, reqPackageAccess(perm.AccessModeWrite))
 				})
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("generic"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/helm", func() {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
 			r.Post("/api/prov", reqPackageAccess(perm.AccessModeWrite), helm.UploadProvenanceFile)
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("helm"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
 			r.Head("/*", maven.ProvidePackageFileHeader)
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("maven"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
 			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
 				r.Get("/", nuget.ServiceIndexV2)
@@ -402,7 +402,7 @@ func CommonRoutes() *web.Router {
 					r.Get("/$count", nuget.SearchServiceV2Count)
 				})
 			}, reqPackageAccess(perm.AccessModeRead))
-		})
+		}, context.PackageAssignment("nuget"))
 		r.Group("/npm", func() {
 			r.Group("/@{scope}/{id}", func() {
 				r.Get("", npm.PackageMetadata)
@@ -447,7 +447,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/-/v1/search", func() {
 				r.Get("", npm.PackageSearch)
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("npm"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pub", func() {
 			r.Group("/api/packages", func() {
 				r.Group("/versions/new", func() {
@@ -461,15 +461,15 @@ func CommonRoutes() *web.Router {
 					r.Get("/{version}", pub.PackageVersionMetadata)
 				})
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("pub"), reqPackageAccess(perm.AccessModeRead))
 
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("pypi"), reqPackageAccess(perm.AccessModeRead))
 
-		r.Methods("HEAD,GET", "/rpm.repo", reqPackageAccess(perm.AccessModeRead), rpm.GetRepositoryConfig)
+		r.Methods("HEAD,GET", "/rpm.repo", context.PackageAssignment("rpm"), reqPackageAccess(perm.AccessModeRead), rpm.GetRepositoryConfig)
 		r.PathGroup("/rpm/*", func(g *web.RouterPathGroup) {
 			g.MatchPath("HEAD,GET", "/repository.key", rpm.GetRepositoryKey)
 			g.MatchPath("HEAD,GET", "/<group:*>.repo", rpm.GetRepositoryConfig)
@@ -481,7 +481,7 @@ func CommonRoutes() *web.Router {
 			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>/<filename>", rpm.DownloadPackageFile)
 			g.MatchPath("HEAD,GET", "/<group:*>/package/<name>/<version>/<architecture>", rpm.DownloadPackageFile)
 			g.MatchPath("DELETE", "/<group:*>/package/<name>/<version>/<architecture>", reqPackageAccess(perm.AccessModeWrite), rpm.DeletePackageFile)
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("rpm"), reqPackageAccess(perm.AccessModeRead))
 
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
@@ -495,7 +495,7 @@ func CommonRoutes() *web.Router {
 				r.Post("/", rubygems.UploadPackageFile)
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("rubygems"), reqPackageAccess(perm.AccessModeRead))
 
 		r.Group("/swift", func() {
 			r.Group("", func() { // Needs to be unauthenticated.
@@ -518,7 +518,7 @@ func CommonRoutes() *web.Router {
 				})
 				r.Get("/identifiers", swift.CheckAcceptMediaType(swift.AcceptJSON), swift.LookupPackageIdentifiers)
 			}, reqPackageAccess(perm.AccessModeRead))
-		})
+		}, context.PackageAssignment("swift"))
 		// See https://docs.gitlab.com/ci/jobs/fine_grained_permissions/#terraform-state-endpoints
 		// For endpoint and permission reference
 		r.Group("/terraform/state/{name}", func() {
@@ -533,7 +533,7 @@ func CommonRoutes() *web.Router {
 				r.Post("", terraform.LockState)
 				r.Delete("", terraform.UnlockState)
 			}, reqPackageAccess(perm.AccessModeWrite))
-		}, reqPackageAccess(perm.AccessModeRead))
+		}, context.PackageAssignment("terraform"), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)
@@ -546,8 +546,8 @@ func CommonRoutes() *web.Router {
 					r.Put("", reqPackageAccess(perm.AccessModeWrite), vagrant.UploadPackageFile)
 				})
 			})
-		}, reqPackageAccess(perm.AccessModeRead))
-	}, context.UserAssignmentWeb(), context.PackageAssignment())
+		}, context.PackageAssignment("vagrant"), reqPackageAccess(perm.AccessModeRead))
+	}, context.UserAssignmentWeb())
 
 	return r
 }
@@ -601,7 +601,7 @@ func ContainerRoutes() *web.Router {
 			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.PutManifest)
 			g.MatchPath("DELETE", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
 		})
-	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeRead))
 
 	return r
 }

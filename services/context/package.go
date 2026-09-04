@@ -28,10 +28,11 @@ type packageAssignmentCtx struct {
 	*Base
 	Doer        *user_model.User
 	ContextUser *user_model.User
+	Package     *packages_model.Package
 }
 
 // PackageAssignment returns a middleware to handle Context.Package assignment
-func PackageAssignment() func(ctx *Context) {
+func PackageAssignment(pType string) func(ctx *Context) {
 	return func(ctx *Context) {
 		errorFn := func(status int, msg string) {
 			err := fmt.Errorf("%s", msg)
@@ -42,6 +43,13 @@ func PackageAssignment() func(ctx *Context) {
 			}
 		}
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
+		var pkg *packages_model.Package
+		var err error
+		switch pType {
+		}
+		if err == nil {
+			paCtx.Package = pkg
+		}
 		ctx.Package = packageAssignment(paCtx, errorFn)
 	}
 }
@@ -56,7 +64,7 @@ func PackageAssignmentAPI() func(ctx *APIContext) {
 
 func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Package {
 	pkgOwner := ctx.ContextUser
-	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, ctx.Doer)
+	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, ctx.Doer, ctx.Package)
 	if err != nil {
 		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
 		return nil
@@ -109,7 +117,7 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 	return pkg
 }
 
-func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.AccessMode, error) {
+func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User, pkg *packages_model.Package) (perm.AccessMode, error) {
 	if setting.Service.RequireSignInViewStrict && (doer == nil || doer.IsGhost()) {
 		return perm.AccessModeNone, nil
 	}
