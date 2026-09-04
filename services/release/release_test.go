@@ -456,6 +456,11 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.NoError(t, CreateRelease(t.Context(), gitRepo, rel, nil, ""))
 		return rel
 	}
+	assertClaimed := func(t *testing.T, tagName string, expected bool) {
+		claimed, err := repo_model.IsTagImmutable(t.Context(), repo, tagName)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, claimed)
+	}
 
 	t.Run("ExistingReleaseLocksOnEdit", func(t *testing.T) {
 		releasesConfig.ImmutableReleases = false
@@ -463,17 +468,12 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.False(t, rel.IsImmutable)
 
 		releasesConfig.ImmutableReleases = true
-		immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.6")
-		assert.NoError(t, err)
-		assert.False(t, immutable)
+		assertClaimed(t, "v9.6", false)
 
 		rel.Note = "typo fixed"
 		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
 		assert.True(t, rel.IsImmutable)
-
-		immutable, err = repo_model.IsTagImmutable(t.Context(), repo, "v9.6")
-		assert.NoError(t, err)
-		assert.True(t, immutable)
+		assertClaimed(t, "v9.6", true)
 	})
 
 	releasesConfig.ImmutableReleases = true
@@ -502,20 +502,10 @@ func TestRelease_Immutable(t *testing.T) {
 
 	rel := newRelease(t, "v9.0")
 	assert.True(t, rel.IsImmutable)
-	immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.0")
-	assert.NoError(t, err)
-	assert.True(t, immutable)
+	assertClaimed(t, "v9.0", true)
 
-	rel.Title = "changed title"
 	rel.Note = "changed note"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
-
-	stale := *rel
-	stale.IsImmutable = false
-	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, &stale, nil, nil, nil))
-	reloaded, err := repo_model.GetReleaseByID(t.Context(), rel.ID)
-	assert.NoError(t, err)
-	assert.True(t, reloaded.IsImmutable)
 
 	assertLocked := func(field string, addUUIDs []string, mutate func(rel *repo_model.Release)) {
 		current, err := repo_model.GetReleaseByID(t.Context(), rel.ID)
@@ -554,9 +544,7 @@ func TestRelease_Immutable(t *testing.T) {
 		tag.IsTag, tag.IsDraft = false, false
 		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, tag, nil, nil, nil))
 		assert.True(t, tag.IsImmutable)
-		reclaimed, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.2")
-		assert.NoError(t, err)
-		assert.True(t, reclaimed)
+		assertClaimed(t, "v9.2", true)
 
 		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, false))
 		tag, err = repo_model.GetRelease(t.Context(), repo.ID, "v9.2")

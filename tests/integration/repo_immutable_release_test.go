@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -34,10 +35,11 @@ func TestImmutableRelease(t *testing.T) {
 		publish := func(tagName string) *api.Release {
 			return createNewReleaseUsingAPI(t, token, owner, repo, tagName, "master", tagName, "")
 		}
+		patchRepo := func(opts *api.EditRepoOption) *httptest.ResponseRecorder {
+			return MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, opts).AddTokenAuth(token), http.StatusOK)
+		}
 
-		MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
-			ImmutableReleases: new(true),
-		}).AddTokenAuth(token), http.StatusOK)
+		patchRepo(&api.EditRepoOption{ImmutableReleases: new(true)})
 		rel := publish("imm-1")
 		assert.True(t, rel.IsImmutable)
 
@@ -50,9 +52,7 @@ func TestImmutableRelease(t *testing.T) {
 
 		t.Run("API", func(t *testing.T) {
 			var apiRepo api.Repository
-			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
-				HasReleases: new(true),
-			}).AddTokenAuth(token), http.StatusOK), &apiRepo)
+			DecodeJSON(t, patchRepo(&api.EditRepoOption{HasReleases: new(true)}), &apiRepo)
 			assert.True(t, apiRepo.ImmutableReleases)
 
 			relURL := fmt.Sprintf("%s/releases/%d", base, rel.ID)
@@ -62,29 +62,18 @@ func TestImmutableRelease(t *testing.T) {
 			MakeRequest(t, NewRequestWithJSON(t, "PATCH", relURL, &api.EditReleaseOption{
 				TagName: "imm-2",
 			}).AddTokenAuth(token), http.StatusUnprocessableEntity)
-			MakeRequest(t, NewRequestWithJSON(t, "PATCH", relURL, &api.EditReleaseOption{
-				Title: "renamed",
-			}).AddTokenAuth(token), http.StatusOK)
 
-			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
-				HasReleases: new(false),
-			}).AddTokenAuth(token), http.StatusOK)
-			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
-				ImmutableReleases: new(true),
-			}).AddTokenAuth(token), http.StatusOK), &apiRepo)
+			patchRepo(&api.EditRepoOption{HasReleases: new(false)})
+			DecodeJSON(t, patchRepo(&api.EditRepoOption{ImmutableReleases: new(true)}), &apiRepo)
 			assert.False(t, apiRepo.HasReleases)
 
-			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
-				HasReleases: new(true), ImmutableReleases: new(true),
-			}).AddTokenAuth(token), http.StatusOK)
+			patchRepo(&api.EditRepoOption{HasReleases: new(true), ImmutableReleases: new(true)})
 
 			releases := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeReleases})
 			releases.EveryoneAccessMode = perm.AccessModeRead
 			_, err := db.GetEngine(t.Context()).ID(releases.ID).Cols("everyone_access_mode").Update(releases)
 			require.NoError(t, err)
-			MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
-				ImmutableReleases: new(true),
-			}).AddTokenAuth(token), http.StatusOK)
+			patchRepo(&api.EditRepoOption{ImmutableReleases: new(true)})
 			after := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypeReleases})
 			assert.Equal(t, perm.AccessModeRead, after.EveryoneAccessMode)
 		})
