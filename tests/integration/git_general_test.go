@@ -490,6 +490,10 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("PushBranchForProtectedDeletion", doGitPushTestRepository(dstPath, "origin", "protected-delete"))
 		t.Run("ProtectBranchWithoutDeletion", doProtectBranch(ctx, "protected-delete", baseCtx.Username, "", "", ""))
 		t.Run("DeleteProtectedBranchDenied", doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete"))
+		t.Run("ProtectBranchWithDeletionButWithoutPush", doProtectBranchExt(ctx, "protected-delete", doProtectBranchOptions{
+			UserToWhitelistDelete: baseCtx.Username,
+		}))
+		t.Run("DeleteProtectedBranchWithoutPushDenied", doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete"))
 		t.Run("ProtectBranchWithDeletionAllowlist", doProtectBranchExt(ctx, "protected-delete", doProtectBranchOptions{
 			UserToWhitelistPush:   baseCtx.Username,
 			UserToWhitelistDelete: baseCtx.Username,
