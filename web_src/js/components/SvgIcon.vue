@@ -5,7 +5,7 @@ import {html, htmlRaw} from '../utils/html.ts';
 
 const props = withDefaults(defineProps<{
   name?: SvgName,
-  useHref?: string, // render a reference to an icon already in the document instead of a bundled one
+  useHref?: string, // render svg body as `<use href>`
   size?: number,
   symbolId?: string,
 }>(), {
