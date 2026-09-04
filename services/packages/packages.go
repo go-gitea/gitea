@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -25,6 +26,7 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -280,8 +282,18 @@ func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.Pa
 		log.Error("Error inserting package blob: %v", err)
 		return nil, nil, false, err
 	}
+	// Check if the blob file actually exists in the content store, since the
+	// blob row could have been created while the file was lost (eg. after a
+	// partial migration), otherwise the file would never be restored.
+	// See issue #19586 for the same inconsistency in the container registry.
+	contentStore := packages_module.NewContentStore()
+	if exists {
+		if err := contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
+			log.Debug("Package registry inconsistent: blob %v does not exist on storage", pb.HashSHA256)
+			exists = false
+		}
+	}
 	if !exists {
-		contentStore := packages_module.NewContentStore()
 		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), pfci.Data, pfci.Data.Size()); err != nil {
 			log.Error("Error saving package blob in content store: %v", err)
 			return nil, nil, false, err
