@@ -230,4 +230,10 @@ func TestProtectedBranchCanUserDelete(t *testing.T) {
 
 	pb.CanPush = false
 	assert.False(t, pb.CanUserDelete(t.Context(), owner))
+
+	pb.CanPush = true
+	pb.DeletionAllowlistUserIDs = nil
+	pb.DeletionAllowlistTeamIDs = []int64{1}
+	assert.True(t, pb.CanUserDelete(t.Context(), owner))
+	assert.False(t, pb.CanUserDelete(t.Context(), user))
 }

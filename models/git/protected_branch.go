@@ -128,11 +128,18 @@ func (protectBranch *ProtectedBranch) LoadRepo(ctx context.Context) (err error) 
 
 // CanUserPush returns if some user could push to this protected branch
 func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User) bool {
+	return protectBranch.canUserPush(ctx, user, nil)
+}
+
+func (protectBranch *ProtectedBranch) canUserPush(ctx context.Context, user *user_model.User, permissionInRepo *access_model.Permission) bool {
 	if !protectBranch.CanPush {
 		return false
 	}
 
 	if !protectBranch.EnableWhitelist {
+		if permissionInRepo != nil {
+			return permissionInRepo.CanWrite(unit.TypeCode)
+		}
 		if err := protectBranch.LoadRepo(ctx); err != nil {
 			log.Error("LoadRepo: %v", err)
 			return false
@@ -192,10 +199,19 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 // CanUserDelete returns if some user could delete this protected branch.
 // Since deletion can be used to reset a branch, it also requires regular push access.
 func (protectBranch *ProtectedBranch) CanUserDelete(ctx context.Context, user *user_model.User) bool {
+	return protectBranch.canUserDelete(ctx, user, nil)
+}
+
+// CanUserDeleteWithPermission returns if a user with the provided repository permission could delete this protected branch.
+func (protectBranch *ProtectedBranch) CanUserDeleteWithPermission(ctx context.Context, user *user_model.User, permissionInRepo access_model.Permission) bool {
+	return protectBranch.canUserDelete(ctx, user, &permissionInRepo)
+}
+
+func (protectBranch *ProtectedBranch) canUserDelete(ctx context.Context, user *user_model.User, permissionInRepo *access_model.Permission) bool {
 	if user == nil {
 		return false
 	}
-	if !protectBranch.CanDelete || !protectBranch.CanUserPush(ctx, user) {
+	if !protectBranch.CanDelete || !protectBranch.canUserPush(ctx, user, permissionInRepo) {
 		return false
 	}
 

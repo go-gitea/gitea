@@ -873,8 +873,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 				return
 			}
 			if perm.CanWrite(unit.TypeCode) {
-				if err := repo_service.CanDeleteBranch(ctx, pull.HeadRepo, pull.HeadBranch, ctx.Doer); err != nil {
-					log.Trace("CanDeleteBranch: %v", err)
+				if err := repo_service.CanDeleteBranchWithPermission(ctx, pull.HeadRepo, pull.HeadBranch, ctx.Doer, perm); err != nil {
+					if errors.Is(err, util.ErrPermissionDenied) {
+						log.Trace("CanDeleteBranch: %v", err)
+					} else {
+						log.Error("CanDeleteBranch: %v", err)
+					}
 				} else {
 					canDelete = true
 					ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
