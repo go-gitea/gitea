@@ -36,10 +36,11 @@ import (
 )
 
 const (
-	tplUsers    templates.TplName = "admin/user/list"
-	tplUserNew  templates.TplName = "admin/user/new"
-	tplUserView templates.TplName = "admin/user/view"
-	tplUserEdit templates.TplName = "admin/user/edit"
+	tplUsers        templates.TplName = "admin/user/list"
+	tplUserNew      templates.TplName = "admin/user/new"
+	tplUserView     templates.TplName = "admin/user/view"
+	tplUserEdit     templates.TplName = "admin/user/edit"
+	tplAccessTokens templates.TplName = "shared/user/access_tokens"
 )
 
 // UserSearchDefaultAdminSort is the default sort type for admin view
@@ -298,6 +299,7 @@ type botAccessTokensData struct {
 	RegenerateURL   string // empty: an admin rotates a bot token by deleting and recreating it
 	NameValue       string
 	ErrName         bool
+	NewTokenValue   string // one-time value of a freshly created token, shown with a copy button
 }
 
 func ViewUser(ctx *context.Context) {
@@ -343,23 +345,32 @@ func ViewUser(ctx *context.Context) {
 
 	// Bot users cannot sign in to generate their own tokens, so admins manage them here.
 	if u.IsTypeBot() {
-		botTokens, err := db.Find[auth.AccessToken](ctx, auth.ListAccessTokensOptions{UserID: u.ID})
+		bat, err := newBotAccessTokensData(ctx, u)
 		if err != nil {
-			ctx.ServerError("ListAccessTokens", err)
 			return
 		}
-		ctx.Data["BotAccessTokens"] = &botAccessTokensData{
-			Description: ctx.Tr("admin.users.bot_token_desc"),
-			Tokens:      botTokens,
-			// a bot can never be a site admin, so an admin-scoped token would be useless
-			ScopeCategories: util.SliceRemoveAll(auth.GetAccessTokenCategories(), "admin"),
-			ScopePublicOnly: auth.AccessTokenScopePublicOnly,
-			CreateURL:       ctx.Link + "/access_tokens",
-			DeleteURL:       ctx.Link + "/access_tokens/delete",
-		}
+		ctx.Data["BotAccessTokens"] = bat
 	}
 
 	ctx.HTML(http.StatusOK, tplUserView)
+}
+
+// newBotAccessTokensData collects the bot token management section data for shared/user/access_tokens
+func newBotAccessTokensData(ctx *context.Context, u *user_model.User) (*botAccessTokensData, error) {
+	botTokens, err := db.Find[auth.AccessToken](ctx, auth.ListAccessTokensOptions{UserID: u.ID})
+	if err != nil {
+		ctx.ServerError("ListAccessTokens", err)
+		return nil, err
+	}
+	return &botAccessTokensData{
+		Description: ctx.Tr("admin.users.bot_token_desc"),
+		Tokens:      botTokens,
+		// a bot can never be a site admin, so an admin-scoped token would be useless
+		ScopeCategories: util.SliceRemoveAll(auth.GetAccessTokenCategories(), "admin"),
+		ScopePublicOnly: auth.AccessTokenScopePublicOnly,
+		CreateURL:       ctx.Link + "/access_tokens",
+		DeleteURL:       ctx.Link + "/access_tokens/delete",
+	}, nil
 }
 
 // getTargetUser loads the user an admin action operates on, without the page data prepareUserInfo collects
@@ -373,45 +384,53 @@ func getTargetUser(ctx *context.Context) *user_model.User {
 }
 
 // NewBotTokenPost creates an access token for a bot user on behalf of an admin
+//
+// The create form is a "form-fetch-action" form, so validation problems are answered
+// with ctx.JSONError (the client shows a toast and keeps the submitted form state)
+// and success with the re-rendered access_tokens panel, which the client syncs into
+// the page to display the one-time token value with a copy button.
 func NewBotTokenPost(ctx *context.Context) {
-	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
 	u := getTargetUser(ctx)
 	if ctx.Written() {
 		return
 	}
-
-	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10)
 	if !u.IsTypeBot() {
-		ctx.Flash.Error(ctx.Tr("admin.users.bot_token_only"))
-		ctx.Redirect(redirect)
+		ctx.JSONError(ctx.Tr("admin.users.bot_token_only"))
 		return
 	}
 
-	if ctx.HasError() {
-		ctx.Flash.Error(ctx.GetErrMsg())
-		ctx.Redirect(redirect)
+	form := context.GetFetchActionForm[*forms.NewAccessTokenForm](ctx)
+	if form == nil {
 		return
 	}
 
 	t, err := user_setting.NewAccessTokenFromForm(ctx, u, form.Name, false)
 	switch {
 	case errors.Is(err, user_setting.ErrAccessTokenNoPermission):
-		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"))
+		ctx.JSONError(ctx.Tr("settings.at_least_one_permission"))
 	case errors.Is(err, user_setting.ErrAccessTokenAdminScope):
-		ctx.Flash.Error(ctx.Tr("settings.token_admin_scope_not_allowed"))
+		ctx.JSONError(ctx.Tr("settings.token_admin_scope_not_allowed"))
 	case errors.Is(err, user_setting.ErrAccessTokenNameDuplicate):
-		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", form.Name))
+		ctx.JSONErrorWithField(ctx.Tr("settings.generate_token_name_duplicate", form.Name), "name")
 	case errors.Is(err, user_setting.ErrAccessTokenScopeEscalation):
 		ctx.HTTPError(http.StatusForbidden, err.Error())
-		return
 	case err != nil:
 		ctx.ServerError("NewAccessTokenFromForm", err)
-		return
 	default:
-		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-		ctx.Flash.Info(t.Token)
+		bat, err := newBotAccessTokensData(ctx, u)
+		if err != nil {
+			return
+		}
+		bat.NewTokenValue = t.Token
+		panelHTML, err := ctx.RenderToHTML(tplAccessTokens, bat)
+		if err != nil {
+			ctx.ServerError("RenderToHTML", err)
+			return
+		}
+		ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
+		ctx.Resp.WriteHeader(http.StatusOK)
+		_, _ = ctx.Resp.Write([]byte(panelHTML))
 	}
-	ctx.Redirect(redirect)
 }
 
 // DeleteBotToken deletes an access token of a bot user on behalf of an admin

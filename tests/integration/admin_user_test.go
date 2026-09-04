@@ -194,24 +194,40 @@ func TestAdminBotUser(t *testing.T) {
 		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
 		tokenURL := fmt.Sprintf("/-/admin/users/%d/access_tokens", bot.ID)
 
+		// the create form is a "form-fetch-action" form: validation errors are JSON errors,
+		// the client shows them as a toast and keeps the submitted form state
 		// a bot can never be a site administrator, so an admin-scoped token must be refused
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
+		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
 			"name":        "admin-scoped",
 			"scope-admin": "write:admin",
-		}), http.StatusSeeOther)
+		}), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "errorMessage")
+		assert.Contains(t, resp.Body.String(), "cannot include administrator permissions")
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
 
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
+		// submitting no scope at all must also be refused
+		resp = session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
+			"name": "no-scope",
+		}), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "at least one permission")
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
+
+		// a successful creation re-renders the access_tokens panel with the one-time
+		// token value and a click-to-copy button
+		resp = session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
 			"name":             "ci",
 			"scope-repository": "write:repository",
-		}), http.StatusSeeOther)
+		}), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), `id="new-access-token-value"`)
+		assert.Contains(t, resp.Body.String(), `data-clipboard-target="#new-access-token-value"`)
 		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
 
 		// tokens of non-bot accounts are managed by the account itself, not here
-		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/2/access_tokens", map[string]string{
+		resp = session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/2/access_tokens", map[string]string{
 			"name":             "not-a-bot",
 			"scope-repository": "write:repository",
-		}), http.StatusSeeOther)
+		}), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "only be generated for bot accounts")
 		unittest.AssertNotExistsBean(t, &auth_model.AccessToken{UID: 2, Name: "not-a-bot"})
 
 		token := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{UID: bot.ID, Name: "ci"})

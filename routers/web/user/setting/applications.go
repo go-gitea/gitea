@@ -14,7 +14,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -102,14 +101,13 @@ func NewAccessTokenFromForm(ctx *context.Context, owner *user_model.User, name s
 }
 
 // ApplicationsPost response for add user's access token
+//
+// The create form is a "form-fetch-action" form, so validation problems are answered
+// with ctx.JSONError (the client shows a toast and keeps the submitted form state);
+// success still redirects so the fresh one-time token renders in the flash message.
 func ApplicationsPost(ctx *context.Context) {
-	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("settings_title")
-	ctx.Data["PageIsSettingsApplications"] = true
-
-	if ctx.HasError() {
-		loadApplicationsData(ctx)
-		ctx.HTML(http.StatusOK, tplSettingsApplications)
+	form := context.GetFetchActionForm[*forms.NewAccessTokenForm](ctx)
+	if form == nil {
 		return
 	}
 
@@ -117,26 +115,18 @@ func ApplicationsPost(ctx *context.Context) {
 	t, err := NewAccessTokenFromForm(ctx, ctx.Doer, form.Name, true)
 	switch {
 	case errors.Is(err, ErrAccessTokenNoPermission):
-		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
-		loadApplicationsData(ctx)
-		ctx.HTML(http.StatusOK, tplSettingsApplications)
-		return
+		ctx.JSONError(ctx.Tr("settings.at_least_one_permission"))
 	case errors.Is(err, ErrAccessTokenNameDuplicate):
-		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", form.Name))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
-		return
+		ctx.JSONErrorWithField(ctx.Tr("settings.generate_token_name_duplicate", form.Name), "name")
 	case errors.Is(err, ErrAccessTokenScopeEscalation):
 		ctx.HTTPError(http.StatusForbidden, err.Error())
-		return
 	case err != nil:
 		ctx.ServerError("NewAccessTokenFromForm", err)
-		return
+	default:
+		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+		ctx.Flash.Info(t.Token)
+		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 	}
-
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Token)
-
-	ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 }
 
 // DeleteApplication response for delete user access token
