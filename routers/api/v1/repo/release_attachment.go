@@ -255,16 +255,15 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	// publication may have locked the release while the body streamed
+	// publication may have locked or removed the release while the body streamed
 	release := checkReleaseMatchRepo(ctx, releaseID)
-	if release == nil {
-		return
-	}
-	if release.IsImmutable {
+	if release == nil || release.IsImmutable {
 		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 			log.Error("DeleteAttachment %s: %v", attach.UUID, err)
 		}
-		ctx.APIError(http.StatusUnprocessableEntity, "Cannot upload assets to an immutable release.")
+		if release != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "Cannot upload assets to an immutable release.")
+		}
 		return
 	}
 

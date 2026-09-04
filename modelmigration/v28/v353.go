@@ -27,9 +27,15 @@ func AddImmutableReleases(_ context.Context, x base.EngineMigration) error {
 		return err
 	}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(Release))
-	return err
+	}, new(Release)); err != nil {
+		return err
+	}
+
+	// tag names are matched exactly now, so a fresh install no longer has this column
+	sess := x.NewSession()
+	defer sess.Close()
+	return base.DropTableColumns(sess, "release", "lower_tag_name")
 }

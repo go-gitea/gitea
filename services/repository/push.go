@@ -336,8 +336,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
-	// a case-insensitive collation answers the query above with a differently cased row, and its
-	// unique index cannot hold both, so that row is the one to update rather than duplicate
+	// a case-insensitive collation cannot hold both cases, so that row is the one to update
 	relMap := make(map[string]*repo_model.Release, len(releases))
 	relMapFolded := make(map[string]*repo_model.Release, len(releases))
 	for _, rel := range releases {
@@ -396,7 +395,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.Note = note
 				rel.PublishedUnix = publishedUnix
 			} else {
-				if rel.IsDraft { // pushing the tag publishes the draft, so it locks like any other publication
+				if rel.IsDraft {
 					// the name may have been claimed since the hook checked it, and publishing claims it
 					immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 					if err != nil {

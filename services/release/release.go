@@ -332,7 +332,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	// server owned, and a locked tag re-locks at its current path
 	rel.IsImmutable = oldRelease.IsImmutable && !oldRelease.IsTag
-	// any edit of a published release locks it
 	isBeingLocked := !rel.IsImmutable && !rel.IsDraft && !rel.IsTag
 
 	if err := assertReleaseMutable(oldRelease, rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
@@ -359,7 +358,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			return err
 		}
 
-		rel.IsImmutable = current.IsImmutable                         // the snapshot may predate a publication
+		rel.IsImmutable = current.IsImmutable
 		if isBeingLocked && (!current.IsImmutable || current.IsTag) { // not already a locked release
 			if err = repo_model.LockRelease(ctx, rel.Repo, rel); err != nil {
 				return err
@@ -456,7 +455,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		if err != nil {
 			return err
 		}
-		if current.IsImmutable && !current.IsTag { // the tag outlives the release it belongs to
+		if current.IsImmutable && !current.IsTag {
 			return ErrImmutableTag
 		}
 

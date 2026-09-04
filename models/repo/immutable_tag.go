@@ -20,9 +20,9 @@ func (repo *Repository) IsImmutableReleasesEnabled(ctx context.Context) bool {
 // ImmutableTag permanently claims a tag name at the path it was published at.
 type ImmutableTag struct {
 	ID             int64  `xorm:"pk autoincr"`
-	LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"` // an identity, so matched folded
-	LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"` // an identity, so matched folded
-	TagName        string `xorm:"UNIQUE(s) NOT NULL"` // a git ref, so matched exactly
+	LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
+	LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
+	TagName        string `xorm:"UNIQUE(s) NOT NULL"` // a git ref, so matched exactly, unlike the folded path
 }
 
 func init() {
@@ -40,7 +40,7 @@ func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
 		if err != nil {
 			return err
 		}
-		if affected == 0 { // deleted meanwhile, so claiming its name would be wrong
+		if affected == 0 {
 			return util.NewNotExistErrorf("release does not exist [id: %d]", rel.ID)
 		}
 	}

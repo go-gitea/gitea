@@ -67,7 +67,7 @@ func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
 	})
 }
 
-func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
+func TestDeleteRepositoryDirectlyPurgesRepoScopedRowsButKeepsImmutableTags(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// One row per table that repository deletion used to leave behind (#38494).
