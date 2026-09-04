@@ -52,7 +52,7 @@ async function tryOnEditContent(e: Event) {
         return;
       }
 
-      applyAreYouSure(editContentZone.querySelector('form')!); // reset the dirty baseline
+      applyAreYouSure(editContentZone.querySelector('form')!); // the form is no longer dirty
       editContentZone.setAttribute('data-content-version', data.contentVersion);
 
       // replace the render content with new one, to trigger re-initialization of all features
