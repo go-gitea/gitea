@@ -4,7 +4,7 @@
 import {showGlobalErrorMessage, processWindowErrorEvent} from './modules/errors.ts';
 
 try {
-  window.config = JSON.parse(document.querySelector('#gitea-config')!.textContent);
+  window.config = JSON.parse(document.querySelector('#window-config')!.textContent);
   // in case some pages don't render the pageData, we make sure it is an object to prevent null access
   window.config.pageData ??= {};
 } catch {

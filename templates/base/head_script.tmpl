@@ -7,26 +7,5 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.addEventListener('unhandledrejection', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 </script>
-<script type="application/json" id="gitea-config">{
-	"appUrl": {{ctx.AppFullLink "/"}},
-	"appSubUrl": {{AppSubUrl}},
-	"assetUrlPrefix": {{AssetUrlPrefix}},
-	"runModeIsProd": {{.RunModeIsProd}},
-	"customEmojis": {{CustomEmojis}},
-	"pageData": {{.PageData}},
-	"notificationSettings": {{NotificationSettings}},{{/*a map provided by NewFuncMap in helper.go*/}}
-	"enableTimeTracking": {{EnableTimetracking}},
-	"mermaidMaxSourceCharacters": {{MermaidMaxSourceCharacters}},
-	"sharedWorkerUri": {{AssetURI "web_src/js/user-events.sharedworker.ts"}},
-	{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
-	"i18n": {
-		"error_occurred": {{ctx.Locale.Tr "error.occurred"}},
-		"remove_label_str": {{ctx.Locale.Tr "remove_label_str"}},
-		"modal_confirm": {{ctx.Locale.Tr "modal.confirm"}},
-		"modal_cancel": {{ctx.Locale.Tr "modal.cancel"}},
-		"more_items": {{ctx.Locale.Tr "more_items"}},
-		"copy_success": {{ctx.Locale.Tr "copy_success"}},
-		"copy_error": {{ctx.Locale.Tr "copy_error"}}
-	}
-}</script>
+<script type="application/json" id="window-config">{{ctx.WindowConfig}}</script>
 {{ctx.ScriptImport "web_src/js/iife.ts"}}
