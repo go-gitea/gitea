@@ -10,13 +10,16 @@ import (
 	"strings"
 	"testing"
 
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -188,6 +191,61 @@ diff --git "\\a/README.md" "\\b/README.md"
 			}
 		})
 	}
+}
+
+func TestParsePatch_LFSRepositoryScope(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repoA := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repoB := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 54})
+
+	pointer, err := lfs.GeneratePointer(strings.NewReader("lfs test content"))
+	require.NoError(t, err)
+
+	_, err = git_model.NewLFSMetaObject(t.Context(), repoA.ID, pointer)
+	require.NoError(t, err)
+
+	diff := `diff --git a/test.bin b/test.bin
+--- a/test.bin
++++ b/test.bin
+@@ -1,3 +1,3 @@
+ version https://git-lfs.github.com/spec/v1
+ oid sha256:` + pointer.Oid + `
+ size 15
+`
+
+	t.Run("OID belonging to another repository is not LFS", func(t *testing.T) {
+		got, err := parsePatch(
+			t.Context(),
+			setting.Git.MaxGitDiffLines,
+			setting.Git.MaxGitDiffLineCharacters,
+			setting.Git.MaxGitDiffFiles,
+			strings.NewReader(diff),
+			"",
+			repoB.ID,
+		)
+		require.NoError(t, err)
+		require.Len(t, got.Files, 1)
+		assert.False(t, got.Files[0].IsLFSFile)
+	})
+
+	t.Run("OID belonging to repository is LFS", func(t *testing.T) {
+		_, err := git_model.NewLFSMetaObject(t.Context(), repoB.ID, pointer)
+		require.NoError(t, err)
+
+		got, err := parsePatch(
+			t.Context(),
+			setting.Git.MaxGitDiffLines,
+			setting.Git.MaxGitDiffLineCharacters,
+			setting.Git.MaxGitDiffFiles,
+			strings.NewReader(diff),
+			"",
+			repoB.ID,
+		)
+		require.NoError(t, err)
+		require.Len(t, got.Files, 1)
+		assert.True(t, got.Files[0].IsLFSFile)
+	})
 }
 
 func TestParsePatch_singlefile(t *testing.T) {

@@ -686,6 +686,10 @@ const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some parameters.
 func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (*Diff, error) {
+	return parsePatch(ctx, maxLines, maxLineCharacters, maxFiles, reader, skipToFile, 0)
+}
+
+func parsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string, lfsRepositoryID int64) (*Diff, error) {
 	log.Debug("ParsePatch(%d, %d, %d, ..., %s)", maxLines, maxLineCharacters, maxFiles, skipToFile)
 	var curFile *DiffFile
 
@@ -891,7 +895,7 @@ parsingLoop:
 					curFile.isAmbiguous = false
 				}
 				// Otherwise do nothing with this line, but now switch to parsing hunks
-				lineBytes, isFragment, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input)
+				lineBytes, isFragment, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input, lfsRepositoryID)
 				if err != nil {
 					if err != io.EOF {
 						return diff, err
@@ -1006,7 +1010,7 @@ func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 	}
 }
 
-func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
+func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader, lfsRepositoryID int64) (lineBytes []byte, isFragment bool, err error) {
 	sb := strings.Builder{}
 
 	var curSection *DiffSection
@@ -1197,10 +1201,18 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], lfs.MetaFileOidPrefix) {
 			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
-				m := &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
-				count, err := db.CountByBean(ctx, m)
+				var isLFSFile bool
 
-				if err == nil && count > 0 {
+				if lfsRepositoryID > 0 {
+					_, err := git_model.GetLFSMetaObjectByOid(ctx, lfsRepositoryID, oid)
+					isLFSFile = err == nil
+				} else {
+					m := &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
+					count, err := db.CountByBean(ctx, m)
+					isLFSFile = err == nil && count > 0
+				}
+
+				if isLFSFile {
 					curFile.IsBin = true
 					curFile.IsLFSFile = true
 					curSection.Lines = nil
@@ -1303,6 +1315,7 @@ type DiffOptions struct {
 	MaxFiles           int
 	WhitespaceBehavior gitcmd.TrustedCmdArgs
 	DirectComparison   bool
+	LFSRepositoryID    int64
 }
 
 func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, beforeCommitID string, afterCommit *git.Commit) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, err error) {
@@ -1372,7 +1385,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		}
 	}()
 
-	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
+	diff, err := parsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile, opts.LFSRepositoryID)
 	// Ensure the git process is killed if it didn't exit already
 	cmdCancel()
 	if err != nil {
