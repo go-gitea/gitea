@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -161,7 +162,18 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User, pkg *packag
 		}
 		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkgOwner, doer) {
 			// 2. If user is unauthorized or no org member, check if org is visible
-			accessMode = perm.AccessModeRead
+			if pkg != nil && pkg.RepoID != 0 {
+				// 3. If package is associated with a repository, check if repository is visible
+				repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
+				if err != nil {
+					return accessMode, err
+				}
+				if !repo.IsPrivate {
+					accessMode = perm.AccessModeRead
+				}
+			} else {
+				accessMode = perm.AccessModeRead
+			}
 		}
 	} else {
 		if doer != nil && !doer.IsGhost() {
@@ -169,10 +181,32 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User, pkg *packag
 			if doer.ID == pkgOwner.ID {
 				accessMode = perm.AccessModeOwner
 			} else if pkgOwner.Visibility.IsPublic() || (pkgOwner.Visibility.IsLimited() && !doer.IsRestricted) { // 2. Check if package owner is visible to the doer
-				accessMode = perm.AccessModeRead
+				if pkg != nil && pkg.RepoID != 0 {
+					// 3. If package is associated with a repository, check if repository is visible
+					repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
+					if err != nil {
+						return accessMode, err
+					}
+					if !repo.IsPrivate {
+						accessMode = perm.AccessModeRead
+					}
+				} else {
+					accessMode = perm.AccessModeRead
+				}
 			}
 		} else if pkgOwner.Visibility.IsPublic() { // 3. Check if package owner is public
-			accessMode = perm.AccessModeRead
+			if pkg != nil && pkg.RepoID != 0 {
+				// 3. If package is associated with a repository, check if repository is visible
+				repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
+				if err != nil {
+					return accessMode, err
+				}
+				if !repo.IsPrivate {
+					accessMode = perm.AccessModeRead
+				}
+			} else {
+				accessMode = perm.AccessModeRead
+			}
 		}
 	}
 
