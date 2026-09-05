@@ -1498,18 +1498,35 @@ type DiffShortStat struct {
 }
 
 func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
-	afterCommit, err := gitRepo.GetCommit(ctx, afterCommitID)
+	return GetDiffShortStatWithOptions(ctx, gitRepo, &DiffOptions{
+		BeforeCommitID: beforeCommitID,
+		AfterCommitID:  afterCommitID,
+	})
+}
+
+func GetDiffShortStatWithOptions(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*DiffShortStat, error) {
+	afterCommit, err := gitRepo.GetCommit(ctx, opts.AfterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, beforeCommitID, afterCommit)
+	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, opts.BeforeCommitID, afterCommit)
 	if err != nil {
 		return nil, err
 	}
+
+	cmdDiff := gitcmd.NewCommand().
+		AddArguments("diff", "--shortstat").
+		AddArguments(opts.WhitespaceBehavior...).
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
+	if opts.SkipTo != "" && git.DefaultFeatures().CheckVersionAtLeast("2.31") {
+		cmdDiff.AddOptionFormat("--skip-to=%s", opts.SkipTo)
+	}
+	cmdDiff.AddDynamicArguments(actualBeforeCommitID.String(), opts.AfterCommitID)
+	cmdDiff.AddDashesAndList(files...)
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(ctx, gitRepo, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmd(ctx, gitRepo, cmdDiff)
 	if err != nil {
 		return nil, err
 	}

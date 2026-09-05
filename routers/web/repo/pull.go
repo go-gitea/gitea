@@ -803,7 +803,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStatWithOptions(ctx, ctx.Repo.GitRepo, diffOptions, files...)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
