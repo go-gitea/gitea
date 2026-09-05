@@ -6,7 +6,6 @@ package gitdiff
 
 import (
 	"html/template"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -1311,7 +1310,7 @@ D test10.txt`
 }
 
 func TestGetDiffShortStatWithOptions(t *testing.T) {
-	repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "temp-repo"), []git.FastImportCommit{
+	repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
 		{Ref: "refs/heads/base", Files: []git.FastImportFile{
 			{Path: "real.txt", Content: "a1\na2\n"},
 			{Path: "whitespace.txt", Content: "b\n"},
