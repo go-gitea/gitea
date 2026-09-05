@@ -26117,7 +26117,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "the blob ID (SHA) for the file that already exists, required for changing existing files",
+          "description": "the blob ID (SHA) for the file that already exists, required for changing existing files.\nIt is the `sha` returned by the \"Get contents\" API; for a file tracked by Git LFS this is the ID of\nthe pointer blob committed to the repository, not the `lfs_oid` of the LFS object and not a checksum\nof the file content.",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -26687,7 +26687,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "SHA is the Git blob or tree SHA",
+          "description": "SHA is the Git blob or tree SHA. It is the value the file APIs expect in `sha`, also for a file\ntracked by Git LFS, where it is the ID of the pointer blob rather than of the LFS object.",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -28241,7 +28241,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "the blob ID (SHA) for the file to delete",
+          "description": "the blob ID (SHA) for the file to delete, as returned in `sha` by the \"Get contents\" API.\nFor a file tracked by Git LFS this is the ID of the pointer blob committed to the repository,\nnot the `lfs_oid` of the LFS object and not a checksum of the file content.",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -33562,7 +33562,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file",
+          "description": "the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file.\nIt is the `sha` returned by the \"Get contents\" API; for a file tracked by Git LFS this is the ID of\nthe pointer blob committed to the repository, not the `lfs_oid` of the LFS object and not a checksum\nof the file content.",
           "type": "string",
           "x-go-name": "SHA"
         },
