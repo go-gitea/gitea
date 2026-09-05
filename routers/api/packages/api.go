@@ -583,25 +583,25 @@ func ContainerRoutes() *web.Router {
 	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
 	r.Group("/{username}", func() {
 		r.PathGroup("/*", func(g *web.RouterPathGroup) {
-			g.MatchPath("POST", "/<image:*>/blobs/uploads", reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
-			g.MatchPath("GET", "/<image:*>/tags/list", container.VerifyImageName, container.GetTagsList)
+			g.MatchPath("POST", "/<image:*>/blobs/uploads", context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName, container.PostBlobsUploads)
+			g.MatchPath("GET", "/<image:*>/tags/list", context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.GetTagsList)
 
-			patternBlobsUploadsUUID := g.PatternRegexp(`/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName)
+			patternBlobsUploadsUUID := g.PatternRegexp(`/<image:*>/blobs/uploads/<uuid:[-.=\w]+>`, context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeWrite), container.VerifyImageName)
 			g.MatchPattern("GET", patternBlobsUploadsUUID, container.GetBlobsUpload)
 			g.MatchPattern("PATCH", patternBlobsUploadsUUID, container.PatchBlobsUpload)
 			g.MatchPattern("PUT", patternBlobsUploadsUUID, container.PutBlobsUpload)
 			g.MatchPattern("DELETE", patternBlobsUploadsUUID, container.DeleteBlobsUpload)
 
-			g.MatchPath("HEAD", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.HeadBlob)
-			g.MatchPath("GET", `/<image:*>/blobs/<digest>`, container.VerifyImageName, container.GetBlob)
-			g.MatchPath("DELETE", `/<image:*>/blobs/<digest>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)
+			g.MatchPath("HEAD", `/<image:*>/blobs/<digest>`, context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.HeadBlob)
+			g.MatchPath("GET", `/<image:*>/blobs/<digest>`, context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.GetBlob)
+			g.MatchPath("DELETE", `/<image:*>/blobs/<digest>`, context.PackageAssignment("container"), container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteBlob)
 
-			g.MatchPath("HEAD", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.HeadManifest)
-			g.MatchPath("GET", `/<image:*>/manifests/<reference>`, container.VerifyImageName, container.GetManifest)
-			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.PutManifest)
-			g.MatchPath("DELETE", `/<image:*>/manifests/<reference>`, container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
+			g.MatchPath("HEAD", `/<image:*>/manifests/<reference>`, context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.HeadManifest)
+			g.MatchPath("GET", `/<image:*>/manifests/<reference>`, context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeRead), container.VerifyImageName, container.GetManifest)
+			g.MatchPath("PUT", `/<image:*>/manifests/<reference>`, context.PackageAssignment("container"), container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.PutManifest)
+			g.MatchPath("DELETE", `/<image:*>/manifests/<reference>`, context.PackageAssignment("container"), container.VerifyImageName, reqPackageAccess(perm.AccessModeWrite), container.DeleteManifest)
 		})
-	}, container.ReqContainerAccess, context.UserAssignmentWeb(), context.PackageAssignment("container"), reqPackageAccess(perm.AccessModeRead))
+	}, container.ReqContainerAccess, context.UserAssignmentWeb())
 
 	return r
 }
