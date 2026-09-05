@@ -20700,6 +20700,74 @@
         }
       }
     },
+    "/search/code": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "search"
+        ],
+        "summary": "Search for code",
+        "operationId": "GlobalSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keyword",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "search only in the repositories with the given full names",
+            "name": "repo",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "exact",
+              "words",
+              "fuzzy",
+              "regexp"
+            ],
+            "type": "string",
+            "description": "search mode",
+            "name": "mode",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by programming language",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -26227,6 +26295,110 @@
           "description": "The status of the file change (added, modified, deleted, etc.)",
           "type": "string",
           "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResult": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultLine"
+          },
+          "x-go-name": "Lines"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "Sha"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResultLanguage": {
+      "description": "CodeSearchResultLanguage result of top languages count in search results",
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Count"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResultLine": {
+      "type": "object",
+      "properties": {
+        "line_number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LineNumber"
+        },
+        "raw_content": {
+          "type": "string",
+          "x-go-name": "RawContent"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResults": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResult"
+          },
+          "x-go-name": "Items"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultLanguage"
+          },
+          "x-go-name": "Languages"
+        },
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34189,6 +34361,12 @@
           "format": "int64",
           "description": "Total file count"
         }
+      }
+    },
+    "CodeSearchResults": {
+      "description": "CodeSearchResults",
+      "schema": {
+        "$ref": "#/definitions/CodeSearchResults"
       }
     },
     "CombinedStatus": {
