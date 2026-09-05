@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/proxy"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
@@ -68,8 +69,8 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
-func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
-	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration, envs []string, sshAuth gitcmd.SSHAuth) error {
+	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuth(sshAuth)
 	git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 	stdout, _, pruneErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
@@ -125,6 +126,14 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	envs := proxy.EnvWithProxy(remoteURL.URL)
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
+	// Setup SSH authentication if needed
+	sshAuth, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
+	if sshErr != nil {
+		log.Error("SyncMirrors [repo: %-v]: SSH setup error %v", m.Repo, sshErr)
+		return nil, false
+	}
+	defer cleanup()
+
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("fetch", "--tags")
@@ -132,7 +141,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
-		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+		return cmd.AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuth(sshAuth)
 	}
 
 	var err error
@@ -147,7 +156,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout)
+			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo.CodeStorageRepo(), timeout, envs, sshAuth)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
 				fetchStdout, fetchStderr, err = cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
@@ -209,7 +218,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+		cmd := gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithSSHAuth(sshAuth)
 		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 		return cmd
 	}
@@ -229,7 +238,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 				err = nil
 
 				// Attempt prune
-				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout)
+				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout, envs, sshAuth)
 				if pruneErr == nil {
 					// Successful prune - reattempt mirror
 					stdout, stderr, err = cmdRemoteUpdatePrune().WithRepo(m.Repo.WikiStorageRepo()).RunStdString(ctx)
