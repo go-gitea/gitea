@@ -136,9 +136,11 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 		return nil, err
 	}
 
-	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
-		log.Error("UpdateAccessToken: %v", err)
+	if auth_model.ShouldPersistTokenUse(t.UpdatedUnix, time.Now()) {
+		t.UpdatedUnix = timeutil.TimeStampNow()
+		if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
+			log.Error("UpdateAccessToken: %v", err)
+		}
 	}
 	store.GetData()["ApiTokenScope"] = t.Scope
 	return user_model.GetUserByID(ctx, t.UID)
