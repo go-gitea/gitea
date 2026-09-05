@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/modules/log"
+	oauth2_source "gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
 )
 
@@ -69,8 +70,16 @@ type pageGlobalDataType struct {
 	IsSigned    bool
 	IsSiteAdmin bool
 
-	GetNotificationUnreadCount func() int64
-	GetActiveStopwatch         func() *StopwatchTmplInfo
+	GetNotificationUnreadCount              func() int64
+	GetActiveStopwatch                      func() *StopwatchTmplInfo
+	GetRequiredAdditionalInfoFailureWarning func() *oauth2_source.RequiredAdditionalInfoFailureWarning
+}
+
+func oauth2RequiredAdditionalInfoFailureWarning(ctx *context.Context) *oauth2_source.RequiredAdditionalInfoFailureWarning {
+	if ctx.Doer == nil || !ctx.Doer.IsAdmin {
+		return nil
+	}
+	return oauth2_source.GetRequiredAdditionalInfoFailureWarning(ctx.Cache)
 }
 
 func PageGlobalData(ctx *context.Context) {
@@ -79,5 +88,8 @@ func PageGlobalData(ctx *context.Context) {
 	data.IsSiteAdmin = ctx.Doer != nil && ctx.Doer.IsAdmin
 	data.GetNotificationUnreadCount = sync.OnceValue(func() int64 { return notificationUnreadCount(ctx) })
 	data.GetActiveStopwatch = sync.OnceValue(func() *StopwatchTmplInfo { return getActiveStopwatch(ctx) })
+	data.GetRequiredAdditionalInfoFailureWarning = sync.OnceValue(func() *oauth2_source.RequiredAdditionalInfoFailureWarning {
+		return oauth2RequiredAdditionalInfoFailureWarning(ctx)
+	})
 	ctx.Data["PageGlobalData"] = data
 }
