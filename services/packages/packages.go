@@ -268,25 +268,27 @@ func GetOrSavePackageBlob(ctx context.Context, contentStore *packages_module.Con
 	if blob.Size != data.Size() {
 		return nil, false, fmt.Errorf("size mismatch: blob size %d, data size %d", blob.Size, data.Size())
 	}
-	pb, exists, err := packages_model.GetOrInsertBlob(ctx, blob)
+	pb, existsInDatabase, err := packages_model.GetOrInsertBlob(ctx, blob)
 	if err != nil {
 		return nil, false, fmt.Errorf("unable to get or insert blob: %w", err)
 	}
+	var sz optional.Option[int64]
 	storeKey := packages_module.BlobHash256Key(pb.HashSHA256)
-	if exists {
+	if existsInDatabase {
 		// check if the blob file actually is valid in the content store
-		sz, err := contentStore.OptionalSize(storeKey)
+		sz, err = contentStore.OptionalSize(storeKey)
 		if err != nil {
 			return nil, false, fmt.Errorf("unable to check object size in content store: %w", err)
 		}
-		exists = sz.ValueOrDefault(-1) == blob.Size
 	}
-	if !exists {
+	if sz.ValueOrDefault(-1) != blob.Size {
 		if err := contentStore.Save(storeKey, data, data.Size()); err != nil {
 			return nil, false, fmt.Errorf("unable to save object in content store: %w", err)
 		}
 	}
-	return pb, exists, nil
+	// existsInDatabase controls the "roll back", if other errors happen later,
+	// the "non-existing (newly created)" blob will be deleted from the content store, but not if it already existed in the database.
+	return pb, existsInDatabase, nil
 }
 
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
@@ -297,12 +299,12 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	return addFileToPackageVersionUnchecked(ctx, pv, pfci)
 }
 
-func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (_ *packages_model.PackageFile, _ *packages_model.PackageBlob, created bool, _ error) {
 	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
 	pb, exists, err := GetOrSavePackageBlob(ctx, packages_module.NewContentStore(), NewPackageBlob(pfci.Data), pfci.Data)
 	if err != nil {
-		return nil, nil, !exists, err
+		return nil, nil, false, err
 	}
 
 	if pfci.OverwriteExisting {
