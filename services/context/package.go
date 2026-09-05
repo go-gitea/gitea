@@ -46,6 +46,12 @@ func PackageAssignment(pType string) func(ctx *Context) {
 		var pkg *packages_model.Package
 		var err error
 		switch pType {
+		case "web":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+		case "container":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeContainer, ctx.PathParam("image"))
+		case "terraform":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeTerraformState, ctx.PathParam("name"))
 		}
 		if err == nil {
 			paCtx.Package = pkg
