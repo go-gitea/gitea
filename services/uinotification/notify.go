@@ -55,7 +55,10 @@ func handler(items ...issueNotificationOpts) []issueNotificationOpts {
 	for _, opts := range items {
 		notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
 		if err != nil {
-			log.Error("Was unable to create issue notification: %v", err)
+			// the issue can be gone by now, e.g. its repository was deleted
+			if !issues_model.IsErrIssueNotExist(err) {
+				log.Error("Unable to create issue notification: %v", err)
+			}
 			continue
 		}
 		for _, userID := range notifiedIDs {
