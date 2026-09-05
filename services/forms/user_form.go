@@ -6,8 +6,10 @@ package forms
 
 import (
 	"mime/multipart"
+	"net/url"
 	"strings"
 
+	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
@@ -252,6 +254,18 @@ type EditVariableForm struct {
 type NewAccessTokenForm struct {
 	middleware.FormDefaultValidator
 	Name string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
+}
+
+// AccessTokenScopeFromForm collects all "scope-*" values of a submitted token form
+// and joins them into Gitea's comma-separated AccessTokenScope format.
+func AccessTokenScopeFromForm(form url.Values) auth_model.AccessTokenScope {
+	var scopeNames []string
+	for k, v := range form {
+		if strings.HasPrefix(k, "scope-") {
+			scopeNames = append(scopeNames, v...)
+		}
+	}
+	return auth_model.AccessTokenScope(strings.Join(scopeNames, ","))
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications

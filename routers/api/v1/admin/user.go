@@ -208,7 +208,7 @@ func EditUser(ctx *context.APIContext) {
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		default:
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -249,7 +249,7 @@ func EditUser(ctx *context.APIContext) {
 		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -560,6 +560,54 @@ func RenameUser(ctx *context.APIContext) {
 		} else {
 			ctx.APIErrorInternal(err)
 		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// ConvertUserType converts a user between the individual and bot types
+func ConvertUserType(ctx *context.APIContext) {
+	// swagger:operation POST /admin/users/{username}/convert-type admin adminConvertUserType
+	// ---
+	// summary: Convert a user between the individual and bot types
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user to convert
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/ConvertUserTypeOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if ctx.ContextUser.ID == ctx.Doer.ID {
+		ctx.APIError(http.StatusBadRequest, "the own account type can not be converted")
+		return
+	}
+
+	targetType, err := user_model.ParseUserType(web.GetForm[*api.ConvertUserTypeOption](ctx).UserType)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
+	if err := user_service.ConvertUserType(ctx, ctx.ContextUser, targetType); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

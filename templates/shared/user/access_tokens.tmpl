@@ -1,0 +1,126 @@
+<div id="access-token-panel">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "settings.manage_access_token"}}
+	</h4>
+	<div class="ui attached segment">
+		{{if .NewTokenValue}}
+			<div class="ui positive message">
+				<div class="flex-text-block tw-justify-center">
+					<span>{{ctx.Locale.Tr "settings.generate_token_success"}}</span>
+					<code id="new-access-token-value">{{.NewTokenValue}}</code>
+					<button class="btn interact-fg tw-px-1" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#new-access-token-value" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+				</div>
+			</div>
+		{{end}}
+		<div class="flex-divided-list items-with-main">
+			<div class="item">
+				{{.Description}}
+			</div>
+			{{range $token := .Tokens}}
+				<div class="item">
+					<div class="item-leading">
+						<span class="{{if $token.HasRecentActivity}}tw-text-green{{end}}" {{if $token.HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.token_state_desc"}}"{{end}}>
+							{{svg "fontawesome-send" 32}}
+						</span>
+					</div>
+					<div class="item-main">
+						<details>
+							<summary><span class="item-title">{{$token.Name}}</span></summary>
+							<p class="tw-my-1">
+								{{ctx.Locale.Tr "settings.repo_and_org_access"}}:
+								{{if $token.DisplayPublicOnly}}
+									{{ctx.Locale.Tr "settings.permissions_public_only"}}
+								{{else}}
+									{{ctx.Locale.Tr "settings.permissions_access_all"}}
+								{{end}}
+							</p>
+							<p class="tw-my-1">{{ctx.Locale.Tr "settings.permissions_list"}}</p>
+							<ul class="tw-my-1">
+							{{range $scope := $token.Scope.StringSlice}}
+								{{if ne $scope $.ScopePublicOnly}}
+									<li>{{$scope}}</li>
+								{{end}}
+							{{end}}
+							</ul>
+						</details>
+						<div class="item-body">
+							<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort $token.CreatedUnix)}} — {{svg "octicon-info"}} {{if $token.HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if $token.HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort $token.UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+						</div>
+					</div>
+					<div class="item-trailing">
+						{{if $.RegenerateURL}}
+							<button class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.RegenerateURL}}?id={{$token.ID}}">
+								{{svg "octicon-sync"}}
+								{{ctx.Locale.Tr "settings.regenerate_token"}}
+							</button>
+						{{end}}
+						<button class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.DeleteURL}}?id={{$token.ID}}">
+							{{svg "octicon-trash"}}
+							{{ctx.Locale.Tr "settings.delete_token"}}
+						</button>
+					</div>
+				</div>
+			{{end}}
+		</div>
+	</div>
+	<div class="ui bottom attached segment">
+		<details {{if or .NameValue (not .Tokens)}}open{{end}}>
+			<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.generate_new_token"}}</h4></summary>
+			<form class="ui form ignore-dirty form-fetch-action" action="{{.CreateURL}}" method="post" data-fetch-sync="$body #access-token-panel">
+				<div class="field {{if .ErrName}}error{{end}}">
+					<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
+					<input id="name" name="name" value="{{.NameValue}}" required maxlength="255">
+				</div>
+				<div class="field">
+					<div class="tw-my-2">{{ctx.Locale.Tr "settings.repo_and_org_access"}}</div>
+					<label class="gt-checkbox">
+						<input type="radio" name="scope-public-only" value="{{.ScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
+					</label>
+					<label class="gt-checkbox">
+						<input type="radio" name="scope-public-only" value="" checked> {{ctx.Locale.Tr "settings.permissions_access_all"}}
+					</label>
+				</div>
+				<div>
+					<div class="tw-my-2">{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (HTMLFormat `href="%s" target="_blank"` "https://docs.gitea.com/development/oauth2-provider#scopes")}}</div>
+					<table class="ui table unstackable tw-my-2">
+					{{range $category := .ScopeCategories}}
+						<tr>
+							<td>{{$category}}</td>
+							<td><label class="gt-checkbox"><input type="radio" name="scope-{{$category}}" value="" checked> {{ctx.Locale.Tr "settings.permission_no_access"}}</label></td>
+							<td><label class="gt-checkbox"><input type="radio" name="scope-{{$category}}" value="read:{{$category}}"> {{ctx.Locale.Tr "settings.permission_read"}}</label></td>
+							<td><label class="gt-checkbox"><input type="radio" name="scope-{{$category}}" value="write:{{$category}}"> {{ctx.Locale.Tr "settings.permission_write"}}</label></td>
+						</tr>
+					{{end}}
+					</table>
+				</div>
+				<button class="ui primary button">
+					{{ctx.Locale.Tr "settings.generate_token"}}
+				</button>
+			</form>
+		</details>
+	</div>
+</div>
+
+<div class="ui small modal" id="delete-token">
+	<div class="header">
+		{{svg "octicon-trash"}}
+		{{ctx.Locale.Tr "settings.access_token_deletion"}}
+	</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "settings.access_token_deletion_desc"}}</p>
+	</div>
+	{{template "base/modal_actions_confirm"}}
+</div>
+
+{{if .RegenerateURL}}
+	<div class="ui small modal" id="regenerate-token">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{ctx.Locale.Tr "settings.access_token_regeneration"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "settings.access_token_regeneration_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm"}}
+	</div>
+{{end}}

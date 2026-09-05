@@ -68,6 +68,22 @@ const (
 	UserTypeRemoteUser // 5
 )
 
+// convertibleUserTypes maps the user types an admin may create or convert between.
+// Only these types have a stable external name, the other ones are internal.
+var convertibleUserTypes = map[string]UserType{
+	"individual": UserTypeIndividual,
+	"bot":        UserTypeBot,
+}
+
+// ParseUserType maps an external user type name to its UserType.
+func ParseUserType(s string) (UserType, error) {
+	t, ok := convertibleUserTypes[s]
+	if !ok {
+		return 0, util.NewInvalidArgumentErrorf("invalid user type %q, must be one of: individual, bot", s)
+	}
+	return t, nil
+}
+
 const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
 	EmailNotificationsEnabled = "enabled"
@@ -518,6 +534,9 @@ func (u *User) GitName() string {
 }
 
 // IsMailable checks if a user is eligible to receive emails.
+// Bots (including the Gitea Actions user) and the Ghost user are excluded:
+// they have no inbox to read. IsIndividual() rules out bot accounts; ID > 0
+// rules out the ghost.
 func (u *User) IsMailable() bool {
 	return u.ID > 0 && u.IsActive && u.IsIndividual()
 }

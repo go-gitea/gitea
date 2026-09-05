@@ -30,6 +30,7 @@ interface Window {
       adminUserListSearchForm?: {
         SortType: string,
         StatusFilterMap: Record<string, string>,
+        UserTypeFilter: string,
       },
       citationFileContent?: string,
       prReview?: {
