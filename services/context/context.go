@@ -46,8 +46,11 @@ type Context struct {
 
 	TemplateContext TemplateContext
 
-	Render   Render
-	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render Render
+
+	// PageData is used by JavaScript modules, it is `window.config.pageData`.
+	// Deprecated: it was introduced for refactoring some legacy JS code, it should not be used in new code anymore.
+	PageData map[string]any
 
 	Cache   cache.StringCache
 	Flash   *middleware.Flash
