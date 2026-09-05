@@ -4,8 +4,10 @@
 package shared
 
 import (
+	"maps"
 	"math"
 	"net/http"
+	"slices"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -1548,6 +1550,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues repository repoListProjectColumnIssues
 	// ---
 	// summary: List the issues in a project column
+	// description: Issues are returned in board order, each with its sorting value.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1583,13 +1586,14 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/IssueList"
+	//     "$ref": "#/responses/ProjectColumnIssueList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
 	// swagger:operation GET /orgs/{org}/projects/{id}/columns/{column_id}/issues organization orgListProjectColumnIssues
 	// ---
 	// summary: List the issues in a project column
+	// description: Issues are returned in board order, each with its sorting value.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1620,13 +1624,14 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/IssueList"
+	//     "$ref": "#/responses/ProjectColumnIssueList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
 	// swagger:operation GET /user/projects/{id}/columns/{column_id}/issues user userCurrentListProjectColumnIssues
 	// ---
 	// summary: List the issues in a project column
+	// description: Issues are returned in board order, each with its sorting value.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1652,7 +1657,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/IssueList"
+	//     "$ref": "#/responses/ProjectColumnIssueList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -1662,21 +1667,21 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 		return
 	}
 
-	issueIDs, err := project_model.GetColumnIssueIDs(ctx, column)
+	sortings, err := project_model.GetColumnIssueSortings(ctx, column)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if len(issueIDs) == 0 {
+	if len(sortings) == 0 {
 		ctx.SetTotalCountHeader(0)
-		ctx.JSON(http.StatusOK, []*api.Issue{})
+		ctx.JSON(http.StatusOK, []*api.ProjectColumnIssue{})
 		return
 	}
 
 	listOptions := utils.GetListOptions(ctx)
 	issuesOpts := &issues_model.IssuesOptions{
 		Paginator:  &listOptions,
-		IssueIDs:   issueIDs,
+		IssueIDs:   slices.Collect(maps.Keys(sortings)),
 		ProjectIDs: []int64{project.ID}, // joins project_issue so the column sorting applies
 		SortType:   "project-column-sorting",
 	}
@@ -1707,7 +1712,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(count, listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToProjectColumnIssueList(ctx, ctx.Doer, issues, sortings))
 }
 
 func AddIssueToProjectColumn(ctx *context.APIContext) {

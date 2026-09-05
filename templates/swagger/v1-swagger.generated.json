@@ -4008,6 +4008,7 @@
     },
     "/orgs/{org}/projects/{id}/columns/{column_id}/issues": {
       "get": {
+        "description": "Issues are returned in board order, each with its sorting value.",
         "produces": [
           "application/json"
         ],
@@ -4055,7 +4056,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/IssueList"
+            "$ref": "#/responses/ProjectColumnIssueList"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -16131,6 +16132,7 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues": {
       "get": {
+        "description": "Issues are returned in board order, each with its sorting value.",
         "produces": [
           "application/json"
         ],
@@ -16185,7 +16187,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/IssueList"
+            "$ref": "#/responses/ProjectColumnIssueList"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -23439,6 +23441,7 @@
     },
     "/user/projects/{id}/columns/{column_id}/issues": {
       "get": {
+        "description": "Issues are returned in board order, each with its sorting value.",
         "produces": [
           "application/json"
         ],
@@ -23479,7 +23482,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/IssueList"
+            "$ref": "#/responses/ProjectColumnIssueList"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -31721,6 +31724,155 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ProjectColumnIssue": {
+      "description": "ProjectColumnIssue represents an issue placed in a project column",
+      "type": "object",
+      "properties": {
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Attachment"
+          },
+          "x-go-name": "Attachments"
+        },
+        "assignee": {
+          "$ref": "#/definitions/User"
+        },
+        "assignees": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/User"
+          },
+          "x-go-name": "Assignees"
+        },
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
+        "comments": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Comments"
+        },
+        "content_version": {
+          "description": "The version of the issue content for optimistic locking",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ContentVersion"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Deadline"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "is_locked": {
+          "type": "boolean",
+          "x-go-name": "IsLocked"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Label"
+          },
+          "x-go-name": "Labels"
+        },
+        "milestone": {
+          "$ref": "#/definitions/Milestone"
+        },
+        "number": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Index"
+        },
+        "original_author": {
+          "type": "string",
+          "x-go-name": "OriginalAuthor"
+        },
+        "original_author_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OriginalAuthorID"
+        },
+        "pin_order": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PinOrder"
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Project"
+          },
+          "x-go-name": "Projects"
+        },
+        "pull_request": {
+          "$ref": "#/definitions/PullRequestMeta"
+        },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        },
+        "repository": {
+          "$ref": "#/definitions/RepositoryMeta"
+        },
+        "sorting": {
+          "description": "Position of the issue within the column, ascending, as accepted by the move endpoint",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "x-go-enum-desc": "open StateOpen pr is opened\nclosed StateClosed pr is closed",
+          "x-go-name": "State"
+        },
+        "time_estimate": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TimeEstimate"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "PublicKey": {
       "description": "PublicKey publickey is a user key to push code to repository",
       "type": "object",
@@ -34681,6 +34833,15 @@
       "description": "ProjectColumn",
       "schema": {
         "$ref": "#/definitions/ProjectColumn"
+      }
+    },
+    "ProjectColumnIssueList": {
+      "description": "ProjectColumnIssueList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProjectColumnIssue"
+        }
       }
     },
     "ProjectColumnList": {
