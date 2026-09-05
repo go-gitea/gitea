@@ -1119,7 +1119,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("", user.PackageSettings)
 					m.Post("", web.Bind[*forms.PackageSettingForm](), user.PackageSettingsPost)
 				}, reqPackageAccess(perm.AccessModeWrite))
-			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignment("web"), reqPackageAccess(perm.AccessModeRead))
 		}
 
 		// at the moment, only editing "owner-level projects" need to "mention", maybe in the future we can relax the permission check
