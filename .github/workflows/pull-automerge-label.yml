@@ -1,0 +1,31 @@
+name: automerge-label
+
+on:
+  # pull_request_target is required to label PRs from forks; the job only calls
+  # the label API and never checks out PR-head code.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [auto_merge_enabled, auto_merge_disabled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  wait-merge:
+    if: github.repository == 'go-gitea/gitea'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - if: github.event.action == 'auto_merge_enabled'
+        run: gh pr edit "$PR_NUMBER" --add-label reviewed/wait-merge
+      # Removal is idempotent, so a PR that never got the label is not an error.
+      - if: github.event.action == 'auto_merge_disabled'
+        run: gh pr edit "$PR_NUMBER" --remove-label reviewed/wait-merge
