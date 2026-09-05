@@ -3751,6 +3751,7 @@
   "secrets.description": "Os segredos serão transmitidos a certas operações e não poderão ser lidos de outra forma.",
   "secrets.none": "Ainda não há segredos.",
   "secrets.creation.description": "Descrição",
+  "secrets.creation.name_pattern": "O nome tem de começar com uma letra ou com sublinhado, conter apenas letras, números e sublinhados e não pode começar com GITEA_ nem com GITHUB_",
   "secrets.creation.value_placeholder": "Insira um conteúdo qualquer. Espaços em branco no início ou no fim serão omitidos.",
   "secrets.creation.description_placeholder": "Escreva uma descrição curta (opcional).",
   "secrets.save_success": "O segredo \"%s\" foi guardado.",
