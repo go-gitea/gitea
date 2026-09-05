@@ -330,3 +330,11 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 
 	return affectedFiles, err
 }
+
+// GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
+func GetReverseRawDiff(ctx context.Context, repo RepositoryFacade, commitID string, writer io.Writer) error {
+	return gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
+		AddDynamicArguments(commitID).
+		WithStdoutCopy(writer).
+		WithRepo(repo).RunWithStderr(ctx)
+}

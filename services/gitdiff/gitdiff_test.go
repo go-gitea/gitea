@@ -6,6 +6,7 @@ package gitdiff
 
 import (
 	"html/template"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -1307,4 +1308,41 @@ D test10.txt`
 	assert.NotNil(t, thirdReview)
 	assert.Equal(t, thirdReviewUpdatedFiles, thirdReview.UpdatedFiles)
 	assert.Equal(t, 1, thirdReview.GetViewedFileCount())
+}
+
+func TestGetDiffShortStatWithOptions(t *testing.T) {
+	repoDir := filepath.Join(t.TempDir(), "temp-repo")
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name()))
+
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
+		{Ref: "refs/heads/base", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "a1\na2\n"},
+			{Path: "whitespace.txt", Content: "b\n"},
+		}},
+		{Ref: "refs/heads/head", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "A1\nA2\nA3\n"},
+			{Path: "whitespace.txt", Content: "b   \n"},
+		}},
+	}))
+	t.Run("NoParent", func(t *testing.T) {
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &DiffCommonOptions{AfterCommitID: "refs/heads/head"})
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 2, TotalAddition: 4, TotalDeletion: 0}, stat)
+	})
+	diffOptions := DiffCommonOptions{BeforeCommitID: "refs/heads/base", AfterCommitID: "refs/heads/head"}
+	t.Run("NormalDiff", func(t *testing.T) {
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &diffOptions)
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 2, TotalAddition: 4, TotalDeletion: 3}, stat)
+	})
+	t.Run("IgnoreSpace", func(t *testing.T) {
+		diffOptions.WhitespaceBehavior = GetWhitespaceFlag("ignore-all")
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &diffOptions)
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 1, TotalAddition: 3, TotalDeletion: 2}, stat)
+	})
 }
