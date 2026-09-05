@@ -128,6 +128,22 @@ func TestPullMerge(t *testing.T) {
 	})
 }
 
+func TestPullMergeWithAdvancedBaseBranch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+
+		// the base branch moves on after the pull request was created
+		testCreateFile(t, loginUser(t, "user2"), "user2", "repo1", "master", "", "base-advanced.txt", "content")
+
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{Style: repo_model.MergeStyleMerge})
+	})
+}
+
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		preparePullMergeWebhook(t, 1)
