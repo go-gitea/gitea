@@ -911,6 +911,8 @@
   "settings.twofa_scratch_token_regenerated": "Your single-use recovery key is now %s. Store it in a safe place, as it will not be shown again.",
   "settings.twofa_enroll": "Enroll in Two-Factor Authentication",
   "settings.twofa_disable_note": "You can disable two-factor authentication if needed.",
+  "settings.twofa_disable_passcode_label": "Passcode or single-use recovery key",
+  "settings.twofa_disable_passcode_incorrect": "The passcode or single-use recovery key is incorrect.",
   "settings.twofa_disable_desc": "Disabling two-factor authentication will make your account less secure. Continue?",
   "settings.regenerate_scratch_token_desc": "If you misplaced your recovery key or have already used it to sign in, you can reset it here.",
   "settings.twofa_disabled": "Two-factor authentication has been disabled.",
