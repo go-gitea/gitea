@@ -6,6 +6,9 @@ package migrations
 
 import (
 	"errors"
+	"net/http"
+
+	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/google/go-github/v89/github"
 )
@@ -23,4 +26,13 @@ func IsRateLimitError(err error) bool {
 func IsTwoFactorAuthError(err error) bool {
 	_, ok := err.(*github.TwoFactorAuthError)
 	return ok
+}
+
+// IsAuthenticationError returns true if the remote rejected the credentials, over git or over its HTTP API
+func IsAuthenticationError(err error) bool {
+	if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) || gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) {
+		return true
+	}
+	githubErr, ok := errors.AsType[*github.ErrorResponse](err)
+	return ok && githubErr.Response != nil && githubErr.Response.StatusCode == http.StatusUnauthorized
 }

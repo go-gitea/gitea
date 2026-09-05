@@ -8,13 +8,13 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -81,10 +81,6 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 	var errNameReserved db.ErrNameReserved
 	var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 	switch {
-	case migrations.IsRateLimitError(err):
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.visit_rate_limit"), tpl, form)
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.2fa_auth_required"), tpl, form)
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
@@ -112,12 +108,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
-		} else if strings.Contains(err.Error(), "fatal:") {
+		if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
 			ctx.Data["Err_CloneAddr"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
 		} else {
@@ -312,7 +303,11 @@ func MigrateStatus(ctx *context.Context) {
 
 	message := task.Message
 
-	if task.Message != "" && task.Message[0] == '{' {
+	// a failure message can echo bytes the remote chose, so only whoever started the migration may read it
+	canSeeFailure := ctx.IsSigned && (ctx.Doer.ID == task.DoerID || ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
+	if task.Status == structs.TaskStatusFailed && !canSeeFailure {
+		message = ctx.Locale.TrString("repo.migrate.migrating_failed_no_addr")
+	} else if message != "" && message[0] == '{' {
 		// assume message is actually a translatable string
 		var translatableMessage admin_model.TranslatableMessage
 		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {

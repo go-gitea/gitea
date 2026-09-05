@@ -539,7 +539,7 @@ func (c *Command) WaitWithStderr() RunStdError {
 		// if no exec error but only stderr output, the stderr output is still saved in "c.cmdManagedStderr" and can be read later
 		return nil
 	}
-	return &runStdError{err: errWait, stderr: util.UnsafeBytesToString(c.cmdManagedStderr.Bytes())}
+	return &runStdError{err: errWait, stderr: util.NormalizeStringEOL(util.UnsafeBytesToString(c.cmdManagedStderr.Bytes()))}
 }
 
 func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
