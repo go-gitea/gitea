@@ -174,7 +174,7 @@
 									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
 											{{if $file.IsIncompleteLineTooLong}}
-												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
+												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}} <a class="ui basic tiny button" href="?file-only=true&plain=true&files={{QueryEscape $file.Name}}&files={{QueryEscape $file.OldName}}" target="_blank" rel="nofollow">{{ctx.Locale.Tr "repo.diff.view_plain"}}</a>
 											{{else}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
 												<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>

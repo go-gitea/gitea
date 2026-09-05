@@ -11,6 +11,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +61,25 @@ const (
 
 	pullRequestTemplateKey = "PullRequestTemplate"
 )
+
+func writePlainDiff(ctx *context.Context, repo *git.Repository, before, after string, files []string) {
+	if len(files) == 0 || len(files) > 2 || slices.Contains(files, "") {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+	ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if err := git.WriteRawDiff(ctx, repo, before, after, git.RawDiffNormal, ctx.Resp, files...); err != nil {
+		if gitcmd.IsErrorCanceledOrKilled(err) {
+			return
+		}
+		log.Error("WriteRawDiff: %v", err)
+		if !ctx.Written() {
+			ctx.Status(http.StatusInternalServerError)
+		}
+	} else if !ctx.Written() {
+		ctx.Status(http.StatusOK)
+	}
+}
 
 var pullRequestTemplateCandidates = []string{
 	"PULL_REQUEST_TEMPLATE.md",
@@ -763,8 +783,12 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
 
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
+	if ctx.FormBool("plain") {
+		writePlainDiff(ctx, gitRepo, beforeCommitID, afterCommitID, files)
+		return
+	}
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	fileOnly := ctx.FormBool("file-only")
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
