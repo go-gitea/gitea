@@ -26,7 +26,6 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
-	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -288,7 +287,7 @@ func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.Pa
 	// See issue #19586 for the same inconsistency in the container registry.
 	contentStore := packages_module.NewContentStore()
 	if exists {
-		if err := contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
+		if err := contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil && errors.Is(err, os.ErrNotExist) {
 			log.Debug("Package registry inconsistent: blob %v does not exist on storage", pb.HashSHA256)
 			exists = false
 		}
