@@ -351,6 +351,19 @@ func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
 		Exist(&PackageVersion{})
 }
 
+// CountOwnerPackages counts a user/org's accessible packages
+func CountOwnerPackages(ctx context.Context, ownerID int64) (int64, error) {
+	return db.GetEngine(ctx).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(builder.Eq{
+			"package_version.is_internal": false,
+			"package.owner_id":            ownerID,
+		}).
+		Distinct("package.id").
+		Count(&Package{})
+}
+
 // HasRepositoryPackages tests if a repository has packages
 func HasRepositoryPackages(ctx context.Context, repositoryID int64) (bool, error) {
 	return db.GetEngine(ctx).Where("repo_id = ?", repositoryID).Exist(&Package{})
