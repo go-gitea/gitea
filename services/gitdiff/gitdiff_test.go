@@ -1308,3 +1308,37 @@ D test10.txt`
 	assert.Equal(t, thirdReviewUpdatedFiles, thirdReview.UpdatedFiles)
 	assert.Equal(t, 1, thirdReview.GetViewedFileCount())
 }
+
+func TestGetDiffShortStatWithOptions(t *testing.T) {
+	repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
+		{Ref: "refs/heads/base", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "a1\na2\n"},
+			{Path: "whitespace.txt", Content: "b\n"},
+		}},
+		{Ref: "refs/heads/head", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "A1\nA2\nA3\n"},
+			{Path: "whitespace.txt", Content: "b   \n"},
+		}},
+	})
+	require.NoError(t, err)
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	t.Run("NoParent", func(t *testing.T) {
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &DiffCommonOptions{AfterCommitID: "refs/heads/head"})
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 2, TotalAddition: 4, TotalDeletion: 0}, stat)
+	})
+	diffOptions := DiffCommonOptions{BeforeCommitID: "refs/heads/base", AfterCommitID: "refs/heads/head"}
+	t.Run("NormalDiff", func(t *testing.T) {
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &diffOptions)
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 2, TotalAddition: 4, TotalDeletion: 3}, stat)
+	})
+	t.Run("IgnoreSpace", func(t *testing.T) {
+		diffOptions.WhitespaceBehavior = GetWhitespaceFlag("ignore-all")
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &diffOptions)
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 1, TotalAddition: 3, TotalDeletion: 2}, stat)
+	})
+}
