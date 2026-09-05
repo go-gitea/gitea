@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -108,7 +109,7 @@ func convertAzureBlobErr(err error) error {
 	}
 
 	if bloberror.HasCode(err, bloberror.BlobNotFound) {
-		return os.ErrNotExist
+		return fs.ErrNotExist
 	}
 	var respErr *azcore.ResponseError
 	if !errors.As(err, &respErr) {
