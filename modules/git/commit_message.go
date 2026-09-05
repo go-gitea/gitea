@@ -188,14 +188,3 @@ func parseCommitIdentityValue(value string) (name, email string) {
 	}
 	return strings.TrimSpace(value[:begin]), strings.TrimSpace(value[begin+1 : end])
 }
-
-func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
-	all := c.AllAuthorIdentities()
-	if len(all) == 0 {
-		return nil
-	}
-	if all[0].role == commitIdentityRoleAuthor {
-		return all[1:]
-	}
-	return all
-}
