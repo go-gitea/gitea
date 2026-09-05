@@ -111,13 +111,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	s, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -164,13 +158,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 
 	s, err := secret_service.DeleteSecretByName(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"))
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -285,11 +273,7 @@ func (Action) GetVariable(ctx *context.APIContext) {
 		Name:    ctx.PathParam("variablename"),
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -335,13 +319,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := actions_service.DeleteVariableByName(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("variablename")); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -401,11 +379,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	}
 
 	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value, opt.Description); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -453,11 +427,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 		Name:    ctx.PathParam("variablename"),
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -470,11 +440,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	v.Description = opt.Description
 
 	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

@@ -45,8 +45,7 @@ func PerformSecretsPost(ctx *context.Context, owner *user_model.User, repo *repo
 
 	s, created, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {
-		log.Error("CreateOrUpdateSecret failed: %v", err)
-		ctx.JSONError(ctx.Tr("secrets.save_failed"))
+		ctx.JSONErrorAuto(err)
 		return
 	}
 

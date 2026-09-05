@@ -62,9 +62,9 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
 Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language, ask one of the managers in the Crowdin project to add a new language there.
 
-You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty, but we hope to fill it as questions pop up.
+You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord.
 
-Get more information from [documentation](https://docs.gitea.com/contributing/localization).
+Get more information from [the translation section of our contributing guide](CONTRIBUTING.md#translation).
 
 ## Official and Third-Party Projects
 
@@ -115,7 +115,7 @@ Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" 
 
 For dynamic config options, you can change it on your admin panel's configuration section.
 
-For static config options, you can edit your `app.ini` file and resart the instance.
+For static config options, you can edit your `app.ini` file and restart the instance.
 See [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini) or [configuration documentation](https://docs.gitea.com/administration/config-cheat-sheet) for more details.
 
 **Where can I find the security patches?**
