@@ -521,6 +521,10 @@ func saveConfigAndRestart(ctx *context.Context, cfg setting.ConfigProvider, form
 			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
 			return
 		}
+		_ = ctx.Session.Set(session.KeySignInIP, ctx.RemoteAddr())
+		_ = ctx.Session.Set(session.KeySignInTime, time.Now().Unix())
+		_ = ctx.Session.Set(session.KeySignInUserAgent, ctx.Req.UserAgent())
+		_ = ctx.Session.Set(session.KeySignInMethod, session.SignInMethodPassword)
 		if err = ctx.Session.Release(); err != nil {
 			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
 			return

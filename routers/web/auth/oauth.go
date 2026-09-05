@@ -432,6 +432,9 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		if err := regenerateSession(ctx, map[string]any{
 			session.KeyUID:                  u.ID,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+			session.KeySignInIP:             ctx.RemoteAddr(),
+			session.KeySignInTime:           time.Now().Unix(),
+			session.KeySignInUserAgent:      ctx.Req.UserAgent(),
 			session.KeySignInMethod:         session.SignInMethodOAuth2,
 		}); err != nil {
 			ctx.ServerError("updateSession", err)

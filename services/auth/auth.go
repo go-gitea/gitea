@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/webauthn"
@@ -53,6 +54,9 @@ func handleSignInNonInteractive(resp http.ResponseWriter, req *http.Request, ses
 	if err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
+	_ = sess.Set(session.KeySignInIP, req.RemoteAddr)
+	_ = sess.Set(session.KeySignInTime, time.Now().Unix())
+	_ = sess.Set(session.KeySignInUserAgent, req.UserAgent())
 
 	opts := &user_service.UpdateOptions{SetLastLogin: true}
 	// Language setting of the user overwrites the one previously set
