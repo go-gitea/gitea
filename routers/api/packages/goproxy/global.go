@@ -4,20 +4,17 @@
 package goproxy
 
 import (
-	stdcontext "context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 	"time"
 
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
@@ -37,19 +34,12 @@ func GlobalEnumeratePackageVersions(ctx *context.Context) {
 		return
 	}
 	if !local {
-		proxyUpstream(ctx, modulePath, "", "")
+		proxyThroughList(ctx, modulePath, "", "")
 		return
 	}
 
-	versions, err := repo.ListVersions(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
-	for _, version := range versions {
-		fmt.Fprintln(ctx.Resp, version)
+	if err := serveRepositoryModule(ctx, repo, "", ""); err != nil {
+		writeProxyError(ctx, err)
 	}
 }
 
@@ -62,23 +52,13 @@ func GlobalPackageVersionMetadata(ctx *context.Context) {
 		return
 	}
 	if !local {
-		proxyUpstream(ctx, modulePath, version, "info")
+		proxyThroughList(ctx, modulePath, version, "info")
 		return
 	}
 
-	v, err := repo.ResolveVersion(ctx, version)
-	if err != nil {
-		globalVersionError(ctx, err)
-		return
+	if err := serveRepositoryModule(ctx, repo, version, "info"); err != nil {
+		writeProxyError(ctx, err)
 	}
-
-	ctx.JSON(http.StatusOK, struct {
-		Version string    `json:"Version"`
-		Time    time.Time `json:"Time"`
-	}{
-		Version: v.Version,
-		Time:    v.Time,
-	})
 }
 
 func GlobalPackageVersionGoModContent(ctx *context.Context) {
@@ -90,23 +70,13 @@ func GlobalPackageVersionGoModContent(ctx *context.Context) {
 		return
 	}
 	if !local {
-		proxyUpstream(ctx, modulePath, version, "mod")
+		proxyThroughList(ctx, modulePath, version, "mod")
 		return
 	}
 
-	v, err := repo.ResolveVersion(ctx, version)
-	if err != nil {
-		globalVersionError(ctx, err)
-		return
+	if err := serveRepositoryModule(ctx, repo, version, "mod"); err != nil {
+		writeProxyError(ctx, err)
 	}
-
-	goMod, err := v.GoMod(ctx)
-	if err != nil {
-		globalVersionError(ctx, err)
-		return
-	}
-
-	ctx.PlainText(http.StatusOK, string(goMod))
 }
 
 func GlobalDownloadPackageFile(ctx *context.Context) {
@@ -118,38 +88,13 @@ func GlobalDownloadPackageFile(ctx *context.Context) {
 		return
 	}
 	if !local {
-		proxyUpstream(ctx, modulePath, version, "zip")
+		proxyThroughList(ctx, modulePath, version, "zip")
 		return
 	}
 
-	v, err := repo.ResolveVersion(ctx, version)
-	if err != nil {
-		globalVersionError(ctx, err)
-		return
+	if err := serveRepositoryModule(ctx, repo, version, "zip"); err != nil {
+		writeProxyError(ctx, err)
 	}
-
-	tmpFile, cleanup, err := setting.AppDataTempDir("goproxy").CreateTempFileRandom("module-*.zip")
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer cleanup()
-
-	if err := v.CreateZip(ctx, tmpFile); err != nil {
-		globalVersionError(ctx, err)
-		return
-	}
-
-	if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	ctx.ServeContent(tmpFile, context.ServeHeaderOptions{
-		ContentType:  "application/zip",
-		Filename:     v.Version + ".zip",
-		LastModified: v.Time,
-	})
 }
 
 func globalLocalRepo(ctx *context.Context, modulePath string) (*goproxy_service.Repository, bool, bool) {
@@ -184,119 +129,81 @@ func globalLocalRepo(ctx *context.Context, modulePath string) (*goproxy_service.
 	return repo, true, true
 }
 
-func globalVersionError(ctx *context.Context, err error) {
-	status := http.StatusInternalServerError
-	if errors.Is(err, goproxy_service.ErrNotFound) || errors.Is(err, goproxy_service.ErrGoModNotFound) || errors.Is(err, util.ErrNotExist) {
-		status = http.StatusNotFound
-	} else if errors.Is(err, goproxy_service.ErrInvalidVersion) || errors.Is(err, goproxy_service.ErrGoModMismatch) || errors.Is(err, goproxy_service.ErrGoModTooLarge) {
-		status = http.StatusBadRequest
-	}
-	apiError(ctx, status, err)
-}
-
-func proxyUpstream(ctx *context.Context, modulePath, version, file string) {
-	if setting.Packages.GoProxyURL == "" {
-		apiError(ctx, http.StatusNotFound, goproxy_service.ErrNotFound)
-		return
-	}
-
-	upstreamURL, err := buildUpstreamURL(modulePath, version, file)
-	if err != nil {
-		globalVersionError(ctx, err)
-		return
-	}
-
-	if (file == "info" && version != "latest") || file == "mod" || file == "zip" {
-		proxyUpstreamImmutable(ctx, upstreamURL, modulePath, version, file)
-		return
-	}
-
-	resp, err := upstreamGet(ctx, upstreamURL)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	defer resp.Body.Close()
-
-	forwardUpstreamResponse(ctx, resp)
-}
-
-func proxyUpstreamImmutable(ctx *context.Context, upstreamURL, modulePath, version, file string) {
-	if version == "latest" {
-		// The Go command requests the latest version through @latest; the
-		// per-owner registry also accepts latest.info/mod/zip, but that is
-		// not part of the upstream proxy protocol.
-		apiError(ctx, http.StatusNotFound, goproxy_service.ErrNotFound)
-		return
-	}
-
-	cacheKey := goProxyCacheKey(modulePath, version, file)
-	if obj, err := storage.Packages.Open(cacheKey); err == nil {
-		serveCachedGoProxyObject(ctx, obj, version+"."+file, goProxyContentType(file))
-		return
-	} else if !errors.Is(err, os.ErrNotExist) {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	handled := false
-	err := globallock.LockAndDo(ctx, "goproxy-cache:"+cacheKey, func(stdcontext.Context) error {
-		if obj, err := storage.Packages.Open(cacheKey); err == nil {
-			_ = obj.Close()
-			return nil
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-
-		resp, err := upstreamGet(ctx, upstreamURL)
+func serveRepositoryModule(ctx *context.Context, repo *goproxy_service.Repository, version, file string) *proxyError {
+	if file == "" {
+		versions, err := repo.ListVersions(ctx)
 		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			forwardUpstreamResponse(ctx, resp)
-			handled = true
-			return nil
+			return &proxyError{status: http.StatusInternalServerError, body: err.Error()}
 		}
 
-		if err := storage.SaveFrom(storage.Packages, cacheKey, func(w io.Writer) error {
-			_, err := io.Copy(w, resp.Body)
-			return err
-		}); err != nil {
-			_ = storage.Packages.Delete(cacheKey)
-			return err
+		ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
+		for _, v := range versions {
+			fmt.Fprintln(ctx.Resp, v)
 		}
 		return nil
-	})
-	if handled {
-		return
-	}
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
 	}
 
-	obj, err := storage.Packages.Open(cacheKey)
+	v, err := repo.ResolveVersion(ctx, version)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
+		return versionProxyError(err)
 	}
-	serveCachedGoProxyObject(ctx, obj, version+"."+file, goProxyContentType(file))
+
+	switch file {
+	case "info":
+		ctx.JSON(http.StatusOK, struct {
+			Version string    `json:"Version"`
+			Time    time.Time `json:"Time"`
+		}{
+			Version: v.Version,
+			Time:    v.Time,
+		})
+		return nil
+	case "mod":
+		goMod, err := v.GoMod(ctx)
+		if err != nil {
+			return versionProxyError(err)
+		}
+		ctx.PlainText(http.StatusOK, string(goMod))
+		return nil
+	case "zip":
+		tmpFile, cleanup, err := setting.AppDataTempDir("goproxy").CreateTempFileRandom("module-*.zip")
+		if err != nil {
+			return &proxyError{status: http.StatusInternalServerError, body: err.Error()}
+		}
+		defer cleanup()
+
+		if err := v.CreateZip(ctx, tmpFile); err != nil {
+			return versionProxyError(err)
+		}
+
+		if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+			return &proxyError{status: http.StatusInternalServerError, body: err.Error()}
+		}
+
+		ctx.ServeContent(tmpFile, context.ServeHeaderOptions{
+			ContentType:  "application/zip",
+			Filename:     v.Version + ".zip",
+			LastModified: v.Time,
+		})
+		return nil
+	}
+
+	return &proxyError{status: http.StatusInternalServerError, body: "unknown Go proxy file type"}
 }
 
 func serveCachedGoProxyObject(ctx *context.Context, obj storage.Object, filename, contentType string) {
 	defer obj.Close()
 
-	lastModified := time.Time{}
-	if info, err := obj.Stat(); err == nil {
-		lastModified = info.ModTime()
+	info, err := obj.Stat()
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
 	}
 
-	ctx.ServeContent(obj, context.ServeHeaderOptions{
+	httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, info.Size(), obj, httplib.ServeHeaderOptions{
 		ContentType:  contentType,
 		Filename:     filename,
-		LastModified: lastModified,
+		LastModified: info.ModTime(),
 	})
 }
 
@@ -331,13 +238,13 @@ func forwardUpstreamResponse(ctx *context.Context, resp *http.Response) {
 	_, _ = io.Copy(ctx.Resp, resp.Body)
 }
 
-func buildUpstreamURL(modulePath, version, file string) (string, error) {
+func buildUpstreamURL(baseURL, modulePath, version, file string) (string, error) {
 	escapedPath, err := module.EscapePath(modulePath)
 	if err != nil {
 		return "", err
 	}
 
-	base := strings.TrimRight(setting.Packages.GoProxyURL, "/") + "/" + escapedPath
+	base := strings.TrimRight(baseURL, "/") + "/" + escapedPath
 	switch file {
 	case "":
 		return base + "/@v/list", nil

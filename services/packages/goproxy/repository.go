@@ -18,6 +18,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
@@ -39,6 +40,7 @@ const maxGoModFileSize = 16 * 1024 * 1024
 // Repository is a Gitea repository that can be served as a Go module.
 type Repository struct {
 	Repo       *repo_model.Repository
+	RepoFacade gitrepo.RepositoryFacade
 	Subdir     string
 	ModulePath string
 }
@@ -70,6 +72,7 @@ func ResolveRepository(ctx context.Context, modulePath string) (*Repository, boo
 
 	return &Repository{
 		Repo:       repo,
+		RepoFacade: repo,
 		Subdir:     subdir,
 		ModulePath: modulePath,
 	}, true, nil
@@ -147,7 +150,7 @@ func (r *Repository) CheckAccess(ctx context.Context, doer *user_model.User, sco
 
 // ListVersions returns canonical module versions that exist for the repository module.
 func (r *Repository) ListVersions(ctx context.Context) ([]string, error) {
-	gitRepo, err := git.OpenRepository(ctx, r.Repo)
+	gitRepo, err := git.OpenRepository(ctx, r.RepoFacade)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +204,7 @@ func (r *Repository) ResolveVersion(ctx context.Context, version string) (*Versi
 		return nil, ErrInvalidVersion
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, r.Repo)
+	gitRepo, err := git.OpenRepository(ctx, r.RepoFacade)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +247,7 @@ func (r *Repository) hasGoMod(ctx context.Context, gitRepo *git.Repository, comm
 
 // GoMod returns and validates the go.mod file for the version.
 func (v *Version) GoMod(ctx context.Context) ([]byte, error) {
-	gitRepo, err := git.OpenRepository(ctx, v.Repo)
+	gitRepo, err := git.OpenRepository(ctx, v.RepoFacade)
 	if err != nil {
 		return nil, err
 	}

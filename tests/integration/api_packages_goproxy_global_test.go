@@ -117,6 +117,37 @@ func TestGlobalGoProxyUpstream(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), `"Version":"v1.0.0"`)
 }
 
+func TestGlobalGoProxyPipeFallback(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	var upstreamHits atomic.Int64
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/github.com/foo/bar/@v/list" {
+			upstreamHits.Add(1)
+			_, _ = w.Write([]byte("v1.0.0\n"))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer upstream.Close()
+
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "upstream failed", http.StatusInternalServerError)
+	}))
+	defer failing.Close()
+
+	oldGoProxyURL := setting.Packages.GoProxyURL
+	setting.Packages.GoProxyURL = failing.URL + "|" + upstream.URL
+	defer func() {
+		setting.Packages.GoProxyURL = oldGoProxyURL
+	}()
+
+	req := NewRequest(t, http.MethodGet, "/api/packages/go/github.com/foo/bar/@v/list")
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "v1.0.0\n", resp.Body.String())
+	assert.Equal(t, int64(1), upstreamHits.Load())
+}
+
 func TestGlobalGoProxyLocalRepository(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	setGlobalGoProxyAppURL(t)

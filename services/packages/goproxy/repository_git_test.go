@@ -60,6 +60,7 @@ func TestRepositoryModule(t *testing.T) {
 	repo := &repo_model.Repository{OwnerName: "user", Name: "repo"}
 	moduleRepo := &Repository{
 		Repo:       repo,
+		RepoFacade: repo,
 		ModulePath: "gitea.example.com/user/repo",
 	}
 

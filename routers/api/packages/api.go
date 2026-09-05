@@ -129,6 +129,9 @@ func CommonRoutes() *web.Router {
 		&chef.Auth{},
 	}, verifyAuthOptions{})
 
+	// Unlike the per-owner /{username}/go registry, this global endpoint serves
+	// any module path: Gitea repositories are resolved directly, while all other
+	// modules are transparently proxied to the configured upstream GOPROXY.
 	r.Group("/go", func() {
 		r.Get("/sumdb/sum.golang.org/supported", http.NotFound)
 

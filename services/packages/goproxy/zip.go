@@ -29,7 +29,7 @@ func (v *Version) CreateZip(ctx context.Context, w io.Writer) error {
 	}
 	defer cleanup()
 
-	repoPath := gitrepo.RepoLocalPath(v.Repo)
+	repoPath := gitrepo.RepoLocalPath(v.RepoFacade)
 	if err := git.Clone(ctx, repoPath, tmpDir, git.CloneRepoOptions{Shared: true, NoCheckout: true}); err != nil {
 		return err
 	}
