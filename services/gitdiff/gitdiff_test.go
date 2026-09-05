@@ -1311,14 +1311,7 @@ D test10.txt`
 }
 
 func TestGetDiffShortStatWithOptions(t *testing.T) {
-	repoDir := filepath.Join(t.TempDir(), "temp-repo")
-	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name()))
-
-	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
-	require.NoError(t, err)
-	defer gitRepo.Close()
-
-	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
+	repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "temp-repo"), []git.FastImportCommit{
 		{Ref: "refs/heads/base", Files: []git.FastImportFile{
 			{Path: "real.txt", Content: "a1\na2\n"},
 			{Path: "whitespace.txt", Content: "b\n"},
@@ -1327,7 +1320,11 @@ func TestGetDiffShortStatWithOptions(t *testing.T) {
 			{Path: "real.txt", Content: "A1\nA2\nA3\n"},
 			{Path: "whitespace.txt", Content: "b   \n"},
 		}},
-	}))
+	})
+	require.NoError(t, err)
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
 	t.Run("NoParent", func(t *testing.T) {
 		stat, err := GetDiffShortStat(t.Context(), gitRepo, &DiffCommonOptions{AfterCommitID: "refs/heads/head"})
 		require.NoError(t, err)
