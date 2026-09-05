@@ -264,7 +264,7 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 	}
 }
 
-func GetOrSavePackageBlob(ctx context.Context, contentStore *packages_module.ContentStore, blob *packages_model.PackageBlob, data packages_module.HashedSizeReader) (*packages_model.PackageBlob, bool, error) {
+func GetOrSavePackageBlob(ctx context.Context, contentStore *packages_module.ContentStore, blob *packages_model.PackageBlob, data packages_module.HashedSizeReader) (_ *packages_model.PackageBlob, _ bool, retErr error) {
 	if blob.Size != data.Size() {
 		return nil, false, fmt.Errorf("size mismatch: blob size %d, data size %d", blob.Size, data.Size())
 	}
@@ -272,16 +272,25 @@ func GetOrSavePackageBlob(ctx context.Context, contentStore *packages_module.Con
 	if err != nil {
 		return nil, false, fmt.Errorf("unable to get or insert blob: %w", err)
 	}
-	var sz optional.Option[int64]
+
+	defer func() {
+		if retErr != nil && !existsInDatabase {
+			if errDelete := packages_model.DeleteBlobByID(ctx, pb.ID); errDelete != nil {
+				log.Error("unable to delete blob from database after failed save in content store: %v", errDelete)
+			}
+		}
+	}()
+
+	var objSize optional.Option[int64]
 	storeKey := packages_module.BlobHash256Key(pb.HashSHA256)
 	if existsInDatabase {
 		// check if the blob file actually is valid in the content store
-		sz, err = contentStore.OptionalSize(storeKey)
+		objSize, err = contentStore.OptionalSize(storeKey)
 		if err != nil {
 			return nil, false, fmt.Errorf("unable to check object size in content store: %w", err)
 		}
 	}
-	if sz.ValueOrDefault(-1) != blob.Size {
+	if objSize.ValueOrDefault(-1) != blob.Size {
 		if err := contentStore.Save(storeKey, data, data.Size()); err != nil {
 			return nil, false, fmt.Errorf("unable to save object in content store: %w", err)
 		}
