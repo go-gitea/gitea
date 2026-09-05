@@ -1,0 +1,15 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content oauth2-authorize-application-box">
+	<div class="ui container tw-max-w-[500px]">
+		<h3 class="ui top attached header">
+			{{if .Granted}}{{ctx.Locale.Tr "auth.device_authorization_complete_title"}}{{else}}{{ctx.Locale.Tr "auth.device_authorization_cancelled_title"}}{{end}}
+		</h3>
+		<div class="ui attached segment">
+			<p>{{if .Granted}}{{ctx.Locale.Tr "auth.device_authorization_complete_desc"}}{{else}}{{ctx.Locale.Tr "auth.device_authorization_cancelled_desc"}}{{end}}</p>
+		</div>
+		<div class="ui attached segment">
+			<p>{{ctx.Locale.Tr "auth.device_return_to_terminal"}}</p>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

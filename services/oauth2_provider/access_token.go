@@ -40,6 +40,17 @@ const (
 	AccessTokenErrorCodeUnsupportedGrantType = "unsupported_grant_type"
 	// AccessTokenErrorCodeInvalidScope represents an error code specified in RFC 6749
 	AccessTokenErrorCodeInvalidScope = "invalid_scope"
+	// AccessTokenErrorCodeAccessDenied represents an error code specified in RFC 8628
+	AccessTokenErrorCodeAccessDenied = "access_denied"
+	// AccessTokenErrorCodeAuthorizationPending represents an error code specified in RFC 8628
+	AccessTokenErrorCodeAuthorizationPending = "authorization_pending"
+	// AccessTokenErrorCodeSlowDown represents an error code specified in RFC 8628
+	AccessTokenErrorCodeSlowDown = "slow_down"
+	// AccessTokenErrorCodeExpiredToken represents an error code specified in RFC 8628
+	AccessTokenErrorCodeExpiredToken = "expired_token"
+	// AccessTokenErrorCodeServerError is not in the RFC 6749 §5.2 token-endpoint list, but is
+	// the conventional code for an internal failure and is what OpenID Connect clients expect
+	AccessTokenErrorCodeServerError = "server_error"
 )
 
 // AccessTokenError represents an error response specified in RFC 6749
@@ -72,6 +83,16 @@ type AccessTokenResponse struct {
 	ExpiresIn    int64     `json:"expires_in"`
 	RefreshToken string    `json:"refresh_token"`
 	IDToken      string    `json:"id_token,omitempty"`
+}
+
+// DeviceAuthorizationResponse represents a successful device authorization response.
+type DeviceAuthorizationResponse struct {
+	DeviceCode              string `json:"device_code"`
+	UserCode                string `json:"user_code"`
+	VerificationURI         string `json:"verification_uri"`
+	VerificationURIComplete string `json:"verification_uri_complete"`
+	ExpiresIn               int64  `json:"expires_in"`
+	Interval                int64  `json:"interval"`
 }
 
 func GeneralScopesSupported() []string {

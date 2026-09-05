@@ -367,6 +367,10 @@ func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 		return err
 	}
 
+	if _, err := sess.Where("application_id = ?", id).Delete(new(OAuth2DeviceAuthorization)); err != nil {
+		return err
+	}
+
 	if _, err := sess.Where("application_id = ?", id).Delete(new(OAuth2Grant)); err != nil {
 		return err
 	}
@@ -671,6 +675,14 @@ func DeleteOAuth2RelictsByUserID(ctx context.Context, userID int64) error {
 
 	if _, err := db.GetEngine(ctx).In("grant_id", deleteCond).
 		Delete(&OAuth2AuthorizationCode{}); err != nil {
+		return err
+	}
+
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"user_id": userID}).Delete(&OAuth2DeviceAuthorization{}); err != nil {
+		return err
+	}
+	if _, err := db.GetEngine(ctx).In("application_id", builder.Select("id").From("oauth2_application").Where(builder.Eq{"uid": userID})).
+		Delete(&OAuth2DeviceAuthorization{}); err != nil {
 		return err
 	}
 

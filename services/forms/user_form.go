@@ -147,10 +147,31 @@ type AccessTokenForm struct {
 	ClientSecret string `json:"client_secret"`
 	RedirectURI  string `json:"redirect_uri"`
 	Code         string `json:"code"`
+	DeviceCode   string `json:"device_code"`
 	RefreshToken string `json:"refresh_token"`
 
 	// PKCE support
 	CodeVerifier string `json:"code_verifier"`
+}
+
+// DeviceAuthorizationForm for issuing a device code to a public OAuth client
+type DeviceAuthorizationForm struct {
+	middleware.FormDefaultValidator
+	ClientID string `json:"client_id" binding:"Required"`
+	Scope    string `json:"scope"`
+}
+
+// DeviceVerificationForm collects the user-facing device code from the browser flow.
+type DeviceVerificationForm struct {
+	middleware.FormDefaultValidator
+	UserCode string `form:"user_code"`
+}
+
+// DeviceGrantApplicationForm posts the user's device-flow approve/deny decision.
+type DeviceGrantApplicationForm struct {
+	middleware.FormDefaultValidator
+	DeviceAuthorizationID int64 `form:"device_authorization_id" binding:"Required"`
+	Granted               bool  `form:"granted"`
 }
 
 // IntrospectTokenForm for introspecting tokens

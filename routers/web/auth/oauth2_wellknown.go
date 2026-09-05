@@ -23,12 +23,13 @@ func OIDCWellKnown(ctx *context.Context) {
 	oidcBaseUrl := strings.TrimSuffix(setting.AppURL, "/")
 
 	m := map[string]any{
-		"issuer":                 oidcIssuer,
-		"authorization_endpoint": oidcBaseUrl + "/login/oauth/authorize",
-		"token_endpoint":         oidcBaseUrl + "/login/oauth/access_token",
-		"jwks_uri":               oidcBaseUrl + "/login/oauth/keys",
-		"userinfo_endpoint":      oidcBaseUrl + "/login/oauth/userinfo",
-		"introspection_endpoint": oidcBaseUrl + "/login/oauth/introspect",
+		"issuer":                        oidcIssuer,
+		"authorization_endpoint":        oidcBaseUrl + "/login/oauth/authorize",
+		"token_endpoint":                oidcBaseUrl + "/login/oauth/access_token",
+		"device_authorization_endpoint": oidcBaseUrl + "/login/oauth/device_authorization",
+		"jwks_uri":                      oidcBaseUrl + "/login/oauth/keys",
+		"userinfo_endpoint":             oidcBaseUrl + "/login/oauth/userinfo",
+		"introspection_endpoint":        oidcBaseUrl + "/login/oauth/introspect",
 		"response_types_supported": []string{
 			"code",
 			"id_token",
@@ -63,6 +64,7 @@ func OIDCWellKnown(ctx *context.Context) {
 		},
 		"grant_types_supported": []string{
 			"authorization_code",
+			"urn:ietf:params:oauth:grant-type:device_code",
 			"refresh_token",
 		},
 	}
