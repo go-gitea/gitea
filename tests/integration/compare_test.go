@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
 	repo_service "gitea.dev/services/repository"
@@ -136,6 +137,24 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+}
+
+// Direct compare of two commits where the head (add-csv) is an ancestor of the base (remove-files-b).
+// This is what the "Compare" link of a force-push comment points to after the push has dropped
+// commits: "base..head" lists no commits, but the diff is not empty and must still be shown.
+func TestCompareDirectHeadIsAncestor(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo20/compare/8babce967f21b9dfa6987f943b91093dac58a4f0..c8e31bc7688741a5287fcde4fbb8fc129ca07027")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	// 'link_hi' and 'test.csv' are restored, 'test.txt' is deleted
+	inspectCompare(t, htmlDoc, 3, []string{"link_hi", "test.csv", "test.txt"})
+	assert.NotContains(t, resp.Body.String(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
+	commitsHeader := strings.Join(strings.Fields(htmlDoc.doc.Find(".ui.top.attached.header .flex-text-block").First().Text()), " ")
+	assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
 }
 
 func TestCompareWithRefSuffix(t *testing.T) {
