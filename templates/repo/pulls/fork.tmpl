@@ -74,7 +74,7 @@
 
 				<div class="inline field">
 					<label></label>
-					<button class="ui primary button{{if not .CanForkRepoInNewOwner}} disabled{{end}}">
+					<button type="submit" class="ui primary button{{if not .CanForkRepoInNewOwner}} disabled{{end}}">
 						{{ctx.Locale.Tr "repo.fork_repo"}}
 					</button>
 				</div>

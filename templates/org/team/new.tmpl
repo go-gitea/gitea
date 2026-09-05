@@ -179,11 +179,11 @@
 
 						<div class="field">
 							{{if .PageIsOrgTeamsNew}}
-								<button class="ui primary button">{{ctx.Locale.Tr "org.create_team"}}</button>
+								<button type="submit" class="ui primary button">{{ctx.Locale.Tr "org.create_team"}}</button>
 							{{else}}
-								<button class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
+								<button type="submit" class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
 								{{if not .Team.IsOwnerTeam}}
-									<button class="ui red button link-action" data-modal-confirm="#delete-team" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
+									<button type="button" class="ui red button link-action" data-modal-confirm="#delete-team" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>

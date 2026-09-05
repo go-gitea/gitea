@@ -40,11 +40,11 @@
 							</div>
 						</div>
 						<div class="item-trailing">
-								<button class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.Link}}/regenerate?id={{.ID}}">
+								<button type="button" class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.Link}}/regenerate?id={{.ID}}">
 									{{svg "octicon-sync"}}
 									{{ctx.Locale.Tr "settings.regenerate_token"}}
 								</button>
-								<button class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.Link}}/delete?id={{.ID}}">
+								<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.Link}}/delete?id={{.ID}}">
 									{{svg "octicon-trash"}}
 									{{ctx.Locale.Tr "settings.delete_token"}}
 								</button>
@@ -83,7 +83,7 @@
 						{{end}}
 						</table>
 					</div>
-					<button class="ui primary button">
+					<button type="submit" class="ui primary button">
 						{{ctx.Locale.Tr "settings.generate_token"}}
 					</button>
 				</form>

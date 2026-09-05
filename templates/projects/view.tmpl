@@ -38,24 +38,24 @@
 					{{ctx.Locale.Tr "repo.issues.label_edit"}}
 				</a>
 				{{if .Project.IsClosed}}
-					<button class="item btn link-action" data-url="{{.Link}}/open">
+					<button type="button" class="item btn link-action" data-url="{{.Link}}/open">
 						{{svg "octicon-check"}}
 						{{ctx.Locale.Tr "repo.projects.open"}}
 					</button>
 				{{else}}
-					<button class="item btn link-action" data-url="{{.Link}}/close">
+					<button type="button" class="item btn link-action" data-url="{{.Link}}/close">
 						{{svg "octicon-skip"}}
 						{{ctx.Locale.Tr "repo.projects.close"}}
 					</button>
 				{{end}}
-				<button class="item btn link-action" data-url="{{.Link}}/delete?id={{.Project.ID}}"
+				<button type="button" class="item btn link-action" data-url="{{.Link}}/delete?id={{.Project.ID}}"
 								data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.deletion"}}"
 								data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.deletion_desc"}}"
 				>
 					{{svg "octicon-trash"}}
 					{{ctx.Locale.Tr "repo.issues.label_delete"}}
 				</button>
-				<button class="item btn show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
+				<button type="button" class="item btn show-modal show-project-column-modal-edit" data-modal="#project-column-modal-edit"
 								data-modal-header="{{ctx.Locale.Tr "repo.projects.column.new"}}"
 								data-modal-project-column-title-label="{{ctx.Locale.Tr "repo.projects.column.new_title"}}"
 								data-modal-project-column-button-save="{{ctx.Locale.Tr "repo.projects.column.new_submit"}}"
@@ -150,7 +150,7 @@
 				</div>
 			</div>
 			<div class="actions">
-				<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+				<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 				<button type="submit" class="ui primary button project-column-button-save">{{ctx.Locale.Tr "save"}}</button>
 			</div>
 		</form>

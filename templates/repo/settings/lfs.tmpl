@@ -20,7 +20,7 @@
 						<td>{{DateUtils.TimeSince .CreatedUnix}}</td>
 						<td class="tw-text-right">
 							<a class="ui primary button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
-							<button class="ui basic show-modal icon button red" data-modal="#delete-{{.Oid}}">
+							<button type="button" class="ui basic show-modal icon button red" data-modal="#delete-{{.Oid}}">
 								<span class="btn-octicon btn-octicon-danger" data-tooltip-content="{{ctx.Locale.Tr "repo.editor.delete_this_file"}}">{{svg "octicon-trash"}}</span>
 							</button>
 						</td>

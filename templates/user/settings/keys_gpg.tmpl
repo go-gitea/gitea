@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "settings.manage_gpg_keys"}}
 	<div class="ui right">
-		<button class="ui primary tiny show-panel toggle button" data-panel="#add-gpg-key-panel">{{ctx.Locale.Tr "settings.add_key"}}</button>
+		<button type="button" class="ui primary tiny show-panel toggle button" data-panel="#add-gpg-key-panel">{{ctx.Locale.Tr "settings.add_key"}}</button>
 	</div>
 </h4>
 <div class="ui attached segment">
@@ -30,10 +30,10 @@
 				</div>
 			{{end}}
 			<input name="type" type="hidden" value="gpg">
-			<button class="ui primary button">
+			<button type="submit" class="ui primary button">
 				{{ctx.Locale.Tr "settings.add_key"}}
 			</button>
-			<button class="ui hide-panel button" data-panel="#add-gpg-key-panel">
+			<button type="button" class="ui hide-panel button" data-panel="#add-gpg-key-panel">
 				{{ctx.Locale.Tr "cancel"}}
 			</button>
 		</form>
@@ -68,7 +68,7 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button link-action" data-modal-confirm="#delete-gpg" data-url="{{$.Link}}/delete?type=gpg&id={{.ID}}">
+					<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-gpg" data-url="{{$.Link}}/delete?type=gpg&id={{.ID}}">
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
@@ -90,14 +90,13 @@
 								{{ctx.Locale.Tr "settings.gpg_token_help"}}
 								<pre class="command-block">{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` $.TokenToSign .PaddedKeyID}}</pre>
 							</div>
-							<br>
 						</div>
 						<div class="field">
 							<label for="signature">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
 							<textarea id="gpg-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
-						<button class="ui primary button">
+						<button type="submit" class="ui primary button">
 							{{ctx.Locale.Tr "settings.gpg_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">

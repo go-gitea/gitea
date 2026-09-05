@@ -6,7 +6,7 @@
 			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FormatByteSize .TotalUnreferencedBlobSize)}})
 			<div class="ui right">
 				<form method="post" action="{{AppSubUrl}}/-/admin/packages/cleanup">
-					<button class="ui primary tiny button">{{ctx.Locale.Tr "admin.packages.cleanup"}}</button>
+					<button type="submit" class="ui primary tiny button">{{ctx.Locale.Tr "admin.packages.cleanup"}}</button>
 				</form>
 			</div>
 		</h4>

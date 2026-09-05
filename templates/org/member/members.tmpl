@@ -58,13 +58,13 @@
 							{{end}}
 						{{end}}
 						{{if eq $.SignedUser.ID .ID}}
-							<button class="ui red tiny button link-action"
+							<button type="button" class="ui red tiny button link-action"
 								data-url="{{$.OrgLink}}/members/action/leave?uid={{.ID}}"
 								data-modal-confirm-header="{{ctx.Locale.Tr "org.members.leave"}}"
 								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.leave.detail" $.Org.DisplayName}}"
 								>{{ctx.Locale.Tr "org.members.leave"}}</button>
 						{{else if $.IsOrganizationOwner}}
-							<button class="ui red tiny button link-action"
+							<button type="button" class="ui red tiny button link-action"
 								data-url="{{$.OrgLink}}/members/action/remove?uid={{.ID}}"
 								data-modal-confirm-header="{{ctx.Locale.Tr "org.members.remove"}}"
 								data-modal-confirm-content="{{ctx.Locale.Tr "org.members.remove.detail" .DisplayName $.Org.DisplayName}}"

@@ -23,7 +23,7 @@
 							</div>
 						</div>
 						<div class="item-trailing">
-							<button class="ui red button show-modal" data-modal="#leave-organization"
+							<button type="button" class="ui red button show-modal" data-modal="#leave-organization"
 											data-modal-form.url="{{.OrganisationLink}}/members/action/leave?uid={{$.SignedUser.ID}}"
 											data-modal-organization-name="{{.DisplayName}}">{{ctx.Locale.Tr "org.members.leave"}}
 							</button>

@@ -39,7 +39,7 @@
 						<input class="prompt" name="repo_name" value="{{.LinkedRepoName}}" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
 					</div>
 				</div>
-				<button class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "packages.settings.link.button"}}</button>
 			</form>
 		</div>
 		<h4 class="ui top attached error header">
@@ -53,7 +53,7 @@
 						<div class="item-body">{{ctx.Locale.Tr "packages.settings.delete.description"}}</div>
 					</div>
 					<div class="item-trailing">
-						<button class="ui basic red show-modal button" data-modal="#delete-package-modal">{{ctx.Locale.Tr "packages.settings.delete"}}</button>
+						<button type="button" class="ui basic red show-modal button" data-modal="#delete-package-modal">{{ctx.Locale.Tr "packages.settings.delete"}}</button>
 					</div>
 					<div class="ui tiny modal" id="delete-package-modal">
 						<div class="header">
