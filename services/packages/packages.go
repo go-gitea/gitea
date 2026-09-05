@@ -264,6 +264,42 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 	}
 }
 
+func GetOrSavePackageBlob(ctx context.Context, contentStore *packages_module.ContentStore, blob *packages_model.PackageBlob, data packages_module.HashedSizeReader) (_ *packages_model.PackageBlob, _ bool, retErr error) {
+	if blob.Size != data.Size() {
+		return nil, false, fmt.Errorf("size mismatch: blob size %d, data size %d", blob.Size, data.Size())
+	}
+	pb, existsInDatabase, err := packages_model.GetOrInsertBlob(ctx, blob)
+	if err != nil {
+		return nil, false, fmt.Errorf("unable to get or insert blob: %w", err)
+	}
+
+	defer func() {
+		if retErr != nil && !existsInDatabase {
+			if errDelete := packages_model.DeleteBlobByID(ctx, pb.ID); errDelete != nil {
+				log.Error("unable to delete blob from database after failed save in content store: %v", errDelete)
+			}
+		}
+	}()
+
+	var objSize optional.Option[int64]
+	storeKey := packages_module.BlobHash256Key(pb.HashSHA256)
+	if existsInDatabase {
+		// check if the blob file actually is valid in the content store
+		objSize, err = contentStore.OptionalSize(storeKey)
+		if err != nil {
+			return nil, false, fmt.Errorf("unable to check object size in content store: %w", err)
+		}
+	}
+	if objSize.ValueOrDefault(-1) != blob.Size {
+		if err := contentStore.Save(storeKey, data, data.Size()); err != nil {
+			return nil, false, fmt.Errorf("unable to save object in content store: %w", err)
+		}
+	}
+	// existsInDatabase controls the "roll back", if other errors happen later,
+	// the "non-existing (newly created)" blob will be deleted from the content store, but not if it already existed in the database.
+	return pb, existsInDatabase, nil
+}
+
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
@@ -272,20 +308,12 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	return addFileToPackageVersionUnchecked(ctx, pv, pfci)
 }
 
-func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (_ *packages_model.PackageFile, _ *packages_model.PackageBlob, created bool, _ error) {
 	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
-	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
+	pb, exists, err := GetOrSavePackageBlob(ctx, packages_module.NewContentStore(), NewPackageBlob(pfci.Data), pfci.Data)
 	if err != nil {
-		log.Error("Error inserting package blob: %v", err)
 		return nil, nil, false, err
-	}
-	if !exists {
-		contentStore := packages_module.NewContentStore()
-		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), pfci.Data, pfci.Data.Size()); err != nil {
-			log.Error("Error saving package blob in content store: %v", err)
-			return nil, nil, false, err
-		}
 	}
 
 	if pfci.OverwriteExisting {
