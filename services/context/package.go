@@ -103,6 +103,16 @@ func PackageAssignment(pType string) func(ctx *Context) {
 func PackageAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
+		pkg, err := packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+		if err == nil {
+			paCtx.Package = pkg
+			if pkg.RepoID != 0 {
+				repo, err := repo_model.GetRepositoryByID(ctx, pkg.RepoID)
+				if err == nil {
+					paCtx.Repository = repo
+				}
+			}
+		}
 		ctx.Package = packageAssignment(paCtx, ctx.APIError)
 	}
 }
