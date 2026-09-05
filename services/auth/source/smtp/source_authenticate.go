@@ -10,10 +10,12 @@ import (
 	"net/textproto"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
@@ -82,6 +84,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return user, err
 	}
+
+	audit.RecordAs(ctx, user_model.NewAuthenticationSourceUser(), audit_model.UserCreate, user)
 
 	return user, nil
 }

@@ -7,12 +7,14 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 )
 
 type UpdateOptionField[T any] struct {
@@ -60,6 +62,8 @@ type UpdateOptions struct {
 
 func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
 	cols := make([]string, 0, 20)
+
+	oldIsActive, oldIsRestricted, oldIsAdmin, oldVisibility := u.IsActive, u.IsRestricted, u.IsAdmin, u.Visibility
 
 	if opts.KeepEmailPrivate.Has() {
 		u.KeepEmailPrivate = opts.KeepEmailPrivate.Value()
@@ -183,7 +187,24 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "last_login_unix")
 	}
 
-	return user_model.UpdateUserCols(ctx, u, cols...)
+	if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
+		return err
+	}
+
+	if u.IsActive != oldIsActive {
+		audit.Record(ctx, audit_model.UserActive, u, "active", u.IsActive)
+	}
+	if u.IsAdmin != oldIsAdmin {
+		audit.Record(ctx, audit_model.UserAdmin, u, "admin", u.IsAdmin)
+	}
+	if u.IsRestricted != oldIsRestricted {
+		audit.Record(ctx, audit_model.UserRestricted, u, "restricted", u.IsRestricted)
+	}
+	if u.Visibility != oldVisibility {
+		audit.Record(ctx, audit_model.UserVisibility, u, "old_visibility", oldVisibility.String(), "new_visibility", u.Visibility.String())
+	}
+
+	return nil
 }
 
 type UpdateAuthOptions struct {
@@ -195,11 +216,16 @@ type UpdateAuthOptions struct {
 }
 
 func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
+	loginSourceChanged := false
+	authSourceName := ""
 	if opts.LoginSource.Has() {
 		source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
 		if err != nil {
 			return err
 		}
+
+		loginSourceChanged = u.LoginSource != source.ID
+		authSourceName = source.Name
 
 		u.LoginType = source.Type
 		u.LoginSource = source.ID
@@ -241,7 +267,15 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 
 	if deleteAuthTokens {
-		return auth_model.DeleteAuthTokensByUserID(ctx, u.ID)
+		if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+			return err
+		}
+
+		audit.Record(ctx, audit_model.UserPassword, u)
 	}
+	if loginSourceChanged {
+		audit.Record(ctx, audit_model.UserAuthenticationSource, u, "auth_source", authSourceName)
+	}
+
 	return nil
 }

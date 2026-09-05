@@ -90,6 +90,32 @@ func NewDeployKeyUserWithKeyID(id int64) *User {
 	return u
 }
 
+const (
+	CLIUserID   int64 = -4
+	CLIUserName       = "CLI"
+)
+
+func NewCLIUser() *User {
+	return &User{
+		ID:        CLIUserID,
+		Name:      CLIUserName,
+		LowerName: strings.ToLower(CLIUserName),
+	}
+}
+
+const (
+	AuthenticationSourceUserID   int64 = -5
+	AuthenticationSourceUserName       = "AuthenticationSource"
+)
+
+func NewAuthenticationSourceUser() *User {
+	return &User{
+		ID:        AuthenticationSourceUserID,
+		Name:      AuthenticationSourceUserName,
+		LowerName: strings.ToLower(AuthenticationSourceUserName),
+	}
+}
+
 func GetSystemUserByName(name string) *User {
 	lowerName := strings.ToLower(name)
 	uid := globalVars().systemUserNameIdMap[lowerName]

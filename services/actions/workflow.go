@@ -4,11 +4,13 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -20,11 +22,12 @@ import (
 	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	"gitea.dev/services/audit"
+	gitea_context "gitea.dev/services/context"
 	"gitea.dev/services/convert"
 )
 
-func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
+func EnableOrDisableWorkflow(ctx *gitea_context.APIContext, workflowID string, isEnable bool) error {
 	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
 		return err
@@ -39,7 +42,21 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 		cfg.DisableWorkflow(workflow.ID)
 	}
 
-	return repo_model.UpdateRepoUnitConfig(ctx, cfgUnit)
+	if err := repo_model.UpdateRepoUnitConfig(ctx, cfgUnit); err != nil {
+		return err
+	}
+
+	RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow.ID, isEnable)
+	return nil
+}
+
+// RecordWorkflowToggle writes the enable/disable audit event for a workflow.
+func RecordWorkflowToggle(ctx context.Context, repo *repo_model.Repository, workflowID string, isEnable bool) {
+	action := audit_model.ActionsWorkflowDisable
+	if isEnable {
+		action = audit_model.ActionsWorkflowEnable
+	}
+	audit.Record(ctx, action, repo, "workflow", workflowID)
 }
 
 // DispatchActionWorkflow manually triggers a workflow_dispatch run.
@@ -163,6 +180,8 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {
 		return 0, fmt.Errorf("PrepareRun: %w", err)
 	}
+	audit.RecordAs(ctx, doer, audit_model.ActionsWorkflowDispatch, repo,
+		"workflow", workflowID, "ref", ref, "run_id", run.ID)
 	return run.ID, nil
 }
 

@@ -9,11 +9,13 @@ import (
 	"strings"
 	"uuid"
 
+	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 )
 
 // Ensure the struct implements the interface.
@@ -170,6 +172,8 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
+
+	audit.RecordAs(req.Context(), user_model.NewAuthenticationSourceUser(), audit_model.UserCreate, user)
 
 	return user
 }
