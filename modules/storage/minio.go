@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -87,9 +88,9 @@ func convertMinioErr(err error, optMsg ...string) error {
 	// Convert two responses to standard analogues
 	switch errResp.Code {
 	case "NoSuchKey":
-		return wrapErr(os.ErrNotExist)
+		return wrapErr(fs.ErrNotExist)
 	case "AccessDenied":
-		return wrapErr(os.ErrPermission)
+		return wrapErr(fs.ErrPermission)
 	}
 
 	return wrapErr(err)

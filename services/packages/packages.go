@@ -12,7 +12,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -265,6 +264,31 @@ func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.Packag
 	}
 }
 
+func GetOrSavePackageBlob(ctx context.Context, contentStore *packages_module.ContentStore, blob *packages_model.PackageBlob, data packages_module.HashedSizeReader) (*packages_model.PackageBlob, bool, error) {
+	if blob.Size != data.Size() {
+		return nil, false, fmt.Errorf("size mismatch: blob size %d, data size %d", blob.Size, data.Size())
+	}
+	pb, exists, err := packages_model.GetOrInsertBlob(ctx, blob)
+	if err != nil {
+		return nil, false, fmt.Errorf("unable to get or insert blob: %w", err)
+	}
+	storeKey := packages_module.BlobHash256Key(pb.HashSHA256)
+	if exists {
+		// check if the blob file actually is valid in the content store
+		sz, err := contentStore.OptionalSize(storeKey)
+		if err != nil {
+			return nil, false, fmt.Errorf("unable to check object size in content store: %w", err)
+		}
+		exists = sz.ValueOrDefault(-1) == blob.Size
+	}
+	if !exists {
+		if err := contentStore.Save(storeKey, data, data.Size()); err != nil {
+			return nil, false, fmt.Errorf("unable to save object in content store: %w", err)
+		}
+	}
+	return pb, exists, nil
+}
+
 func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 	if err := CheckSizeQuotaExceeded(ctx, pfci.Creator, pvi.Owner, pvi.PackageType, pfci.Data.Size()); err != nil {
 		return nil, nil, false, err
@@ -276,27 +300,9 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 func addFileToPackageVersionUnchecked(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
-	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
+	pb, exists, err := GetOrSavePackageBlob(ctx, packages_module.NewContentStore(), NewPackageBlob(pfci.Data), pfci.Data)
 	if err != nil {
-		log.Error("Error inserting package blob: %v", err)
-		return nil, nil, false, err
-	}
-	// Check if the blob file actually exists in the content store, since the
-	// blob row could have been created while the file was lost (eg. after a
-	// partial migration), otherwise the file would never be restored.
-	// See issue #19586 for the same inconsistency in the container registry.
-	contentStore := packages_module.NewContentStore()
-	if exists {
-		if err := contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil && errors.Is(err, os.ErrNotExist) {
-			log.Debug("Package registry inconsistent: blob %v does not exist on storage", pb.HashSHA256)
-			exists = false
-		}
-	}
-	if !exists {
-		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), pfci.Data, pfci.Data.Size()); err != nil {
-			log.Error("Error saving package blob in content store: %v", err)
-			return nil, nil, false, err
-		}
+		return nil, nil, !exists, err
 	}
 
 	if pfci.OverwriteExisting {
