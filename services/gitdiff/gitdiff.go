@@ -1522,9 +1522,6 @@ func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, opts *DiffCo
 	for field := range strings.SplitSeq(stdout, ",") {
 		field = strings.TrimSpace(field)
 		num, suffix, ok := strings.Cut(field, " ")
-		if !ok {
-			continue
-		}
 		switch {
 		case strings.Contains(suffix, "file") && strings.Contains(suffix, "change"):
 			stat.NumFiles, _ = strconv.Atoi(num)
@@ -1532,7 +1529,7 @@ func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, opts *DiffCo
 			stat.TotalAddition, _ = strconv.Atoi(num)
 		case strings.Contains(suffix, "deletion"):
 			stat.TotalDeletion, _ = strconv.Atoi(num)
-		default:
+		case ok:
 			setting.PanicInDevOrTesting("unexpected diff shortstat output: %s", stdout)
 		}
 	}
