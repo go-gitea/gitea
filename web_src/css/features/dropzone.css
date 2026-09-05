@@ -55,6 +55,17 @@
   cursor: pointer !important; /* override ".dz-clickable *" */
 }
 
+.dropzone .dz-filename span[data-dz-name] {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropzone .dz-filename span[data-dz-name]:hover {
+  display: inline-block;
+  overflow: visible;
+}
+
 .dropzone .dz-error-message {
   top: 145px !important;
 }

@@ -2,7 +2,7 @@ import {svgRaw} from '../svg.ts';
 import {html} from '../utils/html.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {createElementFromAttrs, hideElem, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, queryElems, showElem} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
 import type Dropzone from '@deltablot/dropzone';
@@ -58,14 +58,13 @@ export function decorateAttachmentPreview(dzInst: Dropzone, file: CustomDropzone
   });
 
   const needUuidLink = dzInst.element.getAttribute('data-need-uuid-link') === 'true';
+  if (!needUuidLink) return;
+
   const elCopyLink = el.querySelector<HTMLButtonElement>('button[data-dz-custom-copy-link]')!;
-  if (needUuidLink) {
-    const markdownLink = generateMarkdownLinkForAttachment(file);
-    el.setAttribute('data-tooltip-content', `Name: ${file.name}\nUUID: ${file.uuid}`);
-    elCopyLink.setAttribute('data-clipboard-text', markdownLink);
-  } else {
-    hideElem(elCopyLink);
-  }
+  const markdownLink = generateMarkdownLinkForAttachment(file);
+  el.setAttribute('data-tooltip-content', `Name: ${file.name}\nUUID: ${file.uuid}`);
+  elCopyLink.setAttribute('data-clipboard-text', markdownLink);
+  showElem(elCopyLink);
 }
 
 /**
@@ -105,7 +104,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         <div class="dz-error-mark">${svgRaw('octicon-x-circle', 54, 'tw-text-red')}</div>
         <div class="dz-custom-buttons">
           <button type="button" class="btn" data-dz-remove>${dropzoneEl.getAttribute('data-text-remove-file')!}</button>
-          <button type="button" class="btn" data-dz-custom-copy-link>${svgRaw('octicon-copy', 14)} ${dropzoneEl.getAttribute('data-text-copy-link')!}</button>
+          <button type="button" class="btn tw-hidden" data-dz-custom-copy-link>${svgRaw('octicon-copy', 14)} ${dropzoneEl.getAttribute('data-text-copy-link')!}</button>
         </div>
       </div>
     `,
