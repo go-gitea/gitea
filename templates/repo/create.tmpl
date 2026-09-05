@@ -60,6 +60,11 @@
 					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
 					<textarea id="description" rows="2" name="description" placeholder="{{ctx.Locale.Tr "repo.repo_desc_helper"}}" maxlength="2048">{{.description}}</textarea>
 				</div>
+				<div class="inline field {{if .Err_CustomName}}error{{end}}">
+					<label for="custom_name">{{ctx.Locale.Tr "repo.settings.custom_name"}}</label>
+					<input id="custom_name" name="custom_name" value="{{.custom_name}}" maxlength="100">
+					<span class="help">{{ctx.Locale.Tr "repo.settings.custom_name_helper"}}</span>
+				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
 					<div id="repo_template_search" class="ui search selection dropdown">

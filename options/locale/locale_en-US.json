@@ -2100,6 +2100,8 @@
   "repo.settings.hooks": "Webhooks",
   "repo.settings.githooks": "Git Hooks",
   "repo.settings.basic_settings": "Basic Settings",
+  "repo.settings.custom_name": "Custom name",
+  "repo.settings.custom_name_helper": "An optional display name shown in the UI. URLs, git and SSH always use the repository name.",
   "repo.settings.mirror_settings": "Mirror Settings",
   "repo.settings.mirror_settings.docs": "Set up your repository to automatically synchronize commits, tags and branches with another repository.",
   "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions": "Set up your project to automatically push commits, tags and branches to another repository. Pull mirrors have been disabled by your site administrator.",

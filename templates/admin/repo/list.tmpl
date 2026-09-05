@@ -53,7 +53,7 @@
 								{{end}}
 							</td>
 							<td>
-								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
+								<a class="tw-break-anywhere" href="{{.Link}}" {{if ne .DisplayName .Name}}title="{{.FullName}}"{{end}}>{{.DisplayName}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 								{{end}}

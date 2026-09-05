@@ -4719,6 +4719,11 @@
             "type": "boolean",
             "x-go-name": "AutoInit"
           },
+          "custom_name": {
+            "description": "Custom name (display name) of the repository to create",
+            "type": "string",
+            "x-go-name": "CustomName"
+          },
           "default_branch": {
             "description": "DefaultBranch of the repository (used when initializes and in template)",
             "type": "string",
@@ -5975,6 +5980,11 @@
             "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.",
             "type": "boolean",
             "x-go-name": "AutodetectManualMerge"
+          },
+          "custom_name": {
+            "description": "an optional display name for the repository, falls back to name in UI",
+            "type": "string",
+            "x-go-name": "CustomName"
           },
           "default_allow_maintainer_edit": {
             "description": "set to `true` to allow edits from maintainers by default",
@@ -9602,6 +9612,11 @@
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
+          },
+          "custom_name": {
+            "description": "an optional display name for the repository, falls back to name in UI",
+            "type": "string",
+            "x-go-name": "CustomName"
           },
           "default_allow_maintainer_edit": {
             "type": "boolean",
