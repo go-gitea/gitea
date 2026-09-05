@@ -51,20 +51,23 @@ export function generateMarkdownLinkForAttachment(file: {uuid: string, name: str
 
 export function decorateAttachmentPreview(dzInst: Dropzone, file: CustomDropzoneFile, attachmentBaseLinkUrl: string) {
   const el = file.previewElement!;
-  const fileUrl = `${attachmentBaseLinkUrl}/${file.uuid}`;
-  queryElems<HTMLAnchorElement>(el, 'a[data-dz-custom-link]', (elLink) => {
-    elLink.target = '_blank';
-    elLink.href = fileUrl;
-  });
-
+  if (attachmentBaseLinkUrl) {
+    // TODO: REPO-UPLOAD-FILE-VIEW: repo file upload doesn't support viewing the uploaded file yet
+    const fileUrl = `${attachmentBaseLinkUrl}/${file.uuid}`;
+    queryElems<HTMLAnchorElement>(el, 'a[data-dz-custom-link]', (elLink) => {
+      elLink.target = '_blank';
+      elLink.href = fileUrl;
+    });
+  }
   const needUuidLink = dzInst.element.getAttribute('data-need-uuid-link') === 'true';
-  if (!needUuidLink) return;
-
-  const elCopyLink = el.querySelector<HTMLButtonElement>('button[data-dz-custom-copy-link]')!;
-  const markdownLink = generateMarkdownLinkForAttachment(file);
-  el.setAttribute('data-tooltip-content', `Name: ${file.name}\nUUID: ${file.uuid}`);
-  elCopyLink.setAttribute('data-clipboard-text', markdownLink);
-  showElem(elCopyLink);
+  if (needUuidLink) {
+    // only issues and comments need to show use the UUID link
+    const elCopyLink = el.querySelector<HTMLButtonElement>('button[data-dz-custom-copy-link]')!;
+    const markdownLink = generateMarkdownLinkForAttachment(file);
+    el.setAttribute('data-tooltip-content', `Name: ${file.name}\nUUID: ${file.uuid}`);
+    elCopyLink.setAttribute('data-clipboard-text', markdownLink);
+    showElem(elCopyLink);
+  }
 }
 
 /**

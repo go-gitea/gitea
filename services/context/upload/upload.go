@@ -140,9 +140,9 @@ func AddUploadContextForRepo(ctx reqctx.RequestContext, repo *repo_model.Reposit
 	ctxData["UploadOptions"] = uploadOptions{
 		UploadUrl:       repoLink + "/upload-file",
 		UploadRemoveUrl: repoLink + "/upload-remove",
-		UploadLinkUrl:   repoLink + "/upload-file",
-		UploadAccepts:   strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ","),
-		UploadMaxFiles:  setting.Repository.Upload.MaxFiles,
-		UploadMaxSize:   setting.Repository.Upload.FileMaxSize,
+		// UploadLinkUrl: TODO: REPO-UPLOAD-FILE-VIEW: there is no endpoint for this yet, it is in "upload" table but not "attachment" table
+		UploadAccepts:  strings.ReplaceAll(setting.Repository.Upload.AllowedTypes, "|", ","),
+		UploadMaxFiles: setting.Repository.Upload.MaxFiles,
+		UploadMaxSize:  setting.Repository.Upload.FileMaxSize,
 	}
 }
