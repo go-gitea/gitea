@@ -1,0 +1,97 @@
+<div id="actions-queue-list" data-global-init="initActionQueueList"
+	data-queue-refresh-link="{{.QueueRefreshLink}}"
+	data-queue-refresh-interval="{{.QueueRefreshIntervalMs}}"
+	{{if .CanReorder}}data-queue-move-link="{{.QueueMoveLink}}"{{end}}
+>
+<div class="runner-container">
+	<div class="ui top attached header flex-left-right">
+		<strong>{{ctx.Locale.Tr "actions.queue.all_jobs"}} ({{ctx.Locale.Tr "admin.total" .QueueTotal}})</strong>
+		{{/* the auto-refresh skips this subtree (see initActionQueueList) so a refresh can't close an open dropdown */}}
+		<div class="ui secondary filter menu flex-text-block tw-m-0" id="actions-queue-filter">
+			{{if .ShowOwnerRepoFilters}}
+			<!-- Owner -->
+			<div class="ui{{if not .QueueFilterOwners}} disabled{{end}} dropdown jump item">
+				<span class="text">{{if .QueueFilterOwnerName}}{{.QueueFilterOwnerName}}{{else}}{{ctx.Locale.Tr "actions.queue.filter_owner"}}{{end}}</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<div class="ui icon search input">
+						<i class="icon">{{svg "octicon-search"}}</i>
+						<input type="text" placeholder="{{ctx.Locale.Tr "actions.queue.filter_owner"}}">
+					</div>
+					<a class="item{{if not .QueueFilterOwnerID}} selected{{end}}" href="?status={{.QueueFilterStatus}}">{{ctx.Locale.Tr "actions.queue.filter_owner_no_select"}}</a>
+					{{range .QueueFilterOwners}}
+						<a class="item{{if eq .ID $.QueueFilterOwnerID}} selected{{end}}" href="?owner_id={{.ID}}&status={{$.QueueFilterStatus}}">{{.Name}}</a>
+					{{end}}
+				</div>
+			</div>
+			<!-- Repository -->
+			<div class="ui{{if not .QueueFilterRepos}} disabled{{end}} dropdown jump item">
+				<span class="text">{{if .QueueFilterRepoName}}{{.QueueFilterRepoName}}{{else}}{{ctx.Locale.Tr "repository"}}{{end}}</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<div class="ui icon search input">
+						<i class="icon">{{svg "octicon-search"}}</i>
+						<input type="text" placeholder="{{ctx.Locale.Tr "repository"}}">
+					</div>
+					<a class="item{{if not .QueueFilterRepoID}} selected{{end}}" href="?owner_id={{.QueueFilterOwnerID}}&status={{.QueueFilterStatus}}">{{ctx.Locale.Tr "actions.queue.filter_repo_no_select"}}</a>
+					{{range .QueueFilterRepos}}
+						<a class="item{{if eq .ID $.QueueFilterRepoID}} selected{{end}}" href="?repo_id={{.ID}}&status={{$.QueueFilterStatus}}">{{.FullName}}</a>
+					{{end}}
+				</div>
+			</div>
+			{{end}}
+			<!-- Status -->
+			<div class="ui dropdown jump item">
+				<span class="text">{{if .QueueFilterStatus}}{{ctx.Locale.Tr (printf "actions.status.%s" .QueueFilterStatus)}}{{else}}{{ctx.Locale.Tr "actions.runs.status"}}{{end}}</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<a class="item{{if not .QueueFilterStatus}} selected{{end}}" href="?owner_id={{.QueueFilterOwnerID}}&repo_id={{.QueueFilterRepoID}}">{{ctx.Locale.Tr "actions.queue.filter_status_no_select"}}</a>
+					{{range $status := .QueueFilterStatuses}}
+						<a class="item{{if eq $status $.QueueFilterStatus}} selected{{end}}" href="?owner_id={{$.QueueFilterOwnerID}}&repo_id={{$.QueueFilterRepoID}}&status={{$status}}">
+							<span class="flex-text-inline tw-gap-2">
+								{{template "repo/icons/action_status" (dict "Status" $status)}}
+								{{ctx.Locale.Tr (printf "actions.status.%s" $status)}}
+							</span>
+						</a>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</div>
+	{{if .CanReorder}}<div class="ui attached info message tw-py-2">{{ctx.Locale.Tr "actions.queue.reorder_hint"}}</div>{{end}}
+	{{if or .RunningJobs .QueuedJobs}}
+	<div class="ui attached table segment">
+		<table class="ui very basic table unstackable">
+			<thead>
+				<tr>
+					{{if .CanReorder}}<th></th>{{end}}
+					<th>{{ctx.Locale.Tr "actions.queue.position"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runs.status"}}</th>
+					{{if .ShowRepoColumn}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
+					<th>{{ctx.Locale.Tr "actions.runners.task_list.job"}}</th>
+					<th>{{ctx.Locale.Tr "actions.queue.runs_on"}}</th>
+					<th>{{ctx.Locale.Tr "actions.queue.agent"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runs.commit"}}</th>
+					<th>{{ctx.Locale.Tr "actions.queue.waiting_or_started"}}</th>
+				</tr>
+			</thead>
+			{{/* running jobs head the list in their own tbody, so dragging can never mix them into the queued order */}}
+			<tbody>
+				{{range .RunningJobs}}
+					{{template "shared/actions/queue_row" (dict "Root" $ "Job" . "IsQueued" false "RunnerName" (index $.RunningJobRunners .ID))}}
+				{{end}}
+			</tbody>
+			<tbody id="actions-queue-tbody">
+				{{range $idx, $job := .QueuedJobs}}
+					{{template "shared/actions/queue_row" (dict "Root" $ "Job" $job "IsQueued" true "Position" (Eval $.QueueOffset "+" $idx "+" 1))}}
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.queue.no_jobs"}}</div>
+	{{end}}
+
+	{{template "base/paginate" .}}
+</div>
+</div>

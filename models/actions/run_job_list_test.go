@@ -6,7 +6,11 @@ package actions
 import (
 	"testing"
 
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestActionJobList_SortMatrixGroupsByName(t *testing.T) {
@@ -58,4 +62,56 @@ func TestActionJobList_SortMatrixGroupsByName(t *testing.T) {
 		jobs.SortMatrixGroupsByName()
 		assert.Equal(t, []string{"only"}, names(jobs))
 	})
+}
+
+// TestFindRunJobOptions_Queue verifies the build-queue query mirrors the runner pickup predicate:
+// waiting + unclaimed + non-reusable jobs, ordered by (queue_rank ASC, updated ASC, id ASC).
+func TestFindRunJobOptions_Queue(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// A repo id no fixture or other test uses, so the counts/order below are not polluted.
+	const repoID int64 = 987654
+
+	insert := func(name string, status Status, taskID int64, reusable bool) *ActionRunJob {
+		job := &ActionRunJob{
+			RepoID:           repoID,
+			OwnerID:          1,
+			Name:             name,
+			JobID:            name,
+			Status:           status,
+			TaskID:           taskID,
+			IsReusableCaller: reusable,
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
+	}
+
+	// Genuinely queued jobs: waiting, unclaimed (task_id=0), not reusable callers.
+	jA := insert("a", StatusWaiting, 0, false)
+	jB := insert("b", StatusWaiting, 0, false)
+	jC := insert("c", StatusWaiting, 0, false)
+	// Rows that must be excluded from the queue.
+	insert("claimed", StatusWaiting, 999, false) // already has a task
+	insert("reusable", StatusWaiting, 0, true)   // reusable caller never runs on a runner
+	insert("running", StatusRunning, 998, false) // running, no longer queued
+
+	// Force `updated` so pickup order among rank-0 jobs differs from insertion/id order: C < A < B.
+	setUpdated := func(id, ts int64) {
+		_, err := db.GetEngine(ctx).Exec("UPDATE `action_run_job` SET updated = ? WHERE id = ?", ts, id)
+		require.NoError(t, err)
+	}
+	setUpdated(jC.ID, 100)
+	setUpdated(jA.ID, 200)
+	setUpdated(jB.ID, 300)
+
+	jobs, total, err := db.FindAndCount[ActionRunJob](ctx, QueuedJobsOptions(repoID, 0))
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, total, "only waiting, unclaimed, non-reusable jobs are queued")
+
+	gotIDs := make([]int64, len(jobs))
+	for i, j := range jobs {
+		gotIDs[i] = j.ID
+	}
+	assert.Equal(t, []int64{jC.ID, jA.ID, jB.ID}, gotIDs, "rank-0 queue is ordered by (updated ASC, id ASC)")
 }

@@ -123,6 +123,12 @@ type FindOptionsJoin interface {
 	ToJoins() []JoinFunc
 }
 
+// FindOptionsCols is implemented by options that only need a subset of columns populated,
+// e.g. a list view that never reads a model's large payload/blob fields.
+type FindOptionsCols interface {
+	ToCols() []string
+}
+
 // Find represents a common find function which accept an options interface
 func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
@@ -135,6 +141,12 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 		}
 	}
 	sess.OrderBy(opts.ToOrders())
+	if colsOpt, ok := opts.(FindOptionsCols); ok {
+		if cols := colsOpt.ToCols(); len(cols) > 0 {
+			sess.Cols(cols...)
+		}
+	}
+
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
 	if !opts.IsListAll() && pageSize > 0 {
 		if page == 0 {
@@ -186,6 +198,11 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 		}
 	}
 	sess.OrderBy(opts.ToOrders())
+	if colsOpt, ok := opts.(FindOptionsCols); ok {
+		if cols := colsOpt.ToCols(); len(cols) > 0 {
+			sess.Cols(cols...)
+		}
+	}
 
 	findPageSize := defaultFindSliceSize
 	if pageSize > 0 {

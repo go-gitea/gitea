@@ -13,13 +13,16 @@ import (
 	"time"
 
 	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo/actions"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	"gitea.dev/services/context"
 )
 
@@ -64,6 +67,83 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 		})
 	}
 	return stepsLog
+}
+
+// MockActionsQueue renders the build queue (templates/shared/actions/queue_list) with mock data so the
+// drag-to-reorder interaction can be exercised without a database, runners, or queued jobs.
+func MockActionsQueue(ctx *context.Context) {
+	now := time.Now()
+
+	mkRepo := func(id int64, owner, name string) *repo_model.Repository {
+		return &repo_model.Repository{ID: id, OwnerID: 900, OwnerName: owner, Name: name, LowerName: strings.ToLower(name)}
+	}
+	repoA := mkRepo(1001, "acme", "backend")
+	repoB := mkRepo(1002, "acme", "frontend")
+
+	mkJob := func(id int64, repo *repo_model.Repository, runIndex int64, name string, runsOn []string, ageSecs int64, status actions_model.Status) *actions_model.ActionRunJob {
+		run := &actions_model.ActionRun{ID: id * 10, Index: runIndex, RepoID: repo.ID, Repo: repo, CommitSHA: "c0ffee1234567890abcdef1234567890abcdef12"}
+		ts := timeutil.TimeStamp(now.Add(-time.Duration(ageSecs) * time.Second).Unix())
+		return &actions_model.ActionRunJob{
+			ID: id, RepoID: repo.ID, Name: name, Status: status, RunsOn: runsOn,
+			Updated: ts, Started: ts, Run: run, Repo: repo,
+		}
+	}
+
+	queued := []*actions_model.ActionRunJob{
+		mkJob(101, repoA, 42, "build", []string{"ubuntu-latest"}, 300, actions_model.StatusWaiting),
+		mkJob(102, repoA, 42, "test", []string{"ubuntu-latest", "x64"}, 260, actions_model.StatusWaiting),
+		mkJob(103, repoB, 7, "lint", []string{"ubuntu-latest"}, 180, actions_model.StatusWaiting),
+		mkJob(104, repoB, 7, "e2e (chromium)", []string{"self-hosted", "linux"}, 90, actions_model.StatusWaiting),
+		mkJob(105, repoA, 43, "deploy", []string{"deploy"}, 30, actions_model.StatusWaiting),
+	}
+	running := []*actions_model.ActionRunJob{
+		mkJob(201, repoA, 41, "build", []string{"ubuntu-latest"}, 120, actions_model.StatusRunning),
+		mkJob(202, repoB, 6, "unit-test", []string{"self-hosted"}, 45, actions_model.StatusRunning),
+	}
+
+	// The mock only honours the status filter; the owner/repository dropdowns are left inert.
+	filterStatus := ctx.FormString("status")
+	switch filterStatus {
+	case shared_actions.QueueFilterRunning:
+		queued = nil
+	case shared_actions.QueueFilterWaiting:
+		running = nil
+	}
+
+	ctx.Data["QueuedJobs"] = queued
+	ctx.Data["QueuedTotal"] = len(queued)
+	ctx.Data["QueueOffset"] = 0
+	ctx.Data["RunningJobs"] = running
+	ctx.Data["RunningJobRunners"] = map[int64]string{201: "runner-alpha", 202: "runner-beta"}
+	ctx.Data["QueueTotal"] = len(queued) + len(running)
+	ctx.Data["ShowRepoColumn"] = true
+	ctx.Data["ShowOwnerRepoFilters"] = true
+	ctx.Data["ShowQueuePositions"] = true
+	ctx.Data["QueueFilterStatus"] = filterStatus
+	ctx.Data["QueueFilterStatuses"] = shared_actions.QueueFilterStatuses()
+	ctx.Data["QueueFilterOwners"] = []*shared_actions.QueueFilterOwner{{ID: repoA.OwnerID, Name: repoA.OwnerName}}
+	ctx.Data["QueueFilterRepos"] = []*repo_model.Repository{repoA, repoB}
+	ctx.Data["QueueFilterOwnerID"] = int64(0)
+	ctx.Data["QueueFilterRepoID"] = int64(0)
+	ctx.Data["CanReorder"] = true
+	ctx.Data["QueueMoveLink"] = setting.AppSubURL + "/devtest/actions-queue/move"
+	ctx.Data["QueueRefreshLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "refresh", "1")
+	// Refresh rarely so the auto-morph doesn't revert a manual drag while testing the interaction.
+	ctx.Data["QueueRefreshIntervalMs"] = int64(3600000)
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(int64(len(queued))).PerPageLimit(50).CurPage(1).Build()
+
+	if ctx.FormBool("refresh") {
+		ctx.HTML(http.StatusOK, "shared/actions/queue_list")
+		return
+	}
+	ctx.HTML(http.StatusOK, "devtest/actions-queue")
+}
+
+// MockActionsQueueMove accepts a reorder from the devtest queue page, logs the payload the client computed,
+// and returns 204 so the dragged order sticks without touching a database.
+func MockActionsQueueMove(ctx *context.Context) {
+	log.Info("devtest actions-queue move: id=%s after=%s", ctx.FormString("id"), ctx.FormString("after"))
+	ctx.Status(http.StatusNoContent)
 }
 
 func MockActionsView(ctx *context.Context) {

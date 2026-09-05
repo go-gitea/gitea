@@ -1,0 +1,24 @@
+{{$root := .Root}}
+{{$job := .Job}}
+<tr {{if .IsQueued}}id="actions-queue-job-{{$job.ID}}" data-job-id="{{$job.ID}}"{{end}}>
+	{{if $root.CanReorder}}
+		{{if .IsQueued}}
+			<td class="tw-w-1"><span class="drag-handle tw-cursor-grab" data-tooltip-content="{{ctx.Locale.Tr "actions.queue.reorder"}}">{{svg "octicon-grabber"}}</span></td>
+		{{else}}
+			<td></td>
+		{{end}}
+	{{end}}
+	<td>{{if and .IsQueued $root.ShowQueuePositions}}{{.Position}}{{end}}</td>
+	<td>
+		<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $job.Status.String)}}">
+			{{template "repo/icons/action_status" (dict "Status" $job.Status.String "IconVariant" "circle-fill")}}
+		</span>
+	</td>
+	{{if $root.ShowRepoColumn}}<td>{{if $job.Repo}}<a href="{{$job.Repo.Link}}">{{$job.Repo.FullName}}</a>{{end}}</td>{{end}}
+	<td>{{if $job.Run}}<a href="{{$job.Run.Link}}">{{$job.Name}} <span class="text grey">#{{$job.Run.Index}}</span></a>{{else}}{{$job.Name}}{{end}}</td>
+	<td><span class="flex-text-inline tw-flex-wrap">{{range $job.RunsOn}}<span class="ui label">{{.}}</span>{{end}}</span></td>
+	<td>{{.RunnerName}}</td>
+	<td>{{if and $job.Run $job.Repo}}<a href="{{$job.Repo.Link}}/commit/{{$job.Run.CommitSHA}}">{{ShortSha $job.Run.CommitSHA}}</a>{{end}}</td>
+	{{/* a queued job has never started, so its wait is measured from the last status change */}}
+	<td>{{if .IsQueued}}{{DateUtils.TimeSince $job.Updated}}{{else if $job.Started}}{{DateUtils.TimeSince $job.Started}}{{else}}-{{end}}</td>
+</tr>

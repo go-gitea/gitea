@@ -89,6 +89,15 @@ func (jobs ActionJobList) LoadAttributes(ctx context.Context, withRepo bool) err
 	return jobs.LoadRuns(ctx, withRepo)
 }
 
+// QueuedJobsOrderBy mirrors the runner pickup order (see CreateTaskForRunner): waiting jobs are
+// claimed by queue_rank first (manually reordered jobs carry a negative rank and sort ahead of the
+// natural, rank-0 FIFO block), then oldest-ready-first keyed on (updated, id).
+// Keep this in sync with the ORDER BY / keyset cursor in CreateTaskForRunner.
+const QueuedJobsOrderBy db.SearchOrderBy = "`action_run_job`.queue_rank ASC, `action_run_job`.updated ASC, `action_run_job`.id ASC"
+
+// RunningJobsOrderBy lists currently running jobs longest-running-first.
+const RunningJobsOrderBy db.SearchOrderBy = "`action_run_job`.started ASC, `action_run_job`.id ASC"
+
 type FindRunJobOptions struct {
 	db.ListOptions
 	RunID            int64
@@ -97,6 +106,8 @@ type FindRunJobOptions struct {
 	OwnerID          int64
 	CommitSHA        string
 	Statuses         []Status
+	IsReusableCaller optional.Option[bool] // use optional to filter reusable-caller rows in/out; nil means no restriction
+	HasTask          optional.Option[bool] // false: task_id = 0 (unclaimed); true: task_id != 0 (claimed); nil: no restriction
 	UpdatedBefore    timeutil.TimeStamp
 	ConcurrencyGroup string
 	OrderBy          db.SearchOrderBy
@@ -104,7 +115,12 @@ type FindRunJobOptions struct {
 	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
 	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
 	AccessibleRepoIDsSubQuery *builder.Builder
+	// Cols, when non-empty, restricts the SELECT to these columns instead of the whole row (e.g. skipping
+	// a list view's unused payload/blob columns). Empty means every column, as before this field existed.
+	Cols []string
 }
+
+func (opts FindRunJobOptions) ToCols() []string { return opts.Cols }
 
 var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
 	"asc":  {"id": "`action_run_job`.id ASC"},
@@ -127,6 +143,16 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 	}
 	if len(opts.Statuses) > 0 {
 		cond = cond.And(builder.In("`action_run_job`.status", opts.Statuses))
+	}
+	if opts.IsReusableCaller.Has() {
+		cond = cond.And(builder.Eq{"`action_run_job`.is_reusable_caller": opts.IsReusableCaller.Value()})
+	}
+	if opts.HasTask.Has() {
+		if opts.HasTask.Value() {
+			cond = cond.And(builder.Neq{"`action_run_job`.task_id": 0})
+		} else {
+			cond = cond.And(builder.Eq{"`action_run_job`.task_id": 0})
+		}
 	}
 	if opts.UpdatedBefore > 0 {
 		cond = cond.And(builder.Lt{"`action_run_job`.updated": opts.UpdatedBefore})
