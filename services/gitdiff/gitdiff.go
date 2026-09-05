@@ -1309,7 +1309,7 @@ func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, befo
 	commitObjectFormat := afterCommit.ID.Type()
 	isBeforeCommitIDEmpty := beforeCommitID == "" || beforeCommitID == commitObjectFormat.EmptyObjectID().String()
 
-	if isBeforeCommitIDEmpty && afterCommit.ParentCount() == 0 {
+	if (isBeforeCommitIDEmpty && afterCommit.ParentCount() == 0) || beforeCommitID == commitObjectFormat.EmptyTree().String() {
 		actualBeforeCommitID = commitObjectFormat.EmptyTree()
 	} else {
 		if isBeforeCommitIDEmpty {
