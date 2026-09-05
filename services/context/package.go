@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
@@ -54,6 +55,36 @@ func PackageAssignment(pType string) func(ctx *Context) {
 			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeContainer, ctx.PathParam("image"))
 		case "terraform":
 			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeTerraformState, ctx.PathParam("name"))
+		case "cargo":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeCargo, ctx.PathParam("package"))
+		case "chef":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeChef, ctx.PathParam("name"))
+		case "conan":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeConan, ctx.PathParam("name"))
+		case "debian":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeDebian, ctx.PathParam("name"))
+		case "go":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeGo, ctx.PathParam("name"))
+		case "generic":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeGeneric, ctx.PathParam("packagename"))
+		case "npm":
+			npmName := ctx.PathParam("id")
+			if scope := ctx.PathParam("scope"); scope != "" {
+				npmName = "@" + scope + "/" + npmName
+			}
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeNpm, npmName)
+		case "nuget":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeNuGet, ctx.PathParam("id"))
+		case "pub":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypePub, ctx.PathParam("id"))
+		case "pypi":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypePyPI, strings.NewReplacer(".", "-", "_", "-").Replace(ctx.PathParam("id")))
+		case "rpm":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeRpm, ctx.PathParam("name"))
+		case "swift":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeSwift, ctx.PathParam("scope")+"."+ctx.PathParam("name"))
+		case "vagrant":
+			pkg, err = packages_model.GetPackageByName(paCtx, ctx.ContextUser.ID, packages_model.TypeVagrant, ctx.PathParam("name"))
 		}
 		if err == nil {
 			paCtx.Package = pkg
