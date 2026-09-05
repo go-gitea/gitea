@@ -1,7 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {
   apiAddCollaborator,
-  apiCreateFile,
+  apiCreateFiles,
   apiCreatePR,
   apiCreateRepo,
   apiCreateReview,
@@ -24,8 +24,20 @@ test('pr review flow', async ({page, request}) => {
   const repoName = `e2e-prreview-${randomString(8)}`;
   await apiCreateRepo(request, {name: repoName, headers: posterHeaders});
   await Promise.all([
-    apiAddCollaborator(request, poster, repoName, officialReviewer, {headers: posterHeaders}),
-    apiCreateFile(request, poster, repoName, 'added.txt', 'new content\n', {branch: 'main', newBranch: 'feat'}),
+    apiAddCollaborator(
+      request,
+      poster,
+      repoName,
+      officialReviewer,
+      {headers: posterHeaders},
+    ),
+    apiCreateFiles(
+      request,
+      poster,
+      repoName,
+      [{path: 'added.txt', content: 'new content\n'}],
+      {branch: 'main', newBranch: 'feat', headers: posterHeaders},
+    ),
   ]);
   const prIndex = await apiCreatePR(request, poster, repoName, 'feat', 'main', 'review test', {headers: posterHeaders});
   const pullUrl = `/${poster}/${repoName}/pulls/${prIndex}`;

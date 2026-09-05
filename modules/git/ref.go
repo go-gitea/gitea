@@ -6,6 +6,7 @@ package git
 import (
 	"context"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -18,6 +19,7 @@ const (
 	RemotePrefix = "refs/remotes/"
 	// PullPrefix is the base directory of the pull information of git.
 	PullPrefix = "refs/pull/"
+	pullSuffix = "/head"
 )
 
 // refNamePatternInvalid is regular expression with unallowed characters in git reference name
@@ -93,6 +95,10 @@ func RefNameFromCommit(shortName string) RefName {
 	return RefName(shortName)
 }
 
+func RefNameFromPullIndex(prIndex int64) RefName {
+	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullSuffix)
+}
+
 func (ref RefName) String() string {
 	return string(ref)
 }
@@ -134,14 +140,21 @@ func (ref RefName) BranchName() string {
 	return ref.nameWithoutPrefix(BranchPrefix)
 }
 
-// PullName returns the pull request name part of refs like refs/pull/<pull_name>/head
-func (ref RefName) PullName() string {
+func (ref RefName) PullIndex() (int64, bool) {
 	refName := string(ref)
-	lastIdx := strings.LastIndexByte(refName[len(PullPrefix):], '/')
-	if strings.HasPrefix(refName, PullPrefix) && lastIdx > -1 {
-		return refName[len(PullPrefix) : lastIdx+len(PullPrefix)]
+	s, ok := strings.CutPrefix(refName, PullPrefix)
+	if !ok {
+		return 0, false
 	}
-	return ""
+	pullStr, last, ok := strings.CutLast(s, "/")
+	if !ok || last != "head" {
+		return 0, false
+	}
+	pullIndex, err := strconv.ParseInt(pullStr, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return pullIndex, true
 }
 
 // ForBranchName returns the branch name part of refs like refs/for/<branch_name>
@@ -165,7 +178,7 @@ func (ref RefName) ShortName() string {
 		return ref.RemoteName()
 	}
 	if ref.IsPull() {
-		return ref.PullName()
+		return strings.TrimSuffix(ref.nameWithoutPrefix(PullPrefix), pullSuffix)
 	}
 	if ref.IsFor() {
 		return ref.ForBranchName()
