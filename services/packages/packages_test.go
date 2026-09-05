@@ -54,6 +54,8 @@ func TestCreatePackageAndAddFileRestoresMissingBlobFile(t *testing.T) {
 		return pf, err
 	}
 
+	// This test data is from https://github.com/go-gitea/gitea/issues/39215, it doesn't really matter, actually.
+	// The key point is that if the blob object is missing in the content storage, it must be restored when uploaded again.
 	pkgData := test.WriteZipArchive(map[string]string{
 		"package.nuspec":         "<package><metadata><id>nuget.repro</id><version>1.0.0</version></metadata></package>",
 		"lib/netstandard2.0/_._": "",
@@ -67,7 +69,7 @@ func TestCreatePackageAndAddFileRestoresMissingBlobFile(t *testing.T) {
 	require.NoError(t, err)
 	sz, err := contentStore.OptionalSize(key)
 	assert.NoError(t, err)
-	assert.EqualValues(t, len(pkgData), sz.Value())
+	assert.EqualValues(t, len(pkgData), sz.ValueOrDefault(-1))
 
 	// Simulate the storage inconsistency: the blob row survives but its file is missing
 	require.NoError(t, contentStore.Delete(key))
@@ -80,7 +82,7 @@ func TestCreatePackageAndAddFileRestoresMissingBlobFile(t *testing.T) {
 	require.NoError(t, err)
 	sz, err = contentStore.OptionalSize(key)
 	assert.NoError(t, err)
-	assert.EqualValues(t, len(pkgData), sz.Value())
+	assert.EqualValues(t, len(pkgData), sz.ValueOrDefault(-1))
 
 	// The blob file must be present and both packages must be downloadable
 	for _, pf := range []*packages_model.PackageFile{pf1, pf2} {
