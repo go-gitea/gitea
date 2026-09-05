@@ -1,0 +1,56 @@
+<div class="artifact-preview-header">
+	<a class="artifact-preview-back" href="{{.RunURL}}">
+		{{svg "octicon-arrow-left" 14}}
+		{{if .RunAttempt}}
+			{{ctx.Locale.Tr "actions.artifacts.back_to_run_attempt" .RunIndex .RunAttempt}}
+		{{else}}
+			{{ctx.Locale.Tr "actions.artifacts.back_to_run" .RunIndex}}
+		{{end}}
+	</a>
+	<div class="artifact-preview-summary">
+		<h2 class="artifact-preview-title">{{ctx.Locale.Tr "preview"}}: {{.ArtifactName}}</h2>
+		<a class="ui button" href="{{.DownloadURL}}">
+			{{svg "octicon-download"}}
+			{{ctx.Locale.Tr "repo.download_file"}}
+		</a>
+	</div>
+</div>
+
+<div class="artifact-preview-layout {{if .ShowPreviewContent}}artifact-preview-layout-with-content{{end}}">
+	<div class="artifact-preview-browser">
+		<div class="artifact-preview-browser-title">{{ctx.Locale.Tr "files"}}</div>
+		{{if .PreviewTooLarge}}
+			<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_artifact_too_large"}}</div>
+		{{end}}
+		{{if .RequestedPathMissing}}
+			<div class="ui warning message">{{ctx.Locale.Tr "actions.artifacts.preview_file_not_found"}}</div>
+		{{end}}
+		{{if .PreviewFilesTruncated}}
+			<div class="ui info message">{{ctx.Locale.Tr "actions.artifacts.preview_file_list_truncated"}}</div>
+		{{end}}
+		<div class="artifact-preview-file-list">
+			{{range .PreviewFiles}}
+				{{if .IsDir}}
+					<div class="artifact-preview-file-row artifact-preview-file-row-directory {{.IndentClass}}" title="{{.Path}}">
+						{{svg "octicon-file-directory" 16}}
+						<span class="gt-ellipsis">{{.Name}}</span>
+					</div>
+				{{else}}
+					<a class="artifact-preview-file-row artifact-preview-file-row-file {{.IndentClass}} {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}{{if $.RunAttempt}}&amp;attempt={{$.RunAttempt}}{{end}}" title="{{.Path}}">
+						{{svg "octicon-file" 16}}
+						<span class="gt-ellipsis">{{.Name}}</span>
+					</a>
+				{{end}}
+			{{else}}
+				<div class="artifact-preview-file-row disabled">{{ctx.Locale.Tr "actions.artifacts.preview_no_files"}}</div>
+			{{end}}
+		</div>
+	</div>
+
+	{{if .ShowPreviewContent}}
+		<div class="artifact-preview-content">
+			<div class="ui warning message tw-mt-0">{{ctx.Locale.Tr "actions.artifacts.preview_generated_content"}}</div>
+			<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}/{{PathEscapeSegments .SelectedPath}}" {{if not .PreviewIsPDF}}sandbox="allow-scripts" {{end}}referrerpolicy="no-referrer"></iframe>
+		</div>
+	{{end}}
+</div>

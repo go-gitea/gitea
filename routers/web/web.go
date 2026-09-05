@@ -1565,6 +1565,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Combo("").
 					Get(actions.View).
 					Post(web.Bind[*actions.ViewRequest](), actions.ViewPost)
+				m.Get("/artifacts/{artifact_name}/preview/raw", reqSignIn, actions.ArtifactsPreviewRawView)
+				m.Get("/artifacts/{artifact_name}/preview/raw/*", reqSignIn, actions.ArtifactsPreviewRawView)
 			})
 			m.Group("/jobs/{job}", func() {
 				m.Combo("").
@@ -1578,6 +1580,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			m.Post("/delete", reqRepoActionsWriter, actions.Delete)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
+			m.Get("/artifacts/{artifact_name}/preview", reqSignIn, actions.ArtifactsPreviewView)
+			m.Get("/artifacts/{artifact_name}/preview/raw", reqSignIn, actions.ArtifactsPreviewRawView)
+			m.Get("/artifacts/{artifact_name}/preview/raw/*", reqSignIn, actions.ArtifactsPreviewRawView)
 			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			m.Post("/rerun-failed", reqRepoActionsWriter, actions.RerunFailed)
@@ -1783,6 +1788,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
+			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}", devtest.MockActionsArtifactDownload)
+			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)
+			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview/raw", devtest.MockActionsArtifactPreviewRaw)
+			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview/raw/*", devtest.MockActionsArtifactPreviewRaw)
+			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}/artifacts/{artifact_name}/preview/raw", devtest.MockActionsArtifactPreviewRaw)
+			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}/artifacts/{artifact_name}/preview/raw/*", devtest.MockActionsArtifactPreviewRaw)
 			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind[*actions.ViewRequest](), devtest.MockActionsRunsJobs)

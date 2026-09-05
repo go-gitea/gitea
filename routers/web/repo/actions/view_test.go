@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"strconv"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -11,6 +12,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/typesniffer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -106,6 +108,60 @@ func TestConvertToViewModel(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedViewJobs, viewJobSteps)
+}
+
+func TestArtifactPreviewV4ZipListCacheKeyChangesOnUpdate(t *testing.T) {
+	artifact := &actions_model.ActionArtifact{ID: 1, UpdatedUnix: timeutil.TimeStamp(2)}
+	updated := &actions_model.ActionArtifact{ID: 1, UpdatedUnix: timeutil.TimeStamp(3)}
+	assert.NotEqual(t, artifactPreviewV4ZipListCacheKey(artifact), artifactPreviewV4ZipListCacheKey(updated))
+}
+
+func TestCapArtifactPreviewPaths(t *testing.T) {
+	paths := make([]string, artifactPreviewMaxFiles+10)
+	for i := range paths {
+		paths[i] = "file-" + strconv.Itoa(i) + ".txt"
+	}
+
+	capped, truncated := capArtifactPreviewPaths(paths)
+	require.True(t, truncated)
+	require.Len(t, capped, artifactPreviewMaxFiles)
+	// the cap must copy, otherwise the cached slice keeps the full backing array alive
+	paths[0] = "changed"
+	assert.Equal(t, "file-0.txt", capped[0])
+
+	short := []string{"a.txt", "b.txt"}
+	capped, truncated = capArtifactPreviewPaths(short)
+	assert.False(t, truncated)
+	assert.Equal(t, short, capped)
+}
+
+func TestInsertArtifactPreviewPath(t *testing.T) {
+	paths := []string{"a.txt", "c.txt", "dir/a.txt"}
+
+	assert.Equal(t, []string{"a.txt", "b.txt", "c.txt", "dir/a.txt"}, insertArtifactPreviewPath(paths, "b.txt"))
+	// the source listing may be the cached slice, so it must not be modified in place
+	assert.Equal(t, []string{"a.txt", "c.txt", "dir/a.txt"}, paths)
+	assert.Equal(t, []string{"a.txt", "c.txt", "dir/a.txt", "z.txt"}, insertArtifactPreviewPath(paths, "z.txt"))
+}
+
+func TestNormalizeArtifactPreviewPath(t *testing.T) {
+	assert.Empty(t, normalizeArtifactPreviewPath("."))
+	assert.Empty(t, normalizeArtifactPreviewPath("./"))
+	assert.Equal(t, "report/index.html", normalizeArtifactPreviewPath("./report/index.html"))
+}
+
+func TestArtifactPreviewContentTypeUsesPreviewableExtensions(t *testing.T) {
+	sniffedText := typesniffer.FromContentType("text/plain; charset=utf-8")
+
+	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.html", sniffedText))
+	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.htm", sniffedText))
+	assert.Equal(t, "text/css; charset=utf-8", artifactPreviewContentType("style.css", sniffedText))
+	assert.Equal(t, "text/plain", artifactPreviewContentType("output.txt", sniffedText))
+}
+
+func TestIsPDFArtifactPreviewPath(t *testing.T) {
+	assert.True(t, isPDFArtifactPreviewPath("reports/result.PDF"))
+	assert.False(t, isPDFArtifactPreviewPath("reports/result.pdf.txt"))
 }
 
 func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T) {
