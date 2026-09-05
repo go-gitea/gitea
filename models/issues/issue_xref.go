@@ -33,8 +33,7 @@ type crossReferencesContext struct {
 
 func findOldCrossReferences(ctx context.Context, issueID, commentID int64) ([]*Comment, error) {
 	active := make([]*Comment, 0, 10)
-	return active, db.GetEngine(ctx).Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
-		And("`ref_issue_id` = ?", issueID).
+	return active, db.GetEngine(ctx).Where("`ref_issue_id` = ?", issueID).
 		And("`ref_comment_id` = ?", commentID).
 		Find(&active)
 }
@@ -91,13 +90,18 @@ func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossRefe
 		for _, c := range active {
 			found := false
 			for i, x := range xreflist {
-				if x.Issue.ID == c.IssueID && x.Action == c.RefAction {
+				if x.Issue.ID == c.IssueID {
 					found = true
+					if x.Action != c.RefAction { // reuse the row, so an edit never adds a second reference
+						if _, err = db.GetEngine(stdCtx).ID(c.ID).Cols("`ref_action`").Update(&Comment{RefAction: x.Action}); err != nil {
+							return err
+						}
+					}
 					xreflist = append(xreflist[:i], xreflist[i+1:]...)
 					break
 				}
 			}
-			if !found {
+			if !found && c.RefAction != references.XRefActionNeutered {
 				ids = append(ids, c.ID)
 			}
 		}
