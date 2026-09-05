@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetReviewByID(t *testing.T) {
@@ -397,6 +398,163 @@ func TestAddReviewRequest(t *testing.T) {
 	assert.NotNil(t, comment)
 	assert.NotNil(t, comment.CommentMetaData)
 	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
+}
+
+func TestAddReviewRequestIsIdempotentWhenAlreadyRequested(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull.LoadIssue(t.Context()))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 8})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	requestReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeRequest,
+		Issue:    issue,
+		Reviewer: reviewer,
+	})
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, false)
+	assert.NoError(t, err)
+	assert.Nil(t, comment)
+
+	unittest.AssertCount(t, &issues_model.Review{IssueID: issue.ID, ReviewerID: reviewer.ID}, 1)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: requestReview.ID})
+}
+
+func TestAddReviewRequestRecoversFromStaleRequestAlongsideNewerComment(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull.LoadIssue(t.Context()))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// reproduce legacy data (e.g. imported via InsertReviews) where an old review
+	// request row survives alongside a newer comment row for the same reviewer,
+	// bypassing the usual CreateReview cleanup of stale request rows
+	staleRequest := &issues_model.Review{Type: issues_model.ReviewTypeRequest, IssueID: issue.ID, ReviewerID: reviewer.ID}
+	_, err := db.GetEngine(t.Context()).Insert(staleRequest)
+	assert.NoError(t, err)
+
+	newerComment := &issues_model.Review{Type: issues_model.ReviewTypeComment, IssueID: issue.ID, ReviewerID: reviewer.ID, Content: "looks good"}
+	_, err = db.GetEngine(t.Context()).Insert(newerComment)
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, false)
+	assert.NoError(t, err)
+	require.NotNil(t, comment)
+	assert.Equal(t, issues_model.CommentTypeReviewRequest, comment.Type)
+
+	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: staleRequest.ID})
+	unittest.AssertCount(t, &issues_model.Review{IssueID: issue.ID, ReviewerID: reviewer.ID, Type: issues_model.ReviewTypeRequest}, 1)
+	newRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: issue.ID, ReviewerID: reviewer.ID, Type: issues_model.ReviewTypeRequest})
+	assert.Equal(t, newRequest.ID, comment.ReviewID)
+}
+
+func TestAddReviewRequestAfterCommentOnly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull.LoadIssue(t.Context()))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	_, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeComment,
+		Issue:    issue,
+		Reviewer: reviewer,
+		Content:  "just a comment",
+	})
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	unittest.AssertCount(t, &issues_model.Review{IssueID: issue.ID, ReviewerID: reviewer.ID, Type: issues_model.ReviewTypeRequest}, 1)
+}
+
+func TestAddReviewRequestIsIdempotentAfterApproveThenRequest(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull.LoadIssue(t.Context()))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 11})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	_, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeApprove,
+		Issue:    issue,
+		Reviewer: reviewer,
+	})
+	assert.NoError(t, err)
+
+	requestReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeRequest,
+		Issue:    issue,
+		Reviewer: reviewer,
+	})
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, false)
+	assert.NoError(t, err)
+	assert.Nil(t, comment)
+
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: requestReview.ID})
+}
+
+func TestAddReviewRequestPreservesClosedPRGuardScope(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull.LoadIssue(t.Context()))
+	issue := pull.Issue
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	issue.IsClosed = true
+	assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "is_closed"))
+
+	// The closed/merged guard only ever fired when the reviewer already had an
+	// approve/reject/request review; a reviewer whose only history is a comment
+	// never triggered it, closed PR or not. That pre-existing scope must not widen.
+	reviewerWithCommentOnly := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
+	_, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeComment,
+		Issue:    issue,
+		Reviewer: reviewerWithCommentOnly,
+		Content:  "just a comment",
+	})
+	assert.NoError(t, err)
+
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewerWithCommentOnly, doer, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+
+	// A reviewer with a stale request row still has an approve/reject/request review
+	// on record, so the guard must still reject re-requesting on the closed PR.
+	reviewerWithStaleRequest := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
+	staleRequest := &issues_model.Review{Type: issues_model.ReviewTypeRequest, IssueID: issue.ID, ReviewerID: reviewerWithStaleRequest.ID}
+	_, err = db.GetEngine(t.Context()).Insert(staleRequest)
+	assert.NoError(t, err)
+
+	newerComment := &issues_model.Review{Type: issues_model.ReviewTypeComment, IssueID: issue.ID, ReviewerID: reviewerWithStaleRequest.ID, Content: "looks good"}
+	_, err = db.GetEngine(t.Context()).Insert(newerComment)
+	assert.NoError(t, err)
+
+	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewerWithStaleRequest, doer, false)
+	assert.Error(t, err)
+	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 }
 
 func TestRecalculateReviewsOfficial(t *testing.T) {
