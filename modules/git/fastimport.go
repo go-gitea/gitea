@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
@@ -36,7 +35,8 @@ type FastImportCommit struct {
 func ForceFastImportWithInit(ctx context.Context, repoLocalPath string, commits []FastImportCommit, initOpts ...FastImportInit) (RepositoryFacade, error) {
 	repo := gitrepo.RepositoryUnmanaged(repoLocalPath)
 	initOpt := util.OptionalArg(initOpts, FastImportInit{Bare: true})
-	if _, err := os.Stat(filepath.Join(repoLocalPath, "objects")); os.IsNotExist(err) {
+	dirEntries, err := os.ReadDir(repoLocalPath)
+	if os.IsNotExist(err) || (err == nil && len(dirEntries) == 0) {
 		_ = os.MkdirAll(repoLocalPath, 0o755)
 		err := InitRepositoryLocal(ctx, repoLocalPath, initOpt.Bare, util.IfZero(initOpt.ObjectFormat, "sha1"))
 		if err != nil {
