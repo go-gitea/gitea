@@ -112,7 +112,7 @@ var (
 			AllowedTypes     string
 			DefaultPagingNum int
 			FileMaxSize      int64
-			MaxFiles         int64
+			MaxFiles         int
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -226,7 +226,7 @@ var (
 			AllowedTypes     string
 			DefaultPagingNum int
 			FileMaxSize      int64
-			MaxFiles         int64
+			MaxFiles         int
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
