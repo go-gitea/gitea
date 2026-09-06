@@ -3,9 +3,12 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
 	<div class="ui container fluid padded">
-		<div class="ui top attached header clearing segment tw-relative commit-header">
-			<div class="tw-flex tw-mb-4 tw-gap-1">
-				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary tw-align-middle" title="{{.Commit.MessageTitle}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.MessageUTF8 $.Repository}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}</h3>
+		<div class="ui top attached header segment">
+			<div class="flex-left-right tw-mb-4 tw-items-start">
+				<h3 class="tw-m-0">
+					<span class="commit-summary tw-align-middle" title="{{.Commit.MessageTitle}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.MessageUTF8 $.Repository}}</span>
+					{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}
+				</h3>
 				{{if not $.PageIsWiki}}
 					<div class="commit-header-buttons">
 						<a class="ui tiny button" href="{{.SourcePath}}">
