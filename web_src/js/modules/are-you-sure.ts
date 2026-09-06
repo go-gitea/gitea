@@ -48,6 +48,7 @@ export function shouldTriggerAreYouSure(): boolean {
 }
 
 export function initGlobalFormDirtyLeaveConfirm() {
+  // TODO: refactor the "signin" forms to use "ignore-dirty" class directly, then decouple this module
   if (document.querySelector('.page-content.user.signin')) return;
   for (const form of document.querySelectorAll<HTMLFormElement>('form:not(.ignore-dirty)')) applyAreYouSure(form);
   window.addEventListener('beforeunload', (e) => {
