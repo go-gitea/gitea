@@ -132,7 +132,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         const file = {name: attachment.name, uuid: attachment.uuid, size: attachment.size};
         dzInst.emit('addedfile', file);
         dzInst.emit('complete', file);
-        if (isImageFile(file.name)) {
+        if (isImageFile(file)) {
           const imgSrc = `${attachmentBaseLinkUrl}/${file.uuid}`;
           dzInst.emit('thumbnail', file, imgSrc);
         }

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
@@ -139,5 +138,5 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	if csp == "" {
 		return ""
 	}
-	return htmlutil.HTMLFormat(`<meta http-equiv="Content-Security-Policy" content="%s">`, csp)
+	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` + csp + `">`)
 }
