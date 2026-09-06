@@ -152,9 +152,9 @@
 
 			<div class="tw-flex-1"></div>
 
-			<div class="flex-text-inline">
+			<div class="flex-text-block tw-flex-wrap">
 				{{if .Parents}}
-					<div class="flex-text-inline">
+					<div class="flex-text-inline tw-flex-wrap">
 						<span class="tw-text-text-light">{{len .Parents}} {{ctx.Locale.TrN (len .Parents) "repo.diff.parent" "repo.diff.parents"}}</span>
 						{{range $parentCommitID := .Parents}}
 							<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape $parentCommitID}}">{{ShortSha $parentCommitID}}</a>
