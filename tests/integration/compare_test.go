@@ -139,9 +139,7 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
-// Direct compare of two commits where the head (add-csv) is an ancestor of the base (remove-files-b).
-// This is what the "Compare" link of a force-push comment points to after the push has dropped
-// commits: "base..head" lists no commits, but the diff is not empty and must still be shown.
+// Head is an ancestor of base, as after a force-push drops commits: no commits, but a non-empty diff.
 func TestCompareDirectHeadIsAncestor(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -152,7 +150,7 @@ func TestCompareDirectHeadIsAncestor(t *testing.T) {
 
 	// 'link_hi' and 'test.csv' are restored, 'test.txt' is deleted
 	inspectCompare(t, htmlDoc, 3, []string{"link_hi", "test.csv", "test.txt"})
-	assert.NotContains(t, resp.Body.String(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
+	assert.NotContains(t, htmlDoc.doc.Text(), translation.NewLocale("en-US").TrString("repo.commits.nothing_to_compare"))
 	commitsHeader := strings.Join(strings.Fields(htmlDoc.doc.Find(".ui.top.attached.header .flex-text-block").First().Text()), " ")
 	assert.Equal(t, "0 "+translation.NewLocale("en-US").TrString("repo.commits.commits"), commitsHeader)
 }
