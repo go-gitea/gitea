@@ -43,15 +43,10 @@
 					</tr>
 				</thead>
 				<tbody>
-					{{range .Repos}}
+					{{range $repo := .Repos}}
 						<tr>
 							<td>{{.ID}}</td>
-							<td>
-								<a class="tw-break-anywhere" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
-								{{end}}
-							</td>
+							<td>{{template "admin/shared/owner" dict "OwnerUser" $repo.Owner}}</td>
 							<td>
 								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
@@ -59,7 +54,7 @@
 								{{end}}
 								{{if .IsPrivate}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-								{{else}}
+								{{else if .Owner}}
 									{{if .Owner.Visibility.IsPrivate}}
 										<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
 									{{end}}
@@ -86,8 +81,8 @@
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td>
 								<a class="tw-text-red show-modal" href data-modal="#admin-repo-delete-modal"
-									data-modal-form.url="{{$.Link}}/delete?page={{$.Page.Paginator.Current}}&sort={{$.SortType}}&id={{.ID}}"
-									data-modal-repo-name="{{.Name}}"
+									data-modal-form.url="{{$.Link}}/delete?id={{$repo.ID}}"
+									data-modal-repo-name="{{$repo.Name}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
