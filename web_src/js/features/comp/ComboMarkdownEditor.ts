@@ -86,6 +86,7 @@ export class ComboMarkdownEditor {
 
   buttonMonospace!: HTMLButtonElement;
 
+  dropzoneParentContainer: HTMLElement | null = null;
   dropzone: HTMLElement | null = null;
   attachedDropzoneInst?: Dropzone;
 
@@ -117,11 +118,17 @@ export class ComboMarkdownEditor {
     if (heights.maxHeight) el.style.maxHeight = heights.maxHeight;
   }
 
+  updateEditorContainerTabPage(page: 'writer' | 'previewer') {
+    this.dropzoneParentContainer?.classList.add('combo-editor-container');
+    this.dropzoneParentContainer?.setAttribute('data-combo-editor-page', page);
+  }
+
   setupContainer() {
     this.supportEasyMDE = this.container.getAttribute('data-support-easy-mde') === 'true';
     this.previewMode = this.container.getAttribute('data-content-mode')!;
     this.previewUrl = this.container.getAttribute('data-preview-url')!;
     this.previewContext = this.container.getAttribute('data-preview-context')!;
+    this.updateEditorContainerTabPage('writer');
     initTextExpander(this.container.querySelector('text-expander')!);
   }
 
@@ -170,9 +177,10 @@ export class ComboMarkdownEditor {
   }
 
   async setupDropzone() {
-    const dropzoneParentContainer = this.container.getAttribute('data-dropzone-parent-container');
-    if (!dropzoneParentContainer) return;
-    this.dropzone = this.container.closest(this.container.getAttribute('data-dropzone-parent-container')!)?.querySelector('.dropzone') ?? null;
+    const containerSelector = this.container.getAttribute('data-dropzone-parent-container');
+    if (!containerSelector) return;
+    this.dropzoneParentContainer = this.container.closest(containerSelector);
+    this.dropzone = this.dropzoneParentContainer?.querySelector('.dropzone') ?? null;
     if (!this.dropzone) return;
 
     this.attachedDropzoneInst = await initDropzone(this.dropzone);
@@ -210,7 +218,7 @@ export class ComboMarkdownEditor {
     this.tabEditor = this.container.querySelector('[data-tab-for="markdown-writer"]')!;
     this.tabPreviewer = this.container.querySelector('[data-tab-for="markdown-previewer"]')!;
     const panelEditor = this.container.querySelector('.ui.tab[data-tab-panel="markdown-writer"]')!;
-    const panelPreviewer = this.container.querySelector('.ui.tab[data-tab-panel="markdown-previewer"]')!;
+    const panelPreviewer = this.container.querySelector<HTMLElement>('.ui.tab[data-tab-panel="markdown-previewer"]')!;
 
     // Fomantic Tab requires the "data-tab" to be globally unique.
     // So here it uses our defined "data-tab-for" and "data-tab-panel" to generate the "data-tab" attribute for Fomantic.
@@ -222,12 +230,16 @@ export class ComboMarkdownEditor {
     initTabSwitcher(elTabular);
 
     this.tabEditor.addEventListener('click', () => {
+      this.updateEditorContainerTabPage('writer');
       requestAnimationFrame(() => {
         this.focus();
       });
     });
 
     this.tabPreviewer.addEventListener('click', async () => {
+      // use capture to get the event before Fomantic Tab switches the tab, so that we can set the minHeight of the previewer panel to avoid flickering.
+      panelPreviewer.style.minHeight = `${panelEditor?.clientHeight}px`;
+      this.updateEditorContainerTabPage('previewer');
       const formData = new FormData();
       formData.append('mode', this.previewMode);
       formData.append('context', this.previewContext);
@@ -249,7 +261,7 @@ export class ComboMarkdownEditor {
           triggerEditorContentChanged(this.container);
         });
       }
-    });
+    }, {capture: true});
   }
 
   generateMarkdownTable(rows: number, cols: number): string {
