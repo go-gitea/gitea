@@ -177,6 +177,10 @@ func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 	return c.allAuthors
 }
 
+func (c *Commit) CommitterIsAuthor() bool {
+	return c.Committer.Name == c.Author.Name && c.Committer.Email == c.Author.Email
+}
+
 // Git identities are not RFC 5322 addresses: net/mail rejects names like "dependabot[bot]", so fall back to the angle-addr.
 func parseCommitIdentityValue(value string) (name, email string) {
 	if addr, err := mail.ParseAddress(value); err == nil {
