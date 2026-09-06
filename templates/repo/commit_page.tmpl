@@ -146,7 +146,7 @@
 				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.authored_committed_at" $authors $committer $committedAt}}</span>
 			{{end}}
 
-			{{if and .Verification (or .Verification.Verified .Verification.Warning)}}
+			{{if .Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}
 			{{end}}
 
