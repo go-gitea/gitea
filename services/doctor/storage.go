@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"io/fs"
-	"strings"
+	stdpath "path"
 
 	"gitea.dev/models/git"
 	"gitea.dev/models/packages"
@@ -119,8 +119,8 @@ func checkStorage(opts *checkStorageOptions) func(ctx context.Context, logger lo
 				&commonStorageCheckOptions{
 					storer: storage.LFS,
 					isOrphaned: func(path string, obj storage.Object, stat fs.FileInfo) (bool, error) {
-						// The oid of an LFS stored object is the name but with all the path.Separators removed
-						oid := strings.ReplaceAll(strings.ReplaceAll(path, "\\", ""), "/", "")
+						// The oid of an LFS stored object is its filename, the sharding directories are just a prefix
+						oid := stdpath.Base(path)
 						exists, err := git.ExistsLFSObject(ctx, oid)
 						return !exists, err
 					},
