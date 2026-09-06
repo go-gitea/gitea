@@ -635,8 +635,6 @@
   "repo.issues.num_comments": "%d komentar",
   "repo.issues.commented_at": "komentar <a href=\"#%s\">%s</a>",
   "repo.issues.delete_comment_confirm": "Apakah anda yakin anda ingin menghapus komentar ini?",
-  "repo.issues.context.copy_link": "Salin tautan",
-  "repo.issues.context.quote_reply": "Kutip Balasan",
   "repo.issues.context.edit": "Sunting",
   "repo.issues.context.delete": "Hapus",
   "repo.issues.create_comment": "Komentar",
