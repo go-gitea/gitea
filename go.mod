@@ -96,7 +96,7 @@ require (
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/wneessen/go-mail v0.8.1
 	github.com/yohcop/openid-go v1.0.1
-	github.com/yuin/goldmark v1.7.17
+	github.com/yuin/goldmark v1.8.6
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	gitlab.com/gitlab-org/api/client-go/v2 v2.61.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.5
