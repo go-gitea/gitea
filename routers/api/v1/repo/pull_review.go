@@ -1060,6 +1060,104 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	dismissReview(ctx, "", false, false)
 }
 
+// MarkPullReviewStale marks a pull request review as stale
+func MarkPullReviewStale(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/stale repository markPullReviewStale
+	// ---
+	// summary: Mark a pull request review as stale
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	setReviewStale(ctx, true)
+}
+
+// UnmarkPullReviewStale removes the stale flag from a pull request review
+func UnmarkPullReviewStale(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/stale repository unmarkPullReviewStale
+	// ---
+	// summary: Remove the stale flag from a pull request review
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	setReviewStale(ctx, false)
+}
+
+func setReviewStale(ctx *context.APIContext, stale bool) {
+	review, _, isWrong := prepareSingleReview(ctx)
+	if isWrong {
+		return
+	}
+	if err := issues_model.UpdateReviewStale(ctx, review.ID, stale); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	review.Stale = stale
+	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiReview)
+}
+
 func dismissReview(ctx *context.APIContext, msg string, isDismiss, dismissPriors bool) {
 	if !ctx.Repo.Permission.IsAdmin() {
 		ctx.APIError(http.StatusForbidden, "Must be repo admin")

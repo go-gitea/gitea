@@ -1531,6 +1531,8 @@ func Routes() *web.Router {
 									Get(repo.GetPullReviewComments)
 								m.Post("/dismissals", reqToken(), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
 								m.Post("/undismissals", reqToken(), repo.UnDismissPullReview)
+								m.Put("/stale", reqToken(), repo.MarkPullReviewStale)
+								m.Delete("/stale", reqToken(), repo.UnmarkPullReviewStale)
 							})
 						})
 						m.Combo("/requested_reviewers", reqToken()).
