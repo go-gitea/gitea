@@ -93,7 +93,7 @@
 						</div>
 						<div class="field">
 							<label for="signature">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
-							<textarea id="gpg-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
+							<textarea id="gpg-key-signature-verify" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
 						<button type="submit" class="ui primary button">
