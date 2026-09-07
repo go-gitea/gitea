@@ -93,6 +93,7 @@ func Routes() *web.Router {
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
 	r.Post("/actions/generate_actions_runner_token", GenerateActionsRunnerToken)
+	r.Post("/repositories/finalize-copied-content", FinalizeCopiedContent)
 
 	r.Group("/repo", func() {
 		// FIXME: it is not right to use context.Contexter here because all routes here should use PrivateContext
