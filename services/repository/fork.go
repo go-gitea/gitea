@@ -237,6 +237,10 @@ type findForksOptions struct {
 	Doer   *user_model.User
 }
 
+func (opts findForksOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts findForksOptions) ToConds() builder.Cond {
 	cond := builder.Eq{"fork_id": opts.RepoID}
 	if opts.Doer != nil && opts.Doer.IsAdmin {

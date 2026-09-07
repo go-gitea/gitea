@@ -19,12 +19,15 @@ import (
 func TestCreatePackageMetadataResponse(t *testing.T) {
 	descriptor := func(v string, publishedUnix int64) *packages_model.PackageDescriptor {
 		return &packages_model.PackageDescriptor{
-			Package:  &packages_model.Package{Name: "test"},
+			Package:  &packages_model.Package{Name: "@scope/test"},
 			Owner:    &user_model.User{Name: "alice"},
 			Version:  &packages_model.PackageVersion{Version: v, CreatedUnix: timeutil.TimeStamp(publishedUnix)},
 			SemVer:   version.Must(version.NewVersion(v)),
 			Metadata: &npm_module.Metadata{Keywords: []string{"gitea"}},
-			Files:    []*packages_model.PackageFileDescriptor{{File: &packages_model.PackageFile{}, Blob: &packages_model.PackageBlob{}}},
+			Files: []*packages_model.PackageFileDescriptor{{
+				File: &packages_model.PackageFile{LowerName: "test-" + v + ".tgz"},
+				Blob: &packages_model.PackageBlob{},
+			}},
 		}
 	}
 
@@ -43,4 +46,8 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 	assert.Equal(t, []string{"gitea"}, result.Keywords)
 	assert.Equal(t, []string{"gitea"}, result.Versions["1.0.0"].Keywords)
 	assert.Equal(t, []npm_module.User{{Name: "alice"}}, result.Versions["1.0.0"].Maintainers)
+	assert.Equal(t,
+		"https://gitea.dev/api/packages/alice/npm/@scope%2Ftest/-/1.0.0/test-1.0.0.tgz",
+		result.Versions["1.0.0"].Dist.Tarball,
+	)
 }

@@ -12,26 +12,45 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"golang.org/x/mod/modfile"
 )
+
+// goModIgnoredDirs returns the go.mod "ignore" directories, which the go tool skips but a filesystem walk does not.
+func goModIgnoredDirs() (map[string]bool, error) {
+	data, err := os.ReadFile("go.mod")
+	if err != nil {
+		return nil, err
+	}
+	mod, err := modfile.Parse("go.mod", data, nil)
+	if err != nil {
+		return nil, err
+	}
+	dirs := make(map[string]bool, len(mod.Ignore))
+	for _, ignore := range mod.Ignore {
+		dirs[filepath.ToSlash(filepath.Clean(ignore.Path))] = true
+	}
+	return dirs, nil
+}
 
 func lintGoHeader() bool {
 	headerRE := regexp.MustCompile(`^(// (Copyright [^\n]+|All rights reserved\.)\n)*// Copyright \d{4} (The Gogs Authors|The Gitea Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?\n(// (Copyright [^\n]+|All rights reserved\.)\n)*// SPDX-License-Identifier: [\w.-]+`)
 	generatedRE := regexp.MustCompile(`(?m)^// (Code|This file is) [Gg]enerated.*DO NOT EDIT`)
-	skipDirs := map[string]bool{
-		".git":         true,
-		".venv":        true,
-		"node_modules": true,
-		"public":       true,
-		"vendor":       true,
-		"web_src":      true,
+	skipDirs, err := goModIgnoredDirs()
+	if err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		return false
 	}
 	root, bad := ".", 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
-			if rel, _ := filepath.Rel(root, path); skipDirs[filepath.ToSlash(rel)] {
+			if path == root {
+				return nil
+			}
+			if skipDirs[filepath.ToSlash(path)] || strings.HasPrefix(d.Name(), ".") {
 				return fs.SkipDir
 			}
 			return nil
@@ -91,13 +110,21 @@ func main() {
 
 	_, _ = fmt.Fprintln(os.Stdout, "lint go header ...")
 	succeed := lintGoHeader()
+
 	_, _ = fmt.Fprintln(os.Stdout, "lint for linux ...")
-	succeed = runCmd([]string{"GOOS=linux", "TAGS=bindata"}, "golangci-lint", append([]string{"run", "--build-tags=linux,bindata"}, os.Args[1:]...)) && succeed
+	lintTagsLinux := ""
+	if os.Getenv("CI") != "" || strings.Contains(os.Getenv("TAGS"), "bindata") {
+		// also lint with bindata tag if we are in CI or the "bindata" is explicitly set in the env TAGS
+		lintTagsLinux = "bindata"
+	}
+	succeed = runCmd([]string{"GOOS=linux", "TAGS=" + lintTagsLinux}, "golangci-lint", append([]string{"run", "--build-tags=linux," + lintTagsLinux}, os.Args[1:]...)) && succeed
+
 	if os.Getenv("CI") != "" {
 		// only lint for other platforms when in CI, to keep local lint fast
 		_, _ = fmt.Fprintln(os.Stdout, "lint for windows ...")
 		succeed = runCmd([]string{"GOOS=windows", "TAGS=gogit"}, "golangci-lint", append([]string{"run", "--build-tags=windows,gogit"}, os.Args[1:]...)) && succeed
 	}
+
 	if !succeed {
 		os.Exit(1)
 	}

@@ -39,9 +39,11 @@ func TestCodespaceTokenBasicAuth(t *testing.T) {
 	assert.EqualValues(t, 1, u.ID)
 	assert.Equal(t, CodespaceTokenMethodName, store.GetData()["LoginMethod"])
 	assert.Equal(t, true, store.GetData()["IsApiToken"])
-	scope := store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope)
+	scope, ok := store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope)
+	require.True(t, ok)
 	assertContainsCodespaceScopes(t, scope)
-	snapshot := store.GetData()[codespace_model.GiteaTokenAuthDataKey].(*codespace_service.GiteaTokenAuthSnapshot)
+	snapshot, ok := store.GetData()[codespace_model.GiteaTokenAuthDataKey].(*codespace_service.GiteaTokenAuthSnapshot)
+	require.True(t, ok)
 	assert.Equal(t, codespaceUUID, snapshot.CodespaceUUID)
 	assert.EqualValues(t, 2, snapshot.RepoID)
 }
@@ -60,7 +62,9 @@ func TestCodespaceTokenBearerAuth(t *testing.T) {
 	require.NotNil(t, u)
 	assert.EqualValues(t, 1, u.ID)
 	assert.Equal(t, CodespaceTokenMethodName, store.GetData()["LoginMethod"])
-	assertContainsCodespaceScopes(t, store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope))
+	scope, ok := store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope)
+	require.True(t, ok)
+	assertContainsCodespaceScopes(t, scope)
 }
 
 func TestCodespaceTokenQueryAuthIsIgnored(t *testing.T) {
@@ -83,7 +87,7 @@ func TestCodespaceTokenBasicAuthHonorsWebRoutePermission(t *testing.T) {
 	token, _ := createAuthCodespaceToken(t)
 	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1/releases/download/v1/file.zip", nil)
 	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(req.Context()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(t))
 	req.SetBasicAuth(token, "x-oauth-basic")
 	SetCodespaceTokenAuthAllowed(req.Context(), false)
 
@@ -99,7 +103,7 @@ func TestCodespaceTokenBasicAuthAllowsMarkedWebRoute(t *testing.T) {
 	token, _ := createAuthCodespaceToken(t)
 	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1.git/info/refs", nil)
 	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(req.Context()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(t))
 	req.SetBasicAuth(token, "x-oauth-basic")
 	SetCodespaceTokenAuthAllowed(req.Context(), true)
 
@@ -115,7 +119,7 @@ func TestCodespaceTokenBearerAuthAllowsMarkedWebRoute(t *testing.T) {
 	token, _ := createAuthCodespaceToken(t)
 	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1.git/info/lfs/objects/batch", nil)
 	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(req.Context()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(t))
 	req.Header.Set("Authorization", "Bearer "+token)
 	SetCodespaceTokenAuthAllowed(req.Context(), true)
 	group := NewGroup(&Basic{}, &CodespaceToken{})
@@ -147,7 +151,7 @@ func TestCodespaceTokenQueryAuthIgnoredForWebAuth(t *testing.T) {
 	token, _ := createAuthCodespaceToken(t)
 	req, err := http.NewRequest(http.MethodGet, "https://example.test/user2/repo1?token="+token, nil)
 	require.NoError(t, err)
-	req = req.WithContext(reqctx.NewRequestContextForTest(req.Context()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(t))
 	SetCodespaceTokenAuthAllowed(req.Context(), true)
 
 	u, err := new(OAuth2).Verify(req, nil, make(reqctx.ContextData), nil)

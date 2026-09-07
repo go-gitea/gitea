@@ -43,7 +43,7 @@ func AssetsCors() func(next http.Handler) http.Handler {
 func FileHandlerFunc() http.HandlerFunc {
 	assetFS := AssetFS()
 	return func(resp http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" && req.Method != "HEAD" {
+		if req.Method != http.MethodGet && req.Method != http.MethodHead {
 			resp.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}

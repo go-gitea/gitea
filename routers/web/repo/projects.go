@@ -103,8 +103,7 @@ func Projects(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(count, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)

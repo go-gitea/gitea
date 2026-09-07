@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
@@ -23,6 +24,7 @@ type PrivateContext struct {
 	*Base
 	Override context.Context
 
+	Doer *user_model.User
 	Repo *Repository
 }
 

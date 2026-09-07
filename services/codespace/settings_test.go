@@ -31,6 +31,10 @@ func TestCreateManagerReturnsOneTimeSecret(t *testing.T) {
 	assert.Equal(t, "Personal Manager", manager.Name)
 	assert.EqualValues(t, 1, manager.UserID)
 	assert.Equal(t, codespace_model.ManagerRuntimeStateRecovering, manager.RuntimeState)
+	views, err := ListManagerSettings(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1})
+	require.NoError(t, err)
+	require.Len(t, views.Managers, 1)
+	assert.Equal(t, managerDisplayPending, views.Managers[0].RuntimeDisplayState)
 }
 
 func TestCreateManagerRejectsInvalidName(t *testing.T) {

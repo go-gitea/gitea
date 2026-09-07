@@ -72,7 +72,7 @@
 			{{range $user, $trackedtime := .WorkingUsers}}
 				<div class="item tw-gap-3">
 					{{template "shared/user/avatarlink" dict "user" $user}}
-					<div>
+					<div class="muted-links">
 						{{template "shared/user/authorlink" $user}}
 						<div class="text">{{$trackedtime|Sec2Hour}}</div>
 					</div>

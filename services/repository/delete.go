@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
@@ -50,9 +51,12 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 	return nil
 }
 
-// DeleteRepository deletes a repository for a user or organization.
-// make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
+// DeleteRepositoryDirectly deletes a repository for a user or organization.
 func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
+	if db.InTransaction(ctx) {
+		return errors.New("DeleteRepositoryDirectly must not be called within a transaction, it deletes storage once its own transaction commits")
+	}
+
 	return globallock.LockAndDo(ctx, WorkingLockKey(repoID), func(ctx context.Context) error {
 		return deleteRepositoryDirectlyLocked(ctx, repoID, ignoreOrgTeams...)
 	})

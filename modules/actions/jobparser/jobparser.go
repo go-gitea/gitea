@@ -4,7 +4,6 @@
 package jobparser
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"slices"
@@ -43,7 +42,7 @@ func rawMatrixReadsNeeds(node *yaml.Node) bool {
 // a scalar), neither of which describes the one job the payload stands for.
 func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, *Job, error) {
 	swf := &SingleWorkflow{}
-	if err := yaml.Unmarshal(payload, swf); err != nil {
+	if err := decodeResolved(payload, swf); err != nil {
 		return nil, nil, fmt.Errorf("unmarshal single workflow: %w", err)
 	}
 	id, job := swf.Job()
@@ -96,14 +95,21 @@ func expressionReadsContext(value, contextName string) bool {
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
-	origin, err := model.ReadWorkflow(bytes.NewReader(content))
+	// The workflow is split into one document per job below, which would strand an alias whose
+	// anchor lands in another one.
+	doc, err := resolveYamlAliases(content)
 	if err != nil {
-		return nil, fmt.Errorf("model.ReadWorkflow: %w", err)
+		return nil, fmt.Errorf("resolve aliases: %w", err)
+	}
+
+	origin, err := readWorkflowDoc(doc)
+	if err != nil {
+		return nil, fmt.Errorf("read workflow: %w", err)
 	}
 
 	workflow := &SingleWorkflow{}
-	if err := yaml.Unmarshal(content, workflow); err != nil {
-		return nil, fmt.Errorf("yaml.Unmarshal: %w", err)
+	if err := decodeYamlDoc(doc, workflow); err != nil {
+		return nil, fmt.Errorf("decode workflow: %w", err)
 	}
 
 	pc := &parseContext{}
@@ -248,9 +254,6 @@ func validateMatrixFilters(job *model.Job) error {
 			entries = value.Content
 		}
 		for _, entry := range entries {
-			if entry.Kind == yaml.AliasNode {
-				entry = entry.Alias
-			}
 			if entry.Kind != yaml.MappingNode {
 				return fmt.Errorf("matrix %s must be a list of mappings", name)
 			}

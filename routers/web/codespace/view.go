@@ -83,8 +83,7 @@ func List(ctx *context.Context) {
 	ctx.Data["Codespaces"] = result.Rows
 	ctx.Data["CodespaceOwner"] = ownerName
 	ctx.Data["CodespaceListReturnTo"] = setting.AppSubURL + codespaceListPath(ownerName, page)
-	pager := context.NewPagination(result.Total, pageSize, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(result.Total).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCodespaceList)
 }

@@ -5,7 +5,7 @@ package codespace
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
@@ -40,7 +40,7 @@ type ValidatePublicEndpointOptions struct {
 // ValidatePublicEndpoint authorizes unauthenticated traffic to a public Runtime Endpoint.
 func ValidatePublicEndpoint(ctx context.Context, manager *codespace_model.Manager, opts ValidatePublicEndpointOptions) (*codespacev1.ValidatePublicEndpointResponse, error) {
 	if manager == nil || manager.ID <= 0 {
-		return nil, fmt.Errorf("manager is required")
+		return nil, errors.New("manager is required")
 	}
 	if !setting.Codespace.Enabled {
 		return denyPublicEndpoint(PublicEndpointDeniedStateUnavailable), nil

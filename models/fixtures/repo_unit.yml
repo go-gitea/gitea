@@ -748,4 +748,18 @@
   config: "{}"
   created_unix: 946684810
 
+-
+  id: 113
+  repo_id: 19
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 114
+  repo_id: 20
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
 # DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

@@ -85,7 +85,7 @@ const GiteaTokenAuthDataKey = "CodespaceToken"
 // Codespace stores Gitea-owned lifecycle state for one remote development environment.
 type Codespace struct {
 	ID                        int64
-	UUID                      string `xorm:"CHAR(36) NOT NULL DEFAULT '' index"`
+	UUID                      string `xorm:"VARCHAR(36) NOT NULL DEFAULT '' index"`
 	UserID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RepoID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RefType                   string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`

@@ -190,11 +190,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 
 			// * if the doer tries to "Force Merge", check whether it is really allowed
 			if forceMerge {
-				isRepoAdmin, errForceMerge := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
-				if errForceMerge != nil {
-					return fmt.Errorf("IsUserRepoAdmin failed, repo: %v, doer: %v, err: %w", pr.BaseRepoID, doer.ID, errForceMerge)
-				}
-
+				isRepoAdmin := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
 				protectedBranchRule, errForceMerge := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 				if errForceMerge != nil {
 					return fmt.Errorf("GetFirstMatchProtectedBranchRule failed, repo: %v, base branch: %v, err: %w", pr.BaseRepoID, pr.BaseBranch, errForceMerge)
@@ -301,7 +297,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 	} else if !exist {
 		return
 	}
-	automergequeue.StartPRCheckAndAutoMerge(ctx, pr)
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 }
 
 // getMergeCommit checks if a pull request has been merged

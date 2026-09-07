@@ -11,10 +11,13 @@ import (
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSudoRejectsCodespaceToken(t *testing.T) {
@@ -124,4 +127,14 @@ func (s testCodespaceTokenSnapshot) CodespaceTokenAllowsAnyRepository(repoID int
 
 func (s testCodespaceTokenSnapshot) CodespaceTokenAllowsRepository(repoID int64, _ unit.Type, _ perm.AccessMode) bool {
 	return repoID == s.repoID
+}
+
+func TestDoerNeedTwoFactorAuth(t *testing.T) {
+	defer test.MockVariableValue(&setting.TwoFactorAuthEnforced, true)()
+
+	for _, doer := range []*user_model.User{nil, user_model.NewActionsUser(), user_model.NewDeployKeyUser()} {
+		need, err := doerNeedTwoFactorAuth(t.Context(), doer)
+		require.NoError(t, err)
+		assert.False(t, need)
+	}
 }

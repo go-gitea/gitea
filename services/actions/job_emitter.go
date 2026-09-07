@@ -64,11 +64,13 @@ func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 
 func checkJobsByRunID(ctx context.Context, runID int64) error {
 	run, exist, err := db.GetByID[actions_model.ActionRun](ctx, runID)
-	if !exist {
-		return fmt.Errorf("run %d does not exist", runID)
-	}
 	if err != nil {
 		return fmt.Errorf("get action run: %w", err)
+	}
+	if !exist {
+		// a deleted run never comes back, returning an error here would requeue the update forever
+		log.Debug("check run %d: run no longer exists, dropping the queued update", runID)
+		return nil
 	}
 	var result jobsCheckResult
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -243,6 +245,11 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (*jo
 
 // checkJobsOfCurrentRunAttempt resolves blocked jobs of the run's latest attempt.
 func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun) (*jobsCheckResult, error) {
+	// Approval is the only transition allowed to release an approval-pending run.
+	if run.NeedApproval {
+		return &jobsCheckResult{}, nil
+	}
+
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
 	if err != nil {
 		return nil, err

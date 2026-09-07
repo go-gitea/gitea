@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"path"
@@ -121,7 +120,7 @@ func GetContentFromEntry(ctx context.Context, gitRepo *git.Repository, entry *gi
 }
 
 func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+	workflow, err := jobparser.ReadWorkflow(content)
 	if err != nil {
 		return nil, err
 	}

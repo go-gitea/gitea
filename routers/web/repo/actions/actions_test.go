@@ -212,7 +212,7 @@ func newWorkflowBadgeTestContext(t *testing.T) *web_context.Context {
 
 	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/user1/repo1/actions", nil)
 	resp := httptest.NewRecorder()
-	ctx := web_context.NewWebContext(web_context.NewBaseContextForTest(resp, req), nil, nil)
+	ctx := web_context.NewWebContext(web_context.NewBaseContextForTest(t, resp, req), nil, nil)
 	ctx.Repo.Repository = &repo_model.Repository{
 		OwnerName:     "user1",
 		Name:          "repo1",

@@ -13,7 +13,13 @@ vi.mock('../modules/fomantic/base.ts', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Polling tests must not depend on which browser test page has focus.
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   document.documentElement.lang = 'en-US';
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 test('codespace create environment selection updates its explanation', () => {
@@ -179,11 +185,18 @@ function codespaceLogHTML(offset = '0', lineCount = '0', empty = 'true') {
   `;
 }
 
+function codespaceLogResponse(body: Record<string, unknown>) {
+  const response = new Response();
+  // Native response body reads run outside fake timers, so mock decoding for scheduling tests.
+  vi.spyOn(response, 'json').mockResolvedValue(body);
+  return response;
+}
+
 test('initCodespaceLiveState immediately appends structured log lines', {concurrent: false}, async () => {
   try {
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML();
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({
+    const fetchMock = vi.fn().mockResolvedValue(codespaceLogResponse({
       next_offset: 12,
       eof: true,
       operation_active: true,
@@ -191,7 +204,7 @@ test('initCodespaceLiveState immediately appends structured log lines', {concurr
         {timestamp: 1785037200, message: 'first'},
         {timestamp: 1785037201, message: 'second'},
       ],
-    }, {status: 200}));
+    }));
     vi.stubGlobal('fetch', fetchMock);
     const logView = document.querySelector<HTMLElement>('#codespace-log-view')!;
     Object.defineProperties(logView, {
@@ -226,12 +239,12 @@ test('codespace log refresh preserves a reader position away from the bottom', {
   try {
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML('12', '2', 'false');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(codespaceLogResponse({
       next_offset: 18,
       eof: true,
       operation_active: true,
       lines: [{timestamp: 1785037202, message: 'third'}],
-    }, {status: 200})));
+    })));
     const logView = document.querySelector<HTMLElement>('#codespace-log-view')!;
     Object.defineProperties(logView, {
       clientHeight: {value: 100},
@@ -256,7 +269,7 @@ test('codespace log renders Actions groups, severities, commands, links, and ANS
   try {
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML();
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(codespaceLogResponse({
       next_offset: 32,
       eof: true,
       operation_active: false,
@@ -268,7 +281,7 @@ test('codespace log renders Actions groups, severities, commands, links, and ANS
         {timestamp: 1785037204, message: '##[error]failed'},
         {timestamp: 1785037205, message: '##[endgroup]'},
       ],
-    }, {status: 200})));
+    })));
 
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(0);
@@ -295,7 +308,7 @@ test('codespace log reloads once after an offset conflict', {concurrent: false},
     document.body.innerHTML = codespaceLogHTML('12', '2', 'false');
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(null, {status: 409}))
-      .mockResolvedValueOnce(Response.json({next_offset: 4, eof: true, operation_active: false, lines: [{timestamp: 1785037200, message: 'reloaded'}]}));
+      .mockResolvedValueOnce(codespaceLogResponse({next_offset: 4, eof: true, operation_active: false, lines: [{timestamp: 1785037200, message: 'reloaded'}]}));
     vi.stubGlobal('fetch', fetchMock);
 
     initCodespaceLiveState();
@@ -317,7 +330,7 @@ test('codespace log catches up pages without the polling delay and preserves gro
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML();
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(Response.json({
+      .mockResolvedValueOnce(codespaceLogResponse({
         next_offset: 12,
         eof: false,
         operation_active: true,
@@ -326,7 +339,7 @@ test('codespace log catches up pages without the polling delay and preserves gro
           {timestamp: 1785037201, message: 'first page'},
         ],
       }))
-      .mockResolvedValueOnce(Response.json({
+      .mockResolvedValueOnce(codespaceLogResponse({
         next_offset: 24,
         eof: true,
         operation_active: true,
@@ -358,7 +371,7 @@ test('codespace log yields while rendering a large page', {concurrent: false}, a
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML();
     const lines = Array.from({length: 501}, (_, index) => ({timestamp: 1785037200 + index, message: `line ${index + 1}`}));
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({next_offset: 501, eof: true, operation_active: false, lines})));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(codespaceLogResponse({next_offset: 501, eof: true, operation_active: false, lines})));
 
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(0);
@@ -377,7 +390,7 @@ test('codespace log confirms an inactive EOF once and then stops polling', {conc
   try {
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML();
-    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(Response.json({next_offset: 12, eof: true, operation_active: false, lines: []})));
+    const fetchMock = vi.fn().mockResolvedValue(codespaceLogResponse({next_offset: 12, eof: true, operation_active: false, lines: []}));
     vi.stubGlobal('fetch', fetchMock);
 
     initCodespaceLiveState();
@@ -392,11 +405,11 @@ test('codespace log confirms an inactive EOF once and then stops polling', {conc
   }
 });
 
-test('codespace log backs off when a non-EOF response does not advance', {concurrent: false}, async () => {
+test('codespace log backs off without progress and pauses while hidden', {concurrent: false}, async () => {
   try {
     vi.useFakeTimers();
     document.body.innerHTML = codespaceLogHTML('12');
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({next_offset: 12, eof: false, operation_active: true, lines: []}));
+    const fetchMock = vi.fn().mockResolvedValue(codespaceLogResponse({next_offset: 12, eof: false, operation_active: true, lines: []}));
     vi.stubGlobal('fetch', fetchMock);
 
     initCodespaceLiveState();
@@ -407,6 +420,17 @@ test('codespace log backs off when a non-EOF response does not advance', {concur
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(10);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    await vi.advanceTimersByTimeAsync(100);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(39);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   } finally {
     vi.useRealTimers();
     vi.unstubAllGlobals();

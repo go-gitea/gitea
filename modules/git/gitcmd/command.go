@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -47,7 +46,7 @@ type Command struct {
 	// otherwise some git commands might overwrite git dir internal files by a repo file.
 	gitDir string
 
-	cmd *exec.Cmd
+	cmd *process.Cmd
 
 	cmdCtx       context.Context
 	cmdCancel    process.CancelCauseFunc
@@ -432,30 +431,24 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 
 	c.cmdStartTime = time.Now()
 
-	c.cmd = exec.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
+	c.cmd = process.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
 	if c.cmdEnv == nil {
 		c.cmd.Env = os.Environ()
 	} else {
 		c.cmd.Env = c.cmdEnv
 	}
 
-	process.SetSysProcAttribute(c.cmd)
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
 	c.cmd.Dir = c.gitDir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin
 	c.cmd.Stderr = c.cmdStderr
-	c.cmd.Cancel = func() error {
-		// Golang's default cmd.Cancel only calls Process.Kill(), but here we need to close the parent pipes together:
-		// * for some commands like "git --batch-xxx", Windows git might have 2 processes (a wrapper and a real git process)
-		// * on Windows, if parent process is killed (context canceled), the children process won't be killed, and the pipe handles are still open.
-		// * if we don't close the parent pipes here, the children process won't exit.
-		//
-		// There is no such problem on POSIX, while it won't make things worse by closing the parent pipes also on POSIX.
-		err := c.cmd.Process.Kill()
+	c.cmd.WithOnCancelGracefully(func() error {
+		// Need to close the pipes to notify all sub processes to exit.
+		// Especially on Windows: there is no process group, and we didn't implement process job object (like process group).
 		c.closePipeFiles(c.parentPipeFiles)
-		return err
-	}
+		return nil
+	})
 	return c.cmd.Start()
 }
 

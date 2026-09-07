@@ -72,7 +72,7 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attachment))
 }
 
 // ListIssueCommentAttachments lists all attachments of the comment
@@ -114,7 +114,7 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIAttachments(ctx.Repo.Repository, comment.Attachments))
+	ctx.JSON(http.StatusOK, convert.ToAPIAttachments(ctx, ctx.Repo.Repository, comment.Attachments))
 }
 
 // CreateIssueCommentAttachment creates an attachment and saves the given file
@@ -225,7 +225,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attachment))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attachment))
 }
 
 // EditIssueCommentAttachment updates the given attachment
@@ -291,7 +291,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
+	ctx.JSON(http.StatusCreated, convert.ToAPIAttachment(ctx, ctx.Repo.Repository, attach))
 }
 
 // DeleteIssueCommentAttachment delete a given attachment

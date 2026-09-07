@@ -13,16 +13,15 @@ export function basename(path: string): string {
   return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
-/** transform /path/to/file.ext to .ext */
+/** transform /path/to/file.ext to .ext, dotfiles like /path/to/.gitignore have no extension */
 export function extname(path: string): string {
-  const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
-  if (lastSlashIndex > lastPointIndex) return '';
-  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
+  if (lastPointIndex <= path.lastIndexOf('/') + 1) return '';
+  return path.substring(lastPointIndex);
 }
 
 /** test whether a variable is an object */
-export function isObject<T = Record<string, any>>(obj: any): obj is T {
+export function isObject(obj: unknown): obj is Record<string, unknown> {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
@@ -50,17 +49,21 @@ export function stripTags(text: string): string {
   return text;
 }
 
-export function parseIssueHref(href: string): IssuePathInfo {
+export function parseIssueHref(href: string): IssuePathInfo | null {
   // FIXME: it should use pathname and trim the appSubUrl ahead
   const path = (href || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
+  const match = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path);
+  if (!match) return null;
+  const [, ownerName, repoName, pathType, indexString] = match;
   return {ownerName, repoName, pathType, indexString};
 }
 
-export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
+export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo | null {
   const appSubUrl = window.config.appSubUrl;
   if (appSubUrl && pathname.startsWith(appSubUrl)) pathname = pathname.substring(appSubUrl.length);
-  const [_, ownerName, repoName] = /([^/]+)\/([^/]+)/.exec(pathname) || [];
+  const match = /([^/]+)\/([^/]+)/.exec(pathname);
+  if (!match) return null;
+  const [, ownerName, repoName] = match;
   return {ownerName, repoName};
 }
 
@@ -170,11 +173,11 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
+export function isImageFile({name, type}: {name: string | null, type: string | null}): boolean {
   return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
-export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
+export function isVideoFile({name, type}: {name: string | null, type: string | null}): boolean {
   return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 

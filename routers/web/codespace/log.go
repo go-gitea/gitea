@@ -47,8 +47,7 @@ func Logs(ctx *context.Context) {
 		Limit:       limit,
 	})
 	if err != nil {
-		var offsetErr *codespace_service.LogOffsetError
-		if errors.As(err, &offsetErr) {
+		if offsetErr, ok := errors.AsType[*codespace_service.LogOffsetError](err); ok {
 			if errors.Is(err, codespace_service.ErrReadLogOffsetConflict) {
 				writeLogError(ctx, http.StatusConflict, "offset_conflict", offsetErr.CurrentOffset)
 				return

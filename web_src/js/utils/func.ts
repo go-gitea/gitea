@@ -25,7 +25,7 @@ export type TimedFunction<T extends (...args: Array<any>) => any> = ((...args: P
 function createTimed<T extends (...args: Array<any>) => any>(func: T, wait: number, leading: boolean, trailing: boolean, isThrottle: boolean): TimedFunction<T> {
   let timer: TimeoutId | null = null;
   let pendingArgs: Parameters<T> | null = null;
-  let resolvers: Array<{resolve: (value: any) => void, reject: (reason: any) => void}> = [];
+  let resolvers: Array<{resolve: (value: Awaited<ReturnType<T>>) => void, reject: (reason: any) => void}> = [];
 
   const invoke = async (args: Parameters<T>): Promise<void> => {
     const settling = resolvers;

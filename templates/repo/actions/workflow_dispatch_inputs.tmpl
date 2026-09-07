@@ -12,7 +12,7 @@
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
-				<select class="ui selection dropdown" name="{{.Name}}">
+				<select class="ui search selection dropdown" name="{{.Name}}">
 					{{range .Options}}
 						<option value="{{.}}" {{if eq $item.Default .}}selected{{end}}>{{.}}</option>
 					{{end}}

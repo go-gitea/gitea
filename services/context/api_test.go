@@ -57,7 +57,7 @@ func TestGenAPILinks(t *testing.T) {
 }
 
 func TestAPIContextTokenCanAccessRepoForCodespaceToken(t *testing.T) {
-	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t.Context())}}
+	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t)}}
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/user5/repo4", nil)
 	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 2}
 
@@ -74,7 +74,7 @@ func TestAPIContextTokenCanAccessRepoForCodespaceToken(t *testing.T) {
 }
 
 func TestUseAnonymousForPublicCodespaceRead(t *testing.T) {
-	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t.Context())}}
+	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t)}}
 	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/public/repo", nil)
 	ctx.Doer = &user_model.User{ID: 2}
 	ctx.IsSigned = true

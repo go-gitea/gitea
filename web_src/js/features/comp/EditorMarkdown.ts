@@ -13,7 +13,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
   textarea.focus();
   let success = false;
   try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated -- no replacement keeps the undo history
   } catch {}
 
   // fall back to regular replacement

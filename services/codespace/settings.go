@@ -413,7 +413,9 @@ func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manag
 			GatewaySSHHostKeyUpdatedUnix:       manager.GatewaySSHHostKeyUpdatedUnix,
 			BoundCodespaces:                    boundCodespacesByManager[manager.ID],
 		}
-		if isManagerOffline(manager) {
+		if manager.LastOnlineUnix == 0 {
+			view.RuntimeDisplayState = managerDisplayPending
+		} else if isManagerOffline(manager) {
 			view.RuntimeDisplayState = managerDisplayOffline
 		}
 		if view.Name == "" {

@@ -264,7 +264,7 @@ func populateManagerSettingsData(ctx *context.Context, opts managerSettingsRende
 		ctx.Data["CodespaceTotal"] = unassigned.Total
 		ctx.Data["CodespaceEmptyMessage"] = ctx.Tr("codespace.no_unassigned_codespaces")
 		ctx.Data["CodespaceActionBase"] = opts.ActionBase + "/unassigned"
-		ctx.Data["Page"] = context.NewPagination(unassigned.Total, setting.UI.Admin.UserPagingNum, page, 5)
+		ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(unassigned.Total).PerPageLimit(setting.UI.Admin.UserPagingNum).CurPage(page).Build()
 	}
 	return true
 }
@@ -294,7 +294,7 @@ func renderManagerDetail(ctx *context.Context, opts managerSettingsRenderOptions
 	ctx.Data["ActionBase"] = opts.ActionBase
 	ctx.Data["IsSiteManagerSettings"] = opts.Scope == codespace_service.ManagerSettingsScopeSite
 	ctx.Data["CodespaceActionBase"] = opts.ActionBase + "/" + strconv.FormatInt(detail.Manager.ID, 10) + "/codespaces"
-	ctx.Data["Page"] = context.NewPagination(detail.Total, setting.UI.Admin.UserPagingNum, page, 5)
+	ctx.Data["Page"] = context.NewPagerBuilder(ctx).TotalCount(detail.Total).PerPageLimit(setting.UI.Admin.UserPagingNum).CurPage(page).Build()
 	ctx.HTML(http.StatusOK, opts.Template)
 }
 

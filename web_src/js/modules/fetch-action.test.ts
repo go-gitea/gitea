@@ -1,4 +1,4 @@
-import {execPseudoSelectorCommands, handleFetchActionErrorFields, handleFetchActionSuccessJson} from './common-fetch-action.ts';
+import {execPseudoSelectorCommands, handleFetchActionErrorFields, handleFetchActionSuccessJson} from './fetch-action.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {captureNavigations, normalizeTestHtml} from '../utils/testhelper.ts';
 

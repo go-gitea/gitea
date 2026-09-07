@@ -49,7 +49,7 @@ async function showRefIssuePopup(link: HTMLAnchorElement) {
 export function initRefIssueContextPopup() {
   const selector = 'a[href]:not([data-ref-issue-popup]):not(.ref-external-issue)';
   addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
-    if (!parseIssueHref(link.getAttribute('href')!).ownerName) return;
+    if (!parseIssueHref(link.getAttribute('href')!)) return;
     if (!link.classList.contains('ref-issue') && !link.closest('[data-ref-issue-container]')) return;
     if (getAttachedTippyInstance(link)) return;
     link.setAttribute('data-ref-issue-popup', '');

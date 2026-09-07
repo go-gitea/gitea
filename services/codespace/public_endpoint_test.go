@@ -147,10 +147,16 @@ func serviceRuntimeMetadataProto(t *testing.T, operationRVersion int64, stage st
 	t.Helper()
 	metadataEndpoints := make([]*codespacev1.RuntimeEndpoint, 0, len(endpoints)+1)
 	for _, endpoint := range endpoints {
+		endpointID, ok := endpoint["endpoint_id"].(string)
+		require.True(t, ok)
+		label, ok := endpoint["label"].(string)
+		require.True(t, ok)
+		public, ok := endpoint["public"].(bool)
+		require.True(t, ok)
 		metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{
-			EndpointId: endpoint["endpoint_id"].(string),
-			Label:      endpoint["label"].(string),
-			Public:     endpoint["public"].(bool),
+			EndpointId: endpointID,
+			Label:      label,
+			Public:     public,
 		})
 	}
 	if stage == bootStagePublishReady || stage == bootStageReady {

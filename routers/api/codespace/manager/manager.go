@@ -33,6 +33,19 @@ type Service struct {
 	codespacev1connect.UnimplementedManagerServiceHandler
 }
 
+// CheckManager confirms the authenticated Manager identity without changing it.
+func (s *Service) CheckManager(
+	ctx context.Context,
+	_ *connect.Request[codespacev1.CheckManagerRequest],
+) (*connect.Response[codespacev1.CheckManagerResponse], error) {
+	manager := GetManager(ctx)
+	_, _, _, giteaWebURL := codespace_service.ManagerServiceTimings()
+	return connect.NewResponse(&codespacev1.CheckManagerResponse{
+		GiteaWebUrl: giteaWebURL,
+		ManagerName: manager.Name,
+	}), nil
+}
+
 // DeclareManager stores the authenticated Manager's current declaration.
 func (s *Service) DeclareManager(
 	ctx context.Context,
@@ -246,8 +259,7 @@ type serviceErrorCase struct {
 }
 
 func reportRuntimeError(err error, cases []serviceErrorCase) error {
-	var staleGeneration *codespace_service.StaleGenerationError
-	if errors.As(err, &staleGeneration) {
+	if staleGeneration, ok := errors.AsType[*codespace_service.StaleGenerationError](err); ok {
 		return failureErrorWithStaleGeneration(connect.CodeFailedPrecondition, "stale_generation", staleGeneration.CurrentGeneration, err)
 	}
 	return serviceFailureError(err, "invalid_argument", cases)

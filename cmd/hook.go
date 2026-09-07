@@ -186,23 +186,24 @@ Gitea or set your environment appropriately.`, "")
 
 	// the environment is set by serv command
 	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
-	username := os.Getenv(repo_module.EnvRepoUsername)
-	reponame := os.Getenv(repo_module.EnvRepoName)
+	ownerName := os.Getenv(repo_module.EnvRepoUsername)
+	repoName := os.Getenv(repo_module.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
-	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
-	actionsTaskID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvActionsTaskID), 10, 64)
 
 	hookOptions := private.HookOptions{
-		UserID:                          userID,
+		IsWiki: isWiki,
+
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
-		PullRequestID:                   prID,
-		DeployKeyID:                     deployKeyID,
-		ActionsTaskID:                   actionsTaskID,
-		IsWiki:                          isWiki,
+
+		PullRequestID: prID,
+
+		UserID:          userID,
+		UserName:        os.Getenv(repo_module.EnvPusherName),
+		UserExtDoerData: os.Getenv(repo_module.EnvPusherExtDoerData),
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -257,7 +258,7 @@ Gitea or set your environment appropriately.`, "")
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
 				hookOptions.RefFullNames = refFullNames
-				extra := private.HookPreReceive(ctx, username, reponame, hookOptions)
+				extra := private.HookPreReceive(ctx, ownerName, repoName, hookOptions)
 				if extra.HasError() {
 					return fail(ctx, extra.UserMsg, "HookPreReceive(batch) failed: %v", extra.Error)
 				}
@@ -283,7 +284,7 @@ Gitea or set your environment appropriately.`, "")
 
 		fmt.Fprintf(out, " Checking %d references\n", count)
 
-		extra := private.HookPreReceive(ctx, username, reponame, hookOptions)
+		extra := private.HookPreReceive(ctx, ownerName, repoName, hookOptions)
 		if extra.HasError() {
 			return fail(ctx, extra.UserMsg, "HookPreReceive(last) failed: %v", extra.Error)
 		}
@@ -353,18 +354,21 @@ Gitea or set your environment appropriately.`, "")
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
-	pusherName := os.Getenv(repo_module.EnvPusherName)
 
 	hookOptions := private.HookOptions{
-		UserName:                        pusherName,
-		UserID:                          pusherID,
+		IsWiki: isWiki,
+
 		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
-		PullRequestID:                   prID,
-		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
-		IsWiki:                          isWiki,
+
+		PullRequestID: prID,
+		PushTrigger:   repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
+
+		UserID:          pusherID,
+		UserName:        os.Getenv(repo_module.EnvPusherName),
+		UserExtDoerData: os.Getenv(repo_module.EnvPusherExtDoerData),
 	}
 
 	oldCommitIDs := make([]string, 0, hookBatchSize)
@@ -481,7 +485,6 @@ Gitea or set your environment appropriately.`, "")
 	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
-	pusherName := os.Getenv(repo_module.EnvPusherName)
 
 	// 1. Version and features negotiation.
 	// S: PKT-LINE(version=1\0push-options atomic...) / PKT-LINE(version=1\n)
@@ -553,10 +556,13 @@ Gitea or set your environment appropriately.`, "")
 	// S: ... ...
 	// S: flush-pkt
 	hookOptions := private.HookOptions{
-		UserName:       pusherName,
-		UserID:         pusherID,
+		IsWiki: isWiki,
+
 		GitPushOptions: make(map[string]string),
-		IsWiki:         isWiki,
+
+		UserID:          pusherID,
+		UserName:        os.Getenv(repo_module.EnvPusherName),
+		UserExtDoerData: os.Getenv(repo_module.EnvPusherExtDoerData),
 	}
 	hookOptions.OldCommitIDs = make([]string, 0, hookBatchSize)
 	hookOptions.NewCommitIDs = make([]string, 0, hookBatchSize)
@@ -752,7 +758,7 @@ func writeFlushPktLine(ctx context.Context, out io.Writer) error {
 func writeDataPktLine(ctx context.Context, out io.Writer, data []byte) error {
 	hexchar := []byte("0123456789abcdef")
 	hex := func(n uint64) byte {
-		return hexchar[(n)&15]
+		return hexchar[n&15]
 	}
 
 	length := uint64(len(data) + 4)

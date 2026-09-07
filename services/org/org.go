@@ -58,6 +58,7 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 		return fmt.Errorf("%s is a user not an organization", org.Name)
 	}
 
+	// outside the transaction below, because each repository deletion owns one and deletes storage after committing
 	if purge {
 		if err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser()); err != nil {
 			return err
@@ -98,6 +99,7 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 }
 
 func checkDeleteOrganizationPreconditions(ctx context.Context, org *org_model.Organization) error {
+	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %w", err)
@@ -105,6 +107,7 @@ func checkDeleteOrganizationPreconditions(ctx context.Context, org *org_model.Or
 		return repo_model.ErrUserOwnRepos{UID: org.ID}
 	}
 
+	// Check ownership of packages.
 	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, org.ID); err != nil {
 		return fmt.Errorf("HasOwnerPackages: %w", err)
 	} else if ownsPackages {

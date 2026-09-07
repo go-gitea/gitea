@@ -122,6 +122,18 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		require.NoError(t, err)
 		assert.False(t, perm.CanRead(unit.TypeCode))
 
+		// Reusable workflows use a separate authorization path and must enforce
+		// the same fork-PR restriction.
+		run := &actions_model.ActionRun{RepoID: repo2.ID, IsForkPullRequest: true}
+		allowed, err := CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.False(t, allowed)
+
+		run.IsForkPullRequest = false
+		allowed, err = CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.True(t, allowed)
+
 		// Restore state for subsequent subtests.
 		task53.IsForkPullRequest = false
 		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))

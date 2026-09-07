@@ -43,7 +43,7 @@
 			{{range .Release.Attachments}}
 				<li>
 					<a target="_blank" href="{{.DownloadURL}}">
-						<strong>{{.Name}} ({{.Size | FileSize}})</strong>
+						<strong>{{.Name}} ({{.Size | FormatByteSize}})</strong>
 					</a>
 				</li>
 			{{end}}

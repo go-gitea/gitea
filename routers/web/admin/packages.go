@@ -5,7 +5,6 @@ package admin
 
 import (
 	"net/http"
-	"net/url"
 	"time"
 
 	"gitea.dev/models/db"
@@ -73,8 +72,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["TotalBlobSize"] = totalBlobSize - totalUnreferencedBlobSize
 	ctx.Data["TotalUnreferencedBlobSize"] = totalUnreferencedBlobSize
 
-	pager := context.NewPagination(total, setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.PackagesPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)
@@ -94,7 +92,7 @@ func DeletePackageVersion(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("packages.settings.delete.version.success"))
-	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/packages?page=" + url.QueryEscape(ctx.FormString("page")) + "&q=" + url.QueryEscape(ctx.FormString("q")) + "&type=" + url.QueryEscape(ctx.FormString("type")))
+	ctx.JSONRedirect("")
 }
 
 func CleanupExpiredData(ctx *context.Context) {

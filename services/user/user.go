@@ -266,6 +266,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 }
 
 func checkDeleteUserPreconditions(ctx context.Context, u *user_model.User) error {
+	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %w", err)
@@ -273,6 +274,7 @@ func checkDeleteUserPreconditions(ctx context.Context, u *user_model.User) error
 		return repo_model.ErrUserOwnRepos{UID: u.ID}
 	}
 
+	// Check membership of organization.
 	count, err = organization.GetOrganizationCount(ctx, u)
 	if err != nil {
 		return fmt.Errorf("GetOrganizationCount: %w", err)
@@ -280,6 +282,7 @@ func checkDeleteUserPreconditions(ctx context.Context, u *user_model.User) error
 		return organization.ErrUserHasOrgs{UID: u.ID}
 	}
 
+	// Check ownership of packages.
 	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
 		return fmt.Errorf("HasOwnerPackages: %w", err)
 	} else if ownsPackages {

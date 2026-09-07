@@ -38,6 +38,16 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	require.NoError(t, err)
 	require.Positive(t, created.ManagerID)
 	require.NotEmpty(t, created.Secret)
+	checked, err := client.CheckManager(t.Context(), managerRequest(created.ManagerID, created.Secret, &codespacev1.CheckManagerRequest{ProtocolVersion: 1}))
+	require.NoError(t, err)
+	assert.Equal(t, "Gitea Manager", checked.Msg.GetManagerName())
+	assert.NotEmpty(t, checked.Msg.GetGiteaWebUrl())
+	managerBeforeDeclare := new(codespace_model.Manager)
+	has, err := db.GetEngine(t.Context()).ID(created.ManagerID).Get(managerBeforeDeclare)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Zero(t, managerBeforeDeclare.LastOnlineUnix)
+	assert.Equal(t, codespace_model.ManagerRuntimeStateRecovering, managerBeforeDeclare.RuntimeState)
 
 	declaration := &codespacev1.DeclareManagerRequest{
 		ProtocolVersion:                    1,
@@ -75,7 +85,7 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	assert.NotEmpty(t, declared.Msg.GetGiteaWebUrl())
 
 	manager := new(codespace_model.Manager)
-	has, err := db.GetEngine(t.Context()).ID(created.ManagerID).Get(manager)
+	has, err = db.GetEngine(t.Context()).ID(created.ManagerID).Get(manager)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Equal(t, "Gitea Manager", manager.Name)
@@ -100,6 +110,7 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 
 func TestManagerServiceRequestProtocolVersionFieldNumbers(t *testing.T) {
 	requests := []proto.Message{
+		&codespacev1.CheckManagerRequest{},
 		&codespacev1.DeclareManagerRequest{},
 		&codespacev1.FetchOperationsRequest{},
 		&codespacev1.BindRuntimeIdentityRequest{},

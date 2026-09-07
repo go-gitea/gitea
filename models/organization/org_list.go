@@ -89,6 +89,9 @@ func DoerViewOtherVisibility(doer, other *user_model.User) structs.VisibleType {
 	if doer.IsAdmin || doer.ID == other.ID {
 		return structs.VisibleTypePrivate
 	}
+	if doer.IsRestricted {
+		return structs.VisibleTypePublic
+	}
 	return structs.VisibleTypeLimited
 }
 

@@ -38,6 +38,10 @@ type PushMirrorOptions struct {
 	RemoteName string
 }
 
+func (opts PushMirrorOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts PushMirrorOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
@@ -98,6 +102,10 @@ type findPushMirrorOptions struct {
 	db.ListOptions
 	RepoID       int64
 	SyncOnCommit optional.Option[bool]
+}
+
+func (opts findPushMirrorOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts findPushMirrorOptions) ToConds() builder.Cond {

@@ -245,7 +245,7 @@ func (opts *SearchBadgeOptions) ToConds() builder.Cond {
 }
 
 func (opts *SearchBadgeOptions) ToOrders() string {
-	return opts.OrderBy.String()
+	return util.IfZero(opts.OrderBy.String(), "id")
 }
 
 // SearchBadges returns badges based on the provided SearchBadgeOptions options
