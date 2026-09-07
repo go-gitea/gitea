@@ -1,6 +1,6 @@
 {{template "org/settings/layout_head" (dict "pageClass" "organization settings options")}}
 
-<div class="ui segments org-setting-content">
+<div class="org-setting-content">
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "org.settings.options"}}
 	</h4>
@@ -65,8 +65,8 @@
 			</div>
 		</form>
 	</div>
-</div>
 
 {{template "org/settings/options_dangerzone" .}}
+</div>
 
 {{template "org/settings/layout_footer" .}}
