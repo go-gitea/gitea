@@ -14,7 +14,6 @@ import (
 	"math"
 	"net/http"
 	"path"
-	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -25,9 +24,11 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/storage"
 
 	"github.com/google/uuid"
 )
@@ -68,8 +69,8 @@ func copiedErr(status int, code, message string) *CopiedContentError {
 	return &CopiedContentError{Status: status, Code: code, Message: message}
 }
 
-func copiedErrAt(status int, code, message string, index int) *CopiedContentError {
-	return &CopiedContentError{Status: status, Code: code, Message: message, Index: &index}
+func copiedUnprocessableAt(message string, index int) *CopiedContentError {
+	return &CopiedContentError{Status: http.StatusUnprocessableEntity, Code: "unprocessable", Message: message, Index: &index}
 }
 
 // FinalizeCopiedContentRequest is the trusted-backend finalizer payload.
@@ -200,7 +201,7 @@ func FinalizeCopiedContent(ctx context.Context, req *FinalizeCopiedContentReques
 	if err := requireCommitParent(destCommit, req.Destination.Parent, destRepo); err != nil {
 		return nil, err
 	}
-	if err := requireExactCreates(destCommit, req.Files); err != nil {
+	if err := requireExactCreates(destOpened.git, destCommit, req.Files); err != nil {
 		return nil, err
 	}
 
@@ -229,7 +230,11 @@ func FinalizeCopiedContent(ctx context.Context, req *FinalizeCopiedContentReques
 		prepared = append(prepared, preparedFile)
 	}
 
-	store := lfs.NewContentStore()
+	scopedStorage, err := storage.WithContext(ctx, storage.LFS)
+	if err != nil {
+		return nil, unavailableErr(err)
+	}
+	store := &lfs.ContentStore{ObjectStorage: scopedStorage}
 	for _, file := range prepared {
 		if file.pointer == nil {
 			continue
@@ -418,12 +423,12 @@ func loadExactCommit(gitRepo *git.Repository, repo *repo_model.Repository, commi
 
 func requireCommitOnBranch(gitRepo *git.Repository, branch string, destCommit *git.Commit) error {
 	if !gitRepo.IsBranchExist(branch) {
-		return copiedErr(http.StatusNotFound, "not_found", "branch not found")
+		return copiedErr(http.StatusConflict, "conflict", "destination branch no longer proves publication")
 	}
 	branchCommit, err := gitRepo.GetBranchCommit(branch)
 	if err != nil {
 		if git.IsErrNotExist(err) || git.IsErrBranchNotExist(err) {
-			return copiedErr(http.StatusNotFound, "not_found", "branch not found")
+			return copiedErr(http.StatusConflict, "conflict", "destination branch no longer proves publication")
 		}
 		return unavailableErr(err)
 	}
@@ -467,80 +472,59 @@ func requireCommitParent(commit *git.Commit, parent *string, repo *repo_model.Re
 	return nil
 }
 
-func requireExactCreates(destCommit *git.Commit, files []CopiedContentFileMapping) error {
-	destFiles, err := blobPathMap(destCommit)
-	if err != nil {
-		return err
-	}
-	parentFiles := map[string]*git.TreeEntry{}
+// Compare only changed paths, with bounded output even for an unrelated large commit.
+func requireExactCreates(repo *git.Repository, destCommit *git.Commit, files []CopiedContentFileMapping) error {
+	ctx, cancel := context.WithCancel(repo.Ctx)
+	defer cancel()
+	output := &copiedDiffWriter{remaining: CopiedContentMaxJSONBytes, cancel: cancel}
+	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--root", "--name-status", "--no-renames", "--ignore-submodules=none", "--no-ext-diff", "-r", "-z")
 	if destCommit.ParentCount() > 0 {
-		parent, err := destCommit.Parent(0)
-		if err != nil {
-			return unavailableErr(err)
-		}
-		parentFiles, err = blobPathMap(parent)
-		if err != nil {
-			return err
-		}
+		cmd.AddDynamicArguments(destCommit.Parents[0].String())
 	}
-
+	cmd.AddDynamicArguments(destCommit.ID.String()).AddArguments("--")
+	err := cmd.WithDir(repo.Path).WithStdoutCopy(output).Run(ctx)
+	if output.exceeded {
+		return copiedErr(http.StatusRequestEntityTooLarge, "too_large", "destination diff exceeds the allowed size")
+	}
+	if err != nil {
+		return unavailableErr(err)
+	}
 	planned := make(map[string]struct{}, len(files))
 	for _, file := range files {
 		planned[file.DestinationPath] = struct{}{}
 	}
-
-	for p := range parentFiles {
-		if _, ok := destFiles[p]; !ok {
-			return copiedErr(http.StatusConflict, "conflict", "destination commit contains non-create changes")
-		}
-	}
-	creates := 0
-	for p, destEntry := range destFiles {
-		parentEntry, existed := parentFiles[p]
-		if existed {
-			if parentEntry.ID.String() != destEntry.ID.String() || parentEntry.Mode() != destEntry.Mode() {
-				return copiedErr(http.StatusConflict, "conflict", "destination commit contains non-create changes")
-			}
-			if _, ok := planned[p]; ok {
-				return copiedErr(http.StatusConflict, "conflict", "destination path already exists in the parent")
-			}
-			continue
-		}
-		if _, ok := planned[p]; !ok {
-			return copiedErr(http.StatusConflict, "conflict", "destination commit contains extra paths")
-		}
-		if destEntry.IsLink() || destEntry.IsSubModule() || destEntry.IsDir() {
-			return copiedErr(http.StatusUnprocessableEntity, "unprocessable", "unsupported git entry kind")
-		}
-		if !destEntry.IsRegular() && !destEntry.IsExecutable() {
-			return copiedErr(http.StatusUnprocessableEntity, "unprocessable", "unsupported git entry kind")
-		}
-		creates++
-	}
-	if creates != len(files) {
+	records := bytes.Split(output.buffer.Bytes(), []byte{0})
+	if len(records) != 2*len(files)+1 || len(records[len(records)-1]) != 0 {
 		return copiedErr(http.StatusConflict, "conflict", "destination commit does not match the copy plan")
 	}
-	for _, file := range files {
-		if _, ok := destFiles[file.DestinationPath]; !ok {
-			return copiedErr(http.StatusConflict, "conflict", "destination commit omits a planned path")
+	for i := 0; i < len(records)-1; i += 2 {
+		p := string(records[i+1])
+		if string(records[i]) != "A" {
+			return copiedErr(http.StatusConflict, "conflict", "destination commit contains non-create changes")
 		}
+		if _, ok := planned[p]; !ok {
+			return copiedErr(http.StatusConflict, "conflict", "destination commit contains unplanned paths")
+		}
+		delete(planned, p)
 	}
 	return nil
 }
 
-func blobPathMap(commit *git.Commit) (map[string]*git.TreeEntry, error) {
-	entries, err := commit.Tree.ListEntriesRecursiveFast()
-	if err != nil {
-		return nil, unavailableErr(err)
+type copiedDiffWriter struct {
+	buffer    bytes.Buffer
+	remaining int
+	cancel    context.CancelFunc
+	exceeded  bool
+}
+
+func (w *copiedDiffWriter) Write(p []byte) (int, error) {
+	if len(p) > w.remaining {
+		w.exceeded = true
+		w.cancel()
+		return 0, errors.New("copy diff output limit exceeded")
 	}
-	files := make(map[string]*git.TreeEntry, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		files[entry.Name()] = entry
-	}
-	return files, nil
+	w.remaining -= len(p)
+	return w.buffer.Write(p)
 }
 
 func prepareCopiedFile(ctx context.Context, destRepo, sourceRepo *repo_model.Repository, destCommit, sourceCommit *git.Commit, file CopiedContentFileMapping, index int) (*preparedCopiedFile, int64, error) {
@@ -558,9 +542,13 @@ func prepareCopiedFile(ctx context.Context, destRepo, sourceRepo *repo_model.Rep
 		}
 		return nil, 0, unavailableErr(err)
 	}
-	if sourceEntry.IsDir() || sourceEntry.IsLink() || sourceEntry.IsSubModule() ||
-		destEntry.IsDir() || destEntry.IsLink() || destEntry.IsSubModule() {
-		return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "unsupported git entry kind", index)
+	if (!sourceEntry.IsRegular() && !sourceEntry.IsExecutable()) ||
+		(!destEntry.IsRegular() && !destEntry.IsExecutable()) {
+		return nil, 0, copiedUnprocessableAt("unsupported git entry kind", index)
+	}
+
+	if sourceEntry.Mode() != destEntry.Mode() {
+		return nil, 0, copiedUnprocessableAt("git mode does not match", index)
 	}
 
 	sourcePointer, sourceIsPointer, err := readCopiedPointer(sourceEntry)
@@ -568,7 +556,7 @@ func prepareCopiedFile(ctx context.Context, destRepo, sourceRepo *repo_model.Rep
 		return nil, 0, err
 	}
 	if sourceIsPointer && file.Representation != CopiedContentRepresentationLFS {
-		return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "source LFS pointer requires lfs representation", index)
+		return nil, 0, copiedUnprocessableAt("source LFS pointer requires lfs representation", index)
 	}
 
 	prepared := &preparedCopiedFile{
@@ -583,15 +571,12 @@ func prepareCopiedFile(ctx context.Context, destRepo, sourceRepo *repo_model.Rep
 		if err := boundRegularSize(sourceEntry.Blob().Size()); err != nil {
 			return nil, 0, err
 		}
-		if sourceEntry.Mode() != destEntry.Mode() {
-			return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "git content does not match", index)
-		}
 		equal, err := gitBlobsEqual(sourceRepo, destRepo, sourceEntry, destEntry)
 		if err != nil {
 			return nil, 0, err
 		}
 		if !equal {
-			return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "git content does not match", index)
+			return nil, 0, copiedUnprocessableAt("git content does not match", index)
 		}
 		return prepared, sourceEntry.Blob().Size(), nil
 	case CopiedContentRepresentationLFS:
@@ -599,13 +584,13 @@ func prepareCopiedFile(ctx context.Context, destRepo, sourceRepo *repo_model.Rep
 		if err != nil {
 			return nil, 0, err
 		}
-		if !destIsPointer || !destEntry.IsRegular() {
-			return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "target LFS pointer is invalid", index)
+		if !destIsPointer {
+			return nil, 0, copiedUnprocessableAt("target LFS pointer is invalid", index)
 		}
 		if destContent, err := destEntry.Blob().GetBlobBytes(lfs.MetaFileMaxSize); err != nil {
 			return nil, 0, unavailableErr(err)
 		} else if string(destContent) != destPointer.StringContent() {
-			return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "target LFS pointer is not canonical", index)
+			return nil, 0, copiedUnprocessableAt("target LFS pointer is not canonical", index)
 		}
 		prepared.pointer = &destPointer
 		if sourceIsPointer {
@@ -613,7 +598,7 @@ func prepareCopiedFile(ctx context.Context, destRepo, sourceRepo *repo_model.Rep
 				return nil, 0, err
 			}
 			if sourcePointer.Oid != destPointer.Oid || sourcePointer.Size != destPointer.Size {
-				return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "LFS pointer does not match", index)
+				return nil, 0, copiedUnprocessableAt("LFS pointer does not match", index)
 			}
 			return prepared, 0, nil
 		}
@@ -625,7 +610,7 @@ func prepareCopiedFile(ctx context.Context, destRepo, sourceRepo *repo_model.Rep
 			return nil, 0, err
 		}
 		if computed.Oid != destPointer.Oid || computed.Size != destPointer.Size {
-			return nil, 0, copiedErrAt(http.StatusUnprocessableEntity, "unprocessable", "regular source does not match the target pointer", index)
+			return nil, 0, copiedUnprocessableAt("regular source does not match the target pointer", index)
 		}
 		prepared.needSave = true
 		return prepared, computed.Size, nil
@@ -764,6 +749,18 @@ func addCopiedBytes(total, n int64) (int64, error) {
 }
 
 func reverifyCopiedAccess(ctx context.Context, actor *user_model.User, destRepo *repo_model.Repository, sourceRepos map[int64]*repo_model.Repository) error {
+	freshActor, err := user_model.GetUserByID(ctx, actor.ID)
+	if user_model.IsErrUserNotExist(err) {
+		return copiedErr(http.StatusForbidden, "forbidden", "actor is not permitted")
+	}
+	if err != nil {
+		return unavailableErr(err)
+	}
+	if !freshActor.IsActive || freshActor.ProhibitLogin || freshActor.IsGhost() || freshActor.IsGiteaActions() {
+		return copiedErr(http.StatusForbidden, "forbidden", "actor is not permitted")
+	}
+	actor = freshActor
+
 	freshDest, err := repo_model.GetRepositoryByID(ctx, destRepo.ID)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
@@ -831,7 +828,7 @@ func isCopiedRepoPath(p string) bool {
 	if path.Clean(p) != p {
 		return false
 	}
-	for _, part := range strings.Split(p, "/") {
+	for part := range strings.SplitSeq(p, "/") {
 		if part == "" || part == "." || part == ".." {
 			return false
 		}
@@ -845,18 +842,18 @@ func isCopiedRepoPath(p string) bool {
 }
 
 func hasDuplicateOrAncestorPath(paths []string) bool {
-	sorted := append([]string(nil), paths...)
-	sort.Strings(sorted)
-	seen := make(map[string]struct{}, len(sorted))
-	for _, p := range sorted {
+	seen := make(map[string]struct{}, len(paths))
+	for _, p := range paths {
 		if _, ok := seen[p]; ok {
 			return true
 		}
 		seen[p] = struct{}{}
 	}
-	for i := 0; i < len(sorted)-1; i++ {
-		if strings.HasPrefix(sorted[i+1], sorted[i]+"/") {
-			return true
+	for _, p := range paths {
+		for ancestor := path.Dir(p); ancestor != "."; ancestor = path.Dir(ancestor) {
+			if _, ok := seen[ancestor]; ok {
+				return true
+			}
 		}
 	}
 	return false

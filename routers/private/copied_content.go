@@ -9,7 +9,10 @@ import (
 	"encoding/json" //nolint:depguard // DisallowUnknownFields and duplicate-key checks need the stdlib decoder
 	"errors"
 	"io"
+	"net"
 	"net/http"
+	"strings"
+	"time"
 
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
@@ -23,13 +26,19 @@ type copiedContentErrorBody struct {
 
 // FinalizeCopiedContent verifies a published copy commit and associates LFS content.
 func FinalizeCopiedContent(ctx *context.PrivateContext) {
-	limited := io.LimitReader(ctx.Req.Body, repo_service.CopiedContentMaxJSONBytes+1)
-	body, err := io.ReadAll(limited)
+	reqCtx, cancel := stdctx.WithTimeout(ctx, repo_service.CopiedContentRequestTimeout)
+	defer cancel()
+	body, err := readCopiedContentBody(reqCtx, ctx.Resp, ctx.Req)
 	if err != nil {
+		if reqCtx.Err() != nil || errors.Is(err, stdctx.DeadlineExceeded) {
+			writeCopiedContentServiceError(ctx, err)
+			return
+		}
 		writeCopiedContentError(ctx, http.StatusBadRequest, "invalid_request", "request body is invalid", nil)
 		return
 	}
 	if int64(len(body)) > repo_service.CopiedContentMaxJSONBytes {
+		ctx.Resp.Header().Set("Connection", "close")
 		writeCopiedContentError(ctx, http.StatusRequestEntityTooLarge, "too_large", "request body exceeds the allowed size", nil)
 		return
 	}
@@ -43,9 +52,6 @@ func FinalizeCopiedContent(ctx *context.PrivateContext) {
 		writeCopiedContentError(ctx, http.StatusBadRequest, "invalid_request", "destination.parent is required", nil)
 		return
 	}
-
-	reqCtx, cancel := stdctx.WithTimeout(ctx, repo_service.CopiedContentRequestTimeout)
-	defer cancel()
 
 	resp, err := repo_service.FinalizeCopiedContent(reqCtx, &req)
 	if err != nil {
@@ -81,7 +87,7 @@ func decodeCopiedContentJSON(data []byte, dest any) error {
 	if err := dec.Decode(dest); err != nil {
 		return err
 	}
-	if dec.More() {
+	if err := dec.Decode(new(any)); err != io.EOF {
 		return errors.New("trailing json content")
 	}
 	return nil
@@ -111,6 +117,10 @@ func rejectDuplicateJSONValue(dec *json.Decoder) error {
 				key, ok := keyTok.(string)
 				if !ok {
 					return errors.New("invalid json object key")
+				}
+				// Wire fields are ASCII lowercase; reject Unicode and case-folding aliases.
+				if strings.IndexFunc(key, func(r rune) bool { return (r < 'a' || r > 'z') && r != '_' }) != -1 {
+					return errors.New("noncanonical json field")
 				}
 				if _, exists := seen[key]; exists {
 					return errors.New("duplicate json field")
@@ -194,4 +204,52 @@ func jsonFieldPresentAt(dec *json.Decoder, path []string) bool {
 
 func skipJSONValue(dec *json.Decoder) error {
 	return rejectDuplicateJSONValue(dec)
+}
+
+// A context alone cannot interrupt net/http's blocked request body read.
+func readCopiedContentBody(ctx stdctx.Context, writer http.ResponseWriter, req *http.Request) ([]byte, error) {
+	// Gitea's wrapper predates ResponseController and does not expose Unwrap.
+	for {
+		response, ok := writer.(*context.Response)
+		if !ok {
+			break
+		}
+		writer = response.ResponseWriter
+	}
+	controller := http.NewResponseController(writer)
+	deadline, _ := ctx.Deadline()
+	err := controller.SetReadDeadline(deadline)
+	if err != nil && !errors.Is(err, http.ErrNotSupported) {
+		return nil, err
+	}
+	supportsDeadline := err == nil
+	completed := false
+	done := make(chan struct{})
+	stop := stdctx.AfterFunc(ctx, func() {
+		defer close(done)
+		if supportsDeadline {
+			_ = controller.SetReadDeadline(time.Now())
+		} else {
+			// In-memory handlers have no connection deadline; Close releases body readers.
+			_ = req.Body.Close()
+		}
+	})
+	defer func() {
+		if !stop() {
+			<-done
+		}
+		if supportsDeadline && completed {
+			_ = controller.SetReadDeadline(time.Time{})
+		}
+	}()
+	body, err := io.ReadAll(io.LimitReader(req.Body, repo_service.CopiedContentMaxJSONBytes+1))
+	completed = err == nil
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	var networkError net.Error
+	if errors.As(err, &networkError) && networkError.Timeout() {
+		return nil, stdctx.DeadlineExceeded
+	}
+	return body, err
 }

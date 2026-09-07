@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -19,6 +21,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	repo_service "gitea.dev/services/repository"
@@ -183,4 +186,87 @@ func createCopiedContentFileAPIWithParent(t *testing.T, repo *repo_model.Reposit
 	require.NotNil(t, fileResp.Commit)
 	require.NotEmpty(t, fileResp.Commit.Parents)
 	return fileResp.Commit.SHA, fileResp.Commit.Parents[0].SHA
+}
+
+func TestFinalizeCopiedContentInternalRouteMaterializeBatch(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+		source := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		dest := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
+		payloads := []string{"materialize first payload", "materialize second payload"}
+		createCopiedContentFileAPI(t, source, "batch-a", payloads[0])
+		sourceCommit := createCopiedContentFileAPI(t, source, "batch-b", payloads[1])
+		token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+		opts := api.ChangeFilesOptions{FileOptions: api.FileOptions{BranchName: dest.DefaultBranch, Message: "publish copied batch"}}
+		pointers := make([]lfs.Pointer, 2)
+		for i, payload := range payloads {
+			var err error
+			pointers[i], err = lfs.GeneratePointer(strings.NewReader(payload))
+			require.NoError(t, err)
+			opts.Files = append(opts.Files, &api.ChangeFileOperation{Operation: "create", Path: fmt.Sprintf("batch-%c", 'a'+i), ContentBase64: base64.StdEncoding.EncodeToString([]byte(pointers[i].StringContent()))})
+		}
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", dest.OwnerName, dest.Name), opts).AddTokenAuth(token)
+		published := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.FilesResponse{})
+		require.NotNil(t, published.Commit)
+		require.Len(t, published.Commit.Parents, 1)
+		parent := published.Commit.Parents[0].SHA
+		body := repo_service.FinalizeCopiedContentRequest{RequestID: uuid.NewString(), UserID: 2, Destination: repo_service.CopiedContentDestination{RepositoryID: dest.ID, Branch: dest.DefaultBranch, Commit: published.Commit.SHA, Parent: &parent}}
+		for i, pointer := range pointers {
+			exists, err := lfs.NewContentStore().Exists(pointer)
+			require.NoError(t, err)
+			require.False(t, exists, "regular payload must first be materialized by finalizer")
+			_, err = git_model.GetLFSMetaObjectByOid(t.Context(), dest.ID, pointer.Oid)
+			require.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+			treePath := fmt.Sprintf("batch-%c", 'a'+i)
+			body.Files = append(body.Files, repo_service.CopiedContentFileMapping{SourceRepositoryID: source.ID, SourceCommit: sourceCommit, SourcePath: treePath, DestinationPath: treePath, Representation: repo_service.CopiedContentRepresentationLFS})
+		}
+		// An unavailable second source must not finalize even the valid first mapping.
+		bad := body
+		bad.Files = append([]repo_service.CopiedContentFileMapping(nil), body.Files...)
+		bad.Files[1].SourcePath = "missing-source"
+		req = NewRequestWithJSON(t, "POST", "/api/internal/repositories/finalize-copied-content", bad).SetHeader("X-Gitea-Internal-Auth", "Bearer "+setting.InternalToken)
+		MakeRequest(t, req, http.StatusNotFound)
+		for _, pointer := range pointers {
+			_, err := git_model.GetLFSMetaObjectByOid(t.Context(), dest.ID, pointer.Oid)
+			require.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+		}
+		// A real local storage failure after publication must return 503 without links.
+		func() {
+			storageRoot := t.TempDir()
+			blockedTemp := filepath.Join(storageRoot, "not-a-directory")
+			require.NoError(t, os.WriteFile(blockedTemp, []byte("block temp creation"), 0o600))
+			failedStorage, err := storage.NewLocalStorage(t.Context(), &setting.Storage{Path: storageRoot, TemporaryPath: blockedTemp})
+			require.NoError(t, err)
+			defer test.MockVariableValue(&storage.LFS, failedStorage)()
+			req := NewRequestWithJSON(t, "POST", "/api/internal/repositories/finalize-copied-content", body).SetHeader("X-Gitea-Internal-Auth", "Bearer "+setting.InternalToken)
+			MakeRequest(t, req, http.StatusServiceUnavailable)
+			for _, pointer := range pointers {
+				_, err := git_model.GetLFSMetaObjectByOid(t.Context(), dest.ID, pointer.Oid)
+				require.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+			}
+		}()
+		var firstResponse string
+		for attempt := range 2 {
+			req = NewRequestWithJSON(t, "POST", "/api/internal/repositories/finalize-copied-content", body).SetHeader("X-Gitea-Internal-Auth", "Bearer "+setting.InternalToken)
+			response := MakeRequest(t, req, http.StatusOK)
+			if attempt == 0 {
+				firstResponse = response.Body.String()
+			} else {
+				assert.Equal(t, firstResponse, response.Body.String())
+			}
+			var result repo_service.FinalizeCopiedContentResponse
+			DecodeJSON(t, response, &result)
+			require.Len(t, result.Files, 2)
+			for i, file := range result.Files {
+				assert.Equal(t, "ready", file.Status)
+				assert.Equal(t, i, file.Index)
+			}
+		}
+		for i, pointer := range pointers {
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s.git/info/lfs/objects/%s", dest.OwnerName, dest.Name, pointer.Oid))
+			req.SetBasicAuth("user2", token)
+			response := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, payloads[i], response.Body.String())
+		}
+	})
 }

@@ -4,6 +4,8 @@
 package git_test
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -12,6 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,7 +52,7 @@ func TestAssociateCopiedContentLFSInsertAndReplay(t *testing.T) {
 	assert.Equal(t, got1.ID, got1Again.ID)
 }
 
-func TestAssociateCopiedContentLFSSizeConflictRollsBack(t *testing.T) {
+func TestAssociateCopiedContentLFSSizeConflictPrecheck(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -110,4 +113,41 @@ func TestAssociateCopiedContentLFSConcurrentDuplicate(t *testing.T) {
 	count, err := db.GetEngine(ctx).Where("repository_id = ? AND oid = ?", repo.ID, pointer.Oid).Count(new(git_model.LFSMetaObject))
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, count)
+}
+
+// Abort actual INSERTs, including after earlier rows have been written in the transaction.
+func TestAssociateCopiedContentLFSInsertFailureRollback(t *testing.T) {
+	if !setting.Database.Type.IsSQLite3() {
+		t.Skip("SQLite trigger fault injection")
+	}
+	for failureIndex := range 3 {
+		t.Run(fmt.Sprintf("insert_%d", failureIndex+1), func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			ctx := t.Context()
+			existing := lfs.Pointer{Oid: strings.Repeat("9", 64), Size: 9}
+			original, err := git_model.NewLFSMetaObject(ctx, 1, existing)
+			require.NoError(t, err)
+			pointers := []git_model.CopiedContentLFSPointer{
+				{Oid: strings.Repeat("a", 64), Size: 1},
+				{Oid: strings.Repeat("b", 64), Size: 2},
+				{Oid: strings.Repeat("c", 64), Size: 3},
+			}
+			_, err = db.GetEngine(ctx).Exec("CREATE TRIGGER copied_content_insert_failure BEFORE INSERT ON lfs_meta_object WHEN NEW.oid = '" + pointers[failureIndex].Oid + "' BEGIN SELECT RAISE(ABORT, 'injected copy insert failure'); END")
+			require.NoError(t, err)
+			defer func() {
+				_, err := db.GetEngine(ctx).Exec("DROP TRIGGER copied_content_insert_failure")
+				require.NoError(t, err)
+			}()
+			err = git_model.AssociateCopiedContentLFS(ctx, 1, append([]git_model.CopiedContentLFSPointer{{Oid: existing.Oid, Size: existing.Size}}, pointers...))
+			require.ErrorContains(t, err, "injected copy insert failure")
+			for _, pointer := range pointers {
+				_, err := git_model.GetLFSMetaObjectByOid(ctx, 1, pointer.Oid)
+				assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+			}
+			kept, err := git_model.GetLFSMetaObjectByOid(ctx, 1, existing.Oid)
+			require.NoError(t, err)
+			assert.Equal(t, original.ID, kept.ID)
+			assert.Equal(t, existing.Size, kept.Size)
+		})
+	}
 }
