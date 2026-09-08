@@ -404,7 +404,7 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
-			r.Group("/@{scope:(?:[^%]|%[^2]|%2[^fF])+}/{id}", func() { // "%2F"-encoded scoped names are one segment and must match "/{id}"
+			r.Group("/@{scope:(?:[^%]|%[^2]|%2[^fF])+}/{id}", func() { // "%2F"-encoded scoped names are one segment
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Get("/{version}", npm.PackageVersionMetadata)
