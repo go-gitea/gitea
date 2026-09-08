@@ -57,5 +57,4 @@ func TestCommitInlineComment(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &issues_model.CommitComment{CommentID: comment.ID})
 		session.MakeRequest(t, NewRequest(t, "POST", url), http.StatusNotFound)
 	})
-
 }

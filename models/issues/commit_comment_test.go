@@ -77,7 +77,6 @@ func TestCreateCommitCommentRejectsZeroLine(t *testing.T) {
 	assert.ErrorIs(t, err, issues_model.ErrInvalidCommitCommentLine)
 }
 
-
 func TestUpdateCommitCommentAttachmentsBindsCommentID(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
