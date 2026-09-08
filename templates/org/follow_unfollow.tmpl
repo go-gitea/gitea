@@ -1,4 +1,4 @@
-<button class="ui basic button" data-fetch-method="post" data-fetch-url="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
+<button type="button" class="ui basic button" data-fetch-method="post" data-fetch-url="{{.Org.HomeLink}}?action={{if $.IsFollowing}}unfollow{{else}}follow{{end}}">
 	{{if $.IsFollowing}}
 		{{ctx.Locale.Tr "user.unfollow"}}
 	{{else}}
