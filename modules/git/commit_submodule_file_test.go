@@ -38,3 +38,9 @@ func TestCommitSubmoduleLink(t *testing.T) {
 		assert.Equal(t, "/subpath/user/repo/compare/1111...2222", wl.CommitWebLink)
 	})
 }
+
+func TestCommitSubmoduleLinkUnparsableURL(t *testing.T) {
+	sf := NewCommitSubmoduleFile("/any/repo-link", "full-path", "git@github.com:", "aaaa")
+	assert.Nil(t, sf.SubmoduleWebLinkTree(t.Context()))
+	assert.Nil(t, sf.SubmoduleWebLinkCompare(t.Context(), "1111", "2222"))
+}
