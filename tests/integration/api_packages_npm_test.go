@@ -169,23 +169,27 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		rootPaths := []string{
+			fmt.Sprintf("/api/packages/%s/npm/@scope/test-package", user.Name),
+			fmt.Sprintf("/api/packages/%s/npm/@scope%%2ftest-package", user.Name),
+		}
+		for _, root := range rootPaths {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			b, _ := base64.StdEncoding.DecodeString(attachmentData)
+			assert.Equal(t, b, resp.Body.Bytes())
 
-		b, _ := base64.StdEncoding.DecodeString(attachmentData)
-		assert.Equal(t, b, resp.Body.Bytes())
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, b, resp.Body.Bytes())
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).
-			AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, b, resp.Body.Bytes())
-
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, packageVersion)).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotImplemented)
+		}
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(2), pvs[0].DownloadCount)
+		assert.Equal(t, int64(4), pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
