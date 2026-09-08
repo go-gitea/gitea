@@ -60,7 +60,7 @@ type PackageMetadata struct {
 	Time           map[string]time.Time               `json:"time,omitempty"`
 	Homepage       string                             `json:"homepage,omitempty"`
 	Keywords       []string                           `json:"keywords,omitempty"`
-	Repository     Repository                         `json:"repository"`
+	Repository     Repository                         `json:"repository,omitzero"`
 	Author         User                               `json:"author"`
 	ReadmeFilename string                             `json:"readmeFilename,omitempty"`
 	Users          map[string]bool                    `json:"users,omitempty"`
@@ -98,7 +98,7 @@ type PackageMetadataVersion struct {
 	Author               User                `json:"author"`
 	Homepage             string              `json:"homepage,omitempty"`
 	License              License             `json:"license,omitempty"`
-	Repository           Repository          `json:"repository"`
+	Repository           Repository          `json:"repository,omitzero"`
 	Keywords             []string            `json:"keywords,omitempty"`
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`
 	BundleDependencies   []string            `json:"bundleDependencies,omitempty"`

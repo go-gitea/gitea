@@ -79,6 +79,43 @@ func PackageMetadata(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// PackageVersionMetadata returns the metadata of a single version, addressed by version or dist-tag
+func PackageVersionMetadata(ctx *context.Context) {
+	versionOrTag := ctx.PathParam("version")
+
+	opts := &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNpm,
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
+		IsInternal: optional.Some(false),
+	}
+	if _, err := version.NewVersion(versionOrTag); err == nil {
+		opts.Version = packages_model.SearchValue{ExactMatch: true, Value: versionOrTag}
+	} else { // setPackageTag rejects tags that parse as versions, so this is a tag
+		opts.Properties = map[string]string{npm_module.TagProperty: versionOrTag}
+	}
+	pvs, _, err := packages_model.SearchVersions(ctx, opts)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) != 1 {
+		apiError(ctx, http.StatusNotFound, "version not found: "+versionOrTag)
+		return
+	}
+
+	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, createPackageMetadataVersion(
+		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
+		pd,
+	))
+}
+
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)

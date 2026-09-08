@@ -219,6 +219,7 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
+		assert.Equal(t, npm.Repository{Type: repoType, URL: repoURL, Directory: repoDirectory}, pmv.Repository)
 		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
 		assert.Equal(t, map[string]any{"soy-milk": map[string]any{"optional": true}}, pmv.PeerDependenciesMeta)
 		assert.True(t, pmv.HasInstallScript)
@@ -230,6 +231,29 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, "https://example.com/fund", pmv.Funding)
 		assert.Equal(t, map[string]string{"left-pad": "1.x"}, pmv.AcceptDependencies)
 		assert.Empty(t, pmv.Deprecated)
+	})
+
+	t.Run("PackageVersionMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		unescapedRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, packageName)
+		overEncodedRoot := fmt.Sprintf("/api/packages/%s/npm/@%%73cope/test-package", user.Name)
+		for _, path := range []string{root + "/" + packageVersion, root + "/" + packageTag, unescapedRoot + "/" + packageVersion, unescapedRoot + "/" + packageTag, overEncodedRoot + "/" + packageVersion} {
+			req := NewRequest(t, "GET", path).
+				AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			pmv := DecodeJSON(t, resp, &npm.PackageMetadataVersion{})
+			assert.Equal(t, fmt.Sprintf("%s@%s", packageName, packageVersion), pmv.ID)
+			assert.Equal(t, npm.Repository{Type: repoType, URL: repoURL, Directory: repoDirectory}, pmv.Repository)
+			assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
+		}
+
+		for _, missing := range []string{"9.9.9", "no-such-tag"} {
+			req := NewRequest(t, "GET", root+"/"+missing).
+				AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
+		}
 	})
 
 	t.Run("AddTag", func(t *testing.T) {
@@ -284,6 +308,11 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageVersion, result.DistTags[packageTag])
 		assert.Contains(t, result.DistTags, packageTag2)
 		assert.Equal(t, packageVersion, result.DistTags[packageTag2])
+
+		req = NewRequest(t, "GET", root+"/"+packageTag2).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, packageVersion, DecodeJSON(t, resp, &npm.PackageMetadataVersion{}).Version)
 	})
 
 	t.Run("DeleteTag", func(t *testing.T) {
@@ -299,6 +328,10 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusBadRequest, "1.0")
 		test(t, http.StatusOK, "dummy")
 		test(t, http.StatusOK, packageTag2)
+
+		req := NewRequest(t, "GET", root+"/"+packageTag2).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Search", func(t *testing.T) {

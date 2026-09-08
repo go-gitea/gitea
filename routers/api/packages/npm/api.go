@@ -78,6 +78,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Maintainers:          []npm_module.User{{Name: pd.Owner.Name}},
 		Homepage:             metadata.ProjectURL,
 		License:              metadata.License,
+		Repository:           metadata.Repository,
 		Keywords:             metadata.Keywords,
 		Dependencies:         metadata.Dependencies,
 		BundleDependencies:   metadata.BundleDependencies,

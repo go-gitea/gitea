@@ -404,9 +404,10 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
-			r.Group("/@{scope}/{id}", func() {
+			r.Group("/@{scope:(?:[^%]|%[^2]|%2[^fF])+}/{id}", func() { // "%2F"-encoded scoped names are one segment and must match "/{id}"
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
+				r.Get("/{version}", npm.PackageVersionMetadata)
 				r.Group("/-/{version}/{filename}", func() {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
@@ -420,6 +421,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/{id}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
+				r.Get("/{version}", npm.PackageVersionMetadata)
 				r.Group("/-/{version}/{filename}", func() {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
