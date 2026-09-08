@@ -41,7 +41,6 @@
   "webauthn_error": "Tidak dapat membaca kunci keamanan Anda.",
   "webauthn_unsupported_browser": "Browser Anda saat ini tidak mendukung WebAuthn.",
   "webauthn_error_unknown": "Terdapat kesalahan yang tidak diketahui. Mohon coba lagi.",
-  "webauthn_error_insecure": "WebAuthn hanya mendukung koneksi aman. Untuk melakukan tes lewat HTTP, anda dapat menggunakan origin \"localhost\" atau \"127.0.0.1\"",
   "webauthn_error_unable_to_process": "Server tidak dapat memproses permintaan Anda.",
   "webauthn_error_duplicated": "Kunci keamanan tidak diperbolehkan untuk permintaan ini. Pastikan bahwa kunci ini belum terdaftar sebelumnya.",
   "webauthn_error_empty": "Anda harus menetapkan nama untuk kunci ini.",
