@@ -9,12 +9,6 @@
 	data-issue-repo-link="{{$.RepoLink}}"
 	data-issue-repo-id="{{$.Repository.ID}}"
 ></div>
-{{$pr := .Issue.PullRequest}}
-{{$baseBranch := $pr.BaseBranch}}
-{{$headBranch := $pr.HeadBranch}}
-{{$baseUserName := $pr.BaseRepo.OwnerName}}
-{{$headUserName := $pr.OptionalHeadUserName ctx}}
-{{$differentOwner := ne $baseUserName $headUserName}}
 <div class="issue-title-header">
 	{{$canEditIssueTitle := and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 	<div class="issue-title" id="issue-title-display">
@@ -46,7 +40,7 @@
 	{{end}}
 	<div class="issue-title-meta flex-text-block">
 		{{if .HasMerged}}
-			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "tw-mr-1"}} {{if eq $pr.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
+			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "tw-mr-1"}} {{if eq .Issue.PullRequest.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
 		{{else if .Issue.IsClosed}}
 			<div class="ui red label issue-state-label">{{svg (Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed")}} {{ctx.Locale.Tr "repo.issues.closed_title"}}</div>
 		{{else if .Issue.IsPull}}
@@ -64,7 +58,7 @@
 				{{if .HeadBranchLink}}
 					{{$headHref = HTMLFormat `<a href="%s">%s</a> <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` .HeadBranchLink $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
 				{{else}}
-					{{if $pr.IsAgitFlow}}
+					{{if .Issue.PullRequest.IsAgitFlow}}
 						{{$headHref = HTMLFormat `%s <a href="%s" target="_blank"><span class="ui label basic tiny" data-tooltip-content="%s">AGit</span></a>` $headHref "https://docs.gitea.com/usage/agit" (ctx.Locale.Tr "repo.pull.agit_documentation")}}
 					{{else}}
 						{{$headHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
@@ -78,13 +72,13 @@
 						{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
 					{{end}}
 				{{end}}
-				{{if $pr.HasMerged}}
-					{{$mergedStr:= DateUtils.TimeSince $pr.MergedUnix}}
+				{{if .Issue.PullRequest.HasMerged}}
+					{{$mergedStr:= DateUtils.TimeSince .Issue.PullRequest.MergedUnix}}
 					{{if .Issue.OriginalAuthor}}
 						{{.Issue.OriginalAuthor}}
 						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{else}}
-						<a {{if gt $pr.Merger.ID 0}}href="{{$pr.Merger.HomeLink}}"{{end}}>{{$pr.Merger.GetDisplayName}}</a>
+						<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
 						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{end}}
 				{{else}}
@@ -96,7 +90,13 @@
 							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
-					<span id="pull-desc-editor" class="tw-hidden flex-text-block tw-flex-wrap" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
+					{{if .Issue.PullRequest}}
+					<div id="pull-desc-editor" class="tw-hidden flex-text-block tw-flex-wrap" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
+						{{$pr := .Issue.PullRequest}}
+						{{$baseBranch := $pr.BaseBranch}}
+						{{$headBranch := $pr.HeadBranch}}
+						{{$baseUserName := $pr.BaseRepo.OwnerName}}
+						{{$headUserName := $pr.OptionalHeadUserName ctx}}
 						<div class="ui basic small button tw-pointer-events-none">
 							<span class="gt-ellipsis">{{ctx.Locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
 						</div>
@@ -114,6 +114,7 @@
 									<input name="search" placeholder="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}...">
 								</div>
 								<div class="scrolling menu" id="branch-select">
+									{{$differentOwner := ne $baseUserName $headUserName}}
 									{{range $branch := $.Branches}}
 										{{$differentBranch := ne $branch $headBranch}}
 										{{if or $differentOwner $differentBranch}}
@@ -123,7 +124,8 @@
 								</div>
 							</div>
 						</div>
-					</span>
+					</div>
+					{{end}}
 				{{end}}
 			{{else}}
 				{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
