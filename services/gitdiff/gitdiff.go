@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -77,6 +78,7 @@ type DiffLine struct {
 	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
 	Type        DiffLineType
 	Content     string
+	IsTruncated bool
 	Comments    issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
 
@@ -331,6 +333,7 @@ func defaultDiffMatchPatch() *diffmatchpatch.DiffMatchPatch {
 type DiffInline struct {
 	EscapeStatus *charset.EscapeStatus
 	Content      template.HTML
+	IsTruncated  bool
 }
 
 // diffInlineWithUnicodeEscape makes a DiffInline with hidden Unicode characters escaped
@@ -341,13 +344,13 @@ func diffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) Dif
 
 func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, fileLanguage string, highlightLines map[int]template.HTML) template.HTML {
 	h, ok := highlightLines[lineIdx-1]
-	if ok {
+	if ok && !diffLine.IsTruncated {
 		return h
 	}
 	if diffLine.Content == "" {
 		return ""
 	}
-	if setting.Git.DisableDiffHighlight {
+	if diffLine.IsTruncated || setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
 	if diffSection.highlightLexer.value == nil {
@@ -365,43 +368,33 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 	}
 
 	var fileLanguage string
-	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
+	var highlightedLines [2]map[int]template.HTML
 	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
 	if diffSection.language != nil {
 		fileLanguage = diffSection.language.value
-		highlightedLeftLines, highlightedRightLines = diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value
+		highlightedLines = [2]map[int]template.HTML{diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value}
 	}
 
-	if diffLineType == DiffLinePlain {
-		// left and right are the same, no need to do line-level diff, can just pick any side
-		// caller always uses the "right side" for this type
-		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
-		return diffInlineWithUnicodeEscape(lineHTML, locale)
+	if leftLine == nil || rightLine == nil || leftLine.IsTruncated || rightLine.IsTruncated {
+		line := lines[sideIdx]
+		lineIdx := util.Iif(sideIdx == 0, line.LeftIdx, line.RightIdx)
+		lineHTML := diffSection.getLineContentForRender(lineIdx, line, fileLanguage, highlightedLines[sideIdx])
+		inline := diffInlineWithUnicodeEscape(lineHTML, locale)
+		inline.IsTruncated = line.IsTruncated
+		return inline
 	}
 
-	var diffs [2]template.HTML
-	if leftLine != nil {
-		diffs[0] = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
-	}
-	if rightLine != nil {
-		diffs[1] = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
-	}
-
-	if leftLine != nil && rightLine != nil {
-		// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
-		// "diff" the left&right sides together, then cache the diff result for another side,
-		// because when viewing the diff page, both "deleted" and "added" lines will to be rendered eventually,
-		// so here only diff them once, then next render can just use the cached result, no need to "diff" again.
-		hcd := newHighlightCodeDiff()
-		lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlight(diffs[0], diffs[1])
-		leftLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLDel, locale))
-		rightLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLAdd, locale))
-		return *lines[sideIdx].cachedDiffInline
-	}
-
-	// if left is empty or right is empty (a line is fully deleted or added), then we do not need to diff anymore.
-	// the tmpl code already adds background colors for these cases.
-	return diffInlineWithUnicodeEscape(diffs[sideIdx], locale)
+	leftHTML := diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLines[0])
+	rightHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedLines[1])
+	// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
+	// "diff" the left&right sides together, then cache the diff result for another side,
+	// because when viewing the diff page, both "deleted" and "added" lines will to be rendered eventually,
+	// so here only diff them once, then next render can just use the cached result, no need to "diff" again.
+	hcd := newHighlightCodeDiff()
+	lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlight(leftHTML, rightHTML)
+	leftLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLDel, locale))
+	rightLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLAdd, locale))
+	return *lines[sideIdx].cachedDiffInline
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
@@ -456,9 +449,9 @@ type DiffFile struct {
 	IsRenamed    bool
 	IsSubmodule  bool
 	// basic fields but for render purpose only
-	Sections                []*DiffSection
-	IsIncomplete            bool
-	IsIncompleteLineTooLong bool
+	Sections          []*DiffSection
+	IsIncomplete      bool
+	HasTruncatedLines bool
 
 	// will be filled by the extra loop in GitDiffForRender
 	IsGenerated       bool
@@ -696,9 +689,8 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 
 	sb := strings.Builder{}
 
-	// OK let's set a reasonable buffer size.
-	// This should be at least the size of maxLineCharacters or 4096 whichever is larger.
-	readerSize := max(maxLineCharacters, 4096)
+	// Leave room to distinguish exact-limit lines and complete a UTF-8 rune at the cutoff.
+	readerSize := max(maxLineCharacters+utf8.UTFMax, 4096)
 
 	input := bufio.NewReaderSize(reader, readerSize)
 	line, err := input.ReadString('\n')
@@ -1023,8 +1015,6 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 
 	for {
 		for isFragment {
-			curFile.IsIncomplete = true
-			curFile.IsIncompleteLineTooLong = true
 			_, isFragment, err = input.ReadLine()
 			if err != nil {
 				// Now by the definition of ReadLine this cannot be io.EOF
@@ -1173,24 +1163,21 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			return nil, false, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 		}
 
-		line := string(lineBytes)
-		if isFragment {
-			curFile.IsIncomplete = true
-			curFile.IsIncompleteLineTooLong = true
-			for isFragment {
-				lineBytes, isFragment, err = input.ReadLine()
-				if err != nil {
-					// Now by the definition of ReadLine this cannot be io.EOF
-					return lineBytes, isFragment, fmt.Errorf("unable to ReadLine: %w", err)
-				}
+		diffLine := curSection.Lines[len(curSection.Lines)-1]
+		diffLine.IsTruncated = isFragment || len(lineBytes) > maxLineCharacters
+		curFile.HasTruncatedLines = curFile.HasTruncatedLines || diffLine.IsTruncated
+		cutoff := min(len(lineBytes), maxLineCharacters)
+		if diffLine.IsTruncated && !utf8.RuneStart(lineBytes[cutoff]) {
+			start := cutoff
+			for start > 0 && !utf8.RuneStart(lineBytes[start]) {
+				start--
+			}
+			if _, size := utf8.DecodeRune(lineBytes[start:]); size > 1 && start+size > cutoff && utf8.Valid(lineBytes[:start]) {
+				cutoff = start
 			}
 		}
-		if len(line) > maxLineCharacters {
-			curFile.IsIncomplete = true
-			curFile.IsIncompleteLineTooLong = true
-			line = line[:maxLineCharacters]
-		}
-		curSection.Lines[len(curSection.Lines)-1].Content = line
+		line := string(lineBytes[:cutoff])
+		diffLine.Content = line
 
 		// handle LFS
 		if line[1:] == lfs.MetaFileIdentifier {

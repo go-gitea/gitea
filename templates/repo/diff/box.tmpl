@@ -90,7 +90,7 @@
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
-					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
+					{{$showFileViewToggle := or $isImage (and $isCsv (not $file.IsIncomplete) (not $file.HasTruncatedLines))}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
@@ -173,12 +173,8 @@
 								{{if or $file.IsIncomplete $file.IsBin}}
 									<div class="tw-p-3">
 										{{if $file.IsIncomplete}}
-											{{if $file.IsIncompleteLineTooLong}}
-												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
-											{{else}}
-												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-												<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
-											{{end}}
+											{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
+											<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
 										{{end}}
