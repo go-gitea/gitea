@@ -36,7 +36,9 @@ var (
 	ErrInvalidIntegrity = util.NewInvalidArgumentErrorf("failed to validate integrity")
 )
 
-var nameMatch = regexp.MustCompile(`^(@[a-z0-9-][a-z0-9-._]*/)?[a-z0-9-][a-z0-9-._]*$`)
+const RegexpNamePart = `[a-z0-9-][a-z0-9-._]*`
+
+var nameMatch = regexp.MustCompile(`^(@` + RegexpNamePart + `/)?` + RegexpNamePart + `$`)
 
 // Package represents a npm package
 type Package struct {

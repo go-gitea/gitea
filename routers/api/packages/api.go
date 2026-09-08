@@ -9,6 +9,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/modules/log"
+	npm_module "gitea.dev/modules/packages/npm"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/packages/alpine"
@@ -404,9 +405,13 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
-			r.Group("/@{scope}/{id}", func() {
+			// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
+			scopeRegexp := `^@` + npm_module.RegexpNamePart + `$`
+			idRegexp := `^(@` + npm_module.RegexpNamePart + `%2[fF])?` + npm_module.RegexpNamePart + `$`
+			addPackageHandlers := func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
+				r.Get("/{version}", npm.PackageVersionMetadata)
 				r.Group("/-/{version}/{filename}", func() {
 					r.Get("", npm.DownloadPackageFile)
 					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
@@ -416,34 +421,19 @@ func CommonRoutes() *web.Router {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
 				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-			r.Group("/{id}", func() {
-				r.Get("", npm.PackageMetadata)
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Group("/-/{version}/{filename}", func() {
-					r.Get("", npm.DownloadPackageFile)
-					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				})
-				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
-				r.Group("/-rev/{revision}", func() {
-					r.Delete("", npm.DeletePackage)
-					r.Put("", npm.DeletePreview)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-			r.Group("/-/package/@{scope}/{id}/dist-tags", func() {
+			}
+			r.Group("/{scope:"+scopeRegexp+"}/{id:"+idRegexp+"}", addPackageHandlers)
+			r.Group("/{id:"+idRegexp+"}", addPackageHandlers)
+
+			addPackageDistTagsHandlers := func() {
 				r.Get("", npm.ListPackageTags)
 				r.Group("/{tag}", func() {
 					r.Put("", npm.AddPackageTag)
 					r.Delete("", npm.DeletePackageTag)
 				}, reqPackageAccess(perm.AccessModeWrite))
-			})
-			r.Group("/-/package/{id}/dist-tags", func() {
-				r.Get("", npm.ListPackageTags)
-				r.Group("/{tag}", func() {
-					r.Put("", npm.AddPackageTag)
-					r.Delete("", npm.DeletePackageTag)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			})
+			}
+			r.Group("/-/package/{scope:"+scopeRegexp+"}/{id:"+idRegexp+"}/dist-tags", addPackageDistTagsHandlers)
+			r.Group("/-/package/{id:"+idRegexp+"}/dist-tags", addPackageDistTagsHandlers)
 			r.Group("/-/v1/search", func() {
 				r.Get("", npm.PackageSearch)
 			})

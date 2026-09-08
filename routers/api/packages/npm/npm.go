@@ -41,14 +41,22 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 // packageNameFromParams gets the package name from the url parameters
-// Variations: /name/, /@scope/name/, /@scope%2Fname/
 func packageNameFromParams(ctx *context.Context) string {
+	// Real examples: these 2 both should work:
+	// * "https://registry.npmjs.org/@angular/core"
+	// * "https://registry.npmjs.org/@angular%2Fcore"
+	//
+	// HINT: NPM-ROUTE-PATH-PATTERN: The cases for the path parameters:
+	// * ".../TheName/...": id="TheName"
+	// * ".../@TheScope/TheName/...": scope="@TheScope", id="TheName"
+	// * ".../@TheScope%2FTheName/...": id="@TheScope/TheName"
 	scope := ctx.PathParam("scope")
-	id := ctx.PathParam("id")
+	fullOrSub := ctx.PathParam("id") // may be a full name or a subpath of the full package name
 	if scope != "" {
-		return fmt.Sprintf("@%s/%s", scope, id)
+		// now id is the subpath of the full package name, e.g. "core" in "@angular/core"
+		return fmt.Sprintf("%s/%s", scope, fullOrSub)
 	}
-	return id
+	return fullOrSub // id is the full package name, e.g.: "@angular/core" or "lodash"
 }
 
 // PackageMetadata returns the metadata for a single package
@@ -77,6 +85,10 @@ func PackageMetadata(ctx *context.Context) {
 	)
 
 	ctx.JSON(http.StatusOK, resp)
+}
+
+func PackageVersionMetadata(ctx *context.Context) {
+	ctx.HTTPError(http.StatusNotImplemented, "not implemented")
 }
 
 // DownloadPackageFile serves the content of a package
