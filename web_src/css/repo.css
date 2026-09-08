@@ -302,11 +302,6 @@
   margin-bottom: 1rem;
 }
 
-.issue-title-meta {
-  display: flex;
-  align-items: center;
-}
-
 .repository.view.issue .issue-title-buttons {
   display: flex;
   gap: 0.5em;
