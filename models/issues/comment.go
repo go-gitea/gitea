@@ -120,6 +120,8 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeCommitComment // 39 Inline comment on a commit diff (no issue/PR)
 )
 
 var commentStrings = []string{
@@ -162,6 +164,7 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"commit_comment",
 }
 
 func (t CommentType) String() string {
@@ -179,7 +182,7 @@ func AsCommentType(typeName string) CommentType {
 
 func (t CommentType) HasContentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeDismissReview, CommentTypeCommitComment:
 		return true
 	}
 	return false
@@ -187,7 +190,7 @@ func (t CommentType) HasContentSupport() bool {
 
 func (t CommentType) HasAttachmentSupport() bool {
 	switch t {
-	case CommentTypeComment, CommentTypeCode, CommentTypeReview:
+	case CommentTypeComment, CommentTypeCode, CommentTypeReview, CommentTypeCommitComment:
 		return true
 	}
 	return false
@@ -363,6 +366,10 @@ func (c *Comment) GetPushActionContent() (*PushActionContent, error) {
 // LoadIssue loads the issue reference for the comment
 func (c *Comment) LoadIssue(ctx context.Context) (err error) {
 	if c.Issue != nil {
+		return nil
+	}
+	// Commit comments live outside the issue/PR graph (IssueID is always 0).
+	if c.Type == CommentTypeCommitComment {
 		return nil
 	}
 	c.Issue, err = GetIssueByID(ctx, c.IssueID)

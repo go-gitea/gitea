@@ -1465,6 +1465,13 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			}, repo.MustBeAbleToUpload, reqRepoCodeWriter)
 		}, repo.MustBeEditable, context.RepoMustNotBeArchived())
 
+		// Inline comments on commit diffs (fixes go-gitea/gitea#4898)
+		m.Group("/commit/{sha:[a-f0-9]{7,64}}", func() {
+			m.Get("/comment", repo.RenderNewCommitCommentForm)
+			m.Post("/comment", context.RepoMustNotBeArchived(), repo.CreateCommitComment)
+			m.Post("/comment/{id}/delete", context.RepoMustNotBeArchived(), repo.DeleteCommitComment)
+		})
+
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
 				m.Post("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.CreateBranch)

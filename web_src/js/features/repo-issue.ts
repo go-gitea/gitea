@@ -246,7 +246,8 @@ export function initRepoPullRequestReview() {
   });
 
   // The following part is only for diff views
-  if (!document.querySelector('.repository.pull.diff')) return;
+  // PR files page and commit diff page both expose inline comment controls
+  if (!document.querySelector('.repository.diff')) return;
 
   const elReviewBtn = document.querySelector('.js-btn-review');
   const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');

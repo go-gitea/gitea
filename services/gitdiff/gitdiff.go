@@ -80,6 +80,12 @@ type DiffLine struct {
 	Comments    issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
 
+	// CommitCommentsLeft/Right hold CommentTypeCommitComment threads. Kept
+	// separate from Comments because a context line has both an old and a new
+	// index and either side may carry its own thread.
+	CommitCommentsLeft  issues_model.CommentList
+	CommitCommentsRight issues_model.CommentList
+
 	cachedDiffInline *DiffInline
 }
 
@@ -164,6 +170,24 @@ func (d *DiffLine) CanComment() bool {
 	return len(d.Comments) == 0 && d.Type != DiffLineSection
 }
 
+// CanCommentLeft returns whether the old side of the line can get a commit comment.
+func (d *DiffLine) CanCommentLeft() bool {
+	return d.Type != DiffLineSection && len(d.CommitCommentsLeft) == 0
+}
+
+// CanCommentRight returns whether the new side of the line can get a commit comment.
+func (d *DiffLine) CanCommentRight() bool {
+	return d.Type != DiffLineSection && len(d.CommitCommentsRight) == 0
+}
+
+// CanCommentUnified answers for the single button of the unified view.
+func (d *DiffLine) CanCommentUnified() bool {
+	if d.RightIdx > 0 {
+		return d.CanCommentRight()
+	}
+	return d.CanCommentLeft()
+}
+
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
 func (d *DiffLine) GetCommentSide() string {
 	if len(d.Comments) == 0 {
@@ -219,6 +243,9 @@ type DiffBlobExcerptData struct {
 	PullIssueIndex int64
 	DiffStyle      string
 	AfterCommitID  string
+	// IsCommitDiff marks excerpts of a single commit's diff so expanded rows
+	// keep commit-comment buttons and conversations. Compare views must not set it.
+	IsCommitDiff bool
 }
 
 const (
@@ -235,6 +262,9 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
 		if data.PullIssueIndex > 0 {
 			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
+		}
+		if data.IsCommitDiff {
+			link += "&commit_diff=1"
 		}
 		return htmlutil.HTMLFormat(
 			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
@@ -681,6 +711,64 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 		}
 	}
 	return nil
+}
+
+// LoadCommitComments attaches CommentTypeCommitComment threads to each diff line
+// and returns the ones that landed on a rendered line (so callers only render
+// markdown that is actually displayed).
+func (diff *Diff) LoadCommitComments(ctx context.Context, repoID int64, commitSHA string) (issues_model.CommentList, error) {
+	comments, err := issues_model.FindCommitCommentsByCommitSHA(ctx, repoID, commitSHA)
+	if err != nil {
+		return nil, err
+	}
+	byPath := make(map[string]issues_model.CommentList, len(comments))
+	for _, c := range comments {
+		byPath[c.TreePath] = append(byPath[c.TreePath], c)
+	}
+	attached := make(issues_model.CommentList, 0, len(comments))
+	for _, file := range diff.Files {
+		fileComments, ok := byPath[file.Name]
+		if !ok {
+			continue
+		}
+		byLine := commitCommentsByLine(fileComments)
+		for _, section := range file.Sections {
+			attached = append(attached, attachCommitCommentsToLines(section.Lines, byLine)...)
+		}
+	}
+	return attached, nil
+}
+
+// AttachCommitCommentsToLines anchors one file's commit comments on the diff
+// lines they were written against and returns the ones that found a line.
+func AttachCommitCommentsToLines(lines []*DiffLine, comments issues_model.CommentList) issues_model.CommentList {
+	if len(comments) == 0 {
+		return nil
+	}
+	return attachCommitCommentsToLines(lines, commitCommentsByLine(comments))
+}
+
+func commitCommentsByLine(comments issues_model.CommentList) map[int64]issues_model.CommentList {
+	byLine := make(map[int64]issues_model.CommentList, len(comments))
+	for _, c := range comments {
+		byLine[c.Line] = append(byLine[c.Line], c)
+	}
+	return byLine
+}
+
+func attachCommitCommentsToLines(lines []*DiffLine, byLine map[int64]issues_model.CommentList) issues_model.CommentList {
+	var attached issues_model.CommentList
+	for _, line := range lines {
+		if line.LeftIdx > 0 {
+			line.CommitCommentsLeft = byLine[int64(-line.LeftIdx)]
+			attached = append(attached, line.CommitCommentsLeft...)
+		}
+		if line.RightIdx > 0 {
+			line.CommitCommentsRight = byLine[int64(line.RightIdx)]
+			attached = append(attached, line.CommitCommentsRight...)
+		}
+	}
+	return attached
 }
 
 const cmdDiffHead = "diff --git "
