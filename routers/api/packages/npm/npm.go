@@ -24,7 +24,6 @@ import (
 	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	npm_module "gitea.dev/modules/packages/npm"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	"gitea.dev/services/context"
@@ -63,7 +62,7 @@ func packageNameFromParams(ctx *context.Context) string {
 }
 
 func buildNpmRegistryURL(ctx std_ctx.Context, owner *user_model.User) string {
-	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/packages/"+url.PathEscape(owner.Name)+"/npm")
+	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + url.PathEscape(owner.Name) + "/npm"
 }
 
 // PackageMetadata returns the metadata for a single package
