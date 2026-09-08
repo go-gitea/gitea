@@ -140,6 +140,7 @@ func prepareUserNotificationsData(ctx *context.Context) {
 
 	pager.RemoveParam(container.SetOf("div-only", "sequence-number"))
 	ctx.Data["Page"] = pager
+	ctx.Data["PageQueryParams"] = templates.QueryBuild(pager.GetParams(), "page", page)
 }
 
 func filterNotificationsByRepoAccess(ctx stdCtx.Context, doer *user_model.User, notifications activities_model.NotificationList) (activities_model.NotificationList, []int, error) {

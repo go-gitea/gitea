@@ -54,7 +54,7 @@
 									</div>
 								{{end}}
 								{{if and $.IsWriter $.Repository.CanContentChange (not .IsDeleted)}}
-									<button class="btn interact-bg tw-p-2 show-modal show-rename-branch-modal"
+									<button class="btn interact-bg tw-p-2 show-modal" data-global-click="showRenameBranchModal"
 										data-is-default-branch="true"
 										data-modal="#rename-branch-modal"
 										data-old-branch-name="{{$.DefaultBranchBranch.DBBranch.Name}}"
@@ -183,7 +183,7 @@
 									</div>
 								{{end}}
 								{{if and $.IsWriter $.Repository.CanContentChange (not .DBBranch.IsDeleted)}}
-									<button class="btn interact-bg tw-p-2 show-modal show-rename-branch-modal"
+									<button class="btn interact-bg tw-p-2 show-modal" data-global-click="showRenameBranchModal"
 										data-is-default-branch="false"
 										data-old-branch-name="{{.DBBranch.Name}}"
 										data-modal="#rename-branch-modal"
@@ -194,13 +194,13 @@
 								{{end}}
 								{{if and $.IsWriter $.Repository.CanContentChange (not .IsProtected)}}
 									{{if .DBBranch.IsDeleted}}
-										<button class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginator.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
+										<button class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
 											<span class="tw-text-blue">
 												{{svg "octicon-reply"}}
 											</span>
 										</button>
 									{{else}}
-										<button class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginator.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
+										<button class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.url="{{$.Link}}/delete?name={{.DBBranch.Name}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
 											{{svg "octicon-trash"}}
 										</button>
 									{{end}}
@@ -256,11 +256,9 @@
 			<div class="field default-branch-warning">
 				<span class="tw-text-red">{{ctx.Locale.Tr "repo.branch.warning_rename_default_branch"}}</span>
 			</div>
+			<input name="from" type="hidden">
 			<div class="field">
-				<span class="text" data-rename-branch-to="{{ctx.Locale.Tr "repo.branch.rename_branch_to"}}"></span>
-			</div>
-			<input name="from" type="hidden" required>
-			<div class="required field">
+				<label class="text" data-rename-branch-to="{{ctx.Locale.Tr "repo.branch.rename_branch_to"}}"></label>
 				<input name="to" required>
 			</div>
 		</div>

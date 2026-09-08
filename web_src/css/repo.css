@@ -131,17 +131,13 @@
   margin-bottom: 12px;
 }
 
-.commit-summary {
+.latest-commit .commit-summary,
+.repo-file-item .commit-summary {
   flex: 1;
   overflow-wrap: anywhere;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.commit-header .commit-summary,
-td .commit-summary {
-  white-space: normal;
 }
 
 .latest-commit {
@@ -1685,10 +1681,6 @@ tbody.commit-list {
   .repository.view.issue .comment-list .timeline-avatar,
   .repository.view.issue .comment-list .comment-header-right .role-label {
     display: none;
-  }
-  .commit-header h3 {
-    flex-basis: auto !important;
-    margin-bottom: 0.5rem !important;
   }
   .commit-table {
     overflow-x: auto;
