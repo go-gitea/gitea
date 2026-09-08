@@ -51,13 +51,19 @@ func AdminManagerDelete(ctx *context.Context) {
 	})
 }
 
+func AdminManagerUpdate(ctx *context.Context) {
+	handleManagerUpdate(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite})
+}
+
+func AdminManagerSecret(ctx *context.Context) {
+	handleManagerSecret(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite})
+}
+
 // AdminManagersCreateManager creates a site-wide Manager identity.
 func AdminManagersCreateManager(ctx *context.Context) {
 	handleManagerSettingsCreateManager(ctx, managerSettingsRenderOptions{
 		Scope:      codespace_service.ManagerSettingsScopeSite,
 		ActionBase: setting.AppSubURL + "/-/admin/codespaces/managers",
-		Template:   tplAdminCodespaceManagers,
-		PageFlag:   "PageIsAdminCodespaceManagers",
 	})
 }
 
@@ -122,14 +128,20 @@ func UserManagerDelete(ctx *context.Context) {
 	})
 }
 
+func UserManagerUpdate(ctx *context.Context) {
+	handleManagerUpdate(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeUser, UserID: ctx.Doer.ID})
+}
+
+func UserManagerSecret(ctx *context.Context) {
+	handleManagerSecret(ctx, codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeUser, UserID: ctx.Doer.ID})
+}
+
 // UserSettingsCreateManager creates a Manager identity owned by the current user.
 func UserSettingsCreateManager(ctx *context.Context) {
 	handleManagerSettingsCreateManager(ctx, managerSettingsRenderOptions{
 		Scope:      codespace_service.ManagerSettingsScopeUser,
 		UserID:     ctx.Doer.ID,
 		ActionBase: setting.AppSubURL + "/user/settings/codespaces/managers",
-		Template:   tplUserCodespaceSettings,
-		PageFlag:   "PageIsCodespaceSettings",
 	})
 }
 
@@ -187,6 +199,7 @@ func renderDevContainerTemplateSettings(ctx *context.Context, opts devContainerT
 	ctx.Data["Title"] = ctx.Tr("codespace.dev_container_templates")
 	ctx.Data[opts.PageFlag] = true
 	ctx.Data["DevContainerTemplates"] = templates
+	ctx.Data["IsSiteTemplateSettings"] = opts.UserID == 0
 	ctx.Data["ActionBase"] = opts.ActionBase
 	ctx.HTML(http.StatusOK, opts.Template)
 }
@@ -199,10 +212,11 @@ func handleDevContainerTemplateUpsert(ctx *context.Context, opts devContainerTem
 		Content: ctx.FormString("content"),
 	})
 	if err != nil {
-		handleDevContainerTemplateActionError(ctx, opts.ActionBase, err)
+		handleDevContainerTemplateActionError(ctx, err)
 		return
 	}
-	ctx.Redirect(opts.ActionBase, http.StatusSeeOther)
+	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
+	ctx.JSONRedirect(opts.ActionBase)
 }
 
 func handleDevContainerTemplateDelete(ctx *context.Context, opts devContainerTemplateRenderOptions) {
@@ -211,19 +225,22 @@ func handleDevContainerTemplateDelete(ctx *context.Context, opts devContainerTem
 		ID:     ctx.PathParamInt64("template_id"),
 	})
 	if err != nil {
-		handleDevContainerTemplateActionError(ctx, opts.ActionBase, err)
+		handleDevContainerTemplateActionError(ctx, err)
 		return
 	}
 	ctx.JSONRedirect(opts.ActionBase)
 }
 
-func handleDevContainerTemplateActionError(ctx *context.Context, redirectTo string, err error) {
+func handleDevContainerTemplateActionError(ctx *context.Context, err error) {
 	switch {
 	case errors.Is(err, codespace_service.ErrDevContainerTemplateNotFound):
-		ctx.NotFound(nil)
+		ctx.JSONErrorNotFound()
+	case errors.Is(err, codespace_service.ErrDevContainerTemplateNameInvalid):
+		ctx.JSONErrorWithField(ctx.Tr("codespace.dev_container_template_name_invalid"), "name")
+	case errors.Is(err, codespace_service.ErrCreateConfigurationInvalid):
+		ctx.JSONErrorWithField(err.Error(), "content")
 	default:
-		ctx.Flash.Error(err.Error())
-		ctx.Redirect(redirectTo, http.StatusSeeOther)
+		ctx.JSONErrorAuto(err)
 	}
 }
 
@@ -313,7 +330,7 @@ func handleManagerDelete(ctx *context.Context, opts managerSettingsRenderOptions
 }
 
 func handleManagerSettingsCreateManager(ctx *context.Context, opts managerSettingsRenderOptions) {
-	result, err := codespace_service.CreateManager(ctx, codespace_service.CreateManagerOptions{
+	managerID, err := codespace_service.CreateManager(ctx, codespace_service.CreateManagerOptions{
 		ManagerSettingsOptions: codespace_service.ManagerSettingsOptions{
 			Scope:  opts.Scope,
 			UserID: opts.UserID,
@@ -321,16 +338,44 @@ func handleManagerSettingsCreateManager(ctx *context.Context, opts managerSettin
 		Name: ctx.FormString("name"),
 	})
 	if err != nil {
-		handleManagerSettingsActionError(ctx, opts.ActionBase, err)
+		handleManagerEditError(ctx, err)
 		return
 	}
-	if !populateManagerSettingsData(ctx, opts) {
+	ctx.JSONRedirect(opts.ActionBase + "/" + strconv.FormatInt(managerID, 10))
+}
+
+func handleManagerUpdate(ctx *context.Context, opts codespace_service.ManagerSettingsOptions) {
+	if err := codespace_service.UpdateManagerName(ctx, opts, ctx.PathParamInt64("manager_id"), ctx.FormString("name")); err != nil {
+		handleManagerEditError(ctx, err)
 		return
 	}
-	ctx.Data["NewManagerID"] = result.ManagerID
-	ctx.Data["NewManagerName"] = result.Name
-	ctx.Data["NewManagerSecret"] = result.Secret
-	ctx.HTML(http.StatusOK, opts.Template)
+	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
+	ctx.JSONRedirect(ctx.Req.URL.Path)
+}
+
+func handleManagerSecret(ctx *context.Context, opts codespace_service.ManagerSettingsOptions) {
+	ctx.RespHeader().Set("Cache-Control", "no-store")
+	secret, err := codespace_service.ResetManagerSecret(ctx, opts, ctx.PathParamInt64("manager_id"), ctx.FormString("confirm") == "reset-secret")
+	if err != nil {
+		handleManagerEditError(ctx, err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]string{"secret": secret})
+}
+
+func handleManagerEditError(ctx *context.Context, err error) {
+	switch {
+	case errors.Is(err, codespace_service.ErrManagerSettingsNotFound):
+		ctx.JSONErrorNotFound()
+	case errors.Is(err, codespace_service.ErrManagerSettingsNameInvalid):
+		ctx.JSONErrorWithField(ctx.Tr("codespace.manager_name_invalid"), "name")
+	case errors.Is(err, codespace_service.ErrManagerSettingsConfirmRequired):
+		ctx.JSONError(ctx.Tr("codespace.error.confirm_required"))
+	case errors.Is(err, codespace_service.ErrManagerSettingsChanged):
+		ctx.JSONError(ctx.Tr("codespace.manager_settings_changed"))
+	default:
+		ctx.JSONErrorAuto(err)
+	}
 }
 
 func handleManagerSettingsActionError(ctx *context.Context, redirectTo string, err error) {
@@ -342,9 +387,6 @@ func handleManagerSettingsActionError(ctx *context.Context, redirectTo string, e
 		ctx.Redirect(redirectTo, http.StatusSeeOther)
 	case errors.Is(err, codespace_service.ErrManagerSettingsOwnershipConflict):
 		ctx.Flash.Error(ctx.Tr("codespace.manager_ownership_conflict"))
-		ctx.Redirect(redirectTo, http.StatusSeeOther)
-	case errors.Is(err, codespace_service.ErrManagerSettingsNameInvalid):
-		ctx.Flash.Error(ctx.Tr("codespace.manager_name_invalid"))
 		ctx.Redirect(redirectTo, http.StatusSeeOther)
 	default:
 		ctx.ServerError("CodespaceManagerSettingsAction", err)

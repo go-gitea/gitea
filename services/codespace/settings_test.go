@@ -14,20 +14,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateManagerReturnsOneTimeSecret(t *testing.T) {
+func TestManagerNameAndCredentialLifecycle(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	opts := CreateManagerOptions{
 		ManagerSettingsOptions: ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1},
 		Name:                   " Personal Manager ",
 	}
-	result, err := CreateManager(t.Context(), opts)
+	managerID, err := CreateManager(t.Context(), opts)
 	require.NoError(t, err)
-	require.NotZero(t, result.ManagerID)
-	assert.Equal(t, "Personal Manager", result.Name)
-	require.NotEmpty(t, result.Secret)
-	manager, err := AuthenticateManager(t.Context(), result.ManagerID, result.Secret)
+	require.NotZero(t, managerID)
+	manager, err := loadSettingsManager(t.Context(), managerID)
 	require.NoError(t, err)
+	assert.Empty(t, manager.SecretHash)
+	_, err = AuthenticateManager(t.Context(), managerID, "not-issued")
+	require.ErrorIs(t, err, ErrManagerUnauthenticated)
 	assert.Equal(t, "Personal Manager", manager.Name)
 	assert.EqualValues(t, 1, manager.UserID)
 	assert.Equal(t, codespace_model.ManagerRuntimeStateRecovering, manager.RuntimeState)
@@ -35,6 +36,32 @@ func TestCreateManagerReturnsOneTimeSecret(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, views.Managers, 1)
 	assert.Equal(t, managerDisplayPending, views.Managers[0].RuntimeDisplayState)
+	assert.False(t, views.Managers[0].HasSecret)
+	secret, err := ResetManagerSecret(t.Context(), opts.ManagerSettingsOptions, managerID, false)
+	require.NoError(t, err)
+	_, err = AuthenticateManager(t.Context(), managerID, secret)
+	require.NoError(t, err)
+	beforeRename, err := loadSettingsManager(t.Context(), managerID)
+	require.NoError(t, err)
+	require.NoError(t, UpdateManagerName(t.Context(), opts.ManagerSettingsOptions, managerID, " Renamed "))
+	manager, err = AuthenticateManager(t.Context(), managerID, secret)
+	require.NoError(t, err)
+	beforeRename.Name = "Renamed"
+	assert.Equal(t, beforeRename, manager)
+	assert.Equal(t, "Renamed", manager.Name)
+	assert.EqualValues(t, 1, manager.UserID)
+	_, err = ResetManagerSecret(t.Context(), opts.ManagerSettingsOptions, managerID, false)
+	require.ErrorIs(t, err, ErrManagerSettingsConfirmRequired)
+	otherUser := ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 2}
+	require.ErrorIs(t, UpdateManagerName(t.Context(), otherUser, managerID, "Other"), ErrManagerSettingsNotFound)
+	_, err = ResetManagerSecret(t.Context(), otherUser, managerID, true)
+	require.ErrorIs(t, err, ErrManagerSettingsNotFound)
+	newSecret, err := ResetManagerSecret(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeSite}, managerID, true)
+	require.NoError(t, err)
+	_, err = AuthenticateManager(t.Context(), managerID, secret)
+	require.ErrorIs(t, err, ErrManagerUnauthenticated)
+	_, err = AuthenticateManager(t.Context(), managerID, newSecret)
+	require.NoError(t, err)
 }
 
 func TestCreateManagerRejectsInvalidName(t *testing.T) {

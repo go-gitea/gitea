@@ -2,7 +2,8 @@
 <div role="main" aria-label="{{.Title}}" class="page-content codespace codespace-detail-page codespace-detail-tab-{{.CodespaceTab}}" data-codespace-tab-explicit="{{if .CodespaceTabExplicit}}true{{else}}false{{end}}">
 	<div class="ui fluid container codespace-detail-container">
 		{{template "base/alert" .}}
-		<a class="codespace-back-link tw-inline-flex tw-items-center tw-self-start tw-gap-1" href="{{AppSubUrl}}/-/codespaces">{{svg "octicon-arrow-left" 14}} {{ctx.Locale.Tr "codespace.back_to_list"}}</a>
+		<a class="codespace-back-link tw-inline-flex tw-items-center tw-self-start tw-gap-1" href="{{.CodespaceListReturnTo}}">{{svg "octicon-arrow-left" 14}} {{ctx.Locale.Tr "codespace.back_to_list"}}</a>
+		{{template "codespace/refresh_notice" .}}
 		{{if .OpenEndpointError}}<div class="ui warning message">{{ctx.Locale.Tr "codespace.open.unavailable"}}</div>{{end}}
 		{{template "codespace/open_modal" .}}
 		{{template "codespace/settings_modal" .}}

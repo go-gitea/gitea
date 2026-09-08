@@ -2,6 +2,53 @@ import {attachSearchBox} from '../../modules/search.ts';
 import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {hideElem, showElem} from '../../utils/dom.ts';
 import {svg} from '../../svg.ts';
+import {performFetchActionRequest} from '../../modules/fetch-action.ts';
+import {showErrorToast} from '../../modules/toast.ts';
+import {createCodeEditor, type CodemirrorEditor} from '../../modules/codeeditor/main.ts';
+
+export function initCodespaceTemplateEditor(modal: HTMLElement) {
+  const form = modal.querySelector<HTMLFormElement>('form')!;
+  const textarea = form.querySelector<HTMLTextAreaElement>('[name="content"]')!;
+  const name = form.querySelector<HTMLInputElement>('[name="name"]')!;
+  const submit = form.querySelector<HTMLButtonElement>('.ok')!;
+  const cancel = form.querySelector<HTMLButtonElement>('.cancel')!;
+  let editor: CodemirrorEditor | undefined;
+  for (const button of document.querySelectorAll<HTMLButtonElement>('.codespace-template-edit')) {
+    button.addEventListener('click', () => {
+      form.action = button.getAttribute('data-modal-form.url')!;
+      name.value = button.getAttribute('data-modal-codespace-devcontainer-template-name')!;
+      textarea.defaultValue = textarea.value = button.getAttribute('data-modal-codespace-devcontainer-template-content')!;
+      modal.querySelector('.header')!.textContent = button.getAttribute('data-modal-template-modal-title')!;
+      submit.querySelector('.template-submit-label')!.textContent = button.getAttribute('data-submit-label')!;
+      for (const field of form.querySelectorAll('.field.error')) field.classList.remove('error');
+      showFomanticModal(modal, {
+        closable: false,
+        async onShow() {
+          submit.disabled = cancel.disabled = true;
+          textarea.readOnly = true;
+          try {
+            editor = await createCodeEditor(textarea);
+            hideElem(textarea);
+            editor.view.requestMeasure();
+            name.focus();
+          } catch {
+            textarea.parentElement!.querySelector('.code-editor-container')?.remove();
+            showElem(textarea);
+          } finally {
+            textarea.readOnly = false;
+            submit.disabled = cancel.disabled = false;
+          }
+        },
+        onHide() {
+          editor?.view.destroy();
+          editor = undefined;
+          textarea.parentElement!.querySelector('.code-editor-container')?.remove();
+          showElem(textarea);
+        },
+      });
+    });
+  }
+}
 
 type RepositorySearchResponse = {data: Array<{id: number, full_name: string}>};
 type SelectedRepository = {id: string, name: string};
@@ -90,5 +137,61 @@ export function initCodespaceSecretRepositoryPicker(root: HTMLElement) {
 }
 
 export function initCodespaceManagerSecretModal(modal: HTMLElement) {
-  showFomanticModal(modal);
+  const trigger = document.querySelector<HTMLButtonElement>('#manager-secret-button')!;
+  const status = document.querySelector<HTMLElement>('#manager-secret-status')!;
+  const form = modal.querySelector<HTMLFormElement>('form')!;
+  const submit = form.querySelector<HTMLButtonElement>('[data-secret-submit]')!;
+  const close = form.querySelector<HTMLButtonElement>('.cancel')!;
+  const value = modal.querySelector<HTMLInputElement>('#manager-secret-value')!;
+  const result = modal.querySelector<HTMLElement>('[data-secret-result]')!;
+  const confirmation = modal.querySelector<HTMLElement>('[data-secret-confirm]')!;
+  let pending = false;
+  let hasSecret = trigger.getAttribute('data-has-secret') === 'true';
+
+  const generate = async () => {
+    if (pending || !result.hidden) return;
+    pending = true;
+    submit.disabled = close.disabled = trigger.disabled = true;
+    const data = new FormData(form);
+    if (hasSecret) data.set('confirm', 'reset-secret');
+    // A lost response may still have replaced the verifier; the next attempt needs confirmation.
+    hasSecret = true;
+    trigger.textContent = trigger.getAttribute('data-reset-label')!;
+    try {
+      const response = await performFetchActionRequest(form, {method: 'POST', url: form.action, data});
+      if (!response) return;
+      const body = await response.json();
+      if (typeof body.secret !== 'string' || !body.secret) throw new Error('Missing secret');
+      value.value = body.secret;
+      result.hidden = false;
+      confirmation.hidden = true;
+      status.textContent = status.getAttribute('data-generated-label')!;
+    } catch {
+      showErrorToast(modal.getAttribute('data-response-error')!);
+    } finally {
+      pending = false;
+      submit.disabled = close.disabled = trigger.disabled = false;
+      if (result.hidden) showElem(submit); else hideElem(submit);
+    }
+  };
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    generate();
+  });
+  trigger.addEventListener('click', () => {
+    showFomanticModal(modal, {
+      closable: false,
+      onShow() {
+        value.value = '';
+        result.hidden = true;
+        confirmation.hidden = !hasSecret;
+        if (hasSecret) showElem(submit); else hideElem(submit);
+        if (!hasSecret) generate();
+      },
+      onHide() {
+        value.value = '';
+        result.hidden = true;
+      },
+    });
+  });
 }

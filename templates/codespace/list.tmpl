@@ -46,8 +46,8 @@
 			<h2 class="ui header tw-m-0">{{ctx.Locale.Tr "codespace.title"}}</h2>
 			<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.list_desc"}}</div>
 		</div>
-		{{template "codespace/list_rows" .}}
-		{{template "base/paginate" .}}
+		{{template "codespace/refresh_notice" .}}
+		{{template "codespace/list_state" .}}
 		{{template "codespace/open_modal" .}}
 		{{template "codespace/settings_modal" .}}
 	</div>

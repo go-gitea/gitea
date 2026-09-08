@@ -38,16 +38,18 @@ const (
 type CreateDevContainerOption struct {
 	Selection string
 	Name      string
-	Path      string
+	Scope     string
 	Selected  bool
 }
+
+// ErrCreateConfigurationInvalid allows the confirmation page to offer another configuration.
+var ErrCreateConfigurationInvalid = errors.New("selected Dev Container configuration is invalid")
 
 // createDevContainerPlan contains the immutable runtime choice and confirmation data.
 type createDevContainerPlan struct {
 	Source                 string
 	Selection              string
 	Path                   string
-	Name                   string
 	Content                string
 	PermissionRepositories map[string]map[string]string
 	Permissions            []CreatePermissionRequest
@@ -97,85 +99,75 @@ func prepareCreateDevContainer(ctx context.Context, user *user_model.User, repo 
 		return nil, nil, err
 	}
 
-	configs := make([]*createDevContainerPlan, 0, len(paths))
-	for _, configPath := range paths {
-		config, err := loadRepositoryDevContainer(ctx, gitRepo, commit, configPath)
-		if err != nil {
-			return nil, nil, err
-		}
-		configs = append(configs, config)
-	}
 	templates, err := listVisibleDevContainerTemplates(ctx, user.ID)
 	if err != nil {
 		return nil, nil, err
 	}
-	templateConfigs := make([]*createDevContainerPlan, 0, len(templates))
-	for _, template := range templates {
-		config, err := loadTemplateDevContainer(template)
-		if err != nil {
-			return nil, nil, err
-		}
-		templateConfigs = append(templateConfigs, config)
-	}
-
 	selection = strings.TrimSpace(selection)
 	if selection == "" {
 		if slices.Contains(paths, devContainerPrimaryPath) {
 			selection = devContainerPrimaryPath
 		} else if slices.Contains(paths, devContainerRootPath) {
 			selection = devContainerRootPath
-		} else if len(configs) > 0 {
-			selection = configs[0].Path
-		} else if len(templateConfigs) > 0 {
-			selection = templateConfigs[0].Selection
+		} else if len(paths) > 0 {
+			selection = paths[0]
+		} else if len(templates) > 0 {
+			selection = devContainerTemplateSelectionPrefix + strconv.FormatInt(templates[0].ID, 10)
 		}
 	}
 
+	options := make([]CreateDevContainerOption, 0, len(paths)+len(templates))
+	for _, configPath := range paths {
+		options = append(options, CreateDevContainerOption{
+			Selection: configPath,
+			Name:      configPath,
+			Scope:     "repository",
+			Selected:  selection == configPath,
+		})
+	}
+	for _, template := range templates {
+		key := devContainerTemplateSelectionPrefix + strconv.FormatInt(template.ID, 10)
+		scope := "personal"
+		if template.UserID == 0 {
+			scope = "site"
+		}
+		options = append(options, CreateDevContainerOption{
+			Selection: key,
+			Name:      template.Name,
+			Scope:     scope,
+			Selected:  selection == key,
+		})
+	}
+
 	var selected *createDevContainerPlan
-	if index := slices.IndexFunc(configs, func(config *createDevContainerPlan) bool {
-		return config.Path == selection
+	if slices.Contains(paths, selection) {
+		selected, err = loadRepositoryDevContainer(ctx, gitRepo, commit, selection)
+	} else if index := slices.IndexFunc(templates, func(template *codespace_model.DevContainerTemplate) bool {
+		return devContainerTemplateSelectionPrefix+strconv.FormatInt(template.ID, 10) == selection
 	}); index >= 0 {
-		selected = configs[index]
-	} else if index := slices.IndexFunc(templateConfigs, func(config *createDevContainerPlan) bool {
-		return config.Selection == selection
-	}); index >= 0 {
-		selected = templateConfigs[index]
+		selected, err = loadTemplateDevContainer(templates[index])
+		if err != nil {
+			err = errors.Join(ErrCreateConfigurationInvalid, err)
+		}
 	} else {
-		return nil, nil, fmt.Errorf("Dev Container configuration %q is not available", selection)
+		err = ErrCreateConfigurationInvalid
+	}
+	if err != nil {
+		return nil, options, err
 	}
 	permissions, err := resolveCreatePermissions(ctx, user, repo, selected.PermissionRepositories)
 	if err != nil {
-		return nil, nil, err
+		return nil, options, err
 	}
 	selected.Permissions = permissions
-
-	options := make([]CreateDevContainerOption, 0, len(configs)+len(templateConfigs))
-	for _, config := range configs {
-		options = append(options, CreateDevContainerOption{
-			Selection: config.Path,
-			Name:      config.Name,
-			Path:      config.Path,
-			Selected:  selection == config.Path,
-		})
-	}
-	for _, config := range templateConfigs {
-		options = append(options, CreateDevContainerOption{
-			Selection: config.Selection,
-			Name:      config.Name,
-			Selected:  selection == config.Selection,
-		})
-	}
 	return selected, options, nil
 }
 
 func discoverDevContainerPaths(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]string, error) {
 	paths := make([]string, 0, 4)
 	for _, configPath := range []string{devContainerPrimaryPath, devContainerRootPath} {
-		entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, configPath)
+		_, err := commit.GetTreeEntryByPath(ctx, gitRepo, configPath)
 		if err == nil {
-			if !entry.IsRegular() {
-				return nil, fmt.Errorf("Dev Container configuration %q must be a regular file", configPath)
-			}
 			paths = append(paths, configPath)
 			continue
 		}
@@ -203,15 +195,12 @@ func discoverDevContainerPaths(ctx context.Context, gitRepo *git.Repository, com
 			continue
 		}
 		configPath := path.Join(".devcontainer", entry.Name(), "devcontainer.json")
-		configEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, configPath)
+		_, err := commit.GetTreeEntryByPath(ctx, gitRepo, configPath)
 		if err != nil {
 			if git.IsErrNotExist(err) || errors.Is(err, util.ErrNotExist) {
 				continue
 			}
 			return nil, err
-		}
-		if !configEntry.IsRegular() {
-			return nil, fmt.Errorf("Dev Container configuration %q must be a regular file", configPath)
 		}
 		paths = append(paths, configPath)
 		if len(paths) > maxDevContainerConfigurations {
@@ -222,41 +211,43 @@ func discoverDevContainerPaths(ctx context.Context, gitRepo *git.Repository, com
 }
 
 func loadRepositoryDevContainer(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, configPath string) (*createDevContainerPlan, error) {
+	entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, configPath)
+	if err != nil {
+		return nil, err
+	}
+	if !entry.IsRegular() {
+		return nil, fmt.Errorf("%w: configuration %q must be a regular file", ErrCreateConfigurationInvalid, configPath)
+	}
 	blob, err := commit.GetBlobByPath(ctx, gitRepo, configPath)
 	if err != nil {
 		return nil, err
 	}
 	if blob.Size(ctx) > devContainerConfigMaxSize {
-		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", configPath, devContainerConfigMaxSize)
+		return nil, fmt.Errorf("%w: configuration %q exceeds %d bytes", ErrCreateConfigurationInvalid, configPath, devContainerConfigMaxSize)
 	}
 	content, err := blob.GetBlobBytes(ctx, devContainerConfigMaxSize+1)
 	if err != nil {
 		return nil, err
 	}
 	if int64(len(content)) > devContainerConfigMaxSize {
-		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", configPath, devContainerConfigMaxSize)
+		return nil, fmt.Errorf("%w: configuration %q exceeds %d bytes", ErrCreateConfigurationInvalid, configPath, devContainerConfigMaxSize)
 	}
 	document, err := parseDevContainerDocument(content, configPath)
 	if err != nil {
-		return nil, err
-	}
-	name := strings.TrimSpace(document.Name)
-	if name == "" {
-		name = configPath
+		return nil, errors.Join(ErrCreateConfigurationInvalid, err)
 	}
 	repositories, err := devContainerPermissionRepositories(document.Customizations)
 	if err != nil {
-		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", configPath, err)
+		return nil, fmt.Errorf("%w: parse Dev Container configuration %q: %w", ErrCreateConfigurationInvalid, configPath, err)
 	}
 	recommendedSecrets, err := parseRecommendedSecrets(document.Secrets)
 	if err != nil {
-		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", configPath, err)
+		return nil, fmt.Errorf("%w: parse Dev Container configuration %q: %w", ErrCreateConfigurationInvalid, configPath, err)
 	}
 	return &createDevContainerPlan{
 		Source:                 codespace_model.DevContainerSourceRepository,
 		Selection:              configPath,
 		Path:                   configPath,
-		Name:                   name,
 		PermissionRepositories: repositories,
 		RecommendedSecrets:     recommendedSecrets,
 	}, nil
@@ -282,7 +273,6 @@ func loadTemplateDevContainer(template *codespace_model.DevContainerTemplate) (*
 	return &createDevContainerPlan{
 		Source:                 codespace_model.DevContainerSourceTemplate,
 		Selection:              devContainerTemplateSelectionPrefix + strconv.FormatInt(template.ID, 10),
-		Name:                   template.Name,
 		Content:                content,
 		PermissionRepositories: repositories,
 		RecommendedSecrets:     recommendedSecrets,

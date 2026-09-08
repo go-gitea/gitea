@@ -150,11 +150,13 @@ var codespacePermissionUnits = map[string]unit_model.Type{
 }
 
 // PrepareCodespace validates a creation request without changing persistent state.
+// Invalid configurations return a reviewable plan without a creation hash alongside the error.
 func PrepareCodespace(ctx context.Context, opts CreateCodespaceOptions) (*CreateCodespacePlan, error) {
 	prepared, err := prepareCodespace(ctx, opts)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrCreateConfigurationInvalid) {
 		return nil, err
 	}
+	configurationErr := err
 	environments, err := listVisibleCreateEnvironments(ctx, opts.User.ID, opts.EnvironmentTag)
 	if err != nil {
 		return nil, err
@@ -170,7 +172,7 @@ func PrepareCodespace(ctx context.Context, opts CreateCodespaceOptions) (*Create
 		RecommendedSecrets:     prepared.devContainer.RecommendedSecrets,
 		AvailableSecrets:       prepared.availableSecrets,
 		SecretInjectionAllowed: prepared.secretInjectionAllowed,
-	}, nil
+	}, configurationErr
 }
 
 // CreateCodespace validates repository input and creates the initial Codespace row.
@@ -309,6 +311,9 @@ func prepareCodespace(ctx context.Context, opts CreateCodespaceOptions) (*prepar
 	}
 	devContainer, options, err := prepareCreateDevContainer(ctx, opts.User, opts.Repo, gitRepo, sourceRef, opts.DevContainerSelection)
 	if err != nil {
+		if errors.Is(err, ErrCreateConfigurationInvalid) {
+			return &preparedCodespace{sourceRef: sourceRef, devContainer: &createDevContainerPlan{}, devContainerOptions: options}, err
+		}
 		return nil, err
 	}
 	// Fork pull requests execute code outside the source repository's trust boundary, so they never receive user secrets.
@@ -516,15 +521,18 @@ func resolveCreatePermissions(ctx context.Context, user *user_model.User, source
 		ownerName, repoName, _ := strings.Cut(fullName, "/")
 		target, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 		if err != nil {
+			if repo_model.IsErrRepoNotExist(err) || user_model.IsErrUserNotExist(err) {
+				return nil, errors.Join(ErrCreateConfigurationInvalid, err)
+			}
 			return nil, fmt.Errorf("resolve codespace permission repository %q: %w", fullName, err)
 		}
 		if target.ID == sourceRepo.ID {
-			return nil, fmt.Errorf("codespace permission repository %q is the source repository", fullName)
+			return nil, fmt.Errorf("%w: permission repository %q is the source repository", ErrCreateConfigurationInvalid, fullName)
 		}
 		for unitName, modeName := range units {
 			unitType := codespacePermissionUnits[unitName]
 			if !target.UnitEnabled(ctx, unitType) {
-				return nil, fmt.Errorf("codespace permission unit %q is not enabled for %q", unitName, fullName)
+				return nil, fmt.Errorf("%w: permission unit %q is not enabled for %q", ErrCreateConfigurationInvalid, unitName, fullName)
 			}
 			mode := perm_model.ParseAccessMode(modeName, perm_model.AccessModeRead, perm_model.AccessModeWrite)
 			allowed, err := access_model.HasAccessUnit(ctx, user, target, unitType, mode)
@@ -532,7 +540,7 @@ func resolveCreatePermissions(ctx context.Context, user *user_model.User, source
 				return nil, err
 			}
 			if !allowed {
-				return nil, fmt.Errorf("user cannot grant %s access to %s for %q", modeName, unitName, fullName)
+				return nil, fmt.Errorf("%w: user cannot grant %s access to %s for %q", ErrCreateConfigurationInvalid, modeName, unitName, fullName)
 			}
 			permissions = append(permissions, CreatePermissionRequest{
 				RepositoryID: target.ID, RepositoryFullName: target.FullName(), UnitType: unitType,

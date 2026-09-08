@@ -1,3 +1,4 @@
+import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
@@ -5,8 +6,10 @@ import {toggleFullScreen} from '../utils.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {createLogLineMessage, decodeLineMessage, parseLogLineCommand, type LogLine} from '../render/log.ts';
+import {Idiomorph} from 'idiomorph';
+import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 
-const liveStateSelector = '#codespace-live-state';
+const liveStateSelector = '#codespace-live-state, #codespace-list-state';
 const logViewSelector = '#codespace-log-view';
 const maxRefreshBackoff = 30000;
 const logRenderBatchLines = 500;
@@ -18,6 +21,8 @@ type CodespaceLogLine = {
 
 const openCodespaceLogGroupBodies = new WeakMap<HTMLElement, HTMLElement[]>();
 const codespaceLogAnsiRenderers = new WeakMap<HTMLElement, AnsiLineRenderer>();
+const stateRefreshTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+const initializedSettingsButtons = new WeakSet<HTMLElement>();
 
 export function initCodespaceCreateForm() {
   const form = document.querySelector<HTMLFormElement>('[data-codespace-create-form]');
@@ -36,7 +41,7 @@ export function initCodespaceCreateForm() {
     environmentDropdown?.classList.remove('error');
     environmentDropdown?.removeAttribute('aria-invalid');
     for (const detail of environmentDetails) {
-      detail.hidden = detail.getAttribute('data-codespace-environment-detail') !== tag;
+      toggleElem(detail, detail.getAttribute('data-codespace-environment-detail') === tag);
     }
   };
   environmentInput?.addEventListener('change', () => {
@@ -48,6 +53,10 @@ export function initCodespaceCreateForm() {
     });
   }
   form.addEventListener('submit', (event) => {
+    if (form.querySelector<HTMLButtonElement>('[data-codespace-create]')?.disabled) {
+      event.preventDefault();
+      return;
+    }
     if (environmentInput?.value) return;
     event.preventDefault();
     environmentDropdown?.classList.add('error');
@@ -56,12 +65,24 @@ export function initCodespaceCreateForm() {
   });
 
   const devContainerSelect = form.querySelector<HTMLSelectElement>('[data-codespace-dev-container]');
+  const reviewButton = form.querySelector<HTMLButtonElement>('[data-codespace-review]');
+  const createButton = form.querySelector<HTMLButtonElement>('[data-codespace-create]');
+  const reviewedSelection = devContainerSelect?.value;
   devContainerSelect?.addEventListener('change', () => {
+    const changed = devContainerSelect.value !== reviewedSelection;
+    if (reviewButton) toggleElem(reviewButton, changed);
+    const warning = form.querySelector<HTMLElement>('[data-codespace-review-warning]');
+    if (warning) toggleElem(warning, changed);
+    if (createButton) createButton.disabled = changed || !form.querySelector<HTMLInputElement>('[name="request_hash"]')!.value;
+  });
+  reviewButton?.addEventListener('click', () => {
+    if (!devContainerSelect) return;
     const previewURL = new URL(devContainerSelect.getAttribute('data-preview-url')!, window.location.href);
     previewURL.searchParams.set('ref_type', devContainerSelect.getAttribute('data-ref-type')!);
     previewURL.searchParams.set('ref_name', devContainerSelect.getAttribute('data-ref-name')!);
     previewURL.searchParams.set('dev_container', devContainerSelect.value);
     if (environmentInput?.value) previewURL.searchParams.set('environment_tag', environmentInput.value);
+    ignoreAreYouSure(form);
     window.location.assign(previewURL);
   });
 }
@@ -74,6 +95,12 @@ export function initCodespaceLiveState() {
 
   const stateEl = document.querySelector<HTMLElement>(liveStateSelector);
   if (stateEl) scheduleCodespaceStateRefresh(stateEl, 0);
+  document.querySelector('[data-codespace-state-retry]')?.addEventListener('click', () => {
+    const current = document.querySelector<HTMLElement>(liveStateSelector);
+    if (!current) return;
+    clearTimeout(stateRefreshTimers.get(current));
+    refreshCodespaceState(current, 0);
+  });
 
   const logEl = document.querySelector<HTMLElement>(logViewSelector);
   if (logEl) {
@@ -106,8 +133,9 @@ function initCodespaceSettingsModal() {
 }
 
 function initCodespaceSettingsButtons(root: ParentNode, form: HTMLFormElement) {
-  for (const button of root.querySelectorAll<HTMLElement>('.codespace-settings-button:not([data-codespace-initialized])')) {
-    button.setAttribute('data-codespace-initialized', 'true');
+  for (const button of root.querySelectorAll<HTMLElement>('.codespace-settings-button')) {
+    if (initializedSettingsButtons.has(button)) continue;
+    initializedSettingsButtons.add(button);
     button.addEventListener('click', () => {
       form.action = button.getAttribute('data-settings-url')!;
       form.querySelector<HTMLInputElement>('input[name="return_to"]')!.value = button.getAttribute('data-return-to')!;
@@ -118,7 +146,7 @@ function initCodespaceSettingsButtons(root: ParentNode, form: HTMLFormElement) {
       for (const radio of form.querySelectorAll<HTMLInputElement>('input[name="mode"]')) radio.checked = radio.value === mode;
       form.querySelector<HTMLInputElement>('input[name="timeout_value"]')!.value = button.getAttribute('data-auto-stop-timeout-value')!;
       fomanticQuery(form.querySelector<HTMLSelectElement>('select[name="timeout_unit"]')!).dropdown('set selected', button.getAttribute('data-auto-stop-timeout-unit')!);
-      form.querySelector<HTMLElement>('[data-auto-stop-out-of-range]')!.hidden = button.getAttribute('data-auto-stop-out-of-range') !== 'true';
+      toggleElem(form.querySelector<HTMLElement>('[data-auto-stop-out-of-range]')!, button.getAttribute('data-auto-stop-out-of-range') === 'true');
       setAutoStopAvailability(form, button.getAttribute('data-auto-stop-configurable') === 'true');
       syncCodespaceAutoStopFields(form, false);
       showFomanticModal(form);
@@ -128,7 +156,7 @@ function initCodespaceSettingsButtons(root: ParentNode, form: HTMLFormElement) {
 
 function setAutoStopAvailability(form: HTMLFormElement, configurable: boolean) {
   form.querySelector<HTMLFieldSetElement>('[data-auto-stop-fields]')!.disabled = !configurable;
-  form.querySelector<HTMLElement>('[data-auto-stop-unavailable]')!.hidden = configurable;
+  toggleElem(form.querySelector<HTMLElement>('[data-auto-stop-unavailable]')!, !configurable);
   form.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled = !configurable;
 }
 
@@ -137,7 +165,7 @@ function syncCodespaceAutoStopFields(form: HTMLFormElement, focus: boolean) {
   const timeoutInput = customFields.querySelector<HTMLInputElement>('input[name="timeout_value"]')!;
   const timeoutUnit = customFields.querySelector<HTMLSelectElement>('select[name="timeout_unit"]')!;
   const customSelected = form.querySelector<HTMLInputElement>('input[name="mode"]:checked')!.value === 'custom';
-  customFields.hidden = !customSelected;
+  toggleElem(customFields, customSelected);
   const enabled = customSelected && !form.querySelector<HTMLFieldSetElement>('[data-auto-stop-fields]')!.disabled;
   timeoutInput.disabled = !enabled;
   timeoutUnit.disabled = !enabled;
@@ -150,40 +178,52 @@ function syncCodespaceAutoStopFields(form: HTMLFormElement, focus: boolean) {
 function scheduleCodespaceStateRefresh(stateEl: HTMLElement, failureCount: number) {
   const refreshAfter = Number(stateEl.getAttribute('data-refresh-after-ms'));
   if (!Number.isFinite(refreshAfter) || refreshAfter <= 0) return;
-  setTimeout(() => {
+  stateRefreshTimers.set(stateEl, setTimeout(() => {
     if (document.visibilityState === 'hidden') {
       waitForVisible(() => scheduleCodespaceStateRefresh(stateEl, failureCount));
       return;
     }
     refreshCodespaceState(stateEl, failureCount);
-  }, refreshDelay(refreshAfter, failureCount));
+  }, refreshDelay(refreshAfter, failureCount)));
 }
 
 async function refreshCodespaceState(stateEl: HTMLElement, failureCount: number) {
   if (!stateEl.isConnected || stateEl.getAttribute('data-refreshing') === 'true') return;
   const stateUrl = stateEl.getAttribute('data-state-url');
   if (!stateUrl) return;
+  if (stateEl.querySelector('.dropdown.active, .dropdown.visible, input:focus, textarea:focus, select:focus, [contenteditable]:focus')) {
+    scheduleCodespaceStateRefresh(stateEl, failureCount);
+    return;
+  }
   stateEl.setAttribute('data-refreshing', 'true');
-
-  let response: Response;
+  const notice = document.querySelector<HTMLElement>('[data-codespace-state-error]');
+  let nextStateEl: HTMLElement | null;
+  let terminalFailure = false;
   try {
-    response = await GET(stateUrl);
+    const response = await GET(stateUrl);
+    terminalFailure = response.status === 403 || response.status === 404;
+    if (!response.ok) throw new Error('State refresh failed');
+    const nextDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
+    nextStateEl = nextDocument.querySelector<HTMLElement>(liveStateSelector);
+    if (!nextStateEl) {
+      terminalFailure = response.redirected;
+      throw new Error('State fragment is unavailable');
+    }
   } catch {
-    stateEl.removeAttribute('data-refreshing');
-    scheduleCodespaceStateRefresh(stateEl, failureCount + 1);
+    if (notice && (terminalFailure || failureCount >= 2)) {
+      showElem(notice);
+      toggleElem(notice.querySelector<HTMLElement>('[data-codespace-state-retry]')!, !terminalFailure);
+      toggleElem(notice.querySelector<HTMLElement>('[data-codespace-state-unavailable]')!, terminalFailure);
+      toggleElem(notice.querySelector<HTMLElement>('[data-codespace-state-interrupted]')!, !terminalFailure);
+    }
+    if (!terminalFailure) scheduleCodespaceStateRefresh(stateEl, failureCount + 1);
     return;
-  }
-  if (!response.ok) {
+  } finally {
     stateEl.removeAttribute('data-refreshing');
-    scheduleCodespaceStateRefresh(stateEl, failureCount + 1);
-    return;
   }
-
-  const nextDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
-  const nextStateEl = nextDocument.querySelector<HTMLElement>(liveStateSelector);
-  if (!nextStateEl) {
-    stateEl.removeAttribute('data-refreshing');
-    scheduleCodespaceStateRefresh(stateEl, failureCount + 1);
+  if (notice) hideElem(notice);
+  if (stateEl.querySelector('.dropdown.active, .dropdown.visible, input:focus, textarea:focus, select:focus, [contenteditable]:focus')) {
+    scheduleCodespaceStateRefresh(stateEl, 0);
     return;
   }
 
@@ -191,19 +231,28 @@ async function refreshCodespaceState(stateEl: HTMLElement, failureCount: number)
   const currentMode = stateEl.getAttribute('data-detail-mode');
   const nextMode = nextStateEl.getAttribute('data-detail-mode');
   const explicitTab = detailPage?.getAttribute('data-codespace-tab-explicit') === 'true';
-  if (!explicitTab && currentMode && nextMode && currentMode !== nextMode) {
+  if (!explicitTab && currentMode && nextMode && currentMode !== nextMode && !document.querySelector('.ui.modal.visible')) {
     window.location.reload();
     return;
   }
 
-  stateEl.replaceWith(nextStateEl);
+  // Keep disclosure state while updating the server-owned view.
+  for (const details of stateEl.querySelectorAll<HTMLDetailsElement>('details[id]')) {
+    const nextDetails = nextStateEl.querySelector<HTMLDetailsElement>(`#${CSS.escape(details.id)}`);
+    if (nextDetails) nextDetails.open = details.open;
+  }
+  Idiomorph.morph(stateEl, nextStateEl, {morphStyle: 'outerHTML'});
+  const currentStateEl = document.querySelector<HTMLElement>(liveStateSelector)!;
   const settingsForm = document.querySelector<HTMLFormElement>('#codespace-settings-modal');
-  if (settingsForm) initCodespaceSettingsButtons(nextStateEl, settingsForm);
+  if (settingsForm) initCodespaceSettingsButtons(currentStateEl, settingsForm);
   if (settingsForm?.classList.contains('visible')) {
-    setAutoStopAvailability(settingsForm, nextStateEl.getAttribute('data-auto-stop-configurable') === 'true');
+    const configurable = currentStateEl.id === 'codespace-live-state' ?
+      currentStateEl.getAttribute('data-auto-stop-configurable') === 'true' :
+      Array.from(currentStateEl.querySelectorAll<HTMLElement>('.codespace-settings-button')).some((button) => new URL(button.getAttribute('data-settings-url')!, window.location.href).href === settingsForm.action);
+    setAutoStopAvailability(settingsForm, configurable);
     syncCodespaceAutoStopFields(settingsForm, false);
   }
-  scheduleCodespaceStateRefresh(nextStateEl, 0);
+  scheduleCodespaceStateRefresh(currentStateEl, 0);
 }
 
 function initCodespaceLogControls(logEl: HTMLElement) {

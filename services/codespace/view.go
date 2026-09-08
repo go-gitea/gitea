@@ -418,6 +418,9 @@ func applyCreatorDisplayState(ctx context.Context, codespace *codespace_model.Co
 	view.StatusSummary = statusSummary(view.DisplayStatus)
 	view.DisplayStatusKey = "codespace.status." + view.DisplayStatus
 	view.StatusSummaryKey = "codespace.status_summary." + view.DisplayStatus
+	if view.DisplayStatus == DisplayStopped && (manager == nil || manager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(manager)) {
+		view.StatusSummaryKey = "codespace.stopped_manager_unavailable"
+	}
 }
 
 func runningDisplayStatus(ctx context.Context, codespace *codespace_model.Codespace, view *CreatorCodespaceView, manager *codespace_model.Manager, includeDetailData bool) string {

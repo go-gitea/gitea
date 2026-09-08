@@ -1,10 +1,9 @@
-{{if .Codespaces}}
 	<div class="ui attached table segment codespace-manager-codespaces">
 		<table class="ui very basic table unstackable">
 			<thead>
 				<tr>
-					<th>{{ctx.Locale.Tr "codespace.codespace"}}</th>
 					<th>{{ctx.Locale.Tr "codespace.repository"}}</th>
+					<th>{{ctx.Locale.Tr "codespace.codespace"}}</th>
 					{{if .IsSiteManagerSettings}}<th>{{ctx.Locale.Tr "codespace.user"}}</th>{{end}}
 					<th>{{ctx.Locale.Tr "status"}}</th>
 					<th>{{ctx.Locale.Tr "codespace.updated"}}</th>
@@ -15,15 +14,15 @@
 				{{range $codespace := .Codespaces}}
 					<tr>
 						<td>
+							{{if $codespace.RepoFullName}}{{$codespace.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}
+							{{if $codespace.RefName}}<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.ref"}}: {{$codespace.RefName}}</div>{{end}}
+						</td>
+						<td>
 							{{if $.IsSiteManagerSettings}}
 								<span class="tw-font-mono">{{$codespace.ShortUUID}}</span>
 							{{else}}
 								<a class="tw-font-mono" href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}">{{$codespace.ShortUUID}}</a>
 							{{end}}
-						</td>
-						<td>
-							{{if $codespace.RepoFullName}}{{$codespace.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}
-							{{if $codespace.RefName}}<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.ref"}}: {{$codespace.RefName}}</div>{{end}}
 						</td>
 						{{if $.IsSiteManagerSettings}}<td>{{if $codespace.UserDisplayName}}{{$codespace.UserDisplayName}}{{else}}{{ctx.Locale.Tr "codespace.user_id" $codespace.UserID}}{{end}}</td>{{end}}
 						<td><span class="ui tiny label codespace-state-label codespace-state-{{$codespace.DisplayStatus}}">{{ctx.Locale.Tr (print "codespace.status." $codespace.DisplayStatus)}}</span></td>
@@ -71,11 +70,10 @@
 							{{end}}
 						</td>
 					</tr>
+				{{else}}
+					<tr><td colspan="{{if .IsSiteManagerSettings}}6{{else}}5{{end}}">{{.CodespaceEmptyMessage}}</td></tr>
 				{{end}}
 			</tbody>
 		</table>
 		{{template "base/paginate" .}}
 	</div>
-{{else}}
-	<div class="ui attached placeholder segment">{{.CodespaceEmptyMessage}}</div>
-{{end}}

@@ -1,6 +1,5 @@
 .codespace-back-link {
   color: var(--color-text-light-1);
-  font-size: 13px;
 }
 
 .codespace-back-link:hover {
@@ -86,8 +85,7 @@
 
 .codespace-detail-tabs.ui.menu {
   flex-shrink: 0;
-  min-height: 45px;
-  margin: 18px 0 20px;
+  margin: var(--page-spacing) 0;
 }
 
 .codespace-detail-tabs.ui.secondary.pointing.menu .item {
@@ -295,28 +293,89 @@
   padding-bottom: 30px;
 }
 
+.codespace-modal > .content,
+.codespace-modal > form > .content {
+  max-height: calc(100dvh - 180px);
+  overflow-y: auto;
+}
+
+#codespace-devcontainer-template-modal .codespace-template-editor {
+  min-width: 0;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+#codespace-devcontainer-template-modal .field.error .codespace-template-editor {
+  border-color: var(--color-red);
+}
+
+#codespace-devcontainer-template-modal .codespace-template-editor textarea,
+#codespace-devcontainer-template-modal .cm-editor {
+  height: clamp(180px, 40dvh, 480px);
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.codespace-modal > .actions,
+.codespace-modal > form > .actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.codespace-modal .actions > .ui.button {
+  margin: 0;
+}
+
+@media (max-width: 767.98px) {
+  .codespace-modal > .content,
+  .codespace-modal > form > .content {
+    padding: 1rem;
+  }
+  .ui.modal.codespace-modal > .actions {
+    padding: 1rem !important;
+  }
+}
+
 .codespace-manager-container .ui.table.segment {
   overflow-x: auto;
 }
 
-.codespace-manager-overview {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px 24px;
+.codespace-manager-codespaces table {
+  min-width: 640px;
 }
 
-.codespace-manager-overview .field > label,
-.codespace-manager-access .field > label {
-  display: block;
+.codespace-manager-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0;
+}
+
+.codespace-manager-summary dt {
   margin-bottom: 4px;
   color: var(--color-text-light-2);
   font-weight: var(--font-weight-semibold);
 }
 
-.codespace-manager-access {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 24px;
+.codespace-manager-summary dd {
+  margin: 0;
+}
+
+.codespace-manager-container .codespace-detail-list dd,
+.codespace-manager-summary > div,
+.codespace-manager-codespaces td {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.codespace-manager-codespaces th:last-child,
+.codespace-manager-codespaces td:last-child {
+  width: 1%;
+  white-space: nowrap;
 }
 
 .codespace-log-panel {
@@ -622,12 +681,6 @@
   font-size: 12px;
 }
 
-.codespace-create-config-path {
-  margin-top: 4px;
-  color: var(--color-text-light-1);
-  overflow-wrap: anywhere;
-}
-
 .codespace-create-permission-repository {
   margin-top: 16px;
   border: 1px solid var(--color-secondary);
@@ -754,10 +807,6 @@
 }
 
 @media (max-width: 767px) {
-  .codespace-secret-modal form > .content {
-    padding: 1rem;
-  }
-
   .codespace-detail-heading,
   .codespace-list.items-with-main > .item {
     align-items: stretch;
@@ -782,10 +831,6 @@
     margin-left: auto !important;
   }
 
-  .codespace-manager-overview,
-  .codespace-manager-access {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .codespace-ports-table.ui.table thead {
     display: none;
   }

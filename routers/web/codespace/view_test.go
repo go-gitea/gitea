@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/templates"
 	codespace_service "gitea.dev/services/codespace"
+	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +42,7 @@ func TestListRendersCreatorCodespaces(t *testing.T) {
 	require.True(t, ok)
 	require.Len(t, rows, 1)
 	assert.Equal(t, codespaceUUID, rows[0].UUID)
-	assert.Contains(t, resp.Body.String(), rows[0].ShortUUID)
+	assert.Contains(t, resp.Body.String(), "codespace-row-"+strconv.FormatInt(rows[0].ID, 10))
 	assert.Contains(t, resp.Body.String(), "context-user-switch")
 	assert.NotNil(t, ctx.Data["Page"])
 }
@@ -54,7 +55,7 @@ func TestListFiltersCurrentCreatorByOrganizationRepositories(t *testing.T) {
 	_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org3", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-org-list")})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org3&partial=true", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-org-list")})
 	contexttest.LoadUser(t, ctx, 2)
 	List(ctx)
 
@@ -64,6 +65,11 @@ func TestListFiltersCurrentCreatorByOrganizationRepositories(t *testing.T) {
 	require.Len(t, rows, 1)
 	assert.Equal(t, codespaceUUID, rows[0].UUID)
 	assert.Equal(t, "org3", ctx.Data["CodespaceOwner"])
+	assert.Equal(t, "/-/codespaces?owner=org3&partial=true", ctx.Data["CodespaceListStateURL"])
+	pager, ok := ctx.Data["Page"].(*context.Pagination)
+	require.True(t, ok)
+	assert.Equal(t, "owner=org3", string(pager.GetParams()))
+	assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
 }
 
 func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {

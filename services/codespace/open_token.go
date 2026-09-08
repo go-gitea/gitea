@@ -413,7 +413,7 @@ func advanceCodespaceInteraction(ctx context.Context, codespace *codespace_model
 func openEndpointInfo(codespace *codespace_model.Codespace, metadata runtimeMetadata, gatewayURL string, opts OpenEndpointOptions) (*openEndpointTarget, error) {
 	endpoint, found := metadata.endpointByID(opts.EndpointID)
 	if !found {
-		return unavailableOpenEndpoint(OpenTokenDeniedEndpointNotFound), nil
+		return &openEndpointTarget{unavailableCategory: OpenTokenDeniedEndpointNotFound}, nil
 	}
 	targetURL, err := gatewayEndpointURL(gatewayURL, codespace.UUID, opts.EndpointID)
 	if err != nil {
@@ -436,12 +436,6 @@ func openEndpointInfo(codespace *codespace_model.Codespace, metadata runtimeMeta
 		target.unavailableCategory = OpenTokenDeniedStateUnavailable
 	}
 	return target, nil
-}
-
-func unavailableOpenEndpoint(category string) *openEndpointTarget {
-	return &openEndpointTarget{
-		unavailableCategory: category,
-	}
 }
 
 func validateOpenEndpointID(endpointID string) error {

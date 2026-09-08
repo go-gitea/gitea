@@ -1,4 +1,4 @@
-<form class="ui small modal ignore-dirty" method="post" id="codespace-open-modal" rel="noopener noreferrer"
+<form class="ui small modal codespace-modal ignore-dirty" method="post" id="codespace-open-modal" rel="noopener noreferrer"
 	{{if .OpenEndpointModal}}action="{{AppSubUrl}}{{.OpenEndpointModal.OpenPath}}" target="_self" data-codespace-auto-open="true"{{else}}target="_blank"{{end}}>
 	{{$.CsrfTokenHtml}}
 	<div class="header">
@@ -10,7 +10,7 @@
 		<p class="tw-mt-3">{{ctx.Locale.Tr "codespace.open_confirm"}}</p>
 	</div>
 	<div class="actions">
-		<button class="ui cancel button" type="button">{{ctx.Locale.Tr "cancel"}}</button>
-		<button class="ui primary approve button" type="submit">{{ctx.Locale.Tr "codespace.open"}}</button>
+		<button class="ui cancel button" type="button">{{svg "octicon-x"}} {{ctx.Locale.Tr "cancel"}}</button>
+		<button class="ui primary approve button" type="submit">{{svg "octicon-link-external"}} {{ctx.Locale.Tr "codespace.open"}}</button>
 	</div>
 </form>

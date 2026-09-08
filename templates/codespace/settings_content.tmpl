@@ -38,7 +38,7 @@
 							<td>{{if .LastOnlineUnix}}{{DateUtils.TimeSince .LastOnlineUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 							<td>{{.BoundCodespaces}}</td>
 							<td class="right aligned">
-								<a class="btn interact-bg tw-p-2" href="{{$.ActionBase}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "edit"}}" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
+								<a class="btn interact-bg tw-flex tw-items-center tw-justify-center tw-w-8 tw-h-8" href="{{$.ActionBase}}/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "edit"}}" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a>
 							</td>
 						</tr>
 					{{end}}
@@ -54,7 +54,7 @@
 		{{template "codespace/manager_codespaces" .}}
 	{{end}}
 
-	<form id="codespace-manager-create-modal" class="ui small modal form ignore-dirty" method="post" action="{{$.ActionBase}}/create">
+	<form id="codespace-manager-create-modal" class="ui small modal codespace-modal form form-fetch-action ignore-dirty" method="post" action="{{$.ActionBase}}/create">
 		{{$.CsrfTokenHtml}}
 		<div class="header">{{ctx.Locale.Tr "codespace.new_manager"}}</div>
 		<div class="content">
@@ -65,26 +65,9 @@
 			</div>
 		</div>
 		<div class="actions">
-			<button class="ui cancel button" type="button">{{ctx.Locale.Tr "cancel"}}</button>
-			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "codespace.manager_create"}}</button>
+			<button class="ui cancel button" type="button">{{svg "octicon-x"}} {{ctx.Locale.Tr "cancel"}}</button>
+			<button class="ui primary button" type="submit">{{svg "octicon-check"}} {{ctx.Locale.Tr "codespace.manager_create"}}</button>
 		</div>
 	</form>
 
-	{{if .NewManagerSecret}}
-		<div class="ui small modal" data-global-init="initCodespaceManagerSecretModal">
-			<div class="header">{{ctx.Locale.Tr "codespace.new_manager"}}</div>
-			<div class="content">
-				<p>{{ctx.Locale.Tr "codespace.manager_secret_created" .NewManagerName .NewManagerID}}</p>
-				<div class="ui fluid action input">
-					<input type="text" value="{{.NewManagerSecret}}" readonly>
-					<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.NewManagerSecret}}">
-						{{svg "octicon-copy" 14}}
-					</button>
-				</div>
-			</div>
-			<div class="actions">
-				<button class="ui primary ok button">{{svg "octicon-check"}} {{ctx.Locale.Tr "modal.confirm"}}</button>
-			</div>
-		</div>
-	{{end}}
 </div>

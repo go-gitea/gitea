@@ -107,6 +107,64 @@ func TestCodespaceRoutes(t *testing.T) {
 	})
 }
 
+func TestCodespaceTemplateSettings(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		session := loginUser(t, "user2")
+		base := "/user/settings/codespaces/dev-container-templates"
+		content := "{\n// Keep this comment\n\"image\": \"debian:12\",\n}"
+		response := session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, base, map[string]string{"name": "Test template", "content": content}), http.StatusOK)
+		var saved struct{ Redirect string }
+		DecodeJSON(t, response, &saved)
+		assert.Equal(t, base, saved.Redirect)
+		template := unittest.AssertExistsAndLoadBean(t, &codespace_model.DevContainerTemplate{UserID: 2, Name: "Test template"})
+		assert.Equal(t, content, template.Content)
+		editURL := fmt.Sprintf("%s/%d", base, template.ID)
+		response = session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, editURL, map[string]string{"name": "Test template", "content": "{"}), http.StatusBadRequest)
+		assert.Contains(t, response.Header().Get("Content-Type"), "application/json")
+		assert.Contains(t, response.Body.String(), "content")
+		session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, editURL, map[string]string{"name": " ", "content": content}), http.StatusBadRequest)
+		other := loginUser(t, "user4")
+		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, editURL, map[string]string{"name": "Other", "content": content}), http.StatusNotFound)
+		other.MakeRequest(t, NewRequest(t, http.MethodPost, editURL+"/delete"), http.StatusNotFound)
+		session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, editURL, map[string]string{"name": "Updated template", "content": content}), http.StatusOK)
+		session.MakeRequest(t, NewRequest(t, http.MethodGet, base), http.StatusOK)
+		session.MakeRequest(t, NewRequest(t, http.MethodPost, editURL+"/delete"), http.StatusOK)
+	})
+}
+
+func TestCodespaceManagerSettings(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		session := loginUser(t, "user2")
+		base := "/user/settings/codespaces/managers"
+		session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, base+"/create", map[string]string{"name": " "}), http.StatusBadRequest)
+		response := session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, base+"/create", map[string]string{"name": "New Manager"}), http.StatusOK)
+		var created struct{ Redirect string }
+		DecodeJSON(t, response, &created)
+		require.True(t, strings.HasPrefix(created.Redirect, base+"/"))
+		session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusOK)
+		session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect, map[string]string{"name": "Renamed"}), http.StatusOK)
+		response = session.MakeRequest(t, NewRequest(t, http.MethodPost, created.Redirect+"/secret"), http.StatusOK)
+		assert.Equal(t, "no-store", response.Header().Get("Cache-Control"))
+		var credentials struct{ Secret string }
+		DecodeJSON(t, response, &credentials)
+		require.NotEmpty(t, credentials.Secret)
+		session.MakeRequest(t, NewRequest(t, http.MethodPost, created.Redirect+"/secret"), http.StatusBadRequest)
+		other := loginUser(t, "user4")
+		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect, map[string]string{"name": "Other"}), http.StatusNotFound)
+		other.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/secret", map[string]string{"confirm": "reset-secret"}), http.StatusNotFound)
+		response = session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, created.Redirect+"/secret", map[string]string{"confirm": "reset-secret"}), http.StatusOK)
+		var reset struct{ Secret string }
+		DecodeJSON(t, response, &reset)
+		assert.NotEqual(t, credentials.Secret, reset.Secret)
+		response = session.MakeRequest(t, NewRequest(t, http.MethodGet, created.Redirect), http.StatusOK)
+		assert.Contains(t, response.Body.String(), "Renamed")
+		admin := loginUser(t, "user1")
+		adminURL := strings.Replace(created.Redirect, base, "/-/admin/codespaces/managers", 1)
+		admin.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, adminURL, map[string]string{"name": "Admin renamed"}), http.StatusOK)
+		admin.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, adminURL+"/secret", map[string]string{"confirm": "reset-secret"}), http.StatusOK)
+	})
+}
+
 func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		defer test.MockVariableValue(&setting.Codespace.Enabled, true)()
@@ -300,9 +358,13 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 			"mode":          "custom",
 			"timeout_value": "30",
 			"timeout_unit":  "minutes",
-			"return_to":     "detail",
-		}), http.StatusSeeOther)
-		assert.Equal(t, codespacePath, autoStopResponse.Header().Get("Location"))
+			"return_to":     codespacePath,
+		}), http.StatusOK)
+		assert.JSONEq(t, `{"redirect":"`+codespacePath+`"}`, autoStopResponse.Body.String())
+		invalidAutoStopResponse := user2Session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, codespacePath+"/auto-stop", map[string]string{
+			"mode": "custom", "timeout_value": "0", "timeout_unit": "minutes",
+		}), http.StatusBadRequest)
+		assert.Contains(t, invalidAutoStopResponse.Body.String(), "errorMessage")
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.AutoStopModeCustom, row.AutoStopMode)
 		assert.EqualValues(t, 30*60, row.AutoStopTimeoutSeconds)

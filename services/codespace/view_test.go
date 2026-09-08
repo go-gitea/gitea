@@ -312,6 +312,7 @@ func TestStoppedCreatorCodespaceResumeRequiresOnlineManager(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, DisplayStopped, offlineView.DisplayStatus)
 	assert.False(t, offlineView.CanResume)
+	assert.Equal(t, "codespace.stopped_manager_unavailable", offlineView.StatusSummaryKey)
 
 	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
 	onlineUUID := "21212121-2121-4121-8121-212121212121"
@@ -324,6 +325,7 @@ func TestStoppedCreatorCodespaceResumeRequiresOnlineManager(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, DisplayStopped, onlineView.DisplayStatus)
 	assert.True(t, onlineView.CanResume)
+	assert.Equal(t, "codespace.status_summary.stopped", onlineView.StatusSummaryKey)
 
 	_, err = db.GetEngine(t.Context()).ID(manager.ID).Cols("runtime_state").Update(&codespace_model.Manager{
 		RuntimeState: codespace_model.ManagerRuntimeStateRecovering,

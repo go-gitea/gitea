@@ -6,9 +6,12 @@ package codespace
 import (
 	"errors"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"gitea.dev/models/organization"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	codespace_service "gitea.dev/services/codespace"
@@ -83,8 +86,24 @@ func List(ctx *context.Context) {
 	ctx.Data["Codespaces"] = result.Rows
 	ctx.Data["CodespaceOwner"] = ownerName
 	ctx.Data["CodespaceListReturnTo"] = setting.AppSubURL + codespaceListPath(ownerName, page)
+	stateURL, _ := url.Parse(setting.AppSubURL + codespaceListPath(ownerName, page))
+	query := stateURL.Query()
+	query.Set("partial", "true")
+	stateURL.RawQuery = query.Encode()
+	ctx.Data["CodespaceListStateURL"] = stateURL.String()
+	refreshAfter := 15000
+	for _, row := range result.Rows {
+		refreshAfter = min(refreshAfter, row.RefreshAfterMillis)
+	}
+	ctx.Data["CodespaceListRefreshAfter"] = refreshAfter
 	pager := context.NewPagerBuilder(ctx).TotalCount(result.Total).PerPageLimit(pageSize).CurPage(page).Build()
+	pager.RemoveParam(container.SetOf("partial"))
 	ctx.Data["Page"] = pager
+	ctx.RespHeader().Set("Cache-Control", "no-store")
+	if ctx.FormBool("partial") {
+		ctx.HTML(http.StatusOK, "codespace/list_state")
+		return
+	}
 	ctx.HTML(http.StatusOK, tplCodespaceList)
 }
 
@@ -145,6 +164,12 @@ func State(ctx *context.Context) {
 }
 
 func setCreatorDetailTab(ctx *context.Context, view *codespace_service.CreatorCodespaceView) {
+	listReturnTo := setting.AppSubURL + codespaceListPath("", 1)
+	if target, err := url.Parse(ctx.FormString("return_to")); err == nil && target.Scheme == "" && target.Host == "" && target.Fragment == "" && target.Path == listReturnTo {
+		page, _ := strconv.Atoi(target.Query().Get("page"))
+		listReturnTo = setting.AppSubURL + codespaceListPath(target.Query().Get("owner"), max(1, page))
+	}
+	ctx.Data["CodespaceListReturnTo"] = listReturnTo
 	tab := strings.TrimSpace(ctx.FormString("tab"))
 	explicit := tab == codespace_service.DetailModeOverview || tab == codespace_service.DetailModeLogs
 	if !explicit {
@@ -152,6 +177,11 @@ func setCreatorDetailTab(ctx *context.Context, view *codespace_service.CreatorCo
 	}
 	ctx.Data["CodespaceTab"] = tab
 	ctx.Data["CodespaceTabExplicit"] = explicit
+	query := url.Values{"return_to": {listReturnTo}}
+	if explicit {
+		query.Set("tab", tab)
+	}
+	ctx.Data["CodespaceDetailReturnTo"] = setting.AppSubURL + codespaceDetailPath(view.ID) + "?" + query.Encode()
 }
 
 func loadCreatorDetail(ctx *context.Context) (*codespace_service.CreatorCodespaceView, bool) {

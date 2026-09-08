@@ -250,13 +250,17 @@ M 100644 inline .devcontainer/node/devcontainer.json
 data <<NODE
 {"name":"Node","image":"node:24"}
 NODE
+M 100644 inline .devcontainer/invalid/devcontainer.json
+data <<INVALID
+{"image":
+INVALID
 `)).RunStdString(t.Context())
 	require.NoError(t, runErr)
 
 	rootPlan, err := PrepareCodespace(t.Context(), CreateCodespaceOptions{User: user, Repo: repo})
 	require.NoError(t, err)
-	require.Len(t, rootPlan.DevContainerOptions, 2)
-	assert.Equal(t, devContainerRootPath, rootPlan.DevContainerOptions[0].Path)
+	require.Len(t, rootPlan.DevContainerOptions, 3)
+	assert.Equal(t, devContainerRootPath, rootPlan.DevContainerOptions[0].Selection)
 	assert.True(t, rootPlan.DevContainerOptions[0].Selected)
 	assert.Equal(t, []CreateRecommendedSecret{{Name: "DATABASE_PASSWORD", Description: "Database password"}}, rootPlan.RecommendedSecrets)
 	assert.True(t, rootPlan.SecretInjectionAllowed)
@@ -285,9 +289,17 @@ NODE
 	nodePath := ".devcontainer/node/devcontainer.json"
 	nodePlan, err := PrepareCodespace(t.Context(), CreateCodespaceOptions{User: user, Repo: repo, DevContainerSelection: nodePath})
 	require.NoError(t, err)
-	assert.Equal(t, nodePath, nodePlan.DevContainerOptions[1].Path)
-	assert.True(t, nodePlan.DevContainerOptions[1].Selected)
+	assert.Equal(t, nodePath, nodePlan.DevContainerOptions[2].Selection)
+	assert.True(t, nodePlan.DevContainerOptions[2].Selected)
 	assert.NotEqual(t, rootPlan.RequestHash, nodePlan.RequestHash)
+	invalidOptions := CreateCodespaceOptions{User: user, Repo: repo, DevContainerSelection: ".devcontainer/invalid/devcontainer.json", RequestHash: rootPlan.RequestHash, EnvironmentTag: "default"}
+	invalidPlan, err := PrepareCodespace(t.Context(), invalidOptions)
+	require.ErrorIs(t, err, ErrCreateConfigurationInvalid)
+	require.NotNil(t, invalidPlan)
+	assert.Len(t, invalidPlan.DevContainerOptions, 3)
+	assert.Empty(t, invalidPlan.RequestHash)
+	_, err = CreateCodespace(t.Context(), invalidOptions)
+	require.ErrorIs(t, err, ErrCreateConfigurationInvalid)
 }
 
 func TestNormalizePermissionGrants(t *testing.T) {

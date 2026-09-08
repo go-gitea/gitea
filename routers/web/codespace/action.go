@@ -114,13 +114,11 @@ func AutoStop(ctx *context.Context) {
 		var ok bool
 		timeout, ok = parseAutoStopTimeoutForm(ctx)
 		if !ok {
-			ctx.Flash.Error(ctx.Tr("codespace.auto_stop_invalid_duration"))
-			ctx.Redirect(returnPath, http.StatusSeeOther)
+			ctx.JSONErrorWithField(ctx.Tr("codespace.auto_stop_invalid_duration"), "timeout_value")
 			return
 		}
 	default:
-		ctx.Flash.Error(ctx.Tr("codespace.error.invalid_request"))
-		ctx.Redirect(returnPath, http.StatusSeeOther)
+		ctx.JSONError(ctx.Tr("codespace.error.invalid_request"))
 		return
 	}
 	_, err := codespace_service.UpdateAutoStop(ctx, codespace_service.UpdateAutoStopOptions{
@@ -131,15 +129,23 @@ func AutoStop(ctx *context.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, codespace_service.ErrInteractionInvalidArgument) {
-			ctx.Flash.Error(ctx.Tr("codespace.auto_stop_invalid_range"))
-			ctx.Redirect(returnPath, http.StatusSeeOther)
+			ctx.JSONErrorWithField(ctx.Tr("codespace.auto_stop_invalid_range"), "timeout_value")
 			return
 		}
-		handleInteractionError(ctx, "UpdateAutoStop", err, returnPath)
+		switch {
+		case errors.Is(err, codespace_service.ErrInteractionNotFound), errors.Is(err, codespace_service.ErrInteractionPermissionDenied):
+			ctx.JSONErrorNotFound()
+		case errors.Is(err, codespace_service.ErrInteractionStateUnavailable):
+			ctx.JSONError(ctx.Tr("codespace.error.state_unavailable"))
+		case errors.Is(err, codespace_service.ErrInteractionVersionExhausted):
+			ctx.JSONError(ctx.Tr("codespace.error.version_exhausted"))
+		default:
+			ctx.JSONErrorAuto(err)
+		}
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
-	ctx.Redirect(returnPath, http.StatusSeeOther)
+	ctx.JSONRedirect(returnPath)
 }
 
 func handleInteractionError(ctx *context.Context, name string, err error, returnPath string) {

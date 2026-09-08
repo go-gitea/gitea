@@ -33,6 +33,7 @@ var (
 	ErrManagerSettingsOwnershipConflict = errors.New("codespace manager contains a Codespace outside the owner scope")
 	// ErrManagerSettingsNameInvalid is returned when a Manager display name cannot be stored.
 	ErrManagerSettingsNameInvalid = errors.New("codespace manager name is invalid")
+	ErrManagerSettingsChanged     = errors.New("codespace manager settings changed")
 )
 
 // ManagerSettingsOptions selects site-wide or personal Codespace settings.
@@ -53,13 +54,6 @@ type DeleteManagerOptions struct {
 type CreateManagerOptions struct {
 	ManagerSettingsOptions
 	Name string
-}
-
-// CreateManagerResult returns the Manager identity and one-time plaintext secret.
-type CreateManagerResult struct {
-	ManagerID int64
-	Name      string
-	Secret    string
 }
 
 // ManagerDetailOptions selects one Manager management page and its Codespace page.
@@ -86,6 +80,7 @@ type ManagerSettings struct {
 type ManagerSettingsView struct {
 	ID                                 int64
 	Name                               string
+	HasSecret                          bool
 	UserID                             int64
 	UserDisplayName                    string
 	Version                            string
@@ -157,20 +152,20 @@ func GetManagerDetail(ctx context.Context, opts ManagerDetailOptions) (*ManagerD
 	return &ManagerDetail{Manager: views[0], Codespaces: list.Rows, Total: list.Total}, nil
 }
 
-// CreateManager creates a Manager identity and returns its secret once.
-func CreateManager(ctx context.Context, opts CreateManagerOptions) (*CreateManagerResult, error) {
+// CreateManager creates a Manager identity before credentials are provisioned.
+func CreateManager(ctx context.Context, opts CreateManagerOptions) (int64, error) {
 	name, err := normalizeManagerDisplayName(opts.Name)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	if err := validateManagerSettingsScope(ctx, opts.ManagerSettingsOptions); err != nil {
-		return nil, err
+		return 0, err
 	}
 	userID := opts.UserID
 	if opts.Scope == ManagerSettingsScopeSite {
 		userID = 0
 	}
-	result := new(CreateManagerResult)
+	var managerID int64
 	err = globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			if err := validateManagerSettingsScope(ctx, opts.ManagerSettingsOptions); err != nil {
@@ -183,19 +178,75 @@ func CreateManager(ctx context.Context, opts CreateManagerOptions) (*CreateManag
 				TagsJSON:     "[]",
 				CreatedUnix:  time.Now().Unix(),
 			}
-			result.Secret = manager.GenerateManagerSecret()
 			if _, err := db.GetEngine(ctx).Insert(manager); err != nil {
 				return err
 			}
-			result.ManagerID = manager.ID
-			result.Name = manager.Name
+			managerID = manager.ID
 			return nil
 		})
 	})
 	if err != nil {
+		return 0, err
+	}
+	return managerID, nil
+}
+
+// UpdateManagerName changes only the Gitea-managed display name.
+func UpdateManagerName(ctx context.Context, opts ManagerSettingsOptions, managerID int64, name string) error {
+	name, err := normalizeManagerDisplayName(name)
+	if err != nil {
+		return err
+	}
+	manager, err := loadScopedSettingsManager(ctx, opts, managerID)
+	if err != nil {
+		return err
+	}
+	if manager.Name == name {
+		return nil
+	}
+	affected, err := db.GetEngine(ctx).Where("id = ? AND user_id = ?", manager.ID, manager.UserID).
+		Cols("name").Update(&codespace_model.Manager{Name: name})
+	if err == nil && affected == 0 {
+		return ErrManagerSettingsChanged
+	}
+	return err
+}
+
+// ResetManagerSecret returns the new secret only after replacing its stored verifier.
+func ResetManagerSecret(ctx context.Context, opts ManagerSettingsOptions, managerID int64, confirm bool) (string, error) {
+	manager, err := loadScopedSettingsManager(ctx, opts, managerID)
+	if err != nil {
+		return "", err
+	}
+	if manager.SecretHash != "" && !confirm {
+		return "", ErrManagerSettingsConfirmRequired
+	}
+	previousHash := manager.SecretHash
+	secret := manager.GenerateManagerSecret()
+	// Reject a reset based on a verifier changed by another request.
+	affected, err := db.GetEngine(ctx).Where("id = ? AND user_id = ? AND secret_hash = ?", manager.ID, manager.UserID, previousHash).
+		Cols("secret_salt", "secret_hash").Update(manager)
+	if err != nil {
+		return "", err
+	}
+	if affected == 0 {
+		return "", ErrManagerSettingsChanged
+	}
+	return secret, nil
+}
+
+func loadScopedSettingsManager(ctx context.Context, opts ManagerSettingsOptions, managerID int64) (*codespace_model.Manager, error) {
+	if err := validateManagerSettingsScope(ctx, opts); err != nil {
 		return nil, err
 	}
-	return result, nil
+	manager, err := loadSettingsManager(ctx, managerID)
+	if err != nil {
+		return nil, err
+	}
+	if !managerInSettingsScope(manager, opts.Scope, opts.UserID) {
+		return nil, ErrManagerSettingsNotFound
+	}
+	return manager, nil
 }
 
 func normalizeManagerDisplayName(name string) (string, error) {
@@ -399,6 +450,7 @@ func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manag
 		view := &ManagerSettingsView{
 			ID:                                 manager.ID,
 			Name:                               manager.Name,
+			HasSecret:                          manager.SecretHash != "",
 			UserID:                             manager.UserID,
 			UserDisplayName:                    userName,
 			Version:                            manager.Version,

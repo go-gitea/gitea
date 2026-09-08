@@ -5,6 +5,7 @@ package codespace
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 
 	codespace_service "gitea.dev/services/codespace"
@@ -14,6 +15,18 @@ import (
 )
 
 func TestCodespaceActionHelpers(t *testing.T) {
+	t.Run("detail return context", func(t *testing.T) {
+		for _, test := range []struct{ input, want string }{
+			{"/-/codespaces?owner=org3&page=2", "/-/codespaces?owner=org3&page=2"},
+			{"https://example.com/-/codespaces", "/-/codespaces"},
+			{"/-/codespaces/99", "/-/codespaces"},
+		} {
+			ctx, _ := contexttest.MockContext(t, "GET /-/codespaces/12?tab=logs&return_to="+url.QueryEscape(test.input))
+			setCreatorDetailTab(ctx, &codespace_service.CreatorCodespaceView{ID: 12})
+			assert.Equal(t, test.want, ctx.Data["CodespaceListReturnTo"])
+			assert.Equal(t, "logs", ctx.Data["CodespaceTab"])
+		}
+	})
 	t.Run("return path", func(t *testing.T) {
 		tests := []struct {
 			input string

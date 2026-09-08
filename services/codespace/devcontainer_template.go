@@ -13,7 +13,10 @@ import (
 	"gitea.dev/models/db"
 )
 
-var ErrDevContainerTemplateNotFound = errors.New("codespace Dev Container template not found")
+var (
+	ErrDevContainerTemplateNotFound    = errors.New("codespace Dev Container template not found")
+	ErrDevContainerTemplateNameInvalid = errors.New("invalid Dev Container template name")
+)
 
 type DevContainerTemplateUpsertOptions struct {
 	UserID  int64
@@ -49,15 +52,12 @@ func ListDevContainerTemplates(ctx context.Context, userID int64) ([]*codespace_
 func UpsertDevContainerTemplate(ctx context.Context, opts DevContainerTemplateUpsertOptions) error {
 	name := strings.TrimSpace(opts.Name)
 	content := strings.TrimSpace(opts.Content)
-	if name == "" {
-		return errors.New("Dev Container template name is required")
-	}
-	if len(name) > 255 {
-		return errors.New("Dev Container template name is too long")
+	if name == "" || len(name) > 255 {
+		return ErrDevContainerTemplateNameInvalid
 	}
 	template := &codespace_model.DevContainerTemplate{Name: name, Content: content}
 	if _, err := loadTemplateDevContainer(template); err != nil {
-		return err
+		return errors.Join(ErrCreateConfigurationInvalid, err)
 	}
 	now := time.Now().Unix()
 	return db.WithTx(ctx, func(ctx context.Context) error {

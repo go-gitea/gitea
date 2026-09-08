@@ -32,7 +32,7 @@ test('codespace create environment selection updates its explanation', () => {
         <div class="codespace-create-environment-option" data-value="large"></div>
       </div>
       <div data-codespace-environment-detail="standard"></div>
-      <div data-codespace-environment-detail="large" hidden></div>
+      <div data-codespace-environment-detail="large" class="tw-hidden"></div>
     </form>`;
 
   initCodespaceCreateForm();
@@ -40,8 +40,8 @@ test('codespace create environment selection updates its explanation', () => {
 
   expect(document.querySelector<HTMLInputElement>('input[name="environment_tag"]')!.value).toBe('large');
   expect(document.querySelector<HTMLElement>('[data-codespace-environment-text]')!.textContent).toBe('large');
-  expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="standard"]')!.hidden).toBe(true);
-  expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="large"]')!.hidden).toBe(false);
+  expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="standard"]')!.classList.contains('tw-hidden')).toBe(true);
+  expect(document.querySelector<HTMLElement>('[data-codespace-environment-detail="large"]')!.classList.contains('tw-hidden')).toBe(false);
 
   document.querySelector<HTMLInputElement>('input[name="environment_tag"]')!.value = '';
   const submitEvent = new SubmitEvent('submit', {cancelable: true});
@@ -62,6 +62,10 @@ test('codespace create configuration preview preserves its source and environmen
         <option value=".devcontainer/devcontainer.json">Default</option>
         <option value=".devcontainer/node/devcontainer.json">Node</option>
       </select>
+      <input name="request_hash" value="reviewed">
+      <input name="recommended_secret_value_TOKEN" value="private-value">
+      <button type="button" data-codespace-review class="tw-hidden">Update configuration</button>
+      <button data-codespace-create>Create</button>
     </form>`;
 
   initCodespaceCreateForm();
@@ -69,7 +73,15 @@ test('codespace create configuration preview preserves its source and environmen
   select.value = '.devcontainer/node/devcontainer.json';
   select.dispatchEvent(new Event('change'));
 
+  expect(navigations).toHaveLength(0);
+  expect(document.querySelector<HTMLButtonElement>('[data-codespace-create]')!.disabled).toBe(true);
+  expect(document.querySelector('[data-codespace-review]')!.classList.contains('tw-hidden')).toBe(false);
+  document.querySelector<HTMLButtonElement>('[data-codespace-review]')!.click();
+
   const previewURL = new URL(navigations.at(-1)!.url);
+  select.selectedIndex = 0;
+  select.dispatchEvent(new Event('change'));
+  expect(document.querySelector('[data-codespace-review]')!.classList.contains('tw-hidden')).toBe(true);
   expect(previewURL.pathname).toBe('/owner/repo/codespaces/new');
   expect(Object.fromEntries(previewURL.searchParams)).toEqual({
     ref_type: 'branch',
@@ -107,12 +119,12 @@ test('initCodespaceLiveState closes the source modal after opening a new tab', {
   }
 });
 
-test('initCodespaceLiveState refreshes the state fragment', {concurrent: false}, async () => {
+test('initCodespaceLiveState refreshes state and preserves expanded host verification', {concurrent: false}, async () => {
   try {
     vi.useFakeTimers();
-    document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10">old</div>';
+    document.body.innerHTML = '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="10"><span>old</span><details id="verification" open><summary>SSH</summary>fingerprint</details></div>';
     const fetchMock = vi.fn().mockResolvedValue(new Response(
-      '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="0">new</div>',
+      '<div id="codespace-live-state" data-state-url="/-/codespaces/uuid/state" data-refresh-after-ms="0"><span>new</span><details id="verification"><summary>SSH</summary>fingerprint</details></div>',
       {status: 200},
     ));
     vi.stubGlobal('fetch', fetchMock);
@@ -122,6 +134,39 @@ test('initCodespaceLiveState refreshes the state fragment', {concurrent: false},
     await vi.waitFor(() => expect(document.querySelector('#codespace-live-state')!.textContent).toContain('new'));
 
     expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/state', expect.objectContaining({method: 'GET'}));
+    expect(document.querySelector<HTMLDetailsElement>('#verification')!.open).toBe(true);
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    document.body.replaceChildren();
+  }
+});
+
+test('codespace list refresh recovers from body failures and stops when access is lost', {concurrent: false}, async () => {
+  try {
+    vi.useFakeTimers();
+    document.body.innerHTML = `
+      <div data-codespace-state-error class="tw-hidden"><span data-codespace-state-interrupted></span><span data-codespace-state-unavailable class="tw-hidden"></span><button data-codespace-state-retry>Retry</button></div>
+      <div id="codespace-list-state" data-state-url="/-/codespaces?owner=org&page=2&partial=true" data-refresh-after-ms="10">Resuming</div>`;
+    const failed = new Response();
+    vi.spyOn(failed, 'text').mockRejectedValue(new Error('body read failed'));
+    const ready = new Response();
+    vi.spyOn(ready, 'text').mockResolvedValue('<div id="codespace-list-state" data-state-url="/-/codespaces?owner=org&page=2&partial=true" data-refresh-after-ms="10">Running</div>');
+    const fetchMock = vi.fn().mockResolvedValue(failed);
+    vi.stubGlobal('fetch', fetchMock);
+    initCodespaceLiveState();
+    await vi.advanceTimersByTimeAsync(70);
+    expect(document.querySelector<HTMLElement>('[data-codespace-state-error]')!.classList.contains('tw-hidden')).toBe(false);
+    fetchMock.mockResolvedValueOnce(ready).mockResolvedValue(new Response('', {status: 404}));
+    document.querySelector<HTMLButtonElement>('[data-codespace-state-retry]')!.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(document.querySelector('#codespace-list-state')!.textContent).toBe('Running');
+    expect(document.querySelector<HTMLElement>('[data-codespace-state-error]')!.classList.contains('tw-hidden')).toBe(true);
+    await vi.advanceTimersByTimeAsync(10);
+    expect(document.querySelector<HTMLElement>('[data-codespace-state-unavailable]')!.classList.contains('tw-hidden')).toBe(false);
+    const calls = fetchMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
   } finally {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -141,13 +186,13 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
       <p data-auto-stop-effective></p>
       <p data-auto-stop-default-description></p>
       <p data-auto-stop-range></p>
-      <div data-auto-stop-unavailable hidden></div>
-      <div data-auto-stop-out-of-range hidden></div>
+      <div data-auto-stop-unavailable class="tw-hidden"></div>
+      <div data-auto-stop-out-of-range class="tw-hidden"></div>
       <fieldset data-auto-stop-fields>
         <input type="radio" name="mode" value="default">
         <input type="radio" name="mode" value="custom">
         <input type="radio" name="mode" value="never">
-        <div data-auto-stop-custom-fields hidden>
+        <div data-auto-stop-custom-fields class="tw-hidden">
           <input name="timeout_value">
           <select class="ui dropdown" name="timeout_unit"><option value="hours">hours</option></select>
         </div>
@@ -164,7 +209,7 @@ test('codespace settings button fills and opens the shared auto-stop modal', () 
   expect(form.querySelector<HTMLInputElement>('input[name="return_to"]')!.value).toBe('/-/codespaces/uuid');
   expect(form.querySelector<HTMLInputElement>('input[name="mode"][value="custom"]')!.checked).toBe(true);
   expect(form.querySelector<HTMLInputElement>('input[name="timeout_value"]')!.value).toBe('2');
-  expect(form.querySelector<HTMLElement>('[data-auto-stop-custom-fields]')!.hidden).toBe(false);
+  expect(form.querySelector<HTMLElement>('[data-auto-stop-custom-fields]')!.classList.contains('tw-hidden')).toBe(false);
   expect(form.querySelector<HTMLElement>('[data-auto-stop-effective]')!.textContent).toBe('Stop after two hours');
   expect(showFomanticModal).toHaveBeenCalledWith(form);
   document.body.replaceChildren();

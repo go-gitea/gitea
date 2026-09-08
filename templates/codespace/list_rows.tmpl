@@ -2,11 +2,11 @@
 		<div class="ui segment">
 			<div class="flex-divided-list items-with-main codespace-list">
 				{{range $codespace := .Codespaces}}
-					<div class="item tw-items-center">
+					<div class="item tw-items-center" id="codespace-row-{{$codespace.ID}}">
 						<div class="item-main">
 							<div class="item-header">
 								<div class="item-title">
-									<a href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}">{{if $codespace.RepoFullName}}{{$codespace.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}</a>
+									<a href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}">{{if $codespace.RepoFullName}}{{$codespace.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}</a>
 									<span class="ui tiny label codespace-state-label codespace-state-{{$codespace.DisplayStatus}}">{{ctx.Locale.Tr $codespace.DisplayStatusKey}}</span>
 								</div>
 							</div>
@@ -18,7 +18,7 @@
 									{{if $codespace.LastActiveUnix}}{{DateUtils.TimeSince $codespace.LastActiveUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}
 								</span>
 							</div>
-							{{if or (eq $codespace.DisplayStatus "queued") (eq $codespace.DisplayStatus "booting") (eq $codespace.DisplayStatus "stopping") (eq $codespace.DisplayStatus "resuming") (eq $codespace.DisplayStatus "deleting") (eq $codespace.DisplayStatus "failed") (eq $codespace.DisplayStatus "metadata_rebuilding") (eq $codespace.DisplayStatus "recovering")}}
+							{{if or (eq $codespace.StatusSummaryKey "codespace.stopped_manager_unavailable") (eq $codespace.DisplayStatus "queued") (eq $codespace.DisplayStatus "booting") (eq $codespace.DisplayStatus "stopping") (eq $codespace.DisplayStatus "resuming") (eq $codespace.DisplayStatus "deleting") (eq $codespace.DisplayStatus "failed") (eq $codespace.DisplayStatus "metadata_rebuilding") (eq $codespace.DisplayStatus "recovering")}}
 								<div class="tw-text-text-light tw-break-anywhere">{{ctx.Locale.Tr $codespace.StatusSummaryKey}}</div>
 							{{end}}
 						</div>
@@ -28,7 +28,7 @@
 									data-modal-form.url="{{AppSubUrl}}{{$codespace.Workspace.OpenPath}}" data-modal-form.target="_blank"
 									data-modal-endpoint-label="{{ctx.Locale.Tr "codespace.workspace"}}" data-modal-access-kind="{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}">{{svg "octicon-terminal" 16}}</button>
 							{{else}}
-								<a class="ui tiny icon button" href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}"
+								<a class="ui tiny icon button" href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}"
 									data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}"
 									aria-label="{{ctx.Locale.Tr "codespace.details"}}"
 								>{{svg "octicon-eye" 16}}</a>
@@ -79,7 +79,7 @@
 									data-tooltip-content="{{ctx.Locale.Tr "delete"}}"
 									aria-label="{{ctx.Locale.Tr "delete"}}"
 									data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}"
-									data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_confirm" $codespace.ShortUUID}}"
+									data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_creator_confirm" $codespace.RepoFullName $codespace.RefDisplayName (DateUtils.AbsoluteShort $codespace.CreatedUnix)}}"
 								>{{svg "octicon-trash" 16}}</button>
 							{{end}}
 					</div>

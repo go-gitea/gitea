@@ -295,7 +295,7 @@ func ResolveGiteaToken(ctx context.Context, token string) (*GiteaTokenAuthSnapsh
 	if !strings.HasPrefix(token, codespaceTokenPrefix) {
 		return nil, ErrResolveGiteaTokenUnmatched
 	}
-	if !validCodespaceTokenPlaintext(token) {
+	if !IsGiteaTokenPlaintext(token) {
 		return nil, ErrResolveGiteaTokenRejected
 	}
 	if !setting.Codespace.Enabled {
@@ -422,7 +422,7 @@ func readCurrentGiteaToken(ctx context.Context, codespaceID int64) (string, bool
 		return "", false, err
 	}
 	token, err := secret_module.DecryptSecret(setting.SecretKey, row.TokenEncrypted)
-	if err != nil || !validCodespaceTokenPlaintext(token) || !verifyCodespaceGiteaToken(row, token) {
+	if err != nil || !verifyCodespaceGiteaToken(row, token) {
 		if _, deleteErr := db.GetEngine(ctx).ID(codespaceID).Delete(new(codespace_model.GiteaToken)); deleteErr != nil {
 			return "", false, deleteErr
 		}
@@ -441,11 +441,11 @@ func hasValidCurrentGiteaToken(ctx context.Context, codespaceID int64) (bool, er
 	if err != nil {
 		return false, nil
 	}
-	return validCodespaceTokenPlaintext(token) && verifyCodespaceGiteaToken(row, token), nil
+	return verifyCodespaceGiteaToken(row, token), nil
 }
 
 func insertNewGiteaToken(ctx context.Context, codespaceID int64) (string, error) {
-	token := generateCodespaceGiteaToken()
+	token := codespaceTokenPrefix + hex.EncodeToString(util.CryptoRandomBytes(32))
 	salt := util.CryptoRandomString(10)
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, token)
 	if err != nil {
@@ -475,19 +475,11 @@ func verifyCodespaceGiteaToken(row *codespace_model.GiteaToken, token string) bo
 	if row == nil || row.TokenHash == "" || row.TokenSalt == "" {
 		return false
 	}
-	if !validCodespaceTokenPlaintext(token) || row.TokenLastEight != token[len(token)-8:] {
+	if !IsGiteaTokenPlaintext(token) || row.TokenLastEight != token[len(token)-8:] {
 		return false
 	}
 	hash := auth_model.HashToken(token, row.TokenSalt)
 	return subtle.ConstantTimeCompare([]byte(row.TokenHash), []byte(hash)) == 1
-}
-
-func generateCodespaceGiteaToken() string {
-	return codespaceTokenPrefix + hex.EncodeToString(util.CryptoRandomBytes(32))
-}
-
-func validCodespaceTokenPlaintext(token string) bool {
-	return IsGiteaTokenPlaintext(token)
 }
 
 // IsGiteaTokenPlaintext reports whether token has the Codespace Token plaintext format.

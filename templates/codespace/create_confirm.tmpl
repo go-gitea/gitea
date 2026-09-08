@@ -63,7 +63,7 @@
 								</div>
 								{{range $environment := .CreatePlan.Environments}}
 									{{if not $environment.Online}}
-										<div class="help" data-codespace-environment-detail="{{$environment.Tag}}"{{if not $environment.Selected}} hidden{{end}}>{{ctx.Locale.Tr "codespace.environment_offline_queue"}}</div>
+										<div class="help{{if not $environment.Selected}} tw-hidden{{end}}" data-codespace-environment-detail="{{$environment.Tag}}">{{ctx.Locale.Tr "codespace.environment_offline_queue"}}</div>
 									{{end}}
 								{{end}}
 							</div>
@@ -71,15 +71,20 @@
 							<label for="codespace-dev-container">{{ctx.Locale.Tr "codespace.dev_container_configuration"}}</label>
 								<select id="codespace-dev-container" class="ui fluid selection dropdown" name="dev_container"
 									data-codespace-dev-container data-preview-url="{{.RepoLink}}/codespaces/new" data-ref-type="{{.CreatePlan.RefType}}" data-ref-name="{{.CreatePlan.RefName}}">
-									{{range $option := .CreatePlan.DevContainerOptions}}<option value="{{$option.Selection}}"{{if $option.Selected}} selected{{end}}>{{$option.Name}}</option>{{end}}
+									{{if not .CreateConfigurationSelected}}<option value="" selected disabled>{{ctx.Locale.Tr "codespace.configuration_select"}}</option>{{end}}
+									{{range $group := .CreateConfigurationGroups}}
+										<optgroup label="{{ctx.Locale.Tr (print "codespace.configuration_source." $group.Scope)}}">
+											{{range $option := $group.Options}}<option value="{{$option.Selection}}"{{if $option.Selected}} selected{{end}}>{{$option.Name}}</option>{{end}}
+										</optgroup>
+									{{end}}
 								</select>
-								{{range $option := .CreatePlan.DevContainerOptions}}
-									{{if and $option.Selected $option.Path}}<div class="codespace-create-config-path"><code>{{$option.Path}}</code></div>{{end}}
-								{{end}}
+								<div class="ui warning message tw-hidden" data-codespace-review-warning>{{ctx.Locale.Tr "codespace.configuration_review_warning"}}</div>
+								<button class="ui button tw-hidden" type="button" data-codespace-review>{{ctx.Locale.Tr "codespace.configuration_review"}}</button>
 							</div>
 						</div>
 					</div>
 
+				{{if .CreatePlan.RequestHash}}
 				<div class="ui attached segment codespace-create-section">
 					<h4 class="ui header">{{ctx.Locale.Tr "codespace.repository_access"}}</h4>
 					{{if .CreatePermissionRepositories}}
@@ -165,13 +170,14 @@
 						{{end}}
 					{{end}}
 					<div class="codespace-create-secret-footer">
-						<a href="{{AppSubUrl}}/user/settings/codespaces/secrets">{{ctx.Locale.Tr "codespace.secrets_manage"}}</a>
+						<a href="{{AppSubUrl}}/user/settings/codespaces/secrets" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "codespace.secrets_manage"}} {{svg "octicon-link-external" 14}}</a>
 					</div>
 				</div>
 
+				{{end}}
 				<div class="ui bottom attached segment tw-flex tw-justify-end tw-gap-2">
 					<a class="ui button" href="{{.RepoLink}}">{{ctx.Locale.Tr "cancel"}}</a>
-					<button class="ui primary button" type="submit">{{svg "octicon-plus"}} {{ctx.Locale.Tr "codespace.confirm_and_create"}}</button>
+					<button class="ui primary button" type="submit" data-codespace-create{{if not .CreatePlan.RequestHash}} disabled{{end}}>{{svg "octicon-plus"}} {{ctx.Locale.Tr "codespace.confirm_and_create"}}</button>
 				</div>
 			</form>
 		{{end}}

@@ -31,19 +31,20 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	created, err := codespace_service.CreateManager(t.Context(), codespace_service.CreateManagerOptions{
+	managerID, err := codespace_service.CreateManager(t.Context(), codespace_service.CreateManagerOptions{
 		ManagerSettingsOptions: codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite},
 		Name:                   "Gitea Manager",
 	})
 	require.NoError(t, err)
-	require.Positive(t, created.ManagerID)
-	require.NotEmpty(t, created.Secret)
-	checked, err := client.CheckManager(t.Context(), managerRequest(created.ManagerID, created.Secret, &codespacev1.CheckManagerRequest{ProtocolVersion: 1}))
+	require.Positive(t, managerID)
+	secret, err := codespace_service.ResetManagerSecret(t.Context(), codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite}, managerID, false)
+	require.NoError(t, err)
+	checked, err := client.CheckManager(t.Context(), managerRequest(managerID, secret, &codespacev1.CheckManagerRequest{ProtocolVersion: 1}))
 	require.NoError(t, err)
 	assert.Equal(t, "Gitea Manager", checked.Msg.GetManagerName())
 	assert.NotEmpty(t, checked.Msg.GetGiteaWebUrl())
 	managerBeforeDeclare := new(codespace_model.Manager)
-	has, err := db.GetEngine(t.Context()).ID(created.ManagerID).Get(managerBeforeDeclare)
+	has, err := db.GetEngine(t.Context()).ID(managerID).Get(managerBeforeDeclare)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Zero(t, managerBeforeDeclare.LastOnlineUnix)
@@ -60,24 +61,24 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 		GatewaySshHostKeyFingerprintSha256: " SHA256:test ",
 		GatewaySshHostKeyUpdatedUnix:       1,
 	}
-	_, err = client.DeclareManager(t.Context(), managerRequest(created.ManagerID, "bad-secret", declaration))
+	_, err = client.DeclareManager(t.Context(), managerRequest(managerID, "bad-secret", declaration))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	assert.Equal(t, "unauthenticated", failureCategory(t, err))
 
-	_, err = client.DeclareManager(t.Context(), managerRequest(created.ManagerID+1000, created.Secret, declaration))
+	_, err = client.DeclareManager(t.Context(), managerRequest(managerID+1000, secret, declaration))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	assert.Equal(t, "manager_unregistered", failureCategory(t, err))
 
 	declaration.ProtocolVersion = 0
-	_, err = client.DeclareManager(t.Context(), managerRequest(created.ManagerID, created.Secret, declaration))
+	_, err = client.DeclareManager(t.Context(), managerRequest(managerID, secret, declaration))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 	assert.Equal(t, "protocol_mismatch", failureCategory(t, err))
 
 	declaration.ProtocolVersion = 1
-	declared, err := client.DeclareManager(t.Context(), managerRequest(created.ManagerID, created.Secret, declaration))
+	declared, err := client.DeclareManager(t.Context(), managerRequest(managerID, secret, declaration))
 	require.NoError(t, err)
 	assert.Positive(t, declared.Msg.GetHeartbeatIntervalMilliseconds())
 	assert.Positive(t, declared.Msg.GetRuntimeMetadataRefreshIntervalMilliseconds())
@@ -85,7 +86,7 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	assert.NotEmpty(t, declared.Msg.GetGiteaWebUrl())
 
 	manager := new(codespace_model.Manager)
-	has, err = db.GetEngine(t.Context()).ID(created.ManagerID).Get(manager)
+	has, err = db.GetEngine(t.Context()).ID(managerID).Get(manager)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Equal(t, "Gitea Manager", manager.Name)

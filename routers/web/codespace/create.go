@@ -21,6 +21,11 @@ type createPermissionRepository struct {
 	Permissions []codespace_service.CreatePermissionRequest
 }
 
+type createConfigurationGroup struct {
+	Scope   string
+	Options []codespace_service.CreateDevContainerOption
+}
+
 // RepositoryRedirect redirects repository Codespace collection reads to the repository code page.
 func RepositoryRedirect(ctx *context.Context) {
 	if ctx.Repo == nil || ctx.Repo.Repository == nil {
@@ -46,6 +51,10 @@ func New(ctx *context.Context) {
 	}
 	plan, err := codespace_service.PrepareCodespace(ctx, opts)
 	if err != nil {
+		if plan != nil && errors.Is(err, codespace_service.ErrCreateConfigurationInvalid) {
+			renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, ctx.Tr("codespace.configuration_invalid"))
+			return
+		}
 		handleCreateError(ctx, err)
 		return
 	}
@@ -69,6 +78,10 @@ func Create(ctx *context.Context) {
 	}
 	plan, err := codespace_service.PrepareCodespace(ctx, opts)
 	if err != nil {
+		if plan != nil && errors.Is(err, codespace_service.ErrCreateConfigurationInvalid) {
+			renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, ctx.Tr("codespace.configuration_invalid"))
+			return
+		}
 		handleCreateError(ctx, err)
 		return
 	}
@@ -84,6 +97,11 @@ func Create(ctx *context.Context) {
 	}
 	result, err := codespace_service.CreateCodespace(ctx, opts)
 	if err != nil {
+		if errors.Is(err, codespace_service.ErrCreateConfigurationInvalid) {
+			plan.RequestHash = ""
+			renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, ctx.Tr("codespace.configuration_invalid"))
+			return
+		}
 		if errors.Is(err, codespace_service.ErrCreateEnvironmentUnavailable) || errors.Is(err, codespace_service.ErrCreateRequestChanged) {
 			if currentPlan, prepareErr := codespace_service.PrepareCodespace(ctx, opts); prepareErr == nil {
 				plan = currentPlan
@@ -95,7 +113,7 @@ func Create(ctx *context.Context) {
 			renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, errorMessage)
 			return
 		}
-		handleCreateError(ctx, err)
+		renderCreateConfirm(ctx, http.StatusUnprocessableEntity, plan, opts, ctx.Tr("codespace.error.invalid_create_request"))
 		return
 	}
 	ctx.Redirect(setting.AppSubURL+codespaceDetailPath(result.CodespaceID), http.StatusSeeOther)
@@ -123,10 +141,8 @@ func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_servi
 			permissionGrants[permission.FormName] = value
 		}
 	}
-	secretEnabled := make(map[string]bool, len(plan.RecommendedSecrets))
 	hasPendingRecommendedSecret := false
 	for _, secret := range plan.RecommendedSecrets {
-		secretEnabled[secret.Name] = opts.RecommendedSecretEnabled[secret.Name]
 		hasPendingRecommendedSecret = hasPendingRecommendedSecret || !secret.Available
 	}
 
@@ -135,9 +151,25 @@ func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_servi
 	ctx.Data["CreateSelectedEnvironment"] = selectedEnvironment
 	ctx.Data["CreatePermissionRepositories"] = permissionRepositories
 	ctx.Data["CreatePermissionGrants"] = permissionGrants
-	ctx.Data["CreateRecommendedSecretEnabled"] = secretEnabled
+	ctx.Data["CreateRecommendedSecretEnabled"] = opts.RecommendedSecretEnabled
 	ctx.Data["CreateHasPendingRecommendedSecret"] = hasPendingRecommendedSecret
 	ctx.Data["CreateError"] = errorMessage
+	groups := make([]createConfigurationGroup, 0, 3)
+	for _, scope := range []string{"repository", "personal", "site"} {
+		group := createConfigurationGroup{Scope: scope}
+		for _, option := range plan.DevContainerOptions {
+			if option.Scope == scope {
+				if option.Selected {
+					ctx.Data["CreateConfigurationSelected"] = true
+				}
+				group.Options = append(group.Options, option)
+			}
+		}
+		if len(group.Options) > 0 {
+			groups = append(groups, group)
+		}
+	}
+	ctx.Data["CreateConfigurationGroups"] = groups
 	ctx.HTML(status, tplCodespaceCreateConfirm)
 }
 
