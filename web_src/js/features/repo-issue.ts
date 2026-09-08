@@ -197,8 +197,9 @@ export async function handleReply(el: HTMLElement) {
 }
 
 export function initRepoPullRequestReview() {
-  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
-    const commentDiv = document.querySelector(window.location.hash);
+  const currentHash = window.location.hash;
+  if (currentHash.startsWith('#issuecomment-') || currentHash.startsWith('#pullrequestreview-')) {
+    const commentDiv = document.querySelector(currentHash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');

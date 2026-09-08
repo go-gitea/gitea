@@ -2073,8 +2073,8 @@ func buildSignature(endp string, expires, artifactID int64) []byte {
 	return actions.BuildSignature("api", endp, strconv.FormatInt(expires, 10), strconv.FormatInt(artifactID, 10))
 }
 
-func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {
-	return fmt.Sprintf("api/v1/repos/%s/%s/actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), artifactID)
+func buildDownloadRawEndpoint(ownerName, repoName string, artifactID int64) string {
+	return fmt.Sprintf("api/v1/repos/%s/%s/actions/artifacts/%d/zip/raw", url.PathEscape(ownerName), url.PathEscape(repoName), artifactID)
 }
 
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
@@ -2135,7 +2135,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 
 		// @actions/toolkit asserts a 302 for the artifact download, so we have to build a signed URL and redirect to it
 		// TODO: a perma link to the code for reference
-		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), art.ID)
+		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, art.ID), art.ID)
 		ctx.Redirect(redirectURL, http.StatusFound)
 		return
 	}
@@ -2146,7 +2146,22 @@ func DownloadArtifact(ctx *context.APIContext) {
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
 	// it doesn't use repoAssignment middleware, so it needs to prepare the repo and check permission (sig) by itself
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"))
+	ownerName, repoName := ctx.PathParam("username"), ctx.PathParam("reponame")
+	query := ctx.Req.URL.Query()
+	sigBytes, _ := base64.RawURLEncoding.DecodeString(query.Get("sig"))
+	expires, _ := strconv.ParseInt(query.Get("expires"), 10, 64)
+	artifactID := ctx.PathParamInt64("artifact_id")
+
+	if !hmac.Equal(sigBytes, buildSignature(buildDownloadRawEndpoint(ownerName, repoName, artifactID), expires, artifactID)) {
+		ctx.APIErrorNotFound()
+		return
+	}
+	if time.Unix(expires, 0).Before(time.Now()) {
+		ctx.APIError(http.StatusUnauthorized, "Error link expired")
+		return
+	}
+
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIErrorNotFound()
@@ -2157,22 +2172,6 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	}
 	art := getArtifactByPathParam(ctx, repo)
 	if ctx.Written() {
-		return
-	}
-
-	sigStr := ctx.Req.URL.Query().Get("sig")
-	expiresStr := ctx.Req.URL.Query().Get("expires")
-	sigBytes, _ := base64.RawURLEncoding.DecodeString(sigStr)
-	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
-
-	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
-	if !hmac.Equal(sigBytes, expectedSig) {
-		ctx.APIError(http.StatusUnauthorized, "Error unauthorized")
-		return
-	}
-	t := time.Unix(expires, 0)
-	if t.Before(time.Now()) {
-		ctx.APIError(http.StatusUnauthorized, "Error link expired")
 		return
 	}
 

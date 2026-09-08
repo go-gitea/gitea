@@ -9,12 +9,14 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -62,6 +64,19 @@ func TestAPIRepoTeams(t *testing.T) {
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), "team1")).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
+
+	adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
+	targetTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	existingTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7})
+	assert.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, publicOrgRepo))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	token = getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), targetTeam.Name)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+	assert.False(t, repo_service.HasRepository(t.Context(), targetTeam, publicOrgRepo.ID))
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), existingTeam.Name)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+	assert.True(t, repo_service.HasRepository(t.Context(), existingTeam, publicOrgRepo.ID))
 
 	// AddTeam with user2
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

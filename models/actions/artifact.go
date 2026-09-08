@@ -9,10 +9,10 @@ package actions
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 
 	"gitea.dev/models/db"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -147,7 +147,7 @@ type FindArtifactsOptions struct {
 	db.ListOptions
 	RepoID               int64
 	RunID                int64
-	RunAttemptID         optional.Option[int64] // use optional to allow filtering by zero (legacy artifacts have run_attempt_id=0)
+	RunAttemptIDs        []int64 // empty means every attempt; pass 0 to target legacy artifacts, which have run_attempt_id=0
 	ArtifactName         string
 	Status               int
 	FinalizedArtifactsV4 bool
@@ -167,8 +167,8 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	if opts.RunID > 0 {
 		cond = cond.And(builder.Eq{"run_id": opts.RunID})
 	}
-	if opts.RunAttemptID.Has() {
-		cond = cond.And(builder.Eq{"run_attempt_id": opts.RunAttemptID.Value()})
+	if len(opts.RunAttemptIDs) > 0 {
+		cond = cond.And(builder.In("run_attempt_id", opts.RunAttemptIDs))
 	}
 	if opts.ArtifactName != "" {
 		cond = cond.And(builder.Eq{"artifact_name": opts.ArtifactName})
@@ -183,6 +183,27 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	}
 
 	return cond
+}
+
+// FindReadableArtifacts returns the artifacts of opts.RunAttemptIDs, only keeps the ones from a newer attempt.
+func FindReadableArtifacts(ctx context.Context, opts FindArtifactsOptions) ([]*ActionArtifact, error) {
+	arts, err := db.Find[ActionArtifact](ctx, opts)
+	if err != nil || len(opts.RunAttemptIDs) <= 1 {
+		return arts, err
+	}
+	return keepLatestAttemptArtifacts(arts), nil
+}
+
+// keepLatestAttemptArtifacts keeps, per name, only the artifacts of the newest attempt that has it.
+// A v3 artifact is one row per uploaded file, so the whole group of the winning attempt is kept.
+func keepLatestAttemptArtifacts(arts []*ActionArtifact) []*ActionArtifact {
+	latest := make(map[string]int64)
+	for _, art := range arts {
+		latest[art.ArtifactName] = max(latest[art.ArtifactName], art.RunAttemptID)
+	}
+	return slices.DeleteFunc(arts, func(art *ActionArtifact) bool {
+		return art.RunAttemptID != latest[art.ArtifactName]
+	})
 }
 
 // ActionArtifactMeta is the meta-data of an artifact

@@ -17781,6 +17781,9 @@
           "204": {
             "$ref": "#/responses/empty"
           },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           },
@@ -17827,6 +17830,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -18052,6 +18058,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -18098,6 +18107,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -18142,6 +18154,9 @@
           },
           "422": {
             "$ref": "#/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -25063,7 +25078,6 @@
         "login_name": {
           "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
-          "default": "empty",
           "x-go-name": "LoginName"
         },
         "must_change_password": {
@@ -26249,8 +26263,7 @@
       "description": "EditUserOption edit user options",
       "type": "object",
       "required": [
-        "source_id",
-        "login_name"
+        "source_id"
       ],
       "properties": {
         "active": {
@@ -26301,7 +26314,6 @@
         "login_name": {
           "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
-          "default": "empty",
           "x-go-name": "LoginName"
         },
         "max_repo_creation": {
@@ -30658,7 +30670,6 @@
         "login_name": {
           "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
-          "default": "empty",
           "x-go-name": "LoginName"
         },
         "prohibit_login": {

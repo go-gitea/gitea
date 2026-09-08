@@ -675,7 +675,7 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 	// logs in a publicly visible run; requiring a private caller keeps private content flowing private -> private.
 	// This is intentionally stricter than GitHub, which gates on the target repo's access setting (introduced in #32562):
 	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
-	if run.Repo.IsPrivate {
+	if run.Repo.IsPrivate && !run.IsForkPullRequest {
 		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
 			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
 				return true, nil

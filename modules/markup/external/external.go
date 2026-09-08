@@ -5,11 +5,11 @@ package external
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 
 	"gitea.dev/modules/markup"
@@ -91,52 +91,63 @@ func (p *Renderer) GetExternalRendererOptions() (ret markup.ExternalRendererOpti
 	return ret
 }
 
-func envMark(envName string) string {
-	if runtime.GOOS == "windows" {
-		return "%" + envName + "%"
+func (p *Renderer) prepareExternalCommand(vars map[string]string) (string, []string, error) {
+	fields, err := shellquote.Split(strings.TrimSpace(p.Command))
+	if err != nil {
+		return "", nil, err
 	}
-	return "$" + envName
+	if len(fields) == 0 {
+		return "", nil, errors.New("no command")
+	}
+	var replacements []string
+	for k, v := range vars {
+		replacements = append(replacements, "$"+k, v)
+		replacements = append(replacements, "%"+k+"%", v) // for legacy Windows-style support
+	}
+	r := strings.NewReplacer(replacements...)
+	for i := range fields {
+		fields[i] = r.Replace(fields[i])
+	}
+	return fields[0], fields[1:], nil
 }
 
 // Render renders the data of the document to HTML via the external tool.
 func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	baseLinkSrc := ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault)
 	baseLinkRaw := ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw)
-	command := strings.NewReplacer(
-		envMark("GITEA_PREFIX_SRC"), baseLinkSrc,
-		envMark("GITEA_PREFIX_RAW"), baseLinkRaw,
-	).Replace(p.Command)
-	commands, err := shellquote.Split(command)
-	if err != nil || len(commands) == 0 {
-		return fmt.Errorf("%s invalid command %q: %w", p.Name(), p.Command, err)
+	cmdVars := map[string]string{
+		"GITEA_PREFIX_SRC": baseLinkSrc,
+		"GITEA_PREFIX_RAW": baseLinkRaw,
 	}
-	args := commands[1:]
-
+	cmdProg, cmdArgs, err := p.prepareExternalCommand(cmdVars)
+	if err != nil {
+		return fmt.Errorf("invalid external render (%s) command %q: %w", p.Name(), p.Command, err)
+	}
 	if p.IsInputFile {
 		// write to temp file
-		f, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("gitea_input")
+		tmpFile, cleanup, err := setting.AppDataTempDir("git-repo-content").CreateTempFileRandom("gitea_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 		defer cleanup()
 
-		_, err = io.Copy(f, input)
+		_, err = io.Copy(tmpFile, input)
 		if err != nil {
-			_ = f.Close()
+			_ = tmpFile.Close()
 			return fmt.Errorf("%s write data to temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
 
-		err = f.Close()
+		err = tmpFile.Close()
 		if err != nil {
 			return fmt.Errorf("%s close temp file when rendering %s failed: %w", p.Name(), p.Command, err)
 		}
-		args = append(args, f.Name())
+		cmdArgs = append(cmdArgs, tmpFile.Name())
 	}
 
-	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", commands[0], baseLinkSrc))
+	processCtx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Render [%s] for %s", cmdProg, baseLinkSrc))
 	defer finished()
 
-	cmd := exec.CommandContext(processCtx, commands[0], args...)
+	cmd := exec.CommandContext(processCtx, cmdProg, cmdArgs...)
 	cmd.Env = append(
 		os.Environ(),
 		"GITEA_PREFIX_SRC="+baseLinkSrc,
@@ -151,7 +162,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	process.SetSysProcAttribute(cmd)
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), commands[0], args, err, stderr.String())
+		return fmt.Errorf("%s render run command %s %v failed: %w\nStderr: %s", p.Name(), cmdProg, shellquote.Join(cmdArgs...), err, stderr.String())
 	}
 	return nil
 }

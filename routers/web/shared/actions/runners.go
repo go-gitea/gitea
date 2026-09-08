@@ -162,6 +162,7 @@ func Runners(ctx *context.Context) {
 	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
 
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
+	pager.AddParamFromQuery(ctx.Req.URL.Query())
 
 	ctx.Data["Page"] = pager
 

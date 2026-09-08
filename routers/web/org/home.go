@@ -5,7 +5,6 @@ package org
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -201,7 +200,7 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+		CurrentRefSubURL: git.RefNameFromBranch(profileRepo.DefaultBranch).RefWebLinkPath(),
 	})
 	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
 	if err != nil {

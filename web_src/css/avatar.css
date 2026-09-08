@@ -16,6 +16,7 @@ img.ui.avatar,
 }
 
 .avatar-stack-names > a.muted,
+.avatar-stack-names > .avatar-stack-name,
 .avatar-stack-names > .avatar-stack-popup-trigger {
   overflow: hidden;
   text-overflow: ellipsis;

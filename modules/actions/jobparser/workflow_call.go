@@ -62,7 +62,7 @@ func ParseWorkflowCallSpec(content []byte) (*WorkflowCallSpec, error) {
 	var doc struct {
 		On yaml.Node `yaml:"on"`
 	}
-	if err := yaml.Unmarshal(content, &doc); err != nil {
+	if err := decodeResolved(content, &doc); err != nil {
 		return nil, fmt.Errorf("parse workflow yaml: %w", err)
 	}
 

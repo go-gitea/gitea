@@ -53,9 +53,9 @@ func TestSearchRepo(t *testing.T) {
 }
 
 func testSearch(t *testing.T, url string, expected []string) {
+	t.Helper()
 	req := NewRequest(t, "GET", url)
 	resp := MakeRequest(t, req, http.StatusOK)
-
 	filenames := resultFilenames(NewHTMLParser(t, resp.Body))
-	assert.Equal(t, expected, filenames)
+	assert.Equal(t, expected, filenames, "url=%s", url)
 }

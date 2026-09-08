@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 
@@ -67,28 +65,6 @@ func TestRepository_IsCollaborator(t *testing.T) {
 	test(3, unittest.NonexistentID, false)
 	test(4, 2, false)
 	test(4, 4, true)
-}
-
-func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin))
-
-	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
-	assert.Equal(t, perm.AccessModeAdmin, collaboration.Mode)
-
-	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
-	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
-
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin))
-
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, unittest.NonexistentID, perm.AccessModeAdmin))
-
-	// Discard invalid input.
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessMode(-1)))
-
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }
 
 func TestRepository_IsOwnerMemberCollaborator(t *testing.T) {

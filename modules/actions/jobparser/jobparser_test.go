@@ -4,6 +4,7 @@
 package jobparser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -146,4 +147,48 @@ func TestParseInterpolatesRunName(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result, 1)
 	assert.Empty(t, result[0].RunName)
+}
+
+func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
+	// An unevaluated ${{ }} expression is still a scalar, which act cannot apply as a filter: it used
+	// to reach the expansion and panic there on an unchecked type assertion, taking down the file view
+	// and the push_update queue.
+	const workflow = `
+name: t
+on: push
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      m: ${{ steps.s.outputs.m }}
+    steps: [{id: s, run: echo}]
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        %s
+    steps: [{run: echo}]
+`
+	for _, tt := range []struct {
+		name   string
+		matrix string
+	}{
+		{name: "include expression", matrix: "include: ${{ fromJson(needs.setup.outputs.m) }}"},
+		{name: "exclude expression", matrix: "os: [a, b]\n        exclude: ${{ fromJson(vars.MATRIX) }}"},
+		{name: "include scalar", matrix: "include: whatever"},
+		{name: "include list of scalars", matrix: "include: [a, b]"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				_, err := Parse(fmt.Appendf(nil, workflow, tt.matrix))
+				require.ErrorContains(t, err, "must be a list of mappings")
+			})
+		})
+	}
+
+	// a well-formed include/exclude keeps expanding
+	planned, err := Parse(fmt.Appendf(nil, workflow, "os: [a, b]\n        include:\n          - os: c\n        exclude:\n          - os: b"))
+	require.NoError(t, err)
+	assert.Len(t, planned, 3) // setup, plus build for os a and c
 }

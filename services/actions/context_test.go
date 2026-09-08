@@ -36,12 +36,13 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 
 	expr := &act_model.RawConcurrency{
 		Group:            "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
-		CancelInProgress: "true",
+		CancelInProgress: "True",
 	}
 
 	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, attemptA, expr, nil, nil))
 	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runB, attemptB, expr, nil, nil))
 
+	assert.True(t, attemptA.ConcurrencyCancel)
 	assert.Contains(t, attemptA.ConcurrencyGroup, "791")
 	assert.Contains(t, attemptB.ConcurrencyGroup, "792")
 	assert.NotEqual(t, attemptA.ConcurrencyGroup, attemptB.ConcurrencyGroup)

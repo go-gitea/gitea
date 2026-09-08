@@ -594,7 +594,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 		isPullBranchDeletable, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
 	}
 
-	if isPullBranchDeletable && pull.HasMerged {
+	if isPullBranchDeletable && prInfo.issue.IsClosed {
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)

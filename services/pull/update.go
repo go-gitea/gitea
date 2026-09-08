@@ -16,12 +16,14 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
 )
 
 // Update updates pull request with base branch.
-func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
+func Update(pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
+	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
 	if pr.Flow == issues_model.PullRequestFlowAGit {
 		// TODO: update of agit flow pull request's head branch is unsupported
 		return errors.New("update of agit flow pull request's head branch is unsupported")
@@ -62,20 +64,10 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return fmt.Errorf("unable to load HeadRepo for PR[%d] during update-by-merge: %w", pr.ID, err)
 	}
 
-	defer func() {
-		// The code is from https://github.com/go-gitea/gitea/pull/9784,
-		// it seems a simple copy-paste from https://github.com/go-gitea/gitea/pull/7082 without a real reason.
-		// TODO: DUPLICATE-PR-TASK: search and see another TODO comment for more details
-		go AddTestPullRequestTask(TestPullRequestOptions{
-			RepoID:      pr.BaseRepo.ID,
-			Doer:        doer,
-			Branch:      pr.BaseBranch,
-			IsSync:      false,
-			IsForcePush: false,
-			OldCommitID: "",
-			NewCommitID: "",
-		})
-	}()
+	// TODO: The code is from https://github.com/go-gitea/gitea/pull/9784,
+	// it seems a simple copy-paste from https://github.com/go-gitea/gitea/pull/7082 without a real reason.
+	// TODO: DUPLICATE-PR-TASK: search and see another TODO comment for more details
+	defer addTestPullRequestTaskAfterWebOperation(pr, doer)
 
 	if rebase {
 		return updateHeadByRebaseOnToBase(ctx, pr, doer)
@@ -97,6 +89,13 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 	}
 
 	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
+	// TODO: the "update" (merge target branch to PR head branch) operation has finished, there could still be some edge cases:
+	// * the database was already out of sync: the target branch was already in head branch:
+	//   * so no post-receive hook is really executed, no PR status update
+	//   * then the PR status is stuck in "behind the target branch" (a new push can be used as a workaround)
+	// * "merge" operation does finish, but the post-receive hook isn't correctly executed due to other reasons:
+	//   * although the target branch is merged into head branch by this "update" (head branch receives new commits)
+	//   * but database isn't updated, so the PR status is still "behind the target branch"
 	return err
 }
 

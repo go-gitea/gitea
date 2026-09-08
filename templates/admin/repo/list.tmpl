@@ -47,10 +47,12 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
+							{{if .Owner}}
 								<a class="tw-break-anywhere" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
 									<span class="tw-text-gold">{{svg "octicon-lock"}}</span>
 								{{end}}
+							{{end}}
 							</td>
 							<td>
 								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
@@ -59,7 +61,7 @@
 								{{end}}
 								{{if .IsPrivate}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-								{{else}}
+								{{else if .Owner}}
 									{{if .Owner.Visibility.IsPrivate}}
 										<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
 									{{end}}

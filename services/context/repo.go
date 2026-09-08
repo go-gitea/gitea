@@ -63,11 +63,25 @@ func (prc *PullRequestContext) CanCreateNewPull() bool {
 	return can
 }
 
+// CompareHeadRef formats the head side of a compare link, "owner/repo:branch" is only needed when a fork can share its base repo's owner
+func CompareHeadRef(baseRepo, headRepo *repo_model.Repository, headBranch string) string {
+	if baseRepo.ID == headRepo.ID /* same repo */ {
+		return headBranch
+	} else if baseRepo.OwnerID == headRepo.OwnerID /* same owner */ {
+		return headRepo.FullName() + ":" + headBranch
+	}
+	// not the same owner: if there can be multiple forks in one owner, we still need the full name
+	if setting.Repository.AllowForkIntoSameOwner {
+		return headRepo.FullName() + ":" + headBranch
+	}
+	// if there is only one fork in the different owner, we only need the owner's name for the head ref
+	return headRepo.OwnerName + ":" + headBranch
+}
+
 func (prc *PullRequestContext) MakeDefaultCompareLink(headBranch string) string {
 	return prc.baseRepo.Link() + "/compare/" +
 		util.PathEscapeSegments(prc.DefaultTargetBranch()) + "..." +
-		util.Iif(prc.SameRepo(), "", util.PathEscapeSegments(prc.headRepo.OwnerName)+":") +
-		util.PathEscapeSegments(headBranch)
+		util.PathEscapeSegments(CompareHeadRef(prc.baseRepo, prc.headRepo, headBranch))
 }
 
 func (prc *PullRequestContext) DefaultTargetBranch() string {
@@ -703,6 +717,9 @@ func repoAssignmentPrepareGitRepo(ctx *Context, data *repoAssignmentPrepareDataS
 	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
+			if ctx.Repo.Repository.IsBeingCreated() {
+				return
+			}
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RelativePath(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
 			// Only allow access to base of repo or settings

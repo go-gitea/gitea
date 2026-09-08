@@ -42,14 +42,15 @@ func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTi
 		return "", err
 	}
 
+	permission := webCtx.Repo.Permission
 	if webCtx.Repo.Repository == nil || dbRepo.ID != webCtx.Repo.Repository.ID {
-		perms, err := access.GetDoerRepoPermission(ctx, dbRepo, webCtx.Doer)
+		permission, err = access.GetDoerRepoPermission(ctx, dbRepo, webCtx.Doer)
 		if err != nil {
 			return "", err
 		}
-		if !perms.CanReadIssuesOrPulls(issue.IsPull) {
-			return "", util.ErrPermissionDenied
-		}
+	}
+	if !permission.CanReadIssuesOrPulls(issue.IsPull) {
+		return "", util.ErrPermissionDenied
 	}
 
 	if issue.IsPull {

@@ -156,6 +156,27 @@ func TestFullSteps(t *testing.T) {
 				{Name: postStepName, Status: actions_model.StatusSuccess, LogIndex: 90, LogLength: 10, Started: 10090, Stopped: 10100},
 			},
 		},
+		{
+			name: "last step is skipped",
+			task: &actions_model.ActionTask{
+				Steps: []*actions_model.ActionTaskStep{
+					{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 20, Started: 10010, Stopped: 10020},
+					{Status: actions_model.StatusSuccess, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
+					{Status: actions_model.StatusSkipped, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
+				},
+				Status:    actions_model.StatusSuccess,
+				Started:   10000,
+				Stopped:   10100,
+				LogLength: 100,
+			},
+			want: []*actions_model.ActionTaskStep{
+				{Name: preStepName, Status: actions_model.StatusSuccess, LogIndex: 0, LogLength: 10, Started: 10000, Stopped: 10010},
+				{Status: actions_model.StatusSuccess, LogIndex: 10, LogLength: 20, Started: 10010, Stopped: 10020},
+				{Status: actions_model.StatusSuccess, LogIndex: 30, LogLength: 60, Started: 10020, Stopped: 10090},
+				{Status: actions_model.StatusSkipped, LogIndex: 0, LogLength: 0, Started: 0, Stopped: 0},
+				{Name: postStepName, Status: actions_model.StatusSuccess, LogIndex: 90, LogLength: 10, Started: 10090, Stopped: 10100},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

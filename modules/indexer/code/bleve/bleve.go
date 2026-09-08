@@ -32,7 +32,6 @@ import (
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
@@ -69,9 +68,8 @@ func (d *RepoIndexerData) Type() string {
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
-	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 9
+	repoIndexerLatestVersion = 10
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -107,8 +105,8 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     letter.Name,
-		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
+		"tokenizer":     codeTokenizerName,
+		"token_filters": []string{unicodeNormalizeName, codeTokenFilterName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}

@@ -256,5 +256,5 @@ func PanicInDevOrTesting(msg string, a ...any) {
 	if !IsProd || IsInTesting {
 		panic(fmt.Sprintf(msg, a...))
 	}
-	log.Error(msg, a...)
+	log.ErrorWithSkip(1, msg, a...)
 }

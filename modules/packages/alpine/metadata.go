@@ -18,9 +18,10 @@ import (
 )
 
 var (
-	ErrMissingPKGINFOFile = util.NewInvalidArgumentErrorf("PKGINFO file is missing")
-	ErrInvalidName        = util.NewInvalidArgumentErrorf("package name is invalid")
-	ErrInvalidVersion     = util.NewInvalidArgumentErrorf("package version is invalid")
+	ErrMissingPKGINFOFile  = util.NewInvalidArgumentErrorf("PKGINFO file is missing")
+	ErrInvalidName         = util.NewInvalidArgumentErrorf("package name is invalid")
+	ErrInvalidVersion      = util.NewInvalidArgumentErrorf("package version is invalid")
+	ErrPackageInfoTooLarge = util.NewInvalidArgumentErrorf("PKGINFO contains too many entries")
 )
 
 const (
@@ -36,6 +37,8 @@ const (
 	RepositoryVersion = "_repository"
 
 	NoArch = "noarch"
+
+	maxPackageInfoEntries = 1024
 )
 
 // https://wiki.alpinelinux.org/wiki/Apk_spec
@@ -185,10 +188,16 @@ func ParsePackageInfo(r io.Reader) (*Package, error) {
 			p.FileMetadata.InstallIf = value
 		case "provides":
 			if value != "" {
+				if len(p.FileMetadata.Provides)+len(p.FileMetadata.Dependencies) >= maxPackageInfoEntries {
+					return nil, ErrPackageInfoTooLarge
+				}
 				p.FileMetadata.Provides = append(p.FileMetadata.Provides, value)
 			}
 		case "depend":
 			if value != "" {
+				if len(p.FileMetadata.Provides)+len(p.FileMetadata.Dependencies) >= maxPackageInfoEntries {
+					return nil, ErrPackageInfoTooLarge
+				}
 				p.FileMetadata.Dependencies = append(p.FileMetadata.Dependencies, value)
 			}
 		case "provider_priority":

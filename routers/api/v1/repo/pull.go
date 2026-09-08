@@ -24,7 +24,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/gitrepo"
-	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -1042,7 +1041,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if pull_service.IsErrMergeConflicts(err) {
@@ -1097,6 +1096,10 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	case err != nil:
 		ctx.APIErrorInternal(err)
+		return nil, nil
+	}
+	if !ctx.TokenCanAccessRepo(headRepo) {
+		ctx.APIErrorNotFound()
 		return nil, nil
 	}
 
@@ -1276,7 +1279,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
 
-	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), pr, ctx.Doer, message, rebase); err != nil {
+	if err = pull_service.Update(pr, ctx.Doer, message, rebase); err != nil {
 		if pull_service.IsErrMergeConflicts(err) {
 			ctx.APIError(http.StatusConflict, "merge failed because of conflict")
 			return
@@ -1614,7 +1617,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	limit = max(limit, 0)
 
 	apiFiles := make([]*api.ChangedFile, 0, limit)
-	for i := start; i < start+limit; i++ {
+	for i := start; i < start+limit && i < len(diff.Files); i++ {
 		// refs/pull/1/head stores the HEAD commit ID, allowing all related commits to be found in the base repository.
 		// The head repository might have been deleted, so we should not rely on it here.
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.BaseRepo, endCommitID))

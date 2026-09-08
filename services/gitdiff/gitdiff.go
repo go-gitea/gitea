@@ -42,7 +42,6 @@ import (
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/sergi/go-diff/diffmatchpatch"
-	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
@@ -889,7 +888,7 @@ parsingLoop:
 			}
 			charsetLabel, _ := charset.DetectEncoding(buffer.Bytes())
 			if charsetLabel != "UTF-8" {
-				charsetEncoding, _ := stdcharset.Lookup(charsetLabel)
+				charsetEncoding, _ := charset.Lookup(charsetLabel)
 				if charsetEncoding != nil {
 					diffLineTypeDecoders[lineType] = charsetEncoding.NewDecoder()
 				}

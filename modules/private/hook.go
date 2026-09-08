@@ -109,18 +109,6 @@ func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookO
 	return requestJSONResp(req, &HookProcReceiveResult{})
 }
 
-// SetDefaultBranch will set the default branch to the provided branch for the provided repository
-func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) ResponseExtra {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s/%s",
-		url.PathEscape(ownerName),
-		url.PathEscape(repoName),
-		url.PathEscape(branch),
-	)
-	req := newInternalRequestAPI(ctx, reqURL, "POST")
-	_, extra := requestJSONResp(req, &ResponseText{})
-	return extra
-}
-
 // SSHLog sends ssh error log response
 func SSHLog(ctx context.Context, isErr bool, msg string) error {
 	reqURL := setting.LocalURL + "api/internal/ssh/log"

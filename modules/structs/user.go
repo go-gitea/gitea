@@ -18,7 +18,6 @@ type User struct {
 	// login of the user, same as `username`
 	UserName string `json:"login"`
 	// identifier of the user, provided by the external authenticator (if configured)
-	// default: empty
 	LoginName string `json:"login_name"`
 	// The ID of the user's Authentication Source
 	SourceID int64 `json:"source_id"`

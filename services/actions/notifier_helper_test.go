@@ -9,9 +9,11 @@ import (
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -99,4 +101,26 @@ func TestIfNeedApproval(t *testing.T) {
 		assert.True(t, need)
 		assert.False(t, called, "permission check must not run for restricted user")
 	})
+}
+
+func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {
+	forkPR := &issues_model.PullRequest{
+		Flow:       issues_model.PullRequestFlowGithub,
+		BaseRepoID: 1,
+		HeadRepoID: 2,
+	}
+	input := newPullRequestReviewNotifyInput(&repo_model.Repository{ID: 1}, &user_model.User{ID: 2}, actions_module.GithubEventPullRequest, "refs/pull/1/head", forkPR)
+
+	assert.True(t, isForkPullRequestInput(input))
+	assert.Equal(t, "refs/pull/1/head", input.Ref.String())
+	assert.False(t, shouldCreateSkippedCommitStatusForFilteredWorkflow(input, &actions_module.DetectedWorkflow{
+		TriggerEvent: &jobparser.Event{Name: actions_module.GithubEventPullRequest},
+	}))
+	assert.True(t, shouldCreateSkippedCommitStatusForFilteredWorkflow(input, &actions_module.DetectedWorkflow{
+		TriggerEvent: &jobparser.Event{Name: actions_module.GithubEventPullRequestTarget},
+	}))
+
+	assert.True(t, shouldCreateSkippedCommitStatusForFilteredWorkflow(newNotifyInput(&repo_model.Repository{ID: 1}, &user_model.User{ID: 2}, actions_module.GithubEventPullRequest), &actions_module.DetectedWorkflow{
+		TriggerEvent: &jobparser.Event{Name: actions_module.GithubEventPullRequest},
+	}))
 }

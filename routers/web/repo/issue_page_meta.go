@@ -516,6 +516,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	issues_model.SortLabelsForDisplay(labels)
 	labelsData.RepoLabels = labels
 
 	if repo.Owner.IsOrganization() {
@@ -523,6 +524,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		if err != nil {
 			return
 		}
+		issues_model.SortLabelsForDisplay(orgLabels)
 		labelsData.OrgLabels = orgLabels
 	}
 	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)

@@ -21,7 +21,10 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-const OneDevRequiredVersion = "12.0.1"
+const (
+	OneDevRequiredVersion        = "12.0.1"
+	maxOneDevVersionResponseSize = 1024
+)
 
 var (
 	_ base.Downloader        = &OneDevDownloader{}
@@ -137,9 +140,12 @@ func (d *OneDevDownloader) callAPI(ctx context.Context, endpoint string, paramet
 
 	// special case to read OneDev server version, which is not valid JSON
 	if presult, ok := result.(**version.Version); ok {
-		bytes, err := io.ReadAll(resp.Body)
+		bytes, err := io.ReadAll(io.LimitReader(resp.Body, maxOneDevVersionResponseSize+1))
 		if err != nil {
 			return err
+		}
+		if len(bytes) > maxOneDevVersionResponseSize {
+			return fmt.Errorf("OneDev server version response exceeds %d bytes", maxOneDevVersionResponseSize)
 		}
 		vers, err := version.NewVersion(string(bytes))
 		if err != nil {
