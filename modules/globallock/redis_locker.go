@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/nosql"
+	"gitea.dev/modules/util"
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
@@ -27,7 +28,7 @@ type redisLocker struct {
 	conn redis.UniversalClient
 	rs   *redsync.Redsync
 
-	mutexM   sync.Map
+	mutexM   util.GenericSyncMap[string, *redsync.Mutex]
 	closed   atomic.Bool
 	extendWg sync.WaitGroup
 }
@@ -110,9 +111,7 @@ func (l *redisLocker) startExtend() {
 	}
 
 	toExtend := make([]*redsync.Mutex, 0)
-	l.mutexM.Range(func(_, value any) bool {
-		m := value.(*redsync.Mutex) //nolint:forcetypeassert // mutexM only ever holds *redsync.Mutex
-
+	l.mutexM.Range(func(_ string, m *redsync.Mutex) bool {
 		// Extend the lock if it is not expired.
 		// Although the mutex will be removed from the map before it is released,
 		// it still can be expired because of a failed extension.

@@ -11,7 +11,6 @@ import (
 
 	"gitea.dev/modules/test"
 
-	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -164,9 +163,7 @@ func testRedisLocker(t *testing.T, locker *redisLocker) {
 		require.NoError(t, err)
 
 		// It simulates that there are some problems with extending like network issues or redis server down.
-		v, ok := locker.mutexM.Load("test")
-		require.True(t, ok)
-		m, ok := v.(*redsync.Mutex)
+		m, ok := locker.mutexM.Load("test")
 		require.True(t, ok)
 		_, _ = m.Unlock() // release it to make it impossible to extend
 

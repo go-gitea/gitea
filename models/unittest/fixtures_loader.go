@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 	"xorm.io/xorm"
@@ -34,7 +34,7 @@ type FixtureItem struct {
 
 type fixturesLoaderInternal struct {
 	xormEngine       *xorm.Engine
-	tableSyncMap     sync.Map
+	tableSyncMap     util.GenericSyncMap[string, bool]
 	db               *sql.DB
 	dbType           schemas.DBType
 	fixtures         map[string]*FixtureItem
@@ -154,7 +154,7 @@ func (f *fixturesLoaderInternal) Load() error {
 
 	for _, fixture := range f.fixtures {
 		synced, existing := f.tableSyncMap.Load(fixture.tableName)
-		if synced == true || !existing {
+		if synced || !existing {
 			continue
 		}
 		if err := f.loadFixtures(tx, fixture); err != nil {
@@ -165,9 +165,7 @@ func (f *fixturesLoaderInternal) Load() error {
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	f.tableSyncMap.Range(func(k, v any) bool {
-		tableName, _ := k.(string)
-		synced, _ := v.(bool)
+	f.tableSyncMap.Range(func(tableName string, synced bool) bool {
 		if !synced && f.fixtures[tableName] == nil {
 			_, _ = f.xormEngine.Context(ctx).Exec("DELETE FROM `" + tableName + "`")
 		}

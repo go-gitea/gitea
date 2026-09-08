@@ -6,12 +6,12 @@ package routing
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
+	"gitea.dev/modules/util"
 )
 
 // Event indicates when the printer is triggered
@@ -33,7 +33,7 @@ type logPrinterFunc func(trigger Event, record *requestRecord)
 
 type loggerRequestManager struct {
 	logPrint   logPrinterFunc
-	reqRecords sync.Map // it only contains the active requests which haven't been detected as "slow"
+	reqRecords util.GenericSyncMap[uint64, *requestRecord] // it only contains the active requests which haven't been detected as "slow"
 }
 
 func (manager *loggerRequestManager) startSlowQueryDetector(threshold time.Duration) {
@@ -53,8 +53,7 @@ func (manager *loggerRequestManager) startSlowQueryDetector(threshold time.Durat
 				now := time.Now()
 
 				// print logs for slow requests
-				manager.reqRecords.Range(func(key, value any) bool {
-					record := value.(*requestRecord) //nolint:forcetypeassert // reqRecords only ever holds *requestRecord
+				manager.reqRecords.Range(func(key uint64, record *requestRecord) bool {
 					if now.Sub(record.startTime) >= threshold {
 						manager.logPrint(StillExecutingEvent, record)
 						manager.reqRecords.Delete(key)

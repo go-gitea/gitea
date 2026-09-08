@@ -13,6 +13,7 @@ import (
 	gitea_html "gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/public"
+	"gitea.dev/modules/util"
 )
 
 type svgIconItem struct {
@@ -30,7 +31,7 @@ var (
 	svgIcons map[string]svgIconItem
 
 	svgCacheMu    sync.Mutex
-	svgCache      sync.Map
+	svgCache      util.GenericSyncMap[svgCacheKey, template.HTML]
 	svgCacheCount int
 	svgCacheLimit = 10000
 )
@@ -99,7 +100,7 @@ func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 		cacheKey := svgCacheKey{icon, size, class}
 		cachedHTML, cached := svgCache.Load(cacheKey)
 		if cached && !svgItem.mocking {
-			return cachedHTML.(template.HTML), true //nolint:forcetypeassert // svgCache only ever holds template.HTML
+			return cachedHTML, true
 		}
 
 		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
