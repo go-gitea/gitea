@@ -154,26 +154,30 @@ func (f *fixturesLoaderInternal) Load() error {
 	ctx := context.WithValue(context.Background(), db.ContextKeyTestFixtures, true)
 
 	f.tableSyncMu.Lock()
-	defer f.tableSyncMu.Unlock()
+	pending := map[string]bool{}
+	for tableName, synced := range f.tableSynced {
+		if !synced {
+			pending[tableName] = true
+			f.tableSynced[tableName] = true
+		}
+	}
+	f.tableSyncMu.Unlock()
 
 	for _, fixture := range f.fixtures {
-		synced, existing := f.tableSynced[fixture.tableName]
-		if synced || !existing {
+		if !pending[fixture.tableName] {
 			continue
 		}
 		if err := f.loadFixtures(tx, fixture); err != nil {
 			return fmt.Errorf("failed to load fixtures from %s: %w", fixture.fileFullPath, err)
 		}
-		f.tableSynced[fixture.tableName] = true
 	}
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	for tableName, synced := range f.tableSynced {
-		if !synced && f.fixtures[tableName] == nil {
+	for tableName := range pending {
+		if f.fixtures[tableName] == nil {
 			_, _ = f.xormEngine.Context(ctx).Exec("DELETE FROM `" + tableName + "`")
 		}
-		f.tableSynced[tableName] = true
 	}
 	return nil
 }
