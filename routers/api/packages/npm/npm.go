@@ -40,34 +40,28 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
-func splitPackagePath(path string) (name, version string) {
-	parts := strings.Split(path, "/")
-	nameLen := util.Iif(strings.HasPrefix(path, "@"), 2, 1)
-	if len(parts) <= nameLen {
-		return path, ""
-	}
-	return strings.Join(parts[:nameLen], "/"), parts[nameLen]
-}
-
 // packageNameFromParams gets the package name from the url parameters
-// Variations: /name/, /@scope/name/, /@scope%2Fname/
 func packageNameFromParams(ctx *context.Context) string {
+	// Real examples: these 2 both should work:
+	// * "https://registry.npmjs.org/@angular/core"
+	// * "https://registry.npmjs.org/@angular%2Fcore"
+	//
+	// HINT: NPM-ROUTE-PATH-PATTERN: The cases for the path parameters:
+	// * ".../TheName/...": id="TheName"
+	// * ".../@TheScope/TheName/...": scope="@TheScope", id="TheName"
+	// * ".../@TheScope%2FTheName/...": id="@TheScope/TheName"
 	scope := ctx.PathParam("scope")
-	id := ctx.PathParam("id")
+	fullOrSub := ctx.PathParam("id") // may be a full name or a subpath of the full package name
 	if scope != "" {
-		return fmt.Sprintf("@%s/%s", scope, id)
+		// now id is the subpath of the full package name, e.g. "core" in "@angular/core"
+		return fmt.Sprintf("%s/%s", scope, fullOrSub)
 	}
-	return id
+	return fullOrSub // id is the full package name, e.g.: "@angular/core" or "lodash"
 }
 
-// PackageMetadata returns the metadata for a package or one of its versions
+// PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.Context) {
-	packageName, packageVersion := splitPackagePath(packageNameFromParams(ctx))
-	packageVersion = util.IfZero(packageVersion, ctx.PathParam("version"))
-	if packageVersion != "" {
-		packageVersionMetadata(ctx, packageName, packageVersion)
-		return
-	}
+	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
@@ -93,17 +87,19 @@ func PackageMetadata(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func packageVersionMetadata(ctx *context.Context, packageName, versionOrTag string) {
+// PackageVersionMetadata returns the metadata for a single version or dist-tag
+func PackageVersionMetadata(ctx *context.Context) {
+	versionOrTag := ctx.PathParam("version")
+
 	opts := &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeNpm,
-		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageName},
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
 		IsInternal: optional.Some(false),
-		Paginator:  db.NewAbsoluteListOptions(0, 1),
 	}
 	if _, err := version.NewVersion(versionOrTag); err == nil {
 		opts.Version = packages_model.SearchValue{ExactMatch: true, Value: versionOrTag}
-	} else { // setPackageTag rejects tags that parse as versions, so this is a tag
+	} else { // a tag, since setPackageTag rejects version-like names
 		opts.Properties = map[string]string{npm_module.TagProperty: versionOrTag}
 	}
 	pvs, _, err := packages_model.SearchVersions(ctx, opts)

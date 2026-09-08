@@ -14,6 +14,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"gitea.dev/modules/json"
@@ -36,7 +37,12 @@ var (
 	ErrInvalidIntegrity = util.NewInvalidArgumentErrorf("failed to validate integrity")
 )
 
-var nameMatch = regexp.MustCompile(`^(@[a-z0-9-][a-z0-9-._]*/)?[a-z0-9-][a-z0-9-._]*$`)
+const RegexpNamePart = `[a-z0-9-][a-z0-9-._]*`
+
+var nameMatch = sync.OnceValue(func() *regexp.Regexp {
+	// either "@scope/pkg" or "pkg", where "scope" and "pkg" are RegexpNamePart
+	return regexp.MustCompile(`^(@` + RegexpNamePart + `/)?` + RegexpNamePart + `$`)
+})
 
 // Package represents a npm package
 type Package struct {
@@ -463,7 +469,7 @@ func validateName(name string) bool {
 	if len(name) == 0 || len(name) > 214 {
 		return false
 	}
-	return nameMatch.MatchString(name)
+	return nameMatch().MatchString(name)
 }
 
 // PackageDeprecation is the result of parsing an npm deprecate request body.

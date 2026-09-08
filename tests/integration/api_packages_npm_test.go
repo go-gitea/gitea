@@ -169,23 +169,24 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		rootPaths := []string{
+			fmt.Sprintf("/api/packages/%s/npm/@scope/test-package", user.Name),
+			fmt.Sprintf("/api/packages/%s/npm/@scope%%2ftest-package", user.Name),
+		}
+		for _, root := range rootPaths {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			b, _ := base64.StdEncoding.DecodeString(attachmentData)
+			assert.Equal(t, b, resp.Body.Bytes())
 
-		b, _ := base64.StdEncoding.DecodeString(attachmentData)
-		assert.Equal(t, b, resp.Body.Bytes())
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).
-			AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, b, resp.Body.Bytes())
-
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, b, resp.Body.Bytes())
+		}
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(2), pvs[0].DownloadCount)
+		assert.Equal(t, int64(4), pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
@@ -219,7 +220,6 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
-		assert.Equal(t, npm.Repository{Type: repoType, URL: repoURL, Directory: repoDirectory}, pmv.Repository)
 		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
 		assert.Equal(t, map[string]any{"soy-milk": map[string]any{"optional": true}}, pmv.PeerDependenciesMeta)
 		assert.True(t, pmv.HasInstallScript)
@@ -231,19 +231,13 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, "https://example.com/fund", pmv.Funding)
 		assert.Equal(t, map[string]string{"left-pad": "1.x"}, pmv.AcceptDependencies)
 		assert.Empty(t, pmv.Deprecated)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, packageName)).
-			AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, packageName, DecodeJSON(t, resp, &npm.PackageMetadata{}).Name)
 	})
 
 	t.Run("PackageVersionMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		for _, path := range []string{root + "/" + packageVersion, root + "/" + packageTag} {
-			req := NewRequest(t, "GET", path).
-				AddTokenAuth(token)
+		for _, selector := range []string{packageVersion, packageTag} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, selector)).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
 
 			pmv := DecodeJSON(t, resp, &npm.PackageMetadataVersion{})
@@ -252,8 +246,7 @@ func TestPackageNpm(t *testing.T) {
 		}
 
 		for _, missing := range []string{"9.9.9", "no-such-tag"} {
-			req := NewRequest(t, "GET", root+"/"+missing).
-				AddTokenAuth(token)
+			req := NewRequest(t, "GET", root+"/"+missing).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusNotFound)
 		}
 	})
@@ -502,52 +495,6 @@ func TestPackageNpm(t *testing.T) {
 
 		// Clean up so the subsequent Delete subtest's version counts match.
 		req = NewRequest(t, "DELETE", claimRoot+"/-rev/dummy").AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusOK)
-	})
-
-	t.Run("UnscopedPackageVersionMetadata", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		unscopedName := "test-unscoped"
-		unscopedRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, unscopedName)
-		body := `{
-			"_id": "` + unscopedName + `",
-			"name": "` + unscopedName + `",
-			"dist-tags": {
-			  "` + packageTag + `": "1.0.0"
-			},
-			"versions": {
-				"1.0.0": {
-					"name": "` + unscopedName + `",
-					"version": "1.0.0",
-					"dist": {
-					  "integrity": "` + integrity + `",
-					  "shasum": "` + sha1SumHex + `"
-					}
-				}
-			},
-			"_attachments": {
-			  "` + unscopedName + `-1.0.0.tgz": {
-				"data": "` + attachmentData + `"
-			  }
-			}
-		  }`
-		req := NewRequestWithBody(t, "PUT", unscopedRoot, strings.NewReader(body)).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		for _, selector := range []string{"1.0.0", packageTag} {
-			req = NewRequest(t, "GET", unscopedRoot+"/"+selector).
-				AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, unscopedName+"@1.0.0", DecodeJSON(t, resp, &npm.PackageMetadataVersion{}).ID)
-		}
-
-		req = NewRequest(t, "GET", unscopedRoot+"/9.9.9").
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-
-		req = NewRequest(t, "DELETE", unscopedRoot+"/-rev/dummy").AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 	})
 

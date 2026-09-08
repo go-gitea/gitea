@@ -17,19 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSplitPackagePath(t *testing.T) {
-	for _, c := range []struct{ path, name, version string }{
-		{path: "pkg", name: "pkg"},
-		{path: "pkg/1.0.0", name: "pkg", version: "1.0.0"},
-		{path: "@scope/pkg", name: "@scope/pkg"},
-		{path: "@scope/pkg/1.0.0", name: "@scope/pkg", version: "1.0.0"},
-	} {
-		name, version := splitPackagePath(c.path)
-		assert.Equal(t, c.name, name, c.path)
-		assert.Equal(t, c.version, version, c.path)
-	}
-}
-
 func TestCreatePackageMetadataResponse(t *testing.T) {
 	repository := npm_module.Repository{Type: "git", URL: "https://gitea.dev/alice/test.git"}
 	descriptor := func(v string, publishedUnix int64, repo npm_module.Repository) *packages_model.PackageDescriptor {
@@ -73,7 +60,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 
 	raw, err := json.Marshal(result)
 	assert.NoError(t, err)
-	var doc map[string]any
+	doc := map[string]any{}
 	assert.NoError(t, json.Unmarshal(raw, &doc))
 	assert.NotContains(t, doc, "repository")
 }
