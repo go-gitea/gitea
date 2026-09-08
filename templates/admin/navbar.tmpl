@@ -87,6 +87,19 @@
 			</div>
 		</details>
 		{{end}}
+		{{if .EnableCodespaces}}
+		<details class="item" {{if or .PageIsAdminCodespaceManagers .PageIsAdminCodespaceDevContainerTemplates}}open{{end}}>
+			<summary>{{ctx.Locale.Tr "codespace.title"}}</summary>
+			<div class="menu">
+				<a class="{{if .PageIsAdminCodespaceManagers}}active {{end}}item" href="{{AppSubUrl}}/-/admin/codespaces/managers">
+					{{ctx.Locale.Tr "codespace.managers"}}
+				</a>
+				<a class="{{if .PageIsAdminCodespaceDevContainerTemplates}}active {{end}}item" href="{{AppSubUrl}}/-/admin/codespaces/dev-container-templates">
+					{{ctx.Locale.Tr "codespace.dev_container_templates"}}
+				</a>
+			</div>
+		</details>
+		{{end}}
 		<details class="item" {{if or .PageIsAdminConfig}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.config"}}</summary>
 			<div class="menu">

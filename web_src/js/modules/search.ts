@@ -8,6 +8,7 @@ export type SearchResult = {
   title: string;
   description?: string;
   image?: string;
+  value?: string;
 };
 
 function buildResultHTML(result: SearchResult): string {
@@ -31,8 +32,8 @@ document.addEventListener('click', (event) => {
   }
 });
 
-/** Attach an API-driven autocomplete to `container`. `parse` maps the raw JSON response into the rendered result list. The selected result's title is written to the input on selection. */
-export function attachSearchBox<T = unknown>(container: HTMLElement, url: string, parse: (raw: T, query: string) => SearchResult[], {minCharacters = 2}: {minCharacters?: number} = {}): void {
+/** Attach an API-driven autocomplete to `container`. `parse` maps the raw JSON response into the rendered result list. The selected result's value, or its title when value is absent, is written to the input. */
+export function attachSearchBox<T = unknown>(container: HTMLElement, url: string, parse: (raw: T, query: string) => SearchResult[], {minCharacters = 2, onSelect}: {minCharacters?: number, onSelect?: (result: SearchResult) => void} = {}): void {
   const input = container.querySelector<HTMLInputElement>('input.prompt') ?? container.querySelector<HTMLInputElement>('input');
   if (!input) return;
 
@@ -64,8 +65,10 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
   };
 
   const select = (item: HTMLElement) => {
-    input.value = itemResults.get(item)!.title;
+    const result = itemResults.get(item)!;
+    input.value = result.value ?? result.title;
     input.dispatchEvent(new Event('change', {bubbles: true}));
+    onSelect?.(result);
     hide();
   };
 

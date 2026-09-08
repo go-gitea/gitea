@@ -5,6 +5,8 @@ package asymkey
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	"gitea.dev/models/db"
@@ -25,6 +27,12 @@ func checkKeyFingerprint(ctx context.Context, fingerprint string) error {
 		return ErrKeyAlreadyExist{0, fingerprint, ""}
 	}
 	return nil
+}
+
+// PublicKeyFingerprintLockKey returns the global lock key for one canonical SSH key fingerprint.
+func PublicKeyFingerprintLockKey(fingerprint string) string {
+	digest := sha256.Sum256([]byte(fingerprint))
+	return "public_key_fingerprint_" + hex.EncodeToString(digest[:])
 }
 
 func calcFingerprintNative(publicKeyContent string) (string, error) {

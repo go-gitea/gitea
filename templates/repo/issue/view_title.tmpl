@@ -17,6 +17,18 @@
 			<span class="index">#{{.Issue.Index}}</span>
 		</h1>
 		<div class="issue-title-buttons">
+			{{if .Issue.IsPull}}
+				{{template "repo/codespace_source_button" (dict
+					"Enabled" $.CodespaceSourcePanelEnabled
+					"ButtonClasses" "small basic"
+					"Codespaces" $.CodespaceSourcePanelRows
+					"RefType" $.CodespaceSourceRefType
+					"RefName" $.CodespaceSourceRefName
+					"RefLabel" $.CodespaceSourceRefLabel
+					"CreateURL" $.CodespaceSourceCreateURL
+					"CsrfTokenHtml" $.CsrfTokenHtml
+				)}}
+			{{end}}
 			{{if $canEditIssueTitle}}
 			<button id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
 			{{end}}

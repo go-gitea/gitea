@@ -1,0 +1,20 @@
+<div class="codespace-create-source">
+	<div>{{svg "octicon-repo"}} <strong>{{.Repository.FullName}}</strong></div>
+	{{if .CreatePlan.PullRequest}}
+		<div>
+			{{svg "octicon-git-pull-request"}}
+			{{if .CreatePlan.PullRequest.SnapshotOnly}}
+				<span>{{ctx.Locale.Tr "codespace.pull_request_snapshot" .CreatePlan.PullRequest.Index .CreatePlan.PullRequest.BaseBranch}}</span>
+				<span class="ui tiny basic label">{{ctx.Locale.Tr "codespace.detached_snapshot"}}</span>
+			{{else}}
+				<span>{{ctx.Locale.Tr "codespace.pull_request_source" .CreatePlan.PullRequest.Index .CreatePlan.PullRequest.HeadRepoFullName .CreatePlan.PullRequest.HeadBranch .CreatePlan.PullRequest.BaseBranch}}</span>
+			{{end}}
+		</div>
+	{{else}}
+		<div>
+			{{if eq .CreatePlan.RefType "tag"}}{{svg "octicon-tag"}}{{else if eq .CreatePlan.RefType "commit"}}{{svg "octicon-git-commit"}}{{else}}{{svg "octicon-git-branch"}}{{end}}
+			<span>{{.CreatePlan.RefName}}</span>
+			{{if eq .CreatePlan.RefType "commit"}}<span class="ui tiny basic label">{{ctx.Locale.Tr "codespace.detached_snapshot"}}</span>{{end}}
+		</div>
+	{{end}}
+</div>

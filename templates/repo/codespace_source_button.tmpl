@@ -1,0 +1,17 @@
+{{if .Enabled}}
+	<button class="ui {{.ButtonClasses}} button" data-global-init="initRepoClonePanel">
+		{{svg "octicon-codespaces" 16}}
+		<span>{{ctx.Locale.Tr "codespace.title"}}</span>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	</button>
+	<div class="clone-panel-popup tippy-target">
+		{{template "repo/codespace_panel" (dict
+			"Codespaces" .Codespaces
+			"RefType" .RefType
+			"RefName" .RefName
+			"RefLabel" .RefLabel
+			"CreateURL" .CreateURL
+			"CsrfTokenHtml" .CsrfTokenHtml
+		)}}
+	</div>
+{{end}}

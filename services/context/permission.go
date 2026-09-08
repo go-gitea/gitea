@@ -9,8 +9,11 @@ import (
 	"slices"
 
 	auth_model "gitea.dev/models/auth"
+	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/reqctx"
 )
 
 // isOwnerHidden reports whether repo's owner is not publicly visible (a limited or private owner), so
@@ -30,6 +33,27 @@ func publicOnlyTokenDeniedRepo(ctx context.Context, repo *repo_model.Repository)
 		return false
 	}
 	return repo.IsPrivate || isOwnerHidden(ctx, repo)
+}
+
+func codespaceTokenCanAccessRepo(repo *repo_model.Repository, snapshot codespaceTokenRepoSnapshot) bool {
+	if repo == nil {
+		return false
+	}
+	return snapshot.CodespaceTokenAllowsAnyRepository(repo.ID)
+}
+
+type codespaceTokenRepoSnapshot interface {
+	CodespaceTokenRepoID() int64
+	CodespaceTokenAllowsAnyRepository(repoID int64) bool
+	CodespaceTokenAllowsRepository(repoID int64, unitType unit.Type, mode perm.AccessMode) bool
+}
+
+func codespaceTokenSnapshotFromData(data reqctx.ContextData) (codespaceTokenRepoSnapshot, bool) {
+	snapshot, ok := data[codespace_model.GiteaTokenAuthDataKey].(codespaceTokenRepoSnapshot)
+	if !ok {
+		return nil, false
+	}
+	return snapshot, true
 }
 
 // TokenIsPublicOnly reports whether the request is authenticated by a public-only API token. A
@@ -118,6 +142,29 @@ func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 }
 
 // CheckRepoScopedToken checks whether the authenticated API token has repo scope.
-func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, level auth_model.AccessTokenScopeLevel) {
+func CheckRepoScopedToken(ctx *Context, repo *repo_model.Repository, unitType unit.Type, level auth_model.AccessTokenScopeLevel) {
+	if snapshot, ok := codespaceTokenSnapshotFromData(ctx.Data); ok {
+		mode := perm.AccessModeRead
+		if level == auth_model.Write {
+			mode = perm.AccessModeWrite
+		}
+		allowed := repo != nil && snapshot.CodespaceTokenAllowsRepository(repo.ID, unitType, mode)
+		if !allowed && mode == perm.AccessModeRead && repo != nil {
+			allowed = !publicOnlyTokenDeniedRepo(ctx, repo)
+		}
+		if !allowed {
+			ctx.HTTPError(http.StatusForbidden)
+			return
+		}
+	}
 	CheckTokenScopes(ctx, repo, auth_model.GetRequiredScopes(level, auth_model.AccessTokenScopeCategoryRepository)...)
+}
+
+// CodespaceTokenRepoID returns the repository bound to the current Codespace Token.
+func CodespaceTokenRepoID(ctx *Context) (int64, bool) {
+	snapshot, ok := codespaceTokenSnapshotFromData(ctx.Data)
+	if !ok {
+		return 0, false
+	}
+	return snapshot.CodespaceTokenRepoID(), true
 }

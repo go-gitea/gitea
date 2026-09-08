@@ -4,6 +4,8 @@
 package private
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -20,6 +22,7 @@ import (
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
@@ -45,7 +48,8 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	}
 	results.Key = key
 
-	if key.Type == asymkey_model.KeyTypeUser || key.Type == asymkey_model.KeyTypePrincipal {
+	switch key.Type {
+	case asymkey_model.KeyTypeUser, asymkey_model.KeyTypePrincipal:
 		user, err := user_model.GetUserByID(ctx, key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -60,6 +64,12 @@ func ServNoCommand(ctx *context.PrivateContext) {
 			return
 		}
 		results.Owner = user
+	case asymkey_model.KeyTypeDeploy, asymkey_model.KeyTypeCodespace:
+	default:
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Unsupported public key type %d for key: %d", key.Type, keyID),
+		})
+		return
 	}
 	ctx.JSON(http.StatusOK, &results)
 }
@@ -187,13 +197,17 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 	results.PublicKeyID = key.ID
 
+	// If repo doesn't exist, deploy and Codespace keys don't make sense
+	if repo == nil && (key.Type == asymkey_model.KeyTypeDeploy || key.Type == asymkey_model.KeyTypeCodespace) {
+		ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
+		return
+	}
+
 	var deployKey *deploykey_model.DeployKey
 	var user *user_model.User
-	if key.Type == asymkey_model.KeyTypeDeploy {
-		if repo == nil {
-			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
-			return
-		}
+	switch key.Type {
+	case asymkey_model.KeyTypeDeploy:
+		var err error
 		deployKey, err = deploykey_model.GetDeployKeyByRepoPublicKey(ctx, repo.ID, key.ID)
 		if err != nil {
 			if deploykey_model.IsErrDeployKeyNotExist(err) {
@@ -204,7 +218,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			return
 		}
 		user = user_model.NewDeployKeyUserWithKeyID(deployKey.ID)
-	} else {
+	case asymkey_model.KeyTypeUser, asymkey_model.KeyTypePrincipal:
 		// Get the user represented by the Key
 		user, err = user_model.GetUserByID(ctx, key.OwnerID)
 		if err != nil {
@@ -219,6 +233,17 @@ func ServCommand(ctx *context.PrivateContext) {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
+	case asymkey_model.KeyTypeCodespace:
+		var status int
+		var response private.Response
+		user, status, response = loadServCodespaceKeyUser(ctx, key, repo, unitType, mode)
+		if status != http.StatusOK {
+			ctx.JSON(status, response)
+			return
+		}
+	default:
+		ctx.PrivateInternalErrorf("Unsupported public key type %d for key: %d", key.Type, key.ID)
+		return
 	}
 
 	results.UserID = user.ID
@@ -305,4 +330,30 @@ func ServCommand(ctx *context.PrivateContext) {
 	log.Debug("Serv Results: %+v", results)
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.
+}
+
+func loadServCodespaceKeyUser(ctx *context.PrivateContext, key *asymkey_model.PublicKey, repo *repo_model.Repository, unitType unit.Type, mode perm.AccessMode) (*user_model.User, int, private.Response) {
+	if repo == nil {
+		return nil, http.StatusUnauthorized, private.Response{UserMsg: fmt.Sprintf("Public (Codespace) Key: %d:%s is not authorized for this repository.", key.ID, key.Name)}
+	}
+	user, err := codespace_service.ResolveGitSSHKeyUser(ctx, key, repo.ID, unitType, mode)
+	switch {
+	case err == nil:
+		return user, http.StatusOK, private.Response{}
+	case errors.Is(err, codespace_service.ErrResolveGitSSHKeyBindingNotFound):
+		return nil, http.StatusUnauthorized, private.Response{UserMsg: fmt.Sprintf("Public (Codespace) Key: %d:%s is not bound to a Codespace.", key.ID, key.Name)}
+	case errors.Is(err, codespace_service.ErrResolveGitSSHKeyBindingInvalid):
+		return nil, http.StatusUnauthorized, private.Response{UserMsg: fmt.Sprintf("Public (Codespace) Key: %d:%s has no valid Codespace binding.", key.ID, key.Name)}
+	case errors.Is(err, codespace_service.ErrResolveGitSSHKeyRepoMismatch):
+		return nil, http.StatusUnauthorized, private.Response{UserMsg: fmt.Sprintf("Public (Codespace) Key: %d:%s is not authorized for this repository.", key.ID, key.Name)}
+	case errors.Is(err, codespace_service.ErrResolveGitSSHKeyStateUnavailable):
+		return nil, http.StatusForbidden, private.Response{UserMsg: "Codespace is not in a state that allows Git SSH access."}
+	case errors.Is(err, codespace_service.ErrResolveGitSSHKeyUserNotFound):
+		return nil, http.StatusUnauthorized, private.Response{UserMsg: fmt.Sprintf("Codespace owner does not exist for Public Key: %d:%s.", key.ID, key.Name)}
+	case errors.Is(err, codespace_service.ErrResolveGitSSHKeyLoginRestricted):
+		return nil, http.StatusForbidden, private.Response{UserMsg: "Your account is disabled."}
+	default:
+		log.Error("Unable to resolve Codespace user for public key: %d:%s Error: %v", key.ID, key.Name, err)
+		return nil, http.StatusInternalServerError, private.Response{Err: fmt.Sprintf("Unable to resolve Codespace user for Public Key: %d:%s.", key.ID, key.Name)}
+	}
 }
