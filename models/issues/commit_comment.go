@@ -94,10 +94,7 @@ func CreateCommitComment(ctx context.Context, opts *CreateCommitCommentOptions) 
 			return fmt.Errorf("insert commit_comment junction: %w", err)
 		}
 
-		if err := UpdateCommitCommentAttachments(ctx, opts.Repo.ID, comment, opts.Attachments); err != nil {
-			return err
-		}
-		return nil
+		return UpdateCommitCommentAttachments(ctx, opts.Repo.ID, comment, opts.Attachments)
 	})
 	if err != nil {
 		return nil, err
