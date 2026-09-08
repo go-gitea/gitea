@@ -40,6 +40,15 @@ func apiError(ctx *context.Context, status int, obj any) {
 	})
 }
 
+func splitPackagePath(path string) (name, version string) {
+	parts := strings.Split(path, "/")
+	nameLen := util.Iif(strings.HasPrefix(path, "@"), 2, 1)
+	if len(parts) <= nameLen {
+		return path, ""
+	}
+	return strings.Join(parts[:nameLen], "/"), parts[nameLen]
+}
+
 // packageNameFromParams gets the package name from the url parameters
 // Variations: /name/, /@scope/name/, /@scope%2Fname/
 func packageNameFromParams(ctx *context.Context) string {
@@ -51,9 +60,14 @@ func packageNameFromParams(ctx *context.Context) string {
 	return id
 }
 
-// PackageMetadata returns the metadata for a single package
+// PackageMetadata returns the metadata for a package or one of its versions
 func PackageMetadata(ctx *context.Context) {
-	packageName := packageNameFromParams(ctx)
+	packageName, packageVersion := splitPackagePath(packageNameFromParams(ctx))
+	packageVersion = util.IfZero(packageVersion, ctx.PathParam("version"))
+	if packageVersion != "" {
+		packageVersionMetadata(ctx, packageName, packageVersion)
+		return
+	}
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
@@ -79,15 +93,13 @@ func PackageMetadata(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// PackageVersionMetadata returns the metadata of a single version, addressed by version or dist-tag
-func PackageVersionMetadata(ctx *context.Context) {
-	versionOrTag := ctx.PathParam("version")
-
+func packageVersionMetadata(ctx *context.Context, packageName, versionOrTag string) {
 	opts := &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
 		Type:       packages_model.TypeNpm,
-		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageName},
 		IsInternal: optional.Some(false),
+		Paginator:  db.NewAbsoluteListOptions(0, 1),
 	}
 	if _, err := version.NewVersion(versionOrTag); err == nil {
 		opts.Version = packages_model.SearchValue{ExactMatch: true, Value: versionOrTag}
@@ -99,7 +111,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pvs) != 1 {
+	if len(pvs) == 0 {
 		apiError(ctx, http.StatusNotFound, "version not found: "+versionOrTag)
 		return
 	}

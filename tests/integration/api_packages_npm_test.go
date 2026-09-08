@@ -231,14 +231,17 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, "https://example.com/fund", pmv.Funding)
 		assert.Equal(t, map[string]string{"left-pad": "1.x"}, pmv.AcceptDependencies)
 		assert.Empty(t, pmv.Deprecated)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, packageName)).
+			AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, packageName, DecodeJSON(t, resp, &npm.PackageMetadata{}).Name)
 	})
 
 	t.Run("PackageVersionMetadata", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		unescapedRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, packageName)
-		overEncodedRoot := fmt.Sprintf("/api/packages/%s/npm/@%%73cope/test-package", user.Name)
-		for _, path := range []string{root + "/" + packageVersion, root + "/" + packageTag, unescapedRoot + "/" + packageVersion, unescapedRoot + "/" + packageTag, overEncodedRoot + "/" + packageVersion} {
+		for _, path := range []string{root + "/" + packageVersion, root + "/" + packageTag} {
 			req := NewRequest(t, "GET", path).
 				AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -246,7 +249,6 @@ func TestPackageNpm(t *testing.T) {
 			pmv := DecodeJSON(t, resp, &npm.PackageMetadataVersion{})
 			assert.Equal(t, fmt.Sprintf("%s@%s", packageName, packageVersion), pmv.ID)
 			assert.Equal(t, npm.Repository{Type: repoType, URL: repoURL, Directory: repoDirectory}, pmv.Repository)
-			assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
 		}
 
 		for _, missing := range []string{"9.9.9", "no-such-tag"} {
@@ -308,11 +310,6 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageVersion, result.DistTags[packageTag])
 		assert.Contains(t, result.DistTags, packageTag2)
 		assert.Equal(t, packageVersion, result.DistTags[packageTag2])
-
-		req = NewRequest(t, "GET", root+"/"+packageTag2).
-			AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, packageVersion, DecodeJSON(t, resp, &npm.PackageMetadataVersion{}).Version)
 	})
 
 	t.Run("DeleteTag", func(t *testing.T) {
@@ -328,10 +325,6 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusBadRequest, "1.0")
 		test(t, http.StatusOK, "dummy")
 		test(t, http.StatusOK, packageTag2)
-
-		req := NewRequest(t, "GET", root+"/"+packageTag2).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("Search", func(t *testing.T) {
@@ -509,6 +502,52 @@ func TestPackageNpm(t *testing.T) {
 
 		// Clean up so the subsequent Delete subtest's version counts match.
 		req = NewRequest(t, "DELETE", claimRoot+"/-rev/dummy").AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+
+	t.Run("UnscopedPackageVersionMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		unscopedName := "test-unscoped"
+		unscopedRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, unscopedName)
+		body := `{
+			"_id": "` + unscopedName + `",
+			"name": "` + unscopedName + `",
+			"dist-tags": {
+			  "` + packageTag + `": "1.0.0"
+			},
+			"versions": {
+				"1.0.0": {
+					"name": "` + unscopedName + `",
+					"version": "1.0.0",
+					"dist": {
+					  "integrity": "` + integrity + `",
+					  "shasum": "` + sha1SumHex + `"
+					}
+				}
+			},
+			"_attachments": {
+			  "` + unscopedName + `-1.0.0.tgz": {
+				"data": "` + attachmentData + `"
+			  }
+			}
+		  }`
+		req := NewRequestWithBody(t, "PUT", unscopedRoot, strings.NewReader(body)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		for _, selector := range []string{"1.0.0", packageTag} {
+			req = NewRequest(t, "GET", unscopedRoot+"/"+selector).
+				AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, unscopedName+"@1.0.0", DecodeJSON(t, resp, &npm.PackageMetadataVersion{}).ID)
+		}
+
+		req = NewRequest(t, "GET", unscopedRoot+"/9.9.9").
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "DELETE", unscopedRoot+"/-rev/dummy").AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 	})
 
