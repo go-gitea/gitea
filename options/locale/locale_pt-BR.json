@@ -41,7 +41,6 @@
   "webauthn_error": "Não foi possível ler sua chave de segurança.",
   "webauthn_unsupported_browser": "Seu navegador não oferece suporte ao WebAuthn.",
   "webauthn_error_unknown": "Ocorreu um erro desconhecido. Por favor, tente novamente.",
-  "webauthn_error_insecure": "WebAuthn suporta apenas conexões seguras. Para testar via HTTP, você pode usar a origem \"localhost\" ou \"127.0.0.1\"",
   "webauthn_error_unable_to_process": "O servidor não pôde processar sua solicitação.",
   "webauthn_error_duplicated": "A chave de segurança não é permitida para esta solicitação. Por favor, certifique-se que a chave já não está registrada.",
   "webauthn_error_empty": "Você deve definir um nome para esta chave.",

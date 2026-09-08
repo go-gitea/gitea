@@ -43,7 +43,6 @@
   "webauthn_error": "セキュリティキーを読み取ることができません。",
   "webauthn_unsupported_browser": "お使いのブラウザは現在 WebAuthn をサポートしていません。",
   "webauthn_error_unknown": "不明なエラーが発生しました。 もう一度やり直してください。",
-  "webauthn_error_insecure": "WebAuthn は安全な接続でのみ使用できます。 HTTPでのテストには \"localhost\" または \"127.0.0.1\" のオリジンが使用できます。",
   "webauthn_error_unable_to_process": "サーバーがリクエストを処理できませんでした。",
   "webauthn_error_duplicated": "このリクエストに対しては、許可されていないセキュリティキーです。 キーが未登録であることを確認してください。",
   "webauthn_error_empty": "このキーに名前を設定する必要があります。",

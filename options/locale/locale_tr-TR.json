@@ -43,7 +43,6 @@
   "webauthn_error": "Güvenlik anahtarınız okunamıyor.",
   "webauthn_unsupported_browser": "Tarayıcınız henüz WebAuthn desteklemiyor.",
   "webauthn_error_unknown": "Bilinmeyen bir hata oluştu. Lütfen tekrar deneyin.",
-  "webauthn_error_insecure": "WebAuthn sadece güvenli bağlantıyı destekler. HTTP üzerinden test etmek için \"localhost\" veya \"127.0.0.1\" adreslerini kullanabilirsiniz.",
   "webauthn_error_unable_to_process": "Sunucu isteğinizi işleyemedi.",
   "webauthn_error_duplicated": "Güvenlik anahtarının bu istek için izni yok. Anahtarın halihazırda kayıtlı olmadığından emin olun.",
   "webauthn_error_empty": "Bu anahtar için bir isim belirlemelisiniz.",
