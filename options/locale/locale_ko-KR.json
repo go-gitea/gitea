@@ -43,7 +43,6 @@
   "webauthn_error": "보안 키를 읽을 수 없습니다.",
   "webauthn_unsupported_browser": "브라우저가 아직 WebAuthn을 지원하지 않습니다.",
   "webauthn_error_unknown": "알 수 없는 오류가 발생하였습니다. 다시 시도하십시오.",
-  "webauthn_error_insecure": "WebAuthn은 보안 연결만 지원합니다. http를 통해 테스트하려면 origin을 \"localhost\"나 \"127.0.0.1\"로 사용하십시오.",
   "webauthn_error_unable_to_process": "서버에서 요청을 처리하지 못했습니다.",
   "webauthn_error_duplicated": "허용되지 않은 보안 키입니다. 해당 키가 등록된 키인지 확인해주세요.",
   "webauthn_error_empty": "키에 이름을 등록해야 합니다.",
