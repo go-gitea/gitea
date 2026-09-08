@@ -184,7 +184,7 @@ func TestPackageNpm(t *testing.T) {
 			assert.Equal(t, b, resp.Body.Bytes())
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, packageVersion)).AddTokenAuth(token)
-			resp = MakeRequest(t, req, http.StatusNotImplemented)
+			MakeRequest(t, req, http.StatusNotImplemented)
 		}
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
