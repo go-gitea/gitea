@@ -180,6 +180,12 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 		}
 	}
 
+	if ctx.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
+		errorMsg, _ := ctx.Data["ErrorMsg"].(string)
+		ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(util.IfZero(errorMsg, ctx.Locale.TrString("error.occurred"))))
+		return
+	}
+
 	ctx.Data["Title"] = "Internal Server Error"
 	ctx.HTML(http.StatusInternalServerError, tplStatus500)
 }
