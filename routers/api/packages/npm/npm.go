@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -17,6 +18,8 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
@@ -59,6 +62,10 @@ func packageNameFromParams(ctx *context.Context) string {
 	return fullOrSub // id is the full package name, e.g.: "@angular/core" or "lodash"
 }
 
+func buildNpmRegistryURL(ctx std_ctx.Context, owner *user_model.User) string {
+	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/packages/"+url.PathEscape(owner.Name)+"/npm")
+}
+
 // PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
@@ -79,11 +86,7 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
-	resp := createPackageMetadataResponse(
-		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
-		pds,
-	)
-
+	resp := createPackageMetadataResponse(buildNpmRegistryURL(ctx, ctx.Package.Owner), pds)
 	ctx.JSON(http.StatusOK, resp)
 }
 
@@ -118,10 +121,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, createPackageMetadataVersion(
-		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
-		pd,
-	))
+	ctx.JSON(http.StatusOK, createPackageMetadataVersion(buildNpmRegistryURL(ctx, ctx.Package.Owner), pd))
 }
 
 // DownloadPackageFile serves the content of a package
@@ -560,10 +560,7 @@ func PackageSearch(ctx *context.Context) {
 		return
 	}
 
-	resp := createPackageSearchResponse(
-		pds,
-		total,
-	)
+	resp := createPackageSearchResponse(ctx, pds, total)
 
 	ctx.JSON(http.StatusOK, resp)
 }
