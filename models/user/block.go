@@ -49,10 +49,6 @@ func IsUserBlockedBy(ctx context.Context, blockee *User, blockerIDs ...int64) bo
 		return false
 	}
 
-	if blockee.IsAdmin {
-		return false
-	}
-
 	cond := builder.Eq{"user_blocking.blockee_id": blockee.ID}.
 		And(builder.In("user_blocking.blocker_id", blockerIDs))
 

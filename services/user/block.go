@@ -26,6 +26,13 @@ func CanBlockUser(ctx context.Context, doer, blocker, blockee *user_model.User) 
 		return false
 	}
 
+	// Admins cannot be blocked, but an existing block (created before the user
+	// was promoted) must still be removable — so this guard lives here, in the
+	// "create a new block" path, not in IsUserBlockedBy.
+	if blockee.IsAdmin {
+		return false
+	}
+
 	if user_model.IsUserBlockedBy(ctx, blockee, blocker.ID) {
 		return false
 	}
