@@ -24,7 +24,7 @@ func TestWriteEventsAsJSON(t *testing.T) {
 	m := &repository_model.PushMirror{ID: 4, RemoteAddress: "git@example.com:repo.git"}
 	doer := &user_model.User{ID: 2, Name: "Doer"}
 
-	ctx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{RemoteAddr: "127.0.0.1:1234"})
+	ctx := httplib.ContextWithRequest(context.Background(), &http.Request{RemoteAddr: "127.0.0.1:1234"})
 
 	e := buildEvent(ctx, RecordParams{
 		Action: audit_model.RepositoryMirrorPushAdd,

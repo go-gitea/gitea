@@ -135,7 +135,7 @@ func TestBuildEvent(t *testing.T) {
 
 		assert.Empty(t, buildEvent(context.Background(), params).IPAddress)
 
-		ctx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{RemoteAddr: "127.0.0.1:1234"})
+		ctx := httplib.ContextWithRequest(context.Background(), &http.Request{RemoteAddr: "127.0.0.1:1234"})
 		assert.Equal(t, "127.0.0.1", buildEvent(ctx, params).IPAddress)
 	})
 
@@ -148,10 +148,10 @@ func TestBuildEvent(t *testing.T) {
 		cliCtx := WithOrigin(context.Background(), audit_model.OriginCLI)
 		assert.Equal(t, audit_model.OriginCLI, buildEvent(cliCtx, params).Origin)
 
-		uiCtx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{URL: &url.URL{Path: "/gitea/user/settings"}})
+		uiCtx := httplib.ContextWithRequest(context.Background(), &http.Request{URL: &url.URL{Path: "/gitea/user/settings"}})
 		assert.Equal(t, audit_model.OriginUI, buildEvent(uiCtx, params).Origin)
 
-		apiCtx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{URL: &url.URL{Path: "/gitea/api/v1/user"}})
+		apiCtx := httplib.ContextWithRequest(context.Background(), &http.Request{URL: &url.URL{Path: "/gitea/api/v1/user"}})
 		assert.Equal(t, audit_model.OriginAPI, buildEvent(apiCtx, params).Origin)
 
 		systemAPIContext := WithOrigin(apiCtx, audit_model.OriginSystem)

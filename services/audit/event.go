@@ -5,7 +5,6 @@ package audit
 
 import (
 	"context"
-	"net/http"
 	"strings"
 	"time"
 
@@ -60,11 +59,7 @@ func buildEvent(ctx context.Context, params RecordParams) *audit_model.Event {
 }
 
 func getIPAddress(ctx context.Context) string {
-	req, ok := ctx.Value(httplib.RequestContextKey).(*http.Request)
-	if !ok {
-		return ""
-	}
-	return httplib.RemoteHost(req)
+	return httplib.RemoteHost(httplib.RequestFromContext(ctx))
 }
 
 func getOrigin(ctx context.Context) audit_model.Origin {
@@ -72,8 +67,8 @@ func getOrigin(ctx context.Context) audit_model.Origin {
 		return origin
 	}
 
-	req, ok := ctx.Value(httplib.RequestContextKey).(*http.Request)
-	if !ok || req == nil {
+	req := httplib.RequestFromContext(ctx)
+	if req == nil {
 		return audit_model.OriginSystem
 	}
 	if req.URL == nil {

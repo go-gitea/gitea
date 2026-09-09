@@ -35,6 +35,18 @@ func RequestWithContext(req *http.Request, ctx reqctx.RequestContext) *http.Requ
 	return req
 }
 
+// ContextWithRequest returns a context carrying the request, so that code
+// without access to the request can still read it (eg: audit events).
+func ContextWithRequest(ctx context.Context, req *http.Request) context.Context {
+	return context.WithValue(ctx, contextKeyRequest, req)
+}
+
+// RequestFromContext returns the request stored in the context, or nil.
+func RequestFromContext(ctx context.Context) *http.Request {
+	req, _ := ctx.Value(contextKeyRequest).(*http.Request)
+	return req
+}
+
 // MarkRequestSupportPublicURL marks the request context to support public URL detection from request headers.
 func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
 	ctx.SetContextValue(contextKeySupportPublicURL, true)
@@ -128,8 +140,8 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	// Without more information, Gitea is impossible to distinguish between case 2 and case 3, then case 2 would result in
 	// wrong guess like guessed public URL becomes "http://gitea:3000/" behind a "https" reverse proxy, which is not accessible by end users.
 	// So we introduced "PUBLIC_URL_DETECTION" option, to control the guessing behavior to satisfy different use cases.
-	req, ok := ctx.Value(contextKeyRequest).(*http.Request)
-	if !ok {
+	req := RequestFromContext(ctx)
+	if req == nil {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}
 	reqScheme := getRequestScheme(req)

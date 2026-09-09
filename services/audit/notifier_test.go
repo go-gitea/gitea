@@ -4,7 +4,6 @@
 package audit
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"testing"
@@ -27,7 +26,7 @@ func TestAuditNotifier(t *testing.T) {
 
 	doer := &user_model.User{ID: 2, Name: "doer"}
 	repo := &repo_model.Repository{ID: 1, OwnerName: "owner", Name: "repo"}
-	ctx := context.WithValue(t.Context(), httplib.RequestContextKey, &http.Request{URL: &url.URL{Path: "/owner/repo"}})
+	ctx := httplib.ContextWithRequest(t.Context(), &http.Request{URL: &url.URL{Path: "/owner/repo"}})
 	notifier := new(auditNotifier)
 
 	issue := &issues_model.Issue{ID: 10, Index: 5, Title: "Issue title", Poster: doer, Repo: repo}
