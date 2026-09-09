@@ -9,15 +9,15 @@
 			</div>
 			<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
 				<div class="ui buttons">
-					<button class="ui icon tiny basic button previous-conversation">
+					<button type="button" class="ui icon tiny basic button previous-conversation">
 						{{svg "octicon-arrow-up" 12}} {{ctx.Locale.Tr "repo.issues.previous"}}
 					</button>
-					<button class="ui icon tiny basic button next-conversation">
+					<button type="button" class="ui icon tiny basic button next-conversation">
 						{{svg "octicon-arrow-down" 12}} {{ctx.Locale.Tr "repo.issues.next"}}
 					</button>
 				</div>
 				{{if $.CanCommentOnCommit}}
-					<button class="comment-form-reply ui primary icon tiny button">
+					<button type="button" class="comment-form-reply ui primary icon tiny button">
 						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>
 				{{end}}
