@@ -221,7 +221,12 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		return errors.Join(errSkipAutoMerge, errors.New("pull request is not mergeable"))
 	}
 
-	if err := pull_service.Merge(pr, doer, scheduledPRM.MergeStyle, "", scheduledPRM.Message, true); err != nil {
+	// although expectedHeadCommitID is checked before, we should pass it to the Merge function to
+	// make it be checked again in case the head commit id changed after the previous check.
+	if err := pull_service.Merge(pr, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
+		if pull_service.IsErrSHADoesNotMatch(err) {
+			return errors.Join(errSkipAutoMerge, err)
+		}
 		// FIXME: if merge failed, we should display some error message to the pull request page, or retry later.
 		// The resolution is add a new column on automerge table named `error_message` to store the error message and displayed
 		// on the pull request page. But this should not be finished in a bug fix PR which will be backport to release branch.

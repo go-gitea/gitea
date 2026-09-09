@@ -66,7 +66,7 @@
 		<a class="ui cancel button" href="{{$.CancelLink}}">
 			{{ctx.Locale.Tr "repo.milestones.cancel"}}
 		</a>
-		<button class="ui primary button">
+		<button type="submit" class="ui primary button">
 			{{if .PageIsEditProjects}}{{ctx.Locale.Tr "repo.projects.modify"}}{{else}}{{ctx.Locale.Tr "repo.projects.create"}}{{end}}
 		</button>
 	</div>
