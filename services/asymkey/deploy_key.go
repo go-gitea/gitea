@@ -9,12 +9,13 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	repo_model "gitea.dev/models/repo"
 )
 
 // DeleteRepoDeployKeys deletes all deploy keys of a repository. permissions check should be done outside
 func DeleteRepoDeployKeys(ctx context.Context, repoID int64) (int, error) {
-	deployKeys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: repoID})
+	deployKeys, err := db.Find[deploykey_model.DeployKey](ctx, deploykey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return 0, fmt.Errorf("listDeployKeys: %w", err)
 	}
@@ -28,13 +29,17 @@ func DeleteRepoDeployKeys(ctx context.Context, repoID int64) (int, error) {
 }
 
 // deleteDeployKeyFromDB delete deploy keys from database
-func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) error {
-	if _, err := db.DeleteByID[asymkey_model.DeployKey](ctx, key.ID); err != nil {
+func deleteDeployKeyFromDB(ctx context.Context, key *deploykey_model.DeployKey) error {
+	if _, err := db.DeleteByID[deploykey_model.DeployKey](ctx, key.ID); err != nil {
 		return fmt.Errorf("delete deploy key [%d]: %w", key.ID, err)
 	}
 
+	if key.KeyType == deploykey_model.KeyTypeToken { // a token has no public key to clean up
+		return nil
+	}
+
 	// Check if this is the last reference to same key content.
-	has, err := asymkey_model.IsDeployKeyExistByPublicKeyID(ctx, key.KeyID)
+	has, err := deploykey_model.IsDeployKeyExistByPublicKeyID(ctx, key.KeyID)
 	if err != nil {
 		return err
 	} else if !has {
@@ -46,21 +51,22 @@ func deleteDeployKeyFromDB(ctx context.Context, key *asymkey_model.DeployKey) er
 	return nil
 }
 
-// DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-// Permissions check should be done outside.
-func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64) error {
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		key, err := asymkey_model.GetDeployKeyByID(ctx, repo.ID, id)
+// DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed,
+// and returns the key it deleted. Permissions check should be done outside.
+func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64) (*deploykey_model.DeployKey, error) {
+	deleted, err := db.WithTx2(ctx, func(ctx context.Context) (*deploykey_model.DeployKey, error) {
+		key, err := deploykey_model.GetDeployKeyByID(ctx, repo.ID, id)
 		if err != nil {
-			if asymkey_model.IsErrDeployKeyNotExist(err) {
-				return nil
-			}
-			return fmt.Errorf("GetDeployKeyByID: %w", err)
+			return nil, err
 		}
-		return deleteDeployKeyFromDB(ctx, key)
-	}); err != nil {
-		return err
+		return key, deleteDeployKeyFromDB(ctx, key)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if deleted.KeyType == deploykey_model.KeyTypeToken {
+		return deleted, nil // a token never appears in the authorized_keys file
 	}
 
-	return RewriteAllPublicKeys(ctx)
+	return deleted, RewriteAllPublicKeys(ctx)
 }

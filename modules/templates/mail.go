@@ -88,8 +88,8 @@ func mailBodyFuncMap() template.FuncMap {
 		"JsonUtils":   NewJsonUtils,
 
 		// time / number / format
-		"ShortSha": base.ShortSha,
-		"FileSize": base.FileSize,
+		"ShortSha":       base.ShortSha,
+		"FormatByteSize": util.FormatByteSize,
 
 		// setting
 		"AppName": func() string {

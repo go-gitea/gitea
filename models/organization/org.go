@@ -91,19 +91,6 @@ func (org *Organization) IsOwnedBy(ctx context.Context, uid int64) (bool, error)
 	return IsOrganizationOwner(ctx, org.ID, uid)
 }
 
-// CanChangeRepoTeamAccess reports whether a repository administrator can change team access.
-func (org *Organization) CanChangeRepoTeamAccess(ctx context.Context, doer *user_model.User) (bool, error) {
-	if org.RepoAdminChangeTeamAccess || doer.IsAdmin {
-		return true, nil
-	}
-	return org.IsOwnedBy(ctx, doer.ID)
-}
-
-// IsOrgAdmin returns true if given user is in the owner team or an admin team.
-func (org *Organization) IsOrgAdmin(ctx context.Context, uid int64) (bool, error) {
-	return IsOrganizationAdmin(ctx, org.ID, uid)
-}
-
 // IsOrgMember returns true if given user is member of organization.
 func (org *Organization) IsOrgMember(ctx context.Context, uid int64) (bool, error) {
 	return IsOrganizationMember(ctx, org.ID, uid)
@@ -598,8 +585,8 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 
 // GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
-func (org *Organization) GetUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
-	teams := make([]*Team, 0, org.NumTeams)
+func (org *Organization) GetUserTeams(ctx context.Context, userID int64, cols ...string) (TeamList, error) {
+	teams := make(TeamList, 0, org.NumTeams)
 	return teams, db.GetEngine(ctx).
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").

@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateFile, assertFlushWithParent, assertNoJsError, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateFiles, assertFlushWithParent, assertNoJsError, randomString} from './utils.ts';
 
 test('external file', async ({page, request}) => {
   const repoName = `e2e-external-render-${randomString(8)}`;
@@ -9,7 +9,7 @@ test('external file', async ({page, request}) => {
     apiCreateRepo(request, {name: repoName}),
     login(page),
   ]);
-  await apiCreateFile(request, owner, repoName, 'test.external', '<p>rendered content</p>');
+  await apiCreateFiles(request, owner, repoName, [{path: 'test.external', content: '<p>rendered content</p>'}]);
   await page.goto(`/${owner}/${repoName}/src/branch/main/test.external`);
   const iframe = page.locator('iframe.external-render-iframe');
   await expect(iframe).toBeVisible();
@@ -34,7 +34,7 @@ test('openapi file', async ({page, request}) => {
     paths: {'/pets': {get: {responses: {'200': {description: 'OK', content: {'application/json': {schema: {$ref: '#/components/schemas/Pet'}}}}}}}},
     components: {schemas: {Pet: {type: 'object', properties: {children: {type: 'array', items: {$ref: '#/components/schemas/Pet'}}}}}},
   });
-  await apiCreateFile(request, owner, repoName, 'openapi.json', spec);
+  await apiCreateFiles(request, owner, repoName, [{path: 'openapi.json', content: spec}]);
   await page.goto(`/${owner}/${repoName}/src/branch/main/openapi.json`);
   const iframe = page.locator('iframe.external-render-iframe');
   await expect(iframe).toBeVisible();

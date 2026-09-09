@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/agit"
 	"gitea.dev/services/context"
 )
 
@@ -49,7 +50,7 @@ func SSHInfo(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	rw.Header().Set("content-type", "text/json;charset=UTF-8")
-	_, err := rw.Write([]byte(`{"type":"agit","version":1}`))
+	_, err := rw.Write([]byte(agit.SshInfoJson))
 	if err != nil {
 		log.Error("fail to write result: err: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)

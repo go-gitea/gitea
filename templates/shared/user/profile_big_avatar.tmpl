@@ -125,7 +125,7 @@
 				<div class="item">
 					{{$buttonExtraClass := Iif $.IsFollowing "" "primary"}}
 					{{$followAction := Iif $.IsFollowing "unfollow" "follow"}}
-					<button class="ui basic {{$buttonExtraClass}} button tw-w-full"
+					<button type="button" class="ui basic {{$buttonExtraClass}} button tw-w-full"
 									data-fetch-method="post" data-fetch-url="{{.ContextUser.HomeLink}}?action={{$followAction}}"
 									data-fetch-sync="$body #profile-avatar-card"
 					>

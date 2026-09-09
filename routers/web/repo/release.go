@@ -192,8 +192,7 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Releases"] = releases
 
 	numReleases := ctx.Data["NumReleases"].(int64) //nolint:forcetypeassert // must exist
-	pager := context.NewPagination(numReleases, listOptions.PageSize, listOptions.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(numReleases).PerPageLimit(listOptions.PageSize).CurPage(listOptions.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplReleasesList)
 }
@@ -244,8 +243,7 @@ func TagsList(ctx *context.Context) {
 	ctx.Data["Releases"] = releases
 	ctx.Data["TagCount"] = count
 
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 	ctx.Data["PageIsViewCode"] = !ctx.Repo.Repository.UnitEnabled(ctx, unit.TypeReleases)
 	ctx.HTML(http.StatusOK, tplTagsList)
@@ -625,11 +623,7 @@ func EditReleasePost(ctx *context.Context) {
 	rel.IsPrerelease = form.Prerelease
 	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
-		if upload.IsErrFileTypeForbidden(err) {
-			ctx.JSONError(err.Error())
-		} else {
-			ctx.ServerError("UpdateRelease", err)
-		}
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")

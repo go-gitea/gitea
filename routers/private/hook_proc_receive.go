@@ -23,8 +23,17 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
+	if !loadContextDoerPermission(ctx, opts.UserID, opts.UserExtDoerData) {
+		return
+	}
 
-	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, opts)
+	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, &agit.ProcReceiveOptions{
+		OldCommitIDs:   opts.OldCommitIDs,
+		NewCommitIDs:   opts.NewCommitIDs,
+		RefFullNames:   opts.RefFullNames,
+		GitPushOptions: opts.GitPushOptions,
+		Doer:           ctx.Doer,
+	})
 	if err != nil {
 		if errors.Is(err, issues_model.ErrMustCollaborator) {
 			ctx.PrivateUserErrorf(http.StatusUnauthorized, "You must be a collaborator to create pull request.")

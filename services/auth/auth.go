@@ -25,8 +25,7 @@ func (e ErrUserAuthMessage) Error() string {
 }
 
 func ErrAsUserAuthMessage(err error) (string, bool) {
-	var msg ErrUserAuthMessage
-	if errors.As(err, &msg) {
+	if msg, ok := errors.AsType[ErrUserAuthMessage](err); ok {
 		return msg.Error(), true
 	}
 	return "", false

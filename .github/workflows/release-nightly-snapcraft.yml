@@ -25,8 +25,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
+      - name: Build snap
         id: build
+        env:
+          SNAPCRAFT_IMAGE_INFO: '{"build_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'
+        run: |
+          # snapcraft installs build-snaps and apt packages system-wide, which needs root
+          sudo snap install --classic snapcraft
+          sudo SNAPCRAFT_BUILD_INFO=1 SNAPCRAFT_IMAGE_INFO="$SNAPCRAFT_IMAGE_INFO" snapcraft pack --destructive-mode
+          echo "snap=$(ls ./*.snap)" >> "$GITHUB_OUTPUT"
       # retry snapcraft uploads which can be flaky
       - name: Publish snap
         run: |

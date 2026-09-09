@@ -40,17 +40,8 @@ func init() {
 	db.RegisterModel(new(ActionSchedule))
 }
 
-// GetSchedulesMapByIDs returns the schedules by given id slice.
-func GetSchedulesMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionSchedule, error) {
-	schedules := make(map[int64]*ActionSchedule, len(ids))
-	if len(ids) == 0 {
-		return schedules, nil
-	}
-	return schedules, db.GetEngine(ctx).In("id", ids).Find(&schedules)
-}
-
-// CreateScheduleTask creates new schedule task.
-func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
+// CreateScheduleTaskBySchedules creates new schedule task.
+func CreateScheduleTaskBySchedules(ctx context.Context, rows []*ActionSchedule) error {
 	// Return early if there are no rows to insert
 	if len(rows) == 0 {
 		return nil
@@ -74,13 +65,16 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 					ScheduleID: row.ID,
 					Spec:       spec,
 				}
-				// Parse the spec and check for errors
 				schedule, err := specRow.Parse()
 				if err != nil {
-					continue // skip to the next spec if there's an error
+					continue
 				}
 
-				specRow.Next = timeutil.TimeStamp(schedule.Next(now).Unix())
+				next := schedule.Next(now)
+				if next.IsZero() {
+					continue // the spec parses but can never occur, like "0 0 30 2 *"
+				}
+				specRow.Next = timeutil.TimeStamp(next.Unix())
 
 				// Insert the new schedule spec row
 				if err = db.Insert(ctx, specRow); err != nil {

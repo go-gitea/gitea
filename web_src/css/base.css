@@ -325,10 +325,8 @@ a.silenced:hover {
 }
 
 a.label,
-.ui.search .results a,
 .ui .menu a,
-.ui.cards a.card,
-.issue-keyword a {
+.ui.cards a.card {
   text-decoration-line: none !important;
 }
 
@@ -388,10 +386,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-.ui.comments .comment .metadata {
-  color: var(--color-text-light-2);
-}
-
 .full.height {
   flex-grow: 1;
   padding-bottom: var(--page-space-bottom);
@@ -426,30 +420,11 @@ a.label,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.ui .header > i + .content {
-  padding-left: 0.75rem;
-  vertical-align: middle;
-}
-
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
   font-weight: var(--font-weight-normal);
   flex-shrink: 0;
-}
-
-.ui .button.truncate {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: top;
-  white-space: nowrap;
-  margin-right: 6px;
-}
-
-.ui.status.buttons .svg {
-  margin-right: 4px;
 }
 
 .ui .migrate {
@@ -682,19 +657,13 @@ overflow-menu .ui.label:empty {
   vertical-align: top;
 }
 
-.lines-num pre,
-.lines-code pre,
-.lines-num ol,
-.lines-code ol {
+.lines-code pre {
   background-color: inherit;
   margin: 0;
   padding: 0 !important;
 }
 
-.lines-num pre li,
-.lines-code pre li,
-.lines-num ol li,
-.lines-code ol li {
+.lines-code pre li {
   display: block;
   width: calc(100% - 1ch);
   padding-left: 1ch;
@@ -878,7 +847,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.list.flex-items-block > .item,
-.ui.vertical.menu.flex-items-block > .item,
 .ui.vertical.menu .item.flex-text-block,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,

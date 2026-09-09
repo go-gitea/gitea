@@ -114,7 +114,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/actions"
-	"gitea.dev/services/context"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -132,9 +131,7 @@ type artifactV4Routes struct {
 func ArtifactV4Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base := context.NewBaseContext(resp, req)
-			ctx := &ArtifactContext{Base: base}
-			ctx.SetContextValue(artifactContextKey, ctx)
+			ctx := newArtifactContext(resp, req)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}

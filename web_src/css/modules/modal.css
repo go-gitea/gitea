@@ -149,7 +149,6 @@
   .ui.modal > .actions {
     padding: 1rem 1rem 0 !important;
   }
-  .ui.modal .actions > .buttons,
   .ui.modal .actions > .button {
     margin-bottom: 1rem;
   }
@@ -157,15 +156,6 @@
 
 .ui.active.modal {
   display: block;
-}
-
-.scrolling.dimmable > .dimmer {
-  justify-content: flex-start;
-  position: fixed;
-}
-
-.modals.dimmer .ui.scrolling.modal {
-  margin: 2rem auto;
 }
 
 .ui.modal > .close.inside + .header {
@@ -288,13 +278,6 @@
 .ui.modal.g-modal-confirm {
   max-width: min(800px, 90vw);
   width: fit-content;
-}
-
-.ui.modal.g-modal-confirm > .inside.close.icon {
-  padding: 0;
-  width: 1em;
-  height: 1em;
-  top: 1.2em;
 }
 
 .ui.modal .content > form > .actions,

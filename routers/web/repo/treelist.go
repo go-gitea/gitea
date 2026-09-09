@@ -63,6 +63,7 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 // WebDiffFileItem is used by frontend, check the field names in frontend before changing
 type WebDiffFileItem struct {
 	FullName    string
+	OldFullName string
 	DisplayName string
 	NameHash    string
 	DiffStatus  string
@@ -83,12 +84,10 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 	dirNodes := map[string]*WebDiffFileItem{"": &dft.TreeRoot}
 	addItem := func(item *WebDiffFileItem) {
 		var parentPath string
-		pos := strings.LastIndexByte(item.FullName, '/')
-		if pos == -1 {
-			item.DisplayName = item.FullName
+		if dir, name, found := strings.CutLast(item.FullName, "/"); found {
+			parentPath, item.DisplayName = dir, name
 		} else {
-			parentPath = item.FullName[:pos]
-			item.DisplayName = item.FullName[pos+1:]
+			item.DisplayName = item.FullName
 		}
 		parentNode, parentExists := dirNodes[parentPath]
 		if !parentExists {
@@ -110,6 +109,9 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 
 	for _, file := range diffTree.Files {
 		item := &WebDiffFileItem{FullName: file.HeadPath, DiffStatus: file.Status}
+		if file.BasePath != file.HeadPath {
+			item.OldFullName = file.BasePath
+		}
 		item.IsViewed = filesViewedState[item.FullName] == pull_model.Viewed
 		item.NameHash = git.HashFilePathForWebUI(item.FullName)
 		item.FileIcon = fileicon.RenderEntryIconHTML(renderedIconPool, &fileicon.EntryInfo{BaseName: path.Base(file.HeadPath), EntryMode: file.HeadMode})

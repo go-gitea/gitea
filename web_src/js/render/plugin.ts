@@ -8,7 +8,7 @@
 export type InplaceRenderPlugin = {
   name: string;
   canHandle: (filename: string, mimeType: string) => boolean;
-  render: (container: HTMLElement, fileUrl: string, options?: any) => Promise<void>;
+  render: (container: HTMLElement, fileUrl: string) => Promise<void>;
 };
 
 export type FrontendRenderOptions = {
