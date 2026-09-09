@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	shared_actions "gitea.dev/routers/web/shared/actions"
@@ -73,7 +74,6 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		ctx.ServerError("GetRepoRunnerGroups", err)
 		return
 	}
-	ctx.Data["RunnerGroupNamePattern"] = actions.RunnerGroupNamePattern.String()
 	ctx.Data["KnownRunnerGroups"], err = actions.FindKnownRunnerGroupNames(ctx)
 	if err != nil {
 		ctx.ServerError("FindKnownRunnerGroupNames", err)
@@ -86,12 +86,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 func UpdateRunnerGroups(ctx *context.Context) {
 	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
 
-	groups, err := actions.NormalizeRunnerGroupNames(ctx.FormString("groups"))
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("actions.runners.groups_invalid"))
-		ctx.Redirect(redirectURL)
-		return
-	}
+	groups := util.Sorted(container.SetOf(util.SplitTrimSpace(ctx.FormString("groups"), ",")...).Values())
 
 	repo := ctx.Repo.Repository
 	if err := actions.SetRepoRunnerGroups(ctx, repo.OwnerID, repo.ID, groups); err != nil {

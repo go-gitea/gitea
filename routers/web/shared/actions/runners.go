@@ -12,6 +12,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -201,7 +202,6 @@ func RunnersEdit(ctx *context.Context) {
 
 	ctx.Data["Runner"] = runner
 
-	ctx.Data["RunnerGroupNamePattern"] = actions_model.RunnerGroupNamePattern.String()
 	ctx.Data["KnownRunnerGroups"], err = actions_model.FindKnownRunnerGroupNames(ctx)
 	if err != nil {
 		ctx.ServerError("FindKnownRunnerGroupNames", err)
@@ -259,12 +259,7 @@ func RunnersEditPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.EditRunnerForm](ctx)
-	groups, err := actions_model.NormalizeRunnerGroupNames(form.Groups)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("actions.runners.groups_invalid"))
-		ctx.Redirect(redirectTo)
-		return
-	}
+	groups := util.Sorted(container.SetOf(util.SplitTrimSpace(form.Groups, ",")...).Values())
 	runner.Description = form.Description
 	if util.SliceSortedEqual(runner.Groups, groups) { // leave groups alone so a description edit cannot clobber a concurrent one
 		err = actions_model.UpdateRunner(ctx, runner, "description")

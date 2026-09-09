@@ -5,8 +5,6 @@ package actions
 
 import (
 	"context"
-	"regexp"
-	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/container"
@@ -22,21 +20,6 @@ type ActionRunnerGroupRef struct {
 
 func init() {
 	db.RegisterModel(new(ActionRunnerGroupRef))
-}
-
-var RunnerGroupNamePattern = regexp.MustCompile(`^[a-z0-9._-]{1,64}$`)
-
-// NormalizeRunnerGroupNames canonicalizes a comma-separated list, so that names compare equal
-// regardless of the database collation.
-func NormalizeRunnerGroupNames(input string) ([]string, error) {
-	names := make(container.Set[string])
-	for _, name := range util.SplitTrimSpace(strings.ToLower(input), ",") {
-		if !RunnerGroupNamePattern.MatchString(name) {
-			return nil, util.NewInvalidArgumentErrorf("invalid runner group name %q", name)
-		}
-		names.Add(name)
-	}
-	return util.Sorted(names.Values()), nil
 }
 
 func GetRepoRunnerGroups(ctx context.Context, repoID int64) ([]string, error) {

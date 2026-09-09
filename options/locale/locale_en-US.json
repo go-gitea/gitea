@@ -3788,7 +3788,6 @@
   "actions.runners.groups": "Groups",
   "actions.runners.groups_placeholder": "example-group",
   "actions.runners.groups_help": "Restrict this runner to repositories with at least one matching group. Leave empty to serve every repository in its scope.",
-  "actions.runners.groups_invalid": "A group name may only contain letters, digits, dots, dashes and underscores, up to 64 characters.",
   "actions.runners.last_online": "Last Online Time",
   "actions.runners.runner_title": "Runner",
   "actions.runners.task_list": "Recent tasks on this runner",

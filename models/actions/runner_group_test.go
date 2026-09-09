@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"strings"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -13,29 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestNormalizeRunnerGroupNames(t *testing.T) {
-	cases := []struct {
-		input   string
-		want    []string
-		invalid bool
-	}{
-		{input: " ,, GPU, Build ,gpu", want: []string{"build", "gpu"}},
-		{input: "arm64.large,ci-1,a_b", want: []string{"a_b", "arm64.large", "ci-1"}},
-		{input: "build runners", invalid: true},
-		{input: strings.Repeat("a", 65), invalid: true},
-	}
-
-	for _, tc := range cases {
-		got, err := NormalizeRunnerGroupNames(tc.input)
-		if tc.invalid {
-			require.Error(t, err, tc.input)
-			continue
-		}
-		require.NoError(t, err, tc.input)
-		assert.Equal(t, tc.want, got, tc.input)
-	}
-}
 
 func TestRepoRunnerGroups(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
