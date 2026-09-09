@@ -64,9 +64,9 @@ func TestActionJobList_SortMatrixGroupsByName(t *testing.T) {
 	})
 }
 
-// TestFindRunJobOptions_Queue verifies the build-queue query mirrors the runner pickup predicate:
+// TestFindQueuedJobs verifies the build-queue query mirrors the runner pickup predicate:
 // waiting + unclaimed + non-reusable jobs, ordered by (updated ASC, id ASC).
-func TestFindRunJobOptions_Queue(t *testing.T) {
+func TestFindQueuedJobs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -105,7 +105,7 @@ func TestFindRunJobOptions_Queue(t *testing.T) {
 	setUpdated(jA.ID, 200)
 	setUpdated(jB.ID, 300)
 
-	jobs, total, err := db.FindAndCount[ActionRunJob](ctx, QueuedJobsOptions(repoID, 0))
+	jobs, total, err := FindQueuedJobs(ctx, QueueJobsOptions{RepoID: repoID}, 1, QueuePageSize)
 	require.NoError(t, err)
 	assert.EqualValues(t, 3, total, "only waiting, unclaimed, non-reusable jobs are queued")
 
@@ -113,5 +113,14 @@ func TestFindRunJobOptions_Queue(t *testing.T) {
 	for i, j := range jobs {
 		gotIDs[i] = j.ID
 	}
-	assert.Equal(t, []int64{jC.ID, jA.ID, jB.ID}, gotIDs, "rank-0 queue is ordered by (updated ASC, id ASC)")
+	assert.Equal(t, []int64{jC.ID, jA.ID, jB.ID}, gotIDs, "the queue is ordered by (updated ASC, id ASC)")
+
+	running, err := FindRunningJobs(ctx, QueueJobsOptions{RepoID: repoID}, 10)
+	require.NoError(t, err)
+	require.Len(t, running, 1)
+	assert.Equal(t, "running", running[0].Name)
+
+	filterRepoIDs, err := QueueFilterRepoIDs(ctx, QueueJobsOptions{RepoID: repoID}, 10)
+	require.NoError(t, err)
+	assert.Contains(t, filterRepoIDs, repoID, "a repo with pending work is offered by the filter")
 }

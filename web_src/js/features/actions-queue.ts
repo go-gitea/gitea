@@ -10,7 +10,7 @@ export function initActionQueueList(): void {
 function bindActionQueueList(el: HTMLElement): void {
   async function refresh() {
     const resp = await GET(el.getAttribute('data-queue-refresh-link')!);
-    if (!resp.ok || resp.status !== 200) return;
+    if (!resp.ok) return;
     // The queue rows carry no interactive state, so morph the whole fragment in place.
     const newEl = createElementFromHTML(await resp.text());
     Idiomorph.morph(el, newEl, {

@@ -36,16 +36,8 @@ func Queue(ctx *context.Context) {
 	RenderQueue(ctx, QueueScope{FullTemplate: "admin/actions"})
 }
 
-// queueViewJobCols lists the ActionRunJob columns the build-queue view actually reads. The row also
-// carries several payload/blob columns (WorkflowPayload, DeferredMatrixPayload, ReusableWorkflowContent)
-// that the queue never touches, so restricting the SELECT keeps a 3-second auto-refresh cheap.
-// Qualified with the table name: an owner-filtered query joins `repository`, whose own "id" column
-// would otherwise make an unqualified "id" ambiguous.
-var queueViewJobCols = []string{
-	"`action_run_job`.id", "`action_run_job`.repo_id", "`action_run_job`.name", "`action_run_job`.status",
-	"`action_run_job`.run_id", "`action_run_job`.runs_on", "`action_run_job`.updated", "`action_run_job`.started",
-	"`action_run_job`.task_id", "`action_run_job`.source_task_id",
-}
+// runningJobsLimit caps the running-job list, which is bounded by the number of busy runners.
+const runningJobsLimit = 100
 
 // Queue status filter values, as submitted by the filter bar ("" means every listed status).
 const (
@@ -85,18 +77,17 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 		}
 	}
 	ctx.Data["QueueFilterOwnerID"], ctx.Data["QueueFilterRepoID"] = filterOwnerID, filterRepoID
-	scopeRepoID := util.Iif(filterRepoID > 0, filterRepoID, s.RepoID)
-	scopeOwnerID := util.Iif(filterOwnerID > 0, filterOwnerID, s.OwnerID)
+	queueOpts := actions_model.QueueJobsOptions{
+		RepoID:  util.Iif(filterRepoID > 0, filterRepoID, s.RepoID),
+		OwnerID: util.Iif(filterOwnerID > 0, filterOwnerID, s.OwnerID),
+	}
 	filtered := filterOwnerID > 0 || filterRepoID > 0
 
 	var queuedJobs []*actions_model.ActionRunJob
 	var queuedTotal int64
 	if filterStatus != QueueFilterRunning {
-		queuedOpts := actions_model.QueuedJobsOptions(scopeRepoID, scopeOwnerID)
-		queuedOpts.ListOptions = db.ListOptions{Page: page, PageSize: pageSize}
-		queuedOpts.Cols = queueViewJobCols
 		var err error
-		queuedJobs, queuedTotal, err = db.FindAndCount[actions_model.ActionRunJob](ctx, queuedOpts)
+		queuedJobs, queuedTotal, err = actions_model.FindQueuedJobs(ctx, queueOpts, page, pageSize)
 		if err != nil {
 			ctx.ServerError("FindQueuedJobs", err)
 			return
@@ -111,11 +102,8 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	// they head the list on every page instead of taking part in the queued-job pagination.
 	var runningJobs []*actions_model.ActionRunJob
 	if filterStatus != QueueFilterWaiting {
-		runningOpts := actions_model.RunningJobsOptions(scopeRepoID, scopeOwnerID)
-		runningOpts.ListOptions = db.ListOptions{Page: 1, PageSize: 100}
-		runningOpts.Cols = queueViewJobCols
 		var err error
-		runningJobs, err = db.Find[actions_model.ActionRunJob](ctx, runningOpts)
+		runningJobs, err = actions_model.FindRunningJobs(ctx, queueOpts, runningJobsLimit)
 		if err != nil {
 			ctx.ServerError("FindRunningJobs", err)
 			return
@@ -173,7 +161,7 @@ const queueFilterOptionsLimit = 200
 // currently have queued or running jobs, and resolves the requested filters against them. Ids that match
 // nothing on offer are dropped, so a stale link cannot leave the view stuck on an empty filter.
 func renderQueueFilterOptions(ctx *context.Context, s QueueScope) (filterOwnerID, filterRepoID int64, _ error) {
-	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, s.RepoID, s.OwnerID, queueFilterOptionsLimit)
+	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, actions_model.QueueJobsOptions{RepoID: s.RepoID, OwnerID: s.OwnerID}, queueFilterOptionsLimit)
 	if err != nil {
 		return 0, 0, err
 	}
