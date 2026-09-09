@@ -1,7 +1,7 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
   initRepoCommentFormAndSidebar,
-  initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
+  initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
 } from './repo-issue.ts';
@@ -61,7 +61,6 @@ export function initRepository() {
   if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueCommentEdit();
 
-    initRepoIssueBranchSelect();
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueComments();

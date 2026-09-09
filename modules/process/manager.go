@@ -23,9 +23,6 @@ import (
 var (
 	manager     *Manager
 	managerInit sync.Once
-
-	// DefaultContext is the default context to run processing commands in
-	DefaultContext = context.Background()
 )
 
 type (

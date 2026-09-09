@@ -24,6 +24,15 @@ type DashboardRepo = {
 
 type CommitStatus = 'pending' | 'success' | 'error' | 'failure' | 'warning' | 'skipped';
 
+type WebSearchRepo = {
+  repository: DashboardRepo,
+  latest_commit_status: {
+    State: CommitStatus,
+    TargetURL: string,
+  } | null,
+  locale_latest_commit_status: string,
+};
+
 type CommitStatusMap = {
   [status in CommitStatus]: {
     name: SvgName,
@@ -263,7 +272,7 @@ async function searchRepos() {
   const searchedURL = searchURL.value;
   const searchedQuery = searchQuery.value;
 
-  let response: Response, json: any;
+  let response: Response, json: {data: WebSearchRepo[]};
   try {
     const firstLoad = reposTotalCount.value === null;
     // independent of the search, so both requests go out together
@@ -293,7 +302,7 @@ async function searchRepos() {
   }
 
   if (searchedURL === searchURL.value) {
-    repos.value = json.data.map((webSearchRepo: any) => {
+    repos.value = json.data.map((webSearchRepo) => {
       return {
         ...webSearchRepo.repository,
         latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status

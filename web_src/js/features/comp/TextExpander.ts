@@ -10,16 +10,12 @@ import type TextExpanderElement from '@github/text-expander-element';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
 
 async function fetchIssueSuggestions(key: string, text: string, signal: AbortSignal): Promise<TextExpanderResult> {
-  const issuePathInfo = parseIssueHref(window.location.href);
-  if (!issuePathInfo.ownerName) {
-    const repoOwnerPathInfo = parseRepoOwnerPathInfo(window.location.pathname);
-    issuePathInfo.ownerName = repoOwnerPathInfo.ownerName;
-    issuePathInfo.repoName = repoOwnerPathInfo.repoName;
-    // then no issuePathInfo.indexString here, it is only used to exclude the current issue when "matchIssue"
-  }
-  if (!issuePathInfo.ownerName) return {matched: false};
+  const hrefPathInfo = parseIssueHref(window.location.href);
+  // the fallback has no indexString, it is only used to exclude the current issue when "matchIssue"
+  const pathInfo = hrefPathInfo ?? parseRepoOwnerPathInfo(window.location.pathname);
+  if (!pathInfo) return {matched: false};
 
-  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text, signal);
+  const matches = await matchIssue(pathInfo.ownerName, pathInfo.repoName, hrefPathInfo?.indexString, text, signal);
   if (!matches.length) return {matched: false};
 
   const ul = createElementFromAttrs('ul', {class: 'suggestions'});
@@ -131,7 +127,8 @@ export function initTextExpander(expander: TextExpanderElement) {
     }
   });
 
-  expander.addEventListener('text-expander-value', ({detail}: Record<string, any>) => {
+  expander.addEventListener('text-expander-value', (event) => {
+    const {detail} = event as CustomEvent<{item: HTMLElement, key: string, value: string}>;
     if (detail?.item) {
       // add a space after @mentions and #issue as it's likely the user wants one
       const suffix = ['@', '#'].includes(detail.key) ? ' ' : '';

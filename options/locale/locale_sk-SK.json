@@ -995,7 +995,6 @@
   "repo.diff.review": "Revízia",
   "repo.diff.review.header": "Odoslať revíziu",
   "repo.diff.review.placeholder": "Revízna poznámka",
-  "repo.diff.committed_by": "odovzdal",
   "repo.release.tags": "Tagy",
   "repo.release.ahead.commits": "<strong>%d</strong> commitov",
   "repo.release.cancel": "Zrušiť",

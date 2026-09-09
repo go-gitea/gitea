@@ -202,29 +202,17 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 	}
 	// Handle links
 	if entry.IsRegular() || entry.IsLink() || entry.IsExecutable() {
-		downloadURL, err := url.Parse(repo.HTMLURL() + "/raw/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(opts.TreePath))
-		if err != nil {
-			return nil, err
-		}
-		downloadURLString := downloadURL.String()
-		contentsResponse.DownloadURL = &downloadURLString
+		downloadURL := repo.HTMLURL(ctx) + "/raw/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(opts.TreePath)
+		contentsResponse.DownloadURL = &downloadURL
 	}
 	if !entry.IsSubModule() {
-		htmlURL, err := url.Parse(repo.HTMLURL() + "/src/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(opts.TreePath))
-		if err != nil {
-			return nil, err
-		}
-		htmlURLString := htmlURL.String()
-		contentsResponse.HTMLURL = &htmlURLString
-		contentsResponse.Links.HTMLURL = &htmlURLString
+		htmlURL := repo.HTMLURL(ctx) + "/src/" + refCommit.RefName.RefWebLinkPath() + "/" + util.PathEscapeSegments(opts.TreePath)
+		contentsResponse.HTMLURL = &htmlURL
+		contentsResponse.Links.HTMLURL = &htmlURL
 
-		gitURL, err := url.Parse(repo.APIURL() + "/git/blobs/" + url.PathEscape(entry.ID.String()))
-		if err != nil {
-			return nil, err
-		}
-		gitURLString := gitURL.String()
-		contentsResponse.GitURL = &gitURLString
-		contentsResponse.Links.GitURL = &gitURLString
+		gitURL := repo.APIURL(ctx) + "/git/blobs/" + url.PathEscape(entry.ID.String())
+		contentsResponse.GitURL = &gitURL
+		contentsResponse.Links.GitURL = &gitURL
 	}
 
 	return contentsResponse, nil

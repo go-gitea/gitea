@@ -403,7 +403,7 @@ func fillInstallConfig(ctx *context.Context, envs []string, form *forms.InstallF
 
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
-	cfg.Section("log").Key("MODE").MustString("console")
+	cfg.Section("log").Key("MODE").MustString("console") // FIXME: INI-MUST-SIDE-EFFECT
 	cfg.Section("log").Key("LEVEL").SetValue(setting.Log.Level.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 

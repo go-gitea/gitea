@@ -24,15 +24,6 @@ a.ui.label {
   cursor: pointer;
 }
 
-.ui.label > a {
-  cursor: pointer;
-  color: inherit;
-  opacity: 0.75;
-}
-.ui.label > a:hover {
-  opacity: 1;
-}
-
 .ui.label > .icon {
   width: auto;
   margin: 0 0.75em 0 0;
@@ -44,28 +35,17 @@ a.ui.label {
   opacity: 0.8;
 }
 
-.ui.label > .close.icon,
 .ui.label > .delete.icon {
   cursor: pointer;
   font-size: 0.92857143em;
   opacity: 0.5;
 }
-.ui.label > .close.icon:hover,
 .ui.label > .delete.icon:hover {
   opacity: 1;
 }
 
-.ui.label.left.icon > .close.icon,
-.ui.label.left.icon > .delete.icon {
-  margin: 0 0.5em 0 0;
-}
-.ui.label:not(.icon) > .close.icon,
 .ui.label:not(.icon) > .delete.icon {
   margin: 0 0 0 0.5em;
-}
-
-.ui.header > .ui.label {
-  margin-top: -0.29165em;
 }
 
 a.ui.label:hover {

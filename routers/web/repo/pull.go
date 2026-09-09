@@ -161,12 +161,12 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 
 func (prInfo *pullRequestViewInfo) setTemplateDataMergeTarget(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
-	if ctx.Repo.Owner.Name == pull.MustHeadUserName(ctx) {
+	if ctx.Repo.Owner.Name == pull.OptionalHeadUserName(ctx) {
 		prInfo.headTarget = pull.HeadBranch
 	} else if pull.HeadRepo == nil {
 		prInfo.headTarget = ctx.Locale.TrString("repo.pull.deleted_branch", pull.HeadBranch)
 	} else {
-		prInfo.headTarget = pull.MustHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+		prInfo.headTarget = pull.OptionalHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["HeadTarget"] = prInfo.headTarget
 	ctx.Data["BaseTarget"] = pull.BaseBranch
@@ -203,7 +203,7 @@ func GetPullDiffStats(ctx *context.Context) {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &gitdiff.DiffCommonOptions{BeforeCommitID: mergeBaseCommitID, AfterCommitID: headCommitID})
 	if err != nil {
 		log.Error("Failed to GetDiffShortStat: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
@@ -349,11 +349,6 @@ func (prInfo *pullRequestViewInfo) prepareViewInfo(ctx *context.Context, issue *
 		ctx.ServerError("LoadBaseRepo", err)
 		return
 	}
-
-	// for the PR target branch selector
-	ctx.Data["BaseBranch"] = issue.PullRequest.BaseBranch
-	ctx.Data["HeadBranch"] = issue.PullRequest.HeadBranch
-	ctx.Data["HeadUserName"] = issue.PullRequest.MustHeadUserName(ctx)
 
 	if issue.PullRequest.HasMerged {
 		prInfo.prepareViewMergedPullInfo(ctx)
@@ -769,14 +764,17 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diffOptions := &gitdiff.DiffOptions{
+	diffCommonOptions := gitdiff.DiffCommonOptions{
 		BeforeCommitID:     beforeCommitID,
 		AfterCommitID:      afterCommitID,
-		SkipTo:             ctx.FormString("skip-to"),
-		MaxLines:           maxLines,
-		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
+	}
+	diffOptions := &gitdiff.DiffOptions{
+		DiffCommonOptions: diffCommonOptions,
+		SkipTo:            ctx.FormString("skip-to"),
+		MaxLines:          maxLines,
+		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:          maxFiles,
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)
@@ -802,7 +800,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, &diffCommonOptions)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -870,6 +868,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+	ctx.Data["ShowDiffSummaryInToolbar"] = diffShortStat.NumFiles != 0
 
 	if ctx.Data["CanMarkConversation"], err = issues_model.CanMarkConversation(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
@@ -1317,14 +1316,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	repo := ctx.Repo.Repository
 	comparePageInfo := newComparePageInfo()
 	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.JSONErrorNotFound()
-		return
-	} else if errors.Is(err, util.ErrInvalidArgument) {
-		ctx.JSONError(err.Error())
-		return
-	} else if err != nil {
-		ctx.ServerError("ParseCompareInfo", err)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ci := comparePageInfo.compareInfo
