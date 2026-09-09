@@ -96,7 +96,15 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								{{ctx.Locale.Tr "settings.gpg_token_help"}}
-								<pre class="command-block">{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` $.TokenToSign .PaddedKeyID}}</pre>
+								<pre class="command-block">echo {{$.TokenToSign}} | gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+								<details>
+									<summary>Windows PowerShell</summary>
+									<pre class="command-block">'{{$.TokenToSign}}' | gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+								</details>
+								<details>
+									<summary>Windows CMD</summary>
+									<pre class="command-block">echo {{$.TokenToSign}}| gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+								</details>
 							</div>
 						</div>
 						<div class="field">
