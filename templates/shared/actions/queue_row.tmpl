@@ -1,6 +1,6 @@
 {{$root := ctx.RootData}}
 {{$job := .Job}}
-<tr {{if .IsQueued}}id="actions-queue-job-{{$job.ID}}" data-job-id="{{$job.ID}}"{{end}}>
+<tr>
 	<td>{{if and .IsQueued $root.ShowQueuePositions}}{{.Position}}{{end}}</td>
 	<td>
 		<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $job.Status.String)}}">

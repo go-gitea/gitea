@@ -105,7 +105,7 @@ func TestFindQueuedJobs(t *testing.T) {
 	setUpdated(jA.ID, 200)
 	setUpdated(jB.ID, 300)
 
-	jobs, total, err := FindQueuedJobs(ctx, QueueJobsOptions{RepoID: repoID}, 1, QueuePageSize)
+	jobs, total, err := FindQueuedJobs(ctx, QueueJobsOptions{RepoID: repoID}, 1, 50)
 	require.NoError(t, err)
 	assert.EqualValues(t, 3, total, "only waiting, unclaimed, non-reusable jobs are queued")
 

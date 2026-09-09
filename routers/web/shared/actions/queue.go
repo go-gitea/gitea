@@ -18,51 +18,41 @@ import (
 	"gitea.dev/services/context"
 )
 
-// QueueScope describes what a build-queue view should query and who may act on it.
-type QueueScope struct {
-	RepoID  int64 // >0: a single repo
-	OwnerID int64 // >0: an org/user; both 0: the whole instance
-	IsRepo  bool  // repo scope hides the (redundant) repository column
-
-	FullTemplate templates.TplName // full-page template for the initial (non-refresh) render
-}
-
 // Queue renders the instance-wide Actions build queue on the admin settings page.
 func Queue(ctx *context.Context) {
 	ctx.Data["PageIsSharedSettingsQueue"] = true
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "queue"
 
-	RenderQueue(ctx, QueueScope{FullTemplate: "admin/actions"})
+	RenderQueue(ctx, 0, "admin/actions")
 }
 
-// runningJobsLimit caps the running-job list, which is bounded by the number of busy runners.
-const runningJobsLimit = 100
-
-// Queue status filter values, as submitted by the filter bar ("" means every listed status).
 const (
-	QueueFilterRunning = "running"
-	QueueFilterWaiting = "waiting"
+	queuePageSize = 50 // queued jobs per page
+
+	// runningJobsLimit caps the running-job list, which is bounded by the number of busy runners.
+	runningJobsLimit = 100
+
+	// status filter values, as submitted by the filter bar ("" means every listed status)
+	queueFilterRunning = "running"
+	queueFilterWaiting = "waiting"
 )
 
-// QueueFilterStatuses lists the status filter values the build-queue filter bar offers, in display order.
-func QueueFilterStatuses() []string { return []string{QueueFilterRunning, QueueFilterWaiting} }
-
-// RenderQueue queries and renders a build-queue view (running jobs followed by queued jobs in pickup order)
-// for the given scope. It serves both the initial full page (s.FullTemplate) and the in-place auto-refresh
-// fragment. Both lists can be narrowed by status and, outside a repo scope, by repository.
-func RenderQueue(ctx *context.Context, s QueueScope) {
-	pageSize := actions_model.QueuePageSize
+// RenderQueue queries and renders a build-queue view (running jobs followed by queued jobs in pickup order):
+// a single repository when repoID > 0, otherwise the whole instance. It serves both the initial full page
+// (fullTemplate) and the in-place auto-refresh fragment. Both lists can be narrowed by status and, outside
+// a repo scope, by owner and repository.
+func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplName) {
 	page := max(ctx.FormInt("page"), 1)
 
 	filterStatus := ctx.FormString("status")
-	if filterStatus != QueueFilterRunning && filterStatus != QueueFilterWaiting {
+	if filterStatus != queueFilterRunning && filterStatus != queueFilterWaiting {
 		filterStatus = ""
 	}
 	isRefresh := ctx.FormBool("refresh")
 	// A repo queue is already a single repository, so it offers no owner/repository filter.
 	var filterOwnerID, filterRepoID int64
-	if !s.IsRepo {
+	if repoID == 0 {
 		if isRefresh {
 			// The filter bar sits outside the auto-refresh morph (see initActionQueueList), so its dropdown
 			// options are never seen on a refresh; skip building them and just re-apply the scope the full
@@ -70,7 +60,7 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 			filterOwnerID, filterRepoID = ctx.FormInt64("owner_id"), ctx.FormInt64("repo_id")
 		} else {
 			var err error
-			if filterOwnerID, filterRepoID, err = renderQueueFilterOptions(ctx, s); err != nil {
+			if filterOwnerID, filterRepoID, err = renderQueueFilterOptions(ctx); err != nil {
 				ctx.ServerError("renderQueueFilterOptions", err)
 				return
 			}
@@ -78,16 +68,16 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	}
 	ctx.Data["QueueFilterOwnerID"], ctx.Data["QueueFilterRepoID"] = filterOwnerID, filterRepoID
 	queueOpts := actions_model.QueueJobsOptions{
-		RepoID:  util.Iif(filterRepoID > 0, filterRepoID, s.RepoID),
-		OwnerID: util.Iif(filterOwnerID > 0, filterOwnerID, s.OwnerID),
+		RepoID:  util.Iif(filterRepoID > 0, filterRepoID, repoID),
+		OwnerID: filterOwnerID,
 	}
 	filtered := filterOwnerID > 0 || filterRepoID > 0
 
 	var queuedJobs []*actions_model.ActionRunJob
 	var queuedTotal int64
-	if filterStatus != QueueFilterRunning {
+	if filterStatus != queueFilterRunning {
 		var err error
-		queuedJobs, queuedTotal, err = actions_model.FindQueuedJobs(ctx, queueOpts, page, pageSize)
+		queuedJobs, queuedTotal, err = actions_model.FindQueuedJobs(ctx, queueOpts, page, queuePageSize)
 		if err != nil {
 			ctx.ServerError("FindQueuedJobs", err)
 			return
@@ -101,7 +91,7 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	// Running jobs are bounded by the number of online runners, so a single capped page is enough:
 	// they head the list on every page instead of taking part in the queued-job pagination.
 	var runningJobs []*actions_model.ActionRunJob
-	if filterStatus != QueueFilterWaiting {
+	if filterStatus != queueFilterWaiting {
 		var err error
 		runningJobs, err = actions_model.FindRunningJobs(ctx, queueOpts, runningJobsLimit)
 		if err != nil {
@@ -122,18 +112,17 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	ctx.Data["RunningJobRunners"] = runners
 
 	ctx.Data["QueuedJobs"] = queuedJobs
-	ctx.Data["QueuedTotal"] = queuedTotal
-	ctx.Data["QueueOffset"] = (page - 1) * pageSize // absolute position of the first row on this page
+	ctx.Data["QueueOffset"] = (page - 1) * queuePageSize // absolute position of the first row on this page
 	ctx.Data["RunningJobs"] = runningJobs
 	ctx.Data["QueueTotal"] = queuedTotal + int64(len(runningJobs))
-	ctx.Data["ShowRepoColumn"] = !s.IsRepo
-	ctx.Data["ShowOwnerRepoFilters"] = !s.IsRepo
+	ctx.Data["ShowRepoColumn"] = repoID == 0
+	ctx.Data["ShowOwnerRepoFilters"] = repoID == 0
 	ctx.Data["QueueFilterStatus"] = filterStatus
-	ctx.Data["QueueFilterStatuses"] = QueueFilterStatuses()
+	ctx.Data["QueueFilterStatuses"] = []string{queueFilterRunning, queueFilterWaiting}
 	// Positions are absolute pickup positions, which an owner/repository filter would silently misnumber.
 	ctx.Data["ShowQueuePositions"] = !filtered
 
-	pager := context.NewPagerBuilder(ctx).TotalCount(queuedTotal).PerPageLimit(pageSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(queuedTotal).PerPageLimit(queuePageSize).CurPage(page).Build()
 	pager.RemoveParam(container.SetOf("refresh")) // keep the auto-refresh flag out of the page links
 	ctx.Data["Page"] = pager
 
@@ -144,7 +133,7 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 		ctx.HTML(http.StatusOK, "shared/actions/queue_list")
 		return
 	}
-	ctx.HTML(http.StatusOK, s.FullTemplate)
+	ctx.HTML(http.StatusOK, fullTemplate)
 }
 
 // QueueFilterOwner is one entry of the build queue's owner filter.
@@ -160,8 +149,8 @@ const queueFilterOptionsLimit = 200
 // renderQueueFilterOptions fills the owner/repository filter dropdowns with the repositories that
 // currently have queued or running jobs, and resolves the requested filters against them. Ids that match
 // nothing on offer are dropped, so a stale link cannot leave the view stuck on an empty filter.
-func renderQueueFilterOptions(ctx *context.Context, s QueueScope) (filterOwnerID, filterRepoID int64, _ error) {
-	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, actions_model.QueueJobsOptions{RepoID: s.RepoID, OwnerID: s.OwnerID}, queueFilterOptionsLimit)
+func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID int64, _ error) {
+	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, actions_model.QueueJobsOptions{}, queueFilterOptionsLimit)
 	if err != nil {
 		return 0, 0, err
 	}

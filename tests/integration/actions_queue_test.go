@@ -85,7 +85,6 @@ func TestActionsQueue(t *testing.T) {
 	// Repo Actions-tab queue: a repo admin sees the queued job.
 	body := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()
 	assert.Contains(t, body, queuedJobName)
-	assert.Contains(t, body, "actions-queue-tbody")
 	assert.Contains(t, body, "actions-management", "queue sits under Management in the Actions sidebar")
 	assert.NotContains(t, body, callerJobName, "a reusable caller occupies no runner, so it is not a running job")
 	assert.Contains(t, body, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`)

@@ -23,11 +23,7 @@ func Queue(ctx *context.Context) {
 			return
 		}
 	}
-	shared_actions.RenderQueue(ctx, shared_actions.QueueScope{
-		RepoID:       ctx.Repo.Repository.ID,
-		IsRepo:       true,
-		FullTemplate: "repo/actions/queue",
-	})
+	shared_actions.RenderQueue(ctx, ctx.Repo.Repository.ID, "repo/actions/queue")
 }
 
 // prepareActionsSidebar fills the workflow list for the shared Actions left nav.

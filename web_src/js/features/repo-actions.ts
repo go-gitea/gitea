@@ -5,7 +5,6 @@ import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
 import {activePageTimerRefresh, createElementFromHTML, protectMorphElements, recoverMorphElements} from '../utils/dom.ts';
 import {Idiomorph} from 'idiomorph';
-import {initActionQueueList} from './actions-queue.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -32,7 +31,6 @@ export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
   registerGlobalInitFunc('initActionRunsList', initActionRunsList);
-  initActionQueueList();
 }
 
 function initRepositoryActionsView() {

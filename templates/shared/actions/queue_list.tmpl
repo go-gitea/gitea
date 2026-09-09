@@ -67,7 +67,7 @@
 					{{if .ShowRepoColumn}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
 					<th>{{ctx.Locale.Tr "actions.runners.task_list.job"}}</th>
 					<th>{{ctx.Locale.Tr "actions.queue.runs_on"}}</th>
-					<th>{{ctx.Locale.Tr "actions.queue.agent"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.runner_title"}}</th>
 					<th>{{ctx.Locale.Tr "actions.runs.commit"}}</th>
 					<th>{{ctx.Locale.Tr "actions.queue.waiting_or_started"}}</th>
 				</tr>
@@ -76,8 +76,6 @@
 				{{range .RunningJobs}}
 					{{template "shared/actions/queue_row" (dict "Job" . "IsQueued" false "RunnerName" (index $.RunningJobRunners .ID))}}
 				{{end}}
-			</tbody>
-			<tbody id="actions-queue-tbody">
 				{{range $idx, $job := .QueuedJobs}}
 					{{template "shared/actions/queue_row" (dict "Job" $job "IsQueued" true "Position" (Eval $.QueueOffset "+" $idx "+" 1))}}
 				{{end}}

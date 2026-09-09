@@ -12,9 +12,6 @@ import (
 	"xorm.io/xorm"
 )
 
-// QueuePageSize is the number of queued jobs per build-queue page.
-const QueuePageSize = 50
-
 // queueJobCols lists the columns the build-queue view reads. The row also carries several payload/blob
 // columns (WorkflowPayload, DeferredMatrixPayload, ReusableWorkflowContent) that the queue never touches,
 // so restricting the SELECT keeps its 3-second auto-refresh cheap.
