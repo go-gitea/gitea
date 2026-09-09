@@ -18,18 +18,18 @@
 					<form action="{{AppSubUrl}}/user/settings/security/openid/toggle_visibility" method="post">
 						<input name="id" type="hidden" value="{{.ID}}">
 						{{if .Show}}
-							<button class="ui tiny button">
+							<button type="submit" class="ui tiny button">
 							{{svg "octicon-eye" 16 "icon"}}
 							{{ctx.Locale.Tr "settings.hide_openid"}}
 							</button>
 						{{else}}
-							<button class="ui tiny button">
+							<button type="submit" class="ui tiny button">
 							{{svg "octicon-eye-closed" 16 "icon"}}
 							{{ctx.Locale.Tr "settings.show_openid"}}
 							</button>
 						{{end}}
 					</form>
-					<button class="ui red tiny button link-action" data-modal-confirm="#delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete?id={{.ID}}">
+					<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete?id={{.ID}}">
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
@@ -43,7 +43,7 @@
 			<label for="openid">{{ctx.Locale.Tr "settings.add_new_openid"}}</label>
 			<input id="openid" name="openid" type="text" required>
 		</div>
-		<button class="ui primary button">
+		<button type="submit" class="ui primary button">
 			{{ctx.Locale.Tr "settings.add_openid"}}
 		</button>
 	</form>

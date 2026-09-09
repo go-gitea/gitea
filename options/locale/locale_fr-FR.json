@@ -43,6 +43,7 @@
   "webauthn_error": "Impossible de lire votre clé de sécurité.",
   "webauthn_unsupported_browser": "Votre navigateur ne prend actuellement pas en charge WebAuthn.",
   "webauthn_error_unknown": "Une erreur indéterminée s'est produite. Veuillez réessayer.",
+  "webauthn_error_insecure": "WebAuthn ne prend en charge que les connexions sécurisées. Pour des tests via HTTP, vous pouvez utiliser « localhost ».",
   "webauthn_error_unable_to_process": "Le serveur n'a pas pu traiter votre demande.",
   "webauthn_error_duplicated": "La clé de sécurité n’est pas autorisée pour cette demande. Veuillez vous assurer que la clé n’est pas déjà enregistrée.",
   "webauthn_error_empty": "Vous devez définir un nom pour cette clé.",

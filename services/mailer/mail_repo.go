@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	mailNotifyCollaborator templates.TplName = "repo/collaborator"
-	mailRepoTransferNotify templates.TplName = "repo/transfer"
+	mailNotifyCollaborator templates.TplName = "mail/repo/collaborator"
+	mailRepoTransferNotify templates.TplName = "mail/repo/transfer"
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
