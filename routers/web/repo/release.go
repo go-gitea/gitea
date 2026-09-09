@@ -623,11 +623,7 @@ func EditReleasePost(ctx *context.Context) {
 	rel.IsPrerelease = form.Prerelease
 	if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
-		if upload.IsErrFileTypeForbidden(err) {
-			ctx.JSONError(err.Error())
-		} else {
-			ctx.ServerError("UpdateRelease", err)
-		}
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/releases")

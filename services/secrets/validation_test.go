@@ -11,19 +11,25 @@ import (
 
 func TestValidateName(t *testing.T) {
 	cases := []struct {
-		name  string
-		valid bool
+		name   string
+		errMsg string // substring that should appear in error message
 	}{
-		{"FOO", true},
-		{"FOO1_BAR2", true},
-		{"_FOO", true}, // really? why support this
-		{"1FOO", false},
-		{"giteA_xx", false},
-		{"githuB_xx", false},
-		{"cI", false},
+		{"FOO", ""},
+		{"FOO1_BAR2", ""},
+		{"_Foo", ""},
+
+		{"FOO.BAR", "contain only letters, numbers, and underscores"},
+		{"1FOO", "name must start with a letter or underscore"},
+		{"giteA_xx", "name cannot start with"},
+		{"githuB_xx", "name cannot start with"},
+		{"cI", "is a reserved name"},
 	}
 	for _, c := range cases {
 		err := ValidateName(c.name)
-		assert.Equal(t, c.valid, err == nil, "ValidateName(%q)", c.name)
+		if c.errMsg == "" {
+			assert.NoError(t, err, "ValidateName(%q) should be valid", c.name)
+		} else {
+			assert.ErrorContains(t, err, c.errMsg, "ValidateName(%q) error message should mention %q", c.name, c.errMsg)
+		}
 	}
 }
