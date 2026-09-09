@@ -273,7 +273,7 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell lint-locale ## lint everything
 
 .PHONY: lint-fix
 lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
@@ -358,6 +358,10 @@ lint-templates: .venv node_modules ## lint template files
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
 	@uv run --frozen yamllint -s .
+
+.PHONY: lint-locale
+lint-locale: ## lint locale files
+	@node tools/lint-locale-usage.ts
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files

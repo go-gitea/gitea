@@ -39,6 +39,7 @@ jobs:
           cache: "false"
 
       - run: make lint-spell
+      - run: make lint-locale
 
       - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true' || needs.files-changed.outputs.actions == 'true'
         uses: ./.github/actions/python-setup
