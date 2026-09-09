@@ -22,6 +22,14 @@
 					<div class="help">
 						{{ctx.Locale.Tr "settings.gpg_token_help"}}
 						<pre class="command-block">{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` .TokenToSign .PaddedKeyID}}</pre>
+						<details>
+							<summary>Windows PowerShell</summary>
+							<pre class="command-block">{{printf `'%s' | gpg -a --default-key %s --detach-sig` .TokenToSign .PaddedKeyID}}</pre>
+						</details>
+						<details>
+							<summary>Windows CMD</summary>
+							<pre class="command-block">{{printf `echo %s| gpg -a --default-key %s --detach-sig` .TokenToSign .PaddedKeyID}}</pre>
+						</details>
 					</div>
 				</div>
 				<div class="field">
