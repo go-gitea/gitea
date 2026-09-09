@@ -5,7 +5,7 @@
 >
 <div class="runner-container">
 	<div class="ui top attached header flex-left-right">
-		<strong>{{ctx.Locale.Tr "actions.queue.all_jobs"}} ({{ctx.Locale.Tr "admin.total" .QueueTotal}})</strong>
+		<strong>{{ctx.Locale.Tr "actions.queue.title"}} ({{ctx.Locale.Tr "admin.total" .QueueTotal}})</strong>
 		{{/* the auto-refresh skips this subtree (see initActionQueueList) so a refresh can't close an open dropdown */}}
 		<div class="ui secondary filter menu flex-text-block tw-m-0" id="actions-queue-filter">
 			{{if .ShowOwnerRepoFilters}}
