@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
@@ -306,7 +307,7 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	mid = append(mid, common.MustInitSessioner(), context.Contexter())
+	mid = append(mid, common.MustInitSessioner(), context.Contexter(), common.AuditOrigin(audit_model.OriginUI))
 
 	// Get user from session if logged in.
 	webAuth := newWebAuthMiddleware()

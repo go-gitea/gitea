@@ -1029,6 +1029,7 @@ func Routes() *web.Router {
 	}
 
 	m.AfterRouting(context.APIContexter())
+	m.AfterRouting(common.AuditOrigin(audit_model.OriginAPI))
 	m.AfterRouting(checkDeprecatedAuthMethods)
 
 	// Get user from session if logged in.

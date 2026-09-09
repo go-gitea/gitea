@@ -5,14 +5,11 @@ package audit
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 	"testing"
 
 	audit_model "gitea.dev/models/audit"
 	repository_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -130,30 +127,23 @@ func TestBuildEvent(t *testing.T) {
 		assert.Empty(t, actorCredential(ctx, u))
 	})
 
-	t.Run("IPAddressFromRequest", func(t *testing.T) {
+	t.Run("RequestInfo", func(t *testing.T) {
 		params := RecordParams{Action: audit_model.UserCreate, Actor: actorRef(doer), Scope: ScopeFromUser(u)}
 
-		assert.Empty(t, buildEvent(context.Background(), params).IPAddress)
-
-		ctx := httplib.ContextWithRequest(context.Background(), &http.Request{RemoteAddr: "127.0.0.1:1234"})
-		assert.Equal(t, "127.0.0.1", buildEvent(ctx, params).IPAddress)
-	})
-
-	t.Run("OriginFromRequest", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.AppSubURL, "/gitea")()
-		params := RecordParams{Action: audit_model.UserCreate, Actor: actorRef(doer), Scope: ScopeFromUser(u)}
-
-		assert.Equal(t, audit_model.OriginSystem, buildEvent(context.Background(), params).Origin)
+		e := buildEvent(context.Background(), params)
+		assert.Empty(t, e.IPAddress)
+		assert.Equal(t, audit_model.OriginSystem, e.Origin)
 
 		cliCtx := WithOrigin(context.Background(), audit_model.OriginCLI)
 		assert.Equal(t, audit_model.OriginCLI, buildEvent(cliCtx, params).Origin)
 
-		uiCtx := httplib.ContextWithRequest(context.Background(), &http.Request{URL: &url.URL{Path: "/gitea/user/settings"}})
-		assert.Equal(t, audit_model.OriginUI, buildEvent(uiCtx, params).Origin)
+		apiCtx := reqctx.NewRequestContextForTest(t)
+		SetRequestInfo(apiCtx, audit_model.OriginAPI, "127.0.0.1")
+		e = buildEvent(apiCtx, params)
+		assert.Equal(t, "127.0.0.1", e.IPAddress)
+		assert.Equal(t, audit_model.OriginAPI, e.Origin)
 
-		apiCtx := httplib.ContextWithRequest(context.Background(), &http.Request{URL: &url.URL{Path: "/gitea/api/v1/user"}})
-		assert.Equal(t, audit_model.OriginAPI, buildEvent(apiCtx, params).Origin)
-
+		// an explicit origin wins over the one of the surrounding request
 		systemAPIContext := WithOrigin(apiCtx, audit_model.OriginSystem)
 		assert.Equal(t, audit_model.OriginSystem, buildEvent(systemAPIContext, params).Origin)
 	})

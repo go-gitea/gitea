@@ -57,6 +57,8 @@ func TestAdminAuditLogImpersonation(t *testing.T) {
 	assert.Equal(t, int64(2), token.ActorID) // the token really belongs to user2
 	assert.Equal(t, int64(1), token.ImpersonatorID)
 	assert.Equal(t, "user1", token.ImpersonatorName)
+	assert.Equal(t, audit_model.OriginUI, token.Origin)
+	assert.NotEmpty(t, token.IPAddress)
 
 	exit := byAction[audit_model.UserImpersonationExit]
 	require.NotNil(t, exit)
@@ -84,6 +86,8 @@ func TestAdminAuditLogTokenCredential(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	assert.True(t, strings.HasPrefix(events[0].ActorCredential, "access-token:"), "unexpected credential %q", events[0].ActorCredential)
+	assert.Equal(t, audit_model.OriginAPI, events[0].Origin)
+	assert.NotEmpty(t, events[0].IPAddress)
 }
 
 func TestAdminAuditLogExport(t *testing.T) {

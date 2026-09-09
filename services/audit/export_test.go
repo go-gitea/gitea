@@ -4,8 +4,6 @@
 package audit
 
 import (
-	"context"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -13,7 +11,7 @@ import (
 	audit_model "gitea.dev/models/audit"
 	repository_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -24,7 +22,8 @@ func TestWriteEventsAsJSON(t *testing.T) {
 	m := &repository_model.PushMirror{ID: 4, RemoteAddress: "git@example.com:repo.git"}
 	doer := &user_model.User{ID: 2, Name: "Doer"}
 
-	ctx := httplib.ContextWithRequest(context.Background(), &http.Request{RemoteAddr: "127.0.0.1:1234"})
+	ctx := reqctx.NewRequestContextForTest(t)
+	SetRequestInfo(ctx, audit_model.OriginUI, "127.0.0.1")
 
 	e := buildEvent(ctx, RecordParams{
 		Action: audit_model.RepositoryMirrorPushAdd,

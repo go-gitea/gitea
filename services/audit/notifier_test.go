@@ -4,8 +4,6 @@
 package audit
 
 import (
-	"net/http"
-	"net/url"
 	"testing"
 
 	audit_model "gitea.dev/models/audit"
@@ -13,7 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -26,7 +24,8 @@ func TestAuditNotifier(t *testing.T) {
 
 	doer := &user_model.User{ID: 2, Name: "doer"}
 	repo := &repo_model.Repository{ID: 1, OwnerName: "owner", Name: "repo"}
-	ctx := httplib.ContextWithRequest(t.Context(), &http.Request{URL: &url.URL{Path: "/owner/repo"}})
+	ctx := reqctx.NewRequestContextForTest(t)
+	SetRequestInfo(ctx, audit_model.OriginUI, "127.0.0.1")
 	notifier := new(auditNotifier)
 
 	issue := &issues_model.Issue{ID: 10, Index: 5, Title: "Issue title", Poster: doer, Repo: repo}

@@ -5,13 +5,12 @@ package audit
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 )
@@ -31,9 +30,33 @@ type originContextKeyType struct{}
 
 var originContextKey originContextKeyType
 
+type requestInfoContextKeyType struct{}
+
+var requestInfoContextKey requestInfoContextKeyType
+
+// requestInfo is what an audit event needs to know about the request it was
+// recorded for. The routers publish it, so services don't have to reach for the
+// request themselves.
+type requestInfo struct {
+	origin    audit_model.Origin
+	ipAddress string
+}
+
 // WithOrigin returns a context that records audit events with the given origin.
+// It is for entry points that serve no request, eg: the CLI or a cron task.
 func WithOrigin(ctx context.Context, origin audit_model.Origin) context.Context {
 	return context.WithValue(ctx, originContextKey, origin)
+}
+
+// SetRequestInfo attributes the audit events recorded while serving a request
+// to the given origin and client address.
+func SetRequestInfo(store reqctx.RequestDataStore, origin audit_model.Origin, ipAddress string) {
+	store.SetContextValue(requestInfoContextKey, &requestInfo{origin: origin, ipAddress: ipAddress})
+}
+
+func requestInfoFromContext(ctx context.Context) *requestInfo {
+	info, _ := ctx.Value(requestInfoContextKey).(*requestInfo)
+	return info
 }
 
 func buildEvent(ctx context.Context, params RecordParams) *audit_model.Event {
@@ -59,27 +82,20 @@ func buildEvent(ctx context.Context, params RecordParams) *audit_model.Event {
 }
 
 func getIPAddress(ctx context.Context) string {
-	return httplib.RemoteHost(httplib.RequestFromContext(ctx))
+	if info := requestInfoFromContext(ctx); info != nil {
+		return info.ipAddress
+	}
+	return ""
 }
 
 func getOrigin(ctx context.Context) audit_model.Origin {
 	if origin, ok := ctx.Value(originContextKey).(audit_model.Origin); ok && origin != "" {
 		return origin
 	}
-
-	req := httplib.RequestFromContext(ctx)
-	if req == nil {
-		return audit_model.OriginSystem
+	if info := requestInfoFromContext(ctx); info != nil && info.origin != "" {
+		return info.origin
 	}
-	if req.URL == nil {
-		return audit_model.OriginUI
-	}
-
-	requestPath := strings.TrimPrefix(req.URL.Path, setting.AppSubURL)
-	if requestPath == "/api" || strings.HasPrefix(requestPath, "/api/") {
-		return audit_model.OriginAPI
-	}
-	return audit_model.OriginUI
+	return audit_model.OriginSystem
 }
 
 // Record writes an audit event for an action against a scope entity. The actor
