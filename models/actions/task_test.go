@@ -377,13 +377,22 @@ func TestCreateTaskForRunnerGroups(t *testing.T) {
 	require.NoError(t, db.Insert(t.Context(), job))
 
 	runner := &ActionRunner{
+		UUID:        "grouped",
 		AgentLabels: []string{"ubuntu-latest"},
 		Groups:      []string{"gpu"},
 	}
+	runner.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), runner))
 
 	require.NoError(t, db.Insert(t.Context(), &ActionRunnerGroupRef{RepoID: run.RepoID, GroupName: "other"}))
 	_, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.False(t, ok)
+
+	ungrouped := &ActionRunner{UUID: "ungrouped", AgentLabels: []string{"ubuntu-latest"}}
+	ungrouped.GenerateAndFillToken()
+	require.NoError(t, db.Insert(t.Context(), ungrouped))
+	_, ok, err = CreateTaskForRunner(t.Context(), ungrouped)
 	require.NoError(t, err)
 	require.False(t, ok)
 

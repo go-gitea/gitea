@@ -263,6 +263,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			refs = refs.And(builder.Eq{"repo_id": runner.RepoID}) // only one ref can match, keep the planner off the rest
 		}
 		jobCond = jobCond.And(builder.In("repo_id", refs))
+	} else {
+		jobCond = jobCond.And(builder.NotIn("repo_id", builder.Select("repo_id").From("action_runner_group_ref")))
 	}
 	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
 

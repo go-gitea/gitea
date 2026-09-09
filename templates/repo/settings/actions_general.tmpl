@@ -31,7 +31,7 @@
 		<form class="ui form" action="{{.Link}}/runner_groups" method="post">
 			{{template "shared/actions/runner_groups_input" dict "Selected" .RunnerGroups "Known" .KnownRunnerGroups "Pattern" .RunnerGroupNamePattern "Label" (ctx.Locale.Tr "actions.general.runner_groups.assigned") "Help" (ctx.Locale.Tr "actions.general.runner_groups.help")}}
 			<div class="field">
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
 			</div>
 		</form>
 	</div>
