@@ -188,6 +188,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&actions_model.ActionArtifact{RepoID: repoID},
 		&actions_model.ActionRunJobSummary{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&actions_model.ActionRunnerGroupRef{RepoID: repoID},
 		&actions_model.ActionTasksVersion{RepoID: repoID},
 		&actions_model.ActionScopedWorkflowSource{SourceRepoID: repoID},
 		&issues_model.IssuePin{RepoID: repoID},

@@ -361,6 +361,39 @@ func TestCreateTaskForRunnerPagination(t *testing.T) {
 	assert.Equal(t, task.ID, claimed.TaskID)
 }
 
+func TestCreateTaskForRunnerGroups(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	run := &ActionRun{RepoID: 1}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	job := &ActionRunJob{
+		RunID:           run.ID,
+		RepoID:          run.RepoID,
+		Status:          StatusWaiting,
+		RunsOn:          []string{"ubuntu-latest"},
+		WorkflowPayload: []byte("on: push\njobs:\n  group-job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	runner := &ActionRunner{
+		AgentLabels: []string{"ubuntu-latest"},
+		Groups:      []string{"gpu"},
+	}
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	require.NoError(t, db.Insert(t.Context(), &ActionRunnerGroupRef{RepoID: run.RepoID, GroupName: "other"}))
+	_, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.False(t, ok)
+
+	require.NoError(t, db.Insert(t.Context(), &ActionRunnerGroupRef{RepoID: run.RepoID, GroupName: "gpu"}))
+	task, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, job.ID, task.JobID)
+}
+
 type failFirstStepWrite struct{ fired atomic.Bool }
 
 func (h *failFirstStepWrite) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {

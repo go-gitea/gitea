@@ -68,7 +68,39 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		ctx.Data["CollaborativeOwners"] = collaborativeOwners
 	}
 
+	ctx.Data["RunnerGroups"], err = actions.GetRepoRunnerGroups(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetRepoRunnerGroups", err)
+		return
+	}
+	ctx.Data["RunnerGroupNamePattern"] = actions.RunnerGroupNamePattern.String()
+	ctx.Data["KnownRunnerGroups"], err = actions.FindKnownRunnerGroupNames(ctx)
+	if err != nil {
+		ctx.ServerError("FindKnownRunnerGroupNames", err)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, tplRepoActionsGeneralSettings)
+}
+
+func UpdateRunnerGroups(ctx *context.Context) {
+	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
+
+	groups, err := actions.NormalizeRunnerGroupNames(ctx.FormString("groups"))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("actions.runners.groups_invalid"))
+		ctx.Redirect(redirectURL)
+		return
+	}
+
+	repo := ctx.Repo.Repository
+	if err := actions.SetRepoRunnerGroups(ctx, repo.OwnerID, repo.ID, groups); err != nil {
+		ctx.ServerError("SetRepoRunnerGroups", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(redirectURL)
 }
 
 func ActionsUnitPost(ctx *context.Context) {

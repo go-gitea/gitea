@@ -435,11 +435,14 @@ select.ui.dropdown {
   cursor: auto;
 }
 
+.ui.multiple.dropdown > a.label:hover { /* counteracts a.ui.label:hover, these are not links */
+  background: var(--color-label-bg);
+}
+
 .ui.multiple.dropdown > .label {
   white-space: normal;
   font-size: 1em;
   padding: 0.35714286em 0.78571429em;
-  margin: 0.14285714rem 0.28571429rem 0.14285714rem 0;
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
 }
 

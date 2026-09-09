@@ -1265,6 +1265,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
 				})
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
+				m.Post("/runner_groups", repo_setting.UpdateRunnerGroups)
 			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed

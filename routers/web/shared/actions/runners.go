@@ -201,6 +201,13 @@ func RunnersEdit(ctx *context.Context) {
 
 	ctx.Data["Runner"] = runner
 
+	ctx.Data["RunnerGroupNamePattern"] = actions_model.RunnerGroupNamePattern.String()
+	ctx.Data["KnownRunnerGroups"], err = actions_model.FindKnownRunnerGroupNames(ctx)
+	if err != nil {
+		ctx.ServerError("FindKnownRunnerGroupNames", err)
+		return
+	}
+
 	opts := actions_model.FindTaskOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -252,9 +259,24 @@ func RunnersEditPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.EditRunnerForm](ctx)
+	groups, err := actions_model.NormalizeRunnerGroupNames(form.Groups)
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("actions.runners.groups_invalid"))
+		ctx.Redirect(redirectTo)
+		return
+	}
 	runner.Description = form.Description
-
-	err = actions_model.UpdateRunner(ctx, runner, "description")
+	if util.SliceSortedEqual(runner.Groups, groups) { // leave groups alone so a description edit cannot clobber a concurrent one
+		err = actions_model.UpdateRunner(ctx, runner, "description")
+	} else {
+		runner.Groups = groups
+		err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
+			if err := actions_model.UpdateRunner(txCtx, runner, "description", "groups"); err != nil {
+				return err
+			}
+			return actions_model.IncreaseTaskVersion(txCtx, runner.OwnerID, runner.RepoID)
+		})
+	}
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.update_runner_failed"))

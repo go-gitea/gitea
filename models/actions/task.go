@@ -257,6 +257,13 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
 			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
+	if len(runner.Groups) > 0 {
+		refs := builder.Select("repo_id").From("action_runner_group_ref").Where(builder.In("group_name", runner.Groups))
+		if runner.RepoID != 0 {
+			refs = refs.And(builder.Eq{"repo_id": runner.RepoID}) // only one ref can match, keep the planner off the rest
+		}
+		jobCond = jobCond.And(builder.In("repo_id", refs))
+	}
 	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
 
 	// TODO: a more efficient way to filter labels

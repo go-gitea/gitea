@@ -60,6 +60,8 @@ type ActionRunner struct {
 
 	// Store labels defined in state file (default: .runner file) of the `runner`
 	AgentLabels []string `xorm:"TEXT"`
+	// Restricts this runner to repositories naming one of these groups
+	Groups []string `xorm:"JSON TEXT"`
 	// Store if this is a runner that only ever get one single job assigned
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
