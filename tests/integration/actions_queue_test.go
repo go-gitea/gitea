@@ -78,15 +78,14 @@ func TestActionsQueue(t *testing.T) {
 
 	sessionAdmin := loginUser(t, "user1") // site admin
 	sessionUser2 := loginUser(t, user2.Name)
-	sessionUser4 := loginUser(t, "user4") // unrelated user (repo1 is public, so may read but not reorder)
+	sessionUser4 := loginUser(t, "user4") // unrelated user (repo1 is public, so may read the queue)
 
 	const repoQueue = "/user2/repo1/actions/queue"
 
-	// Repo Actions-tab queue: a repo admin sees the queued job, but the view is read-only.
+	// Repo Actions-tab queue: a repo admin sees the queued job.
 	body := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()
 	assert.Contains(t, body, queuedJobName)
 	assert.Contains(t, body, "actions-queue-tbody")
-	assert.NotContains(t, body, "drag-handle", "the repo queue is read-only, reordering is site-admin only")
 	assert.Contains(t, body, "actions-management", "queue sits under Management in the Actions sidebar")
 	assert.NotContains(t, body, callerJobName, "a reusable caller occupies no runner, so it is not a running job")
 	assert.Contains(t, body, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`)
@@ -100,7 +99,6 @@ func TestActionsQueue(t *testing.T) {
 	// A non-admin reader of the public repo may view the queue too.
 	body4 := sessionUser4.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()
 	assert.Contains(t, body4, queuedJobName)
-	assert.NotContains(t, body4, "drag-handle")
 
 	// The instance-wide admin queue lists the same job.
 	const adminQueue = "/-/admin/actions/queue"
@@ -126,25 +124,10 @@ func TestActionsQueue(t *testing.T) {
 	byRepo := adminBody("?repo_id=" + strconv.FormatInt(repo3.ID, 10))
 	assert.Contains(t, byRepo, otherJobName)
 	assert.NotContains(t, byRepo, queuedJobName, "repo1's job is not repo3's")
-	// An owner/repository filter hides the reorder handles: dropped-row neighbours would not be the real ones.
-	assert.NotContains(t, byRepo, "drag-handle")
 
 	// The auto-refresh endpoint returns just the list fragment (no full-page chrome), still listing the job.
 	refresh := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?refresh=1"), http.StatusOK).Body.String()
 	assert.Contains(t, refresh, `id="actions-queue-list"`)
 	assert.Contains(t, refresh, queuedJobName)
 	assert.NotContains(t, refresh, `<html`, "the refresh response is a fragment, not a full page")
-
-	// queue_rank orders the whole instance, so repos have no reorder endpoint at all: a repo admin could
-	// otherwise push their jobs ahead of every other repository's.
-	moveForm := map[string]string{"id": strconv.FormatInt(job.ID, 10)}
-	sessionUser2.MakeRequest(t, NewRequestWithValues(t, "POST", repoQueue+"/move", moveForm), http.StatusNotFound)
-	sessionUser4.MakeRequest(t, NewRequestWithValues(t, "POST", repoQueue+"/move", moveForm), http.StatusNotFound)
-	assert.Zero(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).QueueRank)
-
-	sessionAdmin.MakeRequest(t, NewRequestWithValues(t, "POST", adminQueue+"/move", moveForm), http.StatusNoContent)
-
-	// The admin move promoted the job: it now carries a negative queue rank.
-	moved := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID})
-	assert.Negative(t, moved.QueueRank)
 }

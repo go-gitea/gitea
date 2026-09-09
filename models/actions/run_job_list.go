@@ -90,10 +90,9 @@ func (jobs ActionJobList) LoadAttributes(ctx context.Context, withRepo bool) err
 }
 
 // QueuedJobsOrderBy mirrors the runner pickup order (see CreateTaskForRunner): waiting jobs are
-// claimed by queue_rank first (manually reordered jobs carry a negative rank and sort ahead of the
-// natural, rank-0 FIFO block), then oldest-ready-first keyed on (updated, id).
+// claimed oldest-ready-first, keyed on (updated, id).
 // Keep this in sync with the ORDER BY / keyset cursor in CreateTaskForRunner.
-const QueuedJobsOrderBy db.SearchOrderBy = "`action_run_job`.queue_rank ASC, `action_run_job`.updated ASC, `action_run_job`.id ASC"
+const QueuedJobsOrderBy db.SearchOrderBy = "`action_run_job`.updated ASC, `action_run_job`.id ASC"
 
 // RunningJobsOrderBy lists currently running jobs longest-running-first.
 const RunningJobsOrderBy db.SearchOrderBy = "`action_run_job`.started ASC, `action_run_job`.id ASC"

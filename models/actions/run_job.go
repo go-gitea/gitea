@@ -56,17 +56,6 @@ type ActionRunJob struct {
 
 	Status Status `xorm:"index index(pickup)"`
 
-	// QueueRank positions a waiting job in the build queue for runner pickup.
-	// 0 (default) means the natural FIFO position; manually reordered jobs get a negative,
-	// spaced rank (more negative = picked earlier), so the 0-block always sorts at the tail.
-	// It is only meaningful while the job is waiting and unclaimed; stale ranks on
-	// running/finished jobs are never read.
-	//
-	// The "pickup" composite index (task_id, status, queue_rank, updated) matches CreateTaskForRunner's
-	// WHERE task_id=0 AND status=waiting ORDER BY queue_rank, updated, id: queue_rank alone is a poor
-	// index key (0 for nearly every row), so it is only indexed behind task_id/status.
-	QueueRank int64 `xorm:"index(pickup) NOT NULL DEFAULT 0"`
-
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
 	// IsConcurrencyEvaluated is only valid/needed when this job's RawConcurrency is not empty.

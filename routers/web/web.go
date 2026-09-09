@@ -530,7 +530,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	addSettingsQueueRoutes := func() {
 		m.Group("/queue", func() {
 			m.Get("", shared_actions.Queue)
-			m.Post("/move", shared_actions.QueueMovePost)
 		})
 	}
 

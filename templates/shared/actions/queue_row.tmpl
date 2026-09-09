@@ -1,13 +1,6 @@
 {{$root := ctx.RootData}}
 {{$job := .Job}}
 <tr {{if .IsQueued}}id="actions-queue-job-{{$job.ID}}" data-job-id="{{$job.ID}}"{{end}}>
-	{{if $root.CanReorder}}
-		{{if .IsQueued}}
-			<td class="tw-w-1"><span class="drag-handle tw-cursor-grab" data-tooltip-content="{{ctx.Locale.Tr "actions.queue.reorder"}}">{{svg "octicon-grabber"}}</span></td>
-		{{else}}
-			<td></td>
-		{{end}}
-	{{end}}
 	<td>{{if and .IsQueued $root.ShowQueuePositions}}{{.Position}}{{end}}</td>
 	<td>
 		<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $job.Status.String)}}">

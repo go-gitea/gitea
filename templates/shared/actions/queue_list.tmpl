@@ -1,7 +1,6 @@
 <div id="actions-queue-list" data-global-init="initActionQueueList"
 	data-queue-refresh-link="{{.QueueRefreshLink}}"
 	data-queue-refresh-interval="{{.QueueRefreshIntervalMs}}"
-	{{if .CanReorder}}data-queue-move-link="{{.QueueMoveLink}}"{{end}}
 >
 <div class="runner-container">
 	<div class="ui top attached header flex-left-right">
@@ -58,13 +57,11 @@
 			</div>
 		</div>
 	</div>
-	{{if .CanReorder}}<div class="ui attached info message tw-py-2">{{ctx.Locale.Tr "actions.queue.reorder_hint"}}</div>{{end}}
 	{{if or .RunningJobs .QueuedJobs}}
 	<div class="ui attached table segment">
 		<table class="ui very basic table unstackable">
 			<thead>
 				<tr>
-					{{if .CanReorder}}<th></th>{{end}}
 					<th>#</th>
 					<th>{{ctx.Locale.Tr "actions.runs.status"}}</th>
 					{{if .ShowRepoColumn}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
@@ -75,7 +72,6 @@
 					<th>{{ctx.Locale.Tr "actions.queue.waiting_or_started"}}</th>
 				</tr>
 			</thead>
-			{{/* running jobs head the list in their own tbody, so dragging can never mix them into the queued order */}}
 			<tbody>
 				{{range .RunningJobs}}
 					{{template "shared/actions/queue_row" (dict "Job" . "IsQueued" false "RunnerName" (index $.RunningJobRunners .ID))}}

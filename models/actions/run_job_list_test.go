@@ -65,7 +65,7 @@ func TestActionJobList_SortMatrixGroupsByName(t *testing.T) {
 }
 
 // TestFindRunJobOptions_Queue verifies the build-queue query mirrors the runner pickup predicate:
-// waiting + unclaimed + non-reusable jobs, ordered by (queue_rank ASC, updated ASC, id ASC).
+// waiting + unclaimed + non-reusable jobs, ordered by (updated ASC, id ASC).
 func TestFindRunJobOptions_Queue(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()

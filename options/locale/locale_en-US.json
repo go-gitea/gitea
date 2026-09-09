@@ -3933,8 +3933,6 @@
   "actions.queue.filter_owner_no_select": "All owners",
   "actions.queue.filter_repo_no_select": "All repositories",
   "actions.queue.filter_status_no_select": "Any status",
-  "actions.queue.reorder": "Drag to reorder",
-  "actions.queue.reorder_hint": "Drag a job to promote it in the queue. It still runs only once a runner with matching labels is free.",
   "actions.variables": "Variables",
   "actions.variables.management": "Variables Management",
   "actions.variables.creation": "Add Variable",

@@ -24,9 +24,6 @@ type QueueScope struct {
 	OwnerID int64 // >0: an org/user; both 0: the whole instance
 	IsRepo  bool  // repo scope hides the (redundant) repository column
 
-	CanReorder bool // the viewer may drag-reorder queued jobs (site admins only, further limited to the first page)
-
-	MoveLink     string            // POST target for reordering
 	FullTemplate templates.TplName // full-page template for the initial (non-refresh) render
 }
 
@@ -36,11 +33,7 @@ func Queue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "queue"
 
-	RenderQueue(ctx, QueueScope{
-		CanReorder:   true,
-		MoveLink:     setting.AppSubURL + "/-/admin/actions/queue/move",
-		FullTemplate: "admin/actions",
-	})
+	RenderQueue(ctx, QueueScope{FullTemplate: "admin/actions"})
 }
 
 // queueViewJobCols lists the ActionRunJob columns the build-queue view actually reads. The row also
@@ -151,10 +144,6 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	ctx.Data["QueueFilterStatuses"] = QueueFilterStatuses()
 	// Positions are absolute pickup positions, which an owner/repository filter would silently misnumber.
 	ctx.Data["ShowQueuePositions"] = !filtered
-	// Reordering renumbers the first page only (the head runners pick from), so gate the handles to page 1.
-	// An owner/repository filter also hides them: the dropped row's neighbours may not be the real ones.
-	ctx.Data["CanReorder"] = s.CanReorder && page == 1 && !filtered
-	ctx.Data["QueueMoveLink"] = s.MoveLink
 
 	pager := context.NewPagerBuilder(ctx).TotalCount(queuedTotal).PerPageLimit(pageSize).CurPage(page).Build()
 	pager.RemoveParam(container.SetOf("refresh")) // keep the auto-refresh flag out of the page links
@@ -284,26 +273,4 @@ func runningJobRunnerNames(ctx *context.Context, jobs []*actions_model.ActionRun
 		}
 	}
 	return names, nil
-}
-
-// QueueMovePost reorders a queued job on the admin queue settings page (site-admin gated by the route group).
-// Reordering is site-admin only: queue_rank orders the whole instance, so a repo-scoped reorder would move
-// that repo's jobs ahead of every other repository's.
-func QueueMovePost(ctx *context.Context) {
-	movedID := ctx.FormInt64("id")
-	if movedID == 0 {
-		ctx.HTTPError(http.StatusBadRequest, "missing job id")
-		return
-	}
-	ok, err := actions_model.MoveQueuedJob(ctx, movedID, ctx.FormInt64("after"))
-	if err != nil {
-		ctx.ServerError("MoveQueuedJob", err)
-		return
-	}
-	if !ok {
-		// The client's view is stale (a job left the queue), so it re-fetches the list on any error status.
-		ctx.HTTPError(http.StatusConflict)
-		return
-	}
-	ctx.Status(http.StatusNoContent)
 }

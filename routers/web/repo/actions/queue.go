@@ -12,8 +12,7 @@ import (
 )
 
 // Queue renders this repository's Actions build queue (queued jobs in pickup order plus running jobs)
-// inside the Actions tab. The view is read-only: reordering is site-admin only, because queue_rank is a
-// global ordering key (see actions_model.MoveQueuedJob).
+// inside the Actions tab.
 func Queue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
