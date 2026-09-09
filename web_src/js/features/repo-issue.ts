@@ -247,8 +247,8 @@ export function initRepoPullRequestReview() {
 
   // The following part is only for diff views that expose inline comment controls:
   // PR files (.repository.pull.diff) and commit diffs (new-comment URL under /commit/).
-  const isPullDiff = !!document.querySelector('.repository.pull.diff');
-  const isCommitDiff = !!document.querySelector('.repository.diff [data-new-comment-url*="/commit/"]');
+  const isPullDiff = Boolean(document.querySelector('.repository.pull.diff'));
+  const isCommitDiff = Boolean(document.querySelector('.repository.diff [data-new-comment-url*="/commit/"]'));
   if (!isPullDiff && !isCommitDiff) return;
 
   const elReviewBtn = document.querySelector('.js-btn-review');
