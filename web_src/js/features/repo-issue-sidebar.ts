@@ -6,6 +6,7 @@ import {parseIssuePageInfo} from '../utils.ts';
 import {html} from '../utils/html.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
+import type {FomanticApiResponse, Issue} from '../types.ts';
 
 const {appSubUrl} = window.config;
 
@@ -64,8 +65,8 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
     apiSettings: {
       url: issueSearchUrl,
       rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
-      onResponse(response: any) {
-        const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
+      onResponse(response: Issue[]) {
+        const filteredResponse: FomanticApiResponse<{value: number, name: string}> = {success: true, results: []};
         const currIssueId = elDropdown.getAttribute('data-issue-id');
         // Parse the response from the api to work with our dropdown
         for (const issue of response) {

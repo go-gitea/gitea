@@ -7,6 +7,10 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {performFetchAction} from '../modules/fetch-action.ts';
 import type {SortableEvent} from 'sortablejs';
 
+type IssuePoster = {avatar_link: string, full_name: string, username: string};
+type ProcessedIssuePoster = {type: 'html', html: string};
+type IssuePosterResponse = {results: IssuePoster[]};
+
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');
   if (!issueSelectAll) return; // logged out state
@@ -100,7 +104,7 @@ function initDropdownUserRemoteSearch(el: Element) {
     elMenu.querySelector(`.item[data-value="${CSS.escape(username)}"]`)?.classList.add('selected');
   };
 
-  const processedResults: Record<string, string>[] = []; // to be used by dropdown to generate menu items
+  const processedResults: ProcessedIssuePoster[] = []; // to be used by dropdown to generate menu items
   const syncItemFromInput = () => {
     const inputVal = elSearchInput.value.trim();
     elItemFromInput.setAttribute('data-value', inputVal);
@@ -121,7 +125,7 @@ function initDropdownUserRemoteSearch(el: Element) {
     onMenuUpdated: () => syncItemFromInput(),
     apiSettings: {
       url: `${searchUrl}&q={query}`,
-      onResponse(resp: any) {
+      onResponse(resp: IssuePosterResponse) {
         // the content is provided by backend IssuePosters handler
         processedResults.length = 0;
         for (const item of resp.results) {
@@ -132,8 +136,7 @@ function initDropdownUserRemoteSearch(el: Element) {
           const htmlItem = html`<div class="item" data-value="${item.username}">${htmlRaw(htmlItemInner)}</div>`;
           processedResults.push({type: 'html', html: htmlItem});
         }
-        resp.results = processedResults;
-        return resp;
+        return {results: processedResults};
       },
     },
   });

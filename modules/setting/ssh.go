@@ -146,9 +146,9 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	}
 	if len(SSH.TrustedUserCAKeys) > 0 {
 		// Set the default as email,username otherwise we can leave it empty
-		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email") // FIXME: INI-MUST-SIDE-EFFECT
 	} else {
-		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off")
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off") // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
@@ -156,7 +156,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
 	minimumKeySizes := rootCfg.Section("ssh.minimum_key_sizes").Keys()
 	for _, key := range minimumKeySizes {
-		if key.MustInt() != -1 {
+		if key.MustInt() != -1 { // FIXME: INI-MUST-SIDE-EFFECT
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
 		} else {
 			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))

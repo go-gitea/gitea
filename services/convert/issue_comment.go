@@ -23,7 +23,7 @@ func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_mo
 		IssueURL:    c.IssueURL(ctx),
 		PRURL:       c.PRURL(ctx),
 		Body:        c.Content,
-		Attachments: ToAPIAttachments(repo, c.Attachments),
+		Attachments: ToAPIAttachments(ctx, repo, c.Attachments),
 		Created:     c.CreatedUnix.AsTime(),
 		Updated:     c.UpdatedUnix.AsTime(),
 	}
