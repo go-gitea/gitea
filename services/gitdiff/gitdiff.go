@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1293,36 +1294,45 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	return name[2:], ambiguity
 }
 
-// DiffOptions represents the options for a DiffRange
-type DiffOptions struct {
+type DiffCommonOptions struct {
 	BeforeCommitID     string
 	AfterCommitID      string
-	SkipTo             string
-	MaxLines           int
-	MaxLineCharacters  int
-	MaxFiles           int
 	WhitespaceBehavior gitcmd.TrustedCmdArgs
-	DirectComparison   bool
 }
 
-func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, beforeCommitID string, afterCommit *git.Commit) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, err error) {
-	commitObjectFormat := afterCommit.ID.Type()
-	isBeforeCommitIDEmpty := beforeCommitID == "" || beforeCommitID == commitObjectFormat.EmptyObjectID().String()
+type DiffOptions struct {
+	DiffCommonOptions
+	SkipTo            string
+	MaxLines          int
+	MaxLineCharacters int
+	MaxFiles          int
+}
 
+// prepareDiffCommits prepares the before and after commits for a diff operation based on the provided options.
+// The "before commit" can be nil (the empty tree ID is used) if there is no "before commit" can be determined.
+func prepareDiffCommits(ctx context.Context, gitRepo *git.Repository, opts *DiffCommonOptions) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, afterCommit *git.Commit, err error) {
+	afterCommit, err = gitRepo.GetCommit(ctx, opts.AfterCommitID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	commitObjectFormat := afterCommit.ID.Type()
+	isBeforeCommitIDEmpty := opts.BeforeCommitID == "" || opts.BeforeCommitID == commitObjectFormat.EmptyObjectID().String()
 	if isBeforeCommitIDEmpty && afterCommit.ParentCount() == 0 {
+		// "git diff 4b825dc642cb6eb9a060e54bf8d69288fbee4904 after-commit" can work with tree ID as before commit ID
 		actualBeforeCommitID = commitObjectFormat.EmptyTree()
 	} else {
 		if isBeforeCommitIDEmpty {
 			actualBeforeCommit, err = afterCommit.Parent(ctx, gitRepo, 0)
 		} else {
-			actualBeforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
+			actualBeforeCommit, err = gitRepo.GetCommit(ctx, opts.BeforeCommitID)
 		}
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		actualBeforeCommitID = actualBeforeCommit.ID
 	}
-	return actualBeforeCommit, actualBeforeCommitID, nil
+	return actualBeforeCommit, actualBeforeCommitID, afterCommit, nil
 }
 
 // getDiffBasic builds a Diff between two commits of a repository.
@@ -1330,12 +1340,7 @@ func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, befo
 // The whitespaceBehavior is either an empty string or a git flag
 // Returned beforeCommit could be nil if the afterCommit doesn't have parent commit
 func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (_ *Diff, beforeCommit, afterCommit *git.Commit, err error) {
-	afterCommit, err = gitRepo.GetCommit(ctx, opts.AfterCommitID)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	beforeCommit, beforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, opts.BeforeCommitID, afterCommit)
+	beforeCommit, beforeCommitID, afterCommit, err := prepareDiffCommits(ctx, gitRepo, &opts.DiffCommonOptions)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1494,26 +1499,41 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 }
 
 type DiffShortStat struct {
-	NumFiles, TotalAddition, TotalDeletion int
+	NumFiles, TotalAddition, TotalDeletion int // these fields are used in templates directly
 }
 
-func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
-	afterCommit, err := gitRepo.GetCommit(ctx, afterCommitID)
+func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, opts *DiffCommonOptions) (*DiffShortStat, error) {
+	_, actualBeforeCommitID, afterCommit, err := prepareDiffCommits(ctx, gitRepo, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, beforeCommitID, afterCommit)
+	stat := &DiffShortStat{}
+	cmd := gitcmd.NewCommand("diff", "--shortstat").
+		AddArguments(opts.WhitespaceBehavior...).
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
+		AddDynamicArguments(actualBeforeCommitID.String(), afterCommit.ID.String())
+	// output: "  9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
+	stdout, _, err := cmd.WithRepo(gitRepo).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(ctx, gitRepo, nil, actualBeforeCommitID.String(), afterCommitID)
-	if err != nil {
-		return nil, err
+	stdout = strings.TrimSpace(stdout)
+	for field := range strings.SplitSeq(stdout, ",") {
+		field = strings.TrimSpace(field)
+		num, suffix, ok := strings.Cut(field, " ")
+		switch {
+		case strings.Contains(suffix, "file") && strings.Contains(suffix, "change"):
+			stat.NumFiles, _ = strconv.Atoi(num)
+		case strings.Contains(suffix, "insertion"):
+			stat.TotalAddition, _ = strconv.Atoi(num)
+		case strings.Contains(suffix, "deletion"):
+			stat.TotalDeletion, _ = strconv.Atoi(num)
+		case ok:
+			setting.PanicInDevOrTesting("unexpected diff shortstat output: %s", stdout)
+		}
 	}
-	return diff, nil
+	return stat, nil
 }
 
 // SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff

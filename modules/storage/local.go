@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -138,7 +139,7 @@ func (l *LocalStorage) ServeDirectURL(path, name, _ string, reqParams *ServeDire
 }
 
 func (l *LocalStorage) normalizeWalkError(err error) error {
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) {
 		// ignore it because the file may be deleted during the walk, and we don't care about it
 		return nil
 	}

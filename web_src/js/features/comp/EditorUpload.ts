@@ -109,7 +109,8 @@ async function handleUploadFiles(editor: CodeMirrorEditor | TextareaEditor, drop
 
     editor.insertPlaceholder(placeholder);
     await uploadFile(dropzoneEl, file); // the "file" will get its "uuid" during the upload
-    editor.replacePlaceholder(placeholder, generateMarkdownLinkForAttachment(file, {width, dppx}));
+    const fileWithUuid = {name: file.name, uuid: (file as unknown as {uuid: string}).uuid};
+    editor.replacePlaceholder(placeholder, generateMarkdownLinkForAttachment(fileWithUuid, {width, dppx}));
   }
 }
 

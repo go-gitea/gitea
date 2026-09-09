@@ -94,6 +94,10 @@
       "allowedVersions": "<4.0.0-rc.4", // rc.4 changes block scalar serialization, wait for stable release
     },
     {
+      "matchPackageNames": ["github.com/yuin/goldmark"],
+      "allowedVersions": "<2.0.0", // v2 is a rewrite, the markdown renderer and extensions need a migration
+    },
+    {
       "matchPackageNames": ["postgres"],
       "allowedVersions": "/^14($|[.-])/", // pin to oldest supported major
     },

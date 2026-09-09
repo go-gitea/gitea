@@ -37,7 +37,7 @@
 			{{template "user/auth/captcha" .}}
 
 			<div class="field">
-				<button class="ui primary button tw-w-full" tabindex="3">
+				<button type="submit" class="ui primary button tw-w-full" tabindex="3">
 					{{if .LinkAccountMode}}
 						{{ctx.Locale.Tr "auth.oauth_signin_submit"}}
 					{{else}}
