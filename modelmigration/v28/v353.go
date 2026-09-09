@@ -17,12 +17,12 @@ import (
 //
 // It also adds the "pickup" composite index (task_id, status, queue_rank, updated) matching the
 // runner-poll query's WHERE task_id=0 AND status=waiting ORDER BY queue_rank, updated, id: queue_rank
-// alone is a poor sort key (0 for nearly every row), so task_id/status must lead it to stay index-ordered.
+// alone is a poor index key (0 for nearly every row), so task_id/status must lead it.
 func AddQueueRankToActionRunJob(_ context.Context, x base.EngineMigration) error {
 	type ActionRunJob struct {
 		TaskID    int64              `xorm:"index(pickup)"`
 		Status    int                `xorm:"index(pickup)"`
-		QueueRank int64              `xorm:"index index(pickup) NOT NULL DEFAULT 0"`
+		QueueRank int64              `xorm:"index(pickup) NOT NULL DEFAULT 0"`
 		Updated   timeutil.TimeStamp `xorm:"index(pickup)"`
 	}
 

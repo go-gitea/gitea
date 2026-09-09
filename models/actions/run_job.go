@@ -63,9 +63,9 @@ type ActionRunJob struct {
 	// running/finished jobs are never read.
 	//
 	// The "pickup" composite index (task_id, status, queue_rank, updated) matches CreateTaskForRunner's
-	// WHERE task_id=0 AND status=waiting ORDER BY queue_rank, updated, id: queue_rank alone is a poor sort
-	// key (0 for nearly every row), so pickup needs task_id/status ahead of it to stay index-ordered.
-	QueueRank int64 `xorm:"index index(pickup) NOT NULL DEFAULT 0"`
+	// WHERE task_id=0 AND status=waiting ORDER BY queue_rank, updated, id: queue_rank alone is a poor
+	// index key (0 for nearly every row), so it is only indexed behind task_id/status.
+	QueueRank int64 `xorm:"index(pickup) NOT NULL DEFAULT 0"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
