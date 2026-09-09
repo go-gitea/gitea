@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	git_model "gitea.dev/models/git"
@@ -87,48 +86,31 @@ func Branches(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBranch)
 }
 
-// DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
-	defer jsonRedirectBranches(ctx)
 	branchName := ctx.FormString("name")
-
-	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
-		switch {
-		case git.IsErrBranchNotExist(err):
-			log.Debug("DeleteBranch: Can't delete non existing branch '%s'", branchName)
-			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
-		case errors.Is(err, repo_service.ErrBranchIsDefault):
-			log.Debug("DeleteBranch: Can't delete default branch '%s'", branchName)
-			ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
-		case errors.Is(err, git_model.ErrBranchIsProtected):
-			log.Debug("DeleteBranch: Can't delete protected branch '%s'", branchName)
-			ctx.Flash.Error(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
-		default:
-			log.Error("DeleteBranch: %v", err)
-			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
-		}
-
-		return
+	err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName)
+	switch {
+	case err == nil:
+		ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", branchName))
+		ctx.JSONRedirect("")
+	case git.IsErrBranchNotExist(err):
+		ctx.JSONError(ctx.Tr("repo.branch.deletion_failed", branchName))
+	case errors.Is(err, repo_service.ErrBranchIsDefault):
+		ctx.JSONError(ctx.Tr("repo.branch.default_deletion_failed", branchName))
+	case errors.Is(err, git_model.ErrBranchIsProtected):
+		ctx.JSONError(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
+	default:
+		log.Error("DeleteBranch: %v", err)
+		ctx.JSONError(ctx.Tr("repo.branch.deletion_failed", branchName))
 	}
-
-	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", branchName))
 }
 
-// RestoreBranchPost responses for delete merged branch
 func RestoreBranchPost(ctx *context.Context) {
-	defer jsonRedirectBranches(ctx)
-
 	branchID := ctx.FormInt64("branch_id")
-	branchName := ctx.FormString("name")
 
 	deletedBranch, err := git_model.GetDeletedBranchByID(ctx, ctx.Repo.Repository.ID, branchID)
 	if err != nil {
-		log.Error("GetDeletedBranchByID: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
-		return
-	} else if deletedBranch == nil {
-		log.Debug("RestoreBranch: Can't restore branch[%d] '%s', as it does not exist", branchID, branchName)
-		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -138,11 +120,11 @@ func RestoreBranchPost(ctx *context.Context) {
 	}); err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			log.Debug("RestoreBranch: Can't restore branch '%s', since one with same name already exist", deletedBranch.Name)
-			ctx.Flash.Error(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
+			ctx.JSONError(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
 			return
 		}
 		log.Error("RestoreBranch: CreateBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
+		ctx.JSONError(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
 		return
 	}
 
@@ -163,10 +145,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.restore_success", deletedBranch.Name))
-}
-
-func jsonRedirectBranches(ctx *context.Context) {
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/branches?page=" + url.QueryEscape(ctx.FormString("page")))
+	ctx.JSONRedirect("")
 }
 
 // CreateBranch creates new branch in repository
