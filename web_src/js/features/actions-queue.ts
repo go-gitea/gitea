@@ -16,8 +16,6 @@ function bindActionQueueList(el: HTMLElement): void {
   // The queued <tbody> the Sortable instance is bound to. Re-bind when a morph replaces the node.
   let boundTbody: HTMLElement | null = null;
   let sortable: SortableType | null = null;
-  // Set by onUpdate when a drop changed the order, consumed by the onEnd that follows it.
-  let movedItem: HTMLElement | null = null;
 
   async function refresh() {
     const resp = await GET(el.getAttribute('data-queue-refresh-link')!);
@@ -72,18 +70,14 @@ function bindActionQueueList(el: HTMLElement): void {
       onStart() {
         reordering = true;
       },
-      // onUpdate fires only when the drop actually changed the order; onEnd also fires for a no-op drag.
-      onUpdate(e) {
-        movedItem = e.item;
-      },
-      onEnd() {
-        if (!movedItem) {
+      onEnd(e) {
+        // a drop that ends where it started needs no request, just release the refresh guard
+        if (e.oldIndex === e.newIndex) {
           reordering = false;
           return;
         }
         sortable?.option('disabled', true);
-        persistMove(moveLink, movedItem);
-        movedItem = null;
+        persistMove(moveLink, e.item);
       },
     });
   }
