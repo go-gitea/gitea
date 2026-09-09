@@ -423,6 +423,23 @@ func TestParseModuleArchive_EnforcesSizeLimit(t *testing.T) {
 	require.ErrorIs(t, err, ErrArchiveTooLarge)
 }
 
+func TestParseModuleArchive_ChargesPaddedPayload(t *testing.T) {
+	// A payload occupies whole 512-byte blocks on the wire and tar.Reader
+	// consumes the padding implicitly, so the ceiling must charge the padded
+	// size or it can be exceeded by up to 511 bytes per entry.
+	body := strings.Repeat("#", 520) // comment-only .tf: one block + 8 bytes -> padded to 1024
+	archive := buildArchive(t, map[string]string{"main.tf": body})
+
+	// Header (512) + raw payload (520) = 1032 would fit under 1100, but the
+	// padded wire size (512 + 1024 = 1536) must not.
+	_, err := ParseModuleArchive(bytes.NewReader(archive), 1100)
+	require.ErrorIs(t, err, ErrArchiveTooLarge)
+
+	// Exactly the padded size is allowed.
+	_, err = ParseModuleArchive(bytes.NewReader(archive), 1536)
+	require.NoError(t, err)
+}
+
 func TestParseModuleArchive_NoTFFiles(t *testing.T) {
 	archive := buildArchive(t, map[string]string{
 		"README.md": "# nothing here\n",

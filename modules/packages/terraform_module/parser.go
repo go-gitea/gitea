@@ -48,9 +48,9 @@ const (
 	// allocation per entry, bypassing the byte ceiling entirely.
 	maxArchiveEntries = 32 << 10 // 32768
 
-	// tarHeaderSize is the on-the-wire size of a tar entry header. It is
-	// charged against the byte ceiling so empty entries still cost budget.
-	tarHeaderSize = 512
+	// tarBlockSize is the tar on-the-wire unit: every entry header is one
+	// block and payloads are padded up to a block boundary.
+	tarBlockSize = 512
 
 	// maxIndexedDirDepth is the deepest directory level read for metadata:
 	// `<wrapper>/modules/<name>` is three components.
@@ -169,32 +169,24 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		return df
 	}
 
-	// handleFile reads .tf and README payloads for the given directory
-	// level and discards everything else, while always counting bytes
-	// against the size cap.
+	// handleFile keeps .tf and README payloads for the given directory
+	// level; anything else is left for the next tr.Next to skip. The
+	// entry's size has already been charged against the ceiling.
 	handleFile := func(dir, base string, size int64) error {
 		lower := strings.ToLower(base)
 		switch {
 		case strings.HasSuffix(lower, ".tf"):
-			data, n, err := readCapped(tr, size, maxSize, consumed)
+			data, err := readEntry(tr, size)
 			if err != nil {
 				return err
 			}
-			consumed += n
 			dirEntry(dir).tf[base] = data
 		case lower == "readme.md" || lower == "readme":
-			data, n, err := readCapped(tr, size, maxSize, consumed)
+			data, err := readEntry(tr, size)
 			if err != nil {
 				return err
 			}
-			consumed += n
 			dirEntry(dir).readme = string(data)
-		default:
-			n, err := skipCapped(tr, maxSize, consumed)
-			if err != nil {
-				return err
-			}
-			consumed += n
 		}
 		return nil
 	}
@@ -209,13 +201,14 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			return nil, fmt.Errorf("tar read: %w", err)
 		}
 
-		// Charge the header itself so an archive of empty entries still
-		// exhausts the byte budget, and bound the entry count outright.
+		// Charge each entry's full on-the-wire size before reading anything
+		// so the byte ceiling is strict and an archive of empty entries
+		// still exhausts it; bound the entry count outright as well.
 		entries++
 		if entries > maxArchiveEntries {
 			return nil, ErrTooManyArchiveEntries
 		}
-		consumed += tarHeaderSize
+		consumed += tarWireSize(hdr.Size)
 		if consumed > maxSize {
 			return nil, ErrArchiveTooLarge
 		}
@@ -237,14 +230,7 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		}
 
 		if clean == "." || isArchiveJunk(clean) {
-			if hdr.Typeflag == tar.TypeReg {
-				n, err := skipCapped(tr, maxSize, consumed)
-				if err != nil {
-					return nil, err
-				}
-				consumed += n
-			}
-			continue
+			continue // unread payload is skipped by the next tr.Next
 		}
 
 		// Record top-level directories so we can spot a single wrapper dir.
@@ -275,11 +261,6 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			topLevelFile = true
 		}
 		if dirDepth(dir) > maxIndexedDirDepth {
-			n, err := skipCapped(tr, maxSize, consumed)
-			if err != nil {
-				return nil, err
-			}
-			consumed += n
 			continue
 		}
 		if err := handleFile(dir, base, hdr.Size); err != nil {
@@ -500,43 +481,31 @@ func isArchiveJunk(clean string) bool {
 	return false
 }
 
-// readCapped reads the current tar entry into memory, allocating exactly
-// the size declared by its header so an entry with no payload costs no
-// allocation at all. size is the header's declared length; the read is
-// rejected when it would push the running total past maxSize.
-func readCapped(tr *tar.Reader, size, maxSize, consumed int64) ([]byte, int64, error) {
-	remaining := maxSize - consumed
-	if remaining <= 0 || size > remaining {
-		return nil, 0, ErrArchiveTooLarge
+// tarWireSize returns the bytes an entry occupies in the tar stream: one
+// header block plus its payload padded to a whole block. This is what the
+// byte ceiling must charge, because tar.Reader consumes the padding
+// silently. Absurd declared sizes are clamped past any ceiling instead of
+// being allowed to overflow the arithmetic.
+func tarWireSize(payload int64) int64 {
+	if payload < 0 || payload > maxParseSize {
+		return maxParseSize + 1
 	}
+	return tarBlockSize + (payload+tarBlockSize-1)/tarBlockSize*tarBlockSize
+}
+
+// readEntry reads the current tar entry into memory, allocating exactly
+// the size declared by its header so an entry with no payload costs no
+// allocation at all. The caller has already charged size against the
+// byte ceiling.
+func readEntry(tr *tar.Reader, size int64) ([]byte, error) {
 	if size <= 0 {
-		return nil, 0, nil
+		return nil, nil
 	}
 	data := make([]byte, int(size))
 	if _, err := io.ReadFull(tr, data); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-	return data, size, nil
-}
-
-// skipCapped discards an entry's bytes while still counting them
-// against the archive size limit.
-func skipCapped(tr *tar.Reader, maxSize, consumed int64) (int64, error) {
-	if maxSize <= 0 {
-		return io.Copy(io.Discard, tr)
-	}
-	remaining := maxSize - consumed
-	if remaining <= 0 {
-		return 0, ErrArchiveTooLarge
-	}
-	n, err := io.Copy(io.Discard, io.LimitReader(tr, remaining+1))
-	if err != nil {
-		return 0, err
-	}
-	if n > remaining {
-		return 0, ErrArchiveTooLarge
-	}
-	return n, nil
+	return data, nil
 }
 
 // parseRoot parses every .tf file in the root module and aggregates
