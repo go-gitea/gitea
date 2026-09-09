@@ -245,9 +245,11 @@ export function initRepoPullRequestReview() {
     handleReply(el);
   });
 
-  // The following part is only for diff views
-  // PR files page and commit diff page both expose inline comment controls
-  if (!document.querySelector('.repository.diff')) return;
+  // The following part is only for diff views that expose inline comment controls:
+  // PR files (.repository.pull.diff) and commit diffs (new-comment URL under /commit/).
+  const isPullDiff = !!document.querySelector('.repository.pull.diff');
+  const isCommitDiff = !!document.querySelector('.repository.diff [data-new-comment-url*="/commit/"]');
+  if (!isPullDiff && !isCommitDiff) return;
 
   const elReviewBtn = document.querySelector('.js-btn-review');
   const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
