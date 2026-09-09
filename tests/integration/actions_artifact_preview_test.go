@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/test"
+	actions_web "gitea.dev/routers/web/repo/actions"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -192,6 +193,24 @@ func TestActionsArtifactPreview(t *testing.T) {
 		req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview?path=abc.txt", repo.FullName())
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.NotContains(t, resp.Body.String(), "The requested file is not present")
+	})
+
+	t.Run("PreviewDisabled", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Actions.ArtifactPreviewMaxSize, int64(0))()
+
+		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview", repo.FullName())
+		session.MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/abc.txt", repo.FullName())
+		session.MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequestf(t, "POST", "/%s/actions/runs/791", repo.FullName())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		viewResp := DecodeJSON(t, resp, &actions_web.ViewResponse{})
+		require.NotEmpty(t, viewResp.Artifacts)
+		for _, artifact := range viewResp.Artifacts {
+			assert.False(t, artifact.Previewable, "artifact %s must not be previewable", artifact.Name)
+		}
 	})
 
 	t.Run("FileTooLarge", func(t *testing.T) {

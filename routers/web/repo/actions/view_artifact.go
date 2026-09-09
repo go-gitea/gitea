@@ -40,6 +40,7 @@ type ArtifactsViewItem struct {
 	Size        int64  `json:"size"`
 	Status      string `json:"status"`
 	ExpiresUnix int64  `json:"expiresUnix"`
+	Previewable bool   `json:"previewable"`
 }
 
 type ArtifactPreviewFile struct {
@@ -248,7 +249,16 @@ func artifactPreviewTotalSize(artifacts []*actions_model.ActionArtifact) int64 {
 	return size
 }
 
+// isArtifactPreviewEnabled reports whether the preview feature is enabled at all, ARTIFACT_PREVIEW_MAX_SIZE=0 turns it off.
+func isArtifactPreviewEnabled() bool {
+	return setting.Actions.ArtifactPreviewMaxSize != 0
+}
+
 func isArtifactPreviewSizeAllowed(artifacts []*actions_model.ActionArtifact) bool {
+	return isArtifactPreviewSizeValueAllowed(artifactPreviewTotalSize(artifacts))
+}
+
+func isArtifactPreviewSizeValueAllowed(size int64) bool {
 	maxSize := setting.Actions.ArtifactPreviewMaxSize
 	if maxSize < 0 {
 		return true
@@ -256,7 +266,7 @@ func isArtifactPreviewSizeAllowed(artifacts []*actions_model.ActionArtifact) boo
 	if maxSize == 0 {
 		return false
 	}
-	return artifactPreviewTotalSize(artifacts) <= maxSize
+	return size <= maxSize
 }
 
 // ArtifactPreviewHTMLContentSecurityPolicy returns the sandboxed CSP for rendered artifact HTML.
@@ -498,6 +508,10 @@ func previewArtifactByReadSeeker(ctx *context_module.Context, path string, reade
 }
 
 func ArtifactsPreviewView(ctx *context_module.Context) {
+	if !isArtifactPreviewEnabled() {
+		ctx.NotFound(nil)
+		return
+	}
 	artifactName := ctx.PathParam("artifact_name")
 
 	run, artifacts, ok := getCurrentRunAndUploadedArtifacts(ctx, artifactName)
@@ -607,6 +621,10 @@ func serveArtifactV4PreviewRaw(ctx *context_module.Context, artifact *actions_mo
 }
 
 func ArtifactsPreviewRawView(ctx *context_module.Context) {
+	if !isArtifactPreviewEnabled() {
+		ctx.NotFound(nil)
+		return
+	}
 	artifactName := ctx.PathParam("artifact_name")
 
 	_, artifacts, ok := getCurrentRunAndUploadedArtifacts(ctx, artifactName)

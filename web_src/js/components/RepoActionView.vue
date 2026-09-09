@@ -302,6 +302,7 @@ onBeforeUnmount(() => {
             <div class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
+                  v-if="artifact.previewable"
                   class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
                   :href="artifactPreviewURL(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
@@ -311,6 +312,16 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
+                <span
+                  v-else
+                  class="tw-flex-1 tw-min-w-0 flex-text-block"
+                  :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
+                  data-tooltip-render="html"
+                  data-tooltip-placement="top-end"
+                >
+                  <SvgIcon name="octicon-file" class="tw-text-text-light"/>
+                  <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                </span>
                 <span class="job-artifact-actions">
                   <a download class="silenced" :href="artifactDownloadURL(artifact.name)" :data-tooltip-content="locale.downloadFile">
                     <SvgIcon name="octicon-download"/>
