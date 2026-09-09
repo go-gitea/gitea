@@ -86,8 +86,8 @@
 												</div>
 
 												<div class="actions">
-													<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-													<button class="ui primary button">{{ctx.Locale.Tr "repo.branch.confirm_create_branch"}}</button>
+													<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+													<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.branch.confirm_create_branch"}}</button>
 												</div>
 											</form>
 										</div>
@@ -105,13 +105,13 @@
 													</label>
 												</div>
 												<div class="required field">
-													<label for="new_branch_name">{{ctx.Locale.Tr "repo.release.tag_name"}}</label>
-													<input id="new_branch_name" name="new_branch_name" required>
+													<label for="new_tag_name">{{ctx.Locale.Tr "repo.release.tag_name"}}</label>
+													<input id="new_tag_name" name="new_branch_name" required>
 												</div>
 
 												<div class="actions">
-													<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-													<button class="ui primary button">{{ctx.Locale.Tr "repo.tag.confirm_create_tag"}}</button>
+													<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+													<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.tag.confirm_create_tag"}}</button>
 												</div>
 											</form>
 										</div>
@@ -164,7 +164,7 @@
 				<div class="flex-text-inline">
 					<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.commit"}}</span>
 					<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape .CommitID}}">{{ShortSha .CommitID}}</a>
-					<button class="btn interact-fg tw-p-1" data-clipboard-text="{{.CommitID}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
+					<button type="button" class="btn interact-fg tw-p-1" data-clipboard-text="{{.CommitID}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
 				</div>
 			</div>
 		</div>

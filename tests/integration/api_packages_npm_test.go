@@ -182,9 +182,6 @@ func TestPackageNpm(t *testing.T) {
 			req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).AddTokenAuth(token)
 			resp = MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, b, resp.Body.Bytes())
-
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, packageVersion)).AddTokenAuth(token)
-			MakeRequest(t, req, http.StatusNotImplemented)
 		}
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
@@ -234,6 +231,24 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, "https://example.com/fund", pmv.Funding)
 		assert.Equal(t, map[string]string{"left-pad": "1.x"}, pmv.AcceptDependencies)
 		assert.Empty(t, pmv.Deprecated)
+	})
+
+	t.Run("PackageVersionMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		for _, selector := range []string{packageVersion, packageTag} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, selector)).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			pmv := DecodeJSON(t, resp, &npm.PackageMetadataVersion{})
+			assert.Equal(t, fmt.Sprintf("%s@%s", packageName, packageVersion), pmv.ID)
+			assert.Equal(t, npm.Repository{Type: repoType, URL: repoURL, Directory: repoDirectory}, pmv.Repository)
+		}
+
+		for _, missing := range []string{"9.9.9", "no-such-tag"} {
+			req := NewRequest(t, "GET", root+"/"+missing).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
+		}
 	})
 
 	t.Run("AddTag", func(t *testing.T) {

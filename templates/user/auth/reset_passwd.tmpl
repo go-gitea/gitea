@@ -48,7 +48,7 @@
 						{{end}}
 						<div class="divider"></div>
 						<div class="inline field">
-							<button class="ui primary button">{{ctx.Locale.Tr "auth.reset_password_helper"}}</button>
+							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "auth.reset_password_helper"}}</button>
 							{{if and .has_two_factor (not .scratch_code)}}
 								<a href="?code={{.Code}}&scratch_code=true">{{ctx.Locale.Tr "auth.use_scratch_code"}}</a>
 							{{end}}
