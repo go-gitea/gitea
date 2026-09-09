@@ -1,4 +1,4 @@
-{{$root := .Root}}
+{{$root := ctx.RootData}}
 {{$job := .Job}}
 <tr {{if .IsQueued}}id="actions-queue-job-{{$job.ID}}" data-job-id="{{$job.ID}}"{{end}}>
 	{{if $root.CanReorder}}

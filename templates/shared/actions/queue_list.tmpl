@@ -65,7 +65,7 @@
 			<thead>
 				<tr>
 					{{if .CanReorder}}<th></th>{{end}}
-					<th>{{ctx.Locale.Tr "actions.queue.position"}}</th>
+					<th>#</th>
 					<th>{{ctx.Locale.Tr "actions.runs.status"}}</th>
 					{{if .ShowRepoColumn}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
 					<th>{{ctx.Locale.Tr "actions.runners.task_list.job"}}</th>
@@ -78,12 +78,12 @@
 			{{/* running jobs head the list in their own tbody, so dragging can never mix them into the queued order */}}
 			<tbody>
 				{{range .RunningJobs}}
-					{{template "shared/actions/queue_row" (dict "Root" $ "Job" . "IsQueued" false "RunnerName" (index $.RunningJobRunners .ID))}}
+					{{template "shared/actions/queue_row" (dict "Job" . "IsQueued" false "RunnerName" (index $.RunningJobRunners .ID))}}
 				{{end}}
 			</tbody>
 			<tbody id="actions-queue-tbody">
 				{{range $idx, $job := .QueuedJobs}}
-					{{template "shared/actions/queue_row" (dict "Root" $ "Job" $job "IsQueued" true "Position" (Eval $.QueueOffset "+" $idx "+" 1))}}
+					{{template "shared/actions/queue_row" (dict "Job" $job "IsQueued" true "Position" (Eval $.QueueOffset "+" $idx "+" 1))}}
 				{{end}}
 			</tbody>
 		</table>

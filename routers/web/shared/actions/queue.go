@@ -301,8 +301,8 @@ func QueueMovePost(ctx *context.Context) {
 		return
 	}
 	if !ok {
-		// The client's view is stale (a job left the queue); the auto-refresh will re-render it.
-		ctx.JSON(http.StatusConflict, map[string]any{"needsRefresh": true})
+		// The client's view is stale (a job left the queue), so it re-fetches the list on any error status.
+		ctx.HTTPError(http.StatusConflict)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
