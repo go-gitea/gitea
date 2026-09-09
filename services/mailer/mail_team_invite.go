@@ -19,7 +19,7 @@ import (
 	sender_service "gitea.dev/services/mailer/sender"
 )
 
-const tplTeamInviteMail templates.TplName = "org/team_invite"
+const tplTeamInviteMail templates.TplName = "mail/org/team_invite"
 
 // MailTeamInvite sends team invites
 func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_model.Team, invite *org_model.TeamInvite) error {
