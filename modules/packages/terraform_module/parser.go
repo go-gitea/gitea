@@ -512,7 +512,7 @@ func readCapped(tr *tar.Reader, size, maxSize, consumed int64) ([]byte, int64, e
 	if size <= 0 {
 		return nil, 0, nil
 	}
-	data := make([]byte, size)
+	data := make([]byte, int(size))
 	if _, err := io.ReadFull(tr, data); err != nil {
 		return nil, 0, err
 	}
