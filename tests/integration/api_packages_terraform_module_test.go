@@ -53,23 +53,6 @@ func buildTFModuleArchive(t *testing.T, files map[string]string) []byte {
 	return buf.Bytes()
 }
 
-// tarGzEntryNames returns the entry names inside a gzipped tarball.
-func tarGzEntryNames(t *testing.T, data []byte) []string {
-	t.Helper()
-	gz, err := gzip.NewReader(bytes.NewReader(data))
-	require.NoError(t, err)
-	tr := tar.NewReader(gz)
-	var names []string
-	for {
-		hdr, err := tr.Next()
-		if err != nil {
-			break
-		}
-		names = append(names, hdr.Name)
-	}
-	return names
-}
-
 // canonicalModuleArchive returns the .tar.gz used across most subtests.
 // Kept as a function so each subtest gets its own buffer (the helpers
 // below read it).
@@ -177,15 +160,11 @@ func TestPackageTerraformModule(t *testing.T) {
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
-	t.Run("Upload_PathTraversal", func(t *testing.T) {
-		var buf bytes.Buffer
-		gz := gzip.NewWriter(&buf)
-		tw := tar.NewWriter(gz)
-		require.NoError(t, tw.WriteHeader(&tar.Header{Name: "../evil.tf", Typeflag: tar.TypeReg, Mode: 0o644}))
-		require.NoError(t, tw.Close())
-		require.NoError(t, gz.Close())
-
-		req := NewRequestWithBody(t, "PUT", base+"/2.0.0", bytes.NewReader(buf.Bytes())).AddBasicAuth(user.Name)
+	t.Run("Upload_NoModuleAtRoot", func(t *testing.T) {
+		// An archive with no .tf at the root and no modules/<name> is not a
+		// consumable module and must be rejected.
+		archive := buildTFModuleArchive(t, map[string]string{"LICENSE": "MIT\n"})
+		req := NewRequestWithBody(t, "PUT", base+"/2.0.0", bytes.NewReader(archive)).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
@@ -265,36 +244,18 @@ func TestPackageTerraformModule(t *testing.T) {
 			"X-Terraform-Get should point at the archive endpoint, got %q", got)
 	})
 
-	t.Run("Upload_Wrapped_NormalizedToFlat", func(t *testing.T) {
-		// A module wrapped in a single top-level directory (GitHub-style
-		// tarball) is normalized to a flat layout on upload: it is served
-		// from the bare archive endpoint (no subdir), and the stored
-		// archive has the module files at its root.
+	t.Run("Upload_Wrapped_Rejected", func(t *testing.T) {
+		// Archives are stored verbatim, so a module wrapped in a top-level
+		// directory (a GitHub release tarball) has no module at the root
+		// and must be rejected rather than stored unusable.
 		wrapped := buildTFModuleArchive(t, map[string]string{
 			"mymod-1.0.0/main.tf":   `variable "x" { type = string }`,
 			"mymod-1.0.0/README.md": "# wrapped\n",
 		})
 		wbase := fmt.Sprintf("/api/packages/-/terraform/modules/%s/wrapped/aws", user.Name)
 		req := NewRequestWithBody(t, "PUT", wbase+"/1.0.0", bytes.NewReader(wrapped)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-		t.Cleanup(func() {
-			req := NewRequest(t, "DELETE", wbase+"/1.0.0").AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusNoContent)
-		})
-
-		// Header points at the bare archive endpoint — no subdir glob.
-		req = NewRequest(t, "GET", wbase+"/1.0.0/download").AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusNoContent)
-		got := resp.Header().Get("X-Terraform-Get")
-		assert.True(t, strings.HasSuffix(got, "/archive?archive=tar.gz"),
-			"wrapped upload should be served flat, got %q", got)
-
-		// The stored archive must now be flat: main.tf at the root.
-		req = NewRequest(t, "GET", wbase+"/1.0.0/archive").AddBasicAuth(user.Name)
-		resp = MakeRequest(t, req, http.StatusOK)
-		names := tarGzEntryNames(t, resp.Body.Bytes())
-		assert.Contains(t, names, "main.tf", "module should be normalized to the archive root")
-		assert.NotContains(t, names, "mymod-1.0.0/main.tf", "wrapper directory must be stripped")
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "mymod-1.0.0", "error should name the wrapper directory")
 	})
 
 	t.Run("Download_Archive", func(t *testing.T) {

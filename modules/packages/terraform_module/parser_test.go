@@ -92,7 +92,6 @@ module "subnets" {
 	require.NotNil(t, mod)
 	require.NotNil(t, mod.Metadata)
 	assert.Equal(t, "# example\n", mod.Metadata.Readme)
-	assert.Empty(t, mod.RootDir, "flat archive: module sits at the root")
 
 	root := mod.Metadata.Root
 	require.NotNil(t, root)
@@ -131,64 +130,38 @@ module "subnets" {
 	assert.Equal(t, ">= 1.5.0", root.RequiredCore[0])
 }
 
-func TestParseModuleArchive_WrappedSingleDir(t *testing.T) {
-	// A GitHub-style release tarball wraps the whole module in one
-	// top-level directory. The parser must descend into it and report the
-	// directory via RootDir so the upload handler can normalize it to flat.
-	archive := buildArchive(t, map[string]string{
-		"mod-1.0.0/main.tf":                `variable "region" { type = string }`,
-		"mod-1.0.0/README.md":              "# wrapped\n",
-		"mod-1.0.0/examples/basic/main.tf": `variable "ignored" { type = string }`,
-	}, "mod-1.0.0/", "mod-1.0.0/examples/", "mod-1.0.0/examples/basic/")
-
-	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
-	require.NoError(t, err)
-	require.NotNil(t, mod.Metadata.Root)
-	assert.Equal(t, "mod-1.0.0", mod.RootDir)
-	assert.Equal(t, "# wrapped\n", mod.Metadata.Readme)
-	require.Len(t, mod.Metadata.Root.Inputs, 1)
-	assert.Equal(t, "region", mod.Metadata.Root.Inputs[0].Name)
+func TestParseModuleArchive_RejectsWrappedArchive(t *testing.T) {
+	// Archives are stored verbatim, so a module wrapped in a single
+	// top-level directory (a GitHub release tarball) would be stored
+	// unusable: nothing at the root for terraform to find. Reject it and
+	// name the directory so the fix is obvious.
+	for name, files := range map[string]map[string]string{
+		"single root module": {
+			"mod-1.0.0/main.tf":   `variable "region" { type = string }`,
+			"mod-1.0.0/README.md": "# wrapped\n",
+		},
+		"collection": {
+			"mod-1.0.0/modules/network/main.tf": `variable "cidr" { type = string }`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := ParseModuleArchive(bytes.NewReader(buildArchive(t, files, "mod-1.0.0/")), 1<<20)
+			require.ErrorIs(t, err, ErrNoRootModule)
+			assert.Contains(t, err.Error(), `"mod-1.0.0"`)
+		})
+	}
 }
 
-func TestNormalizeArchive(t *testing.T) {
-	// A wrapped archive must be rewritten so the wrapper directory's
-	// contents become the archive root: examples/ is re-rooted, a stray
-	// file outside the wrapper is dropped, and the result parses flat.
-	wrapped := buildArchive(t, map[string]string{
-		"mod-1.0.0/main.tf":                `variable "region" { type = string }`,
-		"mod-1.0.0/README.md":              "# wrapped\n",
-		"mod-1.0.0/examples/basic/main.tf": `variable "ignored" { type = string }`,
-		"stray.txt":                        "outside the module",
-	}, "mod-1.0.0/", "mod-1.0.0/examples/", "mod-1.0.0/examples/basic/")
-
-	var flat bytes.Buffer
-	require.NoError(t, NormalizeArchive(&flat, bytes.NewReader(wrapped), "mod-1.0.0"))
-
-	// Inspect the rewritten entries.
-	names := map[string]bool{}
-	gz, err := gzip.NewReader(bytes.NewReader(flat.Bytes()))
-	require.NoError(t, err)
-	tr := tar.NewReader(gz)
-	for {
-		hdr, err := tr.Next()
-		if err != nil {
-			break
-		}
-		names[hdr.Name] = true
-	}
-	assert.True(t, names["main.tf"], "module file should be at the root")
-	assert.True(t, names["README.md"], "readme should be re-rooted")
-	assert.True(t, names["examples/basic/main.tf"], "examples should be preserved, re-rooted")
-	assert.False(t, names["mod-1.0.0/main.tf"], "wrapper prefix must be gone")
-	assert.False(t, names["stray.txt"], "entries outside the wrapper must be dropped")
-
-	// The normalized archive must now parse as a flat module.
-	mod, err := ParseModuleArchive(bytes.NewReader(flat.Bytes()), 1<<20)
-	require.NoError(t, err)
-	assert.Empty(t, mod.RootDir)
-	require.Len(t, mod.Metadata.Root.Inputs, 1)
-	assert.Equal(t, "region", mod.Metadata.Root.Inputs[0].Name)
-	assert.Equal(t, "# wrapped\n", mod.Metadata.Readme)
+func TestParseModuleArchive_RejectsExamplesOnly(t *testing.T) {
+	// .tf files that only live under examples/ (or deeper than a submodule)
+	// are not a consumable module.
+	archive := buildArchive(t, map[string]string{
+		"README.md":                  "# nope\n",
+		"examples/basic/main.tf":     `variable "x" { type = string }`,
+		"modules/a/deep/nested/x.tf": `variable "y" { type = string }`,
+	}, "examples/", "examples/basic/", "modules/", "modules/a/", "modules/a/deep/", "modules/a/deep/nested/")
+	_, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.ErrorIs(t, err, ErrNoRootModule)
 }
 
 func TestParseModuleArchive_IgnoresAppleDoubleJunk(t *testing.T) {
@@ -203,7 +176,6 @@ func TestParseModuleArchive_IgnoresAppleDoubleJunk(t *testing.T) {
 
 	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
 	require.NoError(t, err)
-	assert.Empty(t, mod.RootDir)
 	require.Len(t, mod.Metadata.Root.Inputs, 1)
 	assert.Equal(t, "x", mod.Metadata.Root.Inputs[0].Name)
 }
@@ -218,7 +190,6 @@ func TestParseModuleArchive_FlatWinsOverSubdir(t *testing.T) {
 
 	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
 	require.NoError(t, err)
-	assert.Empty(t, mod.RootDir)
 	require.Len(t, mod.Metadata.Root.Inputs, 1)
 	assert.Equal(t, "x", mod.Metadata.Root.Inputs[0].Name)
 }
@@ -235,37 +206,9 @@ func TestParseModuleArchive_SubmoduleCollectionFlat(t *testing.T) {
 
 	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
 	require.NoError(t, err)
-	assert.Empty(t, mod.RootDir, "modules/ is not a wrapper directory")
 	require.NotNil(t, mod.Metadata.Root)
 	assert.Empty(t, mod.Metadata.Root.Inputs, "no root module: empty root metadata")
 	assert.Equal(t, "# collection\n", mod.Metadata.Readme)
-}
-
-func TestParseModuleArchive_SubmoduleCollectionWrapped(t *testing.T) {
-	// The same collection wrapped in a release directory: the wrapper is
-	// detected for normalization even though it holds no root .tf.
-	archive := buildArchive(t, map[string]string{
-		"coll-1.0.0/README.md":               "# collection\n",
-		"coll-1.0.0/modules/network/main.tf": `variable "cidr" { type = string }`,
-	}, "coll-1.0.0/", "coll-1.0.0/modules/", "coll-1.0.0/modules/network/")
-
-	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
-	require.NoError(t, err)
-	assert.Equal(t, "coll-1.0.0", mod.RootDir)
-	require.NotNil(t, mod.Metadata.Root)
-	assert.Empty(t, mod.Metadata.Root.Inputs)
-	assert.Equal(t, "# collection\n", mod.Metadata.Readme)
-}
-
-func TestParseModuleArchive_WrappedTFJSONOnly(t *testing.T) {
-	// A wrapped module whose only sources are .tf.json must surface the
-	// unsupported-format error, just like the flat case.
-	archive := buildArchive(t, map[string]string{
-		"mod/main.tf.json": `{"variable": {"x": [{"type": "string"}]}}`,
-	}, "mod/")
-
-	_, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
-	require.ErrorIs(t, err, ErrUnsupportedTFFormat)
 }
 
 func TestNormalizeVersion(t *testing.T) {
@@ -313,65 +256,6 @@ func TestParseModuleArchive_Submodules(t *testing.T) {
 	assert.Equal(t, "vpc_id", network.Root.Outputs[0].Name)
 }
 
-func TestParseModuleArchive_SubmodulesWrapped(t *testing.T) {
-	// Submodules are found relative to the wrapper directory too.
-	archive := buildArchive(t, map[string]string{
-		"coll-1.0.0/modules/network/main.tf": `variable "cidr" { type = string }`,
-	}, "coll-1.0.0/", "coll-1.0.0/modules/", "coll-1.0.0/modules/network/")
-
-	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
-	require.NoError(t, err)
-	assert.Equal(t, "coll-1.0.0", mod.RootDir)
-	require.Len(t, mod.Metadata.Submodules, 1)
-	assert.Equal(t, "network", mod.Metadata.Submodules[0].Name)
-}
-
-func TestParseModuleArchive_RejectsEscapingSymlink(t *testing.T) {
-	// A symlink escaping the archive would be materialized on the consumer
-	// when the tarball is unpacked, so it must never be published.
-	for _, link := range []string{"../../etc/passwd", "/etc/passwd"} {
-		var buf bytes.Buffer
-		gz := gzip.NewWriter(&buf)
-		tw := tar.NewWriter(gz)
-		require.NoError(t, tw.WriteHeader(&tar.Header{
-			Name: "main.tf", Typeflag: tar.TypeReg, Mode: 0o644,
-			Size: int64(len(`variable "x" {}`)),
-		}))
-		_, err := tw.Write([]byte(`variable "x" {}`))
-		require.NoError(t, err)
-		require.NoError(t, tw.WriteHeader(&tar.Header{
-			Name: "evil", Typeflag: tar.TypeSymlink, Linkname: link, Mode: 0o777,
-		}))
-		require.NoError(t, tw.Close())
-		require.NoError(t, gz.Close())
-
-		_, err = ParseModuleArchive(bytes.NewReader(buf.Bytes()), 1<<20)
-		require.ErrorIs(t, err, ErrUnsafeArchiveLink, "linkname=%q", link)
-	}
-}
-
-func TestParseModuleArchive_AllowsInternalSymlink(t *testing.T) {
-	// A link that stays inside the archive is fine.
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	src := `variable "x" { type = string }`
-	require.NoError(t, tw.WriteHeader(&tar.Header{
-		Name: "main.tf", Typeflag: tar.TypeReg, Mode: 0o644, Size: int64(len(src)),
-	}))
-	_, err := tw.Write([]byte(src))
-	require.NoError(t, err)
-	require.NoError(t, tw.WriteHeader(&tar.Header{
-		Name: "modules/link.tf", Typeflag: tar.TypeSymlink, Linkname: "../main.tf", Mode: 0o777,
-	}))
-	require.NoError(t, tw.Close())
-	require.NoError(t, gz.Close())
-
-	mod, err := ParseModuleArchive(bytes.NewReader(buf.Bytes()), 1<<20)
-	require.NoError(t, err)
-	require.Len(t, mod.Metadata.Root.Inputs, 1)
-}
-
 func TestParseModuleArchive_RejectsEntryFlood(t *testing.T) {
 	// Empty headers carry no payload, so without an entry cap an archive of
 	// nothing but empty entries would compress to almost nothing yet cost
@@ -394,24 +278,6 @@ func TestParseModuleArchive_RejectsEntryFlood(t *testing.T) {
 	require.Less(t, buf.Len(), 1<<20)
 	_, err := ParseModuleArchive(bytes.NewReader(buf.Bytes()), -1)
 	require.ErrorIs(t, err, ErrTooManyArchiveEntries)
-}
-
-func TestParseModuleArchive_RejectsTraversal(t *testing.T) {
-	// tar.Header.Name with `..` must be refused, regardless of payload.
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	require.NoError(t, tw.WriteHeader(&tar.Header{
-		Name:     "../escape.tf",
-		Typeflag: tar.TypeReg,
-		Size:     0,
-		Mode:     0o644,
-	}))
-	require.NoError(t, tw.Close())
-	require.NoError(t, gz.Close())
-
-	_, err := ParseModuleArchive(&buf, 1<<20)
-	require.ErrorIs(t, err, ErrUnsafeArchivePath)
 }
 
 func TestParseModuleArchive_EnforcesSizeLimit(t *testing.T) {
@@ -445,7 +311,7 @@ func TestParseModuleArchive_NoTFFiles(t *testing.T) {
 		"README.md": "# nothing here\n",
 	})
 	_, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
-	require.ErrorIs(t, err, ErrEmptyModule)
+	require.ErrorIs(t, err, ErrNoRootModule)
 }
 
 func TestParseModuleArchive_TFJSONOnly(t *testing.T) {
@@ -488,7 +354,7 @@ func TestParseModuleArchive_MalformedHCL(t *testing.T) {
 	require.Error(t, err)
 	// We surface the underlying parse error; ensure it's not one of the
 	// known sentinel errors that callers might branch on.
-	for _, sentinel := range []error{ErrEmptyModule, ErrUnsafeArchivePath, ErrArchiveTooLarge, ErrUnsupportedTFFormat} {
+	for _, sentinel := range []error{ErrNoRootModule, ErrArchiveTooLarge, ErrUnsupportedTFFormat} {
 		require.NotErrorIs(t, err, sentinel)
 	}
 }

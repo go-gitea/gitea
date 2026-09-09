@@ -28,9 +28,7 @@ var (
 	ErrInvalidVersion        = errors.New("module version is invalid")
 	ErrArchiveTooLarge       = errors.New("module archive exceeds size limit")
 	ErrTooManyArchiveEntries = errors.New("module archive contains too many entries")
-	ErrUnsafeArchivePath     = errors.New("module archive contains an unsafe file path")
-	ErrUnsafeArchiveLink     = errors.New("module archive contains a link pointing outside the archive")
-	ErrEmptyModule           = errors.New("module archive contains no .tf files")
+	ErrNoRootModule          = errors.New("no terraform module at the archive root: package the module directory's contents, not the directory itself (e.g. `tar -czf module.tar.gz -C path/to/module .`)")
 	ErrUnsupportedTFFormat   = errors.New("only .tf files are supported (.tf.json is not parsed in v1)")
 )
 
@@ -53,8 +51,13 @@ const (
 	tarBlockSize = 512
 
 	// maxIndexedDirDepth is the deepest directory level read for metadata:
-	// `<wrapper>/modules/<name>` is three components.
-	maxIndexedDirDepth = 3
+	// `modules/<name>` is two components.
+	maxIndexedDirDepth = 2
+
+	// submodulesDir is the standard-module-structure directory holding
+	// nested modules; only it and the archive root are read for metadata.
+	// See https://developer.hashicorp.com/terraform/language/modules/develop/structure
+	submodulesDir = "modules/"
 )
 
 // NormalizeVersion validates a module version and returns its canonical
@@ -72,12 +75,6 @@ func NormalizeVersion(s string) (string, error) {
 // Module is the result of parsing a Terraform module archive.
 type Module struct {
 	Metadata *Metadata
-	// RootDir is the single top-level directory the module was wrapped in
-	// (e.g. a GitHub release tarball), or "" when the module sits at the
-	// archive root. It is transient parse state — not persisted — used by
-	// the upload handler to normalize a wrapped archive to a flat one via
-	// NormalizeArchive.
-	RootDir string
 }
 
 // HashiCorp constrains module name and provider to lowercase alphanumeric
@@ -109,26 +106,25 @@ func ValidateProvider(s string) error {
 	return nil
 }
 
-// reservedModuleDirs are the standard-module-structure directory names
-// that must never be mistaken for an archive wrapper directory.
-// See https://developer.hashicorp.com/terraform/language/modules/develop/structure
+// reservedModuleDirs are standard-module-structure directory names. A lone
+// top-level `modules/` is a collection, not an archive wrapped in a
+// release directory, so these never trigger the "wrapped" diagnostic.
 var reservedModuleDirs = map[string]struct{}{"modules": {}, "examples": {}}
 
-// dirFiles holds the parse-relevant files collected for a single
-// directory level of the archive (the root, or a top-level directory).
+// dirFiles holds the parse-relevant files collected for one directory of
+// the archive (the root, or a `modules/<name>` submodule).
 type dirFiles struct {
 	tf     map[string][]byte // basename -> .tf source
 	readme string
 }
 
-// ParseModuleArchive consumes a gzipped tar archive and extracts the root
-// module's metadata. The module sources may sit either at the archive
-// root (`tar -czf module.tgz *`) or wrapped in a single top-level
-// directory (a GitHub release tarball, `git archive --prefix`, ...); the
-// wrapper is reported via Module.RootDir so the upload handler can
-// normalize it away. The archive only needs to contain at least one .tf
-// file somewhere — a collection of submodules with no root module is
-// valid and yields empty root metadata rather than an error.
+// ParseModuleArchive reads a gzipped tar archive and extracts metadata for
+// the root module and its `modules/<name>` submodules. The archive is never
+// modified — it is stored and served exactly as uploaded — so the module
+// has to sit at the archive root: a collection of submodules with no root
+// module is fine, while a module wrapped in a top-level directory (a
+// GitHub release tarball) is rejected, since nothing at its root would be
+// consumable.
 //
 // maxSize caps the total uncompressed bytes read; values <= 0 (e.g. an
 // unlimited storage quota) or above maxParseSize are clamped to
@@ -147,17 +143,13 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 	var (
 		tr       = tar.NewReader(gz)
 		consumed int64
-		// byDir maps a directory level ("" for the archive root, or a
-		// top-level directory name) to its collected files.
+		// byDir maps a directory ("" for the archive root) to its files.
 		byDir = map[string]*dirFiles{}
-		// topDirs is the set of distinct top-level directory names and
-		// topLevelFile records whether any file sits at the archive root;
-		// together they detect the single-wrapper-directory layout.
+		// topDirs and topLevelFile only feed the diagnostic for an archive
+		// wrapped in a single top-level directory.
 		topDirs      = map[string]struct{}{}
 		topLevelFile bool
-		// Presence of any .tf / .tf.json anywhere decides whether the
-		// archive is a Terraform module at all.
-		tfAnywhere, tfJSONAnywhere bool
+		tfJSONSeen   bool // a .tf.json in an indexed directory
 	)
 
 	dirEntry := func(dir string) *dirFiles {
@@ -169,12 +161,14 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		return df
 	}
 
-	// handleFile keeps .tf and README payloads for the given directory
-	// level; anything else is left for the next tr.Next to skip. The
-	// entry's size has already been charged against the ceiling.
+	// handleFile keeps .tf and README payloads for the given directory;
+	// anything else is left for the next tr.Next to skip. The entry's
+	// size has already been charged against the ceiling.
 	handleFile := func(dir, base string, size int64) error {
 		lower := strings.ToLower(base)
 		switch {
+		case strings.HasSuffix(lower, ".tf.json"):
+			tfJSONSeen = true
 		case strings.HasSuffix(lower, ".tf"):
 			data, err := readEntry(tr, size)
 			if err != nil {
@@ -213,27 +207,11 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			return nil, ErrArchiveTooLarge
 		}
 
-		// Reject absolute and traversing paths before we touch the file.
 		clean := path.Clean(hdr.Name)
-		if path.IsAbs(clean) || strings.HasPrefix(clean, "../") || clean == ".." {
-			return nil, ErrUnsafeArchivePath
-		}
-
-		// Links are stored verbatim and get materialized when the consumer
-		// unpacks the archive, so a link escaping the archive must never be
-		// published.
-		if hdr.Typeflag == tar.TypeSymlink || hdr.Typeflag == tar.TypeLink {
-			if !isSafeLink(clean, hdr.Linkname, hdr.Typeflag == tar.TypeSymlink) {
-				return nil, ErrUnsafeArchiveLink
-			}
-			continue
-		}
-
 		if clean == "." || isArchiveJunk(clean) {
 			continue // unread payload is skipped by the next tr.Next
 		}
 
-		// Record top-level directories so we can spot a single wrapper dir.
 		if strings.Contains(clean, "/") {
 			topDirs[clean[:strings.IndexByte(clean, '/')]] = struct{}{}
 		} else if hdr.Typeflag == tar.TypeDir {
@@ -244,17 +222,6 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			continue
 		}
 
-		base := path.Base(clean)
-		switch lower := strings.ToLower(base); {
-		case strings.HasSuffix(lower, ".tf.json"):
-			tfJSONAnywhere = true
-		case strings.HasSuffix(lower, ".tf"):
-			tfAnywhere = true
-		}
-
-		// Read metadata for the root module and for `modules/<name>`
-		// submodules; anything deeper is an example or a nested detail and
-		// is skipped.
 		dir := path.Dir(clean)
 		if dir == "." {
 			dir = ""
@@ -263,30 +230,32 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		if dirDepth(dir) > maxIndexedDirDepth {
 			continue
 		}
-		if err := handleFile(dir, base, hdr.Size); err != nil {
+		if err := handleFile(dir, path.Base(clean), hdr.Size); err != nil {
 			return nil, err
 		}
 	}
 
-	if !tfAnywhere {
-		if tfJSONAnywhere {
-			return nil, ErrUnsupportedTFFormat
-		}
-		return nil, ErrEmptyModule
+	rootFiles := byDir[""]
+	if rootFiles == nil {
+		rootFiles = &dirFiles{}
 	}
-
-	moduleDir := wrapperDir(topDirs, topLevelFile)
-	df := byDir[moduleDir]
-	if df == nil {
-		df = &dirFiles{} // collection with no root module: empty root metadata
-	}
-
-	root, description, err := parseRoot(df.tf)
+	submodules, err := parseSubmodules(byDir)
 	if err != nil {
 		return nil, err
 	}
 
-	submodules, err := parseSubmodules(byDir, moduleDir)
+	// Verbatim storage means only what sits at the root is consumable.
+	if len(rootFiles.tf) == 0 && len(submodules) == 0 {
+		if dir := wrappedIn(topDirs, topLevelFile); dir != "" {
+			return nil, fmt.Errorf("%w (the archive is wrapped in %q)", ErrNoRootModule, dir)
+		}
+		if tfJSONSeen {
+			return nil, ErrUnsupportedTFFormat
+		}
+		return nil, ErrNoRootModule
+	}
+
+	root, description, err := parseRoot(rootFiles.tf)
 	if err != nil {
 		return nil, err
 	}
@@ -294,12 +263,11 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 	return &Module{
 		Metadata: &Metadata{
 			Description: description,
-			Readme:      df.readme,
+			Readme:      rootFiles.readme,
 			Root:        root,
 			Providers:   root.Providers,
 			Submodules:  submodules,
 		},
-		RootDir: moduleDir,
 	}, nil
 }
 
@@ -312,34 +280,31 @@ func dirDepth(dir string) int {
 	return strings.Count(dir, "/") + 1
 }
 
-// isSafeLink reports whether a tar link entry resolves to a location
-// inside the archive. Hard link targets are archive-root relative; symlink
-// targets resolve against the link's own directory. Absolute targets are
-// always rejected.
-func isSafeLink(name, linkname string, symlink bool) bool {
-	if linkname == "" || path.IsAbs(linkname) || strings.HasPrefix(linkname, "/") {
-		return false
+// wrappedIn returns the single top-level directory every entry lives under
+// (typically a GitHub release tarball's `repo-version/`), or "" when files
+// sit at the root or the sole directory is a standard-structure one. Used
+// only to make the rejection message name the culprit.
+func wrappedIn(topDirs map[string]struct{}, topLevelFile bool) string {
+	if topLevelFile || len(topDirs) != 1 {
+		return ""
 	}
-	target := linkname
-	if symlink {
-		target = path.Join(path.Dir(name), linkname)
+	var only string
+	for d := range topDirs {
+		only = d
 	}
-	target = path.Clean(target)
-	return target != ".." && !strings.HasPrefix(target, "../")
+	if _, reserved := reservedModuleDirs[only]; reserved {
+		return ""
+	}
+	return only
 }
 
 // parseSubmodules extracts metadata for each `modules/<name>` directory of
 // the standard module structure, so a module made only of submodules still
 // has something to show.
-func parseSubmodules(byDir map[string]*dirFiles, rootDir string) ([]*Submodule, error) {
-	prefix := "modules/"
-	if rootDir != "" {
-		prefix = rootDir + "/modules/"
-	}
-
+func parseSubmodules(byDir map[string]*dirFiles) ([]*Submodule, error) {
 	names := make([]string, 0, len(byDir))
 	for dir := range byDir {
-		name, ok := strings.CutPrefix(dir, prefix)
+		name, ok := strings.CutPrefix(dir, submodulesDir)
 		if !ok || name == "" || strings.Contains(name, "/") {
 			continue
 		}
@@ -349,7 +314,7 @@ func parseSubmodules(byDir map[string]*dirFiles, rootDir string) ([]*Submodule, 
 
 	submodules := make([]*Submodule, 0, len(names))
 	for _, name := range names {
-		df := byDir[prefix+name]
+		df := byDir[submodulesDir+name]
 		if len(df.tf) == 0 {
 			continue
 		}
@@ -368,100 +333,6 @@ func parseSubmodules(byDir map[string]*dirFiles, rootDir string) ([]*Submodule, 
 		return nil, nil
 	}
 	return submodules, nil
-}
-
-// wrapperDir returns the single top-level directory that wraps the whole
-// archive (a GitHub release tarball, `git archive --prefix`, ...), or ""
-// when the module already sits at the archive root. A wrapper exists only
-// when every entry lives under exactly one top-level directory whose name
-// is not a reserved standard-structure directory (so a collection whose
-// sole top-level entry is `modules/` is not mistaken for a wrapper).
-func wrapperDir(topDirs map[string]struct{}, topLevelFile bool) string {
-	if topLevelFile || len(topDirs) != 1 {
-		return ""
-	}
-	var only string
-	for d := range topDirs {
-		only = d
-	}
-	if _, reserved := reservedModuleDirs[only]; reserved {
-		return ""
-	}
-	return only
-}
-
-// NormalizeArchive rewrites a gzipped tar so that the contents of the
-// single wrapper directory rootDir become the archive root, dropping the
-// wrapper (and any stray entries outside it). The result is a flat
-// archive that the registry stores and serves verbatim, so the download
-// path never needs a go-getter subdir. The total decompressed size is
-// capped at maxParseSize as a safety net (the archive has already passed
-// the same ceiling during parsing).
-func NormalizeArchive(dst io.Writer, src io.Reader, rootDir string) (err error) {
-	gzr, err := gzip.NewReader(src)
-	if err != nil {
-		return fmt.Errorf("invalid gzip stream: %w", err)
-	}
-	defer gzr.Close()
-
-	gzw := gzip.NewWriter(dst)
-	tw := tar.NewWriter(gzw)
-	// Both writers must be closed on every path: tar.Writer.Close flushes
-	// the trailer and gzip.Writer.Close the stream footer, so an early
-	// return would otherwise emit a truncated archive.
-	defer func() {
-		cerr := tw.Close()
-		if gzerr := gzw.Close(); cerr == nil {
-			cerr = gzerr
-		}
-		if err == nil {
-			err = cerr
-		}
-	}()
-
-	tr := tar.NewReader(gzr)
-	prefix := rootDir + "/"
-
-	var written int64
-	for {
-		hdr, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("tar read: %w", err)
-		}
-
-		clean := path.Clean(hdr.Name)
-		if clean == rootDir {
-			continue // the wrapper directory entry itself
-		}
-		rel := strings.TrimPrefix(clean, prefix)
-		if rel == clean {
-			continue // entry outside the wrapper directory
-		}
-		if hdr.Typeflag == tar.TypeDir {
-			rel += "/"
-		}
-
-		hdr.Name = rel
-		if err := tw.WriteHeader(hdr); err != nil {
-			return err
-		}
-		if hdr.Typeflag != tar.TypeReg {
-			continue
-		}
-		n, err := io.Copy(tw, io.LimitReader(tr, maxParseSize-written+1))
-		if err != nil {
-			return err
-		}
-		written += n
-		if written > maxParseSize {
-			return ErrArchiveTooLarge
-		}
-	}
-
-	return nil
 }
 
 // isArchiveJunk reports whether a cleaned path is packaging cruft that

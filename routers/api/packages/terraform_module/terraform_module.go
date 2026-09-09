@@ -7,8 +7,9 @@
 // See https://developer.hashicorp.com/terraform/internals/module-registry-protocol
 //
 // Scope of v1:
-//   - The root module and its `modules/<name>` submodules are parsed;
-//     examples are not.
+//   - Archives are stored and served verbatim; the module must sit at the
+//     archive root. The root module and its `modules/<name>` submodules
+//     are parsed for the package page; examples are not.
 //   - Only .tar.gz archives are accepted on upload.
 //   - Versions are normalized to canonical semver, so `v1.0.0` and
 //     `1.0.0` address the same version.
@@ -142,9 +143,8 @@ func DownloadRedirect(ctx *context.Context) {
 		return
 	}
 
-	// Stored archives are always flat (the module at the root), so we serve
-	// the bare archive endpoint. The URL has no file extension, hence the
-	// ?archive=tar.gz hint so go-getter knows to decompress it.
+	// The archive is served exactly as uploaded. The URL has no file
+	// extension, hence the ?archive=tar.gz hint so go-getter decompresses it.
 	archiveURL := fmt.Sprintf(
 		"%sapi/packages/-/terraform/modules/%s/%s/%s/%s/archive?archive=tar.gz",
 		setting.AppURL,
@@ -241,31 +241,6 @@ func UploadModule(ctx *context.Context) {
 		return
 	}
 
-	// Normalize a wrapped archive (a single top-level directory, e.g. a
-	// GitHub release tarball) to a flat layout so the registry stores and
-	// serves one standard format. Flat uploads are stored verbatim. The
-	// hashed buffer spills to disk past its memory threshold, so the
-	// rewritten archive is never fully held in memory.
-	storeBuf := buf
-	if module.RootDir != "" {
-		normBuf, err := packages_module.NewHashedBuffer()
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		defer normBuf.Close()
-		if err := tfmod.NormalizeArchive(normBuf, buf, module.RootDir); err != nil {
-			log.Error("terraform_module: normalize archive: %v", err)
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		if _, err := normBuf.Seek(0, io.SeekStart); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		storeBuf = normBuf
-	}
-
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -282,7 +257,7 @@ func UploadModule(ctx *context.Context) {
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{Filename: archiveFilename},
 			Creator:         ctx.Doer,
-			Data:            storeBuf,
+			Data:            buf,
 			IsLead:          true,
 		},
 	)
