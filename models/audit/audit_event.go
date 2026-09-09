@@ -61,7 +61,7 @@ func (e *Event) Time() time.Time {
 	return e.TimestampUnix.AsTime()
 }
 
-// eventJSON is the nested JSONL export / import shape.
+// eventJSON is the nested JSONL export shape.
 type eventJSON struct {
 	Action          Action         `json:"action"`
 	Actor           EntityRef      `json:"actor"`
