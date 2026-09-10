@@ -15,10 +15,8 @@ import (
 	"net/url"
 	pathpkg "path"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	actions_model "gitea.dev/models/actions"
@@ -68,15 +66,12 @@ type artifactPreviewList struct {
 // Cached listings are capped, so an artifact with a huge number of entries cannot pin unbounded memory here.
 var artifactPreviewV4ZipListCache = expirable.NewLRU[string, artifactPreviewList](artifactPreviewV4ZipListCacheMaxEntries, nil, artifactPreviewV4ZipListCacheTTL)
 
+// readAtBySeeker adapts a storage object to io.ReaderAt for archive/zip, it is only used by a single request goroutine
 type readAtBySeeker struct {
 	rs io.ReadSeeker
-	mu sync.Mutex
 }
 
 func (r *readAtBySeeker) ReadAt(p []byte, off int64) (int, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	if _, err := r.rs.Seek(off, io.SeekStart); err != nil {
 		return 0, err
 	}
@@ -88,18 +83,13 @@ func (r *readAtBySeeker) ReadAt(p []byte, off int64) (int, error) {
 }
 
 // resolveArtifactAttemptIDFromRequest resolves the run_attempt_id used to scope artifact lookups.
-// If an `attempt` path or query parameter is present and valid, it returns the matching attempt's ID.
+// If an `attempt` query parameter is present and valid, it returns the matching attempt's ID.
 // Otherwise it falls back to run.LatestAttemptID, which is 0 only for legacy runs created before ActionRunAttempt existed.
 func resolveArtifactAttemptIDFromRequest(ctx *context_module.Context, run *actions_model.ActionRun) (int64, error) {
-	var attemptNum int64
-	if ctx.PathParam("attempt") != "" {
-		attemptNum = ctx.PathParamInt64("attempt")
-	} else {
-		if ctx.FormString("attempt") == "" {
-			return run.LatestAttemptID, nil
-		}
-		attemptNum = ctx.FormInt64("attempt")
+	if ctx.FormString("attempt") == "" {
+		return run.LatestAttemptID, nil
 	}
+	attemptNum := ctx.FormInt64("attempt")
 	if attemptNum <= 0 {
 		return 0, util.ErrNotExist
 	}
@@ -235,9 +225,9 @@ func capArtifactPreviewPaths(paths []string) ([]string, bool) {
 	return append([]string(nil), paths[:artifactPreviewMaxFiles]...), true
 }
 
-// insertArtifactPreviewPath adds a path to a sorted listing in sorted position, so the rendered tree stays grouped by directory.
+// insertArtifactPreviewPath inserts into a sorted copy: BuildArtifactPreviewFiles needs sorted input, and the caller's slice may be the shared cached one
 func insertArtifactPreviewPath(paths []string, path string) []string {
-	i := sort.SearchStrings(paths, path)
+	i, _ := slices.BinarySearch(paths, path)
 	return slices.Insert(slices.Clone(paths), i, path)
 }
 
@@ -285,7 +275,7 @@ func listPreviewPathsForLegacyArtifacts(artifacts []*actions_model.ActionArtifac
 		seen[path] = struct{}{}
 		paths = append(paths, path)
 	}
-	sort.Strings(paths)
+	slices.Sort(paths)
 	return paths
 }
 
@@ -330,7 +320,7 @@ func listArtifactV4ZipPaths(reader *zip.Reader) artifactPreviewList {
 		seen[path] = struct{}{}
 		paths = append(paths, path)
 	}
-	sort.Strings(paths)
+	slices.Sort(paths)
 	capped, truncated := capArtifactPreviewPaths(paths)
 	return artifactPreviewList{paths: capped, truncated: truncated}
 }
@@ -464,6 +454,11 @@ func previewArtifactByReader(ctx *context_module.Context, path string, reader io
 	previewArtifactByReadSeeker(ctx, path, buf)
 }
 
+// PreviewArtifactContent serves one artifact file with the preview's sniffing, size limit and sandbox headers, exported for the devtest mock page.
+func PreviewArtifactContent(ctx *context_module.Context, path string, reader io.ReadSeeker) {
+	previewArtifactByReadSeeker(ctx, path, reader)
+}
+
 func previewArtifactByReadSeeker(ctx *context_module.Context, path string, reader io.ReadSeeker) {
 	// seekable sources are served straight from storage, so the size limit has to be enforced here too
 	size, err := reader.Seek(0, io.SeekEnd)
@@ -552,7 +547,6 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	if attempt := ctx.FormString("attempt"); attempt != "" {
 		attemptQuery = "?attempt=" + url.QueryEscape(attempt)
 		backToRunURL += "/attempts/" + url.PathEscape(attempt)
-		previewRawURL = backToRunURL + "/artifacts/" + artifactPath + "/preview/raw"
 		runAttempt = ctx.FormInt64("attempt")
 	}
 

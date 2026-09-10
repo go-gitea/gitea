@@ -5,12 +5,9 @@ package devtest
 
 import (
 	"archive/zip"
-	"bytes"
-	"embed"
 	"fmt"
 	"io"
 	mathRand "math/rand/v2"
-	"mime"
 	"net/http"
 	"net/url"
 	"path"
@@ -25,7 +22,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo/actions"
@@ -37,44 +33,6 @@ type mockArtifactFile struct {
 	Content string
 }
 
-//go:embed testdata/artifact-lcov-coverage.zip
-var mockActionsArtifactFixtureFS embed.FS
-
-func loadMockArtifactFilesFromFixtureZip(name string) []mockArtifactFile {
-	data, err := mockActionsArtifactFixtureFS.ReadFile(name)
-	if err != nil {
-		panic(fmt.Sprintf("read devtest artifact fixture %q: %v", name, err))
-	}
-	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		panic(fmt.Sprintf("open devtest artifact fixture %q: %v", name, err))
-	}
-
-	files := make([]mockArtifactFile, 0, len(reader.File))
-	for _, file := range reader.File {
-		if file.FileInfo().IsDir() {
-			continue
-		}
-		rc, err := file.Open()
-		if err != nil {
-			panic(fmt.Sprintf("open devtest artifact fixture file %q: %v", file.Name, err))
-		}
-		content, err := io.ReadAll(rc)
-		_ = rc.Close()
-		if err != nil {
-			panic(fmt.Sprintf("read devtest artifact fixture file %q: %v", file.Name, err))
-		}
-		files = append(files, mockArtifactFile{
-			Path:    file.Name,
-			Content: string(content),
-		})
-	}
-	slices.SortFunc(files, func(a, b mockArtifactFile) int {
-		return strings.Compare(a.Path, b.Path)
-	})
-	return files
-}
-
 var mockActionsArtifactFiles = map[string][]mockArtifactFile{
 	"artifact-b": {
 		{
@@ -82,7 +40,20 @@ var mockActionsArtifactFiles = map[string][]mockArtifactFile{
 			Content: "artifact-b report",
 		},
 	},
-	"artifact-lcov-coverage": loadMockArtifactFilesFromFixtureZip("testdata/artifact-lcov-coverage.zip"),
+	"artifact-html-report": {
+		{
+			Path:    "report/index.html",
+			Content: `<html><body>Next line is from JS. <script>document.write('window origin: ' + window.origin)</script></body></html>`,
+		},
+		{
+			Path:    "report/style.css",
+			Content: "body { color: red; }\n",
+		},
+		{
+			Path:    "report/summary.txt",
+			Content: "mock coverage summary\n",
+		},
+	},
 	"artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong": {
 		{
 			Path:    "index.html",
@@ -315,7 +286,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-lcov-coverage",
+		Name:        "artifact-html-report",
 		Size:        256 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
@@ -706,7 +677,6 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 	attemptQuery := ""
 	if runAttempt > 0 {
 		backToRunURL += fmt.Sprintf("/attempts/%d", runAttempt)
-		runPreviewURL = backToRunURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
 		attemptQuery = fmt.Sprintf("?attempt=%d", runAttempt)
 	}
 
@@ -728,12 +698,12 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 func prepareMockDataRepoActionArtifactPreview(ctx *context.Context) {
 	const (
 		runID        = int64(10)
-		artifactName = "artifact-lcov-coverage"
+		artifactName = "artifact-html-report"
 		runAttempt   = int64(3)
 	)
 	requested := actions.GetRequestedPreviewPath(ctx)
 	if requested == "" {
-		requested = "coverage/index.html"
+		requested = "report/index.html"
 	}
 	previewURL := setting.AppSubURL + "/devtest/repo-action-artifact-preview"
 	prepareMockActionsArtifactPreviewData(ctx, runID, artifactName, requested, previewURL, runAttempt)
@@ -755,45 +725,17 @@ func MockActionsArtifactPreview(ctx *context.Context) {
 }
 
 func MockActionsArtifactPreviewRaw(ctx *context.Context) {
-	artifactName := ctx.PathParam("artifact_name")
-	files, ok := mockActionsArtifactFiles[artifactName]
+	files, ok := mockActionsArtifactFiles[ctx.PathParam("artifact_name")]
 	if !ok {
 		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact not found")
 		return
 	}
 
 	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), actions.GetRequestedPreviewPath(ctx))
-	if selectedPath == "" {
+	idx := slices.IndexFunc(files, func(file mockArtifactFile) bool { return file.Path == selectedPath })
+	if idx < 0 {
 		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")
 		return
 	}
-
-	var selectedFile *mockArtifactFile
-	for i := range files {
-		if files[i].Path == selectedPath {
-			selectedFile = &files[i]
-			break
-		}
-	}
-	if selectedFile == nil {
-		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")
-		return
-	}
-
-	contentType := typesniffer.DetectContentType([]byte(selectedFile.Content)).GetMimeType()
-	contentSecurityPolicy := ""
-	if path.Ext(selectedFile.Path) == ".html" {
-		contentType = "text/html"
-		contentSecurityPolicy = actions.ArtifactPreviewHTMLContentSecurityPolicy()
-	} else if mappedContentType := mime.TypeByExtension(path.Ext(selectedFile.Path)); strings.HasPrefix(mappedContentType, "text/") || strings.Contains(mappedContentType, "javascript") {
-		contentType = mappedContentType
-	}
-	size := int64(len(selectedFile.Content))
-	ctx.ServeContent(strings.NewReader(selectedFile.Content), context.ServeHeaderOptions{
-		Filename:              selectedFile.Path,
-		ContentDisposition:    httplib.ContentDispositionInline,
-		ContentLength:         &size,
-		ContentType:           contentType,
-		ContentSecurityPolicy: contentSecurityPolicy,
-	})
+	actions.PreviewArtifactContent(ctx, selectedPath, strings.NewReader(files[idx].Content))
 }
