@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -50,18 +51,16 @@ func RunnerGroups(ctx *context.Context) {
 		ctx.ServerError("FindRunnerGroups", err)
 		return
 	}
+	runners, repos, err := actions_model.CountRunnerGroupUsage(ctx, container.FilterSlice(groups, func(g *actions_model.ActionRunnerGroup) (int64, bool) {
+		return g.ID, true
+	}))
+	if err != nil {
+		ctx.ServerError("CountRunnerGroupUsage", err)
+		return
+	}
 	views := make([]*runnerGroupView, 0, len(groups))
 	for _, group := range groups {
-		view := &runnerGroupView{ActionRunnerGroup: group}
-		if view.Repos, err = db.CountByBean(ctx, &actions_model.ActionRunnerAccess{GroupID: group.ID}); err != nil {
-			ctx.ServerError("CountByBean", err)
-			return
-		}
-		if view.Runners, err = db.CountByBean(ctx, &actions_model.ActionRunner{GroupID: group.ID}); err != nil {
-			ctx.ServerError("CountByBean", err)
-			return
-		}
-		views = append(views, view)
+		views = append(views, &runnerGroupView{ActionRunnerGroup: group, Runners: runners[group.ID], Repos: repos[group.ID]})
 	}
 
 	ctx.Data["Title"] = ctx.Tr("actions.runners.groups")
@@ -78,7 +77,7 @@ func RunnerGroupCreate(ctx *context.Context) {
 		return
 	}
 	name := ctx.FormTrim("name")
-	if name == "" || len(name) > 255 {
+	if name == "" || utf8.RuneCountInString(name) > 255 {
 		ctx.JSONError(ctx.Tr("actions.runners.groups.name_invalid"))
 		return
 	}
@@ -159,8 +158,13 @@ func RunnerGroupDelete(ctx *context.Context) {
 	if group == nil {
 		return
 	}
-	if err := actions_model.DeleteRunnerGroup(ctx, group); err != nil {
+	switch err := actions_model.DeleteRunnerGroup(ctx, group); {
+	case err == nil:
+	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.JSONError(ctx.Tr("actions.runners.groups.delete_not_empty"))
+		return
+	default:
+		ctx.ServerError("DeleteRunnerGroup", err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.runners.groups.delete_success"))

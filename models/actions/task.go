@@ -313,8 +313,6 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 }
 
-// claimJobForRunner atomically claims job for runner. It returns (nil, false, nil) when the
-// job is no longer claimable, so the caller should move on to the next candidate.
 func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, jobCond builder.Cond) (*ActionTask, bool, error) {
 	var resultTask *ActionTask
 
@@ -374,7 +372,9 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 		}
 
 		job.TaskID = task.ID
-		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}, jobCond))
+		stillInGroup := builder.Exists(builder.Select("1").From("action_runner").
+			Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID}))
+		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}, jobCond, stillInGroup))
 		if err != nil {
 			return err
 		}

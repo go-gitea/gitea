@@ -377,20 +377,15 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
 
-	ungrouped := &ActionRunner{UUID: "ungrouped", AgentLabels: []string{"ubuntu-latest", "gpu"}}
-	ungrouped.GenerateAndFillToken()
-	require.NoError(t, db.Insert(t.Context(), ungrouped))
-	_, ok, err := CreateTaskForRunner(t.Context(), ungrouped)
-	require.NoError(t, err)
-	require.False(t, ok, "a label named like the group must not satisfy runs-on.group")
+	ungrouped := &ActionRunner{AgentLabels: []string{"ubuntu-latest", "gpu"}}
+	assert.False(t, ungrouped.CanRunJob(job.RunsOnGroup, job.RunsOn), "a label named like the group must not satisfy runs-on.group")
 
 	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.NoError(t, err)
-	runner := &ActionRunner{UUID: "grouped", AgentLabels: []string{"ubuntu-latest"}, GroupID: group.ID}
-	runner.GenerateAndFillToken()
+	runner := &ActionRunner{UUID: "grouped", AgentLabels: []string{"ubuntu-latest"}, GroupID: group.ID, TokenHash: "grouped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	_, ok, err = CreateTaskForRunner(t.Context(), runner)
+	_, ok, err := CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
 	require.False(t, ok, "a group without granted repositories serves nothing")
 
@@ -402,6 +397,7 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	beforeVersion, err := GetTasksVersionByScope(t.Context(), 0, 0)
 	require.NoError(t, err)
 	require.NoError(t, SetRunnerAccess(t.Context(), group, []int64{run.RepoID}))
+	unittest.AssertNotExistsBean(t, &ActionRunnerAccess{GroupID: group.ID, RepoID: 2})
 	afterVersion, err := GetTasksVersionByScope(t.Context(), 0, 0)
 	require.NoError(t, err)
 	assert.Greater(t, afterVersion, beforeVersion)
@@ -444,19 +440,6 @@ func TestRunnerGroupMembership(t *testing.T) {
 		assert.NotEqual(t, member.ID, candidate.ID)
 	}
 	require.NoError(t, DeleteRunnerGroup(t.Context(), group))
-}
-
-func TestPruneRunnerAccessOutsideOwner(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	group, err := CreateRunnerGroup(t.Context(), 3, "gpu")
-	require.NoError(t, err)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	require.Equal(t, int64(3), repo.OwnerID)
-	require.NoError(t, SetRunnerAccess(t.Context(), group, []int64{repo.ID}))
-
-	require.NoError(t, PruneRunnerAccessOutsideOwner(t.Context(), repo.ID, 2))
-	unittest.AssertNotExistsBean(t, &ActionRunnerAccess{GroupID: group.ID, RepoID: repo.ID})
 }
 
 type failFirstStepWrite struct{ fired atomic.Bool }

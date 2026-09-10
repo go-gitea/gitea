@@ -215,7 +215,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		AttemptJobID:            attemptJobID,
 		Needs:                   needs,
 		RunsOn:                  job.RunsOnLabels(),
-		RunsOnGroup:             job.RunsOnGroup(),
+		RunsOnGroup:             util.EllipsisDisplayString(job.RunsOnGroup(), 255),
 		Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,

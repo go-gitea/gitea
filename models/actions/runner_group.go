@@ -60,8 +60,13 @@ func SetRunnerGroupMembers(ctx context.Context, group *ActionRunnerGroup, runner
 			return err
 		}
 		if len(runnerIDs) > 0 {
-			if _, err := db.GetEngine(ctx).In("id", runnerIDs).Cols("group_id").Update(&ActionRunner{GroupID: group.ID}); err != nil {
+			alive := builder.Exists(builder.Select("1").From("action_runner_group").Where(builder.Eq{"id": group.ID}))
+			n, err := db.GetEngine(ctx).Where(builder.In("id", runnerIDs).And(alive)).Cols("group_id").Update(&ActionRunner{GroupID: group.ID})
+			if err != nil {
 				return err
+			}
+			if n == 0 {
+				return util.NewInvalidArgumentErrorf("the runner group no longer exists")
 			}
 		}
 		return IncreaseTaskVersion(ctx, group.OwnerID, 0)
@@ -74,6 +79,32 @@ func PruneRunnerAccessOutsideOwner(ctx context.Context, repoID, ownerID int64) e
 	_, err := db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID}).And(builder.In("group_id", stale)).
 		Delete(new(ActionRunnerAccess))
 	return err
+}
+
+func CountRunnerGroupUsage(ctx context.Context, groupIDs []int64) (runners, repos map[int64]int64, err error) {
+	countBy := func(table string, cond builder.Cond) (map[int64]int64, error) {
+		var rows []struct {
+			GroupID int64
+			Count   int64
+		}
+		if err := db.GetEngine(ctx).Table(table).Select("group_id, COUNT(*) AS count").
+			Where(builder.In("group_id", groupIDs).And(cond)).GroupBy("group_id").Find(&rows); err != nil {
+			return nil, err
+		}
+		counts := make(map[int64]int64, len(rows))
+		for _, row := range rows {
+			counts[row.GroupID] = row.Count
+		}
+		return counts, nil
+	}
+	if len(groupIDs) == 0 {
+		return nil, nil, nil
+	}
+	if runners, err = countBy("action_runner", builder.IsNull{"deleted"}); err != nil {
+		return nil, nil, err
+	}
+	repos, err = countBy("action_runner_access", nil)
+	return runners, repos, err
 }
 
 func RunnerGroupsAllowingRepo(ctx context.Context, repoID int64) (container.Set[int64], error) {
@@ -97,7 +128,6 @@ func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*Action
 
 func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		// conditional, so a concurrent join cannot orphan runners in a deleted group
 		hasRunners := builder.Exists(builder.Select("1").From("action_runner").
 			Where(builder.Eq{"group_id": group.ID}).And(builder.IsNull{"deleted"}))
 		n, err := db.GetEngine(ctx).Where(builder.Eq{"id": group.ID}).And(builder.Not{hasRunners}).Delete(new(ActionRunnerGroup))

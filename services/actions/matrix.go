@@ -120,7 +120,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 			return fmt.Errorf("marshal expanded job: %w", err)
 		}
 		dst.Name = util.EllipsisDisplayString(combo.Name, 255)
-		dst.WorkflowPayload, dst.RunsOn, dst.RunsOnGroup = payload, combo.RunsOnLabels(), combo.RunsOnGroup()
+		dst.WorkflowPayload, dst.RunsOn, dst.RunsOnGroup = payload, combo.RunsOnLabels(), util.EllipsisDisplayString(combo.RunsOnGroup(), 255)
 		dst.ContinueOnError = combo.GetContinueOnError()
 		return nil
 	}
@@ -210,7 +210,7 @@ func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
 	}
 	clone.Name = util.EllipsisDisplayString(parsed.Name, 255)
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
-	clone.RunsOn, clone.RunsOnGroup = parsed.RunsOnLabels(), parsed.RunsOnGroup()
+	clone.RunsOn, clone.RunsOnGroup = parsed.RunsOnLabels(), util.EllipsisDisplayString(parsed.RunsOnGroup(), 255)
 	clone.ContinueOnError = parsed.GetContinueOnError()
 	clone.IsMatrixDeferred = true
 	return nil
