@@ -93,7 +93,7 @@ type HTMLWriter interface {
 	OriginWriter() io.Writer
 	WriteString(s string) HTMLWriter
 	WriteHTML(s template.HTML) HTMLWriter
-	WriteFormat(fmt template.HTML, args ...any) HTMLWriter
+	WriteFormatf(fmt template.HTML, args ...any) HTMLWriter
 	Err() error
 }
 
@@ -120,7 +120,7 @@ func (h *htmlWriter) WriteHTML(s template.HTML) HTMLWriter {
 	return h
 }
 
-func (h *htmlWriter) WriteFormat(fmt template.HTML, args ...any) HTMLWriter {
+func (h *htmlWriter) WriteFormatf(fmt template.HTML, args ...any) HTMLWriter {
 	if _, err := HTMLPrintf(h.w, fmt, args...); err != nil {
 		h.errs = append(h.errs, err)
 	}

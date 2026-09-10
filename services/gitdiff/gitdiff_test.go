@@ -1210,19 +1210,19 @@ func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
 		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
 	})
 	t.Run("ShortLineUseHighlight", func(t *testing.T) {
-		file := &DiffFile{}
-		file.highlightedRightLines.value = map[int]template.HTML{0: "highlighted short line"}
-		line := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " short line", IsTruncated: false}
-		inline := newDiffSectionForDiffFile(file).GetComputedInlineDiffFor(line, translation.MockLocale{})
+		diffFile := &DiffFile{}
+		diffFile.highlightedRightLines.value = map[int]template.HTML{0: "highlighted short line"}
+		diffLine := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " short line", IsTruncated: false}
+		inline := newDiffSectionForDiffFile(diffFile).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
 		assert.Equal(t, template.HTML("highlighted short line"), inline.Content)
 		assert.False(t, inline.IsTruncated)
 	})
 	t.Run("LongLineTruncated", func(t *testing.T) {
-		file := &DiffFile{}
-		file.highlightedRightLines.value = map[int]template.HTML{0: "highlighted line"}
-		line := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " truncated line", IsTruncated: true}
-		inline := newDiffSectionForDiffFile(file).GetComputedInlineDiffFor(line, translation.MockLocale{})
-		assert.Equal(t, template.HTML("truncated line"), inline.Content)
+		diffFile := &DiffFile{}
+		diffFile.highlightedRightLines.value = map[int]template.HTML{0: "highlighted line"}
+		diffLine := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " truncated line", IsTruncated: true}
+		inline := newDiffSectionForDiffFile(diffFile).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.Equal(t, template.HTML(`truncated line<span class="ui label diff-line-truncated">repo.diff.line_truncated</span>`), inline.Content)
 		assert.True(t, inline.IsTruncated)
 	})
 }

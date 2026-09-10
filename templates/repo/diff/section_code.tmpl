@@ -1,2 +1,1 @@
-<code class="code-inner{{if .diff.EscapeStatus.Escaped}} has-escaped{{end}}{{if .diff.IsTruncated}} tw-underline tw-decoration-dashed tw-decoration-light-border tw-underline-offset-4{{end}}">{{.diff.Content}}</code>
-{{if .diff.IsTruncated}}<span class="ui small label tw-py-0 tw-ml-2 tw-select-none">{{ctx.Locale.Tr "repo.diff.line_truncated"}}</span>{{end}}
+<code class="code-inner{{if .diff.EscapeStatus.Escaped}} has-escaped{{end}}">{{.diff.Content}}</code>
