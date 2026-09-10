@@ -57,6 +57,11 @@ export function initRepository() {
   initRepoSettings();
   initRepoIssueWipNewTitle();
 
+  // Conversations exist on issue/PR pages and on commit diffs, so these
+  // delegated handlers follow the markup rather than a page class.
+  initRepoIssueCommentDelete();
+  initRepoIssueCodeCommentCancel();
+
   // Issues
   if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueCommentEdit();
@@ -67,8 +72,6 @@ export function initRepository() {
 
     initRepoIssueReferenceIssue();
 
-    initRepoIssueCommentDelete();
-    initRepoIssueCodeCommentCancel();
     initCompReactionSelector();
   }
 

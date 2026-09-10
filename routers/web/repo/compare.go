@@ -782,6 +782,19 @@ func ExcerptBlob(ctx *context.Context) {
 				}
 			}
 		}
+	} else if ctx.FormBool("commit_diff") && ctx.Data["PageIsWiki"] != true {
+		// Commit diff excerpt: keep comment buttons + conversations on expanded rows.
+		fullSHA := commit.ID.String()
+		diffBlobExcerptData.IsCommitDiff = true
+		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
+		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, fullSHA)
+
+		fileComments, err := issues_model.FindCommitCommentsForFile(ctx, ctx.Repo.Repository.ID, fullSHA, filePath)
+		if err != nil {
+			log.Error("FindCommitCommentsForFile error: %v", err)
+		} else {
+			renderCommitComments(ctx, gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments))
+		}
 	}
 
 	ctx.Data["section"] = section

@@ -195,6 +195,11 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
 
+	// Commit comments (junction + CommentTypeCommitComment + bound attachments).
+	if err := issues_model.DeleteCommitCommentsByRepoID(ctx, repoID); err != nil {
+		return fmt.Errorf("DeleteCommitCommentsByRepoID: %w", err)
+	}
+
 	// Delete Labels and related objects
 	if err := issues_model.DeleteLabelsByRepoID(ctx, repoID); err != nil {
 		return err
