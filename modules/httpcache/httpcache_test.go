@@ -54,6 +54,13 @@ func TestHandleGenericETagCache(t *testing.T) {
 			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
 		},
 		{
+			name:        "Wildcard If-None-Match matches any current representation",
+			reqHeaders:  map[string]string{"If-None-Match": "*"},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+		{
 			name:        "Weak response tag matched by a strong request tag",
 			respEtag:    weakEtag,
 			reqHeaders:  map[string]string{"If-None-Match": matchedEtag},
