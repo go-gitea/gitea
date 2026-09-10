@@ -277,12 +277,21 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			release.TargetCommitish = ""
 		}
 
+		// a predecessor at this path may have claimed the tag name
+		immutable, err := repo_model.IsTagImmutable(ctx, g.repo, release.TagName)
+		if err != nil {
+			return err
+		}
+		if immutable {
+			log.Warn("Skipped release with immutable tag: %s in migration to %s/%s", release.TagName, g.repoOwner, g.repoName)
+			continue
+		}
+
 		publishedAt := util.Iif(release.Published.IsZero(), release.Created, release.Published)
 
 		rel := repo_model.Release{
 			RepoID:        g.repo.ID,
 			TagName:       release.TagName,
-			LowerTagName:  strings.ToLower(release.TagName),
 			Target:        release.TargetCommitish,
 			Title:         release.Name,
 			Note:          release.Body,

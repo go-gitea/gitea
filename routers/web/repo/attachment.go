@@ -121,6 +121,18 @@ func DeleteAttachment(ctx *context.Context) {
 		}
 	}
 
+	if attach.ReleaseID > 0 {
+		rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, attach.ReleaseID)
+		if err != nil && !repo_model.IsErrReleaseNotExist(err) { // an orphaned attachment stays deletable
+			ctx.ServerError("GetReleaseForRepoByID", err)
+			return
+		}
+		if err == nil && rel.IsImmutable {
+			ctx.HTTPError(http.StatusForbidden, ctx.Locale.TrString("repo.release.immutable_locked"))
+			return
+		}
+	}
+
 	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
 		ctx.ServerError("DeleteAttachment", err)

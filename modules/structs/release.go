@@ -33,6 +33,8 @@ type Release struct {
 	IsDraft bool `json:"draft"`
 	// Whether the release is a prerelease
 	IsPrerelease bool `json:"prerelease"`
+	// Whether the release, its assets and its tag are locked against changes
+	IsImmutable bool `json:"immutable"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time

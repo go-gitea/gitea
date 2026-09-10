@@ -38,7 +38,7 @@
 									<a class="archive-link flex-text-inline" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}TAR.GZ</a>
 								{{end}}
 
-								{{if (and $canReadReleases $.CanCreateRelease $release.IsTag)}}
+								{{if (and $canReadReleases $.CanCreateRelease $release.IsTag (not $release.IsImmutable))}}
 									<a class="flex-text-inline" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag"}}{{ctx.Locale.Tr "repo.release.new_release"}}</a>
 								{{end}}
 
@@ -51,6 +51,10 @@
 								{{if and $canReadReleases (not $release.IsTag)}}
 									<a class="flex-text-inline" href="{{$.RepoLink}}/releases/tag/{{.TagName | PathEscapeSegments}}">{{svg "octicon-tag"}}{{ctx.Locale.Tr "repo.release.detail"}}</a>
 								{{end}}
+							{{end}}
+
+							{{if $release.IsImmutable}}
+								<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.release.tag_name_immutable"}}">{{svg "octicon-lock"}}{{ctx.Locale.Tr "repo.release.immutable"}}</span>
 							{{end}}
 						</div>
 					</div>

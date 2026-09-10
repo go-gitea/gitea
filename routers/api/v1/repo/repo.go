@@ -936,14 +936,23 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasReleases != nil && !unit_model.TypeReleases.UnitGlobalDisabled() {
-		if *opts.HasReleases {
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeReleases,
-			})
-		} else {
+	if (opts.HasReleases != nil || opts.ImmutableReleases != nil) && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		unit, err := repo.GetUnit(ctx, unit_model.TypeReleases)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return err
+		}
+		if opts.HasReleases != nil && !*opts.HasReleases {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		} else if unit != nil || opts.HasReleases != nil { // immutable_releases alone must not enable the unit
+			config := repo.MustGetUnit(ctx, unit_model.TypeReleases).ReleasesConfig()
+			if opts.ImmutableReleases != nil {
+				config.ImmutableReleases = *opts.ImmutableReleases
+			}
+			repoUnit := repo_model.RepoUnit{RepoID: repo.ID, Type: unit_model.TypeReleases, Config: config}
+			if unit != nil { // the row is rewritten, so its public access settings have to survive
+				repoUnit.AnonymousAccessMode, repoUnit.EveryoneAccessMode = unit.AnonymousAccessMode, unit.EveryoneAccessMode
+			}
+			units = append(units, repoUnit)
 		}
 	}
 
