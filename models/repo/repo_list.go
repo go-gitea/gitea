@@ -476,6 +476,7 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 			likes := builder.NewCond()
 			for v := range strings.SplitSeq(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+				likes = likes.Or(builder.Like{"LOWER(custom_name)", strings.ToLower(v)})
 
 				// If the string looks like "org/repo", match against that pattern too
 				if opts.TeamID == 0 && strings.Count(opts.Keyword, "/") == 1 {

@@ -57,10 +57,12 @@ type ExternalWiki struct {
 
 // Repository represents a repository
 type Repository struct {
-	ID          int64  `json:"id"`
-	Owner       *User  `json:"owner"`
-	Name        string `json:"name"`
-	FullName    string `json:"full_name"`
+	ID       int64  `json:"id"`
+	Owner    *User  `json:"owner"`
+	Name     string `json:"name"`
+	FullName string `json:"full_name"`
+	// an optional display name for the repository, falls back to name in UI
+	CustomName  string `json:"custom_name,omitempty"`
 	Description string `json:"description"`
 	Empty       bool   `json:"empty"`
 	Private     bool   `json:"private"`
@@ -145,6 +147,8 @@ type CreateRepoOption struct {
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Description of the repository to create
 	Description string `json:"description" binding:"MaxSize(2048)"`
+	// Custom name (display name) of the repository to create
+	CustomName string `json:"custom_name,omitempty" binding:"MaxSize(100)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// Label-Set to use
@@ -176,6 +180,8 @@ type EditRepoOption struct {
 	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
+	// an optional display name for the repository, falls back to name in UI
+	CustomName *string `json:"custom_name,omitempty" binding:"OmitEmpty;MaxSize(100)"`
 	// a URL with more information about the repository.
 	Website *string `json:"website,omitempty" binding:"MaxSize(1024)"`
 	// either `true` to make the repository private or `false` to make it public.

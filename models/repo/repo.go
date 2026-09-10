@@ -158,6 +158,7 @@ type Repository struct {
 	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
 	Description         string             `xorm:"TEXT"`
+	CustomName          string             `xorm:"TEXT"`
 	Website             string             `xorm:"VARCHAR(2048)"`
 	OriginalServiceType api.GitServiceType `xorm:"index"`
 	OriginalURL         string             `xorm:"VARCHAR(2048)"`
@@ -338,6 +339,14 @@ func (repo *Repository) LoadAttributes(ctx context.Context) error {
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
 	return repo.OwnerName + "/" + repo.Name
+}
+
+// DisplayName returns the custom name if it's not empty, otherwise the repository name
+func (repo *Repository) DisplayName() string {
+	if name := strings.TrimSpace(repo.CustomName); name != "" {
+		return name
+	}
+	return repo.Name
 }
 
 // HTMLURL returns the repository HTML URL

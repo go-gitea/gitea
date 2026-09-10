@@ -14,7 +14,7 @@
 						{{if and $.ShowRepoOwnerOnList .Owner}}
 						<a class="tw-text-primary name" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/
 						{{end}}
-						<a class="tw-text-primary name" href="{{.Link}}">{{.Name}}</a>
+						<a class="tw-text-primary name" href="{{.Link}}" {{if ne .DisplayName .Name}}title="{{.FullName}}"{{end}}>{{.DisplayName}}</a>
 						<span class="label-list">
 							{{if .IsArchived}}
 								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>

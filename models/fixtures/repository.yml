@@ -404,6 +404,7 @@
   lower_name: test_repo_14
   name: test_repo_14
   description: test_description_14
+  custom_name: 中文显示名14
   num_watches: 0
   num_stars: 0
   num_forks: 0

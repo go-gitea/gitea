@@ -240,6 +240,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	repo, err := repo_service.CreateRepository(ctx, ctx.Doer, owner, repo_service.CreateRepoOptions{
 		Name:             opt.Name,
 		Description:      opt.Description,
+		CustomName:       opt.CustomName,
 		IssueLabels:      opt.IssueLabels,
 		Gitignores:       opt.Gitignores,
 		License:          opt.License,
@@ -670,6 +671,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if opts.Description != nil {
 		repo.Description = *opts.Description
+	}
+
+	if opts.CustomName != nil {
+		repo.CustomName = *opts.CustomName
 	}
 
 	if opts.Website != nil {

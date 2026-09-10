@@ -258,6 +258,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 	repo.Description = form.Description
+	repo.CustomName = form.CustomName
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
 
