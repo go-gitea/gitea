@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -200,22 +201,21 @@ func TestParsePatch_singlefile(t *testing.T) {
 		filename    string
 	}
 
-	const textHunk = `@@ -1,3 +1,6 @@
- # gitea-github-migrator
-+
-+ Build Status
-- Latest Release
- Docker Pulls
-+ cut off
-+ cut off`
-
 	tests := []testcase{
 		{
 			name: "readme.md2readme.md",
 			gitdiff: `diff --git "\\a/README.md" "\\b/README.md"
 --- "\\a/README.md"
 +++ "\\b/README.md"
-` + textHunk + "\n",
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+`,
 			addition:    4,
 			deletion:    1,
 			filename:    "README.md",
@@ -226,33 +226,18 @@ func TestParsePatch_singlefile(t *testing.T) {
 			gitdiff: `diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
 +++ "b/A \\ B"
-` + textHunk,
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`,
 			addition:    4,
 			deletion:    1,
 			filename:    "A \\ B",
 			oldFilename: "A \\ B",
-		},
-		{
-			name: "quoted filename",
-			gitdiff: `diff --git "a/README.md" "b/README.md"
---- a/README.md
-+++ b/README.md
-` + textHunk,
-			addition:    4,
-			deletion:    1,
-			oldFilename: "README.md",
-			filename:    "README.md",
-		},
-		{
-			name: "unquoted filename",
-			gitdiff: `diff --git a/README.md b/README.md
---- a/README.md
-+++ b/README.md
-` + textHunk,
-			addition:    4,
-			deletion:    1,
-			oldFilename: "README.md",
-			filename:    "README.md",
 		},
 		{
 			name: "really weird filename",
@@ -352,6 +337,16 @@ rename to b
 			filename:    "b",
 		},
 		{
+			name: "ambiguous 1",
+			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
+similarity index 100%
+rename from b b/b b/b b/b b/b
+rename to b
+`,
+			oldFilename: "b b/b b/b b/b b/b",
+			filename:    "b",
+		},
+		{
 			name: "ambiguous 2",
 			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
 similarity index 100%
@@ -413,14 +408,145 @@ index 6961180..9ba1a00 100644
 		})
 	}
 
-	t.Run("mixed quoted filenames", func(t *testing.T) {
-		patch := `diff --git "a/A \\ B" b/A/B
+	// Test max lines
+	diffBuilder := &strings.Builder{}
+
+	diff := `diff --git a/newfile2 b/newfile2
+new file mode 100644
+index 0000000..6bb8f39
+--- /dev/null
++++ b/newfile2
+@@ -0,0 +1,35 @@
+`
+	diffBuilder.WriteString(diff)
+
+	for i := range 35 {
+		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
+	}
+	diff = diffBuilder.String()
+	result, err := ParsePatch(t.Context(), 20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	if err != nil {
+		t.Errorf("There should not be an error: %v", err)
+	}
+	if !result.Files[0].IsIncomplete {
+		t.Errorf("Files should be incomplete! %v", result.Files[0])
+	}
+	result, err = ParsePatch(t.Context(), 40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	if err != nil {
+		t.Errorf("There should not be an error: %v", err)
+	}
+	if result.Files[0].IsIncomplete {
+		t.Errorf("Files should not be incomplete! %v", result.Files[0])
+	}
+	result, err = ParsePatch(t.Context(), 40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	if err != nil {
+		t.Errorf("There should not be an error: %v", err)
+	}
+	if result.Files[0].IsIncomplete {
+		t.Errorf("Files should not be incomplete! %v", result.Files[0])
+	}
+
+	// Test max characters
+	diff = `diff --git a/newfile2 b/newfile2
+new file mode 100644
+index 0000000..6bb8f39
+--- /dev/null
++++ b/newfile2
+@@ -0,0 +1,35 @@
+`
+	diffBuilder.Reset()
+	diffBuilder.WriteString(diff)
+
+	for i := range 33 {
+		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
+	}
+	diffBuilder.WriteString("+line33")
+	for range 512 {
+		diffBuilder.WriteString("0123456789ABCDEF")
+	}
+	diffBuilder.WriteByte('\n')
+	diffBuilder.WriteString("+line" + strconv.Itoa(34) + "\n")
+	diffBuilder.WriteString("+line" + strconv.Itoa(35) + "\n")
+	diff = diffBuilder.String()
+
+	result, err = ParsePatch(t.Context(), 20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	if err != nil {
+		t.Errorf("There should not be an error: %v", err)
+	}
+	if !result.Files[0].IsIncomplete {
+		t.Errorf("Files should be incomplete! %v", result.Files[0])
+	}
+	result, err = ParsePatch(t.Context(), 40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	if err != nil {
+		t.Errorf("There should not be an error: %v", err)
+	}
+	if result.Files[0].IsIncomplete {
+		t.Errorf("Files should not be incomplete! %v", result.Files[0])
+	}
+
+	diff = `diff --git "a/README.md" "b/README.md"
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+
+	diff2 := `diff --git "a/A \\ B" "b/A \\ B"
+--- "a/A \\ B"
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+
+	diff2a := `diff --git "a/A \\ B" b/A/B
 --- "a/A \\ B"
 +++ b/A/B
-` + textHunk
-		_, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(patch), "")
-		require.NoError(t, err)
-	})
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+
+	diff3 := `diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
 }
 
 func TestParsePatchLongLines(t *testing.T) {
@@ -495,12 +621,17 @@ func TestParsePatchExactLineLimit(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, diff.Files, 1)
 			diffFile := diff.Files[0]
-			assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
 			if test.limit == 0 {
 				require.Len(t, diffFile.Sections, 0)
 			} else {
 				require.Len(t, diffFile.Sections, 1)
-				assert.Len(t, diffFile.Sections[0].Lines, test.lines+1)
+				diffSection := diffFile.Sections[0]
+				lineSecCount := 0
+				for _, line := range diffSection.Lines {
+					lineSecCount += util.Iif(line.Type == DiffLineSection, 1, 0)
+				}
+				assert.Equal(t, test.lines, len(diffSection.Lines)-lineSecCount) // actual diff lines
+				assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
 			}
 		})
 	}
@@ -1116,7 +1247,6 @@ func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
 			}
 		}
 	})
-
 	t.Run("TruncatedPlain", func(t *testing.T) {
 		file := &DiffFile{}
 		file.highlightedRightLines.value = map[int]template.HTML{0: "DISCARDED_SUFFIX"}
