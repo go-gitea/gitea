@@ -28,25 +28,28 @@ func Queue(ctx *context.Context) {
 }
 
 const (
-	queuePageSize = 50 // queued jobs per page
-
-	// runningJobsLimit caps the running-job list, which is bounded by the number of busy runners.
-	runningJobsLimit = 100
+	queuePageSize = 50 // jobs per page
 
 	// status filter values, as submitted by the filter bar ("" means every listed status)
 	queueFilterRunning = "running"
 	queueFilterWaiting = "waiting"
 )
 
-// RenderQueue queries and renders a build-queue view (running jobs followed by queued jobs in pickup order):
-// a single repository when repoID > 0, otherwise the whole instance. It serves both the initial full page
-// (fullTemplate) and the in-place auto-refresh fragment. Both lists can be narrowed by status and, outside
-// a repo scope, by owner and repository.
+// RenderQueue queries and renders a build-queue view (running jobs followed by the queued ones in pickup
+// order): a single repository when repoID > 0, otherwise the whole instance. It serves both the initial
+// full page (fullTemplate) and the in-place auto-refresh fragment. The list can be narrowed by status and,
+// outside a repo scope, by owner and repository.
 func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplName) {
 	page := max(ctx.FormInt("page"), 1)
 
 	filterStatus := ctx.FormString("status")
-	if filterStatus != queueFilterRunning && filterStatus != queueFilterWaiting {
+	status := actions_model.StatusUnknown
+	switch filterStatus {
+	case queueFilterRunning:
+		status = actions_model.StatusRunning
+	case queueFilterWaiting:
+		status = actions_model.StatusWaiting
+	default:
 		filterStatus = ""
 	}
 	isRefresh := ctx.FormBool("refresh")
@@ -67,66 +70,40 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 		}
 	}
 	ctx.Data["QueueFilterOwnerID"], ctx.Data["QueueFilterRepoID"] = filterOwnerID, filterRepoID
-	queueOpts := actions_model.QueueJobsOptions{
+
+	jobs, total, err := actions_model.FindQueueJobs(ctx, actions_model.QueueJobsOptions{
 		RepoID:  util.Iif(filterRepoID > 0, filterRepoID, repoID),
 		OwnerID: filterOwnerID,
-	}
-	filtered := filterOwnerID > 0 || filterRepoID > 0
-
-	var queuedJobs []*actions_model.ActionRunJob
-	var queuedTotal int64
-	if filterStatus != queueFilterRunning {
-		var err error
-		queuedJobs, queuedTotal, err = actions_model.FindQueuedJobs(ctx, queueOpts, page, queuePageSize)
-		if err != nil {
-			ctx.ServerError("FindQueuedJobs", err)
-			return
-		}
-		if err := actions_model.ActionJobList(queuedJobs).LoadAttributes(ctx, true); err != nil {
-			ctx.ServerError("LoadAttributes", err)
-			return
-		}
-	}
-
-	// Running jobs are bounded by the number of online runners, so a single capped page is enough:
-	// they head the list on every page instead of taking part in the queued-job pagination.
-	var runningJobs []*actions_model.ActionRunJob
-	if filterStatus != queueFilterWaiting {
-		var err error
-		runningJobs, err = actions_model.FindRunningJobs(ctx, queueOpts, runningJobsLimit)
-		if err != nil {
-			ctx.ServerError("FindRunningJobs", err)
-			return
-		}
-		if err := actions_model.ActionJobList(runningJobs).LoadAttributes(ctx, true); err != nil {
-			ctx.ServerError("LoadAttributes", err)
-			return
-		}
-	}
-
-	runners, err := runningJobRunnerNames(ctx, runningJobs)
+		Status:  status,
+	}, page, queuePageSize)
 	if err != nil {
-		ctx.ServerError("runningJobRunnerNames", err)
+		ctx.ServerError("FindQueueJobs", err)
 		return
 	}
-	ctx.Data["RunningJobRunners"] = runners
+	if err := actions_model.ActionJobList(jobs).LoadAttributes(ctx, true); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
 
-	ctx.Data["QueuedJobs"] = queuedJobs
-	ctx.Data["QueueOffset"] = (page - 1) * queuePageSize // absolute position of the first row on this page
-	ctx.Data["RunningJobs"] = runningJobs
-	ctx.Data["QueueTotal"] = queuedTotal + int64(len(runningJobs))
+	runners, err := jobRunnerNames(ctx, jobs)
+	if err != nil {
+		ctx.ServerError("jobRunnerNames", err)
+		return
+	}
+
+	ctx.Data["QueueJobs"] = jobs
+	ctx.Data["QueueJobRunners"] = runners
+	ctx.Data["QueueTotal"] = total
 	ctx.Data["ShowRepoColumn"] = repoID == 0
 	ctx.Data["ShowOwnerRepoFilters"] = repoID == 0
 	ctx.Data["QueueFilterStatus"] = filterStatus
 	ctx.Data["QueueFilterStatuses"] = []string{queueFilterRunning, queueFilterWaiting}
-	// Positions are absolute pickup positions, which an owner/repository filter would silently misnumber.
-	ctx.Data["ShowQueuePositions"] = !filtered
 
-	pager := context.NewPagerBuilder(ctx).TotalCount(queuedTotal).PerPageLimit(queuePageSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(queuePageSize).CurPage(page).Build()
 	pager.RemoveParam(container.SetOf("refresh")) // keep the auto-refresh flag out of the page links
 	ctx.Data["Page"] = pager
 
-	ctx.Data["QueueRefreshIntervalMs"] = RefreshIntervalMs(len(queuedJobs) > 0 || len(runningJobs) > 0)
+	ctx.Data["QueueRefreshIntervalMs"] = RefreshIntervalMs(len(jobs) > 0)
 	ctx.Data["QueueRefreshLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "refresh", "1")
 
 	if isRefresh {
@@ -204,8 +181,8 @@ func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID
 	return filterOwnerID, filterRepoID, nil
 }
 
-// runningJobRunnerNames maps each running job's ID to the name of the runner executing it.
-func runningJobRunnerNames(ctx *context.Context, jobs []*actions_model.ActionRunJob) (map[int64]string, error) {
+// jobRunnerNames maps each running job's ID to the name of the runner executing it.
+func jobRunnerNames(ctx *context.Context, jobs []*actions_model.ActionRunJob) (map[int64]string, error) {
 	taskIDs := make([]int64, 0, len(jobs))
 	for _, j := range jobs {
 		if tid := j.EffectiveTaskID(); tid > 0 {

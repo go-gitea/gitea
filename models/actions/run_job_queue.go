@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/models/db"
 
@@ -24,10 +25,11 @@ var queueJobCols = []string{
 }
 
 // QueueJobsOptions scopes a build-queue query: RepoID>0 → a single repo; OwnerID>0 → an org/user;
-// both zero → the whole instance.
+// both zero → the whole instance. Status narrows the list to running or queued jobs, StatusUnknown lists both.
 type QueueJobsOptions struct {
 	RepoID  int64
 	OwnerID int64
+	Status  Status
 }
 
 func (opts QueueJobsOptions) session(ctx context.Context) *xorm.Session {
@@ -39,35 +41,45 @@ func (opts QueueJobsOptions) session(ctx context.Context) *xorm.Session {
 	if opts.OwnerID > 0 {
 		sess = sess.Join("INNER", "repository", "repository.id = `action_run_job`.repo_id AND repository.owner_id = ?", opts.OwnerID)
 	}
-	return sess
+	return sess.And(opts.statusCond())
 }
 
-// queuedJobsCond matches the jobs a runner may still pick up: waiting and not yet claimed by a task.
-var queuedJobsCond = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}
+var (
+	// queuedJobsCond matches the jobs a runner may still pick up: waiting and not yet claimed by a task.
+	// Keep it in sync with CreateTaskForRunner, which claims jobs oldest-ready-first.
+	queuedJobsCond  = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}
+	runningJobsCond = builder.Eq{"`action_run_job`.status": StatusRunning}
+)
 
-// FindQueuedJobs returns one page of the jobs waiting for a runner, in pickup order, and their total count.
-// Keep the condition and order in sync with CreateTaskForRunner, which claims jobs oldest-ready-first.
-func FindQueuedJobs(ctx context.Context, opts QueueJobsOptions, page, pageSize int) ([]*ActionRunJob, int64, error) {
-	total, err := opts.session(ctx).And(queuedJobsCond).Count(new(ActionRunJob))
+func (opts QueueJobsOptions) statusCond() builder.Cond {
+	switch opts.Status {
+	case StatusRunning:
+		return runningJobsCond
+	case StatusWaiting:
+		return queuedJobsCond
+	default:
+		return builder.Or(runningJobsCond, queuedJobsCond)
+	}
+}
+
+// queueJobsOrderBy puts the running jobs first (StatusRunning sorts above StatusWaiting), then orders each
+// group by the very timestamp the row displays: a running job by its start, a queued one by its pickup order.
+var queueJobsOrderBy = fmt.Sprintf(
+	"`action_run_job`.status DESC, CASE WHEN `action_run_job`.status = %d THEN `action_run_job`.started ELSE `action_run_job`.updated END ASC, `action_run_job`.id ASC",
+	StatusRunning)
+
+// FindQueueJobs returns one page of the build queue and its total count.
+func FindQueueJobs(ctx context.Context, opts QueueJobsOptions, page, pageSize int) ([]*ActionRunJob, int64, error) {
+	total, err := opts.session(ctx).Count(new(ActionRunJob))
 	if err != nil || total == 0 {
 		return nil, total, err
 	}
 
 	jobs := make([]*ActionRunJob, 0, pageSize)
-	return jobs, total, opts.session(ctx).And(queuedJobsCond).
+	return jobs, total, opts.session(ctx).
 		Cols(queueJobCols...).
-		OrderBy("`action_run_job`.updated ASC, `action_run_job`.id ASC").
+		OrderBy(queueJobsOrderBy).
 		Limit(pageSize, (page-1)*pageSize).
-		Find(&jobs)
-}
-
-// FindRunningJobs returns at most limit jobs currently occupying a runner, longest-running-first.
-func FindRunningJobs(ctx context.Context, opts QueueJobsOptions, limit int) ([]*ActionRunJob, error) {
-	jobs := make([]*ActionRunJob, 0, limit)
-	return jobs, opts.session(ctx).And(builder.Eq{"`action_run_job`.status": StatusRunning}).
-		Cols(queueJobCols...).
-		OrderBy("`action_run_job`.started ASC, `action_run_job`.id ASC").
-		Limit(limit).
 		Find(&jobs)
 }
 
@@ -77,6 +89,5 @@ func FindRunningJobs(ctx context.Context, opts QueueJobsOptions, limit int) ([]*
 func QueueFilterRepoIDs(ctx context.Context, opts QueueJobsOptions, limit int) ([]int64, error) {
 	ids := make([]int64, 0, 10)
 	return ids, opts.session(ctx).
-		And(builder.Or(queuedJobsCond, builder.Eq{"`action_run_job`.status": StatusRunning})).
 		Distinct("`action_run_job`.repo_id").Cols("`action_run_job`.repo_id").Limit(limit).Find(&ids)
 }

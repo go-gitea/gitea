@@ -57,12 +57,11 @@
 			</div>
 		</div>
 	</div>
-	{{if or .RunningJobs .QueuedJobs}}
+	{{if .QueueJobs}}
 	<div class="ui attached table segment">
 		<table class="ui very basic table unstackable">
 			<thead>
 				<tr>
-					<th>#</th>
 					<th>{{ctx.Locale.Tr "actions.runs.status"}}</th>
 					{{if .ShowRepoColumn}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
 					<th>{{ctx.Locale.Tr "actions.runners.task_list.job"}}</th>
@@ -73,11 +72,21 @@
 				</tr>
 			</thead>
 			<tbody>
-				{{range .RunningJobs}}
-					{{template "shared/actions/queue_row" (dict "Job" . "IsQueued" false "RunnerName" (index $.RunningJobRunners .ID))}}
-				{{end}}
-				{{range $idx, $job := .QueuedJobs}}
-					{{template "shared/actions/queue_row" (dict "Job" $job "IsQueued" true "Position" (Eval $.QueueOffset "+" $idx "+" 1))}}
+				{{range $job := .QueueJobs}}
+				<tr>
+					<td>
+						<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $job.Status.String)}}">
+							{{template "repo/icons/action_status" (dict "Status" $job.Status.String "IconVariant" "circle-fill")}}
+						</span>
+					</td>
+					{{if $.ShowRepoColumn}}<td>{{if $job.Repo}}<a href="{{$job.Repo.Link}}">{{$job.Repo.FullName}}</a>{{end}}</td>{{end}}
+					<td>{{if $job.Run}}<a href="{{$job.Run.Link}}">{{$job.Name}} <span class="text grey">#{{$job.Run.Index}}</span></a>{{else}}{{$job.Name}}{{end}}</td>
+					<td><span class="flex-text-inline tw-flex-wrap">{{range $job.RunsOn}}<span class="ui label">{{.}}</span>{{end}}</span></td>
+					<td>{{index $.QueueJobRunners $job.ID}}</td>
+					<td>{{if and $job.Run $job.Repo}}<a href="{{$job.Repo.Link}}/commit/{{$job.Run.CommitSHA}}">{{ShortSha $job.Run.CommitSHA}}</a>{{end}}</td>
+					{{/* a queued job has never started, so its wait is measured from the last status change */}}
+					<td>{{if $job.Started}}{{DateUtils.TimeSince $job.Started}}{{else}}{{DateUtils.TimeSince $job.Updated}}{{end}}</td>
+				</tr>
 				{{end}}
 			</tbody>
 		</table>

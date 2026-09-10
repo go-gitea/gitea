@@ -32,7 +32,7 @@ type ActionRunJob struct {
 	ID                int64
 	RunID             int64                  `xorm:"index"`
 	Run               *ActionRun             `xorm:"-"`
-	RepoID            int64                  `xorm:"index(repo_concurrency)"`
+	RepoID            int64                  `xorm:"index(repo_concurrency) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	CommitSHA         string                 `xorm:"index"`
@@ -54,7 +54,7 @@ type ActionRunJob struct {
 	TaskID       int64 `xorm:"index(pickup)"`      // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 
-	Status Status `xorm:"index index(pickup)"`
+	Status Status `xorm:"index index(pickup) index(repo_status)"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 

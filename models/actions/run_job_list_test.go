@@ -64,9 +64,9 @@ func TestActionJobList_SortMatrixGroupsByName(t *testing.T) {
 	})
 }
 
-// TestFindQueuedJobs verifies the build-queue query mirrors the runner pickup predicate:
-// waiting + unclaimed + non-reusable jobs, ordered by (updated ASC, id ASC).
-func TestFindQueuedJobs(t *testing.T) {
+// TestFindQueueJobs verifies the build-queue query: running jobs first, then the jobs a runner may still
+// pick up (waiting + unclaimed + non-reusable) in pickup order.
+func TestFindQueueJobs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
@@ -91,12 +91,12 @@ func TestFindQueuedJobs(t *testing.T) {
 	jA := insert("a", StatusWaiting, 0, false)
 	jB := insert("b", StatusWaiting, 0, false)
 	jC := insert("c", StatusWaiting, 0, false)
+	jRunning := insert("running", StatusRunning, 998, false)
 	// Rows that must be excluded from the queue.
 	insert("claimed", StatusWaiting, 999, false) // already has a task
 	insert("reusable", StatusWaiting, 0, true)   // reusable caller never runs on a runner
-	insert("running", StatusRunning, 998, false) // running, no longer queued
 
-	// Force `updated` so pickup order among rank-0 jobs differs from insertion/id order: C < A < B.
+	// Force `updated` so pickup order among the queued jobs differs from insertion/id order: C < A < B.
 	setUpdated := func(id, ts int64) {
 		_, err := db.GetEngine(ctx).Exec("UPDATE `action_run_job` SET updated = ? WHERE id = ?", ts, id)
 		require.NoError(t, err)
@@ -105,20 +105,33 @@ func TestFindQueuedJobs(t *testing.T) {
 	setUpdated(jA.ID, 200)
 	setUpdated(jB.ID, 300)
 
-	jobs, total, err := FindQueuedJobs(ctx, QueueJobsOptions{RepoID: repoID}, 1, 50)
-	require.NoError(t, err)
-	assert.EqualValues(t, 3, total, "only waiting, unclaimed, non-reusable jobs are queued")
-
-	gotIDs := make([]int64, len(jobs))
-	for i, j := range jobs {
-		gotIDs[i] = j.ID
+	ids := func(jobs []*ActionRunJob) []int64 {
+		out := make([]int64, len(jobs))
+		for i, j := range jobs {
+			out[i] = j.ID
+		}
+		return out
 	}
-	assert.Equal(t, []int64{jC.ID, jA.ID, jB.ID}, gotIDs, "the queue is ordered by (updated ASC, id ASC)")
 
-	running, err := FindRunningJobs(ctx, QueueJobsOptions{RepoID: repoID}, 10)
+	jobs, total, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID}, 1, 50)
 	require.NoError(t, err)
-	require.Len(t, running, 1)
-	assert.Equal(t, "running", running[0].Name)
+	assert.EqualValues(t, 4, total, "one running job plus the waiting, unclaimed, non-reusable ones")
+	assert.Equal(t, []int64{jRunning.ID, jC.ID, jA.ID, jB.ID}, ids(jobs), "running jobs head the list, the queued ones follow in pickup order")
+
+	waiting, total, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID, Status: StatusWaiting}, 1, 50)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, total)
+	assert.Equal(t, []int64{jC.ID, jA.ID, jB.ID}, ids(waiting))
+
+	running, total, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID, Status: StatusRunning}, 1, 50)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, total)
+	assert.Equal(t, []int64{jRunning.ID}, ids(running))
+
+	// One pager covers the whole list, so a page boundary can fall inside it.
+	page2, _, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID}, 2, 3)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{jB.ID}, ids(page2))
 
 	filterRepoIDs, err := QueueFilterRepoIDs(ctx, QueueJobsOptions{RepoID: repoID}, 10)
 	require.NoError(t, err)
