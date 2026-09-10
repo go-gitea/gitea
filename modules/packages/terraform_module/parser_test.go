@@ -133,8 +133,7 @@ module "subnets" {
 func TestParseModuleArchive_RejectsWrappedArchive(t *testing.T) {
 	// Archives are stored verbatim, so a module wrapped in a single
 	// top-level directory (a GitHub release tarball) would be stored
-	// unusable: nothing at the root for terraform to find. Reject it and
-	// name the directory so the fix is obvious.
+	// unusable: nothing at the root for terraform to find. Reject it.
 	for name, files := range map[string]map[string]string{
 		"single root module": {
 			"mod-1.0.0/main.tf":   `variable "region" { type = string }`,
@@ -147,7 +146,6 @@ func TestParseModuleArchive_RejectsWrappedArchive(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			_, err := ParseModuleArchive(bytes.NewReader(buildArchive(t, files, "mod-1.0.0/")), 1<<20)
 			require.ErrorIs(t, err, ErrNoRootModule)
-			assert.Contains(t, err.Error(), `"mod-1.0.0"`)
 		})
 	}
 }

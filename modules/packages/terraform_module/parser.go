@@ -106,11 +106,6 @@ func ValidateProvider(s string) error {
 	return nil
 }
 
-// reservedModuleDirs are standard-module-structure directory names. A lone
-// top-level `modules/` is a collection, not an archive wrapped in a
-// release directory, so these never trigger the "wrapped" diagnostic.
-var reservedModuleDirs = map[string]struct{}{"modules": {}, "examples": {}}
-
 // dirFiles holds the parse-relevant files collected for one directory of
 // the archive (the root, or a `modules/<name>` submodule).
 type dirFiles struct {
@@ -144,12 +139,8 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		tr       = tar.NewReader(gz)
 		consumed int64
 		// byDir maps a directory ("" for the archive root) to its files.
-		byDir = map[string]*dirFiles{}
-		// topDirs and topLevelFile only feed the diagnostic for an archive
-		// wrapped in a single top-level directory.
-		topDirs      = map[string]struct{}{}
-		topLevelFile bool
-		tfJSONSeen   bool // a .tf.json in an indexed directory
+		byDir      = map[string]*dirFiles{}
+		tfJSONSeen bool // a .tf.json in an indexed directory
 	)
 
 	dirEntry := func(dir string) *dirFiles {
@@ -212,12 +203,6 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			continue // unread payload is skipped by the next tr.Next
 		}
 
-		if strings.Contains(clean, "/") {
-			topDirs[clean[:strings.IndexByte(clean, '/')]] = struct{}{}
-		} else if hdr.Typeflag == tar.TypeDir {
-			topDirs[clean] = struct{}{}
-		}
-
 		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
@@ -225,7 +210,6 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		dir := path.Dir(clean)
 		if dir == "." {
 			dir = ""
-			topLevelFile = true
 		}
 		if dirDepth(dir) > maxIndexedDirDepth {
 			continue
@@ -246,9 +230,6 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 
 	// Verbatim storage means only what sits at the root is consumable.
 	if len(rootFiles.tf) == 0 && len(submodules) == 0 {
-		if dir := wrappedIn(topDirs, topLevelFile); dir != "" {
-			return nil, fmt.Errorf("%w (the archive is wrapped in %q)", ErrNoRootModule, dir)
-		}
 		if tfJSONSeen {
 			return nil, ErrUnsupportedTFFormat
 		}
@@ -278,24 +259,6 @@ func dirDepth(dir string) int {
 		return 0
 	}
 	return strings.Count(dir, "/") + 1
-}
-
-// wrappedIn returns the single top-level directory every entry lives under
-// (typically a GitHub release tarball's `repo-version/`), or "" when files
-// sit at the root or the sole directory is a standard-structure one. Used
-// only to make the rejection message name the culprit.
-func wrappedIn(topDirs map[string]struct{}, topLevelFile bool) string {
-	if topLevelFile || len(topDirs) != 1 {
-		return ""
-	}
-	var only string
-	for d := range topDirs {
-		only = d
-	}
-	if _, reserved := reservedModuleDirs[only]; reserved {
-		return ""
-	}
-	return only
 }
 
 // parseSubmodules extracts metadata for each `modules/<name>` directory of
