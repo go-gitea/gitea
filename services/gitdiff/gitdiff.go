@@ -9,11 +9,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"html"
 	"html/template"
 	"io"
 	"net/url"
 	"path"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -78,11 +78,11 @@ type DiffLine struct {
 	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
 	Type        DiffLineType
 	Content     string
-	IsTruncated bool
 	Comments    issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
+	IsTruncated bool
 
-	cachedDiffInline *DiffInline
+	cachedDiffInline *DiffInlineComputed
 }
 
 // DiffLineSectionInfo represents diff line section metadata
@@ -329,29 +329,29 @@ func defaultDiffMatchPatch() *diffmatchpatch.DiffMatchPatch {
 	return dmp
 }
 
-// DiffInline is a struct that has a content and escape status
-type DiffInline struct {
+// DiffInlineComputed is the final computed diff line for template rendering
+type DiffInlineComputed struct {
 	EscapeStatus *charset.EscapeStatus
 	Content      template.HTML
 	IsTruncated  bool
 }
 
-// diffInlineWithUnicodeEscape makes a DiffInline with hidden Unicode characters escaped
-func diffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
-	status, content := charset.EscapeControlHTML(s, locale)
-	return DiffInline{EscapeStatus: status, Content: content}
+// computeDiffInline makes a DiffInline with computed content, e.g.: Unicode escaping, truncation hint, etc
+func computeDiffInline(s template.HTML, isTruncated bool, locale translation.Locale) DiffInlineComputed {
+	sb, w := htmlutil.NewHTMLStringWriter()
+	status := charset.EscapeControlHTMLTo(s, locale, w)
+	return DiffInlineComputed{EscapeStatus: status, IsTruncated: isTruncated, Content: template.HTML(sb.String())}
 }
 
 func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *DiffLine, fileLanguage string, highlightLines map[int]template.HTML) template.HTML {
-	h, ok := highlightLines[lineIdx-1]
-	if ok && !diffLine.IsTruncated {
+	if h, ok := highlightLines[lineIdx-1]; ok && !diffLine.IsTruncated {
 		return h
 	}
 	if diffLine.Content == "" {
 		return ""
 	}
-	if diffLine.IsTruncated || setting.Git.DisableDiffHighlight {
-		return template.HTML(html.EscapeString(diffLine.Content[1:]))
+	if setting.Git.DisableDiffHighlight {
+		return htmlutil.EscapeString(diffLine.Content[1:])
 	}
 	if diffSection.highlightLexer.value == nil {
 		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, fileLanguage)
@@ -359,7 +359,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	return highlight.RenderCodeByLexer(diffSection.highlightLexer.value, diffLine.Content[1:])
 }
 
-func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
+func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInlineComputed {
 	sideIdx := util.Iif(diffLineType == DiffLineDel, 0, 1) // del=left, add=right
 	lines := [2]*DiffLine{leftLine, rightLine}
 
@@ -368,37 +368,50 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 	}
 
 	var fileLanguage string
-	var highlightedLines [2]map[int]template.HTML
+	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
 	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
 	if diffSection.language != nil {
 		fileLanguage = diffSection.language.value
-		highlightedLines = [2]map[int]template.HTML{diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value}
+		highlightedLeftLines, highlightedRightLines = diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value
 	}
 
-	if leftLine == nil || rightLine == nil || leftLine.IsTruncated || rightLine.IsTruncated {
-		line := lines[sideIdx]
-		lineIdx := util.Iif(sideIdx == 0, line.LeftIdx, line.RightIdx)
-		lineHTML := diffSection.getLineContentForRender(lineIdx, line, fileLanguage, highlightedLines[sideIdx])
-		inline := diffInlineWithUnicodeEscape(lineHTML, locale)
-		inline.IsTruncated = line.IsTruncated
-		return inline
+	if diffLineType == DiffLinePlain {
+		// left and right are the same, no need to do line-level diff, can just pick any side
+		// caller always uses the "right side" for this type
+		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+		return computeDiffInline(lineHTML, rightLine.IsTruncated, locale)
 	}
 
-	leftHTML := diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLines[0])
-	rightHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedLines[1])
-	// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
-	// "diff" the left&right sides together, then cache the diff result for another side,
-	// because when viewing the diff page, both "deleted" and "added" lines will to be rendered eventually,
-	// so here only diff them once, then next render can just use the cached result, no need to "diff" again.
-	hcd := newHighlightCodeDiff()
-	lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlight(leftHTML, rightHTML)
-	leftLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLDel, locale))
-	rightLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLAdd, locale))
-	return *lines[sideIdx].cachedDiffInline
+	var diffs [2]template.HTML
+	var truncations [2]bool
+	if leftLine != nil {
+		diffs[0] = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
+		truncations[0] = leftLine.IsTruncated
+	}
+	if rightLine != nil {
+		diffs[1] = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+		truncations[1] = rightLine.IsTruncated
+	}
+
+	if leftLine != nil && rightLine != nil && !truncations[0] && !truncations[1] {
+		// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
+		// "diff" the left&right sides together, then cache the diff result for another side,
+		// because when viewing the diff page, both "deleted" and "added" lines will to be rendered eventually,
+		// so here only diff them once, then next render can just use the cached result, no need to "diff" again.
+		hcd := newHighlightCodeDiff()
+		lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlight(diffs[0], diffs[1])
+		leftLine.cachedDiffInline = new(computeDiffInline(lineHTMLDel, truncations[0], locale))
+		rightLine.cachedDiffInline = new(computeDiffInline(lineHTMLAdd, truncations[1], locale))
+		return *lines[sideIdx].cachedDiffInline
+	}
+
+	// if left is empty or right is empty (a line is fully deleted or added), or either side is truncated (too long),
+	// then we do not need to diff anymore, the tmpl code already adds background colors for these cases.
+	return computeDiffInline(diffs[sideIdx], truncations[sideIdx], locale)
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
-func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInline {
+func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInlineComputed {
 	defer func() {
 		if err := recover(); err != nil {
 			// the logic is too complex in this function, help to catch any panic because Golang template doesn't print the stack
@@ -409,7 +422,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	switch diffLine.Type {
 	case DiffLineSection:
 		// section content is a diff hunk header, it isn't code diff, its trailing context might come from the file content, might not
-		return diffInlineWithUnicodeEscape(htmlutil.EscapeString(diffLine.Content), locale)
+		return computeDiffInline(htmlutil.EscapeString(diffLine.Content), diffLine.IsTruncated, locale)
 	case DiffLineAdd:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
@@ -450,8 +463,8 @@ type DiffFile struct {
 	IsSubmodule  bool
 	// basic fields but for render purpose only
 	Sections          []*DiffSection
-	IsIncomplete      bool
-	HasTruncatedLines bool
+	IsIncomplete      bool // file is too large
+	HasTruncatedLines bool // some lines are too long
 
 	// will be filled by the extra loop in GitDiffForRender
 	IsGenerated       bool
@@ -678,59 +691,61 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 
 const cmdDiffHead = "diff --git "
 
-// ParsePatch builds a Diff object from a io.Reader and some parameters.
-func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (*Diff, error) {
-	log.Debug("ParsePatch(%d, %d, %d, ..., %s)", maxLines, maxLineCharacters, maxFiles, skipToFile)
-	var curFile *DiffFile
+// to correctly parse a diff line, the input buffer size should be large enough to read a full line for cmdDiffHead
+var defaultDiffLineBufferSize = 8 * 1024
 
-	skipping := skipToFile != ""
+// ParsePatch builds a Diff object by parsing git diff output
+func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (_ *Diff, retErr error) {
+	log.Debug("ParsePatch(%d, %d, %d, ..., %s)", maxLines, maxLineCharacters, maxFiles, skipToFile)
 
 	diff := &Diff{Files: make([]*DiffFile, 0)}
-
-	sb := strings.Builder{}
-
-	// Leave room to distinguish exact-limit lines and complete a UTF-8 rune at the cutoff.
-	readerSize := max(maxLineCharacters+utf8.UTFMax, 4096)
+	readerSize := max(maxLineCharacters, defaultDiffLineBufferSize)
 
 	input := bufio.NewReaderSize(reader, readerSize)
 	line, err := input.ReadString('\n')
 	if err != nil {
-		if err == io.EOF {
-			return diff, nil
-		}
-		return diff, err
+		return diff, util.Iif(err == io.EOF, nil, err)
 	}
+	for {
+		nextLine, err := diff.parseOneDiffFile(ctx, maxLines, maxLineCharacters, maxFiles, input, skipToFile, line)
+		if line == "" || err == io.EOF {
+			break
+		} else if err != nil {
+			return diff, err
+		}
+		line = nextLine
+	}
+
+	diff.postProcessFiles()
+	return diff, nil
+}
+
+func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, input *bufio.Reader, skipToFile, startLine string) (nextLine string, err error) {
+	skipping := skipToFile != ""
+	line := startLine
 
 	prepareValue := func(s, p string) string {
 		return strings.TrimSpace(strings.TrimPrefix(s, p))
 	}
 
-parsingLoop:
-	for {
+	{
 		// 1. A patch file always begins with `diff --git ` + `a/path b/path` (possibly quoted)
 		// if it does not we have bad input!
 		if !strings.HasPrefix(line, cmdDiffHead) {
-			return diff, fmt.Errorf("invalid first file line: %s", line)
+			return "", fmt.Errorf("invalid first file line: %s", line)
 		}
 
 		if maxFiles > -1 && len(diff.Files) >= maxFiles {
 			lastFile := createDiffFile(line)
 			diff.End = lastFile.Name
 			diff.IsIncomplete = true
-			break parsingLoop
+			return "", nil
 		}
 
-		curFile = createDiffFile(line)
+		curFile := createDiffFile(line)
 		if skipping {
 			if curFile.Name != skipToFile {
-				line, err = skipToNextDiffHead(input)
-				if err != nil {
-					if err == io.EOF {
-						return diff, nil
-					}
-					return diff, err
-				}
-				continue
+				return skipToNextDiffHead(input)
 			}
 			skipping = false
 		}
@@ -775,19 +790,15 @@ parsingLoop:
 		//     Binary files a/<path> and b/<path> differ
 		//
 		// but one of a/<path> and b/<path> could be /dev/null.
-	curFileLoop:
 		for {
 			line, err = input.ReadString('\n')
 			if err != nil {
-				if err != io.EOF {
-					return diff, err
-				}
-				break parsingLoop
+				return line, err
 			}
 
 			switch {
 			case strings.HasPrefix(line, cmdDiffHead):
-				break curFileLoop
+				return line, nil
 			case strings.HasPrefix(line, "old mode ") ||
 				strings.HasPrefix(line, "new mode "):
 
@@ -884,31 +895,16 @@ parsingLoop:
 					curFile.isAmbiguous = false
 				}
 				// Otherwise do nothing with this line, but now switch to parsing hunks
-				lineBytes, isFragment, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input)
-				if err != nil {
-					if err != io.EOF {
-						return diff, err
-					}
-					break parsingLoop
-				}
-				sb.Reset()
-				_, _ = sb.Write(lineBytes)
-				for isFragment {
-					lineBytes, isFragment, err = input.ReadLine()
-					if err != nil {
-						// Now by the definition of ReadLine this cannot be io.EOF
-						return diff, fmt.Errorf("unable to ReadLine: %w", err)
-					}
-					_, _ = sb.Write(lineBytes)
-				}
-				line = sb.String()
-				sb.Reset()
-
-				break curFileLoop
+				nextLine, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input)
+				return string(nextLine), err
+			default:
+				setting.PanicInDevOrTesting("unsupported git diff output line: %s", line)
 			}
 		}
 	}
+}
 
+func (diff *Diff) postProcessFiles() {
 	// TODO: There are numerous issues with this:
 	// - we might want to consider detecting encoding while parsing but...
 	// - we're likely to fail to get the correct encoding here anyway as we won't have enough information
@@ -956,8 +952,6 @@ parsingLoop:
 			}
 		}
 	}
-
-	return diff, nil
 }
 
 func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
@@ -999,7 +993,47 @@ func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 	}
 }
 
-func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
+func readLineWithLimitDiscard(r *bufio.Reader) (_ []byte, truncated bool, _ error) {
+	line, isPrefix, err := r.ReadLine()
+	if isPrefix {
+		truncated = true
+		line = slices.Clone(line)
+	}
+	for isPrefix && err == nil {
+		_, isPrefix, err = r.ReadLine()
+	}
+	return line, truncated, err
+}
+
+func tryFixTruncatedString(s string) string {
+	b := util.UnsafeStringToBytes(s)
+	idx := 0
+	for idx = 0; idx < len(s); {
+		r, l := utf8.DecodeRune(b[idx:])
+		if r == utf8.RuneError && l == 1 {
+			break
+		}
+		idx += l
+	}
+	// for valid utf8 diff line, remove the last truncated rune
+	remainingLen := len(s) - idx
+	if idx > 0 && remainingLen < utf8.UTFMax {
+		return s[:idx]
+	}
+
+	// for non-utf8 diff line, try to find an ASCII char at the ending, remove the potentially truncated chars after that
+	for i := 1; i <= utf8.UTFMax; i++ {
+		idx = len(s) - i
+		if 0 < idx && idx+1 < len(s) && s[idx] < 127 {
+			return s[:idx+1]
+		}
+	}
+
+	// otherwise, just return the input as is
+	return s
+}
+
+func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (nextLine []byte, err error) {
 	sb := strings.Builder{}
 
 	var curSection *DiffSection
@@ -1014,25 +1048,13 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 	}
 
 	for {
-		for isFragment {
-			_, isFragment, err = input.ReadLine()
-			if err != nil {
-				// Now by the definition of ReadLine this cannot be io.EOF
-				return nil, false, fmt.Errorf("unable to ReadLine: %w", err)
-			}
-		}
 		sb.Reset()
-		lineBytes, isFragment, err = input.ReadLine()
+		lineBytes, truncated, err := readLineWithLimitDiscard(input)
 		if err != nil {
-			if err == io.EOF {
-				return lineBytes, isFragment, err
-			}
-			err = fmt.Errorf("unable to ReadLine: %w", err)
-			return nil, false, err
+			return lineBytes, err
 		}
-		if lineBytes[0] == 'd' {
-			// End of hunks
-			return lineBytes, isFragment, err
+		if bytes.HasPrefix(lineBytes, []byte(cmdDiffHead)) {
+			return lineBytes, err
 		}
 
 		switch lineBytes[0] {
@@ -1041,19 +1063,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 				curFile.IsIncomplete = true
 				continue
 			}
-
-			_, _ = sb.Write(lineBytes)
-			for isFragment {
-				// This is very odd indeed - we're in a section header and the line is too long
-				// This really shouldn't happen...
-				lineBytes, isFragment, err = input.ReadLine()
-				if err != nil {
-					// Now by the definition of ReadLine this cannot be io.EOF
-					return nil, false, fmt.Errorf("unable to ReadLine: %w", err)
-				}
-				_, _ = sb.Write(lineBytes)
-			}
-			line := sb.String()
+			line := string(lineBytes)
 
 			// Create a new section to represent this hunk
 			curSection = newDiffSectionForDiffFile(curFile)
@@ -1076,7 +1086,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 		case '\\':
 			// This is used only to indicate that the current file does not have a terminal newline
 			if !bytes.Equal(lineBytes, []byte("\\ No newline at end of file")) {
-				return nil, false, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
+				return nil, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 			}
 			// Technically this should be the end the file!
 			// FIXME: we should be putting a marker at the end of the file if there is no terminal new line
@@ -1160,24 +1170,23 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			curSection.Lines = append(curSection.Lines, diffLine)
 		default:
 			// This is unexpected
-			return nil, false, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
+			return nil, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 		}
 
-		diffLine := curSection.Lines[len(curSection.Lines)-1]
-		diffLine.IsTruncated = isFragment || len(lineBytes) > maxLineCharacters
-		curFile.HasTruncatedLines = curFile.HasTruncatedLines || diffLine.IsTruncated
-		cutoff := min(len(lineBytes), maxLineCharacters)
-		if diffLine.IsTruncated && !utf8.RuneStart(lineBytes[cutoff]) {
-			start := cutoff
-			for start > 0 && !utf8.RuneStart(lineBytes[start]) {
-				start--
-			}
-			if _, size := utf8.DecodeRune(lineBytes[start:]); size > 1 && start+size > cutoff && utf8.Valid(lineBytes[:start]) {
-				cutoff = start
-			}
+		curLine := curSection.Lines[len(curSection.Lines)-1]
+		curLine.IsTruncated = truncated
+
+		line := string(lineBytes)
+		curFile.HasTruncatedLines = curFile.HasTruncatedLines || truncated
+		if len(line) > maxLineCharacters {
+			line = line[:maxLineCharacters] // FIXME: guess encoding or utf-8 truncation
+			curLine.IsTruncated = true
 		}
-		line := string(lineBytes[:cutoff])
-		diffLine.Content = line
+		curLine.Content = line
+		if curLine.IsTruncated {
+			curFile.HasTruncatedLines = true
+			curLine.Content = tryFixTruncatedString(curLine.Content)
+		}
 
 		// handle LFS
 		if line[1:] == lfs.MetaFileIdentifier {
@@ -1476,7 +1485,7 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 			}
 			if lineIdx >= 1 {
 				idx := lineIdx - 1
-				if idx < len(unsafeLines) {
+				if idx < len(unsafeLines) && !ln.IsTruncated {
 					lines[idx] = template.HTML(util.UnsafeBytesToString(unsafeLines[idx]))
 				}
 			}

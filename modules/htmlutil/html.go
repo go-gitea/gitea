@@ -135,6 +135,11 @@ func NewHTMLWriter(w io.Writer) HTMLWriter {
 	return &htmlWriter{w: w}
 }
 
+func NewHTMLStringWriter() (*strings.Builder, HTMLWriter) {
+	sb := &strings.Builder{}
+	return sb, &htmlWriter{w: sb}
+}
+
 type HTMLBuilder struct {
 	sb strings.Builder
 }

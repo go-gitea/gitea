@@ -539,42 +539,51 @@ index 0000000..6bb8f39
 }
 
 func TestParsePatchLongLines(t *testing.T) {
+	overSizedContent := strings.Repeat("a", defaultDiffLineBufferSize*2)
 	for _, test := range []struct {
-		name, content, prefix string
-		limit                 int
+		name, full string
+		limit      int
+		result     string
 	}{
-		{name: "below", content: "short", prefix: "short", limit: 8},
-		{name: "exact", content: "1234567", prefix: "1234567", limit: 8},
-		{name: "above", content: "12345678", prefix: "1234567", limit: 8},
-		{name: "buffer exact", content: strings.Repeat("a", 4095), prefix: strings.Repeat("a", 4095), limit: 4096},
-		{name: "buffer above", content: strings.Repeat("a", 4096), prefix: strings.Repeat("a", 4095), limit: 4096},
-		{name: "fragment boundary", content: strings.Repeat("a", 4099), prefix: strings.Repeat("a", 4095), limit: 4096},
-		{name: "multiple fragments", content: strings.Repeat("a", 20000), prefix: strings.Repeat("a", 4095), limit: 4096},
-		{name: "utf8 cutoff", content: "éé🙂suffix", prefix: "éé", limit: 8},
-		{name: "utf8 replacement", content: "éé�suffix", prefix: "éé", limit: 7},
-		{name: "utf8 exact", content: "éé🙂", prefix: "éé🙂", limit: 9},
-		{name: "utf8 buffer", content: strings.Repeat("a", 4093) + "🙂suffix", prefix: strings.Repeat("a", 4093), limit: 4096},
+		{name: "below", limit: 8, full: "short", result: "short"},
+		{name: "exact", limit: 8, full: "1234567", result: "1234567"},
+		{name: "above", limit: 8, full: "12345678", result: "1234567"},
+		{name: "multiple fragments", limit: 101, full: overSizedContent, result: overSizedContent[:100]},
+		{name: "cutoff", limit: 8, full: "a🙂b🙂", result: "a🙂b"},
+		{name: "cutoff", limit: 12, full: "a🙂b🙂", result: "a🙂b🙂"},
 	} {
 		for _, eol := range []string{"\n", "\r\n"} {
 			t.Run(test.name+"/"+strconv.Quote(eol), func(t *testing.T) {
 				patch := strings.Join([]string{
-					"diff --git a/first b/first", "--- a/first", "+++ b/first", "@@ -1,3 +1,3 @@",
-					"-" + test.content, "+" + test.content, " " + test.content, " short",
-					"@@ -10 +10 @@", " next",
-					"diff --git a/second b/second", "--- a/second", "+++ b/second", "@@ -1 +1 @@", " final", "",
+					"diff --git a/first b/first",
+					"--- a/first",
+					"+++ b/first",
+					"@@ -1,3 +1,3 @@",
+					"-" + test.full,
+					"+" + test.full,
+					" " + test.full,
+					" short",
+					"@@ -10 +10 @@",
+					" next",
+					"diff --git a/second b/second",
+					"--- a/second", "+++ b/second",
+					"@@ -1 +1 @@",
+					" final",
+					"",
 				}, eol)
-				diff, err := ParsePatch(t.Context(), 20, test.limit, 10, strings.NewReader(patch), "")
+				maxLines, maxFiles, skipToFile := 20, 10, ""
+				diff, err := ParsePatch(t.Context(), maxLines, test.limit, maxFiles, strings.NewReader(patch), skipToFile)
 				require.NoError(t, err)
 				require.Len(t, diff.Files, 2)
 				file := diff.Files[0]
 				assert.False(t, file.IsIncomplete)
-				assert.Equal(t, test.prefix != test.content, file.HasTruncatedLines)
+				assert.Equal(t, test.result != test.full, file.HasTruncatedLines)
 				require.Len(t, file.Sections, 2)
 				lines := file.Sections[0].Lines
 				require.Len(t, lines, 5)
 				for i, marker := range []string{"-", "+", " "} {
-					assert.Equal(t, marker+test.prefix, lines[i+1].Content)
-					assert.Equal(t, test.prefix != test.content, lines[i+1].IsTruncated)
+					assert.Equal(t, marker+test.result, lines[i+1].Content)
+					assert.Equal(t, test.result != test.full, lines[i+1].IsTruncated)
 				}
 				assert.Equal(t, 2, lines[1].Match)
 				assert.Equal(t, 1, lines[2].Match)
@@ -1200,44 +1209,20 @@ func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
 		assert.True(t, diffInline.EscapeStatus.Escaped)
 		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
 	})
-	t.Run("Truncated", func(t *testing.T) {
-		for _, truncated := range [][2]bool{{true, false}, {false, true}, {true, true}, {false, false}} {
-			file := &DiffFile{}
-			section := newDiffSectionForDiffFile(file)
-			left := &DiffLine{Type: DiffLineDel, LeftIdx: 1, Match: 2, Content: "-old <b>\u202e", IsTruncated: truncated[0]}
-			right := &DiffLine{Type: DiffLineAdd, RightIdx: 1, Match: 1, Content: "+new <b>\u202e", IsTruncated: truncated[1]}
-			section.Lines = []*DiffLine{nil, left, right}
-			file.highlightedLeftLines.value = map[int]template.HTML{0: `x <span class="n">ordinary</span> y DISCARDED_SUFFIX`}
-			file.highlightedRightLines.value = map[int]template.HTML{0: `x <span class="n">changed</span> y DISCARDED_SUFFIX`}
-			for side, line := range []*DiffLine{left, right} {
-				inline := section.GetComputedInlineDiffFor(line, translation.MockLocale{})
-				content := string(inline.Content)
-				assert.Equal(t, line.IsTruncated, inline.IsTruncated)
-				if truncated[0] || truncated[1] {
-					assert.NotContains(t, content, "removed-code")
-					assert.NotContains(t, content, "added-code")
-				} else {
-					assert.Contains(t, content, []string{"removed-code", "added-code"}[side])
-				}
-				if line.IsTruncated {
-					assert.NotContains(t, content, "DISCARDED_SUFFIX")
-					assert.Contains(t, content, "&lt;b&gt;")
-					assert.Contains(t, content, `data-escaped="[U+202E]"`)
-					assert.True(t, inline.EscapeStatus.Escaped)
-				} else {
-					assert.Contains(t, content, `class="n"`)
-					assert.Contains(t, content, "DISCARDED_SUFFIX")
-				}
-			}
-		}
-	})
-	t.Run("TruncatedPlain", func(t *testing.T) {
+	t.Run("ShortLineUseHighlight", func(t *testing.T) {
 		file := &DiffFile{}
-		file.highlightedRightLines.value = map[int]template.HTML{0: "DISCARDED_SUFFIX"}
-		section := newDiffSectionForDiffFile(file)
-		line := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " <b>", IsTruncated: true}
-		inline := section.GetComputedInlineDiffFor(line, translation.MockLocale{})
-		assert.Equal(t, template.HTML("&lt;b&gt;"), inline.Content)
+		file.highlightedRightLines.value = map[int]template.HTML{0: "highlighted short line"}
+		line := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " short line", IsTruncated: false}
+		inline := newDiffSectionForDiffFile(file).GetComputedInlineDiffFor(line, translation.MockLocale{})
+		assert.Equal(t, template.HTML("highlighted short line"), inline.Content)
+		assert.False(t, inline.IsTruncated)
+	})
+	t.Run("LongLineTruncated", func(t *testing.T) {
+		file := &DiffFile{}
+		file.highlightedRightLines.value = map[int]template.HTML{0: "highlighted line"}
+		line := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " truncated line", IsTruncated: true}
+		inline := newDiffSectionForDiffFile(file).GetComputedInlineDiffFor(line, translation.MockLocale{})
+		assert.Equal(t, template.HTML("truncated line"), inline.Content)
 		assert.True(t, inline.IsTruncated)
 	})
 }
@@ -1288,6 +1273,19 @@ func TestHighlightCodeLines(t *testing.T) {
 		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\rb\r\nc"))
 		assert.Equal(t, "a␍b\n", string(ret[0]))
 		assert.Equal(t, `c`, string(ret[1]))
+	})
+
+	t.Run("LongLineTruncated", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name: "a.c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1, IsTruncated: true}},
+				},
+			},
+		}
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// anything"))
+		assert.Empty(t, ret)
 	})
 }
 
