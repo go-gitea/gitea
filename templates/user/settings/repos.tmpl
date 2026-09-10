@@ -34,7 +34,7 @@
 										<span class="name tw-inline-block tw-pt-2">{{$.ContextUser.Name}}/{{$dir}}</span>
 										<div class="tw-float-right">
 											{{if $.allowAdopt}}
-												<button class="ui button primary show-modal tw-p-2" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</span></button>
+												<button type="button" class="ui button primary show-modal tw-p-2" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting_label"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="adopt-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{ctx.Locale.Tr "repo.adopt_preexisting"}}</span>
@@ -50,7 +50,7 @@
 												</div>
 											{{end}}
 											{{if $.allowDelete}}
-												<button class="ui button red show-modal tw-p-2" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{ctx.Locale.Tr "repo.delete_preexisting_label"}}</span></button>
+												<button type="button" class="ui button red show-modal tw-p-2" data-modal="#delete-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-x"}}</span><span class="label">{{ctx.Locale.Tr "repo.delete_preexisting_label"}}</span></button>
 												<div class="ui g-modal-confirm modal" id="delete-unadopted-modal-{{$dirI}}">
 													<div class="header">
 														<span class="label">{{ctx.Locale.Tr "repo.delete_preexisting"}}</span>

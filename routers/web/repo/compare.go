@@ -206,10 +206,12 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 		return err
 	}
 
+	// for the dropdown links ("{base} ... {head}") in the compare page "compare.tmpl"
 	ctx.Data["BaseName"] = baseRepo.OwnerName
-	ctx.Data["BaseBranch"] = baseRef.ShortName() // for legacy templates
 	ctx.Data["HeadUser"] = headOwner
-	ctx.Data["HeadBranch"] = headRef.ShortName() // for legacy templates
+	ctx.Data["BaseBranch"] = baseRef.ShortName() // also for "commits_table.tmpl"'s "no_commits" message
+	ctx.Data["HeadBranch"] = headRef.ShortName()
+
 	ctx.Data["IsPull"] = true
 
 	context.InitRepoPullRequestCtx(ctx, baseRepo, headRepo)

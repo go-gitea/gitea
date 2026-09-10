@@ -160,12 +160,12 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 
 func (prInfo *pullRequestViewInfo) setTemplateDataMergeTarget(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
-	if ctx.Repo.Owner.Name == pull.MustHeadUserName(ctx) {
+	if ctx.Repo.Owner.Name == pull.OptionalHeadUserName(ctx) {
 		prInfo.headTarget = pull.HeadBranch
 	} else if pull.HeadRepo == nil {
 		prInfo.headTarget = ctx.Locale.TrString("repo.pull.deleted_branch", pull.HeadBranch)
 	} else {
-		prInfo.headTarget = pull.MustHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+		prInfo.headTarget = pull.OptionalHeadUserName(ctx) + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["HeadTarget"] = prInfo.headTarget
 	ctx.Data["BaseTarget"] = pull.BaseBranch
@@ -349,11 +349,6 @@ func (prInfo *pullRequestViewInfo) prepareViewInfo(ctx *context.Context, issue *
 		ctx.ServerError("LoadBaseRepo", err)
 		return
 	}
-
-	// for the PR target branch selector
-	ctx.Data["BaseBranch"] = issue.PullRequest.BaseBranch
-	ctx.Data["HeadBranch"] = issue.PullRequest.HeadBranch
-	ctx.Data["HeadUserName"] = issue.PullRequest.MustHeadUserName(ctx)
 
 	if issue.PullRequest.HasMerged {
 		prInfo.prepareViewMergedPullInfo(ctx)

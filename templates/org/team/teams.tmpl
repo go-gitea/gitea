@@ -36,7 +36,7 @@
 							·
 							<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories">{{.NumRepos}} {{ctx.Locale.Tr "org.lower_repositories"}}</a>
 							{{if .IsMember ctx $.SignedUser.ID}}
-								<button class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"
+								<button type="button" class="ui red mini compact button show-modal" data-modal="#org-member-leave-team"
 									data-modal-form.url="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/action/leave?uid={{$.SignedUser.ID}}"
 									data-modal-to-leave-team-name="{{.Name}}"
 								>{{ctx.Locale.Tr "org.teams.leave"}}</button>
