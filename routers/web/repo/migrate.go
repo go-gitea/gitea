@@ -321,7 +321,6 @@ func MigrateStatus(ctx *context.Context) {
 				Args:   []any{task.Message},
 			}
 		}
-		// i18n-check: repo.migrate.migrating_failed.*
 		message = ctx.Locale.TrString(translatableMessage.Format, translatableMessage.Args...)
 	}
 

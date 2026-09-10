@@ -12,7 +12,7 @@
 	{{range $run := $data.ActionRuns}}
 		<div id="action-run-item-{{$run.ID}}" class="item tw-items-center" data-status="{{$run.Status.String}}">
 			<div class="item-leading">
-				<span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $run.Status.String)}}">
+				<span data-tooltip-content="{{$run.Status.LocaleString ctx.Locale}}">
 					{{template "repo/icons/action_status" (dict "Status" $run.Status.String "IconVariant" "circle-fill")}}
 				</span>
 			</div>

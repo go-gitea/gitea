@@ -119,15 +119,61 @@ func getFieldDisplayNameForMessage(f any, l translation.Locale, fieldNames []str
 		return field, false, ""
 	}
 
-	trKeyFallback := "form." + field.Name
-	trKey := util.IfZero(field.Tag.Get("locale"), trKeyFallback)
-	if l.HasKey(trKey) {
-		// i18n-check: form.*
-		displayName = l.TrString(trKey)
+	if trKey := field.Tag.Get("locale"); trKey != "" {
+		if l.HasKey(trKey) {
+			displayName = l.TrString(trKey)
+		} else {
+			displayName = field.Name
+		}
+		return field, true, displayName
+	}
+	if name, ok := formFieldLocaleName(l, field.Name); ok {
+		displayName = name
 	} else {
 		displayName = field.Name
 	}
 	return field, true, displayName
+}
+
+func formFieldLocaleName(l translation.Locale, fieldName string) (string, bool) {
+	switch fieldName {
+	case "AdminEmail":
+		return l.TrString("form.AdminEmail"), true
+	case "AuthName":
+		return l.TrString("form.AuthName"), true
+	case "CommitChoice":
+		return l.TrString("form.CommitChoice"), true
+	case "CommitMessage":
+		return l.TrString("form.CommitMessage"), true
+	case "CommitSummary":
+		return l.TrString("form.CommitSummary"), true
+	case "Content":
+		return l.TrString("form.Content"), true
+	case "Email":
+		return l.TrString("form.Email"), true
+	case "NewBranchName":
+		return l.TrString("form.NewBranchName"), true
+	case "Password":
+		return l.TrString("form.Password"), true
+	case "PayloadUrl":
+		return l.TrString("form.PayloadUrl"), true
+	case "RepoName":
+		return l.TrString("form.RepoName"), true
+	case "SSPIDefaultLanguage":
+		return l.TrString("form.SSPIDefaultLanguage"), true
+	case "SSPISeparatorReplacement":
+		return l.TrString("form.SSPISeparatorReplacement"), true
+	case "TeamName":
+		return l.TrString("form.TeamName"), true
+	case "Title":
+		return l.TrString("form.Title"), true
+	case "TreeName":
+		return l.TrString("form.TreeName"), true
+	case "UserName":
+		return l.TrString("form.UserName"), true
+	default:
+		return "", false
+	}
 }
 
 func BuildValidationErrorForUser(f any, l translation.Locale, bindingErrs validation.BindingErrors) (errorMessage, errorFieldName string, fieldNames []string) {

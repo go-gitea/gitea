@@ -46,8 +46,24 @@ func Activity(ctx *context.Context) {
 	ctx.Data["DateFrom"] = timeFrom
 	ctx.Data["DateUntil"] = timeUntil
 	ctx.Data["Period"] = period
-	// i18n-check: repo.activity.period.*
-	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + period)
+	switch period {
+	case "daily":
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.daily")
+	case "halfweekly":
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.halfweekly")
+	case "weekly":
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.weekly")
+	case "monthly":
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.monthly")
+	case "quarterly":
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.quarterly")
+	case "semiyearly":
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.semiyearly")
+	case "yearly":
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.yearly")
+	default:
+		ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period.weekly")
+	}
 
 	canReadCode := ctx.Repo.Permission.CanRead(unit.TypeCode)
 	if canReadCode {

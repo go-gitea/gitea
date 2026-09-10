@@ -42,7 +42,6 @@ func NewDiffPatchPost(ctx *context.Context) {
 		Committer:    parsed.GitCommitter,
 	})
 	if err != nil {
-		// i18n-check: ignore
 		err = util.ErrorWrapTranslatable(err, "repo.editor.fail_to_apply_patch")
 	}
 	if err != nil {

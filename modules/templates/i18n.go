@@ -1,11 +1,11 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package templates
 
 import (
+	"maps"
 	"os"
-	"regexp"
 	"strings"
 	"text/template"
 	"text/template/parse"
@@ -25,9 +25,20 @@ func i18nFuncName(arg parse.Node) string {
 		return n.String()
 	case *parse.VariableNode:
 		return n.String()
+	case *parse.IdentifierNode:
+		return n.Ident
 	default:
 		return ""
 	}
+}
+
+func isI18nTrN(name string) bool {
+	return strings.HasSuffix(name, ".TrN")
+}
+
+func isCompositingTemplateFunc(name string) bool {
+	return name == "print" || name == "printf" || name == "println" ||
+		strings.HasSuffix(name, ".print") || strings.HasSuffix(name, ".printf")
 }
 
 func collectStringLiterals(n parse.Node, keys container.Set[string]) {
@@ -42,146 +53,197 @@ func collectStringLiterals(n parse.Node, keys container.Set[string]) {
 		for _, arg := range x.Args {
 			collectStringLiterals(arg, keys)
 		}
+	case *parse.ListNode:
+		for _, sub := range x.Nodes {
+			collectStringLiterals(sub, keys)
+		}
+	case *parse.ActionNode:
+		if x.Pipe != nil {
+			collectStringLiterals(x.Pipe, keys)
+		}
+	case *parse.IfNode:
+		collectStringLiterals(x.List, keys)
+		if x.ElseList != nil {
+			collectStringLiterals(x.ElseList, keys)
+		}
+	case *parse.RangeNode:
+		collectStringLiterals(x.List, keys)
+		if x.ElseList != nil {
+			collectStringLiterals(x.ElseList, keys)
+		}
+		if x.Pipe != nil {
+			collectStringLiterals(x.Pipe, keys)
+		}
+	case *parse.WithNode:
+		collectStringLiterals(x.List, keys)
+		if x.ElseList != nil {
+			collectStringLiterals(x.ElseList, keys)
+		}
+		if x.Pipe != nil {
+			collectStringLiterals(x.Pipe, keys)
+		}
+	case *parse.TemplateNode:
+		if x.Pipe != nil {
+			collectStringLiterals(x.Pipe, keys)
+		}
 	}
 }
 
-func isI18nTrN(name string) bool {
-	return strings.HasSuffix(name, ".TrN")
+func pipeHasCompositing(p *parse.PipeNode) bool {
+	for _, cmd := range p.Cmds {
+		if len(cmd.Args) == 0 {
+			continue
+		}
+		if isCompositingTemplateFunc(i18nFuncName(cmd.Args[0])) {
+			return true
+		}
+		for _, arg := range cmd.Args[1:] {
+			if nested, ok := arg.(*parse.PipeNode); ok && pipeHasCompositing(nested) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
-var i18nCheckPattern = regexp.MustCompile(`<!--\s*i18n-check:\s*([^>]+?)\s*-->`)
-
-func extractI18nKeys(node parse.Node) container.Set[string] {
-	keys, _ := collectI18nKeys(node, "")
-	return keys
-}
-
-func collectI18nKeys(node parse.Node, override string) (container.Set[string], string) {
-	switch n := node.(type) {
-	case *parse.WithNode:
-		keys, nextOverride := collectI18nKeys(n.List, override)
-		if n.Pipe != nil {
-			var pipeKeys container.Set[string]
-			pipeKeys, nextOverride = collectI18nKeys(n.Pipe, nextOverride)
-			keys = keys.Union(pipeKeys)
-		}
-		return keys, nextOverride
-	case *parse.ListNode:
-		var keys = container.Set[string]{}
-		pending := override
-		for _, sub := range n.Nodes {
-			var subKeys container.Set[string]
-			subKeys, pending = collectI18nKeys(sub, pending)
-			keys = keys.Union(subKeys)
-		}
-		return keys, pending
-	case *parse.TemplateNode: // ignore the file inclusion
-		if n.Pipe != nil {
-			return collectI18nKeys(n.Pipe, override)
-		}
-		return container.Set[string]{}, override
-	case *parse.TextNode: // detect optional override hints
-		if hint, ok := extractI18nCheckOverride(string(n.Text)); ok {
-			return container.Set[string]{}, hint
-		}
-		return container.Set[string]{}, override
-	case *parse.IfNode:
-		keys, nextOverride := collectI18nKeys(n.List, override)
-		if n.ElseList != nil {
-			var elseKeys container.Set[string]
-			elseKeys, nextOverride = collectI18nKeys(n.ElseList, nextOverride)
-			keys = keys.Union(elseKeys)
-		}
-		return keys, nextOverride
-	case *parse.RangeNode:
-		keys, nextOverride := collectI18nKeys(n.List, override)
-		if n.Pipe != nil {
-			var pipeKeys container.Set[string]
-			pipeKeys, nextOverride = collectI18nKeys(n.Pipe, nextOverride)
-			keys = keys.Union(pipeKeys)
-		}
-		return keys, nextOverride
-	case *parse.ActionNode:
-		return collectI18nKeys(n.Pipe, override)
+func collectTrArgKeys(arg parse.Node, keys container.Set[string]) (dynamic string, ok bool) {
+	switch n := arg.(type) {
+	case *parse.StringNode:
+		keys.Add(n.Text)
+		return "", true
 	case *parse.PipeNode:
-		var keys = container.Set[string]{}
-		pending := override
-		for _, cmd := range n.Cmds {
-			var subKeys container.Set[string]
-			subKeys, pending = collectI18nKeys(cmd, pending)
-			keys = keys.Union(subKeys)
+		if pipeHasCompositing(n) {
+			return "composited translation key (print/printf is forbidden)", false
 		}
-		return keys, pending
+		collectStringLiterals(n, keys)
+		return "", true
+	case *parse.VariableNode, *parse.FieldNode, *parse.ChainNode, *parse.DotNode, *parse.IdentifierNode, *parse.NilNode, *parse.NumberNode, *parse.BoolNode:
+		// Pass-through: the verbatim key must be declared at the fusion point.
+		return "", true
+	default:
+		return "non-static translation key (keys must be verbatim string literals at the fusion point)", false
+	}
+}
+
+func collectI18nKeys(node parse.Node, keys container.Set[string], dynamic *[]string) {
+	switch n := node.(type) {
+	case *parse.ListNode:
+		for _, sub := range n.Nodes {
+			collectI18nKeys(sub, keys, dynamic)
+		}
+	case *parse.TemplateNode:
+		if n.Pipe != nil {
+			collectI18nKeys(n.Pipe, keys, dynamic)
+		}
+	case *parse.IfNode:
+		collectI18nKeys(n.List, keys, dynamic)
+		if n.ElseList != nil {
+			collectI18nKeys(n.ElseList, keys, dynamic)
+		}
+		if n.Pipe != nil {
+			collectI18nKeys(n.Pipe, keys, dynamic)
+		}
+	case *parse.RangeNode:
+		collectI18nKeys(n.List, keys, dynamic)
+		if n.ElseList != nil {
+			collectI18nKeys(n.ElseList, keys, dynamic)
+		}
+		if n.Pipe != nil {
+			collectI18nKeys(n.Pipe, keys, dynamic)
+		}
+	case *parse.WithNode:
+		collectI18nKeys(n.List, keys, dynamic)
+		if n.ElseList != nil {
+			collectI18nKeys(n.ElseList, keys, dynamic)
+		}
+		if n.Pipe != nil {
+			collectI18nKeys(n.Pipe, keys, dynamic)
+		}
+	case *parse.ActionNode:
+		if n.Pipe != nil {
+			collectI18nKeys(n.Pipe, keys, dynamic)
+		}
+	case *parse.PipeNode:
+		for _, cmd := range n.Cmds {
+			collectI18nKeys(cmd, keys, dynamic)
+		}
 	case *parse.CommandNode:
-		var keys = container.Set[string]{}
-		pending := override
 		if len(n.Args) >= 2 {
 			funcName := i18nFuncName(n.Args[0])
 			if isI18nFunc(funcName) {
-				if override != "" {
-					keys.Add(strings.TrimSpace(override))
-					pending = ""
-				} else {
-					needed := 1
-					if isI18nTrN(funcName) {
-						needed = 2
+				start, needed := 1, 1
+				if isI18nTrN(funcName) {
+					start, needed = 2, 2 // TrN count, key1, keyN, ...
+				}
+				got := 0
+				for _, arg := range n.Args[start:] {
+					if got >= needed {
+						break
 					}
-					for _, arg := range n.Args[1:] { // sometimes it will be `ctx.Locale.Tr (print "key")` or `Iif`
-						if str, ok := arg.(*parse.StringNode); ok {
-							keys.Add(str.Text)
-							if len(keys) == needed {
-								break
-							}
-						} else if p, ok := arg.(*parse.PipeNode); ok {
-							collectStringLiterals(p, keys)
-							if len(keys) >= needed {
-								break
-							}
-						}
+					got++
+					if msg, ok := collectTrArgKeys(arg, keys); !ok {
+						*dynamic = append(*dynamic, msg+": "+arg.String())
 					}
 				}
 			}
 		}
 		for _, arg := range n.Args {
 			if p, ok := arg.(*parse.PipeNode); ok {
-				var subKeys container.Set[string]
-				subKeys, pending = collectI18nKeys(p, pending)
-				keys = keys.Union(subKeys)
+				collectI18nKeys(p, keys, dynamic)
 			}
 		}
-		if len(keys) > 0 {
-			return keys, pending
-		}
 	}
-	return container.Set[string]{}, override
 }
 
-func extractI18nCheckOverride(text string) (string, bool) {
-	matches := i18nCheckPattern.FindAllStringSubmatch(text, -1)
-	if len(matches) == 0 {
-		return "", false
-	}
-	return strings.TrimSpace(matches[len(matches)-1][1]), true
+// TemplateI18nScan is the result of scanning a template for translation keys.
+type TemplateI18nScan struct {
+	Keys     container.Set[string]
+	Declared container.Set[string]
+	Dynamic  []string
 }
 
-func FindTemplateKeys(p string) (container.Set[string], error) {
+func extractI18nKeys(node parse.Node) container.Set[string] {
+	keys := container.Set[string]{}
+	var dynamic []string
+	collectI18nKeys(node, keys, &dynamic)
+	return keys
+}
+
+func parseTemplateFile(p string) (*template.Template, error) {
 	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
 
 	// The template parser requires the function map otherwise it will return failure
-	funcMap := newFuncMapWebPage()
+	funcMap := template.FuncMap{}
+	maps.Copy(funcMap, newFuncMapWebPage())
 	for name, fn := range mailBodyFuncMap() {
 		if _, exists := funcMap[name]; !exists {
 			funcMap[name] = fn
 		}
 	}
 	funcMap["ctx"] = func() any { return nil }
-	t, err := template.New("test").Funcs(template.FuncMap(funcMap)).Parse(string(bs))
+	return template.New("test").Funcs(funcMap).Parse(string(bs))
+}
+
+func FindTemplateKeys(p string) (container.Set[string], error) {
+	t, err := parseTemplateFile(p)
 	if err != nil {
 		return nil, err
 	}
-
 	return extractI18nKeys(t.Root), nil
+}
+
+func ScanTemplateI18n(p string) (TemplateI18nScan, error) {
+	t, err := parseTemplateFile(p)
+	if err != nil {
+		return TemplateI18nScan{}, err
+	}
+	keys := container.Set[string]{}
+	var dynamic []string
+	collectI18nKeys(t.Root, keys, &dynamic)
+	declared := container.Set[string]{}
+	collectStringLiterals(t.Root, declared)
+	return TemplateI18nScan{Keys: keys, Declared: declared, Dynamic: dynamic}, nil
 }

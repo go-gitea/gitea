@@ -55,7 +55,6 @@ func (l MockLocale) Tr(format string, args ...any) (ret template.HTML) {
 }
 
 func (l MockLocale) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
-	// i18n-check: ignore
 	return l.Tr(key1, args...)
 }
 

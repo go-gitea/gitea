@@ -155,6 +155,7 @@ type CommitFormOptions struct {
 	WillSign              bool
 	SigningKeyFormDisplay string
 	WontSignReason        string
+	WontSignReasonText    template.HTML
 
 	CanCreatePullRequest     bool
 	CanCreateBasePullRequest bool
@@ -229,6 +230,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		WillSign:              willSign,
 		SigningKeyFormDisplay: asymkey_model.GetDisplaySigningKey(signKey),
 		WontSignReason:        wontSignReason,
+		WontSignReasonText:    asymkey_service.TrWontSignReason(ctx.Locale, wontSignReason),
 
 		CanCreatePullRequest:     canCreatePullRequest,
 		CanCreateBasePullRequest: canCreateBasePullRequest,

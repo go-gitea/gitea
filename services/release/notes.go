@@ -93,7 +93,6 @@ func resolveHeadCommit(ctx context.Context, gitRepo *git.Repository, tagName, ta
 
 	commit, err := gitRepo.GetCommit(ctx, ref)
 	if err != nil {
-		// i18n-check: ignore
 		return nil, util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_target_not_found", ref)
 	}
 	return commit, nil

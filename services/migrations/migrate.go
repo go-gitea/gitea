@@ -218,7 +218,6 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	}
 
 	log.Trace("migrating git data from %s", util.SanitizeCredentialURLs(repo.CloneURL))
-	// i18n-check: repo.migrate.migrating_*
 	messenger("repo.migrate.migrating_git")
 	if err = uploader.CreateRepo(ctx, repo, opts); err != nil {
 		return err

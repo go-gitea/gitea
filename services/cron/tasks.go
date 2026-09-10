@@ -169,10 +169,8 @@ func GetTask(name string) *Task {
 func RegisterTask[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error) error {
 	log.Debug("Registering task: %s", name)
 
-	i18nKey := "admin.dashboard." + name
-	// i18n-check: admin.dashboard.*
-	if value := translation.NewLocale("en-US").TrString(i18nKey); value == i18nKey {
-		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
+	if value := LocaleTaskName(translation.NewLocale("en-US"), name); value == name {
+		return fmt.Errorf("translation is missing for task %q, please add a LocaleTaskName case and translation", name)
 	}
 
 	_, err := setting.GetCronSettings(name, config)

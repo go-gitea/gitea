@@ -181,7 +181,6 @@ func (b *Base) ServeContent(r io.ReadSeeker, opts ServeHeaderOptions) {
 }
 
 func (b *Base) Tr(msg string, args ...any) template.HTML {
-	// i18n-check: ignore
 	return b.Locale.Tr(msg, args...)
 }
 

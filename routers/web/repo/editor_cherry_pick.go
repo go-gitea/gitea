@@ -71,7 +71,6 @@ func CherryPickPost(ctx *context.Context) {
 			opts.Content = buf.String()
 			_, err = files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 			if err != nil {
-				// i18n-check: ignore
 				err = util.ErrorWrapTranslatable(err, "repo.editor.fail_to_apply_patch")
 			}
 		}

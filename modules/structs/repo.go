@@ -387,6 +387,32 @@ func (gt GitServiceType) Title() string {
 	return ""
 }
 
+// LocaleDescriptionKey returns the verbatim locale key for this migrate service.
+func (gt GitServiceType) LocaleDescriptionKey() string {
+	switch gt {
+	case GithubService:
+		return "repo.migrate.github.description"
+	case GiteaService:
+		return "repo.migrate.gitea.description"
+	case GitlabService:
+		return "repo.migrate.gitlab.description"
+	case GogsService:
+		return "repo.migrate.gogs.description"
+	case OneDevService:
+		return "repo.migrate.onedev.description"
+	case GitBucketService:
+		return "repo.migrate.gitbucket.description"
+	case CodebaseService:
+		return "repo.migrate.codebase.description"
+	case CodeCommitService:
+		return "repo.migrate.codecommit.description"
+	case PlainGitService:
+		return "repo.migrate.git.description"
+	default:
+		return ""
+	}
+}
+
 // MigrateRepoOptions options for migrating repository's
 // this is used to interact with api v1
 type MigrateRepoOptions struct {

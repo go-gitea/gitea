@@ -106,29 +106,28 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		embeds = append(embeds, sender_service.EmbeddedFile{Name: icon, ContentID: contentID, Content: content})
 	}
 
-	var runStatusTrString string
+	var runStatusText string
 	switch run.Status {
 	case actions_model.StatusSuccess:
-		runStatusTrString = "mail.repo.actions.jobs.all_succeeded"
+		runStatusText = locale.TrString("mail.repo.actions.jobs.all_succeeded")
 	case actions_model.StatusFailure:
-		runStatusTrString = "mail.repo.actions.jobs.all_failed"
+		runStatusText = locale.TrString("mail.repo.actions.jobs.all_failed")
 		for _, job := range jobs {
 			if !job.Status.IsFailure() {
-				runStatusTrString = "mail.repo.actions.jobs.some_not_successful"
+				runStatusText = locale.TrString("mail.repo.actions.jobs.some_not_successful")
 				break
 			}
 		}
 	case actions_model.StatusCancelled:
-		runStatusTrString = "mail.repo.actions.jobs.all_cancelled"
+		runStatusText = locale.TrString("mail.repo.actions.jobs.all_cancelled")
 	}
 	subject := fmt.Sprintf("[%s] %s: %s (%s - %s)", repo.FullName(), run.Status.LocaleString(locale), run.WorkflowID, run.PrettyRef(), base.ShortSha(run.CommitSHA))
 	var mailBody bytes.Buffer
 	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{
-		"Subject": subject,
-		"Repo":    repo,
-		"Run":     run,
-		// i18n-check: mail.repo.actions.jobs.*
-		"RunStatusText": locale.TrString(runStatusTrString),
+		"Subject":       subject,
+		"Repo":          repo,
+		"Run":           run,
+		"RunStatusText": runStatusText,
 		"Jobs":          mailJobs,
 		"locale":        locale,
 	}); err != nil {

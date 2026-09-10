@@ -175,7 +175,6 @@ func (l *locale) TrHTML(trKey string, trArgs ...any) template.HTML {
 			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
 		}
 	}
-	// i18n-check: ignore
 	return template.HTML(l.TrString(trKey, args...))
 }
 

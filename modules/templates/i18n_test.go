@@ -1,3 +1,6 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package templates
 
 import (
@@ -7,7 +10,7 @@ import (
 )
 
 func Test_FindTemplateKeys(t *testing.T) {
-	var kases = []struct {
+	kases := []struct {
 		path         string
 		expectedKeys []string
 	}{
@@ -69,8 +72,10 @@ func Test_FindTemplateKeys(t *testing.T) {
 				"repo.issues.push_commits_n",
 				"repo.issues.force_push_compare",
 				"projects.deleted.display_name",
-				"projects.type-*.display_name",
-				"projects.type-%d.display_name",
+				"repo.issues.ref_issue_from",
+				"repo.issues.ref_pull_from",
+				"repo.issues.ref_closing_from",
+				"repo.issues.ref_reopening_from",
 				"repo.issues.change_project_at",
 				"repo.issues.add_project_at",
 				"repo.issues.review.dismissed",

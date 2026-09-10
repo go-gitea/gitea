@@ -48,7 +48,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if workflowID == "" {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("workflowID is empty"),
-			// i18n-check: ignore
 			"actions.workflow.not_found", workflowID,
 		)
 	}
@@ -56,7 +55,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if ref == "" {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("ref is empty"),
-			// i18n-check: ignore
 			"form.target_ref_not_exist", ref,
 		)
 	}
@@ -77,7 +75,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if workflowDisabled {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewPermissionDeniedErrorf("workflow is disabled"),
-			// i18n-check: ignore
 			"actions.workflow.disabled",
 		)
 	}
@@ -97,7 +94,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("ref %q doesn't exist", ref),
-			// i18n-check: ignore
 			"form.target_ref_not_exist", ref,
 		)
 	}

@@ -640,7 +640,7 @@ i18n-backport:
 
 .PHONY: i18n-check
 i18n-check:
-	@echo "Checking unused translations..."
+	@echo "Checking unused, missing, and composited translation keys..."
 	$(GO) run tools/i18n/check.go
 
 .PHONY: generate-gitignore
