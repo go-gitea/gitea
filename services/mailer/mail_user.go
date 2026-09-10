@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	mailAuthActivate       templates.TplName = "user/auth/activate"
-	mailAuthActivateEmail  templates.TplName = "user/auth/activate_email"
-	mailAuthResetPassword  templates.TplName = "user/auth/reset_passwd"
-	mailAuthRegisterNotify templates.TplName = "user/auth/register_notify"
+	mailAuthActivate       templates.TplName = "mail/user/auth/activate"
+	mailAuthActivateEmail  templates.TplName = "mail/user/auth/activate_email"
+	mailAuthResetPassword  templates.TplName = "mail/user/auth/reset_passwd"
+	mailAuthRegisterNotify templates.TplName = "mail/user/auth/register_notify"
 )
 
 // sendUserMail sends a mail to the user

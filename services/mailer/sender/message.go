@@ -4,6 +4,7 @@
 package sender
 
 import (
+	"bytes"
 	"fmt"
 	"hash/fnv"
 	"net/mail"
@@ -29,6 +30,14 @@ type Message struct {
 	Date            time.Time
 	Body            string
 	Headers         map[string][]string
+	Embeds          []EmbeddedFile
+}
+
+// EmbeddedFile is an inline attachment referenced by its ContentID.
+type EmbeddedFile struct {
+	Name      string
+	ContentID string
+	Content   []byte
 }
 
 // ToMessage converts a Message to gomail.Message
@@ -53,14 +62,16 @@ func (m *Message) ToMessage() *gomail.Msg {
 	msg.SetGenHeader("X-Auto-Response-Suppress", "All")
 
 	plainBody, err := html2text.FromString(m.Body)
+	msg.SetBodyString("text/plain", plainBody)
 	if err != nil || setting.MailService.SendAsPlainText {
 		if strings.Contains(util.TruncateRunes(m.Body, 100), "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
-		msg.SetBodyString("text/plain", plainBody)
 	} else {
-		msg.SetBodyString("text/plain", plainBody)
 		msg.AddAlternativeString("text/html", m.Body)
+		for _, embed := range m.Embeds {
+			msg.EmbedReadSeeker(embed.Name, bytes.NewReader(embed.Content), gomail.WithFileContentID("<"+embed.ContentID+">"))
+		}
 	}
 
 	if len(msg.GetGenHeader("Message-ID")) == 0 {
