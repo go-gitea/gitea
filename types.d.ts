@@ -16,7 +16,10 @@ declare module '*.vue' {
 
 declare module 'idiomorph' {
   interface Idiomorph {
-    morph(existing: Node | string, replacement: Node | string, options?: {morphStyle: 'innerHTML' | 'outerHTML'}): void;
+    morph(existing: Node | string, replacement: Node | string, options?: {
+      morphStyle: 'innerHTML' | 'outerHTML',
+      callbacks?: {beforeNodeMorphed?: (oldNode: Node, newNode: Node) => boolean},
+    }): void;
   }
   export const Idiomorph: Idiomorph;
 }
