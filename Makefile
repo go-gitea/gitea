@@ -361,7 +361,7 @@ lint-yaml: .venv ## lint yaml files
 
 .PHONY: lint-locale
 lint-locale: ## lint locale files
-	@node tools/lint-locale-usage.ts
+	@node tools/lint-locale.ts
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files
