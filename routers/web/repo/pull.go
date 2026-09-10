@@ -360,6 +360,7 @@ func (prInfo *pullRequestViewInfo) prepareViewInfo(ctx *context.Context, issue *
 	ctx.Data["BaseBranch"] = issue.PullRequest.BaseBranch
 	ctx.Data["HeadBranch"] = issue.PullRequest.HeadBranch
 	ctx.Data["HeadUserName"] = issue.PullRequest.MustHeadUserName(ctx)
+	ctx.Data["BaseName"] = issue.PullRequest.BaseRepo.OwnerName
 
 	if issue.PullRequest.HasMerged {
 		prInfo.prepareViewMergedPullInfo(ctx)
