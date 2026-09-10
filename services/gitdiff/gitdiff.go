@@ -698,7 +698,7 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 
 const cmdDiffHead = "diff --git "
 
-// to correctly parse a diff line, the input buffer size should be large enough to read a full line for cmdDiffHead
+// to correctly parse a diff line, the input buffer size should be large enough to read a full line for git diff headers
 var defaultDiffLineBufferSize = 8 * 1024
 
 // ParsePatch builds a Diff object by parsing git diff output
@@ -717,7 +717,7 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 	skipping := skipToFile != ""
 	for {
 		nextLine, err := diff.parseOneDiffFile(ctx, maxLines, maxLineCharacters, maxFiles, &skipping, input, skipToFile, line)
-		if line == "" || err == io.EOF {
+		if nextLine == "" || err == io.EOF {
 			break
 		} else if err != nil {
 			return diff, err
