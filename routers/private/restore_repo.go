@@ -7,19 +7,16 @@ import (
 	"io"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/private"
-	myCtx "code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/migrations"
+	"gitea.dev/modules/json"
+	myCtx "gitea.dev/services/context"
+	"gitea.dev/services/migrations"
 )
 
 // RestoreRepo restore a repository from data
 func RestoreRepo(ctx *myCtx.PrivateContext) {
 	bs, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
 	params := struct {
@@ -30,9 +27,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Validation bool
 	}{}
 	if err = json.Unmarshal(bs, &params); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
 
@@ -44,9 +39,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		params.Units,
 		params.Validation,
 	); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("%v", err)
 	} else {
 		ctx.PlainText(http.StatusOK, "success")
 	}

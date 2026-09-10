@@ -13,15 +13,18 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/tempdir"
+	"gitea.dev/modules/testlogger"
 
 	"github.com/hashicorp/go-version"
 )
 
-const RequiredVersion = "2.6.0" // the minimum Git version required
+const RequiredVersion = "2.25.0" // the minimum Git version required
 
 type Features struct {
 	gitVersion *version.Version
@@ -35,7 +38,14 @@ type Features struct {
 	SupportGitMergeTree        bool           // >= 2.40 // we also need "--merge-base"
 }
 
-var defaultFeatures *Features
+type GlobalConfigStruct struct {
+	DiffOrderFile string
+}
+
+var (
+	defaultFeatures *Features
+	GlobalConfig    *GlobalConfigStruct
+)
 
 func (f *Features) CheckVersionAtLeast(atLeast string) bool {
 	return f.gitVersion.Compare(version.Must(version.NewVersion(atLeast))) >= 0
@@ -88,12 +98,17 @@ func parseGitVersionLine(s string) (*version.Version, error) {
 		return nil, fmt.Errorf("invalid git version: %q", s)
 	}
 
-	// version string is like: "git version 2.29.3" or "git version 2.29.3.windows.1"
+	// version output is like: "git version {versionString}"
+	// versionString can be:
+	// * "2.5.3"
+	// * "2.29.3.windows.1"
+	// * "2.28.0.618.gf4bc123cb7": https://github.com/go-gitea/gitea/issues/12731
 	versionString := fields[2]
-	if pos := strings.Index(versionString, "windows"); pos >= 1 {
-		versionString = versionString[:pos-1]
+	versionFields := strings.Split(versionString, ".")
+	if len(versionFields) > 3 {
+		versionFields = versionFields[:3]
 	}
-	return version.NewVersion(versionString)
+	return version.NewVersion(strings.Join(versionFields, "."))
 }
 
 func checkGitVersionCompatibility(gitVer *version.Version) error {
@@ -167,34 +182,34 @@ func InitFull() (err error) {
 	if err = InitSimple(); err != nil {
 		return err
 	}
-
-	if setting.LFS.StartServer {
-		if !DefaultFeatures().CheckVersionAtLeast("2.1.2") {
-			return errors.New("LFS server support requires Git >= 2.1.2")
-		}
-	}
-
 	return syncGitConfig(context.Background())
 }
 
 // RunGitTests helps to init the git module and run tests.
 // FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right, setting.Git.HomePath is initialized in this package but used in gitcmd package
 func RunGitTests(m interface{ Run() int }) {
-	fatalf := func(exitCode int, format string, args ...any) {
-		_, _ = fmt.Fprintf(os.Stderr, format, args...)
-		os.Exit(exitCode)
-	}
+	os.Exit(runGitTests(m))
+}
+
+func runGitTests(m interface{ Run() int }) int {
+	_ = cache.Init()
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		fatalf(1, "unable to create temp dir: %s", err.Error())
+		return testlogger.MainErrorf("unable to create temp dir: %v", err)
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
 	if err = InitFull(); err != nil {
-		fatalf(1, "failed to call Init: %s", err.Error())
+		return testlogger.MainErrorf("failed to call Init: %v", err)
 	}
-	if exitCode := m.Run(); exitCode != 0 {
-		fatalf(exitCode, "run test failed, ExitCode=%d", exitCode)
-	}
+	return m.Run()
+}
+
+func LockConfigAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
+	return globallock.LockAndDo(ctx, "repo-config:"+repo.GitRepoManagedID(), fn)
+}
+
+func LockWriteAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
+	return globallock.LockAndDo(ctx, "repo-write:"+repo.GitRepoManagedID(), fn)
 }

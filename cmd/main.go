@@ -5,13 +5,13 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -48,7 +48,7 @@ DEFAULT CONFIGURATION:
 	}
 }
 
-func prepareSubcommandWithGlobalFlags(originCmd *cli.Command) {
+func PrepareSubcommandWithGlobalFlags(originCmd *cli.Command) {
 	originBefore := originCmd.Before
 	originCmd.Before = func(ctxOrig context.Context, cmd *cli.Command) (ctx context.Context, err error) {
 		ctx = ctxOrig
@@ -112,39 +112,40 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 			Usage:     "Set custom path (defaults to '{WorkPath}/custom')",
 		},
 	}
+	webCmd := newWebCommand()
 	// these sub-commands need to use a config file
 	subCmdWithConfig := []*cli.Command{
-		CmdWeb,
-		CmdServ,
-		CmdHook,
-		CmdKeys,
-		CmdDump,
-		CmdAdmin,
-		CmdMigrate,
-		CmdDoctor,
-		CmdManager,
-		CmdEmbedded,
-		CmdMigrateStorage,
-		CmdDumpRepository,
-		CmdRestoreRepository,
-		CmdActions,
+		webCmd,
+		newServCommand(),
+		newHookCommand(),
+		NewKeysCommand(),
+		newDumpCommand(),
+		newAdminCommand(),
+		newMigrateCommand(),
+		newDoctorCommand(),
+		newManagerCommand(),
+		newEmbeddedCommand(),
+		newMigrateStorageCommand(),
+		newDumpRepositoryCommand(),
+		newRestoreRepositoryCommand(),
+		newActionsCommand(),
 	}
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.
 	subCmdStandalone := []*cli.Command{
 		cmdConfig(),
 		cmdCert(),
-		CmdGenerate,
-		CmdDocs,
+		newGenerateCommand(),
+		newDocsCommand(),
 	}
 
 	// TODO: we should eventually drop the default command,
 	// but not sure whether it would break Windows users who used to double-click the EXE to run.
-	app.DefaultCommand = CmdWeb.Name
+	app.DefaultCommand = webCmd.Name
 
 	app.Before = PrepareConsoleLoggerLevel(log.INFO)
 	for i := range subCmdWithConfig {
-		prepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
+		PrepareSubcommandWithGlobalFlags(subCmdWithConfig[i])
 	}
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
@@ -153,16 +154,37 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 	return app
 }
 
+// usageErr marks a usage error already reported by cliOnUsageError, so RunMainApp does not print it again.
+type usageErr struct{ err error }
+
+func (e usageErr) Error() string { return e.err.Error() }
+func (e usageErr) Unwrap() error { return e.err }
+
+// cliOnUsageError reports usage errors itself instead of letting urfave/cli dump the full help to stdout (since urfave/cli v3.10).
+func cliOnUsageError(_ context.Context, cmd *cli.Command, err error, _ bool) error {
+	_, _ = fmt.Fprintf(cmd.Root().ErrWriter, "Incorrect Usage: %s\n", err.Error())
+	return usageErr{err}
+}
+
+func setCLIOnUsageError(cmd *cli.Command) {
+	_ = cmd.Walk(func(c *cli.Command) error {
+		c.OnUsageError = cliOnUsageError
+		return nil
+	})
+}
+
 func RunMainApp(app *cli.Command, args ...string) error {
 	ctx, cancel := installSignals()
 	defer cancel()
+	setCLIOnUsageError(app)
+	// the completion subcommands are built during app.Run, after the Walk above, so cover them via this hook
+	app.ConfigureShellCompletionCommand = setCLIOnUsageError
 	err := app.Run(ctx, args)
 	if err == nil {
 		return nil
 	}
-	if strings.HasPrefix(err.Error(), "flag provided but not defined:") {
-		// the cli package should already have output the error message, so just exit
-		cli.OsExiter(1)
+	if _, ok := errors.AsType[usageErr](err); ok {
+		cli.OsExiter(1) // cliOnUsageError already reported it
 		return err
 	}
 	_, _ = fmt.Fprintf(app.ErrWriter, "Command error: %v\n", err)

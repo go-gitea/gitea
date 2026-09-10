@@ -1,9 +1,9 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin notice")}}
+{{template "admin/layout_head" (dict "pageClass" "admin notice")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
-		<table class="ui attached segment select selectable striped table unstackable g-table-auto-ellipsis">
+		<table class="ui attached segment select selectable table unstackable g-table-auto-ellipsis">
 			<thead>
 				<tr>
 					<th></th>
@@ -19,7 +19,7 @@
 					<tr>
 						<td><div class="ui checkbox tw-flex" data-id="{{.ID}}"><input type="checkbox"></div></td>
 						<td>{{.ID}}</td>
-						<td>{{ctx.Locale.Tr .TrStr}}</td>
+						<td><!-- i18n-check: admin.notices.type_* -->{{ctx.Locale.Tr .TrStr}}</td>
 						<td class="view-detail auto-ellipsis tw-w-4/5"><span class="notice-description">{{.Description}}</span></td>
 						<td nowrap>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
@@ -50,7 +50,7 @@
 										</div>
 									</div>
 								</div>
-								<button class="ui small button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="?page={{.Page.Paginater.Current}}">
+								<button type="button" class="ui small button" id="delete-selection" data-link="{{.Link}}/delete">
 									<span class="text">{{ctx.Locale.Tr "admin.notices.delete_selected"}}</span>
 								</button>
 							</th>

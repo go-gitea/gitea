@@ -9,29 +9,29 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	auth_model "gitea.dev/models/auth"
+	packages_model "gitea.dev/models/packages"
+	container_model "gitea.dev/models/packages/container"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/structs"
+	"gitea.dev/routers/api/packages/helper"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
+	container_service "gitea.dev/services/packages/container"
 
 	"github.com/opencontainers/go-digest"
 )
@@ -120,17 +120,26 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 	})
 }
 
-func apiUnauthorizedError(ctx *context.Context) {
+func APIUnauthorizedError(ctx *context.Context) {
 	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed
 	realmURL := httplib.GuessCurrentHostURL(ctx) + "/v2/token"
 	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmURL+`",service="container_registry",scope="*"`)
+
+	ownerName := ctx.PathParam("username")
+	owner, _ := user_model.GetUserByName(ctx, ownerName)
+	requireSignIn := owner != nil && owner.Visibility != structs.VisibleTypePublic
+	requireSignIn = requireSignIn || setting.Service.RequireSignInViewStrict
+	if requireSignIn {
+		// support apple container like: container registry login <gitea-host> -u
+		ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="Gitea Container Registry"`)
+	}
 	apiErrorDefined(ctx, errUnauthorized)
 }
 
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost if anonymous access is enabled)
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil || (setting.Service.RequireSignInViewStrict && ctx.Doer.IsGhost()) {
-		apiUnauthorizedError(ctx)
+		APIUnauthorizedError(ctx)
 	}
 }
 
@@ -156,7 +165,7 @@ func Authenticate(ctx *context.Context) {
 	packageScope := auth_service.GetAccessScope(ctx.Data)
 	if u == nil {
 		if setting.Service.RequireSignInViewStrict {
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 
@@ -170,7 +179,7 @@ func Authenticate(ctx *context.Context) {
 			if err != nil {
 				log.Error("Error checking access scope: %v", err)
 			}
-			apiUnauthorizedError(ctx)
+			APIUnauthorizedError(ctx)
 			return
 		}
 	}
@@ -239,7 +248,7 @@ func PostBlobsUploads(ctx *context.Context) {
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
 	if mount != "" {
-		blob, _ := workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
+		blob, _ := getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 			Repository: from,
 			Digest:     mount,
 		})
@@ -495,7 +504,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
-	return workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
+	return getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Image:   ctx.PathParam("image"),
 		Digest:  string(d),
@@ -587,8 +596,7 @@ func PutManifest(ctx *context.Context) {
 
 	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
-		var namedError *namedError
-		if errors.As(err, &namedError) {
+		if namedError, ok := errors.AsType[*namedError](err); ok {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
@@ -633,7 +641,7 @@ func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDe
 		return nil, err
 	}
 
-	return workaroundGetContainerBlob(ctx, opts)
+	return getExistingContainerBlob(ctx, opts)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#checking-if-content-exists-in-the-registry
@@ -704,9 +712,9 @@ func DeleteManifest(ctx *context.Context) {
 }
 
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
-	serveDirectReqParams := make(url.Values)
-	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, serveDirectReqParams)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, &storage.ServeDirectOptions{
+		ContentType: pfd.Properties.GetByName(container_module.PropertyMediaType),
+	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -779,23 +787,20 @@ func GetTagsList(ctx *context.Context) {
 	})
 }
 
-// FIXME: Workaround to be removed in v1.20.
-// Update maybe we should never really remote it, as long as there is legacy data?
-// https://github.com/go-gitea/gitea/issues/19586
-func workaroundGetContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
+// getExistingContainerBlob checks if the blob exists in the database and content store, and returns the package file descriptor if it does.
+func getExistingContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
 	blob, err := container_model.GetContainerBlob(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(blob.Blob.HashSHA256))
+	storeKey := packages_module.BlobHash256Key(blob.Blob.HashSHA256)
+	sz, err := packages_module.NewContentStore().OptionalSize(storeKey)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
-			log.Debug("Package registry inconsistent: blob %s does not exist on file system", blob.Blob.HashSHA256)
-			return nil, container_model.ErrContainerBlobNotExist
-		}
-		return nil, err
+		return nil, fmt.Errorf("unable to check object size in content store: %w", err)
 	}
-
+	if sz.ValueOrDefault(-1) != blob.Blob.Size {
+		return nil, container_model.ErrContainerBlobNotExist
+	}
 	return blob, nil
 }

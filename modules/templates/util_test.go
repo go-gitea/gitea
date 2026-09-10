@@ -70,6 +70,16 @@ func TestUtils(t *testing.T) {
 	actual = execTmpl("{{StringUtils.Contains .String .Value}}", map[string]any{"String": "abc", "Value": "x"})
 	assert.Equal(t, "false", actual)
 
+	// Test JoinInt64
+	actual = execTmpl("{{SliceUtils.JoinInt64 .Values}}", map[string]any{"Values": []int64{1, 2, 3}})
+	assert.Equal(t, "1,2,3", actual)
+
+	actual = execTmpl("{{SliceUtils.JoinInt64 .Values}}", map[string]any{"Values": []int64{}})
+	assert.Empty(t, actual)
+
+	actual = execTmpl("{{SliceUtils.JoinInt64 .Values}}", map[string]any{"Values": []int64{42}})
+	assert.Equal(t, "42", actual)
+
 	tmpl := template.New("test")
 	tmpl.Funcs(template.FuncMap{"SliceUtils": NewSliceUtils, "StringUtils": NewStringUtils})
 	template.Must(tmpl.Parse("{{SliceUtils.Contains .Slice .Value}}"))

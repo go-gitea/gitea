@@ -8,12 +8,12 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
 )
 
 // TeamAddRepository adds new repository to team of organization.
@@ -50,7 +50,7 @@ func addRepositoryToTeam(ctx context.Context, t *organization.Team, repo *repo_m
 			return fmt.Errorf("getMembers: %w", err)
 		}
 		for _, u := range t.Members {
-			if err = repo_model.WatchRepo(ctx, u, repo, true); err != nil {
+			if err = repo_model.WatchRepoAuto(ctx, u, repo, true); err != nil {
 				return fmt.Errorf("watchRepo: %w", err)
 			}
 		}
@@ -108,7 +108,7 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 			return err
 		}
 
-		// Remove watches from all users and now unaccessible repos
+		// Remove watches from all users and now inaccessible repos
 		for _, user := range t.Members {
 			has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 			if err != nil {
@@ -117,7 +117,7 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 				continue
 			}
 
-			if err = repo_model.WatchRepo(ctx, user, repo, false); err != nil {
+			if err = repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {
 				return err
 			}
 
@@ -198,7 +198,7 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 			continue
 		}
 
-		if err = repo_model.WatchRepo(ctx, member, repo, false); err != nil {
+		if err = repo_model.WatchRepoAuto(ctx, member, repo, false); err != nil {
 			return err
 		}
 

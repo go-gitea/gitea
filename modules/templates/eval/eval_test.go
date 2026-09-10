@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func tokens(s string) (a []any) {
@@ -21,7 +22,9 @@ func tokens(s string) (a []any) {
 func TestEval(t *testing.T) {
 	n, err := Expr(0, "/", 0.0)
 	assert.NoError(t, err)
-	assert.True(t, math.IsNaN(n.Value.(float64)))
+	nan, ok := n.Value.(float64)
+	require.True(t, ok)
+	assert.True(t, math.IsNaN(nan))
 
 	_, err = Expr(nil)
 	assert.ErrorContains(t, err, "unsupported token type")

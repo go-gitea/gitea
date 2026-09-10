@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/indexer"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/indexer"
+	code_indexer "gitea.dev/modules/indexer/code"
+	"gitea.dev/modules/setting"
 )
 
 func indexSettingToGitGrepPathspecList() (list []string) {
@@ -24,7 +24,7 @@ func indexSettingToGitGrepPathspecList() (list []string) {
 	return list
 }
 
-func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int, err error) {
+func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int64, err error) {
 	grepMode := git.GrepModeWords
 	switch searchMode {
 	case indexer.SearchModeExact:
@@ -42,12 +42,12 @@ func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Rep
 		// TODO: if no branch exists, it reports: exit status 128, fatal: this operation must be run in a work tree.
 		return nil, 0, fmt.Errorf("git.GrepSearch: %w", err)
 	}
-	commitID, err := gitRepo.GetRefCommitID(ref.String())
+	commitID, err := gitRepo.GetRefCommitID(ctx, ref.String())
 	if err != nil {
 		return nil, 0, fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
 
-	total = len(res)
+	total = int64(len(res))
 	pageStart := min((page-1)*setting.UI.RepoSearchPagingNum, len(res))
 	pageEnd := min(page*setting.UI.RepoSearchPagingNum, len(res))
 	res = res[pageStart:pageEnd]

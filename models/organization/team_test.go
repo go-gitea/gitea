@@ -6,10 +6,14 @@ package organization_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,6 +40,43 @@ func TestTeam_IsMember(t *testing.T) {
 	assert.True(t, team.IsMember(t.Context(), 2))
 	assert.True(t, team.IsMember(t.Context(), 4))
 	assert.False(t, team.IsMember(t.Context(), unittest.NonexistentID))
+}
+
+func TestTeam_CanNonMemberReadMeta(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})     // public org
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 35})   // private org
+	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})   // member of org 3 and org 35
+	outsider := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}) // member of neither org
+
+	test := func(name string, team *organization.Team, org, doer *user_model.User, expected bool) {
+		t.Run(name, func(t *testing.T) {
+			ok, err := team.CanNonMemberReadMeta(t.Context(), org, doer)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, ok)
+		})
+	}
+
+	// Public team is gated only by the parent org's visibility.
+	publicTeam := &organization.Team{OrgID: 3, Visibility: structs.VisibleTypePublic}
+	test("public team, public org, member", publicTeam, org3, member, true)
+	test("public team, public org, outsider", publicTeam, org3, outsider, true)
+
+	// Public team inside a private org: only org members may see it.
+	publicTeamPrivOrg := &organization.Team{OrgID: 35, Visibility: structs.VisibleTypePublic}
+	test("public team, private org, org member", publicTeamPrivOrg, org35, member, true)
+	test("public team, private org, outsider", publicTeamPrivOrg, org35, outsider, false)
+
+	// Limited team: any org member, but never outsiders.
+	limitedTeam := &organization.Team{OrgID: 3, Visibility: structs.VisibleTypeLimited}
+	test("limited team, org member", limitedTeam, org3, member, true)
+	test("limited team, outsider", limitedTeam, org3, outsider, false)
+
+	// Private team is never visible to non-members; members/owners are admitted by the caller.
+	privateTeam := &organization.Team{OrgID: 3, Visibility: structs.VisibleTypePrivate}
+	test("private team, org member", privateTeam, org3, member, false)
+	test("private team, outsider", privateTeam, org3, outsider, false)
 }
 
 func TestTeam_GetRepositories(t *testing.T) {
@@ -172,6 +213,52 @@ func TestGetUserOrgTeams(t *testing.T) {
 	test(3, unittest.NonexistentID)
 }
 
+func TestSearchTeamIncludeVisible(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const orgID int64 = 3
+	// User 5 is an org member but only belongs to team 1 (Owners) — make sure
+	// they don't see team 2 (default private) but do see a freshly added
+	// limited team they are not a member of.
+	visible := &organization.Team{
+		OrgID:      orgID,
+		LowerName:  "visible-team",
+		Name:       "visible-team",
+		AccessMode: 1, // read
+		Visibility: structs.VisibleTypeLimited,
+	}
+	assert.NoError(t, db.Insert(t.Context(), visible))
+	teams, _, err := organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
+		OrgID:               orgID,
+		UserID:              2,
+		IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(true, true),
+	})
+	assert.NoError(t, err)
+	ids := make(map[int64]bool, len(teams))
+	for _, team := range teams {
+		assert.Equal(t, orgID, team.OrgID)
+		ids[team.ID] = true
+	}
+	// user 2 is in team 1 and team 2 in org 3, plus should see the new visible team.
+	assert.True(t, ids[1], "expected to see team 1 (member)")
+	assert.True(t, ids[2], "expected to see team 2 (member)")
+	assert.True(t, ids[visible.ID], "expected to see visible team")
+
+	// user 5 is only an org member in team 1, must not see secret team 2 but must see the visible one.
+	teams, _, err = organization.SearchTeam(t.Context(), &organization.SearchTeamOptions{
+		OrgID:               orgID,
+		UserID:              5,
+		IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(true, true),
+	})
+	assert.NoError(t, err)
+	ids = make(map[int64]bool, len(teams))
+	for _, team := range teams {
+		ids[team.ID] = true
+	}
+	assert.False(t, ids[2], "user 5 must not see private team 2")
+	assert.True(t, ids[visible.ID], "user 5 must see the limited team")
+}
+
 func TestHasTeamRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -205,4 +292,29 @@ func TestUsersInTeamsCount(t *testing.T) {
 func TestIsUsableTeamName(t *testing.T) {
 	assert.NoError(t, organization.IsUsableTeamName("usable"))
 	assert.True(t, db.IsErrNameReserved(organization.IsUsableTeamName("new")))
+}
+
+func TestTeam_UnitAccessModeEx(t *testing.T) {
+	team := &organization.Team{
+		AccessMode: perm.AccessModeWrite, Units: []*organization.TeamUnit{
+			{Type: unit.TypeIssues, AccessMode: perm.AccessModeRead}, // team mode wins
+			{Type: unit.TypeWiki, AccessMode: perm.AccessModeAdmin},  // unit mode wins
+		},
+	}
+	mode, exist := team.UnitAccessModeEx(t.Context(), unit.TypeActions)
+	assert.True(t, exist)
+	assert.Equal(t, perm.AccessModeWrite, mode)
+	assert.Equal(t, perm.AccessModeWrite, team.UnitAccessMode(t.Context(), unit.TypeIssues))
+	assert.Equal(t, perm.AccessModeAdmin, team.UnitAccessMode(t.Context(), unit.TypeWiki))
+	assert.Equal(t, perm.AccessModeRead, team.UnitAccessMode(t.Context(), unit.TypeExternalWiki)) // limited by unit definition
+
+	team = &organization.Team{AccessMode: perm.AccessModeOwner, Units: []*organization.TeamUnit{}}
+	mode, exist = team.UnitAccessModeEx(t.Context(), unit.TypePackages)
+	assert.True(t, exist)
+	assert.Equal(t, perm.AccessModeAdmin, mode)
+
+	team = &organization.Team{AccessMode: perm.AccessModeNone, Units: []*organization.TeamUnit{}}
+	mode, exist = team.UnitAccessModeEx(t.Context(), unit.TypeActions)
+	assert.False(t, exist)
+	assert.Equal(t, perm.AccessModeNone, mode)
 }

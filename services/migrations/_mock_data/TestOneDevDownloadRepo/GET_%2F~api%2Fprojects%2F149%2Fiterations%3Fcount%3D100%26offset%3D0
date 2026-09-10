@@ -1,0 +1,3 @@
+Content-Type: application/json;charset=utf-8
+
+[{"id":50,"name":"1.0.0","description":"","dueDay":18751,"closed":true},{"id":51,"name":"1.1.0","description":"next things?","dueDay":0,"closed":false}]

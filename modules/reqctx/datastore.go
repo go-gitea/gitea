@@ -5,12 +5,24 @@ package reqctx
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"maps"
+	"reflect"
 	"sync"
 
-	"code.gitea.io/gitea/modules/process"
+	"gitea.dev/modules/process"
 )
+
+// MustContextValue returns the value stored under key. A missing or mistyped value can only
+// be a programming error, and callers can't do anything useful with a zero value, so it panics.
+func MustContextValue[T any](ctx context.Context, key any) T {
+	value, ok := ctx.Value(key).(T)
+	if !ok {
+		panic(fmt.Sprintf("context value %v is %T, expected %s", key, ctx.Value(key), reflect.TypeFor[T]()))
+	}
+	return value
+}
 
 type ContextDataProvider interface {
 	GetData() ContextData
@@ -134,8 +146,15 @@ func NewRequestContext(parentCtx context.Context, profDesc string) (_ context.Co
 	}
 }
 
+type TestingT interface {
+	Cleanup(func())
+	Context() context.Context
+}
+
 // NewRequestContextForTest creates a new RequestContext for testing purposes
-// It doesn't add the context to the process manager, nor do cleanup
-func NewRequestContextForTest(parentCtx context.Context) RequestContext {
-	return &requestContext{Context: parentCtx, RequestDataStore: &requestDataStore{values: make(map[any]any)}}
+func NewRequestContextForTest(t TestingT) RequestContext {
+	store := &requestDataStore{values: make(map[any]any)}
+	ret := &requestContext{Context: t.Context(), RequestDataStore: store}
+	t.Cleanup(store.cleanUp)
+	return ret
 }

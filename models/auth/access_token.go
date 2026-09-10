@@ -6,57 +6,15 @@ package auth
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/hex"
-	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
 )
-
-// ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
-type ErrAccessTokenNotExist struct {
-	Token string
-}
-
-// IsErrAccessTokenNotExist checks if an error is a ErrAccessTokenNotExist.
-func IsErrAccessTokenNotExist(err error) bool {
-	_, ok := err.(ErrAccessTokenNotExist)
-	return ok
-}
-
-func (err ErrAccessTokenNotExist) Error() string {
-	return fmt.Sprintf("access token does not exist [sha: %s]", err.Token)
-}
-
-func (err ErrAccessTokenNotExist) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
-type ErrAccessTokenEmpty struct{}
-
-// IsErrAccessTokenEmpty checks if an error is a ErrAccessTokenEmpty.
-func IsErrAccessTokenEmpty(err error) bool {
-	_, ok := err.(ErrAccessTokenEmpty)
-	return ok
-}
-
-func (err ErrAccessTokenEmpty) Error() string {
-	return "access token is empty"
-}
-
-func (err ErrAccessTokenEmpty) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
-var successfulAccessTokenCache *lru.Cache[string, any]
 
 // AccessToken represents a personal access token.
 type AccessToken struct {
@@ -82,36 +40,41 @@ func (t *AccessToken) AfterLoad() {
 }
 
 func init() {
-	db.RegisterModel(new(AccessToken), func() error {
-		if setting.SuccessfulTokensCacheSize > 0 {
-			var err error
-			successfulAccessTokenCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
-			if err != nil {
-				return fmt.Errorf("unable to allocate AccessToken cache: %w", err)
-			}
-		} else {
-			successfulAccessTokenCache = nil
-		}
-		return nil
-	})
+	db.RegisterModel(new(AccessToken))
 }
 
-// NewAccessToken creates new access token.
-func NewAccessToken(ctx context.Context, t *AccessToken) error {
-	salt, err := util.CryptoRandomString(10)
-	if err != nil {
-		return err
-	}
-	token, err := util.CryptoRandomBytes(20)
-	if err != nil {
-		return err
-	}
+// setNewTokenValue generates a fresh random token value and fills in its salt, hash, and last-eight.
+func (t *AccessToken) setNewTokenValue() {
+	salt := util.CryptoRandomString(10)
+	token := util.CryptoRandomBytes(20)
 	t.TokenSalt = salt
 	t.Token = hex.EncodeToString(token)
 	t.TokenHash = HashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
-	_, err = db.GetEngine(ctx).Insert(t)
+}
+
+// NewAccessToken creates new access token.
+func NewAccessToken(ctx context.Context, t *AccessToken) error {
+	t.setNewTokenValue()
+	_, err := db.GetEngine(ctx).Insert(t)
 	return err
+}
+
+// RegenerateAccessToken regenerates the token value of an existing access token owned by userID, keeping its name and scope.
+func RegenerateAccessToken(ctx context.Context, id, userID int64) (*AccessToken, error) {
+	t := &AccessToken{}
+	has, err := db.GetEngine(ctx).Where("id=? AND uid=?", id, userID).Get(t)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("access token not found")
+	}
+
+	t.setNewTokenValue()
+	if _, err := db.GetEngine(ctx).ID(t.ID).Cols("token_hash", "token_salt", "token_last_eight").NoAutoTime().Update(t); err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
 // DisplayPublicOnly whether to display this as a public-only token.
@@ -123,51 +86,26 @@ func (t *AccessToken) DisplayPublicOnly() bool {
 	return publicOnly
 }
 
-func getAccessTokenIDFromCache(token string) int64 {
-	if successfulAccessTokenCache == nil {
-		return 0
-	}
-	tInterface, ok := successfulAccessTokenCache.Get(token)
-	if !ok {
-		return 0
-	}
-	t, ok := tInterface.(int64)
-	if !ok {
-		return 0
-	}
-	return t
-}
-
 // GetAccessTokenBySHA returns access token by given token value
 func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error) {
-	if token == "" {
-		return nil, ErrAccessTokenEmpty{}
-	}
-	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
-	if len(token) != 40 {
-		return nil, ErrAccessTokenNotExist{token}
-	}
-	for _, x := range []byte(token) {
-		if x < '0' || (x > '9' && x < 'a') || x > 'f' {
-			return nil, ErrAccessTokenNotExist{token}
-		}
+	if len(token) < 8 {
+		return nil, util.NewNotExistErrorf("access token not found")
 	}
 
+	cacheKey := "access:" + token
 	lastEight := token[len(token)-8:]
-
-	if id := getAccessTokenIDFromCache(token); id > 0 {
-		accessToken := &AccessToken{
-			TokenLastEight: lastEight,
-		}
-		// Re-get the token from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(ctx).ID(id).Get(accessToken)
+	if cached, _ := TokenCache().Get(cacheKey); cached != nil {
+		// Re-get the token from the db in case it has been deleted or regenerated in the intervening period
+		accessToken := &AccessToken{}
+		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(accessToken)
 		if err != nil {
 			return nil, err
 		}
-		if has {
+		if has && util.CryptoConstTimeEqual(accessToken.TokenHash, cached.TokenHash) {
 			return accessToken, nil
 		}
-		successfulAccessTokenCache.Remove(token)
+		// either the token has been deleted or changed, invalidate the cache
+		TokenCache().Remove(cacheKey)
 	}
 
 	var tokens []AccessToken
@@ -175,19 +113,17 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 	if err != nil {
 		return nil, err
 	} else if len(tokens) == 0 {
-		return nil, ErrAccessTokenNotExist{token}
+		return nil, util.NewNotExistErrorf("access token not found")
 	}
 
 	for _, t := range tokens {
 		tempHash := HashToken(token, t.TokenSalt)
-		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
-			if successfulAccessTokenCache != nil {
-				successfulAccessTokenCache.Add(token, t.ID)
-			}
+		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
+			TokenCache().Add(cacheKey, &TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return &t, nil
 		}
 	}
-	return nil, ErrAccessTokenNotExist{token}
+	return nil, util.NewNotExistErrorf("access token not found")
 }
 
 // AccessTokenByNameExists checks if a token name has been used already by a user.
@@ -224,13 +160,11 @@ func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
 
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(ctx context.Context, id, userID int64) error {
-	cnt, err := db.GetEngine(ctx).ID(id).Delete(&AccessToken{
-		UID: userID,
-	})
+	cnt, err := db.GetEngine(ctx).ID(id).Delete(&AccessToken{UID: userID})
 	if err != nil {
 		return err
 	} else if cnt != 1 {
-		return ErrAccessTokenNotExist{}
+		return util.NewNotExistErrorf("access token not found")
 	}
 	return nil
 }

@@ -1,0 +1,3 @@
+Content-Type: application/json
+
+{"max_response_items":50,"default_paging_num":30,"default_git_trees_per_page":40,"default_max_blob_size":10485760}

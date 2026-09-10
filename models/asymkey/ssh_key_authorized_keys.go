@@ -14,12 +14,13 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
 )
 
 // AuthorizedStringCommentPrefix is a magic tag
@@ -162,8 +163,8 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(ctx context.Context, t io.Writer) error {
-	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
-		return WriteAuthorizedStringForValidKey(bean.(*PublicKey), t)
+	if err := db.Iterate(ctx, builder.Neq{"type": KeyTypePrincipal}, func(ctx context.Context, key *PublicKey) error {
+		return WriteAuthorizedStringForValidKey(key, t)
 	}); err != nil {
 		return err
 	}

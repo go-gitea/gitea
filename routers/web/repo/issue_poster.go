@@ -8,23 +8,11 @@ import (
 	"slices"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
 )
-
-type userSearchInfo struct {
-	UserID     int64  `json:"user_id"`
-	UserName   string `json:"username"`
-	AvatarLink string `json:"avatar_link"`
-	FullName   string `json:"full_name"`
-}
-
-type userSearchResponse struct {
-	Results []*userSearchInfo `json:"results"`
-}
 
 func IssuePullPosters(ctx *context.Context) {
 	isPullList := ctx.PathParam("type") == "pulls"
@@ -34,7 +22,7 @@ func IssuePullPosters(ctx *context.Context) {
 func issuePosters(ctx *context.Context, isPullList bool) {
 	repo := ctx.Repo.Repository
 	search := strings.TrimSpace(ctx.FormString("q"))
-	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search, setting.UI.DefaultShowFullName)
+	posters, err := repo_model.GetIssuePostersWithSearch(ctx, repo, isPullList, search)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, err)
 		return
@@ -47,16 +35,5 @@ func issuePosters(ctx *context.Context, isPullList bool) {
 			posters = append(posters, ctx.Doer)
 		}
 	}
-
-	posters = shared_user.MakeSelfOnTop(ctx.Doer, posters)
-
-	resp := &userSearchResponse{}
-	resp.Results = make([]*userSearchInfo, len(posters))
-	for i, user := range posters {
-		resp.Results[i] = &userSearchInfo{UserID: user.ID, UserName: user.Name, AvatarLink: user.AvatarLink(ctx)}
-		if setting.UI.DefaultShowFullName {
-			resp.Results[i].FullName = user.FullName
-		}
-	}
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, shared_user.ToSearchUserResponse(ctx, ctx.Doer, posters))
 }

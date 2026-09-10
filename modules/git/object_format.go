@@ -10,10 +10,10 @@ import (
 	"strconv"
 )
 
-// sha1Pattern can be used to determine if a string is an valid sha
+// sha1Pattern can be used to determine if a string is a valid sha
 var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
-// sha256Pattern can be used to determine if a string is an valid sha
+// sha256Pattern can be used to determine if a string is a valid sha
 var sha256Pattern = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 
 type ObjectFormat interface {
@@ -37,10 +37,8 @@ type Sha1ObjectFormatImpl struct{}
 
 var (
 	emptySha1ObjectID = &Sha1Hash{}
-	emptySha1Tree     = &Sha1Hash{
-		0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60,
-		0xe5, 0x4b, 0xf8, 0xd6, 0x92, 0x88, 0xfb, 0xee, 0x49, 0x04,
-	}
+	// emptySha1Tree: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+	emptySha1Tree = &Sha1Hash{0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60, 0xe5, 0x4b, 0xf8, 0xd6, 0x92, 0x88, 0xfb, 0xee, 0x49, 0x04}
 )
 
 func (Sha1ObjectFormatImpl) Name() string { return "sha1" }
@@ -115,9 +113,42 @@ func (h Sha256ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) Object
 	return h.MustID(hasher.Sum(nil))
 }
 
+type invalidObjectFormatImpl struct{}
+
+var emptyInvalidObjectID = &Sha1Hash{}
+
+func (h invalidObjectFormatImpl) Name() string {
+	return "invalid-object-format"
+}
+
+func (h invalidObjectFormatImpl) EmptyObjectID() ObjectID {
+	return emptyInvalidObjectID
+}
+
+func (h invalidObjectFormatImpl) EmptyTree() ObjectID {
+	return emptyInvalidObjectID
+}
+
+func (h invalidObjectFormatImpl) FullLength() int {
+	return len(emptyInvalidObjectID) * 2
+}
+
+func (h invalidObjectFormatImpl) IsValid(input string) bool {
+	return false
+}
+
+func (h invalidObjectFormatImpl) MustID(b []byte) ObjectID {
+	return emptyInvalidObjectID
+}
+
+func (h invalidObjectFormatImpl) ComputeHash(t ObjectType, content []byte) ObjectID {
+	return emptyInvalidObjectID
+}
+
 var (
-	Sha1ObjectFormat   ObjectFormat = Sha1ObjectFormatImpl{}
-	Sha256ObjectFormat ObjectFormat = Sha256ObjectFormatImpl{}
+	Sha1ObjectFormat    ObjectFormat = Sha1ObjectFormatImpl{}
+	Sha256ObjectFormat  ObjectFormat = Sha256ObjectFormatImpl{}
+	invalidObjectFormat ObjectFormat = invalidObjectFormatImpl{}
 )
 
 func ObjectFormatFromName(name string) ObjectFormat {
@@ -126,9 +157,9 @@ func ObjectFormatFromName(name string) ObjectFormat {
 			return objectFormat
 		}
 	}
-	return nil
+	return invalidObjectFormat
 }
 
 func IsValidObjectFormat(name string) bool {
-	return ObjectFormatFromName(name) != nil
+	return ObjectFormatFromName(name) != invalidObjectFormat
 }

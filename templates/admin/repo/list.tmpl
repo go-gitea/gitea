@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
+{{template "admin/layout_head" (dict "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.repos.repo_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
@@ -10,7 +10,7 @@
 			{{template "shared/repo/search" .}}
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table selectable unstackable">
+			<table class="ui very basic table selectable unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
@@ -43,15 +43,10 @@
 					</tr>
 				</thead>
 				<tbody>
-					{{range .Repos}}
+					{{range $repo := .Repos}}
 						<tr>
 							<td>{{.ID}}</td>
-							<td>
-								<a class="tw-break-anywhere" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
-								{{if .Owner.Visibility.IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
-								{{end}}
-							</td>
+							<td>{{template "admin/shared/owner" dict "OwnerUser" $repo.Owner}}</td>
 							<td>
 								<a class="tw-break-anywhere" href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
@@ -59,7 +54,7 @@
 								{{end}}
 								{{if .IsPrivate}}
 									<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
-								{{else}}
+								{{else if .Owner}}
 									{{if .Owner.Visibility.IsPrivate}}
 										<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.internal"}}</span>
 									{{end}}
@@ -80,14 +75,14 @@
 							<td>{{.NumStars}}</td>
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
-							<td>{{FileSize .GitSize}}</td>
-							<td>{{FileSize .LFSSize}}</td>
+							<td>{{FormatByteSize .GitSize}}</td>
+							<td>{{FormatByteSize .LFSSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td>
-								<a class="text red show-modal" href data-modal="#admin-repo-delete-modal"
-									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.ID}}"
-									data-modal-repo-name="{{.Name}}"
+								<a class="tw-text-red show-modal" href data-modal="#admin-repo-delete-modal"
+									data-modal-form.url="{{$.Link}}/delete?id={{$repo.ID}}"
+									data-modal-repo-name="{{$repo.Name}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
@@ -106,7 +101,7 @@
 	<div class="content">
 		<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>
 		{{ctx.Locale.Tr "repo.settings.delete_notices_2" (HTMLFormat `<span class="%s"></span>` "repo-name")}}<br>
-		{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
+		{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </form>

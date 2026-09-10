@@ -1,25 +1,9 @@
-{{- if .Flash.ErrorMsg -}}
-	<div class="ui negative message flash-message flash-error">
-		<p>{{.Flash.ErrorMsg | SanitizeHTML}}</p>
-	</div>
-{{- end -}}
-{{- if .Flash.SuccessMsg -}}
-	<div class="ui positive message flash-message flash-success">
-		<p>{{.Flash.SuccessMsg | SanitizeHTML}}</p>
-	</div>
-{{- end -}}
-{{- if .Flash.InfoMsg -}}
-	<div class="ui info message flash-message flash-info">
-		<p>{{.Flash.InfoMsg | SanitizeHTML}}</p>
-	</div>
-{{- end -}}
-{{- if .Flash.WarningMsg -}}
-	<div class="ui warning message flash-message flash-warning">
-		<p>{{.Flash.WarningMsg | SanitizeHTML}}</p>
-	</div>
-{{- end -}}
+{{- if .Flash.ErrorMsg}}{{ctx.RenderUtils.RenderFlashMessage "error" .Flash.ErrorMsg}}{{end -}}
+{{- if .Flash.WarningMsg}}{{ctx.RenderUtils.RenderFlashMessage "warning" .Flash.WarningMsg}}{{end -}}
+{{- if .Flash.InfoMsg}}{{ctx.RenderUtils.RenderFlashMessage "info" .Flash.InfoMsg}}{{end -}}
+{{- if .Flash.SuccessMsg}}{{ctx.RenderUtils.RenderFlashMessage "success" .Flash.SuccessMsg}}{{end -}}
 {{- if .ShowTwoFactorRequiredMessage -}}
-<div class="ui negative message flash-message flash-error">
-	<p><a href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{ctx.Locale.Tr "auth.twofa_required"}}</a></p>
+<div class="ui error message flash-message flash-error">
+	<a href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{ctx.Locale.Tr "auth.twofa_required"}}</a>
 </div>
 {{- end -}}

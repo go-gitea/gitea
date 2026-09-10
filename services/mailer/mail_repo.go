@@ -8,19 +8,19 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	sender_service "gitea.dev/services/mailer/sender"
 )
 
 const (
-	mailNotifyCollaborator templates.TplName = "repo/collaborator"
-	mailRepoTransferNotify templates.TplName = "repo/transfer"
+	mailNotifyCollaborator templates.TplName = "mail/repo/collaborator"
+	mailRepoTransferNotify templates.TplName = "mail/repo/transfer"
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created

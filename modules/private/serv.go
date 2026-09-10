@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"net/url"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/perm"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/perm"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 )
 
 // KeyAndOwner is the response from ServNoCommand
@@ -33,16 +33,20 @@ func ServNoCommand(ctx context.Context, keyID int64) (*asymkey_model.PublicKey, 
 
 // ServCommandResults are the results of a call to the private route serv
 type ServCommandResults struct {
-	IsWiki      bool
-	DeployKeyID int64
-	KeyID       int64  // public key
-	KeyName     string // this field is ambiguous, it can be the name of DeployKey, or the name of the PublicKey
-	UserName    string
-	UserEmail   string
-	UserID      int64
-	OwnerName   string
-	RepoName    string
-	RepoID      int64
+	IsWiki bool
+
+	OwnerName string
+	RepoName  string
+	RepoID    int64
+
+	PublicKeyID int64
+
+	UserName        string
+	UserEmail       string
+	UserID          int64
+	UserExtDoerData string
+
+	RepoStoragePath string
 }
 
 // ServCommand preps for a serv call

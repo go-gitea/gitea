@@ -8,13 +8,13 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/models/db"
-	issue_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/indexer"
-	indexer_internal "code.gitea.io/gitea/modules/indexer/internal"
-	inner_db "code.gitea.io/gitea/modules/indexer/internal/db"
-	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	issue_model "gitea.dev/models/issues"
+	"gitea.dev/modules/indexer"
+	indexer_internal "gitea.dev/modules/indexer/internal"
+	inner_db "gitea.dev/modules/indexer/internal/db"
+	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )

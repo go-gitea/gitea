@@ -66,9 +66,10 @@ func ParseEntryMode(mode string) EntryMode {
 		return EntryModeSymlink
 	case "160000":
 		return EntryModeCommit
-	case "040000":
+	case "040000", "40000": // leading-zero is optional
 		return EntryModeTree
 	default:
+		// if the faster path didn't work, try parsing the mode as an integer and masking off the file type bits
 		// git uses 040000 for tree object, but some users may get 040755 from non-standard git implementations
 		m, _ := strconv.ParseInt(mode, 8, 32)
 		modeInt := EntryMode(m)

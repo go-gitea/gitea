@@ -4,14 +4,11 @@
 package private
 
 import (
-	"fmt"
-	"net/http"
-
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	gitea_context "code.gitea.io/gitea/services/context"
+	"gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	gitea_context "gitea.dev/services/context"
 )
 
 // This file contains common functions relating to setting the Repository for the internal routes
@@ -27,31 +24,37 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
-		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
-		})
+		ctx.PrivateInternalErrorf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 		return
 	}
-	ctx.Repo = &gitea_context.Repository{
-		Repository: repo,
-		GitRepo:    gitRepo,
-	}
+	ctx.Repo = &gitea_context.Repository{Repository: repo, GitRepo: gitRepo}
 }
 
 func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err != nil {
-		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
-		})
+		ctx.PrivateInternalErrorf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
 		return nil
 	}
 	if repo.OwnerName == "" {
 		repo.OwnerName = ownerName
 	}
 	return repo
+}
+
+func loadContextDoerPermission(ctx *gitea_context.PrivateContext, userID int64, extDoerData string) bool {
+	doer, err := user.GetDoerUser(ctx, userID, extDoerData)
+	if err != nil {
+		ctx.PrivateInternalErrorf("Failed to get user: %d, error: %v", userID, err)
+		return false
+	}
+	ctx.Doer = doer
+	ctx.Repo.Permission, err = access.GetDoerRepoPermission(ctx, ctx.Repo.Repository, doer)
+	if err != nil {
+		ctx.PrivateInternalErrorf("Failed to get permission for user: %d, error: %v", userID, err)
+		return false
+	}
+	return true
 }

@@ -3,31 +3,24 @@
 
 package util
 
-import "reflect"
-
 // PaginateSlice cut a slice as per pagination options
 // if page = 0 it do not paginate
-func PaginateSlice(list any, page, pageSize int) any {
+func PaginateSlice[S ~[]E, E any](list S, page, pageSize int) S {
 	if page <= 0 || pageSize <= 0 {
 		return list
 	}
-	if reflect.TypeOf(list).Kind() != reflect.Slice {
-		return list
-	}
-
-	listValue := reflect.ValueOf(list)
 
 	page--
 
-	if page*pageSize >= listValue.Len() {
-		return listValue.Slice(listValue.Len(), listValue.Len()).Interface()
+	if page*pageSize >= len(list) {
+		return list[len(list):]
 	}
 
-	listValue = listValue.Slice(page*pageSize, listValue.Len())
+	list = list[page*pageSize:]
 
-	if listValue.Len() > pageSize {
-		return listValue.Slice(0, pageSize).Interface()
+	if len(list) > pageSize {
+		return list[:pageSize]
 	}
 
-	return listValue.Interface()
+	return list
 }

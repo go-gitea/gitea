@@ -8,10 +8,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -77,6 +77,10 @@ type FindVariablesOpts struct {
 	RepoID  int64
 	OwnerID int64 // it will be ignored if RepoID is set
 	Name    string
+}
+
+func (opts FindVariablesOpts) ToOrders() string {
+	return "name"
 }
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {

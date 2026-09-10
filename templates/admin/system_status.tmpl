@@ -1,4 +1,4 @@
-<dl class="admin-dl-horizontal">
+<dl class="admin-dl-horizontal" data-fetch-url="{{AppSubUrl}}/-/admin/system_status" data-fetch-sync="$morph" data-fetch-trigger="every 5s">
 	<dt>{{ctx.Locale.Tr "admin.dashboard.server_uptime"}}</dt>
 	<dd><relative-time format="duration" datetime="{{.SysStatus.StartTime}}">{{.SysStatus.StartTime}}</relative-time></dd>
 	<dt>{{ctx.Locale.Tr "admin.dashboard.current_goroutine"}}</dt>

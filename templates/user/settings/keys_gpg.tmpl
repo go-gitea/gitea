@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "settings.manage_gpg_keys"}}
 	<div class="ui right">
-		<button class="ui primary tiny show-panel toggle button" data-panel="#add-gpg-key-panel">{{ctx.Locale.Tr "settings.add_key"}}</button>
+		<button type="button" class="ui primary tiny show-panel toggle button" data-panel="#add-gpg-key-panel">{{ctx.Locale.Tr "settings.add_key"}}</button>
 	</div>
 </h4>
 <div class="ui attached segment">
@@ -21,7 +21,15 @@
 					<input readonly="" value="{{.TokenToSign}}">
 					<div class="help">
 						{{ctx.Locale.Tr "settings.gpg_token_help"}}
-						<pre class="command-block">{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` .TokenToSign .PaddedKeyID}}</pre>
+						<pre class="command-block">echo {{.TokenToSign}} | gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+						<details>
+							<summary>Windows PowerShell</summary>
+							<pre class="command-block">'{{.TokenToSign}}' | gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+						</details>
+						<details>
+							<summary>Windows CMD</summary>
+							<pre class="command-block">echo {{.TokenToSign}}| gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+						</details>
 					</div>
 				</div>
 				<div class="field">
@@ -30,45 +38,45 @@
 				</div>
 			{{end}}
 			<input name="type" type="hidden" value="gpg">
-			<button class="ui primary button">
+			<button type="submit" class="ui primary button">
 				{{ctx.Locale.Tr "settings.add_key"}}
 			</button>
-			<button class="ui hide-panel button" data-panel="#add-gpg-key-panel">
+			<button type="button" class="ui hide-panel button" data-panel="#add-gpg-key-panel">
 				{{ctx.Locale.Tr "cancel"}}
 			</button>
 		</form>
 	</div>
-	<div class="flex-list">
-		<div class="flex-item">
+	<div class="flex-divided-list items-with-main">
+		<div class="item">
 			<p>
 				{{ctx.Locale.Tr "settings.gpg_desc"}}<br>
 				{{ctx.Locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification"}}
 			</p>
 		</div>
 		{{range .GPGKeys}}
-			<div class="flex-item">
-				<div class="flex-item-leading">
-					<span class="text {{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
+			<div class="item">
+				<div class="item-leading">
+					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}tw-text-green{{end}}">{{svg "octicon-key" 32}}</span>
 				</div>
-				<div class="flex-item-main">
+				<div class="item-main">
 					{{if .Verified}}
 						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{ctx.Locale.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
 					{{if .Emails}}
 						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{ctx.Locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
-					<div class="flex-item-body">
+					<div class="item-body">
 						<b>{{ctx.Locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
 						<b>{{ctx.Locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .AddedUnix)}}</i>
 						-
 						<i>{{if not .ExpiredUnix.IsZero}}{{ctx.Locale.Tr "settings.valid_until_date" (DateUtils.AbsoluteShort .ExpiredUnix)}}{{else}}{{ctx.Locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
-				<div class="flex-item-trailing">
-					<button class="ui red tiny button delete-button" data-modal-id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
+				<div class="item-trailing">
+					<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-gpg" data-url="{{$.Link}}/delete?type=gpg&id={{.ID}}">
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
@@ -88,16 +96,23 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								{{ctx.Locale.Tr "settings.gpg_token_help"}}
-								<pre class="command-block">{{printf `echo "%s" | gpg -a --default-key %s --detach-sig` $.TokenToSign .PaddedKeyID}}</pre>
+								<pre class="command-block">echo {{$.TokenToSign}} | gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+								<details>
+									<summary>Windows PowerShell</summary>
+									<pre class="command-block">'{{$.TokenToSign}}' | gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+								</details>
+								<details>
+									<summary>Windows CMD</summary>
+									<pre class="command-block">echo {{$.TokenToSign}}| gpg -a --default-key {{.PaddedKeyID}} --detach-sig</pre>
+								</details>
 							</div>
-							<br>
 						</div>
 						<div class="field">
-							<label for="signature">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
-							<textarea id="gpg-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
+							<label for="gpg-key-signature-verify">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
+							<textarea id="gpg-key-signature-verify" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
-						<button class="ui primary button">
+						<button type="submit" class="ui primary button">
 							{{ctx.Locale.Tr "settings.gpg_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">
@@ -108,7 +123,7 @@
 			{{end}}
 		{{end}}
 	</div>
-	<div class="ui g-modal-confirm delete modal" id="delete-gpg">
+	<div class="ui small modal" id="delete-gpg">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.gpg_key_deletion"}}

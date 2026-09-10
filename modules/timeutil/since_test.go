@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,11 +32,7 @@ func TestMain(m *testing.M) {
 	// setup
 	translation.InitLocales(context.Background())
 	BaseDate = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
-
-	// run the tests
-	retVal := m.Run()
-
-	os.Exit(retVal)
+	os.Exit(m.Run())
 }
 
 func TestTimeSincePro(t *testing.T) {

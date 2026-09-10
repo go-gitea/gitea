@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/structs"
 )
 
 var (
@@ -43,7 +43,7 @@ func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateO
 	oldName := strings.TrimSuffix(fields[len(fields)-1], ".git")
 
 	log.Trace("Create GitBucket downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, oldOwner, oldName)
-	return NewGitBucketDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
+	return NewGitBucketDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName)
 }
 
 // GitServiceType returns the type of git service
@@ -70,8 +70,11 @@ func (g *GitBucketDownloader) LogString() string {
 }
 
 // NewGitBucketDownloader creates a GitBucket downloader
-func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GitBucketDownloader {
-	githubDownloader := NewGithubDownloaderV3(ctx, baseURL, userName, password, token, repoOwner, repoName)
+func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) (*GitBucketDownloader, error) {
+	githubDownloader, err := NewGithubDownloaderV3(ctx, baseURL, userName, password, token, repoOwner, repoName)
+	if err != nil {
+		return nil, err
+	}
 	// Gitbucket 4.40 uses different internal hard-coded perPage values.
 	// Issues, PRs, and other major parts use 25.  Release page uses 10.
 	// Some API doesn't support paging yet.  Sounds difficult, but using
@@ -81,7 +84,7 @@ func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, to
 	githubDownloader.SkipReviews = true
 	return &GitBucketDownloader{
 		githubDownloader,
-	}
+	}, nil
 }
 
 // SupportGetRepoComments return true if it supports get repo comments

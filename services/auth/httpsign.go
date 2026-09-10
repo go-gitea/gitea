@@ -11,11 +11,11 @@ import (
 	"net/http"
 	"strings"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/42wim/httpsig"
 	"golang.org/x/crypto/ssh"
@@ -42,7 +42,7 @@ func (h *HTTPSign) Name() string {
 func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	sigHead := req.Header.Get("Signature")
 	if len(sigHead) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	var (
@@ -53,14 +53,14 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	if len(req.Header.Get("X-Ssh-Certificate")) != 0 {
 		// Handle Signature signed by SSH certificates
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 
 		publicKey, err = VerifyCert(req)
 		if err != nil {
 			log.Debug("VerifyCert on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 	} else {
 		// Handle Signature signed by Public Key
@@ -68,7 +68,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		if err != nil {
 			log.Debug("VerifyPubKey on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 	}
 
@@ -77,9 +77,6 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		log.Error("GetUserByID:  %v", err)
 		return nil, err
 	}
-
-	store.GetData()["IsApiToken"] = true
-
 	log.Trace("HTTP Sign: Logged in user %-v", u)
 
 	return u, nil
@@ -197,7 +194,11 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 // doVerify iterates across the provided public keys attempting the verify the current request against each key in turn
 func doVerify(verifier httpsig.Verifier, sshPublicKeys []ssh.PublicKey) error {
 	for _, publicKey := range sshPublicKeys {
-		cryptoPubkey := publicKey.(ssh.CryptoPublicKey).CryptoPublicKey()
+		cryptoPublicKey, ok := publicKey.(ssh.CryptoPublicKey)
+		if !ok {
+			continue
+		}
+		cryptoPubkey := cryptoPublicKey.CryptoPublicKey()
 
 		var algos []httpsig.Algorithm
 

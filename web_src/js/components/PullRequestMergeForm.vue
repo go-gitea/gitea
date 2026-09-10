@@ -1,25 +1,57 @@
 <script lang="ts" setup>
 import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {toggleElem} from '../utils/dom.ts';
 
-const {pageData} = window.config;
+type MergeStyle = {
+  name: string,
+  allowed: boolean,
+  textDoMerge: string,
+  mergeTitleFieldText?: string,
+  mergeMessageFieldText?: string,
+  hideMergeMessageTexts?: boolean,
+  hideAutoMerge: boolean,
+};
 
-const mergeForm = pageData.pullRequestMergeForm;
+type MergeForm = {
+  allOverridableChecksOk: boolean,
+  baseLink: string,
+  canMergeNow: boolean,
+  defaultDeleteBranchAfterMerge: boolean,
+  defaultMergeMessage: string,
+  defaultMergeStyle: string,
+  emptyCommit: boolean,
+  hasPendingPullRequestMerge: boolean,
+  hasPendingPullRequestMergeTip: string,
+  isPullBranchDeletable: boolean,
+  mergeMessageFieldPlaceHolder: string,
+  mergeStyles: MergeStyle[],
+  pullHeadCommitID: string,
+  textAutoMergeButtonWhenSucceed: string,
+  textAutoMergeCancelSchedule: string,
+  textAutoMergeWhenSucceed: string,
+  textCancel: string,
+  textClearMergeMessage: string,
+  textClearMergeMessageHint: string,
+  textDeleteBranch: string,
+  textMergeCommitId: string,
+};
 
-const mergeTitleFieldValue = shallowRef('');
-const mergeMessageFieldValue = shallowRef('');
+const props = defineProps<{
+  mergeFormProps: MergeForm,
+}>();
+
+const mergeStyleManuallyMerged = 'manually-merged';
+
+const mergeForm = props.mergeFormProps;
+
+const mergeTitleFieldValue = shallowRef<string | undefined>('');
+const mergeMessageFieldValue = shallowRef<string | undefined>('');
 const deleteBranchAfterMerge = shallowRef(false);
 const autoMergeWhenSucceed = shallowRef(false);
 
 const mergeStyle = shallowRef('');
-const mergeStyleDetail = shallowRef({
-  hideMergeMessageTexts: false,
-  textDoMerge: '',
-  mergeTitleFieldText: '',
-  mergeMessageFieldText: '',
-  hideAutoMerge: false,
-});
+const mergeStyleDetail = shallowRef<MergeStyle>({name: '', allowed: false, textDoMerge: '', hideAutoMerge: false});
 
 const mergeStyleAllowedCount = shallowRef(0);
 
@@ -27,8 +59,16 @@ const showMergeStyleMenu = shallowRef(false);
 const showActionForm = shallowRef(false);
 
 const mergeButtonStyleClass = computed(() => {
+  if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
   if (mergeForm.allOverridableChecksOk) return 'primary';
   return autoMergeWhenSucceed.value ? 'primary' : 'red';
+});
+
+const mergeSelectStyleClass = computed(() => {
+  if (mergeForm.emptyCommit) return '';
+  if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
+  if (!mergeForm.allOverridableChecksOk) return 'red';
+  return 'primary';
 });
 
 const forceMerge = computed(() => {
@@ -36,18 +76,18 @@ const forceMerge = computed(() => {
 });
 
 watch(mergeStyle, (val) => {
-  mergeStyleDetail.value = mergeForm.mergeStyles.find((e: any) => e.name === val);
+  mergeStyleDetail.value = mergeForm.mergeStyles.find((e) => e.name === val)!;
   for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
     toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
   }
 });
 
 onMounted(() => {
-  mergeStyleAllowedCount.value = mergeForm.mergeStyles.reduce((v: any, msd: any) => v + (msd.allowed ? 1 : 0), 0);
+  mergeStyleAllowedCount.value = mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
 
-  let mergeStyle = mergeForm.mergeStyles.find((e: any) => e.allowed && e.name === mergeForm.defaultMergeStyle)?.name;
-  if (!mergeStyle) mergeStyle = mergeForm.mergeStyles.find((e: any) => e.allowed)?.name;
-  switchMergeStyle(mergeStyle, !mergeForm.canMergeNow);
+  let mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed && e.name === mergeForm.defaultMergeStyle)?.name;
+  if (!mergeStyle) mergeStyle = mergeForm.mergeStyles.find((e) => e.allowed)?.name;
+  if (mergeStyle) switchMergeStyle(mergeStyle, !mergeForm.canMergeNow);
 
   document.addEventListener('mouseup', hideMergeStyleMenu);
 });
@@ -113,30 +153,32 @@ function clearMergeMessage() {
         </div>
       </template>
 
-      <div class="field" v-if="mergeStyle === 'manually-merged'">
+      <div class="field" v-if="mergeStyle === mergeStyleManuallyMerged">
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
       </div>
 
-      <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
-        {{ mergeStyleDetail.textDoMerge }}
-        <template v-if="autoMergeWhenSucceed">
-          {{ mergeForm.textAutoMergeButtonWhenSucceed }}
-        </template>
-      </button>
+      <div class="flex-text-block tw-gap-3">
+        <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
+          {{ mergeStyleDetail.textDoMerge }}
+          <template v-if="autoMergeWhenSucceed">
+            {{ mergeForm.textAutoMergeButtonWhenSucceed }}
+          </template>
+        </button>
 
-      <button class="ui button merge-cancel" @click="toggleActionForm(false)">
-        {{ mergeForm.textCancel }}
-      </button>
+        <button class="ui button merge-cancel" type="button" @click="toggleActionForm(false)">
+          {{ mergeForm.textCancel }}
+        </button>
 
-      <div class="ui checkbox tw-ml-1" v-if="mergeForm.isPullBranchDeletable">
-        <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
-        <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
+        <div class="ui checkbox" v-if="mergeForm.isPullBranchDeletable">
+          <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
+          <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
+        </div>
       </div>
     </form>
 
     <div v-if="!showActionForm" class="tw-flex">
       <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="[mergeForm.emptyCommit ? '' : mergeForm.allOverridableChecksOk ? 'primary' : 'red']" @click="toggleActionForm(true)">
+      <div class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
@@ -230,7 +272,7 @@ function clearMergeMessage() {
   bottom: -1px;
   position: absolute;
   align-items: center;
-  color: var(--color-info-text);
+  color: var(--color-text);
   background-color: var(--color-info-bg);
   border: 1px solid var(--color-info-border);
   border-left: none;
@@ -238,7 +280,7 @@ function clearMergeMessage() {
 }
 
 .auto-merge-small:hover {
-  color: var(--color-info-text);
+  color: var(--color-text);
   background-color: var(--color-info-bg);
   border: 1px solid var(--color-info-border);
 }

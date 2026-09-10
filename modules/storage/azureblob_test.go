@@ -5,75 +5,50 @@ package storage
 
 import (
 	"io"
-	"os"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestAzureBlobStorageIterator(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("azureBlobStorage not present outside of CI")
-		return
-	}
-	testStorageIterator(t, setting.AzureBlobStorageType, &setting.Storage{
+func prepareAzureStorageConfig(t *testing.T, basePath ...string) *setting.Storage {
+	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
+	return &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: "http://devstoreaccount1.azurite.local:10000",
+			Endpoint: endpoint,
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
-			Container:   "test",
+			Container:   "test-container",
+			BasePath:    util.OptionalArg(basePath),
 		},
-	})
+	}
 }
 
-func TestAzureBlobStoragePath(t *testing.T) {
-	m := &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: ""}}
-	assert.Empty(t, m.buildAzureBlobPath("/"))
-	assert.Empty(t, m.buildAzureBlobPath("."))
-	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
-
-	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/"}}
-	assert.Empty(t, m.buildAzureBlobPath("/"))
-	assert.Empty(t, m.buildAzureBlobPath("."))
-	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
-
-	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/base"}}
-	assert.Equal(t, "base", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "base", m.buildAzureBlobPath("."))
-	assert.Equal(t, "base/a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildAzureBlobPath("/a/b/"))
-
-	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/base/"}}
-	assert.Equal(t, "base", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "base", m.buildAzureBlobPath("."))
-	assert.Equal(t, "base/a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildAzureBlobPath("/a/b/"))
+func TestAzureBlobStorage(t *testing.T) {
+	t.Run("NoBasePath", func(t *testing.T) {
+		config := prepareAzureStorageConfig(t)
+		objStore, err := NewStorage(setting.AzureBlobStorageType, config)
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	})
+	t.Run("WithBasePath", func(t *testing.T) {
+		config := prepareAzureStorageConfig(t, "test-base-path")
+		objStore, err := NewStorage(setting.AzureBlobStorageType, config)
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	})
 }
 
 func Test_azureBlobObject(t *testing.T) {
-	if os.Getenv("CI") == "" {
-		t.Skip("azureBlobStorage not present outside of CI")
-		return
-	}
-
-	s, err := NewStorage(setting.AzureBlobStorageType, &setting.Storage{
-		AzureBlobConfig: setting.AzureBlobStorageConfig{
-			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: "http://devstoreaccount1.azurite.local:10000",
-			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
-			AccountName: "devstoreaccount1",
-			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
-			Container:   "test",
-		},
-	})
-	assert.NoError(t, err)
+	s, err := NewStorage(setting.AzureBlobStorageType, prepareAzureStorageConfig(t))
+	require.NoError(t, err)
 
 	data := "Q2xTckt6Y1hDOWh0"
 	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))

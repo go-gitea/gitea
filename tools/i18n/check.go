@@ -15,10 +15,10 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation/i18n"
 )
 
 func searchTranslationKeyInDirs(keys []string) ([]bool, []string, error) {
@@ -60,7 +60,6 @@ func checkTranslationKeysInDir(dir string, keys []string, res *[]bool) ([]string
 			}
 			untranslatedSum = append(untranslatedSum, untranslatedKeys...)
 		case strings.HasSuffix(d.Name(), ".tmpl"):
-			fmt.Println("----checking template file:", path)
 			untranslatedKeysInTmpl, err := checkTranslationKeysInTemplateFile(dir, path, keys, res)
 			if err != nil {
 				return err
@@ -110,19 +109,39 @@ func checkTranslationKeysInCall(path string, fset *token.FileSet, astf *ast.File
 	case "ignore": // i18n-check: ignore
 		return ""
 	default: // i18n-check: <transKeyMatch>
-		g := glob.MustCompile(transKeyMatch)
-		found := false
-		for i, key := range keys {
-			if g.Match(key) {
-				(*res)[i] = true
-				found = true
-			}
-		}
-		if !found {
+		if !markKeysMatching(transKeyMatch, keys, res) {
 			return transKeyMatch
 		}
 	}
 	return ""
+}
+
+func markKeysMatching(pattern string, keys []string, res *[]bool) bool {
+	g := glob.MustCompile(pattern)
+	found := false
+	for i, key := range keys {
+		if g.Match(key) {
+			(*res)[i] = true
+			found = true
+		}
+	}
+	return found
+}
+
+func markKeysFromI18nCheckComments(astf *ast.File, keys []string, res *[]bool) {
+	for _, cg := range astf.Comments {
+		for line := range strings.SplitSeq(cg.Text(), "\n") {
+			transKeyMatch, ok := strings.CutPrefix(strings.TrimSpace(line), "i18n-check:")
+			if !ok {
+				continue
+			}
+			transKeyMatch = strings.TrimSpace(transKeyMatch)
+			if transKeyMatch == "" || transKeyMatch == "ignore" {
+				continue
+			}
+			markKeysMatching(transKeyMatch, keys, res)
+		}
+	}
 }
 
 func checkTranslationKeysInGoFile(dir, path string, keys []string, res *[]bool) ([]string, error) {
@@ -136,6 +155,8 @@ func checkTranslationKeysInGoFile(dir, path string, keys []string, res *[]bool) 
 	if err != nil {
 		return nil, err
 	}
+
+	markKeysFromI18nCheckComments(node, keys, res)
 
 	ast.Inspect(node, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
@@ -159,6 +180,12 @@ func checkTranslationKeysInGoFile(dir, path string, keys []string, res *[]bool) 
 						untranslated = append(untranslated, key)
 					}
 				}
+			case "ErrorWrapTranslatable":
+				if len(call.Args) >= 2 {
+					if key := checkTranslationKeysInCall(path, fs, node, call, call.Args[1], keys, res); key != "" {
+						untranslated = append(untranslated, key)
+					}
+				}
 			}
 		}
 		return true
@@ -173,22 +200,23 @@ func checkTranslationKeysInTemplateFile(dir, path string, keys []string, res *[]
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("==== keys found in template:", keysFoundInTempl)
 	for _, key := range keysFoundInTempl.Values() {
 		idx := slices.Index(keys, key)
-		if idx == -1 {
-			found := false
-			for _, uk := range keys {
-				if glob.MustCompile(key).Match(uk) {
-					found = true
-					break
-				}
-			}
-			if !found {
-				untranslatedKeys = append(untranslatedKeys, key)
-			}
-		} else {
+		if idx != -1 {
 			(*res)[idx] = true
+			continue
+		}
+		globKey := strings.NewReplacer("%s", "*", "%d", "*", "%v", "*").Replace(key)
+		g := glob.MustCompile(globKey)
+		found := false
+		for i, uk := range keys {
+			if g.Match(uk) {
+				(*res)[i] = true
+				found = true
+			}
+		}
+		if !found {
+			untranslatedKeys = append(untranslatedKeys, key)
 		}
 	}
 	return untranslatedKeys, nil

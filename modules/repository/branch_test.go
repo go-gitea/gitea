@@ -6,10 +6,10 @@ package repository
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +25,7 @@ func TestSyncRepoBranches(t *testing.T) {
 	assert.NoError(t, err)
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "sha1", repo.ObjectFormatName)
-	branch, err := git_model.GetBranch(t.Context(), 1, "master")
+	branch, err := git_model.GetBranchExisting(t.Context(), 1, "master")
 	assert.NoError(t, err)
 	assert.Equal(t, "master", branch.Name)
 }

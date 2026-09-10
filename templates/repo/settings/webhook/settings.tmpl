@@ -6,6 +6,12 @@
 */}}
 {{$isNew := not .Webhook.ID}}
 
+<div class="field">
+	<label>{{ctx.Locale.Tr "repo.settings.webhook.name"}}</label>
+	<input name="name" type="text" value="{{.Webhook.Name}}" maxlength="255">
+	<p class="help">{{ctx.Locale.Tr "repo.settings.webhook.name_helper"}}</p>
+</div>
+
 <div class="inline field">
 	<div class="ui checkbox">
 		<input name="active" type="checkbox" {{if or $isNew .Webhook.IsActive}}checked{{end}}>
@@ -345,9 +351,9 @@
 
 <div class="field">
 	{{if $isNew}}
-		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
+		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
 	{{else}}
-		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_webhook"}}</button>
+		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_webhook"}}</button>
 		<a class="ui red button link-action"
 			data-url="{{.BaseLink}}/delete?id={{.Webhook.ID}}"
 			data-modal-confirm="{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}"

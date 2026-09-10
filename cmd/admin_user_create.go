@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	pwd "code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	pwd "gitea.dev/modules/auth/password"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -152,13 +152,14 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 			return err
 		}
 		// codeql[disable-next-line=go/clear-text-logging]
-		fmt.Printf("generated random password is '%s'\n", password)
+		cprintf(c, "generated random password is '%s'\n", password)
 	} else if userType == user_model.UserTypeIndividual {
 		return errors.New("must set either password or random-password flag")
 	}
 
 	isAdmin := c.Bool("admin")
-	mustChangePassword := true // always default to true
+	// Only local, existing, regular users should be forced to update their password. Bot users for example are non-interactive
+	mustChangePassword := userType == user_model.UserTypeIndividual
 	if c.IsSet("must-change-password") {
 		if userType != user_model.UserTypeIndividual {
 			return errors.New("must-change-password flag can only be set for individual users")
@@ -227,7 +228,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
-	fmt.Printf("New user '%s' has been successfully created!\n", username)
+	cprintf(c, "New user '%s' has been successfully created!\n", username)
 
 	// create the access token
 	if accessTokenScope != "" {
@@ -235,7 +236,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
-		fmt.Printf("Access token was successfully created... %s\n", t.Token)
+		cprintf(c, "Access token was successfully created... %s\n", t.Token)
 	}
 	return nil
 }

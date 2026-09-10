@@ -1,13 +1,13 @@
 interface JQuery {
-  areYouSure: any, // jquery.are-you-sure
-  fomanticExt: any; // fomantic extension
+  fomanticExt: {
+    onDropdownAfterFiltered?: (this: HTMLElement) => void,
+    onModalBeforeHidden?: (this: HTMLElement) => void,
+  }; // fomantic extension
   api: any, // fomantic
   dimmer: any, // fomantic
   dropdown: any; // fomantic
   modal: any; // fomantic
-  tab: any; // fomantic
   transition: any, // fomantic
-  search: any, // fomantic
 }
 
 interface JQueryStatic {
@@ -22,37 +22,64 @@ interface Window {
   config: {
     appUrl: string,
     appSubUrl: string,
-    assetVersionEncoded: string,
     assetUrlPrefix: string,
+    sharedWorkerUri: string,
     runModeIsProd: boolean,
     customEmojis: Record<string, string>,
-    pageData: Record<string, any>,
-    notificationSettings: Record<string, any>,
+    pageData: {
+      adminUserListSearchForm?: {
+        SortType: string,
+        StatusFilterMap: Record<string, string>,
+      },
+      citationFileContent?: string,
+      prReview?: {
+        numberOfFiles: number,
+        numberOfViewedFiles: number,
+      },
+      DiffFileTree?: import('./modules/diff-file.ts').DiffFileTreeData,
+      FolderIcon?: string,
+      FolderOpenIcon?: string,
+      repoLink?: string,
+      repoActivityTopAuthors?: Array<{
+        avatar_link: string,
+        commits: number,
+        home_link: string,
+        login: string,
+        name: string,
+      }>,
+      dashboardRepoList?: Record<string, unknown>,
+    },
+    notificationSettings: {
+      MinTimeout: number,
+      TimeoutStep: number,
+      MaxTimeout: number,
+    },
     enableTimeTracking: boolean,
-    mentionValues: Array<{
-      key: string,
-      value: string,
-      name: string,
-      fullname: string,
-      avatar: string,
-    }>,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
+    frontendInited: boolean,
   },
-  $: typeof import('@types/jquery'),
-  jQuery: typeof import('@types/jquery'),
-  htmx: typeof import('htmx.org').default,
+  $: JQueryStatic,
+  jQuery: JQueryStatic,
   _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  codeEditors: any[], // export editor for customization
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins
   grecaptcha: any,
   turnstile: any,
   hcaptcha: any,
+
+  // Make IIFE private functions can be managed by us in our scope, without exposing the IIFE module to global scope.
+  // Otherwise, when using "export" in IIFE code, the compiled JS will inject global "var externalRenderHelper = ..."
+  // which is not expected and may cause conflicts with other modules.
+  giteaExternalRenderHelper?: {
+    isValidCssColor(s: string | null): boolean,
+    queryParams: URLSearchParams,
+    postIframeMsg(cmd: 'resize' | 'open-link', data: Record<string, string | number | null>): void,
+  }
 
   // do not add more properties here unless it is a must
 }

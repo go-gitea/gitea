@@ -8,11 +8,13 @@ test('contrastColor', () => {
   expect(contrastColor('#7057ff')).toBe('#fff');
   expect(contrastColor('#008672')).toBe('#fff');
   expect(contrastColor('#e4e669')).toBe('#000');
-  expect(contrastColor('#d876e3')).toBe('#000');
+  expect(contrastColor('#d876e3')).toBe('#fff');
   expect(contrastColor('#ffffff')).toBe('#000');
   expect(contrastColor('#2b8684')).toBe('#fff');
   expect(contrastColor('#2b8786')).toBe('#fff');
-  expect(contrastColor('#2c8786')).toBe('#000');
+  expect(contrastColor('#2c8786')).toBe('#fff');
+  expect(contrastColor('#2bb3b2')).toBe('#fff');
+  expect(contrastColor('#2bb4b3')).toBe('#000');
   expect(contrastColor('#3bb6b3')).toBe('#000');
   expect(contrastColor('#7c7268')).toBe('#fff');
   expect(contrastColor('#7e716c')).toBe('#fff');

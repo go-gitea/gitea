@@ -1,24 +1,20 @@
 name: Feature Request
-description: Got an idea for a feature that Gitea doesn't have currently?  Submit your idea here!
+description: Suggest an idea for Gitea.
 labels: ["type/proposal"]
 body:
   - type: markdown
     attributes:
       value: |
-        1. Please speak English, this is the language all maintainers can speak and write.
-        2. Please ask questions or configuration/deploy problems on our Discord
-           server (https://discord.gg/gitea) or forum (https://forum.gitea.com).
-        3. Please take a moment to check that your feature hasn't already been suggested.
+        Search [existing issues](https://github.com/go-gitea/gitea/issues?q=is%3Aissue) first.
   - type: textarea
-    id: description
+    id: problem
     attributes:
-      label: Feature Description
-      placeholder: |
-        I think it would be great if Gitea had...
+      label: What problem would this solve?
     validations:
       required: true
   - type: textarea
-    id: screenshots
+    id: proposal
     attributes:
-      label: Screenshots
-      description: If you can, provide screenshots of an implementation on another site e.g. GitHub
+      label: What do you propose?
+    validations:
+      required: true

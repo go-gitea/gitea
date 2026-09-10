@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 
 	"xorm.io/builder"
 )
@@ -54,6 +54,12 @@ type FindOrgOptions struct {
 	IncludeVisibility structs.VisibleType
 }
 
+func (opts *FindOrgOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludeVisibility = structs.VisibleTypePublic
+	}
+}
+
 func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 	cond := builder.Eq{"uid": userID}
 	if !includePrivate {
@@ -82,6 +88,9 @@ func DoerViewOtherVisibility(doer, other *user_model.User) structs.VisibleType {
 	}
 	if doer.IsAdmin || doer.ID == other.ID {
 		return structs.VisibleTypePrivate
+	}
+	if doer.IsRestricted {
+		return structs.VisibleTypePublic
 	}
 	return structs.VisibleTypeLimited
 }

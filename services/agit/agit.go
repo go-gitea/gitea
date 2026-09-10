@@ -10,20 +10,21 @@ import (
 	"fmt"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
-	pull_service "code.gitea.io/gitea/services/pull"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
 )
+
+const SshInfoJson = `{"type":"agit","version":1}`
 
 func parseAgitPushOptionValue(s string) string {
 	if base64Value, ok := strings.CutPrefix(s, "{base64}"); ok {
@@ -61,8 +62,18 @@ func GetAgitBranchInfo(ctx context.Context, repoID int64, baseBranchName string)
 	return "", "", util.NewNotExistErrorf("base branch does not exist")
 }
 
+type ProcReceiveOptions struct {
+	OldCommitIDs []string
+	NewCommitIDs []string
+	RefFullNames []git.RefName
+
+	GitPushOptions private.GitPushOptions
+
+	Doer *user_model.User
+}
+
 // ProcReceive handle proc receive work
-func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
+func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *ProcReceiveOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
@@ -73,12 +84,9 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 	description := parseAgitPushOptionValue(opts.GitPushOptions["description"])
 
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	userName := strings.ToLower(opts.UserName)
 
-	pusher, err := user_model.GetUserByID(ctx, opts.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user. Error: %w", err)
-	}
+	pusher := opts.Doer
+	userName := strings.ToLower(pusher.Name)
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == objectFormat.EmptyObjectID().String() {
@@ -146,21 +154,17 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			var commit *git.Commit
 			if title == "" || description == "" {
-				commit, err = gitRepo.GetCommit(opts.NewCommitIDs[i])
+				commit, err = gitRepo.GetCommit(ctx, opts.NewCommitIDs[i])
 				if err != nil {
 					return nil, fmt.Errorf("failed to get commit %s in repository: %s Error: %w", opts.NewCommitIDs[i], repo.FullName(), err)
 				}
-			}
-
-			// create a new pull request
-			if title == "" {
-				title = strings.Split(commit.CommitMessage, "\n")[0]
-			}
-			if description == "" {
-				_, description, _ = strings.Cut(commit.CommitMessage, "\n\n")
-			}
-			if description == "" {
-				description = title
+				// create a new pull request
+				if title == "" {
+					title = commit.MessageTitle()
+				}
+				if description == "" {
+					description = commit.MessageBody()
+				}
 			}
 
 			prIssue := &issues_model.Issue{
@@ -213,7 +217,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
-		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		oldCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
 		}
@@ -229,10 +233,8 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush.Value() {
-			output, _, err := gitrepo.RunCmdString(ctx, repo,
-				gitcmd.NewCommand("rev-list", "--max-count=1").
-					AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]),
-			)
+			output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).WithRepo(repo).RunStdString(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {
@@ -282,12 +284,15 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		if err != nil {
 			return nil, fmt.Errorf("failed to load pull issue. Error: %w", err)
 		}
-		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i], forcePush.Value())
-		if err == nil && comment != nil {
+
+		isForcePush := forcePush.Value()
+		comment, commentCreated, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i], isForcePush)
+		if err != nil {
+			log.Error("CreatePushPullComment: %v", err)
+		} else if commentCreated {
 			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
 		}
-		notify_service.PullRequestSynchronized(ctx, pusher, pr)
-		isForcePush := comment != nil && comment.IsForcePush
+		notify_service.PullRequestSynchronized(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 
 		results = append(results, private.HookProcReceiveRefResult{
 			OldOID:            oldCommitID,

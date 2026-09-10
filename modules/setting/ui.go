@@ -6,8 +6,8 @@ package setting
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
 )
 
 // UI settings
@@ -25,7 +25,6 @@ var UI = struct {
 	ReactionMaxUserNum      int
 	MaxDisplayFileSize      int64
 	ShowUserEmail           bool
-	DefaultShowFullName     bool
 	DefaultTheme            string
 	Themes                  []string
 	FileIconTheme           string
@@ -43,11 +42,19 @@ var UI = struct {
 
 	AmbiguousUnicodeDetection bool
 
+	// TODO: DefaultShowFullName is introduced by https://github.com/go-gitea/gitea/pull/6710
+	// But there are still many edge cases:
+	// * Many places still use "username", not respecting this setting
+	// * Many places use "Full Name" if it is not empty, cause inconsistent UI for users who have set their full name but some others don't
+	// * Even if DefaultShowFullName=false, many places still need to show the full name
+	// For most cases, either "username" or "username (Full Name)" should be used and are good enough.
+	// Only in very few cases (e.g.: unimportant lists, narrow layout), "username" or "Full Name" can be used.
+	DefaultShowFullName bool
+
 	Notification struct {
-		MinTimeout            time.Duration
-		TimeoutStep           time.Duration
-		MaxTimeout            time.Duration
-		EventSourceUpdateTime time.Duration
+		MinTimeout  time.Duration
+		TimeoutStep time.Duration
+		MaxTimeout  time.Duration
 	} `ini:"ui.notification"`
 
 	SVG struct {
@@ -99,15 +106,13 @@ var UI = struct {
 	AmbiguousUnicodeDetection: true,
 
 	Notification: struct {
-		MinTimeout            time.Duration
-		TimeoutStep           time.Duration
-		MaxTimeout            time.Duration
-		EventSourceUpdateTime time.Duration
+		MinTimeout  time.Duration
+		TimeoutStep time.Duration
+		MaxTimeout  time.Duration
 	}{
-		MinTimeout:            10 * time.Second,
-		TimeoutStep:           10 * time.Second,
-		MaxTimeout:            60 * time.Second,
-		EventSourceUpdateTime: 10 * time.Second,
+		MinTimeout:  10 * time.Second,
+		TimeoutStep: 10 * time.Second,
+		MaxTimeout:  60 * time.Second,
 	},
 	SVG: struct {
 		Enabled bool `ini:"ENABLE_RENDER"`

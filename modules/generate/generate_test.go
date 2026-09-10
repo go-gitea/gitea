@@ -25,10 +25,12 @@ func TestDecodeJwtSecretBase64(t *testing.T) {
 }
 
 func TestNewJwtSecretWithBase64(t *testing.T) {
-	secret, encoded, err := NewJwtSecretWithBase64()
-	assert.NoError(t, err)
+	secret, encoded := NewJwtSecretWithBase64()
 	assert.Len(t, secret, 32)
 	decoded, err := DecodeJwtSecretBase64(encoded)
 	assert.NoError(t, err)
 	assert.Equal(t, secret, decoded)
+
+	secret2, _ := NewJwtSecretWithBase64()
+	assert.NotEqual(t, secret, secret2)
 }

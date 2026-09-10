@@ -13,7 +13,7 @@ export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: st
   textarea.focus();
   let success = false;
   try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated -- no replacement keeps the undo history
   } catch {}
 
   // fall back to regular replacement
@@ -223,6 +223,7 @@ function isTextExpanderShown(textarea: HTMLElement): boolean {
 
 export function initTextareaMarkdown(textarea: HTMLTextAreaElement) {
   textarea.addEventListener('keydown', (e) => {
+    if (e.isComposing) return;
     if (isTextExpanderShown(textarea)) return;
     if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // use Tab/Shift-Tab to indent/unindent the selected lines

@@ -6,31 +6,22 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 type TreeCommon struct {
-	ID         ObjectID
-	ResolvedID ObjectID
-
-	repo  *Repository
-	ptree *Tree // parent tree
+	ID ObjectID
 }
 
-// NewTree create a new tree according the repository and tree id
-func NewTree(repo *Repository, id ObjectID) *Tree {
-	return &Tree{
-		TreeCommon: TreeCommon{
-			ID:   id,
-			repo: repo,
-		},
-	}
+func newTree(id ObjectID) *Tree {
+	return &Tree{TreeCommon: TreeCommon{ID: id}}
 }
 
 // SubTree get a subtree by the sub dir path
-func (t *Tree) SubTree(rpath string) (*Tree, error) {
+func (t *Tree) SubTree(ctx context.Context, gitRepo *Repository, rpath string) (*Tree, error) {
 	if len(rpath) == 0 {
 		return t, nil
 	}
@@ -43,27 +34,26 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 		te  *TreeEntry
 	)
 	for _, name := range paths {
-		te, err = p.GetTreeEntryByPath(name)
+		te, err = p.GetTreeEntryByPath(ctx, gitRepo, name)
 		if err != nil {
 			return nil, err
 		}
 
-		g, err = t.repo.getTree(te.ID)
+		g, err = gitRepo.getTree(ctx, te.ID)
 		if err != nil {
 			return nil, err
 		}
-		g.ptree = p
 		p = g
 	}
 	return g, nil
 }
 
 // LsTree checks if the given filenames are in the tree
-func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error) {
+func (repo *Repository) LsTree(ctx context.Context, ref string, filenames ...string) ([]string, error) {
 	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
 		AddDashesAndList(append([]string{ref}, filenames...)...)
 
-	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
+	res, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,13 +66,13 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 }
 
 // GetTreePathLatestCommit returns the latest commit of a tree path
-func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
+func (repo *Repository) GetTreePathLatestCommit(ctx context.Context, refName, treePath string) (*Commit, error) {
 	stdout, _, err := gitcmd.NewCommand("rev-list", "-1").
 		AddDynamicArguments(refName).AddDashesAndList(treePath).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		WithRepo(repo).
+		RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return repo.GetCommit(strings.TrimSpace(stdout))
+	return repo.GetCommit(ctx, strings.TrimSpace(stdout))
 }

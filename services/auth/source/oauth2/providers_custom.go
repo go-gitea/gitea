@@ -4,7 +4,7 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/azureadv2"
@@ -120,4 +120,25 @@ func init() {
 			}), nil
 		},
 	))
+
+	RegisterGothProvider(&AwsCognitoProvider{})
 }
+
+const ProviderNameAwsCognito = "aws-cognito"
+
+// AwsCognitoProvider is a GothProvider for AWS Cognito (based on OpenID Connect)
+type AwsCognitoProvider struct {
+	OpenIDProvider
+}
+
+// Name provides the technical name for this provider
+func (c *AwsCognitoProvider) Name() string {
+	return ProviderNameAwsCognito
+}
+
+// DisplayName returns the friendly name for this provider
+func (c *AwsCognitoProvider) DisplayName() string {
+	return "AWS Cognito"
+}
+
+var _ GothProvider = &AwsCognitoProvider{}

@@ -3,16 +3,19 @@
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
 	<div class="ui container fluid padded">
-		<div class="ui top attached header clearing segment tw-relative commit-header">
-			<div class="tw-flex tw-mb-4 tw-gap-1">
-				<h3 class="tw-mb-0 tw-flex-1"><span class="commit-summary" title="{{.Commit.Summary}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.Message $.Repository}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses "AdditionalClasses" "tw-inline"}}</h3>
+		<div class="ui top attached header segment">
+			<div class="flex-left-right tw-mb-4 tw-items-start">
+				<h3 class="tw-m-0">
+					<span class="commit-summary tw-align-middle" title="{{.Commit.MessageTitle}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.MessageUTF8 $.Repository}}</span>
+					{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses}}
+				</h3>
 				{{if not $.PageIsWiki}}
 					<div class="commit-header-buttons">
-						<a class="ui primary tiny button" href="{{.SourcePath}}">
+						<a class="ui tiny button" href="{{.SourcePath}}">
 							{{ctx.Locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui dropdown primary tiny button">
+							<div class="ui dropdown tiny button">
 								{{ctx.Locale.Tr "repo.commit.operations"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
@@ -83,8 +86,8 @@
 												</div>
 
 												<div class="actions">
-													<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-													<button class="ui primary button">{{ctx.Locale.Tr "repo.branch.confirm_create_branch"}}</button>
+													<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+													<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.branch.confirm_create_branch"}}</button>
 												</div>
 											</form>
 										</div>
@@ -102,13 +105,13 @@
 													</label>
 												</div>
 												<div class="required field">
-													<label for="new_branch_name">{{ctx.Locale.Tr "repo.release.tag_name"}}</label>
-													<input id="new_branch_name" name="new_branch_name" required>
+													<label for="new_tag_name">{{ctx.Locale.Tr "repo.release.tag_name"}}</label>
+													<input id="new_tag_name" name="new_branch_name" required>
 												</div>
 
 												<div class="actions">
-													<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
-													<button class="ui primary button">{{ctx.Locale.Tr "repo.tag.confirm_create_tag"}}</button>
+													<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+													<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.tag.confirm_create_tag"}}</button>
 												</div>
 											</form>
 										</div>
@@ -119,41 +122,29 @@
 					</div>
 				{{end}}
 			</div>
-			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{ctx.RenderUtils.RenderCommitBody .Commit.Message $.Repository}}</pre>
+			{{if .Commit.MessageBody}}
+				<pre class="commit-body">{{ctx.RenderUtils.RenderCommitBody .Commit.MessageUTF8 $.Repository}}</pre>
 			{{end}}
 			{{template "repo/commit_load_branches_and_tags" .}}
 		</div>
 
-		<div class="ui bottom attached segment flex-text-block tw-flex-wrap">
-			<div class="flex-text-inline">
-				{{if .Author}}
-					{{ctx.AvatarUtils.Avatar .Author 20}}
-					{{if .Author.FullName}}
-						<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
-					{{else}}
-						<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
-					{{end}}
+		<div class="ui attached segment flex-text-block tw-flex-wrap">
+			{{$authors := ctx.RenderUtils.AvatarStackWithNames .CommitAvatarStackData}}
+			{{$committedAt := DateUtils.TimeSince .Commit.Committer.When}}
+			{{if .Commit.CommitterIsAuthor}}
+				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_at" $authors $committedAt}}</span>
+			{{else}}
+				{{$committerAvatar := ""}}{{$committerDisplayName := ""}}
+				{{if .Verification.CommittingUser}}
+					{{$committerAvatar = ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
+					{{$committerDisplayName = .Verification.CommittingUser.GetShortDisplayNameLinkHTML}}
 				{{else}}
-					{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 20}}
-					<strong>{{.Commit.Author.Name}}</strong>
+					{{$committerAvatar = ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20}}
+					{{$committerDisplayName = .Commit.Committer.Name}}
 				{{end}}
-			</div>
-
-			<span class="text grey">{{DateUtils.TimeSince .Commit.Author.When}}</span>
-
-			<div class="flex-text-inline">
-				{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
-					<span class="text grey">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
-					{{if and .Verification.CommittingUser .Verification.CommittingUser.ID}}
-						{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
-						<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
-					{{else}}
-						{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Name 20}}
-						<strong>{{.Commit.Committer.Name}}</strong>
-					{{end}}
-				{{end}}
-			</div>
+				{{$committer := HTMLFormat `%s <strong>%s</strong>` $committerAvatar $committerDisplayName}}
+				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.authored_committed_at" $authors $committer $committedAt}}</span>
+			{{end}}
 
 			{{if .Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}
@@ -161,21 +152,29 @@
 
 			<div class="tw-flex-1"></div>
 
-			<div class="flex-text-inline tw-gap-5">
+			<div class="flex-text-block tw-flex-wrap">
 				{{if .Parents}}
-					<div class="flex-text-inline">
-						<span>{{ctx.Locale.Tr "repo.diff.parent"}}</span>
-						{{range .Parents}}
-							<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape .}}">{{ShortSha .}}</a>
+					<div class="flex-text-inline tw-flex-wrap">
+						<span class="tw-text-text-light">{{len .Parents}} {{ctx.Locale.TrN (len .Parents) "repo.diff.parent" "repo.diff.parents"}}</span>
+						{{range $parentCommitID := .Parents}}
+							<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape $parentCommitID}}">{{ShortSha $parentCommitID}}</a>
 						{{end}}
 					</div>
 				{{end}}
 				<div class="flex-text-inline">
-					<span>{{ctx.Locale.Tr "repo.diff.commit"}}</span>
+					<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.commit"}}</span>
 					<a class="ui label commit-id-short" href="{{$commitLinkBase}}/{{PathEscape .CommitID}}">{{ShortSha .CommitID}}</a>
+					<button type="button" class="btn interact-fg tw-p-1" data-clipboard-text="{{.CommitID}}" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}">{{svg "octicon-copy" 14}}</button>
 				</div>
 			</div>
 		</div>
+
+		{{if .ShowDiffSummaryInCommitHeader}}
+			<div class="ui attached segment flex-left-right">
+				<strong>{{ctx.Locale.TrN .DiffShortStat.NumFiles "repo.diff.num_files_changed_1" "repo.diff.num_files_changed_n" .DiffShortStat.NumFiles}}</strong>
+				{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion}}
+			</div>
+		{{end}}
 
 		{{if .NoteRendered}}
 			<div class="ui top attached header segment git-notes">
@@ -192,10 +191,10 @@
 				{{else}}
 					<strong>{{.NoteCommit.Author.Name}}</strong>
 				{{end}}
-				<span class="text grey">{{DateUtils.TimeSince .NoteCommit.Author.When}}</span>
+				<span class="tw-text-text-light">{{DateUtils.TimeSince .NoteCommit.Author.When}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{.NoteRendered | SanitizeHTML}}</pre>
+				<pre class="commit-body">{{.NoteRendered}}</pre>
 			</div>
 		{{end}}
 

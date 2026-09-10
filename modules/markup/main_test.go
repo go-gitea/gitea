@@ -7,14 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
 )
 
 func TestMain(m *testing.M) {
 	setting.IsInTesting = true
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	setting.Markdown.FileNamePatterns = []string{"*.md"}
 	markup.RefreshFileNamePatterns()
 	os.Exit(m.Run())
 }

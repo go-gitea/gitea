@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/convert"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,18 +44,20 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	// Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "rocket",
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiNewReaction api.Reaction
-	DecodeJSON(t, resp, &apiNewReaction)
+	apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
 
 	// Add existing reaction
-	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+		Reaction: "rocket",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Blocked user can't react to comment
 	user34 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 34})
@@ -68,15 +70,14 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req = NewRequest(t, "GET", urlStr).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var apiReactions []*api.Reaction
-	DecodeJSON(t, resp, &apiReactions)
+	apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
 		User:     convert.ToUser(t.Context(), user2, user2),
 		Reaction: "eyes",
 		Created:  time.Unix(1573248003, 0),
 	}
-	expectResponse[1] = apiNewReaction
+	expectResponse[1] = *apiNewReaction
 	assert.Len(t, apiReactions, 2)
 	for i, r := range apiReactions {
 		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
@@ -111,7 +112,7 @@ func TestAPICommentReactions(t *testing.T) {
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusOK)
+	MakeRequest(t, req, http.StatusNoContent)
 
 	t.Run("UnrelatedCommentID", func(t *testing.T) {
 		// Using the ID of a comment that does not belong to the repository must fail
@@ -138,18 +139,19 @@ func TestAPICommentReactions(t *testing.T) {
 		Reaction: "+1",
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var apiNewReaction api.Reaction
-	DecodeJSON(t, resp, &apiNewReaction)
+	apiNewReaction := DecodeJSON(t, resp, &api.Reaction{})
 
 	// Add existing reaction
-	MakeRequest(t, req, http.StatusForbidden)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
+		Reaction: "+1",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 
 	// Get end result of reaction list of issue #1
 	req = NewRequest(t, "GET", urlStr).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	var apiReactions []*api.Reaction
-	DecodeJSON(t, resp, &apiReactions)
+	apiReactions := DecodeJSON(t, resp, []*api.Reaction{})
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
 		User:     convert.ToUser(t.Context(), user2, user2),
@@ -161,7 +163,7 @@ func TestAPICommentReactions(t *testing.T) {
 		Reaction: "laugh",
 		Created:  time.Unix(1573248005, 0),
 	}
-	expectResponse[2] = apiNewReaction
+	expectResponse[2] = *apiNewReaction
 	assert.Len(t, apiReactions, 3)
 	for i, r := range apiReactions {
 		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)

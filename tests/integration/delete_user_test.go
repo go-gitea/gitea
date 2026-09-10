@@ -7,13 +7,16 @@ import (
 	"net/http"
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/tests"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func assertUserDeleted(t *testing.T, userID int64) {
@@ -34,7 +37,8 @@ func TestUserDeleteAccount(t *testing.T) {
 	session := loginUser(t, "user8")
 	urlStr := "/user/settings/account/delete?password=" + userPassword
 	req := NewRequest(t, "POST", urlStr)
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
 
 	assertUserDeleted(t, 8)
 	unittest.CheckConsistencyFor(t, &user_model.User{})
@@ -46,8 +50,8 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 	session := loginUser(t, "user2")
 	urlStr := "/user/settings/account/delete?password=" + userPassword
 	req := NewRequest(t, "POST", urlStr)
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
+	resp := session.MakeRequest(t, req, http.StatusBadRequest)
+	assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 	// user should not have been deleted, because the user still owns repos
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 }

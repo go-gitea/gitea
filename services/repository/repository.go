@@ -9,32 +9,33 @@ import (
 	"fmt"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	notify_service "code.gitea.io/gitea/services/notify"
-	pull_service "code.gitea.io/gitea/services/pull"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/graceful"
+	issue_indexer "gitea.dev/modules/indexer/issues"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
 )
 
 // WebSearchRepository represents a repository returned by web search
 type WebSearchRepository struct {
-	Repository               *structs.Repository `json:"repository"`
-	LatestCommitStatus       *git.CommitStatus   `json:"latest_commit_status"`
-	LocaleLatestCommitStatus string              `json:"locale_latest_commit_status"`
+	Repository               *structs.Repository     `json:"repository"`
+	LatestCommitStatus       *git_model.CommitStatus `json:"latest_commit_status"`
+	LocaleLatestCommitStatus string                  `json:"locale_latest_commit_status"`
 }
 
 // WebSearchResults results of a successful web search
@@ -72,6 +73,9 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
 func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
+	if authUser == nil {
+		return nil, errors.New("cannot push-create repository anonymously")
+	}
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
 			if ok, err := organization.CanCreateOrgRepo(ctx, owner.ID, authUser.ID); err != nil {
@@ -122,9 +126,9 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 	})
 }
 
-func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error) {
+func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private bool) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo.IsPrivate = false
+		repo.IsPrivate = private
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
 			return err
 		}
@@ -144,15 +148,33 @@ func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error
 			return err
 		}
 
-		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
-		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %w", err)
+		// If repo has become private, we need to set its actions to private, and clear stars and watches.
+		if private {
+			_, err = db.GetEngine(ctx).
+				Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{IsPrivate: true})
+			if err != nil {
+				return err
+			}
+			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
+				return err
+			}
+			if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
+				return err
+			}
 		}
 
-		if repo.Owner.Visibility != structs.VisibleTypePrivate {
-			for i := range forkRepos {
-				if err = MakeRepoPublic(ctx, forkRepos[i]); err != nil {
-					return fmt.Errorf("MakeRepoPublic[%d]: %w", forkRepos[i].ID, err)
+		shouldUpdateForks := private
+		if !private && repo.Owner.Visibility != structs.VisibleTypePrivate {
+			shouldUpdateForks = true
+		}
+		if shouldUpdateForks {
+			forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
+			if err != nil {
+				return fmt.Errorf("getRepositoriesByForkID: %w", err)
+			}
+			for _, forkRepo := range forkRepos {
+				if err = MakeRepoPrivate(ctx, forkRepo, private); err != nil {
+					return fmt.Errorf("MakeRepoPrivate[%d]: %w", forkRepo.ID, err)
 				}
 			}
 		}
@@ -160,63 +182,6 @@ func MakeRepoPublic(ctx context.Context, repo *repo_model.Repository) (err error
 		// If visibility is changed, we need to update the issue indexer.
 		// Since the data in the issue indexer have field to indicate if the repo is public or not.
 		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
-
-		return nil
-	})
-}
-
-func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err error) {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		repo.IsPrivate = true
-		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
-			return err
-		}
-
-		if err = repo.LoadOwner(ctx); err != nil {
-			return fmt.Errorf("LoadOwner: %w", err)
-		}
-		if repo.Owner.IsOrganization() {
-			// Organization repository need to recalculate access table when visibility is changed.
-			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %w", err)
-			}
-		}
-
-		// If repo has become private, we need to set its actions to private.
-		_, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
-			IsPrivate: true,
-		})
-		if err != nil {
-			return err
-		}
-
-		if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
-			return err
-		}
-
-		if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
-			return err
-		}
-
-		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := CheckDaemonExportOK(ctx, repo); err != nil {
-			return err
-		}
-
-		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
-		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %w", err)
-		}
-		for i := range forkRepos {
-			if err = MakeRepoPrivate(ctx, forkRepos[i]); err != nil {
-				return fmt.Errorf("MakeRepoPrivate[%d]: %w", forkRepos[i].ID, err)
-			}
-		}
-
-		// If visibility is changed, we need to update the issue indexer.
-		// Since the data in the issue indexer have field to indicate if the repo is public or not.
-		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
-
 		return nil
 	})
 }
@@ -253,7 +218,7 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	// Create/Remove git-daemon-export-ok for git-daemon...
 	daemonExportFile := `git-daemon-export-ok`
-	isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
+	isExist, err := git.IsRepoFileExist(ctx, repo, daemonExportFile)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 		return err
@@ -261,11 +226,11 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
 	if !isPublic && isExist {
-		if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+		if err = git.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to remove %s: %v", daemonExportFile, err)
 		}
 	} else if isPublic && !isExist {
-		if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+		if f, err := git.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to create %s: %v", daemonExportFile, err)
 		} else {
 			f.Close()
@@ -312,6 +277,11 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 			if err = repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
 				return err
 			}
+
+			// watchers who lost access must not keep watching the now-private repo
+			if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
+				return err
+			}
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
@@ -339,7 +309,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 }
 
 func HasWiki(ctx context.Context, repo *repo_model.Repository) bool {
-	hasWiki, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo())
+	hasWiki, err := git.IsRepositoryExist(ctx, repo.WikiStorageRepo())
 	if err != nil {
 		log.Error("gitrepo.IsRepositoryExist: %v", err)
 	}
@@ -362,10 +332,10 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
 	}
-	repo := repo_model.StorageRepo(repo_model.RelativePath(owner.Name, name))
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	repo := gitrepo.CodeRepoByName(owner.Name, name)
+	isExist, err := git.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.RelativePath(), err)
+		log.Error("Unable to check if repo %s/%s exists, error: %v", owner.Name, name, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {

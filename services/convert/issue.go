@@ -9,15 +9,16 @@ import (
 	"net/url"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/label"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
@@ -32,7 +33,7 @@ func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.
 	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(ctx context.Context, repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -52,7 +53,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Poster:      ToUser(ctx, issue.Poster, doer),
 		Title:       issue.Title,
 		Body:        issue.Content,
-		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
+		Attachments: toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),
 		Ref:         issue.Ref,
 		State:       issue.State(),
 		IsLocked:    issue.IsLocked,
@@ -61,7 +62,8 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Updated:     issue.UpdatedUnix.AsTime(),
 		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
 
-		TimeEstimate: issue.TimeEstimate,
+		TimeEstimate:   issue.TimeEstimate,
+		ContentVersion: issue.ContentVersion,
 	}
 
 	if issue.Repo != nil {
@@ -91,6 +93,13 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	}
 	if issue.Milestone != nil {
 		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
+	}
+
+	if err := issue.LoadProjects(ctx); err != nil {
+		return &api.Issue{}
+	}
+	if len(issue.Projects) > 0 {
+		apiIssue.Projects = ToProjectList(ctx, issue.Projects, doer)
 	}
 
 	if err := issue.LoadAssignees(ctx); err != nil {
@@ -199,7 +208,7 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 		// ADD: Check user permissions
 		perm, ok := permCache[repo.ID]
 		if !ok {
-			perm, err = access_model.GetUserRepoPermission(ctx, repo, doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, repo, doer)
 			if err != nil {
 				continue
 			}
@@ -226,7 +235,21 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 // ToTrackedTimeList converts TrackedTimeList to API format
 func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_model.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
+	permCache := cache.NewEphemeralCache()
 	for _, t := range tl {
+		// If the issue is not loaded, conservatively skip this entry to avoid bypassing permission checks.
+		if t.Issue == nil || t.Issue.Repo == nil {
+			continue
+		}
+		perm, err := cache.GetWithEphemeralCache(ctx, permCache, "repo-perm", t.Issue.RepoID, func(ctx context.Context, repoID int64) (access_model.Permission, error) {
+			return access_model.GetDoerRepoPermission(ctx, t.Issue.Repo, doer)
+		})
+		if err != nil {
+			continue
+		}
+		if !perm.CanReadIssuesOrPulls(t.Issue.IsPull) {
+			continue
+		}
 		result = append(result, ToTrackedTime(ctx, doer, t))
 	}
 	return result

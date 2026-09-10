@@ -3,9 +3,10 @@ import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} fr
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {hideElem, querySingleVisibleElem, showElem} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
-import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {applyAreYouSure} from '../modules/are-you-sure.ts';
 
 async function tryOnEditContent(e: Event) {
   const clickTarget = (e.target as HTMLElement).closest('.edit-content');
@@ -51,7 +52,7 @@ async function tryOnEditContent(e: Event) {
         return;
       }
 
-      reinitializeAreYouSure(editContentZone.querySelector('form')); // the form is no longer dirty
+      applyAreYouSure(editContentZone.querySelector('form')!); // the form is no longer dirty
       editContentZone.setAttribute('data-content-version', data.contentVersion);
 
       // replace the render content with new one, to trigger re-initialization of all features
@@ -73,7 +74,7 @@ async function tryOnEditContent(e: Event) {
       }
       comboMarkdownEditor.dropzoneSubmitReload();
     } catch (error) {
-      showErrorToast(`Failed to save the content: ${error}`);
+      showErrorToast(`Failed to save the content: ${errorMessage(error)}`);
       console.error(error);
     } finally {
       renderContent.classList.remove('is-loading');
@@ -97,11 +98,9 @@ async function tryOnEditContent(e: Event) {
     cancelButton.addEventListener('click', cancelAndReset);
     form.addEventListener('submit', saveAndRefresh);
   }
-
-  // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value(rawContent.textContent);
-  }
+  // when the content has changed on server side, there is no sync, and this page doesn't have the latest content,
+  // the editor still shows the old content, server will reject end user's submit by "data-content-version" check
+  comboMarkdownEditor.value(rawContent.textContent);
   comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
   triggerUploadStateChanged(comboMarkdownEditor.container);

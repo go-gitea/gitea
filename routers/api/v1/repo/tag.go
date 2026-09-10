@@ -9,16 +9,16 @@ import (
 	"net/http"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	release_service "code.gitea.io/gitea/services/release"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	release_service "gitea.dev/services/release"
 )
 
 // ListTags list all the tags of a repository
@@ -55,7 +55,7 @@ func ListTags(ctx *context.APIContext) {
 
 	listOpts := utils.GetListOptions(ctx)
 
-	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
+	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(ctx, listOpts.Page, listOpts.PageSize)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -107,15 +107,18 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 		return
 	}
 
-	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
-	} else {
-		commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
-		if err != nil {
-			ctx.APIError(http.StatusBadRequest, err)
-		}
-		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
+	tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(ctx, sha)
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return
 	}
+
+	commit, err := ctx.Repo.GitRepo.GetTagCommit(ctx, tag.Name)
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx, ctx.Repo.Repository, tag, commit))
 }
 
 // GetTag get the tag of a repository
@@ -148,7 +151,7 @@ func GetTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	tagName := ctx.PathParam("*")
 
-	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
+	tag, err := ctx.Repo.GitRepo.GetTag(ctx, tagName)
 	if err != nil {
 		ctx.APIErrorNotFound("tag doesn't exist: " + tagName)
 		return
@@ -191,22 +194,22 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	form := web.GetForm(ctx).(*api.CreateTagOption)
+	form := web.GetForm[*api.CreateTagOption](ctx)
 
 	// If target is not provided use default branch
 	if len(form.Target) == 0 {
 		form.Target = ctx.Repo.Repository.DefaultBranch
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, form.Target)
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, fmt.Errorf("target not found: %w", err))
+		ctx.APIError(http.StatusNotFound, fmt.Sprintf("target not found: %v", err))
 		return
 	}
 
 	if err := release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
 		if release_service.IsErrTagAlreadyExists(err) {
-			ctx.APIError(http.StatusConflict, err)
+			ctx.APIError(http.StatusConflict, err.Error())
 			return
 		}
 		if release_service.IsErrProtectedTagName(err) {
@@ -218,7 +221,7 @@ func CreateTag(ctx *context.APIContext) {
 		return
 	}
 
-	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
+	tag, err := ctx.Repo.GitRepo.GetTag(ctx, form.TagName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -275,7 +278,7 @@ func DeleteTag(ctx *context.APIContext) {
 	}
 
 	if !tag.IsTag {
-		ctx.APIError(http.StatusConflict, errors.New("a tag attached to a release cannot be deleted directly"))
+		ctx.APIError(http.StatusConflict, "a tag attached to a release cannot be deleted directly")
 		return
 	}
 
@@ -408,7 +411,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateTagProtectionOption)
+	form := web.GetForm[*api.CreateTagProtectionOption](ctx)
 	repo := ctx.Repo.Repository
 
 	namePattern := strings.TrimSpace(form.NamePattern)
@@ -435,7 +438,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -446,7 +449,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.WhitelistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -519,7 +522,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	repo := ctx.Repo.Repository
-	form := web.GetForm(ctx).(*api.EditTagProtectionOption)
+	form := web.GetForm[*api.EditTagProtectionOption](ctx)
 
 	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)
@@ -543,7 +546,7 @@ func EditTagProtection(ctx *context.APIContext) {
 			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.WhitelistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -557,7 +560,7 @@ func EditTagProtection(ctx *context.APIContext) {
 		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.WhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)

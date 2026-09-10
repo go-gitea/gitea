@@ -9,15 +9,15 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	wa "code.gitea.io/gitea/modules/auth/webauthn"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	wa "gitea.dev/modules/auth/webauthn"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -30,7 +30,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.WebauthnRegistrationForm)
+	form := web.GetForm[*forms.WebauthnRegistrationForm](ctx)
 	if form.Name == "" {
 		// Set name to the hexadecimal of the current time
 		form.Name = strconv.FormatInt(time.Now().UnixNano(), 16)
@@ -53,8 +53,17 @@ func WebAuthnRegister(ctx *context.Context) {
 	}
 
 	webAuthnUser := wa.NewWebAuthnUser(ctx, ctx.Doer)
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration(webAuthnUser, webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+	// the exclusions stop enrolling the same authenticator twice
+	credentials, err := auth.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		return
+	}
+	exclusions := webauthn.Credentials(credentials.ToCredentials()).CredentialDescriptors()
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration(webAuthnUser, webauthn.WithExclusions(exclusions), webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
 		ResidentKey: protocol.ResidentKeyRequirementRequired,
+		// anything else makes Chromium raise it to credProtect level 3, hiding it from the second factor
+		UserVerification: protocol.VerificationRequired,
 	}))
 	if err != nil {
 		ctx.ServerError("Unable to BeginRegistration", err)
@@ -132,8 +141,7 @@ func WebauthnDelete(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
-	if _, err := auth.DeleteCredential(ctx, form.ID, ctx.Doer.ID); err != nil {
+	if _, err := auth.DeleteCredential(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}

@@ -41,6 +41,7 @@ so this template should be kept as small as possible, DO NOT put large component
 		{{- else -}}
 			{{- $extraClass = "" -}}{{/* the commit is not signed */}}
 		{{- end -}}
+		<!-- i18n-check: gpg.error.* -->
 		{{- $msgReason = ctx.Locale.Tr $verification.Reason -}}{{- /* dirty part: it is the translation key ..... */ -}}
 	{{- end -}}
 
@@ -64,10 +65,10 @@ so this template should be kept as small as possible, DO NOT put large component
 		{{- if $verified -}}
 			{{- if and $signingUser $signingUser.ID -}}
 				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock"}}</span>
-				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.Avatar $signingUser 16}}</span>
+				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.Avatar $signingUser 20}}</span>
 			{{- else -}}
 				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock-cog"}}</span>
-				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.AvatarByEmail $signingEmail "" 16}}</span>
+				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.AvatarByEmail $signingEmail "" 20}}</span>
 			{{- end -}}
 		{{- else -}}
 			<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-unlock"}}</span>

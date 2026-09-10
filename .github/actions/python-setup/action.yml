@@ -1,0 +1,10 @@
+name: python-setup
+description: Set up uv and python and restore the uv cache
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        python-version: 3.14
+        save-cache: ${{ github.workflow == 'cache-seeder' }}

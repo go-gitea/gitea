@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -133,6 +133,15 @@ func TestBasicTransferAdapter(t *testing.T) {
 				assert.NoError(t, err, "case %d", n)
 			}
 		}
+	})
+
+	t.Run("Upload created", func(t *testing.T) {
+		client := &http.Client{Transport: RoundTripFunc(func(req *http.Request) *http.Response {
+			return &http.Response{StatusCode: http.StatusCreated, Body: io.NopCloser(strings.NewReader(""))}
+		})}
+		adapter := &BasicTransferAdapter{client: client}
+		err := adapter.Upload(t.Context(), &Link{Href: "https://upload-created-request.io"}, p, strings.NewReader("dummy"))
+		assert.NoError(t, err)
 	})
 
 	t.Run("Verify", func(t *testing.T) {

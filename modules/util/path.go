@@ -11,9 +11,25 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
+	"sync"
 )
+
+var PathNameValidator = sync.OnceValue(func() (ret struct {
+	InvalidChars *regexp.Regexp
+	InvalidNames *regexp.Regexp
+},
+) {
+	ret.InvalidChars = regexp.MustCompile(`(?i)[<>:"/\\|?*\x{0000}-\x{001F}]`)
+	// invalid filename contents, based on https://github.com/sindresorhus/filename-reserved-regex
+	// "COM10" needs to be opened with UNC "\\.\COM10" on Windows, so itself is valid
+	ret.InvalidNames = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com\d|lpt\d)$`)
+	return ret
+})
+
+func PathBaseStem(s string) string {
+	return strings.TrimSuffix(path.Base(s), path.Ext(s))
+}
 
 // PathJoinRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
 // It only returns the following values (like path.Join), any redundant part (empty, relative dots, slashes) is removed.
@@ -64,7 +80,7 @@ func PathJoinRelX(elem ...string) string {
 	return PathJoinRel(elems...)
 }
 
-const pathSeparator = string(os.PathSeparator)
+const filepathSeparator = string(os.PathSeparator)
 
 // FilePathJoinAbs joins the path elements into a single file path, each element is cleaned by filepath.Clean separately.
 // All slashes/backslashes are converted to path separators before cleaning, the result only contains path separators.
@@ -75,30 +91,32 @@ const pathSeparator = string(os.PathSeparator)
 //	{`/foo`, ``, `bar`} => `/foo/bar`
 //	{`/foo`, `..`, `bar`} => `/foo/bar`
 func FilePathJoinAbs(base string, sub ...string) string {
-	elems := make([]string, 1, len(sub)+1)
-
 	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
 	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
-	if isOSWindows() {
-		elems[0] = filepath.Clean(base)
-	} else {
-		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", pathSeparator))
+	if !isOSWindows {
+		base = strings.ReplaceAll(base, "\\", filepathSeparator)
 	}
-	if !filepath.IsAbs(elems[0]) {
-		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
-		panic(fmt.Sprintf("FilePathJoinAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", elems[0], elems))
+	if !filepath.IsAbs(base) {
+		// This shouldn't happen. If it is really necessary to handle relative paths, use filepath.Abs() to get absolute paths first
+		panic(fmt.Sprintf("FilePathJoinAbs: %q (for path %v) is not absolute, do not guess a relative path based on current working directory", base, sub))
 	}
+	if len(sub) == 0 {
+		return filepath.Clean(base)
+	}
+
+	elems := make([]string, 1, len(sub)+1)
+	elems[0] = base
 	for _, s := range sub {
 		if s == "" {
 			continue
 		}
-		if isOSWindows() {
-			elems = append(elems, filepath.Clean(pathSeparator+s))
+		if isOSWindows {
+			elems = append(elems, filepath.Clean(filepathSeparator+s))
 		} else {
-			elems = append(elems, filepath.Clean(pathSeparator+strings.ReplaceAll(s, "\\", pathSeparator)))
+			elems = append(elems, filepath.Clean(filepathSeparator+strings.ReplaceAll(s, "\\", filepathSeparator)))
 		}
 	}
-	// the elems[0] must be an absolute path, just join them together
+	// the elems[0] must be an absolute path, just join them together, and Join will also do Clean
 	return filepath.Join(elems...)
 }
 
@@ -115,12 +133,72 @@ func IsDir(dir string) (bool, error) {
 	return false, err
 }
 
-func IsRegularFile(filePath string) (bool, error) {
-	f, err := os.Lstat(filePath)
-	if err == nil {
-		return f.Mode().IsRegular(), nil
+var ErrNotRegularPathFile = errors.New("not a regular file")
+
+// ReadRegularPathFile reads a file with given sub path in root dir.
+// It returns error when the path is not a regular file, or any parent path is not a regular directory.
+func ReadRegularPathFile(root, filePathIn string, limit int) ([]byte, error) {
+	pathFields := strings.Split(PathJoinRelX(filePathIn), "/")
+
+	targetPathBuilder := strings.Builder{}
+	targetPathBuilder.Grow(len(root) + len(filePathIn) + 2)
+	targetPathBuilder.WriteString(root)
+	targetPathString := root
+	for i, subPath := range pathFields {
+		targetPathBuilder.WriteByte(filepath.Separator)
+		targetPathBuilder.WriteString(subPath)
+		targetPathString = targetPathBuilder.String()
+
+		expectFile := i == len(pathFields)-1
+		st, err := os.Lstat(targetPathString)
+		if err != nil {
+			return nil, err
+		}
+		if expectFile && !st.Mode().IsRegular() || !expectFile && !st.Mode().IsDir() {
+			return nil, fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
+		}
 	}
-	return false, err
+	f, err := os.Open(targetPathString)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ReadWithLimit(f, limit)
+}
+
+// WriteRegularPathFile writes data to a file with given sub path in root dir, it creates parent directories if necessary.
+// The file is created with fileMode, and the directories are created with dirMode.
+// It returns error when the path already exists but is not a regular file, or any parent path is not a regular directory.
+func WriteRegularPathFile(root, filePathIn string, data []byte, dirMode, fileMode os.FileMode) error {
+	pathFields := strings.Split(PathJoinRelX(filePathIn), "/")
+
+	targetPathBuilder := strings.Builder{}
+	targetPathBuilder.Grow(len(root) + len(filePathIn) + 2)
+	targetPathBuilder.WriteString(root)
+	targetPathString := root
+	for i, subPath := range pathFields {
+		targetPathBuilder.WriteByte(filepath.Separator)
+		targetPathBuilder.WriteString(subPath)
+		targetPathString = targetPathBuilder.String()
+
+		expectFile := i == len(pathFields)-1
+		st, err := os.Lstat(targetPathString)
+		if err == nil {
+			if expectFile && !st.Mode().IsRegular() || !expectFile && !st.Mode().IsDir() {
+				return fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
+			}
+			continue
+		}
+		if !os.IsNotExist(err) {
+			return err
+		}
+		if !expectFile {
+			if err = os.Mkdir(targetPathString, dirMode); err != nil {
+				return err
+			}
+		}
+	}
+	return os.WriteFile(targetPathString, data, fileMode)
 }
 
 // IsExist checks whether a file or directory exists.
@@ -183,30 +261,30 @@ func ListDirRecursively(rootDir string, opts *ListDirOptions) (res []string, err
 	return res, nil
 }
 
-func isOSWindows() bool {
-	return runtime.GOOS == "windows"
-}
+func fileURLToPathInternal(u *url.URL, isWindows bool) (string, error) {
+	if u.Scheme != "file" {
+		return "", errors.New("URL scheme is not 'file': " + u.String())
+	}
+	if !isWindows {
+		return u.Path, nil
+	}
 
-var driveLetterRegexp = regexp.MustCompile("/[A-Za-z]:/")
+	// If it is a Windows absolute path with drive letter "/C:/dir", strip off the leading slash.
+	if !strings.HasPrefix(u.Path, "/") || len(u.Path) < 3 {
+		return u.Path, nil
+	}
+	winPath := u.Path[1:]
+	first := winPath[0]
+	if ('a' <= first && first <= 'z' || 'A' <= first && first <= 'Z') && winPath[1] == ':' {
+		return winPath, nil
+	}
+	return u.Path, nil
+}
 
 // FileURLToPath extracts the path information from a file://... url.
 // It returns an error only if the URL is not a file URL.
 func FileURLToPath(u *url.URL) (string, error) {
-	if u.Scheme != "file" {
-		return "", errors.New("URL scheme is not 'file': " + u.String())
-	}
-
-	path := u.Path
-
-	if !isOSWindows() {
-		return path, nil
-	}
-
-	// If it looks like there's a Windows drive letter at the beginning, strip off the leading slash.
-	if driveLetterRegexp.MatchString(path) {
-		return path[1:], nil
-	}
-	return path, nil
+	return fileURLToPathInternal(u, isOSWindows)
 }
 
 // HomeDir returns path of '~'(in Linux) on Windows,
@@ -215,7 +293,7 @@ func HomeDir() (home string, err error) {
 	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
 	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
 	// so at the moment we can not use `user.Current().HomeDir`
-	if isOSWindows() {
+	if isOSWindows {
 		home = os.Getenv("USERPROFILE")
 		if home == "" {
 			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")

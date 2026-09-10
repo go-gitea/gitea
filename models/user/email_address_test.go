@@ -7,10 +7,10 @@ import (
 	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,22 +46,22 @@ func TestIsEmailUsed(t *testing.T) {
 func TestMakeEmailPrimary(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	err := user_model.MakeActiveEmailPrimary(t.Context(), 9999999)
+	err := user_model.MakeActiveEmailPrimary(t.Context(), 1, 9999999)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, user_model.ErrEmailAddressNotExist{})
 
 	email := unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user11@example.com"})
-	err = user_model.MakeActiveEmailPrimary(t.Context(), email.ID)
+	err = user_model.MakeActiveEmailPrimary(t.Context(), email.UID, email.ID)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, user_model.ErrEmailAddressNotExist{}) // inactive email is considered as not exist for "MakeActiveEmailPrimary"
 
 	email = unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user9999999@example.com"})
-	err = user_model.MakeActiveEmailPrimary(t.Context(), email.ID)
+	err = user_model.MakeActiveEmailPrimary(t.Context(), email.UID, email.ID)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrUserNotExist(err))
 
 	email = unittest.AssertExistsAndLoadBean(t, &user_model.EmailAddress{Email: "user101@example.com"})
-	err = user_model.MakeActiveEmailPrimary(t.Context(), email.ID)
+	err = user_model.MakeActiveEmailPrimary(t.Context(), email.UID, email.ID)
 	assert.NoError(t, err)
 
 	user, _ := user_model.GetUserByID(t.Context(), int64(10))

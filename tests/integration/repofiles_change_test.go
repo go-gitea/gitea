@@ -12,14 +12,12 @@ import (
 	"testing"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/contexttest"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/contexttest"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -107,10 +105,11 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 			Name:              path.Base(treePath),
 			Path:              treePath,
 			SHA:               "103ff9234cefeee5ec5361d22b49fbb04d385885",
-			LastCommitSHA:     util.ToPointer(lastCommit.ID.String()),
-			LastCommitterDate: util.ToPointer(lastCommit.Committer.When),
-			LastAuthorDate:    util.ToPointer(lastCommit.Author.When),
+			LastCommitSHA:     new(lastCommit.ID.String()),
+			LastCommitterDate: new(lastCommit.Committer.When),
+			LastAuthorDate:    new(lastCommit.Author.When),
 			Type:              "file",
+			Mode:              "100644",
 			Size:              18,
 			Encoding:          &encoding,
 			Content:           &content,
@@ -133,14 +132,14 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
@@ -177,10 +176,11 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Name:              filename,
 			Path:              filename,
 			SHA:               "dbf8d00e022e05b7e5cf7e535de857de57925647",
-			LastCommitSHA:     util.ToPointer(lastCommitSHA),
-			LastCommitterDate: util.ToPointer(lastCommitterWhen),
-			LastAuthorDate:    util.ToPointer(lastAuthorWhen),
+			LastCommitSHA:     new(lastCommitSHA),
+			LastCommitterDate: new(lastCommitterWhen),
+			LastAuthorDate:    new(lastAuthorWhen),
 			Type:              "file",
+			Mode:              "100644",
 			Size:              43,
 			Encoding:          &encoding,
 			Content:           &content,
@@ -203,14 +203,14 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
@@ -253,8 +253,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			sha:      "d4a41a0d4db4949e129bd22f871171ea988103ef",
 			size:     129,
 			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6MmVjY2RiNDM4MjVkMmE0OWQ5OWQ1NDJkYWEyMDA3NWNmZjFkOTdkOWQyMzQ5YTg5NzdlZmU5YzAzNjYxNzM3YwpzaXplIDIwNDgK",
-			lfsOid:   util.ToPointer("2eccdb43825d2a49d99d542daa20075cff1d97d9d2349a8977efe9c03661737c"),
-			lfsSize:  util.ToPointer(int64(2048)),
+			lfsOid:   new("2eccdb43825d2a49d99d542daa20075cff1d97d9d2349a8977efe9c03661737c"),
+			lfsSize:  new(int64(2048)),
 		},
 		{
 			filename: "jpeg.jpeg",
@@ -267,8 +267,8 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			sha:      "2b6c6c4eaefa24b22f2092c3d54b263ff26feb58",
 			size:     127,
 			content:  "dmVyc2lvbiBodHRwczovL2dpdC1sZnMuZ2l0aHViLmNvbS9zcGVjL3YxCm9pZCBzaGEyNTY6N2I2YjJjODhkYmE5Zjc2MGExYTU4NDY5YjY3ZmVlMmI2OThlZjdlOTM5OWM0Y2E0ZjM0YTE0Y2NiZTM5ZjYyMwpzaXplIDI3Cg==",
-			lfsOid:   util.ToPointer("7b6b2c88dba9f760a1a58469b67fee2b698ef7e9399c4ca4f34a14ccbe39f623"),
-			lfsSize:  util.ToPointer(int64(27)),
+			lfsOid:   new("7b6b2c88dba9f760a1a58469b67fee2b698ef7e9399c4ca4f34a14ccbe39f623"),
+			lfsSize:  new(int64(27)),
 		},
 	}
 
@@ -283,10 +283,11 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			Name:          detail.filename,
 			Path:          detail.filename,
 			SHA:           detail.sha,
-			LastCommitSHA: util.ToPointer(lastCommitSHA),
+			LastCommitSHA: new(lastCommitSHA),
 			Type:          "file",
+			Mode:          "100644",
 			Size:          detail.size,
-			Encoding:      util.ToPointer("base64"),
+			Encoding:      new("base64"),
 			Content:       &detail.content,
 			URL:           &selfURL,
 			HTMLURL:       &htmlURL,
@@ -313,13 +314,13 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 			},
 			Parents: []*api.CommitMeta{
@@ -363,11 +364,11 @@ func TestChangeRepoFilesForCreate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, _ := git.OpenRepository(ctx, repo)
 		defer gitRepo.Close()
 
-		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
-		lastCommit, _ := gitRepo.GetCommitByPath("new/file.txt")
+		commitID, _ := gitRepo.GetBranchCommitID(t.Context(), opts.NewBranch)
+		lastCommit, _ := gitRepo.GetCommitByPath(t.Context(), "new/file.txt")
 		expectedFileResponse := getExpectedFileResponseForRepoFilesCreate(commitID, lastCommit)
 		assert.NotNil(t, expectedFileResponse)
 		if expectedFileResponse != nil {
@@ -400,11 +401,11 @@ func TestChangeRepoFilesForUpdate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, _ := git.OpenRepository(ctx, repo)
 		defer gitRepo.Close()
 
-		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		commit, _ := gitRepo.GetBranchCommit(t.Context(), opts.NewBranch)
+		lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
 		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
 		assert.Equal(t, expectedFileResponse.Commit.SHA, filesResponse.Commit.SHA)
@@ -436,21 +437,21 @@ func TestChangeRepoFilesForUpdateWithFileMove(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, _ := git.OpenRepository(ctx, repo)
 		defer gitRepo.Close()
 
-		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		commit, _ := gitRepo.GetBranchCommit(t.Context(), opts.NewBranch)
+		lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
 		// assert that the old file no longer exists in the last commit of the branch
-		fromEntry, err := commit.GetTreeEntryByPath(opts.Files[0].FromTreePath)
+		fromEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, opts.Files[0].FromTreePath)
 		switch err.(type) {
 		case git.ErrNotExist:
 			// correct, continue
 		default:
 			t.Fatalf("expected git.ErrNotExist, got:%v", err)
 		}
-		toEntry, err := commit.GetTreeEntryByPath(opts.Files[0].TreePath)
+		toEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, opts.Files[0].TreePath)
 		assert.NoError(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
@@ -482,11 +483,11 @@ func TestChangeRepoFilesForUpdateWithFileRename(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, _ := git.OpenRepository(ctx, repo)
 		defer gitRepo.Close()
 
-		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		commit, _ := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
+		lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdateRename(commit.ID.String(), lastCommit.ID.String())
 		for _, file := range filesResponse.Files {
 			file.LastCommitterDate, file.LastAuthorDate = nil, nil // there might be different time in one operation, so we ignore them
@@ -519,11 +520,11 @@ func TestChangeRepoFilesWithoutBranchNames(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, _ := git.OpenRepository(ctx, repo)
 		defer gitRepo.Close()
 
-		commit, _ := gitRepo.GetBranchCommit(repo.DefaultBranch)
-		lastCommit, _ := commit.GetCommitByPath(opts.Files[0].TreePath)
+		commit, _ := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
+		lastCommit, _ := commit.GetCommitByPath(t.Context(), gitRepo, opts.Files[0].TreePath)
 		expectedFileResponse := getExpectedFileResponseForRepoFilesUpdate(commit.ID.String(), opts.Files[0].TreePath, lastCommit.ID.String(), lastCommit.Committer.When, lastCommit.Author.When)
 		assert.Equal(t, expectedFileResponse.Content, filesResponse.Files[0])
 	})

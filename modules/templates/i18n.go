@@ -4,18 +4,49 @@
 package templates
 
 import (
-	"fmt"
 	"os"
 	"regexp"
 	"strings"
 	"text/template"
 	"text/template/parse"
 
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/modules/container"
 )
 
 func isI18nFunc(name string) bool {
-	return name == "ctx.Locale.Tr" || name == "ctx.Locale.TrN" || name == "ctx.Locale.TrString"
+	return strings.HasSuffix(name, ".Tr") || strings.HasSuffix(name, ".TrN") || strings.HasSuffix(name, ".TrString")
+}
+
+func i18nFuncName(arg parse.Node) string {
+	switch n := arg.(type) {
+	case *parse.ChainNode:
+		return n.String()
+	case *parse.FieldNode:
+		return n.String()
+	case *parse.VariableNode:
+		return n.String()
+	default:
+		return ""
+	}
+}
+
+func collectStringLiterals(n parse.Node, keys container.Set[string]) {
+	switch x := n.(type) {
+	case *parse.StringNode:
+		keys.Add(x.Text)
+	case *parse.PipeNode:
+		for _, cmd := range x.Cmds {
+			collectStringLiterals(cmd, keys)
+		}
+	case *parse.CommandNode:
+		for _, arg := range x.Args {
+			collectStringLiterals(arg, keys)
+		}
+	}
+}
+
+func isI18nTrN(name string) bool {
+	return strings.HasSuffix(name, ".TrN")
 }
 
 var i18nCheckPattern = regexp.MustCompile(`<!--\s*i18n-check:\s*([^>]+?)\s*-->`)
@@ -45,7 +76,6 @@ func collectI18nKeys(node parse.Node, override string) (container.Set[string], s
 		}
 		return keys, pending
 	case *parse.TemplateNode: // ignore the file inclusion
-		fmt.Printf("Visiting node: %#v\n---\n%s\n---\n", node, node.String())
 		if n.Pipe != nil {
 			return collectI18nKeys(n.Pipe, override)
 		}
@@ -83,35 +113,44 @@ func collectI18nKeys(node parse.Node, override string) (container.Set[string], s
 		}
 		return keys, pending
 	case *parse.CommandNode:
+		var keys = container.Set[string]{}
+		pending := override
 		if len(n.Args) >= 2 {
-			if ident, ok := n.Args[0].(*parse.ChainNode); ok && isI18nFunc(ident.String()) {
-				var keys = container.Set[string]{}
+			funcName := i18nFuncName(n.Args[0])
+			if isI18nFunc(funcName) {
 				if override != "" {
 					keys.Add(strings.TrimSpace(override))
-					return keys, ""
-				}
-				for _, arg := range n.Args[1:] { // sometimes it will be `ctx.Locale.Tr (print "key")`
-					if str, ok := arg.(*parse.StringNode); ok {
-						keys.Add(str.Text)
-						if (ident.String() == "ctx.Locale.TrN" && len(keys) == 2) || (ident.String() != "ctx.Locale.TrN" && len(keys) == 1) {
-							return keys, override
-						}
-					} else if p, ok := arg.(*parse.PipeNode); ok {
-						for _, cmd := range p.Cmds {
-							if cmd.Args != nil && len(cmd.Args) > 0 {
-								for _, cmdArg := range cmd.Args {
-									if str, ok := cmdArg.(*parse.StringNode); ok {
-										keys.Add(str.Text)
-										if (ident.String() == "ctx.Locale.TrN" && len(keys) == 2) || (ident.String() != "ctx.Locale.TrN" && len(keys) == 1) {
-											return keys, override
-										}
-									}
-								}
+					pending = ""
+				} else {
+					needed := 1
+					if isI18nTrN(funcName) {
+						needed = 2
+					}
+					for _, arg := range n.Args[1:] { // sometimes it will be `ctx.Locale.Tr (print "key")` or `Iif`
+						if str, ok := arg.(*parse.StringNode); ok {
+							keys.Add(str.Text)
+							if len(keys) == needed {
+								break
+							}
+						} else if p, ok := arg.(*parse.PipeNode); ok {
+							collectStringLiterals(p, keys)
+							if len(keys) >= needed {
+								break
 							}
 						}
 					}
 				}
 			}
+		}
+		for _, arg := range n.Args {
+			if p, ok := arg.(*parse.PipeNode); ok {
+				var subKeys container.Set[string]
+				subKeys, pending = collectI18nKeys(p, pending)
+				keys = keys.Union(subKeys)
+			}
+		}
+		if len(keys) > 0 {
+			return keys, pending
 		}
 	}
 	return container.Set[string]{}, override
@@ -132,7 +171,14 @@ func FindTemplateKeys(p string) (container.Set[string], error) {
 	}
 
 	// The template parser requires the function map otherwise it will return failure
-	t, err := template.New("test").Funcs(NewFuncMap()).Parse(string(bs))
+	funcMap := newFuncMapWebPage()
+	for name, fn := range mailBodyFuncMap() {
+		if _, exists := funcMap[name]; !exists {
+			funcMap[name] = fn
+		}
+	}
+	funcMap["ctx"] = func() any { return nil }
+	t, err := template.New("test").Funcs(template.FuncMap(funcMap)).Parse(string(bs))
 	if err != nil {
 		return nil, err
 	}

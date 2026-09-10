@@ -23,6 +23,8 @@
 			</td>
 			<td>{{svg "octicon-clock"}} {{.SumTime | Sec2Hour}}</td>
 		</tr>
+		{{else}}
+			{{template "org/worktime/empty_placeholder" dict "Colspan" 3}}
 		{{end}}
 	</tbody>
 </table>

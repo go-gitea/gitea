@@ -6,8 +6,9 @@ package auth
 import (
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/session"
 )
 
 // Ensure the struct implements the interface.
@@ -29,32 +30,39 @@ func (s *Session) Name() string {
 // Returns nil if there is no user uid stored in the session.
 func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	if sess == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
-	// Get user ID
-	uid := sess.Get("uid")
-	if uid == nil {
-		return nil, nil
-	}
-	log.Trace("Session Authorization: Found user[%d]", uid)
-
-	id, ok := uid.(int64)
+	// Get session user ID
+	uid, ok := sess.Get(session.KeyUID).(int64)
 	if !ok {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	// Get user object
-	user, err := user_model.GetUserByID(req.Context(), id)
+	user, err := user_model.GetUserByID(req.Context(), uid)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByID: %v", err)
 			// Return the err as-is to keep current signed-in session, in case the err is something like context.Canceled. Otherwise non-existing user (nil, nil) will make the caller clear the signed-in session.
 			return nil, err
 		}
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	log.Trace("Session Authorization: Logged in user %-v", user)
 	return user, nil
+}
+
+func ClearSessionKeysForSignIn(sess SessionStore) {
+	_ = sess.Delete("openid_verified_uri")
+	_ = sess.Delete("openid_signin_remember")
+	_ = sess.Delete("openid_determined_email")
+	_ = sess.Delete("openid_determined_username")
+	_ = sess.Delete("twofaUid")
+	_ = sess.Delete("twofaRemember")
+	_ = sess.Delete("webauthnAssertion")
+	_ = sess.Delete("linkAccount")
+	_ = sess.Delete("linkAccountData")
+	_ = sess.Delete("openidPendingURI")
 }

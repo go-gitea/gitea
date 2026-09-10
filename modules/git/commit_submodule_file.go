@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	giturl "code.gitea.io/gitea/modules/git/url"
-	"code.gitea.io/gitea/modules/util"
+	giturl "gitea.dev/modules/git/url"
+	"gitea.dev/modules/util"
 )
 
 // CommitSubmoduleFile represents a file with submodule type.

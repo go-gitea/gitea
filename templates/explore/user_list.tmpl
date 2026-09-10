@@ -1,17 +1,17 @@
-<div class="flex-list">
+<div class="flex-divided-list items-with-main">
 	{{range .Users}}
-		<div class="flex-item tw-items-center">
-			<div class="flex-item-leading">
+		<div class="item tw-items-center">
+			<div class="item-leading">
 				{{ctx.AvatarUtils.Avatar . 48}}
 			</div>
-			<div class="flex-item-main">
-				<div class="flex-item-title">
+			<div class="item-main">
+				<div class="item-title">
 					{{template "shared/user/name" .}}
 					{{if .Visibility.IsPrivate}}
 						<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
 					{{end}}
 				</div>
-				<div class="flex-item-body">
+				<div class="item-body">
 					{{if .Location}}
 						<span class="flex-text-inline">{{svg "octicon-location"}}{{.Location}}</span>
 					{{end}}
@@ -26,7 +26,7 @@
 			</div>
 		</div>
 	{{else}}
-		<div class="flex-item">
+		<div class="item">
 			{{ctx.Locale.Tr "search.no_results"}}
 		</div>
 	{{end}}

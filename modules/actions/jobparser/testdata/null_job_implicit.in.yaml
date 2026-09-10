@@ -1,0 +1,9 @@
+# null_job_implicit.in.yaml
+on: push
+jobs:
+  empty:
+  notempty:
+    needs: empty
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok

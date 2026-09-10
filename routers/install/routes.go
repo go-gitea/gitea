@@ -8,26 +8,27 @@ import (
 	"html"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/routers/web/healthcheck"
-	"code.gitea.io/gitea/routers/web/misc"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	"gitea.dev/routers/web/healthcheck"
+	"gitea.dev/routers/web/misc"
+	"gitea.dev/services/forms"
 )
 
 // Routes registers the installation routes
 func Routes() *web.Router {
 	base := web.NewRouter()
-	base.Use(common.ProtocolMiddlewares()...)
+	base.BeforeRouting(common.ProtocolMiddlewares()...)
+
 	base.Methods("GET, HEAD", "/assets/*", public.FileHandlerFunc())
 
 	r := web.NewRouter()
-	r.Use(common.MustInitSessioner(), installContexter())
+	r.AfterRouting(common.MustInitSessioner(), installContexter())
 
 	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
-	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
+	r.Post("/", web.Bind[*forms.InstallForm](), SubmitInstall)
 	r.Get("/post-install", InstallDone)
 
 	r.Get("/-/web-theme/list", misc.WebThemeList)

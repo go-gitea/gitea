@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+{{template "admin/layout_head" (dict "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.user_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
@@ -44,19 +44,19 @@
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<button class="item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
-							<button class="item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
-							<button class="item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
-							<button class="item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
-							<button class="item" name="sort" value="recentupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
-							<button class="item" name="sort" value="leastupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
+							<button type="submit" class="item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button type="submit" class="item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button type="submit" class="item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button type="submit" class="item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button type="submit" class="item" name="sort" value="recentupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
+							<button type="submit" class="item" name="sort" value="leastupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
 						</div>
 					</div>
 				</div>
 			</form>
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped selectable table unstackable">
+			<table class="ui very basic selectable table unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" .SortType false}}</th>

@@ -10,10 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // StateType issue state type
+//
+// swagger:enum StateType
 type StateType string
 
 const (
@@ -21,9 +23,10 @@ const (
 	StateOpen StateType = "open"
 	// StateClosed pr is closed
 	StateClosed StateType = "closed"
-	// StateAll is all
-	StateAll StateType = "all"
 )
+
+// StateAll is a query parameter filter value, not a valid object state.
+const StateAll = "all"
 
 // PullRequestMeta PR info if an issue is a PR
 type PullRequestMeta struct {
@@ -57,16 +60,13 @@ type Issue struct {
 	Attachments      []*Attachment `json:"assets"`
 	Labels           []*Label      `json:"labels"`
 	Milestone        *Milestone    `json:"milestone"`
+	Projects         []*Project    `json:"projects"`
 	// deprecated
-	Assignee  *User   `json:"assignee"`
-	Assignees []*User `json:"assignees"`
-	// Whether the issue is open or closed
-	//
-	// type: string
-	// enum: open,closed
-	State    StateType `json:"state"`
-	IsLocked bool      `json:"is_locked"`
-	Comments int       `json:"comments"`
+	Assignee  *User     `json:"assignee"`
+	Assignees []*User   `json:"assignees"`
+	State     StateType `json:"state"`
+	IsLocked  bool      `json:"is_locked"`
+	Comments  int       `json:"comments"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -82,6 +82,8 @@ type Issue struct {
 	Repo        *RepositoryMeta  `json:"repository"`
 
 	PinOrder int `json:"pin_order"`
+	// The version of the issue content for optimistic locking
+	ContentVersion int `json:"content_version"`
 }
 
 // CreateIssueOption options to create one issue
@@ -99,7 +101,9 @@ type CreateIssueOption struct {
 	Milestone int64 `json:"milestone"`
 	// list of label ids
 	Labels []int64 `json:"labels"`
-	Closed bool    `json:"closed"`
+	// list of project ids
+	Projects []int64 `json:"projects"`
+	Closed   bool    `json:"closed"`
 }
 
 // EditIssueOption options for editing an issue
@@ -111,16 +115,24 @@ type EditIssueOption struct {
 	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone *int64   `json:"milestone"`
-	State     *string  `json:"state"`
+	// list of project ids to set (replaces existing projects)
+	Projects *[]int64 `json:"projects"`
+	State    *string  `json:"state"`
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`
+	// The current version of the issue content to detect conflicts during editing
+	ContentVersion *int `json:"content_version"`
+}
+
+// IssueAssigneesOption options for adding/removing issue assignees
+type IssueAssigneesOption struct {
+	Assignees []string `json:"assignees"`
 }
 
 // EditDeadlineOption options for creating a deadline
 type EditDeadlineOption struct {
 	// required:true
-	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
 }
 
@@ -132,6 +144,8 @@ type IssueDeadline struct {
 }
 
 // IssueFormFieldType defines issue form field type, can be "markdown", "textarea", "input", "dropdown" or "checkboxes"
+//
+// swagger:enum IssueFormFieldType
 type IssueFormFieldType string
 
 const (
@@ -168,7 +182,8 @@ func (iff IssueFormField) VisibleInContent() bool {
 }
 
 // IssueFormFieldVisible defines issue form field visible
-// swagger:model
+//
+// swagger:enum IssueFormFieldVisible
 type IssueFormFieldVisible string
 
 const (
@@ -220,7 +235,7 @@ func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateStringSlice", value.Line, value.ShortTag())
+	return fmt.Errorf("cannot unmarshal %s into IssueTemplateStringSlice", value.ShortTag())
 }
 
 type IssueConfigContactLink struct {

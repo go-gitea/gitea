@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unicode"
 
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/setting"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -68,6 +68,11 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		m[0] += start
 		m[1] += start
 		start = m[1]
+
+		// don't render a shortcode whose ":" directly follows a backtick (an unclosed code span)
+		if m[0] > 0 && node.Data[m[0]-1] == '`' {
+			continue
+		}
 
 		alias := node.Data[m[0]:m[1]]
 

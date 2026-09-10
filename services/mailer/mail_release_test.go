@@ -6,12 +6,12 @@ package mailer
 import (
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	sender_service "gitea.dev/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,8 +40,8 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	unauthorized := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	assert.NoError(t, repo_model.WatchRepo(t.Context(), admin, repo, true))
-	assert.NoError(t, repo_model.WatchRepo(t.Context(), unauthorized, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), admin, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), unauthorized, repo, true))
 
 	rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 11})
 	rel.Repo = nil

@@ -10,13 +10,35 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
-type RequestContextKeyStruct struct{}
+type contextKeyType string
 
-var RequestContextKey = RequestContextKeyStruct{}
+var (
+	contextKeyRequest          = contextKeyType("request")
+	contextKeySupportPublicURL = contextKeyType("support-public-url")
+)
+
+// RequestWithContext returns a request with the given context and adds a cleanup function to remove temporary files.
+// It also sets the request in the context for later retrieval.
+func RequestWithContext(req *http.Request, ctx reqctx.RequestContext) *http.Request {
+	req = req.WithContext(ctx)
+	ctx.AddCleanUp(func() {
+		if req.MultipartForm != nil {
+			_ = req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+		}
+	})
+	ctx.SetContextValue(contextKeyRequest, req)
+	return req
+}
+
+// MarkRequestSupportPublicURL marks the request context to support public URL detection from request headers.
+func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
+	ctx.SetContextValue(contextKeySupportPublicURL, true)
+}
 
 func urlIsRelative(s string, u *url.URL) bool {
 	// Unfortunately, browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
@@ -24,7 +46,18 @@ func urlIsRelative(s string, u *url.URL) bool {
 	if len(s) > 1 && (s[0] == '/' || s[0] == '\\') && (s[1] == '/' || s[1] == '\\') {
 		return false
 	}
-	return u != nil && u.Scheme == "" && u.Host == ""
+	if u == nil {
+		return false // invalid URL
+	}
+	if u.Scheme != "" || u.Host != "" {
+		return false // absolute URL with scheme or host
+	}
+	// Now, the URL is likely a relative URL
+	// HINT: GOLANG-HTTP-REDIRECT-BUG: Golang security vulnerability: "http.Redirect" calls "path.Clean" and changes the meaning of a path
+	// For example, `/a/../\b` will be changed to `/\b`, then it hits the first checked pattern and becomes an open redirect to "{current-scheme}://b"
+	// For a valid relative URL, its "path" shouldn't contain `\` because such char must be escaped.
+	// So if the "path" contains `\`, it is not a valid relative URL, then we can prevent open redirect.
+	return !strings.Contains(u.Path, "\\")
 }
 
 // IsRelativeURL detects if a URL is relative (no scheme or host)
@@ -35,14 +68,14 @@ func IsRelativeURL(s string) bool {
 
 func getRequestScheme(req *http.Request) string {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto
-	if s := req.Header.Get("X-Forwarded-Proto"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Proto")); ok {
+		return proto
 	}
-	if s := req.Header.Get("X-Forwarded-Protocol"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Forwarded-Protocol")); ok {
+		return proto
 	}
-	if s := req.Header.Get("X-Url-Scheme"); s != "" {
-		return s
+	if proto, ok := parseForwardedProtoValue(req.Header.Get("X-Url-Scheme")); ok {
+		return proto
 	}
 	if s := req.Header.Get("Front-End-Https"); s != "" {
 		return util.Iif(s == "on", "https", "http")
@@ -53,6 +86,13 @@ func getRequestScheme(req *http.Request) string {
 	return ""
 }
 
+func parseForwardedProtoValue(val string) (string, bool) {
+	if val == "http" || val == "https" {
+		return val, true
+	}
+	return "", false
+}
+
 // GuessCurrentAppURL tries to guess the current full public URL (with sub-path) by http headers. It always has a '/' suffix, exactly the same as setting.AppURL
 // TODO: should rename it to GuessCurrentPublicURL in the future
 func GuessCurrentAppURL(ctx context.Context) string {
@@ -61,6 +101,11 @@ func GuessCurrentAppURL(ctx context.Context) string {
 
 // GuessCurrentHostURL tries to guess the current full host URL (no sub-path) by http headers, there is no trailing slash.
 func GuessCurrentHostURL(ctx context.Context) string {
+	// "never" means always trust ROOT_URL and skip any request header detection.
+	detectPublicURL := setting.PublicURLDetection != setting.PublicURLNever && ctx.Value(contextKeySupportPublicURL) == true
+	if !detectPublicURL {
+		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
+	}
 	// Try the best guess to get the current host URL (will be used for public URL) by http headers.
 	// At the moment, if site admin doesn't configure the proxy headers correctly, then Gitea would guess wrong.
 	// There are some cases:
@@ -70,7 +115,7 @@ func GuessCurrentHostURL(ctx context.Context) string {
 	// Without more information, Gitea is impossible to distinguish between case 2 and case 3, then case 2 would result in
 	// wrong guess like guessed public URL becomes "http://gitea:3000/" behind a "https" reverse proxy, which is not accessible by end users.
 	// So we introduced "PUBLIC_URL_DETECTION" option, to control the guessing behavior to satisfy different use cases.
-	req, ok := ctx.Value(RequestContextKey).(*http.Request)
+	req, ok := ctx.Value(contextKeyRequest).(*http.Request)
 	if !ok {
 		return strings.TrimSuffix(setting.AppURL, setting.AppSubURL+"/")
 	}

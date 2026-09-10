@@ -11,6 +11,8 @@
 			<td>{{svg "octicon-repo"}} <a href="{{$.Org.HomeLink}}/{{PathEscape .RepoName}}/issues">{{.RepoName}}</a></td>
 			<td>{{svg "octicon-clock"}} {{.SumTime | Sec2Hour}}</td>
 		</tr>
+		{{else}}
+			{{template "org/worktime/empty_placeholder" dict "Colspan" 2}}
 		{{end}}
 	</tbody>
 </table>

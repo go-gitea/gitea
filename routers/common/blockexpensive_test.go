@@ -25,6 +25,4 @@ func TestBlockExpensive(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.expensive, isRoutePathExpensive(c.routePath), "routePath: %s", c.routePath)
 	}
-
-	assert.True(t, isRoutePathForLongPolling("/user/events"))
 }

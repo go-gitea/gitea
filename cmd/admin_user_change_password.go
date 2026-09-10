@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	user_service "code.gitea.io/gitea/services/user"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/password"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	user_service "gitea.dev/services/user"
 
 	"github.com/urfave/cli/v3"
 )
@@ -73,6 +73,6 @@ func runChangePassword(ctx context.Context, c *cli.Command) error {
 		}
 	}
 
-	fmt.Printf("%s's password has been successfully updated!\n", user.Name)
+	cprintf(c, "%s's password has been successfully updated!\n", user.Name)
 	return nil
 }

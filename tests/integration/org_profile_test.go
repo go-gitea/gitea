@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/web/shared/user"
+	auth_model "gitea.dev/models/auth"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/web/shared/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -66,7 +66,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 	createTestProfile(t, "org3", user.RepoNameProfilePrivate, contentPrivateReadme)
 
 	// Anonymous User
-	req := NewRequest(t, "GET", "org3")
+	req := NewRequest(t, "GET", "/org3")
 	resp := MakeRequest(t, req, http.StatusOK)
 	bodyString := util.UnsafeBytesToString(resp.Body.Bytes())
 	assert.Contains(t, bodyString, contentPublicReadme)
@@ -74,7 +74,7 @@ func testOrgProfile(t *testing.T, u *url.URL) {
 
 	// Logged in but not member
 	session := loginUser(t, "user24")
-	req = NewRequest(t, "GET", "org3")
+	req = NewRequest(t, "GET", "/org3")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	bodyString = util.UnsafeBytesToString(resp.Body.Bytes())
 	assert.Contains(t, bodyString, contentPublicReadme)

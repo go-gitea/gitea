@@ -1,11 +1,8 @@
-<script type="module">
+<script nonce="{{ctx.CspScriptNonce}}" type="module">
 const data = {
 	...window.config.pageData.dashboardRepoList, // it only contains searchLimit and uid
 
 	isMirrorsEnabled: {{.MirrorsEnabled}},
-	isStarsEnabled: {{not .IsDisableStars}},
-
-	canCreateMigrations: {{not .DisableMigrations}},
 
 	textNoOrg: {{ctx.Locale.Tr "home.empty_org"}},
 	textNoRepo: {{ctx.Locale.Tr "home.empty_repo"}},

@@ -4,15 +4,17 @@
 
 package git
 
+import "context"
+
 // GetBlobByPath get the blob object according the path
-func (t *Tree) GetBlobByPath(relpath string) (*Blob, error) {
-	entry, err := t.GetTreeEntryByPath(relpath)
+func (t *Tree) GetBlobByPath(ctx context.Context, gitRepo *Repository, relpath string) (*Blob, error) {
+	entry, err := t.GetTreeEntryByPath(ctx, gitRepo, relpath)
 	if err != nil {
 		return nil, err
 	}
 
 	if !entry.IsDir() && !entry.IsSubModule() {
-		return entry.Blob(), nil
+		return entry.Blob(gitRepo), nil
 	}
 
 	return nil, ErrNotExist{"", relpath}

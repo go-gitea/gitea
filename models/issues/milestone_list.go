@@ -7,8 +7,8 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -22,6 +22,18 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 		ids = append(ids, ms.ID)
 	}
 	return ids
+}
+
+// SplitByOpenClosed splits the milestone list into open and closed milestones
+func (milestones MilestoneList) SplitByOpenClosed() (open, closed MilestoneList) {
+	for _, m := range milestones {
+		if m.IsClosed {
+			closed = append(closed, m)
+		} else {
+			open = append(open, m)
+		}
+	}
+	return open, closed
 }
 
 // FindMilestoneOptions contain options to get milestones

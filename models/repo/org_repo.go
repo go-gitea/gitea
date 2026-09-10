@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
 
 	"xorm.io/builder"
 )
@@ -18,30 +18,52 @@ import (
 // GetOrgRepositories get repos belonging to the given organization
 func GetOrgRepositories(ctx context.Context, orgID int64) (RepositoryList, error) {
 	var orgRepos []*Repository
-	return orgRepos, db.GetEngine(ctx).Where("owner_id = ?", orgID).Find(&orgRepos)
+	err := db.GetEngine(ctx).Where("owner_id = ?", orgID).Find(&orgRepos)
+	return orgRepos, err
+}
+
+// GetOrgRepositoryIDs get repo IDs belonging to the given organization
+func GetOrgRepositoryIDs(ctx context.Context, orgID int64) (repoIDs []int64, _ error) {
+	err := db.GetEngine(ctx).Table("repository").Where("owner_id = ?", orgID).Cols("id").Find(&repoIDs)
+	return repoIDs, err
 }
 
 type SearchTeamRepoOptions struct {
 	db.ListOptions
 	TeamID int64
+	// PublicOnly restricts the result (and count) to non-private repositories.
+	PublicOnly bool
 }
 
-// GetRepositories returns paginated repositories in team of organization.
-func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (RepositoryList, error) {
-	sess := db.GetEngine(ctx)
+func (opts *SearchTeamRepoOptions) toCond() builder.Cond {
+	cond := builder.NewCond()
 	if opts.TeamID > 0 {
-		sess = sess.In("id",
+		cond = cond.And(builder.In("id",
 			builder.Select("repo_id").
 				From("team_repo").
 				Where(builder.Eq{"team_id": opts.TeamID}),
-		)
+		))
 	}
+	if opts.PublicOnly {
+		cond = cond.And(builder.Eq{"is_private": false})
+	}
+	return cond
+}
+
+// GetTeamRepositories returns paginated repositories in team of organization.
+func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (RepositoryList, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.PageSize > 0 {
 		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	var repos []*Repository
 	return repos, sess.OrderBy("repository.name").
 		Find(&repos)
+}
+
+// CountTeamRepositories returns the number of repositories in team of organization matching opts.
+func CountTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toCond()).Count(new(Repository))
 }
 
 // AccessibleReposEnvironment operations involving the repositories that are

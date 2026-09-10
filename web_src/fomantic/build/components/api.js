@@ -75,6 +75,8 @@ $.api = $.fn.api = function(parameters) {
         data,
         requestStartTime,
 
+        cachedResponses = {},
+
         // standard module
         element         = this,
         context         = $context[0],
@@ -141,34 +143,16 @@ $.api = $.fn.api = function(parameters) {
 
         read: {
           cachedResponse: function(url) {
-            var
-              response
-            ;
-            if(window.Storage === undefined) {
-              module.error(error.noStorage);
-              return;
-            }
-            response = sessionStorage.getItem(url);
-            module.debug('Using cached response', url, response);
-            response = module.decode.json(response);
-            return response;
+            const cacheItem = cachedResponses[url];
+            if (!cacheItem) return null;
+            return module.decode.json(cacheItem.respText);
           }
         },
         write: {
           cachedResponse: function(url, response) {
-            if(response && response === '') {
-              module.debug('Response empty, not caching', response);
-              return;
-            }
-            if(window.Storage === undefined) {
-              module.error(error.noStorage);
-              return;
-            }
-            if( $.isPlainObject(response) ) {
-              response = JSON.stringify(response);
-            }
-            sessionStorage.setItem(url, response);
-            module.verbose('Storing cached response for url', url, response);
+            if(!response) return;
+            if($.isPlainObject(response) || $.isArray(response)) response = JSON.stringify(response);
+            cachedResponses[url] = {cacheTime: Date.now(), respText: response};
           }
         },
 
@@ -243,10 +227,12 @@ $.api = $.fn.api = function(parameters) {
 
           module.debug('Querying URL', ajaxSettings.url);
           module.verbose('Using AJAX settings', ajaxSettings);
-          if(settings.cache === 'local' && module.read.cachedResponse(url)) {
+
+          const cachedObj = module.read.cachedResponse(url);
+          if(settings.cache === 'local' && cachedObj) {
             module.debug('Response returned from local cache');
             module.request = module.create.request();
-            module.request.resolveWith(context, [ module.read.cachedResponse(url) ]);
+            module.request.resolveWith(context, [ cachedObj ]);
             return;
           }
 
@@ -537,13 +523,13 @@ $.api = $.fn.api = function(parameters) {
             }
           },
           request: {
-            done: function(response, xhr) {
+            done: function(response) {
               module.debug('Successful API Response', response);
               if(settings.cache === 'local' && url) {
                 module.write.cachedResponse(url, response);
                 module.debug('Saving server response locally', module.cache);
               }
-              settings.onSuccess.call(context, response, $module, xhr);
+              settings.onSuccess.call(context, response, $module);
             },
             complete: function(firstParameter, secondParameter) {
               var
@@ -1081,7 +1067,7 @@ $.api.settings = {
   throttle             : 0,
 
   // whether to throttle first request or only repeated
-  throttleFirstRequest : true,
+  throttleFirstRequest : false,
 
   // standard ajax settings
   method            : 'get',
@@ -1110,7 +1096,7 @@ $.api.settings = {
   // response was successful, if JSON passed validation
   onSuccess   : function(response, $module) {},
 
-  // request finished without aborting
+  // request completed, either success or error/failure/abort: jQuery.ajax().always()
   onComplete  : function(response, $module) {},
 
   // failed JSON success test

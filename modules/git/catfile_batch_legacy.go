@@ -6,11 +6,10 @@ package git
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
+	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
 )
 
 // catFileBatchLegacy implements the CatFileBatch interface using the "cat-file --batch" command and "cat-file --batch-check" command
@@ -19,25 +18,22 @@ import (
 // ref: https://git-scm.com/docs/git-cat-file#Documentation/git-cat-file.txt---batch
 type catFileBatchLegacy struct {
 	ctx          context.Context
-	repoPath     string
+	repo         RepositoryFacade
 	batchContent *catFileBatchCommunicator
 	batchCheck   *catFileBatchCommunicator
 }
 
 var _ CatFileBatchCloser = (*catFileBatchLegacy)(nil)
 
-func newCatFileBatchLegacy(ctx context.Context, repoPath string) (*catFileBatchLegacy, error) {
-	if _, err := os.Stat(repoPath); err != nil {
-		return nil, util.NewNotExistErrorf("repo %q doesn't exist", filepath.Base(repoPath))
-	}
-	return &catFileBatchLegacy{ctx: ctx, repoPath: repoPath}, nil
+func newCatFileBatchLegacy(ctx context.Context, repo RepositoryFacade) *catFileBatchLegacy {
+	return &catFileBatchLegacy{ctx: ctx, repo: repo}
 }
 
 func (b *catFileBatchLegacy) getBatchContent() *catFileBatchCommunicator {
 	if b.batchContent != nil {
 		return b.batchContent
 	}
-	b.batchContent = newCatFileBatch(b.ctx, b.repoPath, gitcmd.NewCommand("cat-file", "--batch"))
+	b.batchContent = newCatFileBatch(b.ctx, b.repo, gitcmd.NewCommand("cat-file", "--batch"))
 	return b.batchContent
 }
 
@@ -45,11 +41,18 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 	if b.batchCheck != nil {
 		return b.batchCheck
 	}
-	b.batchCheck = newCatFileBatch(b.ctx, b.repoPath, gitcmd.NewCommand("cat-file", "--batch-check"))
+	b.batchCheck = newCatFileBatch(b.ctx, b.repo, gitcmd.NewCommand("cat-file", "--batch-check"))
 	return b.batchCheck
 }
 
+func (b *catFileBatchLegacy) Context() context.Context {
+	return b.ctx
+}
+
 func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
+	if strings.Contains(obj, "\n") {
+		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
+	}
 	_, err := io.WriteString(b.getBatchContent().reqWriter, obj+"\n")
 	if err != nil {
 		return nil, nil, err
@@ -62,6 +65,9 @@ func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedR
 }
 
 func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
+	if strings.Contains(obj, "\n") {
+		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
+	}
 	_, err := io.WriteString(b.getBatchCheck().reqWriter, obj+"\n")
 	if err != nil {
 		return nil, err

@@ -1,5 +1,7 @@
 import {toggleElem} from '../utils/dom.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
+import {trString} from '../modules/i18n.ts';
+import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 export function initRepoBranchButton() {
   initRepoCreateBranchButton();
@@ -18,25 +20,23 @@ function initRepoCreateBranchButton() {
       const fromSpanName = el.getAttribute('data-modal-from-span') || '#modal-create-branch-from-span';
       document.querySelector(fromSpanName)!.textContent = el.getAttribute('data-branch-from');
 
-      fomanticQuery(el.getAttribute('data-modal')!).modal('show');
+      showFomanticModal(document.querySelector(el.getAttribute('data-modal')!));
     });
   }
 }
 
 function initRepoRenameBranchButton() {
-  for (const el of document.querySelectorAll('.show-rename-branch-modal')) {
-    el.addEventListener('click', () => {
-      const target = el.getAttribute('data-modal')!;
-      const modal = document.querySelector(target)!;
-      const oldBranchName = el.getAttribute('data-old-branch-name')!;
-      modal.querySelector<HTMLInputElement>('input[name=from]')!.value = oldBranchName;
+  registerGlobalEventFunc('click', 'showRenameBranchModal', (el) => {
+    const target = el.getAttribute('data-modal')!;
+    const modal = document.querySelector(target)!;
+    const oldBranchName = el.getAttribute('data-old-branch-name')!;
+    modal.querySelector<HTMLInputElement>('input[name=from]')!.value = oldBranchName;
 
-      // display the warning that the branch which is chosen is the default branch
-      const warn = modal.querySelector('.default-branch-warning')!;
-      toggleElem(warn, el.getAttribute('data-is-default-branch') === 'true');
+    // display the warning that the branch which is chosen is the default branch
+    const warn = modal.querySelector('.default-branch-warning')!;
+    toggleElem(warn, el.getAttribute('data-is-default-branch') === 'true');
 
-      const text = modal.querySelector('[data-rename-branch-to]')!;
-      text.textContent = text.getAttribute('data-rename-branch-to')!.replace('%s', oldBranchName);
-    });
-  }
+    const text = modal.querySelector('[data-rename-branch-to]')!;
+    text.textContent = trString(text.getAttribute('data-rename-branch-to')!, oldBranchName);
+  });
 }

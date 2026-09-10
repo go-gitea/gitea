@@ -8,20 +8,20 @@ import (
 	"fmt"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
-func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int, error) {
+func GetFeedsForDashboard(ctx context.Context, opts activities_model.GetFeedsOptions) (activities_model.ActionList, int64, error) {
 	opts.DontCount = opts.RequestedTeam == nil && opts.Date == ""
 	results, cnt, err := activities_model.GetFeeds(ctx, opts)
-	return results, util.Iif(opts.DontCount, -1, int(cnt)), err
+	return results, util.Iif(opts.DontCount, -1, cnt), err
 }
 
 // GetFeeds returns actions according to the provided options
@@ -69,20 +69,23 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 		act.UserID = watcher.UserID
 		act.Repo.Units = nil
 
+		var allowed bool
 		switch act.OpType {
-		case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionPublishRelease, activities_model.ActionDeleteBranch:
-			if !permCode[i] {
-				continue
-			}
+		case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
+			allowed = permCode[i] && watcher.IsWatchingAll()
+		case activities_model.ActionPublishRelease:
+			allowed = permCode[i] && watcher.IncludeReleases
 		case activities_model.ActionCreateIssue, activities_model.ActionCommentIssue, activities_model.ActionCloseIssue, activities_model.ActionReopenIssue:
-			if !permIssue[i] {
-				continue
-			}
-		case activities_model.ActionCreatePullRequest, activities_model.ActionCommentPull, activities_model.ActionMergePullRequest, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest, activities_model.ActionAutoMergePullRequest:
-			if !permPR[i] {
-				continue
-			}
+			allowed = permIssue[i] && watcher.IncludeIssues
+		case activities_model.ActionCreatePullRequest, activities_model.ActionCommentPull, activities_model.ActionMergePullRequest, activities_model.ActionClosePullRequest,
+			activities_model.ActionReopenPullRequest, activities_model.ActionAutoMergePullRequest, activities_model.ActionApprovePullRequest,
+			activities_model.ActionRejectPullRequest, activities_model.ActionPullReviewDismissed, activities_model.ActionPullRequestReadyForReview:
+			allowed = permPR[i] && watcher.IncludePullRequests
 		default:
+			allowed = watcher.IsWatchingAll() // repository events have no watch option of their own
+		}
+		if !allowed {
+			continue
 		}
 
 		if err := db.Insert(ctx, act); err != nil {
@@ -120,7 +123,6 @@ func NotifyWatchers(ctx context.Context, acts ...*activities_model.Action) error
 		if err != nil {
 			return fmt.Errorf("get watchers: %w", err)
 		}
-
 		permCode := make([]bool, len(watchers))
 		permIssue := make([]bool, len(watchers))
 		permPR := make([]bool, len(watchers))
@@ -132,7 +134,7 @@ func NotifyWatchers(ctx context.Context, acts ...*activities_model.Action) error
 				permPR[i] = false
 				continue
 			}
-			perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
+			perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
 			if err != nil {
 				permCode[i] = false
 				permIssue[i] = false

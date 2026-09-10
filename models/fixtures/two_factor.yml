@@ -7,3 +7,5 @@
   last_used_passcode:
   created_unix: 1564253724
   updated_unix: 1564253724
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

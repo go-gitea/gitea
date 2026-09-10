@@ -13,15 +13,15 @@ import (
 	"net/http"
 	"strings"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	rubygems_module "gitea.dev/modules/packages/rubygems"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -75,11 +75,11 @@ func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_mo
 				Name:  "Gem::Version",
 				Value: []string{p.Version.Version},
 			},
-			p.Metadata.(*rubygems_module.Metadata).Platform,
+			packages_model.DescriptorMetadata[*rubygems_module.Metadata](p).Platform,
 		})
 	}
 
-	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+	ctx.SetServeHeaders(context.ServeHeaderOptions{
 		Filename: filename + ".gz",
 	})
 
@@ -119,14 +119,14 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	ctx.SetServeHeaders(&context.ServeHeaderOptions{
+	ctx.SetServeHeaders(context.ServeHeaderOptions{
 		Filename: filename,
 	})
 
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()
 
-	metadata := pd.Metadata.(*rubygems_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*rubygems_module.Metadata](pd)
 
 	// create a Ruby Gem::Specification object
 	spec := &rubygems_module.RubyUserDef{
@@ -405,7 +405,7 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 		return "", err
 	}
 
-	metadata := pd.Metadata.(*rubygems_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*rubygems_module.Metadata](pd)
 	fullFilename := makeGemFullFileName(pd.Package.Name, version.Version, metadata.Platform)
 	file, err := packages_model.GetFileForVersionByName(ctx, version.ID, fullFilename, "")
 	if err != nil {

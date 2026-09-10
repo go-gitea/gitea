@@ -11,6 +11,7 @@ linters:
     - dupl
     - errcheck
     - forbidigo
+    - forcetypeassert
     - gocheckcompilerdirectives
     - gocritic
     - govet
@@ -18,6 +19,7 @@ linters:
     - mirror
     - modernize
     - nakedret
+    - nilnil
     - nolintlint
     - perfsprint
     - revive
@@ -42,7 +44,7 @@ linters:
               desc: use os or io instead
             - pkg: golang.org/x/exp
               desc: it's experimental and unreliable
-            - pkg: code.gitea.io/gitea/modules/git/internal
+            - pkg: gitea.dev/modules/git/internal
               desc: do not use the internal package, use AddXxx function instead
             - pkg: gopkg.in/ini.v1
               desc: do not use the ini package, use gitea's config system instead
@@ -50,8 +52,23 @@ linters:
               desc: do not use the go-chi cache package, use gitea's cache system
             - pkg: github.com/pkg/errors
               desc: use builtin errors package instead
-            - pkg: github.com/go-ap/errors
-              desc: use builtin errors package instead
+            - pkg: gitea.com/go-chi/binding
+              desc: use our wrapper
+        migrations:
+          files:
+            - '**/modelmigration/**/*.go'
+          deny:
+            - pkg: gitea.dev/models
+              desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
+            - pkg: gitea.dev/modules/structs
+              desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
+    forbidigo:
+      forbid:
+        - pattern: '^(fmt\.Print(|f|ln)|print|println)$' # default
+        - pattern: '^exec\.CommandContext$' # use our wrapper for graceful termination
+    modernize:
+      disable:
+        - embedlit
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -66,41 +83,35 @@ linters:
     revive:
       severity: error
       rules:
-        - name: atomic
-        - name: bare-return
         - name: blank-imports
         - name: constant-logical-expr
         - name: context-as-argument
         - name: context-keys-type
         - name: dot-imports
-        - name: duplicated-imports
         - name: empty-lines
-        - name: error-naming
         - name: error-return
         - name: error-strings
-        - name: errorf
         - name: exported
         - name: identical-branches
         - name: if-return
         - name: increment-decrement
-        - name: indent-error-flow
         - name: modifies-value-receiver
         - name: package-comments
-        - name: range
-        - name: receiver-naming
+        - name: package-naming
+          arguments:
+            - convention-name-check-regex: '^[a-z][a-z0-9_]*$' # underscores are used by migration packages
+              skip-default-bad-name-check: true
+              skip-collision-with-common-std: true
         - name: redefines-builtin-id
-        - name: string-of-int
         - name: superfluous-else
         - name: time-naming
-        - name: unconditional-recursion
         - name: unexported-return
-        - name: unreachable-code
         - name: var-declaration
         - name: var-naming
           arguments:
             - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
             - [] # DenyList
-            - - skip-package-name-checks: true # supress errors from underscore in migration packages
+            - - skip-initialism-name-checks: true
     staticcheck:
       checks:
         - all
@@ -111,6 +122,7 @@ linters:
         - -QF1008
     testifylint:
       disable:
+        - empty
         - go-require
         - require-error
     usetesting:
@@ -132,20 +144,13 @@ linters:
       - linters:
           - dupl
           - errcheck
-          - gocyclo
-          - gosec
+          - forbidigo
           - staticcheck
           - unparam
         path: _test\.go
       - linters:
           - dupl
-          - errcheck
-          - gocyclo
-          - gosec
-        path: models/migrations/v
-      - linters:
-          - forbidigo
-        path: cmd
+        path: modelmigration/v
       - linters:
           - dupl
         text: (?i)webhook
@@ -153,12 +158,8 @@ linters:
           - gocritic
         text: (?i)`ID' should not be capitalized
       - linters:
-          - deadcode
           - unused
         text: (?i)swagger
-      - linters:
-          - staticcheck
-        text: (?i)argument x is overwritten before first use
       - linters:
           - gocritic
         text: '(?i)commentFormatting: put a space between `//` and comment text'
@@ -166,33 +167,35 @@ linters:
           - gocritic
         text: '(?i)exitAfterDefer:'
     paths:
-      - node_modules
-      - .venv
-      - public
-      - web_src
-      - third_party$
-      - builtin$
-      - examples$
+      - ^node_modules/
+      - ^\.venv/
+      - ^public/
+      - ^web_src/
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
 formatters:
   enable:
-    - gofmt
+    - gci
     - gofumpt
   settings:
+    gci:
+      custom-order: true
+      sections:
+        - standard
+        - prefix(gitea.dev)
+        - blank
+        - default
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
   exclusions:
     generated: lax
     paths:
-      - node_modules
-      - .venv
-      - public
-      - web_src
-      - third_party$
-      - builtin$
-      - examples$
+      - ^node_modules/
+      - ^\.venv/
+      - ^public/
+      - ^web_src/
 
 run:
   timeout: 10m

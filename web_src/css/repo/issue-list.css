@@ -34,17 +34,17 @@
   }
 }
 
-#issue-list .flex-item-body .branches {
+#issue-list .branches {
   display: inline-flex;
 }
 
-#issue-list .flex-item-body .branches .branch {
+#issue-list .branches .branch {
   background-color: var(--color-secondary-alpha-50);
   border-radius: var(--border-radius);
   padding: 0 4px;
 }
 
-#issue-list .flex-item-body .branches .truncated-name {
+#issue-list .branches .truncated-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -53,18 +53,18 @@
   vertical-align: top;
 }
 
-#issue-list .flex-item-body .checklist progress {
+#issue-list .checklist progress {
   margin-left: 2px;
   width: 80px;
   height: 6px;
   display: inline-block;
 }
 
-#issue-list .flex-item-body .checklist progress::-webkit-progress-value {
+#issue-list .checklist progress::-webkit-progress-value {
   background-color: var(--color-secondary-dark-4);
 }
 
-#issue-list .flex-item-body .checklist progress::-moz-progress-bar {
+#issue-list .checklist progress::-moz-progress-bar {
   background-color: var(--color-secondary-dark-4);
 }
 
@@ -83,4 +83,48 @@
   margin-left: 10px;
   margin-right: 8px;
   text-align: left;
+}
+
+/* for "title (#123)":
+  <span "title-full-link-hover">
+    <a "title-full-link muted">title (</a>
+    <a "muted">#123</a>
+    <a "title-full-link muted">)</a>
+  </span>
+  * hover on "title": also highlight the right parentheses
+  * hover on "#123": don't highlight other parts
+ */
+.title-full-link-hover:not(:has(:not(.title-full-link):hover)):hover > a.title-full-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.list-item-large-title {
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.list-item-title-progress {
+  width: 200px;
+  height: 16px;
+}
+
+.list-item-secondary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-block);
+  justify-content: space-between;
+  color: var(--color-text-light-2);
+}
+
+.list-item-secondary-bar a {
+  color: var(--color-text-light-2);
+  text-decoration: none;
+}
+
+.list-item-secondary-bar a:hover {
+  color: var(--color-text);
 }

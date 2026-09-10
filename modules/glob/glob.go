@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
+	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // Reference: https://github.com/gobwas/glob/blob/master/glob.go
@@ -18,19 +20,27 @@ type Glob interface {
 }
 
 type globCompiler struct {
+	regexpQuestion     bool
+	regexpPlus         bool
+	superWildcardRight bool
+	supportNegative    bool
+
+	separators        []rune
 	nonSeparatorChars string
 	globPattern       []rune
 	regexpPattern     string
 	regexp            *regexp.Regexp
+	builder           *strings.Builder
 	pos               int
+	negativeFlip      bool
 }
 
 // compileChars compiles character class patterns like [abc] or [!abc]
-func (g *globCompiler) compileChars() (string, error) {
-	result := ""
+func (g *globCompiler) compileChars() error {
+	g.builder.WriteByte('[')
 	if g.pos < len(g.globPattern) && g.globPattern[g.pos] == '!' {
 		g.pos++
-		result += "^"
+		g.builder.WriteByte('^')
 	}
 
 	for g.pos < len(g.globPattern) {
@@ -38,81 +48,111 @@ func (g *globCompiler) compileChars() (string, error) {
 		g.pos++
 
 		if c == ']' {
-			return "[" + result + "]", nil
+			g.builder.WriteByte(']')
+			return nil
 		}
 
 		if c == '\\' {
 			if g.pos >= len(g.globPattern) {
-				return "", errors.New("unterminated character class escape")
+				return errors.New("unterminated character class escape")
 			}
-			result += "\\" + string(g.globPattern[g.pos])
+			g.builder.WriteByte('\\')
+			g.builder.WriteRune(g.globPattern[g.pos])
 			g.pos++
 		} else {
-			result += string(c)
+			g.builder.WriteRune(c)
 		}
 	}
 
-	return "", errors.New("unterminated character class")
+	return errors.New("unterminated character class")
 }
 
 // compile compiles the glob pattern into a regular expression
-func (g *globCompiler) compile(subPattern bool) (string, error) {
-	result := ""
-
+func (g *globCompiler) compile(subPattern bool) error {
 	for g.pos < len(g.globPattern) {
 		c := g.globPattern[g.pos]
 		g.pos++
 
 		if subPattern && c == '}' {
-			return "(" + result + ")", nil
+			g.builder.WriteByte(')')
+			return nil
 		}
 
 		switch c {
 		case '*':
 			if g.pos < len(g.globPattern) && g.globPattern[g.pos] == '*' {
-				g.pos++
-				result += ".*" // match any sequence of characters
+				var matchRightSep bool
+				if g.superWildcardRight {
+					// check "**/" pattern, then the wildcards should also match the right separator
+					// e.g.: "**/docs" should match "docs"
+					var rightRune rune
+					if g.pos+1 < len(g.globPattern) {
+						rightRune = g.globPattern[g.pos+1]
+					}
+					if slices.Contains(g.separators, rightRune) {
+						matchRightSep = g.pos-2 < 0 || g.globPattern[g.pos-2] == rightRune
+					}
+				}
+				if matchRightSep {
+					g.pos += 2
+				} else {
+					g.pos++
+				}
+				g.builder.WriteString(".*") // match any sequence of characters
 			} else {
-				result += g.nonSeparatorChars + "*" // match any sequence of non-separator characters
+				g.builder.WriteString(g.nonSeparatorChars)
+				g.builder.WriteByte('*') // match any sequence of non-separator characters
 			}
 		case '?':
-			result += g.nonSeparatorChars // match any single non-separator character
+			if g.regexpQuestion {
+				g.builder.WriteByte('?')
+			} else {
+				g.builder.WriteString(g.nonSeparatorChars) // match any single non-separator character
+			}
+		case '+':
+			if g.regexpPlus {
+				g.builder.WriteByte('+')
+			} else {
+				g.builder.WriteByte('\\')
+				g.builder.WriteRune(c)
+			}
 		case '[':
-			chars, err := g.compileChars()
-			if err != nil {
-				return "", err
+			if err := g.compileChars(); err != nil {
+				return err
 			}
-			result += chars
 		case '{':
-			subResult, err := g.compile(true)
-			if err != nil {
-				return "", err
+			g.builder.WriteByte('(')
+			if err := g.compile(true); err != nil {
+				return err
 			}
-			result += subResult
 		case ',':
 			if subPattern {
-				result += "|"
+				g.builder.WriteByte('|')
 			} else {
-				result += ","
+				g.builder.WriteByte(',')
 			}
 		case '\\':
 			if g.pos >= len(g.globPattern) {
-				return "", errors.New("no character to escape")
+				return errors.New("no character to escape")
 			}
-			result += "\\" + string(g.globPattern[g.pos])
+			g.builder.WriteByte('\\')
+			g.builder.WriteRune(g.globPattern[g.pos])
 			g.pos++
-		case '.', '+', '^', '$', '(', ')', '|':
-			result += "\\" + string(c) // escape regexp special characters
+		case '.', '^', '$', '(', ')', '|':
+			g.builder.WriteByte('\\')
+			g.builder.WriteRune(c) // escape regexp special characters
 		default:
-			result += string(c)
+			g.builder.WriteRune(c)
 		}
 	}
 
-	return result, nil
+	return nil
 }
 
-func newGlobCompiler(pattern string, separators ...rune) (Glob, error) {
-	g := &globCompiler{globPattern: []rune(pattern)}
+func initGlobCompiler(g *globCompiler, pattern string, separators []rune) (Glob, error) {
+	g.globPattern = []rune(pattern)
+	g.separators = separators
+	g.builder = new(strings.Builder)
 
 	// Escape separators for use in character class
 	escapedSeparators := regexp.QuoteMeta(string(separators))
@@ -122,12 +162,18 @@ func newGlobCompiler(pattern string, separators ...rune) (Glob, error) {
 		g.nonSeparatorChars = "."
 	}
 
-	compiled, err := g.compile(false)
-	if err != nil {
-		return nil, err
+	if g.supportNegative && len(g.globPattern) > 0 && g.globPattern[0] == '!' {
+		g.negativeFlip = true
+		g.pos++
 	}
 
-	g.regexpPattern = "^" + compiled + "$"
+	g.builder.WriteByte('^')
+	if err := g.compile(false); err != nil {
+		return nil, err
+	}
+	g.builder.WriteByte('$')
+	g.regexpPattern = g.builder.String()
+	g.builder = nil
 
 	regex, err := regexp.Compile(g.regexpPattern)
 	if err != nil {
@@ -139,11 +185,24 @@ func newGlobCompiler(pattern string, separators ...rune) (Glob, error) {
 }
 
 func (g *globCompiler) Match(s string) bool {
-	return g.regexp.MatchString(s)
+	ret := g.regexp.MatchString(s)
+	if g.negativeFlip {
+		ret = !ret
+	}
+	return ret
 }
 
 func Compile(pattern string, separators ...rune) (Glob, error) {
-	return newGlobCompiler(pattern, separators...)
+	return initGlobCompiler(&globCompiler{}, pattern, separators)
+}
+
+func CompileWorkflow(pattern string) (Glob, error) {
+	return initGlobCompiler(&globCompiler{
+		regexpQuestion:     true,
+		regexpPlus:         true,
+		superWildcardRight: true,
+		supportNegative:    true,
+	}, pattern, []rune{'/'})
 }
 
 func MustCompile(pattern string, separators ...rune) Glob {

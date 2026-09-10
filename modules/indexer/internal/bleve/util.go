@@ -6,21 +6,46 @@ package bleve
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"unicode"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/blevesearch/bleve/v2"
 	unicode_tokenizer "github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/index/upsidedown"
-	"github.com/ethantkoenig/rupture"
 )
 
 const (
-	maxFuzziness = 2
+	maxFuzziness          = 2
+	indexMetadataFilename = "rupture_meta.json" // named after the former "rupture" dependency, renaming it would force a reindex
 )
+
+type indexMetadata struct {
+	Version int `json:"version"`
+}
+
+func readIndexMetadataVersion(path string) (int, error) {
+	data, err := os.ReadFile(filepath.Join(path, indexMetadataFilename))
+	if errors.Is(err, os.ErrNotExist) {
+		return 0, nil
+	} else if err != nil {
+		return 0, err
+	}
+
+	var metadata indexMetadata
+	if err := json.Unmarshal(data, &metadata); err != nil {
+		return 0, err
+	}
+	return metadata.Version, nil
+}
+
+func writeIndexMetadataVersion(path string, version int) error {
+	data, _ := json.Marshal(indexMetadata{Version: version}) // marshalling a single int cannot fail
+	return os.WriteFile(filepath.Join(path, indexMetadataFilename), data, 0o666)
+}
 
 // openIndexer open the index at the specified path, checking for metadata
 // updates and bleve version updates.  If index needs to be created (or
@@ -33,21 +58,21 @@ func openIndexer(path string, latestVersion int) (bleve.Index, int, error) {
 		return nil, 0, err
 	}
 
-	metadata, err := rupture.ReadIndexMetadata(path)
+	version, err := readIndexMetadataVersion(path)
 	if err != nil {
 		return nil, 0, err
 	}
-	if metadata.Version < latestVersion {
+	if version < latestVersion {
 		// the indexer is using a previous version, so we should delete it and
 		// re-populate
-		return nil, metadata.Version, util.RemoveAll(path)
+		return nil, version, os.RemoveAll(path)
 	}
 
 	index, err := bleve.Open(path)
 	if err != nil {
 		if errors.Is(err, upsidedown.IncompatibleVersion) {
 			log.Warn("Indexer was built with a previous version of bleve, deleting and rebuilding")
-			return nil, 0, util.RemoveAll(path)
+			return nil, 0, os.RemoveAll(path)
 		}
 		return nil, 0, err
 	}

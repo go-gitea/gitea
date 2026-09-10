@@ -9,3 +9,5 @@
   user_id: 2
   issue_id: 2
   created_unix: 1500988002
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

@@ -4,17 +4,16 @@
 package setting
 
 import (
-	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // Cache represents cache settings
 type Cache struct {
 	Adapter  string
-	Interval int
-	Conn     string
+	Interval int           // GC
+	Conn     string        `ini:"-"`
 	TTL      time.Duration `ini:"ITEM_TTL"`
 }
 
@@ -23,8 +22,7 @@ var CacheService = struct {
 	Cache `ini:"cache"`
 
 	LastCommit struct {
-		TTL          time.Duration `ini:"ITEM_TTL"`
-		CommitsCount int64
+		TTL time.Duration `ini:"ITEM_TTL"`
 	} `ini:"cache.last_commit"`
 }{
 	Cache: Cache{
@@ -33,11 +31,9 @@ var CacheService = struct {
 		TTL:      16 * time.Hour,
 	},
 	LastCommit: struct {
-		TTL          time.Duration `ini:"ITEM_TTL"`
-		CommitsCount int64
+		TTL time.Duration `ini:"ITEM_TTL"`
 	}{
-		TTL:          8760 * time.Hour,
-		CommitsCount: 1000,
+		TTL: 8760 * time.Hour,
 	},
 }
 
@@ -53,19 +49,15 @@ func loadCacheFrom(rootCfg ConfigProvider) {
 	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache", "twoqueue"})
 	switch CacheService.Adapter {
 	case "memory":
-	case "redis", "memcache":
-		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+	case "memcache":
+		CacheService.Conn = sec.Key("HOST").String()
+	case "redis":
+		CacheService.Conn = sec.Key("HOST").MustString(Redis.ConnStr)
 	case "twoqueue":
-		CacheService.Conn = strings.TrimSpace(sec.Key("HOST").String())
-		if CacheService.Conn == "" {
-			CacheService.Conn = "50000"
-		}
+		CacheService.Conn = sec.Key("HOST").MustString("50000")
 	default:
 		log.Fatal("Unknown cache adapter: %s", CacheService.Adapter)
 	}
-
-	sec = rootCfg.Section("cache.last_commit")
-	CacheService.LastCommit.CommitsCount = sec.Key("COMMITS_COUNT").MustInt64(1000)
 }
 
 // TTLSeconds returns the TTLSeconds or unix timestamp for memcache

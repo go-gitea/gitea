@@ -8,6 +8,15 @@ import (
 	"time"
 )
 
+// ObjectFormatName is the git hash algorithm used by a repository.
+// swagger:enum ObjectFormatName
+type ObjectFormatName string
+
+const (
+	ObjectFormatSHA1   ObjectFormatName = "sha1"
+	ObjectFormatSHA256 ObjectFormatName = "sha256"
+)
+
 // Permission represents a set of permissions
 type Permission struct {
 	Admin bool `json:"admin"` // Admin indicates if the user is an administrator of the repository.
@@ -58,26 +67,28 @@ type Repository struct {
 	Fork        bool   `json:"fork"`
 	Template    bool   `json:"template"`
 	// the original repository if this repository is a fork, otherwise null
-	Parent        *Repository `json:"parent,omitempty"`
-	Mirror        bool        `json:"mirror"`
-	Size          int         `json:"size"`
-	Language      string      `json:"language"`
-	LanguagesURL  string      `json:"languages_url"`
-	HTMLURL       string      `json:"html_url"`
-	URL           string      `json:"url"`
-	Link          string      `json:"link"`
-	SSHURL        string      `json:"ssh_url"`
-	CloneURL      string      `json:"clone_url"`
-	OriginalURL   string      `json:"original_url"`
-	Website       string      `json:"website"`
-	Stars         int         `json:"stars_count"`
-	Forks         int         `json:"forks_count"`
-	Watchers      int         `json:"watchers_count"`
-	OpenIssues    int         `json:"open_issues_count"`
-	OpenPulls     int         `json:"open_pr_counter"`
-	Releases      int         `json:"release_counter"`
-	DefaultBranch string      `json:"default_branch"`
-	Archived      bool        `json:"archived"`
+	Parent              *Repository `json:"parent,omitempty"`
+	Mirror              bool        `json:"mirror"`
+	Size                int         `json:"size"`
+	Language            string      `json:"language"`
+	LanguagesURL        string      `json:"languages_url"`
+	HTMLURL             string      `json:"html_url"`
+	URL                 string      `json:"url"`
+	Link                string      `json:"link"`
+	SSHURL              string      `json:"ssh_url"`
+	CloneURL            string      `json:"clone_url"`
+	OriginalURL         string      `json:"original_url"`
+	Website             string      `json:"website"`
+	Stars               int         `json:"stars_count"`
+	Forks               int         `json:"forks_count"`
+	Watchers            int         `json:"watchers_count"`
+	BranchCount         int         `json:"branch_count"`
+	OpenIssues          int         `json:"open_issues_count"`
+	OpenPulls           int         `json:"open_pr_counter"`
+	Releases            int         `json:"release_counter"`
+	DefaultBranch       string      `json:"default_branch"`
+	DefaultTargetBranch string      `json:"default_target_branch,omitempty"`
+	Archived            bool        `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -102,23 +113,26 @@ type Repository struct {
 	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
 	AllowSquash                   bool             `json:"allow_squash_merge"`
 	AllowFastForwardOnly          bool             `json:"allow_fast_forward_only_merge"`
+	AllowMergeUpdate              bool             `json:"allow_merge_update"`
 	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
 	AllowManualMerge              bool             `json:"allow_manual_merge"`
 	AutodetectManualMerge         bool             `json:"autodetect_manual_merge"`
 	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
 	DefaultMergeStyle             string           `json:"default_merge_style"`
+	DefaultUpdateStyle            string           `json:"default_update_style"`
 	DefaultAllowMaintainerEdit    bool             `json:"default_allow_maintainer_edit"`
 	AvatarURL                     string           `json:"avatar_url"`
 	Internal                      bool             `json:"internal"`
 	MirrorInterval                string           `json:"mirror_interval"`
 	// ObjectFormatName of the underlying git repository
-	// enum: sha1,sha256
-	ObjectFormatName string `json:"object_format_name"`
+	ObjectFormatName ObjectFormatName `json:"object_format_name"`
 	// swagger:strfmt date-time
-	MirrorUpdated time.Time     `json:"mirror_updated"`
-	RepoTransfer  *RepoTransfer `json:"repo_transfer,omitempty"`
-	Topics        []string      `json:"topics"`
-	Licenses      []string      `json:"licenses"`
+	MirrorUpdated time.Time `json:"mirror_updated"`
+	// swagger:strfmt date-time
+	MirrorLastSyncAt time.Time     `json:"mirror_last_sync_at"`
+	RepoTransfer     *RepoTransfer `json:"repo_transfer,omitempty"`
+	Topics           []string      `json:"topics"`
+	Licenses         []string      `json:"licenses"`
 }
 
 // CreateRepoOption options when creating repository
@@ -134,25 +148,24 @@ type CreateRepoOption struct {
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// Label-Set to use
-	IssueLabels string `json:"issue_labels"`
+	IssueLabels string `json:"issue_labels" binding:"MaxSize(255)"`
 	// Whether the repository should be auto-initialized?
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
 	Template bool `json:"template"`
 	// Gitignores to use
-	Gitignores string `json:"gitignores"`
+	Gitignores string `json:"gitignores" binding:"MaxSize(1024)"`
 	// License to use
-	License string `json:"license"`
+	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create
-	Readme string `json:"readme"`
+	Readme string `json:"readme" binding:"MaxSize(255)"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 	// TrustModel of the repository
-	// enum: default,collaborator,committer,collaboratorcommitter
+	// enum: ["default","collaborator","committer","collaboratorcommitter"]
 	TrustModel string `json:"trust_model"`
-	// ObjectFormatName of the underlying git repository
-	// enum: sha1,sha256
-	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
+	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
+	ObjectFormatName ObjectFormatName `json:"object_format_name" binding:"MaxSize(6)"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -213,12 +226,16 @@ type EditRepoOption struct {
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.
 	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// either `true` to allow updating pull request branch by merge, or `false` to prevent it.
+	AllowMergeUpdate *bool `json:"allow_merge_update,omitempty"`
 	// either `true` to allow updating pull request branch by rebase, or `false` to prevent it.
 	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", "squash", or "fast-forward-only".
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
+	// set to an update style to be used by this repository: "merge" or "rebase".
+	DefaultUpdateStyle *string `json:"default_update_style,omitempty"`
 	// set to `true` to allow edits from maintainers by default
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.
@@ -227,6 +244,12 @@ type EditRepoOption struct {
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`
+	// authentication username for the remote repository (mirrors)
+	MirrorUsername *string `json:"mirror_username,omitempty"`
+	// authentication password for the remote repository (mirrors)
+	MirrorPassword *string `json:"mirror_password,omitempty"`
+	// authentication token for the remote repository (mirrors)
+	MirrorToken *string `json:"mirror_token,omitempty"`
 }
 
 // GenerateRepoOption options when creating a repository using a template
@@ -376,7 +399,7 @@ type MigrateRepoOptions struct {
 	// required: true
 	RepoName string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 
-	// enum: git,github,gitea,gitlab,gogs,onedev,gitbucket,codebase,codecommit
+	// enum: ["git","github","gitea","gitlab","gogs","onedev","gitbucket","codebase","codecommit"]
 	Service      string `json:"service"`
 	AuthUsername string `json:"auth_username"`
 	AuthPassword string `json:"auth_password"`

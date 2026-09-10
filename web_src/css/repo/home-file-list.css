@@ -92,3 +92,8 @@
   white-space: nowrap;
   color: var(--color-text-light-1);
 }
+
+#repo-files-table .repo-file-cell.is-loading::after {
+  height: 40%;
+  border-width: 2px;
+}

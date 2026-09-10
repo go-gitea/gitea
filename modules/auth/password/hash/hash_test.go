@@ -74,6 +74,7 @@ func TestHashing(t *testing.T) {
 	runTests := func(password, salt string, shouldPass bool) {
 		for _, algorithmName := range hashAlgorithmsToTest {
 			t.Run(algorithmName, func(t *testing.T) {
+				t.Parallel() // CPU-bound; these subtests only read the shared hasher registry
 				output, err := Parse(algorithmName).Hash(password, salt)
 				if shouldPass {
 					assert.NoError(t, err)
@@ -182,6 +183,7 @@ func TestVectors(t *testing.T) {
 	for i, vector := range vectors {
 		for _, algorithm := range vector.algorithms {
 			t.Run(strconv.Itoa(i)+": "+algorithm, func(t *testing.T) {
+				t.Parallel() // CPU-bound; these subtests only read the shared hasher registry
 				pa := Parse(algorithm)
 				assert.Equal(t, !vector.shouldfail, pa.VerifyPassword(vector.password, vector.output, vector.salt))
 			})

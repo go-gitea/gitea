@@ -14,12 +14,12 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
-	alpine_service "code.gitea.io/gitea/services/packages/alpine"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	alpine_module "gitea.dev/modules/packages/alpine"
+	alpine_service "gitea.dev/services/packages/alpine"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -265,6 +265,36 @@ AACAX/AKARNTyAAoAAA=`
 					}
 
 					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/noarch/gitea-noarch-1.4-r0.apk", rootURL, branch, repository)).
+						AddBasicAuth(user.Name)
+					MakeRequest(t, req, http.StatusNoContent)
+				})
+
+				t.Run("NoArchOnly", func(t *testing.T) {
+					defer tests.PrintCurrentTest(t)()
+
+					// A repository that only contains noarch packages has no per-architecture index,
+					// but apk always requests the index for its own architecture (e.g. x86_64).
+					// That request must fall back to the noarch index instead of 404ing.
+					noarchRepository := repository + "-noarchonly"
+
+					req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s/%s", rootURL, branch, noarchRepository), bytes.NewReader(noarchContent)).
+						AddBasicAuth(user.Name)
+					MakeRequest(t, req, http.StatusCreated)
+
+					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/x86_64/APKINDEX.tar.gz", rootURL, branch, noarchRepository))
+					resp := MakeRequest(t, req, http.StatusOK)
+
+					content, err := readIndexContent(resp.Body)
+					assert.NoError(t, err)
+
+					assert.Contains(t, content, "C:Q1kbH5WoIPFccQYyATanaKXd2cJcc=\n")
+					assert.Contains(t, content, "A:noarch\n")
+
+					// The noarch index is still directly retrievable too.
+					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s/noarch/APKINDEX.tar.gz", rootURL, branch, noarchRepository))
+					MakeRequest(t, req, http.StatusOK)
+
+					req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s/noarch/gitea-noarch-1.4-r0.apk", rootURL, branch, noarchRepository)).
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusNoContent)
 				})

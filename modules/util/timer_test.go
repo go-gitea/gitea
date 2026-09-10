@@ -12,19 +12,19 @@ import (
 )
 
 func TestDebounce(t *testing.T) {
-	var c int64
+	var c atomic.Int64
 	d := Debounce(50 * time.Millisecond)
-	d(func() { atomic.AddInt64(&c, 1) })
-	assert.EqualValues(t, 0, atomic.LoadInt64(&c))
-	d(func() { atomic.AddInt64(&c, 1) })
-	d(func() { atomic.AddInt64(&c, 1) })
+	d(func() { c.Add(1) })
+	assert.EqualValues(t, 0, c.Load())
+	d(func() { c.Add(1) })
+	d(func() { c.Add(1) })
 	time.Sleep(100 * time.Millisecond)
-	assert.EqualValues(t, 1, atomic.LoadInt64(&c))
-	d(func() { atomic.AddInt64(&c, 1) })
-	assert.EqualValues(t, 1, atomic.LoadInt64(&c))
-	d(func() { atomic.AddInt64(&c, 1) })
-	d(func() { atomic.AddInt64(&c, 1) })
-	d(func() { atomic.AddInt64(&c, 1) })
+	assert.EqualValues(t, 1, c.Load())
+	d(func() { c.Add(1) })
+	assert.EqualValues(t, 1, c.Load())
+	d(func() { c.Add(1) })
+	d(func() { c.Add(1) })
+	d(func() { c.Add(1) })
 	time.Sleep(100 * time.Millisecond)
-	assert.EqualValues(t, 2, atomic.LoadInt64(&c))
+	assert.EqualValues(t, 2, c.Load())
 }

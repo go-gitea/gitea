@@ -7,20 +7,21 @@ import (
 	"context"
 	"fmt"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	secret_model "code.gitea.io/gitea/models/secret"
-	user_model "code.gitea.io/gitea/models/user"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
+	actions_model "gitea.dev/models/actions"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	packages_model "gitea.dev/models/packages"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	secret_model "gitea.dev/models/secret"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitrepo"
+	issue_indexer "gitea.dev/modules/indexer/issues"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	repo_service "gitea.dev/services/repository"
 )
 
 // deleteOrganization deletes models associated to an organization.
@@ -39,6 +40,7 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 		&user_model.Blocking{BlockerID: org.ID},
 		&actions_model.ActionRunner{OwnerID: org.ID},
 		&actions_model.ActionRunnerToken{OwnerID: org.ID},
+		&actions_model.ActionScopedWorkflowSource{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}
@@ -52,14 +54,14 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if purge {
-			err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
-			if err != nil {
-				return err
-			}
+	// outside the transaction below, because each repository deletion owns one and deletes storage after committing
+	if purge {
+		if err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser()); err != nil {
+			return err
 		}
+	}
 
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Check ownership of repository.
 		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
 		if err != nil {
@@ -86,9 +88,9 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(org.Name)
+	path := gitrepo.UserLocalPath(org.Name)
 
-	if err := util.RemoveAll(path); err != nil {
+	if err := util.RemoveAllWithRetry(path); err != nil {
 		return fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 	}
 
@@ -102,10 +104,14 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	return nil
 }
 
-func updateOrgRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Repository, makePrivate bool) error {
+func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Repository, makePrivate bool) error {
+	if err := repo.LoadOwner(ctx); err != nil {
+		return fmt.Errorf("LoadOwner: %w", err)
+	}
+
 	// Organization repository need to recalculate access table when visibility is changed.
-	if err := access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-		return fmt.Errorf("recalculateTeamAccesses: %w", err)
+	if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
+		return fmt.Errorf("RecalculateAccesses: %w", err)
 	}
 
 	if makePrivate {
@@ -115,7 +121,12 @@ func updateOrgRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Rep
 			return err
 		}
 
+		// the repo is no longer publicly visible, so drop stars and watches from users who can no longer
+		// see it, matching the direct repository-private transition (see services/repository)
 		if err := repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
+			return err
+		}
+		if err := repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -135,7 +146,7 @@ func updateOrgRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Rep
 		return fmt.Errorf("getRepositoriesByForkID: %w", err)
 	}
 	for i := range forkRepos {
-		if err := updateOrgRepoForVisibilityChanged(ctx, forkRepos[i], makePrivate); err != nil {
+		if err := updateRepoForVisibilityChanged(ctx, forkRepos[i], makePrivate); err != nil {
 			return fmt.Errorf("updateRepoForVisibilityChanged[%s]: %w", forkRepos[i].FullName(), err)
 		}
 	}
@@ -161,10 +172,27 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 			return err
 		}
 		for _, repo := range repos {
-			if err := updateOrgRepoForVisibilityChanged(ctx, repo, visibility == structs.VisibleTypePrivate); err != nil {
-				return fmt.Errorf("updateOrgRepoForVisibilityChanged: %w", err)
+			if err := updateRepoForVisibilityChanged(ctx, repo, visibility == structs.VisibleTypePrivate); err != nil {
+				return fmt.Errorf("updateRepoForVisibilityChanged: %w", err)
 			}
 		}
 		return nil
 	})
+}
+
+// UpdateOrgEmailAddress validates and updates the organization's contact email.
+// A nil email means no change.
+func UpdateOrgEmailAddress(ctx context.Context, org *org_model.Organization, email *string) error {
+	if email == nil {
+		return nil
+	}
+
+	if *email != "" {
+		if err := user_model.ValidateEmail(*email); err != nil {
+			return err
+		}
+	}
+
+	org.Email = *email
+	return user_model.UpdateUserCols(ctx, org.AsUser(), "email")
 }

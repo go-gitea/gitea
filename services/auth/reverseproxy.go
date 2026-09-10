@@ -7,13 +7,13 @@ package auth
 import (
 	"net/http"
 	"strings"
+	"uuid"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-
-	gouuid "github.com/google/uuid"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
 )
 
 // Ensure the struct implements the interface.
@@ -29,7 +29,9 @@ const ReverseProxyMethodName = "reverse_proxy"
 // On successful authentication the proxy is expected to populate the username in the
 // "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
 // user in the "setting.ReverseProxyAuthEmail" header.
-type ReverseProxy struct{}
+type ReverseProxy struct {
+	CreateSession bool
+}
 
 // getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
 func (r *ReverseProxy) getUserName(req *http.Request) string {
@@ -51,7 +53,7 @@ func (r *ReverseProxy) Name() string {
 func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User, error) {
 	username := r.getUserName(req)
 	if len(username) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
@@ -111,15 +113,14 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	if user == nil {
 		user = r.getUserFromAuthEmail(req)
 		if user == nil {
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 	}
 
-	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
-	detector := newAuthPathDetector(req)
-	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isGitRawOrAttachOrLFSPath() {
-		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
-			handleSignIn(w, req, sess, user)
+	if r.CreateSession && sess != nil {
+		sessionUID, ok := sess.Get(session.KeyUID).(int64)
+		if !ok || sessionUID != user.ID {
+			handleSignInNonInteractive(w, req, sess, user)
 		}
 	}
 	store.GetData()["IsReverseProxy"] = true
@@ -141,7 +142,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		return nil
 	}
 
-	email := gouuid.New().String() + "@localhost"
+	email := uuid.New().String() + "@localhost"
 	if setting.Service.EnableReverseProxyEmail {
 		webAuthEmail := req.Header.Get(setting.ReverseProxyAuthEmail)
 		if len(webAuthEmail) > 0 {

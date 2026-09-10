@@ -4,8 +4,8 @@ import {generateElemId} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
-import {SvgIcon} from '../svg.ts';
-import {throttle} from 'throttle-debounce';
+import SvgIcon from './SvgIcon.vue';
+import {throttle} from '../utils/func.ts';
 
 const props = defineProps({
   repoLink: { type: String, required: true },
@@ -31,10 +31,10 @@ const filteredFiles = computed(() => {
   return filterRepoFilesWeighted(allFiles.value, searchQuery.value);
 });
 
-const applySearchQuery = throttle(300, () => {
+const applySearchQuery = throttle(() => {
   searchQuery.value = refElemInput.value.value;
   selectedIndex.value = 0;
-});
+}, 300);
 
 const handleSearchInput = () => {
   loadFileListForSearch();
@@ -42,9 +42,11 @@ const handleSearchInput = () => {
 };
 
 const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.isComposing) return;
+
   if (e.key === 'Escape') {
-    e.preventDefault();
     clearSearch();
+    nextTick(() => refElemInput.value.blur());
     return;
   }
   if (!searchQuery.value || filteredFiles.value.length === 0) return;
@@ -143,12 +145,13 @@ watch([searchQuery, filteredFiles], async () => {
 
 <template>
   <div>
-    <div class="ui small input">
+    <div class="ui small input global-shortcut-wrapper">
       <input
         ref="searchInput" :placeholder="placeholder" autocomplete="off"
         role="combobox" aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'"
         @input="handleSearchInput" @keydown="handleKeyDown"
       >
+      <kbd data-global-init="onGlobalShortcut" data-shortcut-keys="t">T</kbd>
     </div>
 
     <Teleport to="body">

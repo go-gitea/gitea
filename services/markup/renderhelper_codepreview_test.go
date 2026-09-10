@@ -6,11 +6,11 @@ package markup
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/contexttest"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,10 +37,12 @@ func TestRenderHelperCodePreview(t *testing.T) {
 	<table class="file-view">
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
-				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1</div></td>
+				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1
+</span></div></td>
 			</tr><tr>
 				<td class="lines-num"><span data-line-number="2"></span></td>
-				<td class="lines-code chroma"><div class="code-inner"></span></div></td>
+				<td class="lines-code chroma"><div class="code-inner">
+</div></td>
 			</tr></tbody>
 	</table>
 </div>
@@ -64,7 +66,8 @@ func TestRenderHelperCodePreview(t *testing.T) {
 	<table class="file-view">
 		<tbody><tr>
 				<td class="lines-num"><span data-line-number="1"></span></td>
-				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1</div></td>
+				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1
+</span></div></td>
 			</tr></tbody>
 	</table>
 </div>

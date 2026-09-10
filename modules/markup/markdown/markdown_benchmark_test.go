@@ -6,8 +6,8 @@ package markdown_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
 )
 
 func BenchmarkSpecializedMarkdown(b *testing.B) {

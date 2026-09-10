@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/util"
 )
 
 // TODO: This packages still uses a singleton for the Manager.
@@ -23,9 +23,6 @@ import (
 var (
 	manager     *Manager
 	managerInit sync.Once
-
-	// DefaultContext is the default context to run processing commands in
-	DefaultContext = context.Background()
 )
 
 type (

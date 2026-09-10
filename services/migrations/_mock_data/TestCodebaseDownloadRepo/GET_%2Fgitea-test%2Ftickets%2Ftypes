@@ -1,0 +1,21 @@
+Content-Type: application/xml; charset=utf-8
+
+<?xml version="1.0" encoding="UTF-8"?>
+<ticketing-types type="array">
+  <ticketing-type>
+    <id type="integer">1</id>
+    <name>Bug</name>
+  </ticketing-type>
+  <ticketing-type>
+    <id type="integer">2</id>
+    <name>Feature</name>
+  </ticketing-type>
+  <ticketing-type>
+    <id type="integer">3</id>
+    <name>Enhancement</name>
+  </ticketing-type>
+  <ticketing-type>
+    <id type="integer">4</id>
+    <name>Task</name>
+  </ticketing-type>
+</ticketing-types>

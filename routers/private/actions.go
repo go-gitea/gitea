@@ -5,18 +5,16 @@ package private
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 // GenerateActionsRunnerToken generates a new runner token for a given scope
@@ -26,38 +24,25 @@ func GenerateActionsRunnerToken(ctx *context.PrivateContext) {
 	defer rd.Close()
 
 	if err := json.NewDecoder(rd).Decode(&genRequest); err != nil {
-		log.Error("JSON Decode failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("JSON Decode failed: %v", err)
 		return
 	}
 
 	owner, repo, err := parseScope(ctx, genRequest.Scope)
 	if err != nil {
-		log.Error("parseScope failed: %v", err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("parseScope failed: %v", err)
+		return
 	}
 
 	token, err := actions_model.GetLatestRunnerToken(ctx, owner, repo)
 	if errors.Is(err, util.ErrNotExist) || (token != nil && !token.IsActive) {
 		token, err = actions_model.NewRunnerToken(ctx, owner, repo)
 		if err != nil {
-			errMsg := fmt.Sprintf("error while creating runner token: %v", err)
-			log.Error("NewRunnerToken failed: %v", errMsg)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: errMsg,
-			})
+			ctx.PrivateInternalErrorf("error while creating runner token: %v", err)
 			return
 		}
 	} else if err != nil {
-		errMsg := fmt.Sprintf("could not get unactivated runner token: %v", err)
-		log.Error("GetLatestRunnerToken failed: %v", errMsg)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: errMsg,
-		})
+		ctx.PrivateInternalErrorf("could not get unactivated runner token: %v", err)
 		return
 	}
 

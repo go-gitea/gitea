@@ -6,9 +6,9 @@ package common
 import (
 	"testing"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/contexttest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/contexttest"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"

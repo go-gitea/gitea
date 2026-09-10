@@ -44,10 +44,14 @@ func RestartProcess() (int, error) {
 	// Extract the fds from the listeners.
 	files := make([]*os.File, len(listeners))
 	for i, l := range listeners {
-		var err error
 		// Now, all our listeners actually have File() functions so instead of
 		// individually casting we just use a hacky interface
-		files[i], err = l.(filer).File()
+		lf, ok := l.(filer)
+		if !ok {
+			return 0, fmt.Errorf("listener %T does not provide a File", l)
+		}
+		var err error
+		files[i], err = lf.File()
 		if err != nil {
 			return 0, err
 		}

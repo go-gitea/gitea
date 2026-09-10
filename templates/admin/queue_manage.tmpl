@@ -1,10 +1,10 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
+{{template "admin/layout_head" (dict "pageClass" "admin monitor")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.monitor.queue" .Queue.GetName}}
 		</h4>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
+			<table class="ui very basic table">
 				<thead>
 					<tr>
 						<th>{{ctx.Locale.Tr "admin.monitor.queue.name"}}</th>
@@ -31,7 +31,7 @@
 							{{else}}
 								{{$sum}}
 								<form action="{{$.Link}}/remove-all-items" method="post" class="tw-inline-block tw-ml-4">
-									<button class="ui tiny basic red button">{{ctx.Locale.Tr "admin.monitor.queue.settings.remove_all_items"}}</button>
+									<button type="submit" class="ui tiny basic red button">{{ctx.Locale.Tr "admin.monitor.queue.settings.remove_all_items"}}</button>
 								</form>
 							{{end}}
 						</td>
@@ -51,7 +51,7 @@
 						<label for="max-number">{{ctx.Locale.Tr "admin.monitor.queue.settings.maxnumberworkers"}}</label>
 						<input name="max-number" type="text" placeholder="{{ctx.Locale.Tr "admin.monitor.queue.settings.maxnumberworkers.placeholder" .Queue.GetWorkerMaxNumber}}">
 					</div>
-					<button class="ui submit button">{{ctx.Locale.Tr "admin.monitor.queue.settings.submit"}}</button>
+					<button type="submit" class="ui submit button">{{ctx.Locale.Tr "admin.monitor.queue.settings.submit"}}</button>
 				</div>
 			</form>
 		</div>

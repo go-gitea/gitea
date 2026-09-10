@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/perm"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // Type is Unit's Type
@@ -33,9 +33,6 @@ const (
 	TypeProjects        // 8 Projects
 	TypePackages        // 9 Packages
 	TypeActions         // 10 Actions
-
-	// FIXME: TEAM-UNIT-PERMISSION: the team unit "admin" permission's design is not right, when a new unit is added in the future,
-	// admin team won't inherit the correct admin permission for the new unit, need to have a complete fix before adding any new unit.
 )
 
 // Value returns integer value for unit type (used by template)
@@ -237,6 +234,8 @@ func (u Unit) MaxPerm() perm.AccessMode {
 }
 
 // Enumerate all the units
+// i18n-check: {repo.code,repo.issues,repo.ext_issues,repo.pulls,repo.releases,repo.wiki,repo.ext_wiki,repo.projects,repo.packages,repo.actions}
+// i18n-check: {repo.code.desc,repo.issues.desc,repo.ext_issues.desc,repo.pulls.desc,repo.releases.desc,repo.wiki.desc,repo.ext_wiki.desc,repo.projects.desc,packages.desc,actions.unit.desc}
 var (
 	UnitCode = Unit{
 		TypeCode,

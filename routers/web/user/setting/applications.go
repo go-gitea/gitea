@@ -8,15 +8,14 @@ import (
 	"net/http"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 const (
@@ -27,7 +26,6 @@ const (
 func Applications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.applications")
 	ctx.Data["PageIsSettingsApplications"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	loadApplicationsData(ctx)
 
@@ -36,10 +34,9 @@ func Applications(ctx *context.Context) {
 
 // ApplicationsPost response for add user's access token
 func ApplicationsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewAccessTokenForm)
+	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsApplications"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	_ = ctx.Req.ParseForm()
 	var scopeNames []string
@@ -82,6 +79,26 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
+	// a token-authenticated request must not mint a token with a broader scope than its own, nor
+	// drop the public-only restriction. Web routes accept basic-auth PATs/OAuth tokens too, so this
+	// must mirror the REST API guard in routers/api/v1/user/app.go.
+	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if hasApiTokenScope {
+		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
+		if err != nil {
+			ctx.ServerError("CanCreateChildScope", err)
+			return
+		}
+		if !hasScope {
+			ctx.HTTPError(http.StatusForbidden, "cannot create an access token with a broader scope than the authenticating token")
+			return
+		}
+		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+			ctx.ServerError("EnforcePublicOnlyFrom", err)
+			return
+		}
+	}
+
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.ServerError("NewAccessToken", err)
 		return
@@ -101,6 +118,18 @@ func DeleteApplication(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
+}
+
+// RegenerateAccessToken response for regenerating a user's access token
+func RegenerateAccessToken(ctx *context.Context) {
+	t, err := auth_model.RegenerateAccessToken(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("RegenerateAccessToken", err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+	ctx.Flash.Info(t.Token)
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
 }
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 )
 
 // ErrInvalidReceiveHook FIXME
@@ -19,6 +19,8 @@ var ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webho
 type Hook struct {
 	// The unique identifier of the webhook
 	ID int64 `json:"id"`
+	// Optional human-readable name for the webhook
+	Name string `json:"name"`
 	// The type of the webhook (e.g., gitea, slack, discord)
 	Type string `json:"type"`
 	// Branch filter pattern to determine which branches trigger the webhook
@@ -51,7 +53,7 @@ type CreateHookOptionConfig map[string]string
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu,wechatwork,packagist
+	// enum: ["dingtalk","discord","gitea","gogs","msteams","slack","telegram","feishu","wechatwork","packagist"]
 	// The type of the webhook to create
 	Type string `json:"type" binding:"Required"`
 	// required: true
@@ -66,6 +68,8 @@ type CreateHookOption struct {
 	// default: false
 	// Whether the webhook should be active upon creation
 	Active bool `json:"active"`
+	// Optional human-readable name for the webhook
+	Name string `json:"name" binding:"MaxSize(255)"`
 }
 
 // EditHookOption options when modify one hook
@@ -80,6 +84,8 @@ type EditHookOption struct {
 	AuthorizationHeader string `json:"authorization_header"`
 	// Whether the webhook is active and will be triggered
 	Active *bool `json:"active"`
+	// Optional human-readable name
+	Name *string `json:"name,omitzero" binding:"MaxSize(255)"`
 }
 
 // Payloader payload is some part of one hook
@@ -418,6 +424,8 @@ type ChangesPayload struct {
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
+	// Changes made to the repository name
+	Name *ChangesFromPayload `json:"name,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`
 	// Changes made to the labels removed
@@ -428,6 +436,10 @@ type ChangesPayload struct {
 type PullRequestPayload struct {
 	// The action performed on the pull request
 	Action HookIssueAction `json:"action"`
+	// The SHA of the most recent commit on the PR head branch before the push
+	Before string `json:"before,omitempty"`
+	// The SHA of the most recent commit on the PR head branch after the push
+	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
 	// Changes made to the pull request (for edit actions)
@@ -498,6 +510,8 @@ const (
 	HookRepoCreated HookRepoAction = "created"
 	// HookRepoDeleted deleted
 	HookRepoDeleted HookRepoAction = "deleted"
+	// HookRepoRenamed renamed
+	HookRepoRenamed HookRepoAction = "renamed"
 )
 
 // RepositoryPayload payload for repository webhooks
@@ -510,6 +524,8 @@ type RepositoryPayload struct {
 	Organization *User `json:"organization"`
 	// The user who performed the action
 	Sender *User `json:"sender"`
+	// Changes made to the repository
+	Changes *ChangesPayload `json:"changes,omitempty"`
 }
 
 // JSONPayload JSON representation of the payload
@@ -562,6 +578,20 @@ type WorkflowDispatchPayload struct {
 
 // JSONPayload implements Payload
 func (p *WorkflowDispatchPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// WorkflowCallPayload is persisted on a reusable workflow caller job's CallPayload field.
+type WorkflowCallPayload struct {
+	Workflow   string         `json:"workflow"`
+	Ref        string         `json:"ref"`
+	Inputs     map[string]any `json:"inputs"`
+	Repository *Repository    `json:"repository"`
+	Sender     *User          `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowCallPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 

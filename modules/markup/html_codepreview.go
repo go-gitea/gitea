@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
 
 	"golang.org/x/net/html"
 )

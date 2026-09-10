@@ -1,0 +1,23 @@
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset
+Cache-Control: private, max-age=60, s-maxage=60
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json; charset=utf-8
+Etag: W/"c2c4c54255928bb9bebc8c65c989b904b06ffb4eb763f804d70dbb40473d3122"
+Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+Vary: Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With
+X-Accepted-Github-Permissions: issues=read; pull_requests=read
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+X-Github-Api-Version-Selected: 2022-11-28
+X-Github-Media-Type: github.v3; format=json
+X-Github-Request-Id: C4F6:A93E1:6A356B:5B2172:69AF24E7
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 4934
+X-Ratelimit-Reset: 1773089427
+X-Ratelimit-Resource: core
+X-Ratelimit-Used: 66
+X-Xss-Protection: 0
+
+[{"url":"https://api.github.com/repos/go-gitea/test_repo/milestones/1","html_url":"https://github.com/go-gitea/test_repo/milestone/1","labels_url":"https://api.github.com/repos/go-gitea/test_repo/milestones/1/labels","id":4839941,"node_id":"MDk6TWlsZXN0b25lNDgzOTk0MQ==","number":1,"title":"1.0.0","description":"Milestone 1.0.0","creator":{"login":"mrsdizzie","id":1669571,"node_id":"MDQ6VXNlcjE2Njk1NzE=","avatar_url":"https://avatars.githubusercontent.com/u/1669571?v=4","gravatar_id":"","url":"https://api.github.com/users/mrsdizzie","html_url":"https://github.com/mrsdizzie","followers_url":"https://api.github.com/users/mrsdizzie/followers","following_url":"https://api.github.com/users/mrsdizzie/following{/other_user}","gists_url":"https://api.github.com/users/mrsdizzie/gists{/gist_id}","starred_url":"https://api.github.com/users/mrsdizzie/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/mrsdizzie/subscriptions","organizations_url":"https://api.github.com/users/mrsdizzie/orgs","repos_url":"https://api.github.com/users/mrsdizzie/repos","events_url":"https://api.github.com/users/mrsdizzie/events{/privacy}","received_events_url":"https://api.github.com/users/mrsdizzie/received_events","type":"User","user_view_type":"public","site_admin":false},"open_issues":1,"closed_issues":1,"state":"closed","created_at":"2019-11-12T19:37:08Z","updated_at":"2019-11-12T21:56:17Z","due_on":"2019-11-11T00:00:00Z","closed_at":"2019-11-12T19:45:49Z"},{"url":"https://api.github.com/repos/go-gitea/test_repo/milestones/2","html_url":"https://github.com/go-gitea/test_repo/milestone/2","labels_url":"https://api.github.com/repos/go-gitea/test_repo/milestones/2/labels","id":4839942,"node_id":"MDk6TWlsZXN0b25lNDgzOTk0Mg==","number":2,"title":"1.1.0","description":"Milestone 1.1.0","creator":{"login":"mrsdizzie","id":1669571,"node_id":"MDQ6VXNlcjE2Njk1NzE=","avatar_url":"https://avatars.githubusercontent.com/u/1669571?v=4","gravatar_id":"","url":"https://api.github.com/users/mrsdizzie","html_url":"https://github.com/mrsdizzie","followers_url":"https://api.github.com/users/mrsdizzie/followers","following_url":"https://api.github.com/users/mrsdizzie/following{/other_user}","gists_url":"https://api.github.com/users/mrsdizzie/gists{/gist_id}","starred_url":"https://api.github.com/users/mrsdizzie/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/mrsdizzie/subscriptions","organizations_url":"https://api.github.com/users/mrsdizzie/orgs","repos_url":"https://api.github.com/users/mrsdizzie/repos","events_url":"https://api.github.com/users/mrsdizzie/events{/privacy}","received_events_url":"https://api.github.com/users/mrsdizzie/received_events","type":"User","user_view_type":"public","site_admin":false},"open_issues":0,"closed_issues":2,"state":"closed","created_at":"2019-11-12T19:37:25Z","updated_at":"2019-11-12T21:39:27Z","due_on":"2019-11-12T00:00:00Z","closed_at":"2019-11-12T19:45:46Z"}]

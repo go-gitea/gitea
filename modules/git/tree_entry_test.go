@@ -46,7 +46,9 @@ func TestParseEntryMode(t *testing.T) {
 		{"160755", EntryModeCommit},
 
 		{"040000", EntryModeTree},
+		{"40000", EntryModeTree},
 		{"040755", EntryModeTree},
+		{"40755", EntryModeTree},
 
 		{"777777", EntryModeNoEntry}, // invalid mode
 	}

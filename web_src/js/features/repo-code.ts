@@ -1,6 +1,5 @@
 import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 
 function changeHash(hash: string) {
@@ -24,16 +23,16 @@ function selectRange(range: string): Element | null {
     if (!refInNewIssue) return;
     const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
     const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link')!;
-    const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
+    const issueContent = `${urlParamBodyLink}#${anchor}`; // the default content for issue body
     refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor: string) {
     if (!viewGitBlame) return;
     let href = viewGitBlame.getAttribute('href')!;
-    href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
+    href = href.replace(/#L\d+$|#L\d+-L\d+$/, '');
     if (anchor.length !== 0) {
-      href = `${href}#${anchor}`;
+      href += `#${anchor}`;
     }
     viewGitBlame.setAttribute('href', href);
   };
@@ -41,9 +40,8 @@ function selectRange(range: string): Element | null {
   const updateCopyPermalinkUrl = function (anchor: string) {
     if (!copyPermalink) return;
     let link = copyPermalink.getAttribute('data-url')!;
-    link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
+    link = `${window.location.origin}${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
     copyPermalink.setAttribute('data-clipboard-text', link);
-    copyPermalink.setAttribute('data-clipboard-text-type', 'url');
   };
 
   const rangeFields = range ? range.split('-') : [];

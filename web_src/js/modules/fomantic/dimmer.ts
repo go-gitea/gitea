@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import {queryElemChildren} from '../../utils/dom.ts';
 
 export function initFomanticDimmer() {

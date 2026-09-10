@@ -6,10 +6,11 @@ package integration
 import (
 	"net/http"
 	"slices"
+	"strconv"
 	"testing"
 
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/tests"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/tests"
 )
 
 func TestOrgProjectAccess(t *testing.T) {
@@ -50,7 +51,7 @@ func TestOrgProjectAccess(t *testing.T) {
 		"team_name":   "team1",
 		"repo_access": "specific",
 		"permission":  "read",
-		"unit_8":      "0",
+		"unit_" + strconv.Itoa(unit_model.TypeProjects.Value()): "0",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 

@@ -193,7 +193,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*T
 		}
 		if aRow == nil && bRow == nil {
 			// No content
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil to indicate that the row has no content
 		}
 
 		aIndex := 0      // tracks where we are in the a2bColMap

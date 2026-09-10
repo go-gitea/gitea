@@ -66,7 +66,7 @@
 					{{if .Review.Stale}}
 						<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.is_stale"}}">{{svg "octicon-hourglass" 16}}</span>
 					{{end}}
-					{{if and .CanChange $data.CanChooseReviewer}}
+					{{if .CanChange}}
 						{{if .Requested}}
 							<a href="#" class="ui muted icon link-action"
 								data-tooltip-content="{{ctx.Locale.Tr "repo.issues.remove_request_review"}}"
@@ -82,7 +82,7 @@
 						{{end}}
 					{{end}}
 					<span {{if .Review.TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .Review.TooltipContent}}"{{end}}>
-						{{svg (printf "octicon-%s" .Review.Type.Icon) 16 (printf "text %s" (.Review.HTMLTypeColorName))}}
+						{{svg (printf "octicon-%s" .Review.Type.Icon) 16 .Review.HTMLTypeColorClass}}
 					</span>
 				</div>
 			</div>
@@ -98,7 +98,7 @@
 				</div>
 				<div class="flex-text-inline">
 					<span {{if .TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .TooltipContent}}"{{end}}>
-						{{svg (printf "octicon-%s" .Type.Icon) 16 (printf "text %s" (.HTMLTypeColorName))}}
+						{{svg (printf "octicon-%s" .Type.Icon) 16 .HTMLTypeColorClass}}
 					</span>
 				</div>
 			</div>
@@ -121,7 +121,7 @@
 					<input id="issue-sidebar-dismiss-review-message" name="message">
 				</div>
 				<div class="actions">
-					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button" type="submit">{{ctx.Locale.Tr "ok"}}</button>
 				</div>
 			</form>

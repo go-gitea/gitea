@@ -14,13 +14,13 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	debian_module "code.gitea.io/gitea/modules/packages/debian"
-	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	debian_module "gitea.dev/modules/packages/debian"
+	packages_cleanup_service "gitea.dev/services/packages/cleanup"
+	"gitea.dev/tests"
 
 	"github.com/blakesmith/ar"
 	"github.com/stretchr/testify/assert"
@@ -58,6 +58,10 @@ func TestPackageDebian(t *testing.T) {
 		}
 		aw.WriteHeader(hdr)
 		aw.Write(cbuf.Bytes())
+
+		// if you'd like to do some tests manually, uncomment the WriteFile line, then you will get some "deb" package files:
+		// OWNER= PASS= DIST= COMP= ; curl -X PUT "http://$OWNER:$PASS@localhost:3000/api/packages/$OWNER/debian/pool/$DIST/$COMP/upload" -T /tmp/gitea_test_debian_gitea_1.0.3_amd64.deb
+		// _ = os.WriteFile("/tmp/gitea_test_debian_"+name+"_"+version+"_"+architecture+".deb", buf.Bytes(), 0o644)
 		return &buf
 	}
 

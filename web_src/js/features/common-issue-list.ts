@@ -35,7 +35,7 @@ export function initCommonIssueListQuickGoto() {
   const repoLink = elGotoButton.getAttribute('data-repo-link') || '';
 
   elGotoButton.addEventListener('click', () => {
-    window.location.href = elGotoButton.getAttribute('data-issue-goto-link')!;
+    window.location.assign(elGotoButton.getAttribute('data-issue-goto-link')!);
   });
 
   const onInput = async () => {

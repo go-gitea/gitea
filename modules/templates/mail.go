@@ -4,18 +4,21 @@
 package templates
 
 import (
+	"fmt"
 	"html/template"
 	"io"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type MailRender struct {
@@ -34,6 +37,11 @@ type MailRender struct {
 	mockedBodyTemplates map[string]*template.Template
 }
 
+// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
+func dotEscape(raw string) string {
+	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
+}
+
 // mailSubjectTextFuncMap returns functions for injecting to text templates, it's only used for mail subject
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	return texttmpl.FuncMap{
@@ -41,10 +49,56 @@ func mailSubjectTextFuncMap() texttmpl.FuncMap {
 		"Eval": evalTokens,
 
 		"EllipsisString": util.EllipsisDisplayString,
+
 		"AppName": func() string {
 			return setting.AppName
 		},
 		"AppDomain": func() string { // documented in mail-templates.md
+			return setting.Domain
+		},
+	}
+}
+
+func mailBodyFuncMap() template.FuncMap {
+	// Some of them are documented in mail-templates.md
+	return template.FuncMap{
+		"DumpVar": dumpVar,
+		"NIL":     func() any { return nil },
+
+		// html/template related functions
+		"dict":        dict,
+		"Iif":         iif,
+		"Eval":        evalTokens,
+		"HTMLFormat":  htmlFormat,
+		"QueryEscape": queryEscape,
+		"QueryBuild":  QueryBuild,
+
+		// deprecated, use "HTMLFormat" instead, but some user custom mail templates still use it
+		// see: https://github.com/go-gitea/gitea/issues/36049
+		"SanitizeHTML": sanitizeHTML,
+
+		"PathEscape":         url.PathEscape,
+		"PathEscapeSegments": util.PathEscapeSegments,
+
+		"DotEscape": dotEscape,
+
+		// utils
+		"StringUtils": NewStringUtils,
+		"SliceUtils":  NewSliceUtils,
+		"JsonUtils":   NewJsonUtils,
+
+		// time / number / format
+		"ShortSha":       base.ShortSha,
+		"FormatByteSize": util.FormatByteSize,
+
+		// setting
+		"AppName": func() string {
+			return setting.AppName
+		},
+		"AppUrl": func() string {
+			return setting.AppURL
+		},
+		"AppDomain": func() string {
 			return setting.Domain
 		},
 	}
@@ -61,6 +115,7 @@ func newMailRenderer() (*MailRender, error) {
 	}
 
 	assetFS := AssetFS()
+	aliases := map[string]string{}
 
 	renderer.tmplRenderer = &tmplRender{
 		collectTemplateNames: func() ([]string, error) {
@@ -72,13 +127,29 @@ func newMailRenderer() (*MailRender, error) {
 				return !strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
 			})
 			for i, name := range names {
-				names[i] = strings.TrimSuffix(strings.TrimPrefix(name, "mail/"), ".tmpl")
+				names[i] = strings.TrimSuffix(name, ".tmpl")
 			}
-			renderer.TemplateNames = names
-			return names, nil
+			renderer.TemplateNames = slices.DeleteFunc(slices.Clone(names), func(name string) bool {
+				return strings.HasPrefix(name, "mail/base/")
+			})
+			allNames := slices.Clone(names)
+			for _, name := range names {
+				alias := strings.TrimPrefix(name, "mail/")
+				if slices.Contains(names, alias) {
+					continue
+				}
+				aliases[alias] = name
+				allNames = append(allNames, alias)
+			}
+			return allNames, nil
 		},
 		readTemplateContent: func(name string) ([]byte, error) {
-			content, err := assetFS.ReadFile("mail/" + name + ".tmpl")
+			if target, ok := aliases[name]; ok {
+				content := fmt.Sprintf(`{{template %q .}}`, target)
+				_, err := renderer.SubjectTemplates.New(name).Parse(content)
+				return []byte(content), err
+			}
+			content, err := assetFS.ReadFile(name + ".tmpl")
 			if err != nil {
 				return nil, err
 			}
@@ -103,7 +174,7 @@ func newMailRenderer() (*MailRender, error) {
 		return renderer.tmplRenderer.Templates().HasTemplate(name)
 	}
 
-	staticFuncMap := NewFuncMap()
+	staticFuncMap := mailBodyFuncMap()
 	renderer.BodyTemplates.ExecuteTemplate = func(w io.Writer, name string, data any) error {
 		if t, ok := renderer.mockedBodyTemplates[name]; ok {
 			return t.Execute(w, data)
@@ -131,7 +202,7 @@ func (r *MailRender) MockTemplate(name, subject, body string) func() {
 	texttmpl.Must(r.SubjectTemplates.New(name).Parse(subject))
 
 	oldBody, hasOldBody := r.mockedBodyTemplates[name]
-	mockFuncMap := NewFuncMap()
+	mockFuncMap := mailBodyFuncMap()
 	r.mockedBodyTemplates[name] = template.Must(template.New(name).Funcs(mockFuncMap).Parse(body))
 	return func() {
 		r.SubjectTemplates = oldSubject

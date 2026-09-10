@@ -9,8 +9,9 @@ import (
 	"text/template"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/consts"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	gossh "golang.org/x/crypto/ssh"
 )
@@ -52,8 +53,8 @@ var SSH = struct {
 	Domain:                        "",
 	Port:                          22,
 	MinimumKeySizeCheck:           true,
-	MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 3071},
-	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+	MinimumKeySizes:               map[string]int{"ed25519": consts.AsymKeyMinBitsEC, "ed25519-sk": consts.AsymKeyMinBitsEC, "ecdsa": consts.AsymKeyMinBitsEC, "ecdsa-sk": consts.AsymKeyMinBitsEC, "rsa": consts.AsymKeyMinBitsRsa},
+	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gitea.ed25519", "ssh/gitea.ecdsa", "ssh/gogs.rsa"},
 	AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 	PerWriteTimeout:               PerWriteTimeout,
 	PerWritePerKbTimeout:          PerWritePerKbTimeout,
@@ -145,9 +146,9 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	}
 	if len(SSH.TrustedUserCAKeys) > 0 {
 		// Set the default as email,username otherwise we can leave it empty
-		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email") // FIXME: INI-MUST-SIDE-EFFECT
 	} else {
-		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off")
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off") // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
@@ -155,7 +156,7 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
 	minimumKeySizes := rootCfg.Section("ssh.minimum_key_sizes").Keys()
 	for _, key := range minimumKeySizes {
-		if key.MustInt() != -1 {
+		if key.MustInt() != -1 { // FIXME: INI-MUST-SIDE-EFFECT
 			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
 		} else {
 			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))

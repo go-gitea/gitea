@@ -1,0 +1,17 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content repository">
+	<div class="file-content">
+		<table class="file-view unicode-escaped">
+			<tbody>
+			{{range $idx, $line := .HighlightLines}}
+			<tr>
+				<td class="lines-num"><span data-line-number="{{$line.Num}}"></span></td>
+				{{ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus (index $.LineEscapeStatus $idx)}}
+				<td class="lines-code chroma"><div class="code-inner">{{$line.FormattedContent}}</div></td>
+			</tr>
+			{{end}}
+			</tbody>
+		</table>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}
