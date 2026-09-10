@@ -86,6 +86,7 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
+			{{$otherAccounts := ctx.OtherSignedInAccounts}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}" data-signed-in-username="{{.SignedUser.Name}}">
 				<span class="flex-text-block">
 					<span class="navbar-avatar">
@@ -100,6 +101,17 @@
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
+					<div class="divider"></div>
+					{{range $otherAccounts}}
+						<a class="item link-action flex-text-block" data-url="{{AppSubUrl}}/user/accounts/switch/{{.ID}}">
+							{{ctx.AvatarUtils.Avatar . 20}}
+							{{.Name}}
+						</a>
+					{{end}}
+					<a class="item link-action" data-url="{{AppSubUrl}}/user/accounts/add">
+						{{svg "octicon-person-add"}}
+						{{ctx.Locale.Tr "auth.add_another_account"}}
+					</a>
 					<div class="divider"></div>
 					<a class="item" href="{{.SignedUser.HomeLink}}">
 						{{svg "octicon-person"}}
@@ -135,6 +147,12 @@
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
+					{{if $otherAccounts}}
+						<a class="item link-action" data-url="{{AppSubUrl}}/user/accounts/logout_all">
+							{{svg "octicon-sign-out"}}
+							{{ctx.Locale.Tr "auth.sign_out_all_accounts"}}
+						</a>
+					{{end}}
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else}}

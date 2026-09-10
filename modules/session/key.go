@@ -15,4 +15,10 @@ const (
 	KeySignInMethod = "signInMethod"
 
 	SignInMethodOAuth2 = "oauth2"
+
+	// KeySignedInAccounts holds the JSON-encoded list of accounts authenticated in this session.
+	KeySignedInAccounts = "signedInAccounts"
+
+	// KeyAddingAccountFor holds the uid which started an "add another account" flow.
+	KeyAddingAccountFor = "addingAccountFor"
 )

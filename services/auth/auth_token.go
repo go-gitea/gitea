@@ -66,6 +66,34 @@ func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, e
 	return t, nil
 }
 
+// CheckedAuthTokens is the result of validating a remember-me cookie holding several tokens.
+type CheckedAuthTokens struct {
+	Valid       []*auth_model.AuthToken
+	Compromised bool
+}
+
+// CheckAuthTokens validates a comma separated list of tokens, keeping the usable ones.
+// A single-token value written before multi-account support parses as a one element list.
+func CheckAuthTokens(ctx context.Context, value string) (CheckedAuthTokens, error) {
+	var ret CheckedAuthTokens
+	if value == "" {
+		return ret, nil
+	}
+	for part := range strings.SplitSeq(value, ",") {
+		t, err := CheckAuthToken(ctx, part)
+		switch {
+		case errors.Is(err, ErrAuthTokenInvalidHash):
+			ret.Compromised = true // the row is already revoked, but the other accounts stay usable
+		case errors.Is(err, ErrAuthTokenInvalidFormat), errors.Is(err, ErrAuthTokenExpired):
+		case err != nil:
+			return ret, err
+		case t != nil:
+			ret.Valid = append(ret.Valid, t)
+		}
+	}
+	return ret, nil
+}
+
 func RegenerateAuthToken(ctx context.Context, t *auth_model.AuthToken) (*auth_model.AuthToken, string, error) {
 	token, hash := generateTokenAndHash()
 

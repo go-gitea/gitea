@@ -216,6 +216,16 @@ func (ctx *Context) DoerIsImpersonated() bool {
 	return ctx.Session.Get(session.KeyImpersonatorData) != nil
 }
 
+// DoerIsAddingAccount returns true if the doer is signing in an additional account for this session.
+// The marker stores the initiating uid so it stops applying as soon as the active account changes.
+func (ctx *Context) DoerIsAddingAccount() bool {
+	if ctx.Doer == nil || ctx.Session == nil {
+		return false
+	}
+	uid, ok := ctx.Session.Get(session.KeyAddingAccountFor).(int64)
+	return ok && uid == ctx.Doer.ID
+}
+
 // HasError returns true if error occurs in form validation.
 // Attention: this function changes ctx.Data and ctx.Flash
 // If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.

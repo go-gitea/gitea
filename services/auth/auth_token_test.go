@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"encoding/hex"
 	"testing"
 	"time"
 
@@ -106,4 +107,55 @@ func TestRegenerateAuthToken(t *testing.T) {
 	assert.NotEqual(t, at.ExpiresUnix, at2.ExpiresUnix)
 
 	assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at.ID))
+}
+
+func TestCheckAuthTokens(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	newToken := func(t *testing.T, uid int64) (*auth_model.AuthToken, string) {
+		t.Helper()
+		at, token, err := CreateAuthTokenForUserID(t.Context(), uid)
+		assert.NoError(t, err)
+		return at, at.ID + ":" + token
+	}
+
+	t.Run("Legacy", func(t *testing.T) {
+		at, value := newToken(t, 2)
+		defer func() { assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at.ID)) }()
+
+		checked, err := CheckAuthTokens(t.Context(), value)
+		assert.NoError(t, err)
+		assert.False(t, checked.Compromised)
+		assert.Len(t, checked.Valid, 1)
+	})
+
+	t.Run("KeepsSurvivors", func(t *testing.T) {
+		at1, value1 := newToken(t, 2)
+		at2, value2 := newToken(t, 4)
+		defer func() {
+			assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at1.ID))
+			assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at2.ID))
+		}()
+
+		checked, err := CheckAuthTokens(t.Context(), value1+",notexists:dummy,"+value2)
+		assert.NoError(t, err)
+		assert.False(t, checked.Compromised)
+		assert.Len(t, checked.Valid, 2)
+	})
+
+	t.Run("CompromisedDoesNotDropOthers", func(t *testing.T) {
+		at1, value1 := newToken(t, 2)
+		at2, _ := newToken(t, 4)
+		defer func() { assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at1.ID)) }()
+
+		checked, err := CheckAuthTokens(t.Context(), at2.ID+":"+hex.EncodeToString([]byte("wrong"))+","+value1)
+		assert.NoError(t, err)
+		assert.True(t, checked.Compromised)
+		assert.Len(t, checked.Valid, 1)
+		assert.Equal(t, at1.ID, checked.Valid[0].ID)
+
+		// a mismatching hash revokes the token it was presented for
+		_, err = auth_model.GetAuthTokenByID(t.Context(), at2.ID)
+		assert.ErrorIs(t, err, util.ErrNotExist)
+	})
 }

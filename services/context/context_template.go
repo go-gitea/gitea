@@ -14,8 +14,10 @@ import (
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/web/middleware"
@@ -73,6 +75,43 @@ func (c TemplateContext) ImpersonatedUser() *user_model.User {
 		return nil
 	}
 	return webCtx.Doer
+}
+
+// OtherSignedInAccounts returns the other accounts authenticated in this session, most recent first.
+// It is a template method so the lookup only runs when an HTML page actually renders it.
+func (c TemplateContext) OtherSignedInAccounts() []*user_model.User {
+	webCtx := GetWebContext(c)
+	if webCtx == nil || webCtx.Doer == nil || webCtx.DoerIsImpersonated() {
+		return nil
+	}
+	accounts := session.GetSignedInAccounts(webCtx.Session)
+	if len(accounts) <= 1 {
+		return nil
+	}
+	ids := make([]int64, 0, len(accounts)-1)
+	for _, acc := range accounts {
+		if acc.UID != webCtx.Doer.ID {
+			ids = append(ids, acc.UID)
+		}
+	}
+	users, err := user_model.GetUsersByIDs(c, ids)
+	if err != nil {
+		log.Error("Unable to load signed-in accounts: %v", err)
+		return nil
+	}
+	byID := make(map[int64]*user_model.User, len(users))
+	for _, u := range users {
+		if u.IsActive && !u.ProhibitLogin && !u.MustChangePassword {
+			byID[u.ID] = u
+		}
+	}
+	ret := make([]*user_model.User, 0, len(ids))
+	for _, id := range ids { // GetUsersByIDs sorts by name, restore the session order
+		if u, ok := byID[id]; ok {
+			ret = append(ret, u)
+		}
+	}
+	return ret
 }
 
 func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {

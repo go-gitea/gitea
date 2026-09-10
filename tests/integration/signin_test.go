@@ -211,3 +211,62 @@ func TestRequireSignInView(t *testing.T) {
 		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
 	})
 }
+
+func assertSignedInAs(t *testing.T, session *TestSession, name string) {
+	t.Helper()
+	req := NewRequest(t, "GET", "/")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	got, _ := NewHTMLParser(t, resp.Body).doc.Find("[data-signed-in-username]").Attr("data-signed-in-username")
+	assert.Equal(t, name, got)
+}
+
+func addAccount(t *testing.T, session *TestSession, name string) {
+	t.Helper()
+	session.MakeRequest(t, NewRequest(t, "POST", "/user/accounts/add"), http.StatusOK)
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+		"user_name": name,
+		"password":  userPassword,
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+}
+
+func TestMultiAccountSignIn(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
+
+	t.Run("AddAndSwitch", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		addAccount(t, session, "user4")
+		assertSignedInAs(t, session, "user4")
+
+		req := NewRequestf(t, "POST", "/user/accounts/switch/%d", user2.ID)
+		session.MakeRequest(t, req, http.StatusOK)
+		assertSignedInAs(t, session, "user2")
+	})
+
+	t.Run("SwitchRejectsUnknownUID", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		req := NewRequestf(t, "POST", "/user/accounts/switch/%d", user4.ID)
+		session.MakeRequest(t, req, http.StatusBadRequest)
+	})
+
+	t.Run("SwitchRejectsProhibitedUser", func(t *testing.T) {
+		session := loginUser(t, "user2")
+		addAccount(t, session, "user4")
+
+		defer func() {
+			require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: user2.ID, ProhibitLogin: false}, "prohibit_login"))
+		}()
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: user2.ID, ProhibitLogin: true}, "prohibit_login"))
+
+		req := NewRequestf(t, "POST", "/user/accounts/switch/%d", user2.ID)
+		session.MakeRequest(t, req, http.StatusOK)
+		assertSignedInAs(t, session, "user4")
+
+		// the unusable account is pruned, so a second attempt is rejected outright
+		session.MakeRequest(t, NewRequestf(t, "POST", "/user/accounts/switch/%d", user2.ID), http.StatusBadRequest)
+	})
+}

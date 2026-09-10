@@ -2,6 +2,12 @@
 	{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn)}}
 	{{template "base/alert" .}}
 	{{end}}
+	{{if .IsAddingAccount}}
+	<div class="ui attached info message tw-text-center">
+		{{ctx.Locale.Tr "auth.adding_account_to" .SignedUser.Name}}
+		<a class="link-action" data-url="{{AppSubUrl}}/user/accounts/add/cancel">{{ctx.Locale.Tr "cancel"}}</a>
+	</div>
+	{{end}}
 	<h4 class="ui top attached header center">
 		{{if .LinkAccountMode}}
 			{{ctx.Locale.Tr "auth.oauth_signin_title"}}

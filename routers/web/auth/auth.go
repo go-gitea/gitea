@@ -11,6 +11,7 @@ import (
 	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/auth"
@@ -74,63 +75,86 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 }
 
 // autoSignIn reads cookie and try to auto-login.
-func autoSignIn(ctx *context.Context) (bool, error) {
-	isSucceed := false
-	defer func() {
-		if !isSucceed {
-			ctx.DeleteSiteCookie(setting.CookieRememberName)
-		}
-	}()
-
+func autoSignIn(ctx *context.Context) (succeed, compromised bool, err error) {
 	if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
 		log.Error("Failed to delete expired auth tokens: %v", err)
 	}
 
-	t, err := auth_service.CheckAuthToken(ctx, ctx.GetSiteCookie(setting.CookieRememberName))
+	checked, err := auth_service.CheckAuthTokens(ctx, ctx.GetSiteCookie(setting.CookieRememberName))
 	if err != nil {
-		switch err {
-		case auth_service.ErrAuthTokenInvalidFormat, auth_service.ErrAuthTokenExpired:
-			return false, nil
+		return false, false, err
+	}
+
+	var accounts []session.SignedInAccount
+	var cookieParts []string
+	var active *user_model.User
+	for _, t := range checked.Valid {
+		u, err := user_model.GetUserByID(ctx, t.UserID)
+		if err != nil {
+			if !user_model.IsErrUserNotExist(err) {
+				return false, checked.Compromised, fmt.Errorf("GetUserByID: %w", err)
+			}
+			continue
 		}
-		return false, err
-	}
-	if t == nil {
-		return false, nil
-	}
-
-	u, err := user_model.GetUserByID(ctx, t.UserID)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) {
-			return false, fmt.Errorf("GetUserByID: %w", err)
+		userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+		if err != nil {
+			return false, checked.Compromised, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
 		}
-		return false, nil
+		nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
+		if err != nil {
+			return false, checked.Compromised, err
+		}
+		cookieParts = append(cookieParts, nt.ID+":"+token)
+		accounts = append(accounts, session.SignedInAccount{UID: u.ID, HasTwoFactorAuth: userHasTwoFactorAuth, AuthTokenID: nt.ID})
+		if active == nil {
+			active = u
+		}
 	}
-	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
-	if err != nil {
-		return false, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
+	setRememberCookie(ctx, cookieParts)
+	if active == nil {
+		return false, checked.Compromised, nil
 	}
-
-	isSucceed = true
-
-	nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
-	if err != nil {
-		return false, err
-	}
-
-	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 	if err := regenerateSession(ctx, map[string]any{
-		session.KeyUID:                  u.ID,
-		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+		session.KeyUID:                  accounts[0].UID,
+		session.KeyUserHasTwoFactorAuth: accounts[0].HasTwoFactorAuth,
 	}); err != nil {
-		return false, fmt.Errorf("unable to updateSession: %w", err)
+		return false, checked.Compromised, fmt.Errorf("unable to updateSession: %w", err)
+	}
+	for _, acc := range slices.Backward(accounts) { // reverse, because each add moves the account to the front
+		if err := session.AddSignedInAccount(ctx.Session, acc); err != nil {
+			return false, checked.Compromised, fmt.Errorf("unable to store signed-in accounts: %w", err)
+		}
+	}
+	if err := ctx.Session.Release(); err != nil {
+		return false, checked.Compromised, fmt.Errorf("unable to store session: %w", err)
 	}
 
-	if err := resetLocale(ctx, u); err != nil {
-		return false, err
+	if err := resetLocale(ctx, active); err != nil {
+		return false, checked.Compromised, err
 	}
 
-	return true, nil
+	return true, checked.Compromised, nil
+}
+
+// rememberCookieParts returns the "<id>:<token>" pairs currently held by the remember-me cookie.
+func rememberCookieParts(ctx *context.Context) []string {
+	value := ctx.GetSiteCookie(setting.CookieRememberName)
+	if value == "" {
+		return nil
+	}
+	return strings.Split(value, ",")
+}
+
+func setRememberCookie(ctx *context.Context, parts []string) {
+	if len(parts) == 0 {
+		ctx.DeleteSiteCookie(setting.CookieRememberName)
+		return
+	}
+	if len(parts) > session.MaxSignedInAccounts {
+		parts = parts[:session.MaxSignedInAccounts]
+	}
+	ctx.SetSiteCookie(setting.CookieRememberName, strings.Join(parts, ","), setting.LogInRememberDays*timeutil.Day)
 }
 
 func resetLocale(ctx *context.Context, u *user_model.User) error {
@@ -198,16 +222,18 @@ func redirectAfterAuth(ctx *context.Context) {
 }
 
 func performAutoLogin(ctx *context.Context) bool {
+	if ctx.DoerIsAddingAccount() {
+		return false // the remember-me cookie belongs to the already active account
+	}
 	rememberAuthRedirectLink(ctx)
 
-	isSucceed, err := autoSignIn(ctx) // try to auto-login
+	isSucceed, compromised, err := autoSignIn(ctx) // try to auto-login
 	if err != nil {
-		if errors.Is(err, auth_service.ErrAuthTokenInvalidHash) {
-			ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
-			return false
-		}
 		ctx.ServerError("autoSignIn", err)
 		return true
+	}
+	if compromised {
+		ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
 	}
 
 	if isSucceed {
@@ -257,6 +283,7 @@ func prepareSignInPageData(ctx *context.Context) (ret preparedSignInData) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = ret.enableSSPI
+	ctx.Data["IsAddingAccount"] = ctx.DoerIsAddingAccount()
 
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
@@ -269,7 +296,7 @@ func SignIn(ctx *context.Context) {
 	if performAutoLogin(ctx) {
 		return
 	}
-	if ctx.IsSigned {
+	if ctx.IsSigned && !ctx.DoerIsAddingAccount() {
 		redirectAfterAuth(ctx)
 		return
 	}
@@ -371,6 +398,7 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 }
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
+	var authTokenID string
 	if remember {
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
@@ -378,7 +406,12 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 			return
 		}
 
-		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+		authTokenID = nt.ID
+		parts := []string{nt.ID + ":" + token}
+		if ctx.DoerIsAddingAccount() {
+			parts = append(parts, rememberCookieParts(ctx)...) // keep the accounts already remembered
+		}
+		setRememberCookie(ctx, parts)
 	}
 
 	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
@@ -395,6 +428,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		ctx.ServerError("RegenerateSession", err)
 		return
 	}
+	setSignedInAccountAuthToken(ctx, u.ID, authTokenID)
 
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
@@ -447,8 +481,17 @@ func HandleSignOut(ctx *context.Context) {
 	middleware.DeleteRedirectToCookie(ctx.Resp)
 }
 
-// SignOut sign out from login status
+// SignOut signs out the active account, falling back to another account of this session if there is one
 func SignOut(ctx *context.Context) {
+	signOut(ctx, false)
+}
+
+// SignOutAll signs out every account of this session
+func SignOutAll(ctx *context.Context) {
+	signOut(ctx, true)
+}
+
+func signOut(ctx *context.Context, all bool) {
 	if ctx.Doer != nil {
 		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
 	}
@@ -463,10 +506,152 @@ func SignOut(ctx *context.Context) {
 		return
 	}
 
+	if !all && ctx.Doer != nil {
+		departing, _ := session.FindSignedInAccount(session.GetSignedInAccounts(ctx.Session), ctx.Doer.ID)
+		remaining, err := session.RemoveSignedInAccount(ctx.Session, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("RemoveSignedInAccount", err)
+			return
+		}
+		if len(remaining) > 0 {
+			revokeRememberToken(ctx, departing.AuthTokenID)
+			for _, acc := range remaining {
+				switched, err := switchToAccount(ctx, acc)
+				if err != nil {
+					ctx.ServerError("switchToAccount", err)
+					return
+				}
+				if switched {
+					// deliberately not buildSignOutRedirectURL: ending the OIDC or reverse proxy session
+					// would take down the remaining accounts too
+					ctx.Redirect(setting.AppSubURL + "/")
+					return
+				}
+			}
+		}
+	}
+
 	// prepare the sign-out URL before destroying the session
 	redirectTo := buildSignOutRedirectURL(ctx)
 	HandleSignOut(ctx)
 	ctx.Redirect(redirectTo)
+}
+
+// revokeRememberToken drops the remember-me token of a single departing account.
+func revokeRememberToken(ctx *context.Context, tokenID string) {
+	if tokenID == "" {
+		return
+	}
+	if err := auth.DeleteAuthTokenByID(ctx, tokenID); err != nil {
+		log.Error("Unable to delete auth token: %v", err)
+	}
+	setRememberCookie(ctx, slices.DeleteFunc(rememberCookieParts(ctx), func(part string) bool {
+		id, _, _ := strings.Cut(part, ":")
+		return id == tokenID
+	}))
+}
+
+// switchToAccount makes an already authenticated account of this session the active one.
+// It reports false without an error when the account is no longer usable, pruning it from the session.
+func switchToAccount(ctx *context.Context, acc session.SignedInAccount) (bool, error) {
+	u, err := user_model.GetUserByID(ctx, acc.UID)
+	// re-check on every switch: the account may have been deleted or disabled since it was added
+	if err != nil || !u.IsActive || u.ProhibitLogin || u.MustChangePassword {
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return false, err
+		}
+		_, err = session.RemoveSignedInAccount(ctx.Session, acc.UID)
+		return false, err
+	}
+
+	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
+	if err != nil {
+		return false, err
+	}
+
+	updates := map[string]any{
+		session.KeyUID:                  u.ID,
+		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+	}
+	if acc.SignInMethod != "" {
+		updates[session.KeySignInMethod] = acc.SignInMethod
+	}
+	if err = regenerateSession(ctx, updates); err != nil {
+		return false, err
+	}
+	if acc.SignInMethod == "" {
+		// otherwise the previous account's sign-in method would decide this account's sign-out
+		if err = ctx.Session.Delete(session.KeySignInMethod); err != nil {
+			return false, err
+		}
+		if err = ctx.Session.Release(); err != nil {
+			return false, err
+		}
+	}
+	setSignedInAccountAuthToken(ctx, u.ID, acc.AuthTokenID)
+	return true, resetLocale(ctx, u)
+}
+
+// AddAnotherAccountddAnotherAccount sends the user to the sign-in page while keeping the current account signed in
+func AddAnotherAccount(ctx *context.Context) {
+	if ctx.DoerIsImpersonated() || ctx.Doer.MustChangePassword {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+	if len(session.GetSignedInAccounts(ctx.Session)) >= session.MaxSignedInAccounts {
+		ctx.Flash.Error(ctx.Tr("auth.max_accounts_reached", session.MaxSignedInAccounts))
+		ctx.JSONRedirect(setting.AppSubURL + "/")
+		return
+	}
+	if err := ctx.Session.Set(session.KeyAddingAccountFor, ctx.Doer.ID); err != nil {
+		ctx.ServerError("SetSessionKey", err)
+		return
+	}
+	if err := ctx.Session.Release(); err != nil {
+		ctx.ServerError("ReleaseSession", err)
+		return
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/user/login")
+}
+
+// CancelAddAccount leaves the "add another account" flow without signing in
+func CancelAddAccount(ctx *context.Context) {
+	if err := ctx.Session.Delete(session.KeyAddingAccountFor); err != nil {
+		ctx.ServerError("DeleteSessionKey", err)
+		return
+	}
+	if err := ctx.Session.Release(); err != nil {
+		ctx.ServerError("ReleaseSession", err)
+		return
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/")
+}
+
+// SwitchAccount activates another account already authenticated within this session
+func SwitchAccount(ctx *context.Context) {
+	if ctx.DoerIsImpersonated() {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+	uid := ctx.PathParamInt64("uid")
+	acc, ok := session.FindSignedInAccount(session.GetSignedInAccounts(ctx.Session), uid)
+	if !ok || uid == ctx.Doer.ID {
+		ctx.HTTPError(http.StatusBadRequest)
+		return
+	}
+	oldUID, oldSessID := ctx.Doer.ID, ctx.Session.ID()
+	switched, err := switchToAccount(ctx, acc)
+	if err != nil {
+		ctx.ServerError("switchToAccount", err)
+		return
+	}
+	if !switched {
+		ctx.Flash.Error(ctx.Tr("auth.switch_account_unavailable"))
+		ctx.JSONRedirect(setting.AppSubURL + "/")
+		return
+	}
+	websocket_service.PublishLogout(oldUID, oldSessID)
+	ctx.JSONRedirect(setting.AppSubURL + "/")
 }
 
 func buildSignOutRedirectURL(ctx *context.Context) string {
@@ -928,6 +1113,26 @@ func ActivateEmail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
+// setSignedInAccountAuthToken records which remember-me token belongs to an account, so a partial
+// sign-out can revoke only that one.
+func setSignedInAccountAuthToken(ctx *context.Context, uid int64, tokenID string) {
+	if tokenID == "" {
+		return
+	}
+	acc, ok := session.FindSignedInAccount(session.GetSignedInAccounts(ctx.Session), uid)
+	if !ok {
+		return
+	}
+	acc.AuthTokenID = tokenID
+	if err := session.AddSignedInAccount(ctx.Session, acc); err != nil {
+		log.Error("Unable to store auth token id in session: %v", err)
+		return
+	}
+	if err := ctx.Session.Release(); err != nil {
+		log.Error("Unable to store session: %v", err)
+	}
+}
+
 func regenerateSession(ctx *context.Context, updates map[string]any) error {
 	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
 		return fmt.Errorf("regenerate session: %w", err)
@@ -937,6 +1142,18 @@ func regenerateSession(ctx *context.Context, updates map[string]any) error {
 	for k, v := range updates {
 		if err := sess.Set(k, v); err != nil {
 			return fmt.Errorf("set %v in session[%s]: %w", k, sessID, err)
+		}
+	}
+	// every sign-in path funnels through here, so this is the one place which records the account as switchable
+	if uid, ok := updates[session.KeyUID].(int64); ok {
+		acc := session.SignedInAccount{UID: uid}
+		acc.HasTwoFactorAuth, _ = updates[session.KeyUserHasTwoFactorAuth].(bool)
+		acc.SignInMethod, _ = updates[session.KeySignInMethod].(string)
+		if err := session.AddSignedInAccount(sess, acc); err != nil {
+			return fmt.Errorf("add signed-in account to session[%s]: %w", sessID, err)
+		}
+		if err := sess.Delete(session.KeyAddingAccountFor); err != nil {
+			return fmt.Errorf("delete %v in session[%s]: %w", session.KeyAddingAccountFor, sessID, err)
 		}
 	}
 	if err := sess.Release(); err != nil {

@@ -215,8 +215,9 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			}
 		}
 
-		// When a signed-in user visits a page that requires sign-out (e.g.: "/user/login"), redirect to home (or alternate location)
-		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
+		// When a signed-in user visits a page that requires sign-out (e.g.: "/user/login"), redirect to home (or alternate location),
+		// unless they are deliberately signing in an additional account for this session
+		if options.SignOutRequired && ctx.IsSigned && !ctx.DoerIsAddingAccount() && ctx.Req.URL.RequestURI() != "/" {
 			ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"))
 			return
 		}
@@ -764,6 +765,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/forgot_password", auth.ForgotPasswd)
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Get("/logout", auth.SignOut)
+		m.Group("/accounts", func() {
+			m.Post("/add", auth.AddAnotherAccount)
+			m.Post("/add/cancel", auth.CancelAddAccount)
+			m.Post("/switch/{uid}", auth.SwitchAccount)
+			m.Post("/logout_all", auth.SignOutAll)
+		}, reqSignIn)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
 		m.Get("/search_candidates", optExploreSignIn, user.SearchCandidates)
 		m.Group("/oauth2", func() {
