@@ -16,7 +16,7 @@ export function initGiteaFomantic() {
   // Always use Gitea's SVG icons
   $.fn.dropdown.settings.templates.label = function(_value: any, text: string, preserveHTML: boolean, className: Record<string, string>) {
     const escape = $.fn.dropdown.settings.templates.escape;
-    return escape(text, preserveHTML) + svg('octicon-x', 16, `${className.delete} icon`);
+    return `<span class="gt-ellipsis">${escape(text, preserveHTML)}</span>${svg('octicon-x', 16, `${className.delete} icon`)}`;
   };
 
   initFomanticTransition();

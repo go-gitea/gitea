@@ -2788,6 +2788,9 @@ $.fn.dropdown = function(parameters) {
               })
             ;
             module.remove.searchTerm();
+            if(module.is.allFiltered()) {
+              module.hideMenu(); // GITEA-PATCH: "show" already refuses this state, reconcile it after a selection
+            }
           }
         },
 
