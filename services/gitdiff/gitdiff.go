@@ -963,33 +963,15 @@ func (diff *Diff) postProcessFiles() {
 }
 
 func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
-	// need to skip until the next cmdDiffHead
-	var isFragment, wasFragment bool
-	var lineBytes []byte
 	for {
-		lineBytes, isFragment, err = input.ReadLine()
+		lineBytes, _, err := readGitDiffLineWithDiscard(input)
 		if err != nil {
 			return "", err
-		}
-		if wasFragment {
-			wasFragment = isFragment
-			continue
 		}
 		if bytes.HasPrefix(lineBytes, []byte(cmdDiffHead)) {
-			break
+			return string(lineBytes), nil
 		}
-		wasFragment = isFragment
 	}
-	line = string(lineBytes)
-	if isFragment {
-		var tail string
-		tail, err = input.ReadString('\n')
-		if err != nil {
-			return "", err
-		}
-		line += tail
-	}
-	return line, err
 }
 
 func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
@@ -1001,22 +983,33 @@ func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 	}
 }
 
-func readLineWithLimitDiscard(r *bufio.Reader) (_ []byte, truncated bool, _ error) {
+func readGitDiffLineWithDiscard(r *bufio.Reader) (_ []byte, truncated bool, _ error) {
+	// HINT: GIT-DIFF-PARSE-LONG-LINE: it can't use Scanner which has a default limit and will cause errors if a line is very long
 	line, isPrefix, err := r.ReadLine()
-	if isPrefix {
-		truncated = true
-		line = slices.Clone(line)
+	if !isPrefix {
+		return line, false, err
 	}
+
+	if bytes.HasPrefix(line, []byte(cmdDiffHead)) {
+		// "diff head" is special, even if it is very long, we still want to fully read it
+		line = slices.Clone(line)
+		lineRemaining, err := r.ReadBytes('\n')
+		lineRemaining = bytes.TrimRight(lineRemaining, "\r\n")
+		return append(line, lineRemaining...), false, err
+	}
+
+	// discard remaining bytes, only return the prefix
+	line = slices.Clone(line)
 	for isPrefix && err == nil {
 		_, isPrefix, err = r.ReadLine()
 	}
-	return line, truncated, err
+	return line, true, err
 }
 
 // tryFixTruncatedString tries to fix the truncated diff line by removing the last corrupted rune
 func tryFixTruncatedString(s string) string {
 	b := util.UnsafeStringToBytes(s)
-	idx := 0
+	var idx int
 	for idx = 0; idx < len(s); {
 		r, l := utf8.DecodeRune(b[idx:])
 		if r == utf8.RuneError && l == 1 {
@@ -1055,7 +1048,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 	}
 
 	for {
-		lineBytes, truncated, err := readLineWithLimitDiscard(input)
+		lineBytes, truncated, err := readGitDiffLineWithDiscard(input)
 		if err != nil {
 			return lineBytes, err
 		}
