@@ -313,10 +313,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 }
 
-// claimJobForRunner attempts to atomically claim job for runner inside its own
-// transaction. Returns (task, true, nil) on success, or (nil, false, nil) when
-// another runner wins the optimistic-lock race, or when jobCond stopped matching
-// since the scan (the caller should try the next candidate job).
+// claimJobForRunner atomically claims job for runner. It returns (nil, false, nil) when the
+// job is no longer claimable, so the caller should move on to the next candidate.
 func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, jobCond builder.Cond) (*ActionTask, bool, error) {
 	var resultTask *ActionTask
 

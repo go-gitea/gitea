@@ -208,7 +208,7 @@ func (r *ActionRunner) GenerateAndFillToken() {
 	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
 }
 
-// CanRunJob requires the caller to have loaded Group, see LoadGroup.
+// CanRunJob requires Group to be loaded, see LoadGroup.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
 func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool {
 	if runsOnGroup != "" && (r.Group == nil || r.Group.Name != runsOnGroup) {

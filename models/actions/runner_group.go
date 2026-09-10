@@ -55,10 +55,7 @@ func SetRunnerGroupMembers(ctx context.Context, group *ActionRunnerGroup, runner
 		return util.NewPermissionDeniedErrorf("runner is outside the group's scope")
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		var released builder.Cond = builder.Eq{"group_id": group.ID}
-		if len(runnerIDs) > 0 {
-			released = released.And(builder.NotIn("id", runnerIDs))
-		}
+		released := builder.Eq{"group_id": group.ID}.And(builder.NotIn("id", runnerIDs))
 		if _, err := db.GetEngine(ctx).Where(released).Cols("group_id").Update(&ActionRunner{GroupID: 0}); err != nil {
 			return err
 		}
@@ -100,7 +97,7 @@ func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*Action
 
 func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		// conditional so a concurrent join can't leave runners pointing at a deleted group, which would widen what they may run
+		// conditional, so a concurrent join cannot orphan runners in a deleted group
 		hasRunners := builder.Exists(builder.Select("1").From("action_runner").
 			Where(builder.Eq{"group_id": group.ID}).And(builder.IsNull{"deleted"}))
 		n, err := db.GetEngine(ctx).Where(builder.Eq{"id": group.ID}).And(builder.Not{hasRunners}).Delete(new(ActionRunnerGroup))

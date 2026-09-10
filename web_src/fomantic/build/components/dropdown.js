@@ -2789,7 +2789,7 @@ $.fn.dropdown = function(parameters) {
             ;
             module.remove.searchTerm();
             if(module.is.allFiltered()) {
-              module.hideMenu(); // GITEA-PATCH: selecting the last item leaves an empty menu open, "show" already refuses this state
+              module.hideMenu(); // GITEA-PATCH: "show" already refuses this state, reconcile it after a selection
             }
           }
         },
@@ -2809,7 +2809,7 @@ $.fn.dropdown = function(parameters) {
             $label =  $('<a />')
               .addClass(className.label)
               .attr('data-' + metadata.value, escapedValue)
-              .html(templates.label(escapedValue, text, settings.preserveHTML, settings.className, settings.labelHref)) // GITEA-PATCH: pass "labelHref" to the label template
+              .html(templates.label(escapedValue, text, settings.preserveHTML, settings.className, settings.labelHref)) // GITEA-PATCH: let a label link to what it represents
             ;
             $label = settings.onLabelCreate.call($label, escapedValue, text);
 

@@ -17,7 +17,6 @@ export function initGiteaFomantic() {
   $.fn.dropdown.settings.templates.label = function(value: any, text: string, preserveHTML: boolean, className: Record<string, string>, labelHref?: (value: any, text: string) => string) {
     const escape = $.fn.dropdown.settings.templates.escape;
     const href = labelHref?.(value, text);
-    // flex labels don't ellipsize their own text, which would clip the delete icon
     const content = href ?
       `<a class="gt-ellipsis suppressed" href="${escape(href, false)}">${escape(text, preserveHTML)}</a>` :
       `<span class="gt-ellipsis">${escape(text, preserveHTML)}</span>`;

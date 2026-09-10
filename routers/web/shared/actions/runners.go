@@ -137,7 +137,7 @@ func Runners(ctx *context.Context) {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	if !rCtx.IsRepo { // only the owner-level lists render the group column
+	if !rCtx.IsRepo {
 		if err := actions_model.RunnerList(runners).LoadGroups(ctx); err != nil {
 			ctx.ServerError("LoadGroups", err)
 			return
