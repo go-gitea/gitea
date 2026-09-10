@@ -44,7 +44,28 @@ func (s Status) String() string {
 
 // LocaleString returns the locale string name of the Status
 func (s Status) LocaleString(lang translation.Locale) string {
-	return lang.TrString("actions.status." + s.String())
+	switch s {
+	case StatusUnknown:
+		return lang.TrString("actions.status.unknown")
+	case StatusWaiting:
+		return lang.TrString("actions.status.waiting")
+	case StatusRunning:
+		return lang.TrString("actions.status.running")
+	case StatusSuccess:
+		return lang.TrString("actions.status.success")
+	case StatusFailure:
+		return lang.TrString("actions.status.failure")
+	case StatusCancelled:
+		return lang.TrString("actions.status.cancelled")
+	case StatusCancelling:
+		return lang.TrString("actions.status.cancelling")
+	case StatusSkipped:
+		return lang.TrString("actions.status.skipped")
+	case StatusBlocked:
+		return lang.TrString("actions.status.blocked")
+	default:
+		return lang.TrString("actions.status.unknown")
+	}
 }
 
 // IsDone returns whether the Status is final

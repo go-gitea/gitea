@@ -6,6 +6,7 @@ package system
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"time"
 
 	"gitea.dev/models/db"
@@ -13,6 +14,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
 )
 
 // NoticeType describes the notice type
@@ -37,9 +39,16 @@ func init() {
 	db.RegisterModel(new(Notice))
 }
 
-// TrStr returns a translation format string.
-func (n *Notice) TrStr() string {
-	return fmt.Sprintf("admin.notices.type_%d", n.Type)
+// TrType returns the translated notice type name.
+func (n *Notice) TrType(locale translation.Locale) template.HTML {
+	switch n.Type {
+	case NoticeRepository:
+		return locale.Tr("admin.notices.type_1")
+	case NoticeTask:
+		return locale.Tr("admin.notices.type_2")
+	default:
+		return ""
+	}
 }
 
 // CreateNotice creates new system notice.

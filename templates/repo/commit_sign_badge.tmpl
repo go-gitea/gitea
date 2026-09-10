@@ -41,7 +41,7 @@ so this template should be kept as small as possible, DO NOT put large component
 		{{- else -}}
 			{{- $extraClass = "" -}}{{/* the commit is not signed */}}
 		{{- end -}}
-		{{- $msgReason = ctx.Locale.Tr $verification.Reason -}}{{- /* dirty part: it is the translation key ..... */ -}}
+		{{- $msgReason = ctx.Locale.Tr $verification.Reason -}}
 	{{- end -}}
 
 	{{- if $msgReasonPrefix -}}

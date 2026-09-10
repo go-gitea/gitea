@@ -81,7 +81,8 @@
 							</a>
 						{{end}}
 					{{end}}
-					<span {{if .Review.TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .Review.TooltipContent}}"{{end}}>
+					{{$tooltip := .Review.TooltipContent ctx.Locale}}
+					<span {{if $tooltip}}data-tooltip-content="{{$tooltip}}"{{end}}>
 						{{svg (printf "octicon-%s" .Review.Type.Icon) 16 .Review.HTMLTypeColorClass}}
 					</span>
 				</div>
@@ -97,7 +98,8 @@
 					</a>
 				</div>
 				<div class="flex-text-inline">
-					<span {{if .TooltipContent}}data-tooltip-content="{{ctx.Locale.Tr .TooltipContent}}"{{end}}>
+					{{$tooltip := .TooltipContent ctx.Locale}}
+					<span {{if $tooltip}}data-tooltip-content="{{$tooltip}}"{{end}}>
 						{{svg (printf "octicon-%s" .Type.Icon) 16 .HTMLTypeColorClass}}
 					</span>
 				</div>

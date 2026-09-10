@@ -317,7 +317,7 @@ func MigrateStatus(ctx *context.Context) {
 		var translatableMessage admin_model.TranslatableMessage
 		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {
 			translatableMessage = admin_model.TranslatableMessage{
-				Format: "migrate.migrating_failed.error",
+				Format: "repo.migrate.migrating_failed.error",
 				Args:   []any{task.Message},
 			}
 		}

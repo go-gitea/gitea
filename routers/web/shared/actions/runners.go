@@ -346,21 +346,22 @@ func RunnerUpdatePost(ctx *context.Context) {
 		return
 	}
 
-	successKey := "actions.runners.enable_runner_success"
-	failedKey := "actions.runners.enable_runner_failed"
-	if isDisabled.Value() {
-		successKey = "actions.runners.disable_runner_success"
-		failedKey = "actions.runners.disable_runner_failed"
-	}
-
 	if err := actions_model.SetRunnerDisabled(ctx, runner, isDisabled.Value()); err != nil {
 		log.Warn("RunnerUpdatePost.SetRunnerDisabled failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Error(ctx.Tr(failedKey))
+		if isDisabled.Value() {
+			ctx.Flash.Error(ctx.Tr("actions.runners.disable_runner_failed"))
+		} else {
+			ctx.Flash.Error(ctx.Tr("actions.runners.enable_runner_failed"))
+		}
 		ctx.JSONRedirect("")
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr(successKey))
+	if isDisabled.Value() {
+		ctx.Flash.Success(ctx.Tr("actions.runners.disable_runner_success"))
+	} else {
+		ctx.Flash.Success(ctx.Tr("actions.runners.enable_runner_success"))
+	}
 	ctx.JSONRedirect("")
 }
 
@@ -387,14 +388,8 @@ func RunnerBulkActionPost(ctx *context.Context) {
 	}
 
 	action := ctx.FormString("action")
-	var successKey, failedKey string
 	switch action {
-	case "delete":
-		successKey, failedKey = "actions.runners.delete_runner_success", "actions.runners.delete_runner_failed"
-	case "disable":
-		successKey, failedKey = "actions.runners.disable_runner_success", "actions.runners.disable_runner_failed"
-	case "enable":
-		successKey, failedKey = "actions.runners.enable_runner_success", "actions.runners.enable_runner_failed"
+	case "delete", "disable", "enable":
 	default:
 		ctx.HTTPError(http.StatusBadRequest, "invalid action")
 		return
@@ -427,12 +422,26 @@ func RunnerBulkActionPost(ctx *context.Context) {
 	})
 	if err != nil {
 		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
-		ctx.Flash.Error(ctx.Tr(failedKey))
+		switch action {
+		case "delete":
+			ctx.Flash.Error(ctx.Tr("actions.runners.delete_runner_failed"))
+		case "disable":
+			ctx.Flash.Error(ctx.Tr("actions.runners.disable_runner_failed"))
+		default:
+			ctx.Flash.Error(ctx.Tr("actions.runners.enable_runner_failed"))
+		}
 		ctx.JSONRedirect(rCtx.RedirectLink)
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr(successKey))
+	switch action {
+	case "delete":
+		ctx.Flash.Success(ctx.Tr("actions.runners.delete_runner_success"))
+	case "disable":
+		ctx.Flash.Success(ctx.Tr("actions.runners.disable_runner_success"))
+	default:
+		ctx.Flash.Success(ctx.Tr("actions.runners.enable_runner_success"))
+	}
 	ctx.JSONRedirect(rCtx.RedirectLink)
 }
 

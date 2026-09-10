@@ -130,14 +130,6 @@
 			{{if ne .RefRepoID .Issue.RepoID}}
 				{{$refFrom = ctx.Locale.Tr "repo.issues.ref_from" .RefRepo.FullName}}
 			{{end}}
-			{{$refTr := "repo.issues.ref_issue_from"}}
-			{{if .Issue.IsPull}}
-				{{$refTr = "repo.issues.ref_pull_from"}}
-			{{else if eq .RefAction 1}}
-				{{$refTr = "repo.issues.ref_closing_from"}}
-			{{else if eq .RefAction 2}}
-				{{$refTr = "repo.issues.ref_reopening_from"}}
-			{{end}}
 			{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
@@ -145,7 +137,15 @@
 				<span class="comment-text-line">
 					{{if eq .RefAction 3}}<del>{{end}}
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr $refTr .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
+					{{if .Issue.IsPull}}
+						{{ctx.Locale.Tr "repo.issues.ref_pull_from" .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
+					{{else if eq .RefAction 1}}
+						{{ctx.Locale.Tr "repo.issues.ref_closing_from" .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
+					{{else if eq .RefAction 2}}
+						{{ctx.Locale.Tr "repo.issues.ref_reopening_from" .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
+					{{else}}
+						{{ctx.Locale.Tr "repo.issues.ref_issue_from" .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
+					{{end}}
 					{{if eq .RefAction 3}}</del>{{end}}
 				</span>
 
@@ -565,7 +565,7 @@
 					{{if .OldProject}}
 						{{$tooltip := ctx.Locale.Tr "projects.deleted.display_name"}}
 						{{if not .OldProject.IsGhost}}
-							{{$tooltip = ctx.Locale.Tr (printf "projects.type-%d.display_name" .OldProject.Type)}}
+							{{$tooltip = .OldProject.Type.LocaleDisplayName ctx.Locale}}
 						{{end}}
 						{{$oldProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` $tooltip .OldProject.Title}}
 					{{end}}
@@ -573,7 +573,7 @@
 					{{if .Project}}
 						{{$tooltip := ctx.Locale.Tr "projects.deleted.display_name"}}
 						{{if not .Project.IsGhost}}
-							{{$tooltip = ctx.Locale.Tr (printf "projects.type-%d.display_name" .Project.Type)}}
+							{{$tooltip = .Project.Type.LocaleDisplayName ctx.Locale}}
 						{{end}}
 						{{$newProjectDisplayHtml = HTMLFormat `<span data-tooltip-content="%s">%s</span>` $tooltip .Project.Title}}
 					{{end}}
@@ -595,8 +595,7 @@
 					{{template "shared/user/authorlink" .Poster}}
 					{{$newProjectDisplay := .CommentMetaData.ProjectTitle}}
 					{{if .Project}}
-						{{$trKey := printf "projects.type-%d.display_name" .Project.Type}}
-						{{$newProjectDisplay = HTMLFormat `%s <a href="%s"><span data-tooltip-content="%s">%s</span></a>` (svg .Project.IconName) (.Project.Link ctx) (ctx.Locale.Tr $trKey) .Project.Title}}
+						{{$newProjectDisplay = HTMLFormat `%s <a href="%s"><span data-tooltip-content="%s">%s</span></a>` (svg .Project.IconName) (.Project.Link ctx) (.Project.Type.LocaleDisplayName ctx.Locale) .Project.Title}}
 					{{end}}
 					{{ctx.Locale.Tr "repo.issues.move_to_column_of_project" .CommentMetaData.ProjectColumnTitle $newProjectDisplay $createdStr}}
 				</span>

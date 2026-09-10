@@ -22,7 +22,7 @@ func TestBuildValidationErrorForUser(t *testing.T) {
 	form := &testRangeForm{Hours: 2000}
 	errs := validation.Binder().Validate(t.Context(), form)
 	errorMessage, errorFieldName, fieldNames := BuildValidationErrorForUser(form, translation.MockLocale{}, errs)
-	assert.Equal(t, "form.range_error:form.Hours,0,1000", errorMessage)
+	assert.Equal(t, "form.range_error:Hours,0,1000", errorMessage)
 	assert.Equal(t, "Hours", errorFieldName)
 	assert.Equal(t, []string{"Hours"}, fieldNames)
 }

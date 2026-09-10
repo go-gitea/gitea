@@ -39,8 +39,10 @@ func (ut *RenderUtils) RenderTimelineEventComment(c *issues_model.Comment, creat
 		if !isToggle {
 			return locale.Tr("repo.issues.change_title_at", ut.RenderEmoji(c.OldTitle), ut.RenderEmoji(c.NewTitle), createdStr)
 		}
-		trKey := util.Iif(isWip, "repo.pulls.marked_as_work_in_progress_at", "repo.pulls.marked_as_ready_for_review_at")
-		return locale.Tr(trKey, createdStr)
+		if isWip {
+			return locale.Tr("repo.pulls.marked_as_work_in_progress_at", createdStr)
+		}
+		return locale.Tr("repo.pulls.marked_as_ready_for_review_at", createdStr)
 	}
 	setting.PanicInDevOrTesting("unimplemented comment type %v: %v", c.Type, c)
 	return htmlutil.HTMLFormat("(Comment:%v,%v)", c.Type, c.Content)

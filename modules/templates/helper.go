@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/templates/eval"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/webhook"
 	"gitea.dev/services/gitdiff"
 )
 
@@ -48,11 +49,12 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// svg / avatar / icon / color
-		"svg":           svg.RenderHTML,
-		"MigrationIcon": migrationIcon,
-		"ActionIcon":    actionIcon,
-		"SortArrow":     sortArrow,
-		"ContrastColor": util.ContrastColor,
+		"svg":                   svg.RenderHTML,
+		"MigrationIcon":         migrationIcon,
+		"HookTypeLocaleNameKey": webhook.LocaleNameKey,
+		"ActionIcon":            actionIcon,
+		"SortArrow":             sortArrow,
+		"ContrastColor":         util.ContrastColor,
 
 		// -----------------------------------------------------------------
 		// time / number / format

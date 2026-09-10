@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -189,6 +190,20 @@ func GetCardConfig() []CardConfig {
 	return []CardConfig{
 		{CardTypeTextOnly, "repo.projects.card_type.text_only"},
 		{CardTypeImagesAndText, "repo.projects.card_type.images_and_text"},
+	}
+}
+
+// LocaleDisplayName returns the verbatim locale name for this project type.
+func (t Type) LocaleDisplayName(locale translation.Locale) template.HTML {
+	switch t {
+	case TypeIndividual:
+		return locale.Tr("projects.type-1.display_name")
+	case TypeRepository:
+		return locale.Tr("projects.type-2.display_name")
+	case TypeOrganization:
+		return locale.Tr("projects.type-3.display_name")
+	default:
+		return locale.Tr("projects.deleted.display_name")
 	}
 }
 

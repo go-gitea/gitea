@@ -1150,8 +1150,8 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
-				"Message": ctx.Tr("repo.editor.merge_conflict"),
-				"Summary": ctx.Tr("repo.editor.merge_conflict_summary"),
+				"Message": ctx.Tr("repo.pulls.merge_conflict"),
+				"Summary": ctx.Tr("repo.pulls.merge_conflict_summary"),
 				"Details": utils.EscapeFlashErrorString(conflictError.StdErr) + "\n" + utils.EscapeFlashErrorString(conflictError.StdOut),
 			})
 			if err != nil {

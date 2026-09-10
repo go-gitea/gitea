@@ -139,7 +139,16 @@ func (r *ActionRunner) StatusName() string {
 }
 
 func (r *ActionRunner) StatusLocaleName(lang translation.Locale) string {
-	return lang.TrString("actions.runners.status." + r.StatusName())
+	switch r.Status() {
+	case runnerv1.RunnerStatus_RUNNER_STATUS_IDLE:
+		return lang.TrString("actions.runners.status.idle")
+	case runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE:
+		return lang.TrString("actions.runners.status.active")
+	case runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE:
+		return lang.TrString("actions.runners.status.offline")
+	default:
+		return lang.TrString("actions.runners.status.unspecified")
+	}
 }
 
 func (r *ActionRunner) IsOnline() bool {
