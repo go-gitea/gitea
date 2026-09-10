@@ -9,5 +9,4 @@ import "gitea.dev/modules/web/middleware"
 type EditRunnerForm struct {
 	middleware.FormDefaultValidator
 	Description string
-	Groups      string
 }

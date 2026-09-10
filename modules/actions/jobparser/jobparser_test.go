@@ -231,7 +231,7 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		names := make([]string, 0, len(got))
 		for _, combo := range got {
 			names = append(names, combo.Name)
-			assert.Contains(t, []string{"linux", "darwin"}, combo.RunsOn()[0])
+			assert.Contains(t, []string{"linux", "darwin"}, combo.RunsOnLabels()[0])
 		}
 		// Dimensions are appended in key order, as GitHub names multi-dimension combinations.
 		assert.ElementsMatch(t, []string{
@@ -439,4 +439,34 @@ func TestExpressionIgnoresNeedResults(t *testing.T) {
 	} {
 		assert.Equal(t, want, ExpressionIgnoresNeedResults(value), "value %q", value)
 	}
+}
+
+func TestRunsOnGroupSurvivesMatrixExpansion(t *testing.T) {
+	jobs, err := Parse([]byte(`
+on: push
+jobs:
+  plain:
+    runs-on: [ubuntu-latest]
+    steps: [{run: echo}]
+  grouped:
+    strategy:
+      matrix:
+        v: [1, 2]
+    runs-on:
+      labels: [ubuntu-latest]
+      group: gpu-${{ matrix.v }}
+    steps: [{run: echo}]
+`))
+	require.NoError(t, err)
+
+	got := map[string][]string{}
+	for _, sw := range jobs {
+		_, job := sw.Job()
+		got[job.RunsOnGroup()] = job.RunsOnLabels()
+	}
+	assert.Equal(t, map[string][]string{
+		"":      {"ubuntu-latest"},
+		"gpu-1": {"ubuntu-latest"},
+		"gpu-2": {"ubuntu-latest"},
+	}, got)
 }

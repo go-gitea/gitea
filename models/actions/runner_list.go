@@ -56,6 +56,22 @@ func (runners RunnerList) LoadRepos(ctx context.Context) error {
 	return nil
 }
 
+func (runners RunnerList) LoadGroups(ctx context.Context) error {
+	groupIDs := container.FilterSlice(runners, func(runner *ActionRunner) (int64, bool) {
+		return runner.GroupID, runner.GroupID > 0
+	})
+	groups := make(map[int64]*ActionRunnerGroup, len(groupIDs))
+	if err := db.GetEngine(ctx).In("id", groupIDs).Find(&groups); err != nil {
+		return err
+	}
+	for _, runner := range runners {
+		if runner.GroupID > 0 && runner.Group == nil {
+			runner.Group = groups[runner.GroupID]
+		}
+	}
+	return nil
+}
+
 func (runners RunnerList) LoadAttributes(ctx context.Context) error {
 	if err := runners.LoadOwners(ctx); err != nil {
 		return err

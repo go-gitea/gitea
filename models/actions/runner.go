@@ -59,9 +59,9 @@ type ActionRunner struct {
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
 	// Store labels defined in state file (default: .runner file) of the `runner`
-	AgentLabels []string `xorm:"TEXT"`
-	// Restricts this runner to repositories naming one of these groups
-	Groups []string `xorm:"JSON TEXT"`
+	AgentLabels []string           `xorm:"TEXT"`
+	GroupID     int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
+	Group       *ActionRunnerGroup `xorm:"-"`
 	// Store if this is a runner that only ever get one single job assigned
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
@@ -195,15 +195,26 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
+func (r *ActionRunner) LoadGroup(ctx context.Context) error {
+	if r.GroupID == 0 || r.Group != nil {
+		return nil
+	}
+	group, _, err := db.GetByID[ActionRunnerGroup](ctx, r.GroupID)
+	r.Group = group
+	return err
+}
+
 func (r *ActionRunner) GenerateAndFillToken() {
 	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
 }
 
-// CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
+// CanRunJob requires the caller to have loaded Group, see LoadGroup.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
-func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
-	runnerLabelSet := container.SetOf(r.AgentLabels...)
-	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
+func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool {
+	if runsOnGroup != "" && (r.Group == nil || r.Group.Name != runsOnGroup) {
+		return false
+	}
+	return container.SetOf(r.AgentLabels...).Contains(runsOnLabels...)
 }
 
 func init() {

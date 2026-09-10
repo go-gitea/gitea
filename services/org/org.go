@@ -45,6 +45,10 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}
 
+	if err := actions_model.DeleteRunnerGroupsByOwner(ctx, org.ID); err != nil {
+		return fmt.Errorf("DeleteRunnerGroupsByOwner: %w", err)
+	}
+
 	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
 		return fmt.Errorf("Delete: %w", err)
 	}

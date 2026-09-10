@@ -63,7 +63,7 @@ import {initGlobalFormDirtyLeaveConfirm} from './modules/are-you-sure.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
-import {initRunnerGroupsInput} from './features/common-runner-groups.ts';
+import {initRunnerGroupInputs} from './features/common-runner-groups.ts';
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
@@ -164,7 +164,7 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoFileView,
   initActionsPermissionsForm,
-  initRunnerGroupsInput,
+  initRunnerGroupInputs,
 
   initDevtest,
 ]);

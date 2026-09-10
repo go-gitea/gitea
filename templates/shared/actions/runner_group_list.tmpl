@@ -1,0 +1,53 @@
+<div class="runner-container">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.runners.groups"}} ({{ctx.Locale.Tr "admin.total" (len .RunnerGroups)}})
+		<div class="ui right">
+			<button type="button" class="ui primary tiny button show-modal"
+				data-modal="#create-runner-group-modal"
+				data-modal-form.url="{{.Link}}"
+				data-modal-dialog-group-name=""
+			>
+				{{ctx.Locale.Tr "actions.runners.groups.create"}}
+			</button>
+		</div>
+	</h4>
+	{{if .RunnerGroups}}
+	<div class="ui attached table segment">
+		<table class="ui very basic striped table unstackable">
+			<thead>
+				<tr>
+					<th>{{ctx.Locale.Tr "actions.runners.name"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runners.groups.repos"}}</th>
+					<th>{{ctx.Locale.Tr "edit"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .RunnerGroups}}
+					<tr>
+						<td>{{.Name}}</td>
+						<td>{{.Runners}}</td>
+						<td>{{.Repos}}</td>
+						<td><a href="{{$.Link}}/{{.ID}}" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.runners.groups.none"}}</div>
+	{{end}}
+</div>
+
+<div class="ui small modal" id="create-runner-group-modal">
+	<div class="header">{{ctx.Locale.Tr "actions.runners.groups.create"}}</div>
+	<form class="ui form form-fetch-action" method="post">
+		<div class="content">
+			<div class="field">
+				<label for="dialog-group-name">{{ctx.Locale.Tr "actions.runners.name"}}</label>
+				<input autofocus required name="name" id="dialog-group-name" maxlength="255" placeholder="{{ctx.Locale.Tr "actions.runners.groups.name_placeholder"}}">
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" .}}
+	</form>
+</div>

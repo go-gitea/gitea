@@ -12,7 +12,6 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -138,6 +137,12 @@ func Runners(ctx *context.Context) {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
+	if !rCtx.IsRepo { // only the owner-level lists render the group column
+		if err := actions_model.RunnerList(runners).LoadGroups(ctx); err != nil {
+			ctx.ServerError("LoadGroups", err)
+			return
+		}
+	}
 
 	// ownid=0,repo_id=0,means this token is used for global
 	var token *actions_model.ActionRunnerToken
@@ -202,12 +207,6 @@ func RunnersEdit(ctx *context.Context) {
 
 	ctx.Data["Runner"] = runner
 
-	ctx.Data["KnownRunnerGroups"], err = actions_model.FindKnownRunnerGroupNames(ctx)
-	if err != nil {
-		ctx.ServerError("FindKnownRunnerGroupNames", err)
-		return
-	}
-
 	opts := actions_model.FindTaskOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -259,19 +258,9 @@ func RunnersEditPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm[*forms.EditRunnerForm](ctx)
-	groups := util.Sorted(container.SetOf(util.SplitTrimSpace(form.Groups, ",")...).Values())
 	runner.Description = form.Description
-	if util.SliceSortedEqual(runner.Groups, groups) { // leave groups alone so a description edit cannot clobber a concurrent one
-		err = actions_model.UpdateRunner(ctx, runner, "description")
-	} else {
-		runner.Groups = groups
-		err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-			if err := actions_model.UpdateRunner(txCtx, runner, "description", "groups"); err != nil {
-				return err
-			}
-			return actions_model.IncreaseTaskVersion(txCtx, runner.OwnerID, runner.RepoID)
-		})
-	}
+
+	err = actions_model.UpdateRunner(ctx, runner, "description")
 	if err != nil {
 		log.Warn("RunnerDetailsEditPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
 		ctx.Flash.Warning(ctx.Tr("actions.runners.update_runner_failed"))

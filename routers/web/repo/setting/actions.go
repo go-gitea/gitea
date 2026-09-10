@@ -11,7 +11,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	shared_actions "gitea.dev/routers/web/shared/actions"
@@ -69,33 +68,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		ctx.Data["CollaborativeOwners"] = collaborativeOwners
 	}
 
-	ctx.Data["RunnerGroups"], err = actions.GetRepoRunnerGroups(ctx, ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.ServerError("GetRepoRunnerGroups", err)
-		return
-	}
-	ctx.Data["KnownRunnerGroups"], err = actions.FindKnownRunnerGroupNames(ctx)
-	if err != nil {
-		ctx.ServerError("FindKnownRunnerGroupNames", err)
-		return
-	}
-
 	ctx.HTML(http.StatusOK, tplRepoActionsGeneralSettings)
-}
-
-func UpdateRunnerGroups(ctx *context.Context) {
-	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
-
-	groups := util.Sorted(container.SetOf(util.SplitTrimSpace(ctx.FormString("groups"), ",")...).Values())
-
-	repo := ctx.Repo.Repository
-	if err := actions.SetRepoRunnerGroups(ctx, repo.OwnerID, repo.ID, groups); err != nil {
-		ctx.ServerError("SetRepoRunnerGroups", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(redirectURL)
 }
 
 func ActionsUnitPost(ctx *context.Context) {

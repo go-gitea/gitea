@@ -45,8 +45,6 @@
 				<input id="description" name="description" value="{{.Runner.Description}}">
 			</div>
 
-			{{template "shared/actions/runner_groups_input" dict "Selected" .Runner.Groups "Known" .KnownRunnerGroups "Label" (ctx.Locale.Tr "actions.runners.groups") "Help" (ctx.Locale.Tr "actions.runners.groups_help")}}
-
 			<div class="divider"></div>
 
 			<div class="field">
