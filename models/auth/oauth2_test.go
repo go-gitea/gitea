@@ -4,11 +4,13 @@
 package auth_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -185,6 +187,106 @@ func TestCreateOAuth2Application(t *testing.T) {
 	assert.Equal(t, "newapp", app.Name)
 	assert.Len(t, app.ClientID, 36)
 	unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{Name: "newapp"})
+}
+
+func TestBuiltinOAuth2ApplicationsArePublic(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	assert.NoError(t, auth_model.Init(t.Context()))
+
+	for clientID := range auth_model.BuiltinApplications() {
+		app, err := auth_model.GetOAuth2ApplicationByClientID(t.Context(), clientID)
+		assert.NoError(t, err)
+		if assert.NotNil(t, app) {
+			assert.False(t, app.ConfidentialClient)
+		}
+	}
+}
+
+func TestCreateOAuth2DeviceAuthorizationUserCodeIsHumanFriendly(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
+	deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
+	assert.NoError(t, err)
+	if assert.NotNil(t, deviceAuthorization) {
+		assert.Len(t, deviceAuthorization.UserCode, 8)
+		assert.Len(t, deviceAuthorization.FormattedUserCode(), 9)
+		assert.NotContains(t, deviceAuthorization.UserCode, "I")
+		assert.NotContains(t, deviceAuthorization.UserCode, "L")
+		assert.NotContains(t, deviceAuthorization.UserCode, "O")
+		for _, ch := range deviceAuthorization.UserCode {
+			assert.True(t, strings.ContainsRune("ABCDEFGHJKMNPQRSTUVWXYZ23456789", ch))
+		}
+	}
+}
+
+func TestCreateOAuth2DeviceAuthorizationCapsPendingPerRequester(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&auth_model.OAuth2DeviceAuthorizationMaxPendingPerRequester, 2)()
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
+	for range 2 {
+		_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
+		require.NoError(t, err)
+	}
+
+	_, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
+	assert.ErrorIs(t, err, auth_model.ErrOAuth2DeviceAuthorizationLimitReached)
+
+	// a flooding caller must not lock the client's other users out
+	_, _, err = auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.2")
+	assert.NoError(t, err)
+}
+
+func TestOAuth2DeviceAuthorizationStateTransitions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth_model.OAuth2Application{ID: 1})
+
+	t.Run("DeniedAuthorizationCannotBeApproved", func(t *testing.T) {
+		deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
+		assert.NoError(t, err)
+		if !assert.NotNil(t, deviceAuthorization) {
+			return
+		}
+
+		ok, err := deviceAuthorization.MarkDenied(t.Context(), 1)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		ok, err = deviceAuthorization.MarkApproved(t.Context(), 1, 1)
+		assert.NoError(t, err)
+		assert.False(t, ok)
+
+		reloaded, err := auth_model.GetOAuth2DeviceAuthorizationByID(t.Context(), deviceAuthorization.ID)
+		assert.NoError(t, err)
+		if assert.NotNil(t, reloaded) {
+			assert.Equal(t, auth_model.OAuth2DeviceAuthorizationDenied, reloaded.Status)
+		}
+	})
+
+	t.Run("ConsumedAuthorizationCannotBeConsumedTwice", func(t *testing.T) {
+		deviceAuthorization, _, err := auth_model.CreateOAuth2DeviceAuthorization(t.Context(), app, "", "192.0.2.1")
+		assert.NoError(t, err)
+		if !assert.NotNil(t, deviceAuthorization) {
+			return
+		}
+
+		ok, err := deviceAuthorization.MarkApproved(t.Context(), 1, 1)
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		ok, err = deviceAuthorization.MarkConsumed(t.Context())
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		ok, err = deviceAuthorization.MarkConsumed(t.Context())
+		assert.NoError(t, err)
+		assert.False(t, ok)
+
+		reloaded, err := auth_model.GetOAuth2DeviceAuthorizationByID(t.Context(), deviceAuthorization.ID)
+		assert.NoError(t, err)
+		if assert.NotNil(t, reloaded) {
+			assert.Equal(t, auth_model.OAuth2DeviceAuthorizationConsumed, reloaded.Status)
+		}
+	})
 }
 
 func TestOAuth2Application_TableName(t *testing.T) {
