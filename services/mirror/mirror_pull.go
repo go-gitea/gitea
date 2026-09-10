@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/git"
@@ -184,8 +185,28 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to initialize LFS client: %v", m.Repo.FullName(), err)
-		} else if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo.FullName(), err)
+		} else {
+			var lastRefs []string
+			if m.LFSLastRefs != "" {
+				lastRefs = strings.Split(m.LFSLastRefs, "\n")
+			}
+
+			currentRefs, lfsErr := repo_module.SyncMirrorLfsObjects(ctx, m.Repo, gitRepo, lfsClient, lastRefs)
+			if lfsErr != nil {
+				log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, lfsErr)
+			} else if len(currentRefs) > 0 {
+				m.LFSLastRefs = strings.Join(currentRefs, "\n")
+				if err = repo_model.UpdateMirror(ctx, m); err != nil {
+					log.Error("SyncMirrors [repo: %-v]: failed to update mirror LFS refs: %v", m.Repo, err)
+				}
+			}
+
+			pendingCount, pendingErr := git_model.CountLFSMirrorPendingByRepoID(ctx, m.Repo.ID)
+			if pendingErr != nil {
+				log.Error("SyncMirrors [repo: %-v]: failed to get pending LFS count: %v", m.Repo, pendingErr)
+			} else {
+				recordMirrorLFSPending(m.Repo.OwnerName, m.Repo.Name, pendingCount)
+			}
 		}
 	}
 

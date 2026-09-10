@@ -33,6 +33,7 @@ type Mirror struct {
 
 	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
+	LFSLastRefs string `xorm:"lfs_last_refs TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
 }

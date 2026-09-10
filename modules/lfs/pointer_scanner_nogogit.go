@@ -7,6 +7,7 @@ package lfs
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -56,6 +57,66 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 	err := wg.Wait()
 	close(pointerChan)
 	return err
+}
+
+// SearchPointerBlobsInRange scans only the objects reachable from headRefs but
+// not from excludeRefs for LFS pointer files. This is used for incremental
+// mirror sync to avoid scanning the entire repository.
+func SearchPointerBlobsInRange(ctx context.Context, repo *git.Repository, headRefs, excludeRefs []string, pointerChan chan<- PointerBlob, errChan chan<- error) {
+	// Feed refs via stdin to avoid ARG_MAX limits on large repositories.
+	var stdinBuf bytes.Buffer
+	for _, ref := range headRefs {
+		stdinBuf.WriteString(ref)
+		stdinBuf.WriteByte('\n')
+	}
+	for _, ref := range excludeRefs {
+		stdinBuf.WriteByte('^')
+		stdinBuf.WriteString(ref)
+		stdinBuf.WriteByte('\n')
+	}
+
+	cmdRevList := gitcmd.NewCommand()
+	cmdBatchCheck := gitcmd.NewCommand()
+	cmdBatchContent := gitcmd.NewCommand()
+
+	revListStdout, revListClose := cmdRevList.MakeStdoutPipe()
+	defer revListClose()
+
+	batchCheckIn, batchCheckOut, batchCheckClose := cmdBatchCheck.MakeStdinStdoutPipe()
+	defer batchCheckClose()
+
+	batchContentIn, batchContentOut, batchContentClose := cmdBatchContent.MakeStdinStdoutPipe()
+	defer batchContentClose()
+
+	wg := errgroup.Group{}
+	wg.Go(func() error {
+		return createPointerResultsFromCatFileBatch(batchContentOut, pointerChan)
+	})
+	wg.Go(func() error {
+		return pipeline.CatFileBatch(ctx, cmdBatchContent, repo)
+	})
+	wg.Go(func() error {
+		return pipeline.BlobsLessThan1024FromCatFileBatchCheck(batchCheckOut, batchContentIn)
+	})
+	wg.Go(func() error {
+		return pipeline.CatFileBatchCheck(ctx, cmdBatchCheck, repo)
+	})
+	wg.Go(func() error {
+		return pipeline.BlobsFromRevListObjects(revListStdout, batchCheckIn)
+	})
+	wg.Go(func() error {
+		return cmdRevList.AddArguments("rev-list", "--objects", "--ignore-missing", "--stdin").
+			WithStdinBytes(stdinBuf.Bytes()).
+			WithRepo(repo).
+			RunWithStderr(ctx)
+	})
+
+	err := wg.Wait()
+	close(pointerChan)
+	if err != nil {
+		errChan <- err
+	}
+	close(errChan)
 }
 
 func createPointerResultsFromCatFileBatch(catFileBatchReader io.ReadCloser, pointerChan chan<- PointerBlob) error {
