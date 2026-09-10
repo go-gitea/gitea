@@ -265,7 +265,7 @@ func validateMatrixFilters(job *model.Job) error {
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
 // strategy and interpolating the name, runs-on and continue-on-error with it.
 func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
-	srcRunsOn := src.RunsOn()
+	srcRunsOn, srcRunsOnGroup := src.RunsOnLabels(), src.RunsOnGroup()
 	combos := make([]*Job, 0, len(matrixes))
 	var err error
 	for _, matrix := range matrixes {
@@ -284,7 +284,11 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
 		}
-		combo.RawRunsOn = encodeRunsOn(runsOn)
+		group, err := evaluator.Interpolate(srcRunsOnGroup)
+		if err != nil {
+			return nil, fmt.Errorf("interpolate runs-on group for job %q: %w", jobID, err)
+		}
+		combo.RawRunsOn = encodeRunsOn(runsOn, group)
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
 		}
@@ -344,11 +348,17 @@ func encodeMatrix(matrix map[string]any) yaml.Node {
 	return node
 }
 
-func encodeRunsOn(runsOn []string) yaml.Node {
+func encodeRunsOn(runsOn []string, group string) yaml.Node {
 	node := yaml.Node{}
-	if len(runsOn) == 1 {
+	switch {
+	case group != "":
+		_ = node.Encode(struct {
+			Labels []string `yaml:"labels,omitempty"`
+			Group  string   `yaml:"group"`
+		}{runsOn, group})
+	case len(runsOn) == 1:
 		_ = node.Encode(runsOn[0])
-	} else {
+	default:
 		_ = node.Encode(runsOn)
 	}
 	return node

@@ -171,8 +171,25 @@ func (j *Job) EraseNeeds() *Job {
 	return j
 }
 
-func (j *Job) RunsOn() []string {
-	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
+// TODO: use actionslib's split runs-on accessors from https://gitea.com/gitea/actionslib/pulls/17
+func (j *Job) RunsOnLabels() []string {
+	if j.RawRunsOn.Kind != yaml.MappingNode {
+		return model.RunsOnFromNode(j.RawRunsOn)
+	}
+	var val struct{ Labels yaml.Node }
+	if err := j.RawRunsOn.Decode(&val); err != nil {
+		return nil
+	}
+	return model.RunsOnFromNode(val.Labels)
+}
+
+func (j *Job) RunsOnGroup() string {
+	if j.RawRunsOn.Kind != yaml.MappingNode {
+		return ""
+	}
+	var val struct{ Group string }
+	_ = j.RawRunsOn.Decode(&val)
+	return val.Group
 }
 
 type Step struct {
