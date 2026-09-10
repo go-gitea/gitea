@@ -1012,6 +1012,7 @@ func readLineWithLimitDiscard(r *bufio.Reader) (_ []byte, truncated bool, _ erro
 	return line, truncated, err
 }
 
+// tryFixTruncatedString tries to fix the truncated diff line by removing the last corrupted rune
 func tryFixTruncatedString(s string) string {
 	b := util.UnsafeStringToBytes(s)
 	idx := 0
@@ -1186,7 +1187,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 		line := string(lineBytes)
 		curFile.HasTruncatedLines = curFile.HasTruncatedLines || truncated
 		if len(line) > maxLineCharacters {
-			line = line[:maxLineCharacters] // FIXME: guess encoding or utf-8 truncation
+			line = line[:maxLineCharacters]
 			curLine.IsTruncated = true
 		}
 		curLine.Content = line
