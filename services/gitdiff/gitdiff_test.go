@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -203,7 +202,7 @@ func TestParsePatch_singlefile(t *testing.T) {
 
 	tests := []testcase{
 		{
-			name: "readme.md2readme.md",
+			name: "rename same name",
 			gitdiff: `diff --git "\\a/README.md" "\\b/README.md"
 --- "\\a/README.md"
 +++ "\\b/README.md"
@@ -222,7 +221,7 @@ func TestParsePatch_singlefile(t *testing.T) {
 			oldFilename: "README.md",
 		},
 		{
-			name: "A \\ B",
+			name: `A \ B`,
 			gitdiff: `diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
 +++ "b/A \\ B"
@@ -236,8 +235,8 @@ func TestParsePatch_singlefile(t *testing.T) {
 + cut off`,
 			addition:    4,
 			deletion:    1,
-			filename:    "A \\ B",
-			oldFilename: "A \\ B",
+			filename:    `A \ B`,
+			oldFilename: `A \ B`,
 		},
 		{
 			name: "really weird filename",
@@ -327,7 +326,7 @@ index 0000000..92e798b
 			deletion:    0,
 		},
 		{
-			name: "rename",
+			name: "ambiguous rename 1",
 			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
 similarity index 100%
 rename from b b/b b/b b/b b/b
@@ -337,17 +336,7 @@ rename to b
 			filename:    "b",
 		},
 		{
-			name: "ambiguous 1",
-			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
-similarity index 100%
-rename from b b/b b/b b/b b/b
-rename to b
-`,
-			oldFilename: "b b/b b/b b/b b/b",
-			filename:    "b",
-		},
-		{
-			name: "ambiguous 2",
+			name: "ambiguous rename 2",
 			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
 similarity index 100%
 rename from b b/b b/b b/b
@@ -621,17 +610,12 @@ func TestParsePatchExactLineLimit(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, diff.Files, 1)
 			diffFile := diff.Files[0]
+			assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
 			if test.limit == 0 {
 				require.Len(t, diffFile.Sections, 0)
 			} else {
 				require.Len(t, diffFile.Sections, 1)
-				diffSection := diffFile.Sections[0]
-				lineSecCount := 0
-				for _, line := range diffSection.Lines {
-					lineSecCount += util.Iif(line.Type == DiffLineSection, 1, 0)
-				}
-				assert.Equal(t, test.lines, len(diffSection.Lines)-lineSecCount) // actual diff lines
-				assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
+				assert.Len(t, diffFile.Sections[0].Lines, test.lines+1) // lines with a section
 			}
 		})
 	}
