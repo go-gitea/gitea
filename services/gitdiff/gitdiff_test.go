@@ -202,7 +202,7 @@ func TestParsePatch_singlefile(t *testing.T) {
 
 	tests := []testcase{
 		{
-			name: "rename same name",
+			name: "same name",
 			gitdiff: `diff --git "\\a/README.md" "\\b/README.md"
 --- "\\a/README.md"
 +++ "\\b/README.md"
@@ -549,8 +549,8 @@ func TestParsePatchLongLines(t *testing.T) {
 		{name: "exact", limit: 8, full: "1234567", result: "1234567"},
 		{name: "above", limit: 8, full: "12345678", result: "1234567"},
 		{name: "multiple fragments", limit: 101, full: overSizedContent, result: overSizedContent[:100]},
-		{name: "cutoff", limit: 8, full: "a🙂b🙂", result: "a🙂b"},
-		{name: "cutoff", limit: 12, full: "a🙂b🙂", result: "a🙂b🙂"},
+		{name: "cutoff-truncate", limit: 8, full: "a🙂b🙂", result: "a🙂b"},
+		{name: "cutoff-no-truncate", limit: 12, full: "a🙂b🙂", result: "a🙂b🙂"},
 	} {
 		for _, eol := range []string{"\n", "\r\n"} {
 			t.Run(test.name+"/"+strconv.Quote(eol), func(t *testing.T) {

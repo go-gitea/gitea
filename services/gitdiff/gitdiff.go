@@ -713,8 +713,10 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 	if err != nil {
 		return diff, util.Iif(err == io.EOF, nil, err)
 	}
+
+	skipping := skipToFile != ""
 	for {
-		nextLine, err := diff.parseOneDiffFile(ctx, maxLines, maxLineCharacters, maxFiles, input, skipToFile, line)
+		nextLine, err := diff.parseOneDiffFile(ctx, maxLines, maxLineCharacters, maxFiles, &skipping, input, skipToFile, line)
 		if line == "" || err == io.EOF {
 			break
 		} else if err != nil {
@@ -727,11 +729,10 @@ func ParsePatch(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, 
 	return diff, nil
 }
 
-func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, input *bufio.Reader, skipToFile, startLine string) (nextLine string, err error) {
-	skipping := skipToFile != ""
+func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharacters, maxFiles int, skipping *bool, input *bufio.Reader, skipToFile, startLine string) (nextLine string, err error) {
 	line := startLine
 
-	prepareValue := func(s, p string) string {
+	extractGitDiffHead := func(s, p string) string {
 		return strings.TrimSpace(strings.TrimPrefix(s, p))
 	}
 
@@ -750,11 +751,11 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 		}
 
 		curFile := createDiffFile(line)
-		if skipping {
+		if *skipping {
 			if curFile.Name != skipToFile {
 				return skipToNextDiffHead(input)
 			}
-			skipping = false
+			*skipping = false
 		}
 
 		diff.Files = append(diff.Files, curFile)
@@ -810,10 +811,10 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 				strings.HasPrefix(line, "new mode "):
 
 				if strings.HasPrefix(line, "old mode ") {
-					curFile.OldEntryMode = prepareValue(line, "old mode ")
+					curFile.OldEntryMode = extractGitDiffHead(line, "old mode ")
 				}
 				if strings.HasPrefix(line, "new mode ") {
-					curFile.EntryMode = prepareValue(line, "new mode ")
+					curFile.EntryMode = extractGitDiffHead(line, "new mode ")
 				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
@@ -822,33 +823,33 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
 				if curFile.isAmbiguous {
-					curFile.OldName = prepareValue(line, "rename from ")
+					curFile.OldName = extractGitDiffHead(line, "rename from ")
 				}
 			case strings.HasPrefix(line, "rename to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileRename
 				if curFile.isAmbiguous {
-					curFile.Name = prepareValue(line, "rename to ")
+					curFile.Name = extractGitDiffHead(line, "rename to ")
 					curFile.isAmbiguous = false
 				}
 			case strings.HasPrefix(line, "copy from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
 				if curFile.isAmbiguous {
-					curFile.OldName = prepareValue(line, "copy from ")
+					curFile.OldName = extractGitDiffHead(line, "copy from ")
 				}
 			case strings.HasPrefix(line, "copy to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
 				if curFile.isAmbiguous {
-					curFile.Name = prepareValue(line, "copy to ")
+					curFile.Name = extractGitDiffHead(line, "copy to ")
 					curFile.isAmbiguous = false
 				}
 			case strings.HasPrefix(line, "new file"):
 				curFile.Type = DiffFileAdd
 				curFile.IsCreated = true
 				if strings.HasPrefix(line, "new file mode ") {
-					curFile.EntryMode = prepareValue(line, "new file mode ")
+					curFile.EntryMode = extractGitDiffHead(line, "new file mode ")
 				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
@@ -905,7 +906,7 @@ func (diff *Diff) parseOneDiffFile(ctx context.Context, maxLines, maxLineCharact
 				nextLine, err := parseHunks(ctx, curFile, maxLines, maxLineCharacters, input)
 				return string(nextLine), err
 			default:
-				setting.PanicInDevOrTesting("unsupported git diff output line: %s", line)
+				// ignore other extended header lines
 			}
 		}
 	}
@@ -1042,8 +1043,6 @@ func tryFixTruncatedString(s string) string {
 }
 
 func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (nextLine []byte, err error) {
-	sb := strings.Builder{}
-
 	var curSection *DiffSection
 	curFileLFSPrefix := false
 
@@ -1056,7 +1055,6 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 	}
 
 	for {
-		sb.Reset()
 		lineBytes, truncated, err := readLineWithLimitDiscard(input)
 		if err != nil {
 			return lineBytes, err
