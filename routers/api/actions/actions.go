@@ -13,6 +13,7 @@ import (
 
 func Routes(prefix string) *web.Router {
 	m := web.NewRouter()
+	registerOIDCRoutes(m)
 
 	path, handler := ping.NewPingServiceHandler()
 	m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)

@@ -72,6 +72,25 @@
 				"UnitDisplayDesc" (ctx.Locale.Tr "actions.unit.desc")
 				"UnitAccessMode" (index $.MaxTokenPermissions.UnitAccessModes ctx.Consts.RepoUnitTypeActions)
 			)}}
+			<tr>
+				<td>
+					<strong>{{ctx.Locale.Tr "actions.general.token_permissions.id_token"}}</strong>
+					<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.id_token.description"}}</div>
+				</td>
+				<td class="tw-text-center">
+					<div class="ui radio checkbox">
+						<input type="radio" name="max_id_token_access_mode" value="none" {{if ne $.MaxTokenPermissions.IDTokenAccessMode 2}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+						<label></label>
+					</div>
+				</td>
+				<td></td>
+				<td class="tw-text-center">
+					<div class="ui radio checkbox">
+						<input type="radio" name="max_id_token_access_mode" value="write" {{if eq $.MaxTokenPermissions.IDTokenAccessMode 2}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+						<label></label>
+					</div>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 </div>

@@ -1176,6 +1176,7 @@ jobs:
 		assert.Equal(t, actions_model.StatusSuccess, run1.Status)
 		task2 := runner.fetchTask(t)
 		_, _, run2 := getTaskAndJobAndRunByTaskID(t, task2.Id)
+		assert.Equal(t, wf1TreePath, run2.WorkflowPath)
 		assert.Equal(t, "schedule-concurrency", getRunConcurrencyGroup(t, run2))
 		assert.False(t, getRunConcurrencyCancel(t, run2))
 		assert.Equal(t, string(webhook_module.HookEventSchedule), run2.TriggerEvent)

@@ -62,3 +62,11 @@ func TestParseAuthorizationTokenNoAuthHeader(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), rTaskID)
 }
+
+func TestTokenToTaskIDRejectsOtherHMACAlgorithms(t *testing.T) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS384, actionsClaims{TaskID: 23})
+	signed, err := token.SignedString(setting.GetGeneralTokenSigningSecret())
+	assert.NoError(t, err)
+	_, err = TokenToTaskID(signed)
+	assert.Error(t, err)
+}

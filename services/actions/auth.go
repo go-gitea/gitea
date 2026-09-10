@@ -90,7 +90,7 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 // TokenToTaskID returns the TaskID associated with the provided JWT token
 func TokenToTaskID(token string) (int64, error) {
 	parsedToken, err := jwt.ParseWithClaims(token, &actionsClaims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return setting.GetGeneralTokenSigningSecret(), nil

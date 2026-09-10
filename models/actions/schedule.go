@@ -25,6 +25,7 @@ type ActionSchedule struct {
 	Repo          *repo_model.Repository `xorm:"-"`
 	OwnerID       int64                  `xorm:"index"`
 	WorkflowID    string
+	WorkflowPath  string `xorm:"TEXT"`
 	TriggerUserID int64
 	TriggerUser   *user_model.User `xorm:"-"`
 	Ref           string

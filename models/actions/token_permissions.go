@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"fmt"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -46,6 +47,29 @@ func ComputeTaskTokenPermissions(ctx context.Context, task *ActionTask, targetRe
 		effectivePerms = repoActionsCfg.ClampPermissions(jobDeclaredPerms)
 	} else {
 		effectivePerms = ownerActionsCfg.ClampPermissions(jobDeclaredPerms)
+	}
+
+	visitedParentJobs := map[int64]struct{}{}
+	for parentJobID := task.Job.ParentJobID; parentJobID != 0; {
+		if _, ok := visitedParentJobs[parentJobID]; ok {
+			return ret, fmt.Errorf("reusable workflow job parent cycle at job %d", parentJobID)
+		}
+		visitedParentJobs[parentJobID] = struct{}{}
+
+		parentJob, err := GetRunJobByRunAndID(ctx, task.Job.RunID, parentJobID)
+		if err != nil {
+			return ret, err
+		}
+		if parentPerms := parentJob.TokenPermissions; parentPerms != nil {
+			effectivePerms = repo_model.ClampActionsTokenPermissions(effectivePerms, *parentPerms)
+		} else if parentJob.ParentJobID == 0 {
+			if repoActionsCfg.OverrideOwnerConfig {
+				effectivePerms = repo_model.ClampActionsTokenPermissions(effectivePerms, repoActionsCfg.GetDefaultTokenPermissions())
+			} else {
+				effectivePerms = repo_model.ClampActionsTokenPermissions(effectivePerms, ownerActionsCfg.GetDefaultTokenPermissions())
+			}
+		}
+		parentJobID = parentJob.ParentJobID
 	}
 
 	// Cross-repository access and fork pull requests are strictly read-only for security.

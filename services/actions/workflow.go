@@ -5,6 +5,7 @@ package actions
 
 import (
 	"fmt"
+	"path"
 
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
@@ -195,12 +196,13 @@ func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.
 		return resolveScopedDispatchContent(ctx, repo, sourceRepoID, workflowID, run)
 	}
 
-	_, entries, err := actions.ListWorkflows(ctx, gitRepo, runTargetCommit)
+	workflowDir, entries, err := actions.ListWorkflows(ctx, gitRepo, runTargetCommit)
 	if err != nil {
 		return nil, err
 	}
 	for _, e := range entries {
 		if e.Name() == workflowID {
+			run.WorkflowPath = path.Join(workflowDir, e.Name())
 			return actions.GetContentFromEntry(ctx, gitRepo, e)
 		}
 	}
@@ -236,6 +238,7 @@ func resolveScopedDispatchContent(ctx reqctx.RequestContext, repo *repo_model.Re
 		if p.EntryName == workflowID {
 			run.WorkflowRepoID = sourceRepo.ID
 			run.WorkflowCommitSHA = sha
+			run.WorkflowPath = p.WorkflowPath
 			run.IsScopedRun = true
 			return p.Content, nil
 		}
