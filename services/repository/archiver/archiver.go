@@ -364,7 +364,7 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 	downloadName := archiveReq.Repo.Name + "-" + archiveReq.GetArchiveName()
 
 	if setting.Repository.StreamArchives || len(archiveReq.Paths) > 0 {
-		// weak, the bytes also depend on the git version, compression level and repo config
+		// Use weak ETag beecause the bytes also depend on the git version, compression level and repo config
 		etag := fmt.Sprintf(`W/"%s-%s-%t"`, archiveReq.CommitID, archiveReq.Type.String(), setting.Repository.PrefixArchiveFiles)
 		if len(archiveReq.Paths) == 0 && httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, etag, nil) {
 			return nil
