@@ -14,9 +14,13 @@ export function initGiteaFomantic() {
   // Do not use "cursor: pointer" for dropdown labels
   $.fn.dropdown.settings.className.label += ' tw-cursor-default';
   // Always use Gitea's SVG icons
-  $.fn.dropdown.settings.templates.label = function(_value: any, text: string, preserveHTML: boolean, className: Record<string, string>) {
+  $.fn.dropdown.settings.templates.label = function(value: any, text: string, preserveHTML: boolean, className: Record<string, string>, labelHref?: (value: any, text: string) => string) {
     const escape = $.fn.dropdown.settings.templates.escape;
-    return escape(text, preserveHTML) + svg('octicon-x', 16, `${className.delete} icon`);
+    const href = labelHref?.(value, text);
+    const content = href ?
+      `<a class="gt-ellipsis suppressed" href="${escape(href, false)}">${escape(text, preserveHTML)}</a>` :
+      `<span class="gt-ellipsis">${escape(text, preserveHTML)}</span>`;
+    return content + svg('octicon-x', 16, `${className.delete} icon`);
   };
 
   initFomanticTransition();

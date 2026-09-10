@@ -75,6 +75,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 		&actions_model.ActionVariable{RepoID: 1, Name: "to_purge", Data: "value"},
 		&actions_model.ActionRunAttempt{RepoID: 1, RunID: unittest.NonexistentID, Attempt: 1},
 		&actions_model.ActionTasksVersion{RepoID: 1, Version: 1},
+		&actions_model.ActionRunnerAccess{GroupID: 1, RepoID: 1},
 		&git_model.RenamedBranch{RepoID: 1, From: "old-name", To: "new-name"},
 		&git_model.CommitStatusSummary{RepoID: 1, SHA: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", State: "success"},
 		&repo_model.RepoTransfer{RepoID: 1, DoerID: 2, RecipientID: 3},
@@ -86,6 +87,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &actions_model.ActionVariable{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &actions_model.ActionRunAttempt{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &actions_model.ActionTasksVersion{RepoID: 1})
+	unittest.AssertNotExistsBean(t, &actions_model.ActionRunnerAccess{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &git_model.RenamedBranch{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusSummary{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})

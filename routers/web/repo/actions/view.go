@@ -787,13 +787,25 @@ func describePendingJobDetail(ctx *context_module.Context, current *actions_mode
 			log.Error("FindRunners for job %d: %v", current.ID, err)
 			return ""
 		}
+		if err := actions_model.RunnerList(runners).LoadGroups(ctx); err != nil {
+			log.Error("LoadGroups for job %d: %v", current.ID, err)
+			return ""
+		}
+		allowedGroups, err := actions_model.RunnerGroupsAllowingRepo(ctx, current.RepoID)
+		if err != nil {
+			log.Error("RunnerGroupsAllowingRepo for job %d: %v", current.ID, err)
+			return ""
+		}
 		hasOnlineRunner, hasMatchingRunner := false, false
 		for _, runner := range runners {
 			if runner.IsDisabled {
 				continue
 			}
 			hasOnlineRunner = true
-			if runner.CanMatchLabels(current.RunsOn) {
+			if runner.GroupID != 0 && !allowedGroups.Contains(runner.GroupID) {
+				continue
+			}
+			if runner.CanRunJob(current.RunsOnGroup, current.RunsOn) {
 				hasMatchingRunner = true
 				break
 			}
