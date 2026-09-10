@@ -90,7 +90,7 @@
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 					{{$isImage:= $file.IsBlobTypeImage}}
 					{{$isCsv := $file.IsBlobTypeCsv}}
-					{{$showFileViewToggle := or $isImage (and $isCsv (not $file.IsIncomplete) (not $file.HasTruncatedLines))}}
+					{{$showFileViewToggle := $file.CanShowFileViewToggle}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
 					<div class="diff-file-box file-content {{TabSizeClass $.Editorconfig $file.Name}} tw-mt-0" id="diff-{{$file.NameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 						<div class="diff-file-header sticky-2nd-row ui top attached header">

@@ -501,6 +501,10 @@ func (diffFile *DiffFile) GetType() int {
 	return int(diffFile.Type)
 }
 
+func (diffFile *DiffFile) CanShowFileViewToggle() bool {
+	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
+}
+
 type DiffRenderDetail struct {
 	needTailSection               bool
 	leftLineCount, rightLineCount int

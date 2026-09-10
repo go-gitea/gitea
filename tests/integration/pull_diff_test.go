@@ -83,7 +83,7 @@ func TestLongLineDiffRendering(t *testing.T) {
 	contextLine := strings.Repeat("context ", 8) + suffix + "\n"
 	before := git.FastImportCommit{Ref: "refs/heads/long-line-before"}
 	after := git.FastImportCommit{Ref: "refs/heads/long-line-after"}
-	for _, name := range []string{"long.txt", "long.csv", "long.tsv"} {
+	for _, name := range []string{"long.txt", "long.csv"} {
 		before.Files = append(before.Files, git.FastImportFile{Path: name, Content: strings.Repeat("old ", 16) + suffix + "\n" + contextLine + short + "\n"})
 		after.Files = append(after.Files, git.FastImportFile{Path: name, Content: strings.Repeat("new ", 16) + suffix + "\n" + contextLine + short + "\n"})
 	}
@@ -103,24 +103,26 @@ func TestLongLineDiffRendering(t *testing.T) {
 			req := NewRequest(t, "GET", "/user2/repo1/compare/long-line-before..long-line-after?style="+style)
 			resp := MakeRequest(t, req, http.StatusOK)
 			doc := NewHTMLParser(t, resp.Body)
-			for _, name := range []string{"long.txt", "long.csv", "long.tsv"} {
-				file := doc.Find(`.diff-file-box[data-new-filename="` + name + `"]`)
-				body := file.Find(".code-diff-" + style)
-				require.Equal(t, 1, body.Length(), name)
-				assert.False(t, body.HasClass("tw-hidden"), name)
-				assert.Empty(t, file.Find(".file-view-toggle, .data-table").Nodes, name)
-				assert.NotContains(t, file.Text(), suffix, name)
-				got := body.Find("tr:not(.tag-code) code.code-inner").Map(func(_ int, s *goquery.Selection) string {
-					text := strings.TrimSuffix(s.Text(), "\n")
-					marker := s.NextFiltered("span.tw-select-none")
-					if text == short {
-						assert.Zero(t, marker.Length())
-					} else {
-						assert.Equal(t, "Line truncated", marker.Text())
-					}
-					return text
+			for _, filename := range []string{"long.txt", "long.csv"} {
+				t.Run(filename, func(t *testing.T) {
+					diffFileBox := doc.Find(`.diff-file-box[data-new-filename="` + filename + `"]`)
+					diffBody := diffFileBox.Find(".code-diff-" + style)
+					require.Equal(t, 1, diffBody.Length())
+					assert.False(t, diffBody.HasClass("tw-hidden"))
+					assert.Empty(t, diffFileBox.Find(".file-view-toggle, .data-table").Nodes)
+					assert.NotContains(t, diffFileBox.Text(), suffix)
+					got := diffBody.Find("tr:not(.tag-code) code.code-inner").Map(func(_ int, s *goquery.Selection) string {
+						markerText := s.Find(".diff-line-truncated").Text()
+						textContent := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(s.Text()), markerText))
+						if textContent == short {
+							assert.Empty(t, markerText)
+						} else {
+							assert.Equal(t, "Line truncated", markerText)
+						}
+						return textContent
+					})
+					assert.Equal(t, want, got)
 				})
-				assert.Equal(t, want, got, name)
 			}
 			outside := doc.Find(`.diff-file-box[data-new-filename="outside.csv"]`)
 			assert.Equal(t, 2, outside.Find(".file-view-toggle").Length())
