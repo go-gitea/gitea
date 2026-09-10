@@ -23,6 +23,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/markbates/goth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -222,13 +223,18 @@ func assertSignedInAs(t *testing.T, session *TestSession, name string) {
 
 func addAccount(t *testing.T, session *TestSession, name string) {
 	t.Helper()
+	addAccountRemember(t, session, name, false)
+}
+
+func addAccountRemember(t *testing.T, session *TestSession, name string, remember bool) {
+	t.Helper()
 	session.MakeRequest(t, NewRequest(t, "POST", "/user/accounts/add"), http.StatusOK)
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
-	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"user_name": name,
-		"password":  userPassword,
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	values := map[string]string{"user_name": name, "password": userPassword}
+	if remember {
+		values["remember"] = "on"
+	}
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/login", values), http.StatusSeeOther)
 }
 
 func TestMultiAccountSignIn(t *testing.T) {
@@ -268,5 +274,58 @@ func TestMultiAccountSignIn(t *testing.T) {
 
 		// the unusable account is pruned, so a second attempt is rejected outright
 		session.MakeRequest(t, NewRequestf(t, "POST", "/user/accounts/switch/%d", user2.ID), http.StatusBadRequest)
+	})
+}
+
+func TestSignInRemembered(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
+
+	// remember two accounts on one device
+	session := emptyTestSession(t)
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/login", map[string]string{
+		"user_name": "user2", "password": userPassword, "remember": "on",
+	}), http.StatusSeeOther)
+	addAccountRemember(t, session, "user4", true)
+
+	// drop the session but keep the remember-me cookie, as closing the browser would
+	remembered := emptyTestSession(t)
+	baseURL, err := url.Parse(setting.AppURL)
+	require.NoError(t, err)
+	remembered.jar.SetCookies(baseURL, []*http.Cookie{{
+		Name:  setting.CookieRememberName,
+		Value: session.GetRawCookie(setting.CookieRememberName).Value,
+	}})
+	session = remembered
+
+	t.Run("OffersBothAccounts", func(t *testing.T) {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		var uids []string
+		htmlDoc.doc.Find("[data-url*='/user/login/remembered/']").Each(func(_ int, s *goquery.Selection) {
+			url, _ := s.Attr("data-url")
+			uids = append(uids, url)
+		})
+		assert.Len(t, uids, 2, "both remembered accounts should be offered instead of auto-login")
+	})
+
+	t.Run("SignsInWithoutPassword", func(t *testing.T) {
+		req := NewRequestf(t, "POST", "/user/login/remembered/%d", user4.ID)
+		session.MakeRequest(t, req, http.StatusOK)
+		assertSignedInAs(t, session, "user4")
+
+		// the other remembered account is switchable straight away
+		session.MakeRequest(t, NewRequestf(t, "POST", "/user/accounts/switch/%d", user2.ID), http.StatusOK)
+		assertSignedInAs(t, session, "user2")
+	})
+
+	t.Run("RejectsAccountNotRemembered", func(t *testing.T) {
+		other := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user5"})
+		fresh := emptyTestSession(t)
+		req := NewRequestf(t, "POST", "/user/login/remembered/%d", other.ID)
+		fresh.MakeRequest(t, req, http.StatusOK)
+		assertSignedInAs(t, fresh, "")
 	})
 }

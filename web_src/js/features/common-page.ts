@@ -23,6 +23,19 @@ function initHeadNavbarContentToggle() {
   });
 }
 
+function initUserMenuPanes() {
+  const menu = document.querySelector('#navbar .user-menu');
+  if (!menu) return;
+  addDelegatedEventListener(menu, 'click', '.user-menu-pane-switch', (el, e) => {
+    e.preventDefault();
+    e.stopPropagation(); // otherwise fomantic closes the whole dropdown
+    const target = el.getAttribute('data-user-menu-target');
+    for (const pane of queryElems<HTMLElement>(menu, ':scope > [data-user-menu-pane]')) {
+      pane.hidden = pane.getAttribute('data-user-menu-pane') !== target;
+    }
+  });
+}
+
 function initFooterLanguageMenu() {
   document.querySelector('.ui.dropdown .menu.language-menu')?.addEventListener('click', async (e) => {
     const item = (e.target as HTMLElement).closest('.item');
@@ -50,6 +63,7 @@ function initFooterThemeSelector() {
 
 export function initCommmPageComponents() {
   initHeadNavbarContentToggle();
+  initUserMenuPanes();
   initFooterLanguageMenu();
   initFooterThemeSelector();
 }

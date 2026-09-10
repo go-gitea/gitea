@@ -444,6 +444,27 @@ a.label,
   border-radius: 0 !important;
 }
 
+/* the menu keeps both panes as direct children so fomantic's "> .item" rules still apply */
+.user-menu > [data-user-menu-pane][hidden] {
+  display: none !important;
+}
+
+.user-menu > .header .user-menu-pane-switch {
+  margin: -4px 0;
+}
+
+.remembered-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* .ui.button centers its content, but these read as account rows */
+.remembered-accounts .ui.button {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
 .color-preview {
   display: inline-block;
   margin-left: 0.4em;

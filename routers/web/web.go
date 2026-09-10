@@ -582,6 +582,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Get("/user/login", auth.SignIn)
 	m.Group("/user", func() {
 		m.Post("/login", web.Bind[*forms.SignInForm](), auth.SignInPost)
+		m.Post("/login/remembered/{uid}", auth.SignInRemembered)
 		m.Group("", func() {
 			m.Combo("/login/openid").
 				Get(auth.SignInOpenID).

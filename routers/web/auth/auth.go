@@ -74,67 +74,119 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 	}
 }
 
-// autoSignIn reads cookie and try to auto-login.
-func autoSignIn(ctx *context.Context) (succeed, compromised bool, err error) {
+// rememberedAccount is an account whose remember-me token is still valid on this device.
+type rememberedAccount struct {
+	token            *auth.AuthToken
+	user             *user_model.User
+	hasTwoFactorAuth bool
+}
+
+type autoSignInResult struct {
+	signedIn bool
+	// choices is set when several accounts are remembered: nobody is signed in and the user picks one
+	choices     []*user_model.User
+	compromised bool
+}
+
+// checkRememberedAccounts resolves the remember-me cookie into the accounts it can still sign in.
+// It does not rotate the tokens, so it is safe to call while only rendering a page.
+func checkRememberedAccounts(ctx *context.Context) ([]rememberedAccount, bool, error) {
 	if err := auth.DeleteExpiredAuthTokens(ctx); err != nil {
 		log.Error("Failed to delete expired auth tokens: %v", err)
 	}
 
 	checked, err := auth_service.CheckAuthTokens(ctx, ctx.GetSiteCookie(setting.CookieRememberName))
 	if err != nil {
-		return false, false, err
+		return nil, false, err
 	}
 
-	var accounts []session.SignedInAccount
-	var cookieParts []string
-	var active *user_model.User
+	var accounts []rememberedAccount
 	for _, t := range checked.Valid {
 		u, err := user_model.GetUserByID(ctx, t.UserID)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
-				return false, checked.Compromised, fmt.Errorf("GetUserByID: %w", err)
+				return nil, checked.Compromised, fmt.Errorf("GetUserByID: %w", err)
 			}
+			continue
+		}
+		if !u.IsActive || u.ProhibitLogin {
 			continue
 		}
 		userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 		if err != nil {
-			return false, checked.Compromised, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
+			return nil, checked.Compromised, fmt.Errorf("HasTwoFactorOrWebAuthn: %w", err)
 		}
-		nt, token, err := auth_service.RegenerateAuthToken(ctx, t)
+		accounts = append(accounts, rememberedAccount{token: t, user: u, hasTwoFactorAuth: userHasTwoFactorAuth})
+	}
+	return accounts, checked.Compromised, nil
+}
+
+// signInRemembered signs in the chosen account, rotating every remembered token and keeping the
+// others available in the account switcher.
+func signInRemembered(ctx *context.Context, accounts []rememberedAccount, chosenUID int64) error {
+	var signedIn []session.SignedInAccount
+	var cookieParts []string
+	var chosen *user_model.User
+	for _, acc := range accounts {
+		nt, token, err := auth_service.RegenerateAuthToken(ctx, acc.token)
 		if err != nil {
-			return false, checked.Compromised, err
+			return err
 		}
 		cookieParts = append(cookieParts, nt.ID+":"+token)
-		accounts = append(accounts, session.SignedInAccount{UID: u.ID, HasTwoFactorAuth: userHasTwoFactorAuth, AuthTokenID: nt.ID})
-		if active == nil {
-			active = u
+		entry := session.SignedInAccount{UID: acc.user.ID, HasTwoFactorAuth: acc.hasTwoFactorAuth, AuthTokenID: nt.ID}
+		if acc.user.ID == chosenUID {
+			chosen = acc.user
+			signedIn = append([]session.SignedInAccount{entry}, signedIn...)
+		} else {
+			signedIn = append(signedIn, entry)
 		}
 	}
 	setRememberCookie(ctx, cookieParts)
-	if active == nil {
-		return false, checked.Compromised, nil
+	if chosen == nil {
+		return util.NewInvalidArgumentErrorf("account is not remembered on this device")
 	}
 
 	if err := regenerateSession(ctx, map[string]any{
-		session.KeyUID:                  accounts[0].UID,
-		session.KeyUserHasTwoFactorAuth: accounts[0].HasTwoFactorAuth,
+		session.KeyUID:                  chosen.ID,
+		session.KeyUserHasTwoFactorAuth: signedIn[0].HasTwoFactorAuth,
 	}); err != nil {
-		return false, checked.Compromised, fmt.Errorf("unable to updateSession: %w", err)
+		return fmt.Errorf("unable to updateSession: %w", err)
 	}
-	for _, acc := range slices.Backward(accounts) { // reverse, because each add moves the account to the front
+	for _, acc := range slices.Backward(signedIn) { // reverse, because each add moves the account to the front
 		if err := session.AddSignedInAccount(ctx.Session, acc); err != nil {
-			return false, checked.Compromised, fmt.Errorf("unable to store signed-in accounts: %w", err)
+			return fmt.Errorf("unable to store signed-in accounts: %w", err)
 		}
 	}
 	if err := ctx.Session.Release(); err != nil {
-		return false, checked.Compromised, fmt.Errorf("unable to store session: %w", err)
+		return fmt.Errorf("unable to store session: %w", err)
+	}
+	return resetLocale(ctx, chosen)
+}
+
+// autoSignIn reads cookie and try to auto-login.
+func autoSignIn(ctx *context.Context) (autoSignInResult, error) {
+	accounts, compromised, err := checkRememberedAccounts(ctx)
+	if err != nil {
+		return autoSignInResult{compromised: compromised}, err
 	}
 
-	if err := resetLocale(ctx, active); err != nil {
-		return false, checked.Compromised, err
+	switch len(accounts) {
+	case 0:
+		setRememberCookie(ctx, nil)
+		return autoSignInResult{compromised: compromised}, nil
+	case 1:
+		if err := signInRemembered(ctx, accounts, accounts[0].user.ID); err != nil {
+			return autoSignInResult{compromised: compromised}, err
+		}
+		return autoSignInResult{signedIn: true, compromised: compromised}, nil
 	}
 
-	return true, checked.Compromised, nil
+	// several accounts are remembered, let the user pick instead of guessing one
+	choices := make([]*user_model.User, 0, len(accounts))
+	for _, acc := range accounts {
+		choices = append(choices, acc.user)
+	}
+	return autoSignInResult{choices: choices, compromised: compromised}, nil
 }
 
 // rememberCookieParts returns the "<id>:<token>" pairs currently held by the remember-me cookie.
@@ -227,16 +279,17 @@ func performAutoLogin(ctx *context.Context) bool {
 	}
 	rememberAuthRedirectLink(ctx)
 
-	isSucceed, compromised, err := autoSignIn(ctx) // try to auto-login
+	res, err := autoSignIn(ctx) // try to auto-login
 	if err != nil {
 		ctx.ServerError("autoSignIn", err)
 		return true
 	}
-	if compromised {
+	if res.compromised {
 		ctx.Flash.Error(ctx.Tr("auth.remember_me.compromised"), true)
 	}
+	ctx.Data["RememberedAccounts"] = res.choices
 
-	if isSucceed {
+	if res.signedIn {
 		redirectAfterAuth(ctx)
 		return true
 	}
@@ -305,6 +358,27 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 	ctx.HTML(http.StatusOK, tplSignIn)
+}
+
+// SignInRemembered signs in one of the accounts remembered on this device, without a password.
+// The proof is possession of that account's remember-me token in the caller's own cookie.
+func SignInRemembered(ctx *context.Context) {
+	accounts, _, err := checkRememberedAccounts(ctx)
+	if err != nil {
+		ctx.ServerError("checkRememberedAccounts", err)
+		return
+	}
+	uid := ctx.PathParamInt64("uid")
+	if !slices.ContainsFunc(accounts, func(a rememberedAccount) bool { return a.user.ID == uid }) {
+		ctx.Flash.Error(ctx.Tr("auth.remembered_account_unavailable"))
+		ctx.JSONRedirect(setting.AppSubURL + "/user/login")
+		return
+	}
+	if err := signInRemembered(ctx, accounts, uid); err != nil {
+		ctx.ServerError("signInRemembered", err)
+		return
+	}
+	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }
 
 // SignInPost response for sign in request

@@ -97,62 +97,73 @@
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
-					<div class="header">
-						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+					<div class="header flex-text-block" data-user-menu-pane="main">
+						<span class="tw-flex-1">{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong></span>
+						<button type="button" class="ui compact tiny basic icon button user-menu-pane-switch" data-user-menu-target="switch"
+							data-tooltip-content="{{ctx.Locale.Tr "auth.switch_account"}}" aria-label="{{ctx.Locale.Tr "auth.switch_account"}}">
+							{{svg "octicon-arrow-switch"}}
+						</button>
 					</div>
-
-					<div class="divider"></div>
-					{{range $otherAccounts}}
-						<a class="item link-action flex-text-block" data-url="{{AppSubUrl}}/user/accounts/switch/{{.ID}}">
-							{{ctx.AvatarUtils.Avatar . 20}}
-							{{.Name}}
-						</a>
-					{{end}}
-					<a class="item link-action" data-url="{{AppSubUrl}}/user/accounts/add">
-						{{svg "octicon-person-add"}}
-						{{ctx.Locale.Tr "auth.add_another_account"}}
-					</a>
-					<div class="divider"></div>
-					<a class="item" href="{{.SignedUser.HomeLink}}">
+					<div class="divider" data-user-menu-pane="main"></div>
+					<a class="item" href="{{.SignedUser.HomeLink}}" data-user-menu-pane="main">
 						{{svg "octicon-person"}}
 						{{ctx.Locale.Tr "your_profile"}}
 					</a>
 					{{if not .DisableStars}}
-						<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars">
+						<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars" data-user-menu-pane="main">
 							{{svg "octicon-star"}}
 							{{ctx.Locale.Tr "your_starred"}}
 						</a>
 					{{end}}
-					<a class="item" href="{{AppSubUrl}}/notifications/subscriptions">
+					<a class="item" href="{{AppSubUrl}}/notifications/subscriptions" data-user-menu-pane="main">
 						{{svg "octicon-bell"}}
 						{{ctx.Locale.Tr "notification.subscriptions"}}
 					</a>
-					<a class="{{if .PageIsUserSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
+					<a class="{{if .PageIsUserSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings" data-user-menu-pane="main">
 						{{svg "octicon-tools"}}
 						{{ctx.Locale.Tr "your_settings"}}
 					</a>
-					<a class="item" target="_blank" href="https://docs.gitea.com">
+					<a class="item" target="_blank" href="https://docs.gitea.com" data-user-menu-pane="main">
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
 					{{if .IsAdmin}}
-					<div class="divider"></div>
-					<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
-						{{svg "octicon-server"}}
-						{{ctx.Locale.Tr "admin_panel"}}
-					</a>
+						<div class="divider" data-user-menu-pane="main"></div>
+						<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin" data-user-menu-pane="main">
+							{{svg "octicon-server"}}
+							{{ctx.Locale.Tr "admin_panel"}}
+						</a>
 					{{end}}
-					<div class="divider"></div>
-					<a class="item" href="{{AppSubUrl}}/user/logout">
+					<div class="divider" data-user-menu-pane="main"></div>
+					<a class="item" href="{{AppSubUrl}}/user/logout" data-user-menu-pane="main">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
 					{{if $otherAccounts}}
-						<a class="item link-action" data-url="{{AppSubUrl}}/user/accounts/logout_all">
+						<a class="item link-action" data-url="{{AppSubUrl}}/user/accounts/logout_all" data-user-menu-pane="main">
 							{{svg "octicon-sign-out"}}
 							{{ctx.Locale.Tr "auth.sign_out_all_accounts"}}
 						</a>
 					{{end}}
+
+					<div class="header flex-text-block" data-user-menu-pane="switch" hidden>
+						<button type="button" class="ui compact tiny basic icon button user-menu-pane-switch" data-user-menu-target="main"
+							data-tooltip-content="{{ctx.Locale.Tr "go_back"}}" aria-label="{{ctx.Locale.Tr "go_back"}}">
+							{{svg "octicon-arrow-left"}}
+						</button>
+						<span class="tw-flex-1">{{ctx.Locale.Tr "auth.switch_account"}}</span>
+					</div>
+					<div class="divider" data-user-menu-pane="switch" hidden></div>
+					{{range $otherAccounts}}
+						<a class="item link-action flex-text-block" data-url="{{AppSubUrl}}/user/accounts/switch/{{.ID}}" data-user-menu-pane="switch" hidden>
+							{{ctx.AvatarUtils.Avatar . 20}}
+							{{.Name}}
+						</a>
+					{{end}}
+					<a class="item link-action" data-url="{{AppSubUrl}}/user/accounts/add" data-user-menu-pane="switch" hidden>
+						{{svg "octicon-person-add"}}
+						{{ctx.Locale.Tr "auth.add_another_account"}}
+					</a>
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else}}
