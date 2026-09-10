@@ -532,5 +532,8 @@ func Init() error {
 	// then reuse one connection pool instead of creating a client (and pool) per request
 	migrationHTTPClient.Reset()
 
+	// same for the proxy the git subprocesses use, so it enforces the freshly parsed lists too
+	resetGitHTTPProxy()
+
 	return nil
 }
