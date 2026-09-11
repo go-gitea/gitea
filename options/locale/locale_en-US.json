@@ -392,6 +392,8 @@
   "auth.remembered_account_unavailable": "That account is no longer remembered on this device.",
   "auth.adding_account_to": "Signing in an additional account. You will stay signed in as %s.",
   "auth.sign_out_all_accounts": "Sign Out of All Accounts",
+  "auth.sign_out_current_account": "Sign Out of %s",
+  "auth.sign_out_choice_desc": "You are signed in to more than one account in this browser. Sign out of the active account only, or of all of them?",
   "auth.switch_account_unavailable": "That account can no longer be used and has been removed from this session.",
   "auth.max_accounts_reached": "You can be signed in to at most %d accounts at once.",
   "auth.forgot_password_title": "Forgot Password",

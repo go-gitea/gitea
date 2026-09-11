@@ -25,7 +25,6 @@ type SignedInAccount struct {
 	UID              int64  `json:"uid"`
 	HasTwoFactorAuth bool   `json:"tfa,omitempty"`
 	SignInMethod     string `json:"method,omitempty"`
-	AuthTokenID      string `json:"atid,omitempty"`
 }
 
 // GetSignedInAccounts returns the accounts authenticated in this session, most recent first.

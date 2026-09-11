@@ -24,10 +24,10 @@ func TestSignedInAccounts(t *testing.T) {
 		sess := fakeStore{}
 		require.NoError(t, AddSignedInAccount(sess, SignedInAccount{UID: 1}))
 		require.NoError(t, AddSignedInAccount(sess, SignedInAccount{UID: 2}))
-		require.NoError(t, AddSignedInAccount(sess, SignedInAccount{UID: 1, AuthTokenID: "t1"}))
+		require.NoError(t, AddSignedInAccount(sess, SignedInAccount{UID: 1, SignInMethod: "oauth2"}))
 
 		accounts := GetSignedInAccounts(sess)
-		assert.Equal(t, []SignedInAccount{{UID: 1, AuthTokenID: "t1"}, {UID: 2}}, accounts)
+		assert.Equal(t, []SignedInAccount{{UID: 1, SignInMethod: "oauth2"}, {UID: 2}}, accounts)
 	})
 
 	t.Run("CapEvictsOldest", func(t *testing.T) {

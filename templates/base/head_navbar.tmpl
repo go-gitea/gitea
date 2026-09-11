@@ -1,3 +1,4 @@
+{{$otherAccounts := ctx.OtherSignedInAccounts}}
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left">
 		<!-- the logo -->
@@ -86,7 +87,6 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			{{$otherAccounts := ctx.OtherSignedInAccounts}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}" data-signed-in-username="{{.SignedUser.Name}}">
 				<span class="flex-text-block">
 					<span class="navbar-avatar">
@@ -135,16 +135,12 @@
 						</a>
 					{{end}}
 					<div class="divider" data-user-menu-pane="main"></div>
-					<a class="item" href="{{AppSubUrl}}/user/logout" data-user-menu-pane="main">
+					{{/* the href is the no-JS fallback, signing out every account rather than switching identity */}}
+					<a class="item{{if $otherAccounts}} show-modal{{end}}" href="{{AppSubUrl}}/user/logout"
+						{{if $otherAccounts}}data-modal="#sign-out-choice-modal"{{end}} data-user-menu-pane="main">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
-					{{if $otherAccounts}}
-						<a class="item link-action" data-url="{{AppSubUrl}}/user/accounts/logout_all" data-user-menu-pane="main">
-							{{svg "octicon-sign-out"}}
-							{{ctx.Locale.Tr "auth.sign_out_all_accounts"}}
-						</a>
-					{{end}}
 
 					<div class="header flex-text-block" data-user-menu-pane="switch" hidden>
 						<button type="button" class="ui compact tiny basic icon button user-menu-pane-switch" data-user-menu-target="main"
@@ -207,5 +203,16 @@
 		</div>
 	</div>
 </nav>
+{{if $otherAccounts}}
+	<div class="ui g-modal-confirm modal" id="sign-out-choice-modal">
+		<div class="header">{{svg "octicon-sign-out"}} {{ctx.Locale.Tr "sign_out"}}</div>
+		<div class="content">{{ctx.Locale.Tr "auth.sign_out_choice_desc"}}</div>
+		<div class="actions">
+			<button type="button" class="ui cancel button">{{svg "octicon-x"}} {{ctx.Locale.Tr "modal.cancel"}}</button>
+			<a class="ui red button" href="{{AppSubUrl}}/user/logout">{{ctx.Locale.Tr "auth.sign_out_all_accounts"}}</a>
+			<a class="ui primary button link-action" data-url="{{AppSubUrl}}/user/accounts/logout">{{ctx.Locale.Tr "auth.sign_out_current_account" .SignedUser.Name}}</a>
+		</div>
+	</div>
+{{end}}
 {{template "base/head_impersonate_banner"}}
 {{template "base/head_banner"}}

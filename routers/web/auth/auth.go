@@ -133,7 +133,7 @@ func signInRemembered(ctx *context.Context, accounts []rememberedAccount, chosen
 			return err
 		}
 		cookieParts = append(cookieParts, nt.ID+":"+token)
-		entry := session.SignedInAccount{UID: acc.user.ID, HasTwoFactorAuth: acc.hasTwoFactorAuth, AuthTokenID: nt.ID}
+		entry := session.SignedInAccount{UID: acc.user.ID, HasTwoFactorAuth: acc.hasTwoFactorAuth}
 		if acc.user.ID == chosenUID {
 			chosen = acc.user
 			signedIn = append([]session.SignedInAccount{entry}, signedIn...)
@@ -472,7 +472,6 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 }
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
-	var authTokenID string
 	if remember {
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
@@ -480,10 +479,10 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 			return
 		}
 
-		authTokenID = nt.ID
 		parts := []string{nt.ID + ":" + token}
 		if ctx.DoerIsAddingAccount() {
-			parts = append(parts, rememberCookieParts(ctx)...) // keep the accounts already remembered
+			// keep the accounts already remembered, minus any stale token this account still had here
+			parts = append(parts, revokeRememberTokens(ctx, u.ID)...)
 		}
 		setRememberCookie(ctx, parts)
 	}
@@ -502,7 +501,6 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		ctx.ServerError("RegenerateSession", err)
 		return
 	}
-	setSignedInAccountAuthToken(ctx, u.ID, authTokenID)
 
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
@@ -555,17 +553,23 @@ func HandleSignOut(ctx *context.Context) {
 	middleware.DeleteRedirectToCookie(ctx.Resp)
 }
 
-// SignOut signs out the active account, falling back to another account of this session if there is one
+// SignOut signs out every account of this session
 func SignOut(ctx *context.Context) {
-	signOut(ctx, false)
+	if redirectTo, ok := signOut(ctx, true); ok {
+		ctx.Redirect(redirectTo)
+	}
 }
 
-// SignOutAll signs out every account of this session
-func SignOutAll(ctx *context.Context) {
-	signOut(ctx, true)
+// SignOutCurrentAccount signs out the active account, handing the session over to another account of
+// this session if there is one. It must stay a POST: it changes which identity the session acts as.
+func SignOutCurrentAccount(ctx *context.Context) {
+	if redirectTo, ok := signOut(ctx, false); ok {
+		ctx.JSONRedirect(redirectTo)
+	}
 }
 
-func signOut(ctx *context.Context, all bool) {
+// signOut returns where to send the caller, or ok=false once it has answered the request itself.
+func signOut(ctx *context.Context, all bool) (redirectTo string, ok bool) {
 	if ctx.Doer != nil {
 		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
 	}
@@ -573,56 +577,63 @@ func signOut(ctx *context.Context, all bool) {
 	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
 	if err != nil {
 		ctx.ServerError("ExitImpersonatedUser", err)
-		return
+		return "", false
 	}
 	if exitedImpersonated {
-		ctx.Redirect(setting.AppSubURL + "/-/admin")
-		return
+		return setting.AppSubURL + "/-/admin", true
 	}
 
 	if !all && ctx.Doer != nil {
-		departing, _ := session.FindSignedInAccount(session.GetSignedInAccounts(ctx.Session), ctx.Doer.ID)
 		remaining, err := session.RemoveSignedInAccount(ctx.Session, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("RemoveSignedInAccount", err)
-			return
+			return "", false
 		}
 		if len(remaining) > 0 {
-			revokeRememberToken(ctx, departing.AuthTokenID)
+			setRememberCookie(ctx, revokeRememberTokens(ctx, ctx.Doer.ID))
 			for _, acc := range remaining {
 				switched, err := switchToAccount(ctx, acc)
 				if err != nil {
 					ctx.ServerError("switchToAccount", err)
-					return
+					return "", false
 				}
 				if switched {
 					// deliberately not buildSignOutRedirectURL: ending the OIDC or reverse proxy session
 					// would take down the remaining accounts too
-					ctx.Redirect(setting.AppSubURL + "/")
-					return
+					return setting.AppSubURL + "/", true
 				}
 			}
 		}
 	}
 
 	// prepare the sign-out URL before destroying the session
-	redirectTo := buildSignOutRedirectURL(ctx)
+	redirectTo = buildSignOutRedirectURL(ctx)
 	HandleSignOut(ctx)
-	ctx.Redirect(redirectTo)
+	return redirectTo, true
 }
 
-// revokeRememberToken drops the remember-me token of a single departing account.
-func revokeRememberToken(ctx *context.Context, tokenID string) {
-	if tokenID == "" {
-		return
-	}
-	if err := auth.DeleteAuthTokenByID(ctx, tokenID); err != nil {
-		log.Error("Unable to delete auth token: %v", err)
-	}
-	setRememberCookie(ctx, slices.DeleteFunc(rememberCookieParts(ctx), func(part string) bool {
+// revokeRememberTokens deletes every remember-me token one account has on this device and returns the
+// cookie parts which survive. It resolves each token rather than trusting a recorded id, so signing an
+// account out always forgets the device for it.
+func revokeRememberTokens(ctx *context.Context, uid int64) (kept []string) {
+	for _, part := range rememberCookieParts(ctx) {
 		id, _, _ := strings.Cut(part, ":")
-		return id == tokenID
-	}))
+		t, err := auth.GetAuthTokenByID(ctx, id)
+		if err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				log.Error("Unable to load auth token: %v", err)
+			}
+			continue // an unusable part is dropped either way
+		}
+		if t.UserID == uid {
+			if err := auth.DeleteAuthTokenByID(ctx, id); err != nil {
+				log.Error("Unable to delete auth token: %v", err)
+			}
+			continue
+		}
+		kept = append(kept, part)
+	}
+	return kept
 }
 
 // switchToAccount makes an already authenticated account of this session the active one.
@@ -662,11 +673,10 @@ func switchToAccount(ctx *context.Context, acc session.SignedInAccount) (bool, e
 			return false, err
 		}
 	}
-	setSignedInAccountAuthToken(ctx, u.ID, acc.AuthTokenID)
 	return true, resetLocale(ctx, u)
 }
 
-// AddAnotherAccountddAnotherAccount sends the user to the sign-in page while keeping the current account signed in
+// AddAnotherAccount sends the user to the sign-in page while keeping the current account signed in
 func AddAnotherAccount(ctx *context.Context) {
 	if ctx.DoerIsImpersonated() || ctx.Doer.MustChangePassword {
 		ctx.HTTPError(http.StatusForbidden)
@@ -1185,26 +1195,6 @@ func ActivateEmail(ctx *context.Context) {
 	// so this could be redirecting to the login page.
 	// Should users be logged in automatically here? (consider 2FA requirements, etc.)
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-}
-
-// setSignedInAccountAuthToken records which remember-me token belongs to an account, so a partial
-// sign-out can revoke only that one.
-func setSignedInAccountAuthToken(ctx *context.Context, uid int64, tokenID string) {
-	if tokenID == "" {
-		return
-	}
-	acc, ok := session.FindSignedInAccount(session.GetSignedInAccounts(ctx.Session), uid)
-	if !ok {
-		return
-	}
-	acc.AuthTokenID = tokenID
-	if err := session.AddSignedInAccount(ctx.Session, acc); err != nil {
-		log.Error("Unable to store auth token id in session: %v", err)
-		return
-	}
-	if err := ctx.Session.Release(); err != nil {
-		log.Error("Unable to store session: %v", err)
-	}
 }
 
 func regenerateSession(ctx *context.Context, updates map[string]any) error {

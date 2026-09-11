@@ -770,7 +770,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/add", auth.AddAnotherAccount)
 			m.Post("/add/cancel", auth.CancelAddAccount)
 			m.Post("/switch/{uid}", auth.SwitchAccount)
-			m.Post("/logout_all", auth.SignOutAll)
+			m.Post("/logout", auth.SignOutCurrentAccount)
 		}, reqSignIn)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
 		m.Get("/search_candidates", optExploreSignIn, user.SearchCandidates)
