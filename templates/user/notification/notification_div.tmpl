@@ -14,11 +14,25 @@
 				</a>
 			</div>
 			{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
-				<form action="{{AppSubUrl}}/notifications/purge" method="post">
-					<button type="submit" class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
-						{{svg "octicon-checklist"}}
-					</button>
-				</form>
+				<div class="flex-text-inline">
+					{{if .Notifications}}
+						<form action="{{AppSubUrl}}/notifications/purge-page?{{$.PageQueryParams}}" method="post">
+							{{range $one := .Notifications}}
+								{{if ne $one.Status $statusPinned}}
+									<input type="hidden" name="notification_id" value="{{$one.ID}}">
+								{{end}}
+							{{end}}
+							<button type="submit" class="ui mini button tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_page_as_read"}}">
+								{{svg "octicon-check"}}
+							</button>
+						</form>
+					{{end}}
+					<form action="{{AppSubUrl}}/notifications/purge" method="post">
+						<button type="submit" class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
+							{{svg "octicon-checklist"}}
+						</button>
+					</form>
+				</div>
 			{{end}}
 		</div>
 		<div id="notification_table">

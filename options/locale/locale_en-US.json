@@ -3549,6 +3549,7 @@
   "notification.mark_as_read": "Mark as read",
   "notification.mark_as_unread": "Mark as unread",
   "notification.mark_all_as_read": "Mark all as read",
+  "notification.mark_page_as_read": "Mark this page as read",
   "notification.subscriptions": "Subscriptions",
   "notification.watching": "Watching",
   "notification.no_subscriptions": "No subscriptions",
