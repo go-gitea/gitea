@@ -18,7 +18,7 @@
 						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu flex-items-menu">
-							<a class="item j-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
+							<a class="item js-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
 							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
@@ -34,6 +34,18 @@
 							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
+						</div>
+					</div>
+
+					<!-- User Type Filter Menu Item -->
+					<div class="ui dropdown type jump item">
+						<span class="text">{{ctx.Locale.Tr "admin.users.list_type_filter.menu_text"}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu flex-items-menu">
+							<a class="item js-reset-type-filter">{{ctx.Locale.Tr "all"}}</a>
+							<div class="divider"></div>
+							<label class="item"><input type="radio" name="user_type" value="individual"> {{ctx.Locale.Tr "admin.users.individual"}}</label>
+							<label class="item"><input type="radio" name="user_type" value="bot"> {{ctx.Locale.Tr "admin.users.bot"}}</label>
 						</div>
 					</div>
 

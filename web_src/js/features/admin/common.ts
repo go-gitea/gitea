@@ -56,29 +56,56 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
 function initAdminUser() {
   const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');
   if (!pageContent) return;
+  if (pageContent.classList.contains('new')) {
+    initAdminUserNew();
+  } else {
+    initAdminUserEdit();
+  }
+}
 
-  document.querySelector<HTMLInputElement>('#login_type')?.addEventListener('change', function () {
-    if (this.value?.startsWith('0')) {
-      document.querySelector<HTMLInputElement>('#user_name')?.removeAttribute('disabled');
-      document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
-      hideElem('.non-local');
-      showElem('.local');
-      document.querySelector<HTMLInputElement>('#user_name')?.focus();
+// the new-user page chooses the user type and the auth source, so all related fields are rendered
+function initAdminUserNew() {
+  const elUserType = document.querySelector<HTMLInputElement>('#user_type')!;
+  const elLoginType = document.querySelector<HTMLInputElement>('#login_type')!;
+  const elUserName = document.querySelector<HTMLInputElement>('#user_name')!;
+  const elLoginName = document.querySelector<HTMLInputElement>('#login_name')!;
+  const elPassword = document.querySelector<HTMLInputElement>('#password')!;
 
-      if (this.getAttribute('data-password') === 'required') {
-        document.querySelector('#password')?.setAttribute('required', 'required');
-      }
-    } else {
-      if (document.querySelector<HTMLDivElement>('.admin.edit.user')) {
-        document.querySelector<HTMLInputElement>('#user_name')?.setAttribute('disabled', 'disabled');
-      }
-      document.querySelector<HTMLInputElement>('#login_name')?.setAttribute('required', 'required');
-      showElem('.non-local');
-      hideElem('.local');
-      document.querySelector<HTMLInputElement>('#login_name')?.focus();
+  // all field states are derived from the current selections, so every change recomputes the same way
+  const syncFields = (focusField: boolean) => {
+    const isBot = elUserType.value === 'bot'; // a bot is a local account without an auth source or password
+    // login_type "0" is LoginNoType — a local account with no auth source; anything else is an OAuth/SSO source
+    const isLocal = !isBot && elLoginType.value.startsWith('0');
 
-      document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
+    toggleElem('.js-non-bot', !isBot);
+    if (!isBot) { // fields hidden as ".js-non-bot" must not be shown again by the js-local/js-non-local state
+      toggleElem('.js-local', isLocal);
+      toggleElem('.js-non-local', !isLocal);
     }
+    elLoginName.toggleAttribute('required', !isBot && !isLocal);
+    elPassword.toggleAttribute('required', isLocal);
+
+    if (focusField) (isBot || isLocal ? elUserName : elLoginName).focus();
+  };
+
+  elUserType.addEventListener('change', () => syncFields(true));
+  elLoginType.addEventListener('change', () => syncFields(true));
+  syncFields(false); // the page is re-rendered with the submitted values after a validation error
+}
+
+function initAdminUserEdit() {
+  const elLoginType = document.querySelector<HTMLInputElement>('#login_type');
+  if (!elLoginType) return; // a bot user has no auth source, password or admin flag to edit
+  const elUserName = document.querySelector<HTMLInputElement>('#user_name')!;
+  const elLoginName = document.querySelector<HTMLInputElement>('#login_name')!;
+
+  elLoginType.addEventListener('change', () => {
+    const isLocal = elLoginType.value.startsWith('0');
+    toggleElem('.js-local', isLocal);
+    toggleElem('.js-non-local', !isLocal);
+    elUserName.toggleAttribute('disabled', !isLocal); // only local accounts can be renamed here
+    elLoginName.toggleAttribute('required', !isLocal);
+    (isLocal ? elUserName : elLoginName).focus();
   });
 }
 

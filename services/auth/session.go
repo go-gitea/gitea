@@ -50,6 +50,13 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
+	// a session opened before a conversion to bot must not survive it, and sessions cannot be
+	// enumerated per user, so it is rejected here instead and the caller drops it
+	if !user.IsIndividual() {
+		log.Trace("Session Authorization: user %-v is not an individual, ignoring the session", user)
+		return nil, nil //nolint:nilnil // the auth method is not applicable
+	}
+
 	log.Trace("Session Authorization: Logged in user %-v", user)
 	return user, nil
 }

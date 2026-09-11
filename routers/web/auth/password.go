@@ -60,6 +60,11 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Email"] = email
 
 	u, err := user_model.GetUserByEmail(ctx, email)
+	// a bot has no password to reset, and its address may still be the one of the
+	// individual it was converted from, so it is treated like an unknown address
+	if err == nil && !u.IsIndividual() {
+		err = user_model.ErrUserNotExist{}
+	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -112,7 +117,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 
 	// Fail early, don't frustrate the user
 	u := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, code)
-	if u == nil {
+	if u == nil || !u.IsIndividual() { // a code issued before a conversion must not set a password on the resulting bot
 		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", setting.AppSubURL+"/user/forgot_password"), true)
 		return nil, nil
 	}
