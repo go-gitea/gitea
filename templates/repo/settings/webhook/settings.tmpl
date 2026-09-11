@@ -351,9 +351,9 @@
 
 <div class="field">
 	{{if $isNew}}
-		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
+		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
 	{{else}}
-		<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_webhook"}}</button>
+		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_webhook"}}</button>
 		<a class="ui red button link-action"
 			data-url="{{.BaseLink}}/delete?id={{.Webhook.ID}}"
 			data-modal-confirm="{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}"

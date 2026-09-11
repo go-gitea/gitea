@@ -32811,6 +32811,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Replace list of topics for a repository",
@@ -32860,6 +32863,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a topic from a repository",
@@ -32907,6 +32913,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add a topic to a repository",

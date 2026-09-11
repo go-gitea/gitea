@@ -18,7 +18,7 @@
 		</h1>
 		<div class="issue-title-buttons">
 			{{if $canEditIssueTitle}}
-			<button id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
+			<button type="button" id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
 			{{end}}
 			{{if not .Issue.IsPull}}
 			<a role="button" class="ui small primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
@@ -38,7 +38,7 @@
 		</div>
 	</form>
 	{{end}}
-	<div class="issue-title-meta">
+	<div class="issue-title-meta flex-text-block">
 		{{if .HasMerged}}
 			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "tw-mr-1"}} {{if eq .Issue.PullRequest.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
 		{{else if .Issue.IsClosed}}
@@ -52,11 +52,11 @@
 		{{else}}
 			<div class="ui green label issue-state-label">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.open_title"}}</div>
 		{{end}}
-		<div class="tw-ml-2 tw-flex-1 tw-break-anywhere">
+		<div class="flex-text-block">
 			{{if .Issue.IsPull}}
 				{{$headHref := .HeadTarget}}
 				{{if .HeadBranchLink}}
-					{{$headHref = HTMLFormat `<a href="%s">%s</a> <button class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` .HeadBranchLink $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
+					{{$headHref = HTMLFormat `<a href="%s">%s</a> <button type="button" class="btn interact-fg" data-tooltip-content="%s" data-clipboard-text="%s">%s</button>` .HeadBranchLink $headHref (ctx.Locale.Tr "copy_branch") .HeadTarget (svg "octicon-copy" 14)}}
 				{{else}}
 					{{if .Issue.PullRequest.IsAgitFlow}}
 						{{$headHref = HTMLFormat `%s <a href="%s" target="_blank"><span class="ui label basic tiny" data-tooltip-content="%s">AGit</span></a>` $headHref "https://docs.gitea.com/usage/agit" (ctx.Locale.Tr "repo.pull.agit_documentation")}}
@@ -90,16 +90,22 @@
 							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
-					<span id="pull-desc-editor" class="tw-hidden flex-text-block" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
-						<div class="ui floating filter dropdown">
-							<div class="ui basic small button tw-mr-0">
-								<span class="text">{{ctx.Locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
-							</div>
+					{{if .Issue.PullRequest}}
+					<div id="pull-desc-editor" class="tw-hidden flex-text-block tw-flex-wrap" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
+						{{$pr := .Issue.PullRequest}}
+						{{$baseBranch := $pr.BaseBranch}}
+						{{$headBranch := $pr.HeadBranch}}
+						{{$baseUserName := $pr.BaseRepo.OwnerName}}
+						{{$headUserName := $pr.OptionalHeadUserName ctx}}
+						<div class="ui basic small button tw-pointer-events-none">
+							<span class="gt-ellipsis">{{ctx.Locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
 						</div>
 						{{svg "octicon-arrow-right"}}
-						<div class="ui floating filter dropdown" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
+						<div class="ui floating dropdown" data-no-results="{{ctx.Locale.Tr "no_results_found"}}">
 							<div class="ui basic small button">
-								<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{ctx.Locale.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
+								<span id="pull-target-branch" class="gt-ellipsis" data-base-user-name="{{$baseUserName}}" data-text-compare-base="{{ctx.Locale.Tr "repo.pulls.compare_base"}}">
+									{{ctx.Locale.Tr "repo.pulls.compare_base"}}: {{$baseUserName}}:{{$baseBranch}}
+								</span>
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							</div>
 							<div class="menu">
@@ -108,17 +114,18 @@
 									<input name="search" placeholder="{{ctx.Locale.Tr "repo.pulls.filter_branch"}}...">
 								</div>
 								<div class="scrolling menu" id="branch-select">
-									{{range .Branches}}
-										{{$sameBase := ne $.BaseName $.HeadUserName}}
-										{{$differentBranch := ne . $.HeadBranch}}
-										{{if or $sameBase $differentBranch}}
-											<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}:{{.}}</div>
+									{{$differentOwner := ne $baseUserName $headUserName}}
+									{{range $branch := $.Branches}}
+										{{$differentBranch := ne $branch $headBranch}}
+										{{if or $differentOwner $differentBranch}}
+											<div class="item {{if eq $baseBranch $branch}}selected{{end}}" data-branch="{{$branch}}">{{$baseUserName}}:{{$branch}}</div>
 										{{end}}
 									{{end}}
 								</div>
 							</div>
 						</div>
-					</span>
+					</div>
+					{{end}}
 				{{end}}
 			{{else}}
 				{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}

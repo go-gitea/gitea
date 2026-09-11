@@ -18,7 +18,7 @@
 					{{if .CanWritePackages}}
 						<div>
 							<form action="{{.PackageDescriptor.VersionWebLink}}/terraform/unlock" method="post">
-								<button class="ui tiny button tw-w-full">{{ctx.Locale.Tr "packages.terraform.unlock"}}</button>
+								<button type="submit" class="ui tiny button tw-w-full">{{ctx.Locale.Tr "packages.terraform.unlock"}}</button>
 							</form>
 						</div>
 					{{end}}
@@ -30,7 +30,7 @@
 					{{if .CanWritePackages}}
 						<div>
 							<form action="{{.PackageDescriptor.VersionWebLink}}/terraform/lock" method="post">
-								<button class="ui tiny button tw-w-full">{{ctx.Locale.Tr "packages.terraform.lock"}}</button>
+								<button type="submit" class="ui tiny button tw-w-full">{{ctx.Locale.Tr "packages.terraform.lock"}}</button>
 							</form>
 						</div>
 					{{end}}

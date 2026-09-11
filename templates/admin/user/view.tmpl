@@ -7,7 +7,7 @@
 				<span>{{.Title}}</span>
 				<span class="flex-text-block">
 					{{if not .User.IsTypeBot}}
-						<button class="ui primary compact tiny basic button link-action" data-url="{{.Link}}/impersonate">{{ctx.Locale.Tr "admin.users.impersonate"}}</button>
+						<button type="button" class="ui primary compact tiny basic button link-action" data-url="{{.Link}}/impersonate">{{ctx.Locale.Tr "admin.users.impersonate"}}</button>
 					{{end}}
 					<a class="ui primary compact tiny button" href="{{.Link}}/edit">{{ctx.Locale.Tr "admin.users.edit"}}</a>
 				</span>
