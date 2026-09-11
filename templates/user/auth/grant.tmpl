@@ -19,38 +19,24 @@
 			</p>
 
 			{{if .ScopeChanged}}
-			<br>
-			<b>{{ctx.Locale.Tr "auth.authorize_application_current_scopes"}}</b>
-			<ul>
-				{{range .OldScopes}}
-				<li>{{.}}</li>
-				{{end}}
-			</ul>
+				<br>
+				<b>{{ctx.Locale.Tr "auth.authorize_application_current_scopes"}}</b>
+				<ul>
+					{{range .OldScopes}}
+					<li class="{{if SliceUtils.Contains $.RemovedScopes .}}tw-text-red-500{{end}}">
+						{{if SliceUtils.Contains $.RemovedScopes .}}- {{end}}{{.}}
+					</li>
+					{{end}}
+				</ul>
 
-			<b>{{ctx.Locale.Tr "auth.authorize_application_requested_scopes"}}</b>
-			<ul>
-				{{range .NewScopes}}
-				<li>{{.}}</li>
-				{{end}}
-			</ul>
-
-			{{if .AddedScopes}}
-			<b>{{ctx.Locale.Tr "auth.authorize_application_added_scopes"}}</b>
-			<ul>
-				{{range .AddedScopes}}
-				<li>+ {{.}}</li>
-				{{end}}
-			</ul>
-			{{end}}
-
-			{{if .RemovedScopes}}
-			<b>{{ctx.Locale.Tr "auth.authorize_application_removed_scopes"}}</b>
-			<ul>
-				{{range .RemovedScopes}}
-				<li>- {{.}}</li>
-				{{end}}
-			</ul>
-			{{end}}
+				<b>{{ctx.Locale.Tr "auth.authorize_application_requested_scopes"}}</b>
+				<ul>
+					{{range .NewScopes}}
+					<li class="{{if SliceUtils.Contains $.AddedScopes .}}tw-text-green-500{{end}}">
+						{{if SliceUtils.Contains $.AddedScopes .}}+ {{end}}{{.}}
+					</li>
+					{{end}}
+				</ul>
 			{{end}}
 		</div>
 		<div class="ui attached segment">
