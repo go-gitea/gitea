@@ -48,7 +48,7 @@ jobs:
 	_, origJob := sws[0].Job()
 	require.Len(t, origJob.Steps, 1)
 	const wantRun = "\n\necho start\necho done\n"
-	require.Equal(t, wantRun, origJob.Steps[0].Run)
+	require.Equal(t, wantRun, string(origJob.Steps[0].Run))
 
 	payload, err := sws[0].Marshal()
 	require.NoError(t, err)
@@ -63,7 +63,7 @@ jobs:
 	// the round-trip must preserve the run block byte-for-byte
 	_, gotJob := roundTripped[0].Job()
 	require.Len(t, gotJob.Steps, 1)
-	require.Equal(t, wantRun, gotJob.Steps[0].Run, "round-trip must preserve run content; got payload:\n%s", payload)
+	require.Equal(t, wantRun, string(gotJob.Steps[0].Run), "round-trip must preserve run content; got payload:\n%s", payload)
 }
 
 // Typing a step's continue-on-error as a bool used to reject the whole `jobs:` node.

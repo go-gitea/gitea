@@ -175,12 +175,23 @@ func (j *Job) RunsOn() []string {
 	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
 }
 
+// BlockSafeString works around https://github.com/yaml/go-yaml/issues/399, quoting a value whose
+// leading newline would cost a literal block scalar its indentation indicator.
+type BlockSafeString string
+
+func (s BlockSafeString) MarshalYAML() (any, error) {
+	if !strings.HasPrefix(string(s), "\n") {
+		return string(s), nil
+	}
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Style: yaml.DoubleQuotedStyle, Value: string(s)}, nil
+}
+
 type Step struct {
 	ID                 string            `yaml:"id,omitempty"`
 	If                 yaml.Node         `yaml:"if,omitempty"`
-	Name               string            `yaml:"name,omitempty"`
+	Name               BlockSafeString   `yaml:"name,omitempty"`
 	Uses               string            `yaml:"uses,omitempty"`
-	Run                string            `yaml:"run,omitempty"`
+	Run                BlockSafeString   `yaml:"run,omitempty"`
 	WorkingDirectory   string            `yaml:"working-directory,omitempty"`
 	Shell              string            `yaml:"shell,omitempty"`
 	Env                yaml.Node         `yaml:"env,omitempty"`
@@ -208,9 +219,9 @@ func (s *Step) String() string {
 	}
 	return (&model.Step{
 		ID:   s.ID,
-		Name: s.Name,
+		Name: string(s.Name),
 		Uses: s.Uses,
-		Run:  s.Run,
+		Run:  string(s.Run),
 	}).String()
 }
 
@@ -287,8 +298,6 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 			MaxParallelString: job.Strategy.MaxParallelString,
 			RawMatrix:         job.Strategy.RawMatrix,
 		}
-		actJob.Strategy.FailFast = actJob.Strategy.GetFailFast()
-		actJob.Strategy.MaxParallel = actJob.Strategy.GetMaxParallel()
 	}
 
 	matrix := make(map[string]any)

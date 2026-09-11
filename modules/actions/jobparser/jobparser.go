@@ -14,7 +14,6 @@ import (
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
 
-	"github.com/rhysd/actionlint"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -60,13 +59,13 @@ func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, *Job, error) {
 // those too would replace their combinations with one placeholder and change the commit status
 // contexts the run publishes, which a repository's required checks are configured against.
 func expressionReadsNeeds(value string) bool {
-	return expressionReadsContext(value, "needs")
+	return expreval.ReadsContext(value, "needs")
 }
 
 // ExpressionReadsMatrix reports whether a job's `if:` reads the matrix context.
 // A deferred-matrix placeholder has no combination yet, so such an expression cannot be decided.
 func ExpressionReadsMatrix(ifValue string) bool {
-	return expressionReadsContext(asIfExpression(ifValue), "matrix")
+	return expreval.ReadsContext(asIfExpression(ifValue), "matrix")
 }
 
 // ExpressionIgnoresNeedResults reports whether a job's `if:` calls always(), failure() or cancelled(),
@@ -84,14 +83,6 @@ func asIfExpression(ifValue string) string {
 		return ifValue
 	}
 	return "${{ " + ifValue + " }}"
-}
-
-// expressionReadsContext reports whether value holds a ${{ }} expression reading the named context.
-func expressionReadsContext(value, contextName string) bool {
-	return expreval.Match(value, func(node actionlint.ExprNode) bool {
-		variable, ok := node.(*actionlint.VariableNode)
-		return ok && strings.EqualFold(variable.Name, contextName)
-	})
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
