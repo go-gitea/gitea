@@ -61,7 +61,11 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		return err
 	}
 
-	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) {
+	reviewerIDs := make([]int64, 0, len(opts.Reviewers))
+	for _, reviewer := range opts.Reviewers {
+		reviewerIDs = append(reviewerIDs, reviewer.ID)
+	}
+	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) || user_model.IsUserBlockedBy(ctx, issue.Poster, reviewerIDs...) {
 		return user_model.ErrBlockedUser
 	}
 
