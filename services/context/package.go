@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/models/perm"
@@ -118,7 +119,17 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 		return perm.AccessModeNone, nil
 	}
 
-	// TODO: ActionUser permission check
+	if taskID, ok := user_model.GetActionsUserTaskID(doer); ok {
+		accessMode, err := actions_model.GetActionsUserPackageAccessMode(ctx, taskID, pkgOwner.ID)
+		if err != nil {
+			return accessMode, err
+		}
+		if accessMode < perm.AccessModeRead && organization.HasOrgOrUserVisible(ctx, pkgOwner, doer) {
+			accessMode = perm.AccessModeRead // pull public/visible packages, matching the non-Actions path
+		}
+		return accessMode, nil
+	}
+
 	accessMode := perm.AccessModeNone
 	if pkgOwner.IsOrganization() {
 		org := organization.OrgFromUser(pkgOwner)
