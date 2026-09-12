@@ -28,23 +28,21 @@ func EscapeOptionsForView() EscapeOptions {
 	}
 }
 
-func EscapeControlHTMLTo(html template.HTML, locale translation.Locale, w htmlutil.HTMLWriter, opts ...EscapeOptions) *EscapeStatus {
-	if !setting.UI.AmbiguousUnicodeDetection {
-		w.WriteHTML(html)
-		return &EscapeStatus{}
-	}
-	escaped, _ := EscapeControlReader(strings.NewReader(string(html)), w.OriginWriter(), locale, opts...)
-	return escaped
-}
-
 // EscapeControlHTML escapes the Unicode control sequences in a provided html document
 func EscapeControlHTML(html template.HTML, locale translation.Locale, opts ...EscapeOptions) (escaped *EscapeStatus, output template.HTML) {
-	sb, w := htmlutil.NewHTMLStringWriter()
-	escaped = EscapeControlHTMLTo(html, locale, w, opts...)
-	return escaped, template.HTML(sb.String())
+	if !setting.UI.AmbiguousUnicodeDetection {
+		return &EscapeStatus{}, html
+	}
+	w := &htmlutil.HTMLBuilder{}
+	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), w, locale, opts...)
+	return escaped, w.HTMLString()
 }
 
 // EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
-func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, opts ...EscapeOptions) (*EscapeStatus, error) {
-	return escapeStream(locale, reader, writer, opts...)
+func EscapeControlReader(reader io.Reader, writer htmlutil.HTMLWriter, locale translation.Locale, opts ...EscapeOptions) (*EscapeStatus, error) {
+	if !setting.UI.AmbiguousUnicodeDetection {
+		_, err := io.Copy(writer.OriginWriter(), reader)
+		return &EscapeStatus{}, err
+	}
+	return escapeStream(locale, reader, writer.OriginWriter(), opts...)
 }

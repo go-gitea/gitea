@@ -90,16 +90,25 @@ func EscapeString(s string) template.HTML {
 }
 
 type HTMLWriter interface {
+	Err() error
 	OriginWriter() io.Writer
 	WriteString(s string) HTMLWriter
 	WriteHTML(s template.HTML) HTMLWriter
 	WriteFormatf(fmt template.HTML, args ...any) HTMLWriter
-	Err() error
 }
+
+var (
+	_ HTMLWriter = (*htmlWriter)(nil)
+	_ HTMLWriter = (*HTMLBuilder)(nil)
+)
 
 type htmlWriter struct {
 	w    io.Writer
 	errs []error
+}
+
+func (h *htmlWriter) Err() error {
+	return errors.Join(h.errs...)
 }
 
 func (h *htmlWriter) OriginWriter() io.Writer {
@@ -127,10 +136,6 @@ func (h *htmlWriter) WriteFormatf(fmt template.HTML, args ...any) HTMLWriter {
 	return h
 }
 
-func (h *htmlWriter) Err() error {
-	return errors.Join(h.errs...)
-}
-
 func NewHTMLWriter(w io.Writer) HTMLWriter {
 	return &htmlWriter{w: w}
 }
@@ -144,17 +149,29 @@ type HTMLBuilder struct {
 	sb strings.Builder
 }
 
-func (b *HTMLBuilder) WriteString(s string) *HTMLBuilder {
+func (b *HTMLBuilder) Err() error {
+	return nil
+}
+
+func (b *HTMLBuilder) OriginWriter() io.Writer {
+	return &b.sb
+}
+
+func (b *HTMLBuilder) Reset() {
+	b.sb.Reset()
+}
+
+func (b *HTMLBuilder) WriteString(s string) HTMLWriter {
 	b.sb.WriteString(template.HTMLEscapeString(s))
 	return b
 }
 
-func (b *HTMLBuilder) WriteHTML(s template.HTML) *HTMLBuilder {
+func (b *HTMLBuilder) WriteHTML(s template.HTML) HTMLWriter {
 	b.sb.WriteString(string(s))
 	return b
 }
 
-func (b *HTMLBuilder) WriteFormatf(fmt template.HTML, args ...any) *HTMLBuilder {
+func (b *HTMLBuilder) WriteFormatf(fmt template.HTML, args ...any) HTMLWriter {
 	_, _ = HTMLPrintf(&b.sb, fmt, args...)
 	return b
 }

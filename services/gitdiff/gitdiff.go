@@ -339,7 +339,7 @@ type DiffInlineComputed struct {
 // computeDiffInline makes a DiffInline with computed content, e.g.: Unicode escaping, truncation hint, etc
 func computeDiffInline(s template.HTML, isTruncated bool, locale translation.Locale) DiffInlineComputed {
 	sb, w := htmlutil.NewHTMLStringWriter()
-	status := charset.EscapeControlHTMLTo(s, locale, w)
+	status, _ := charset.EscapeControlReader(strings.NewReader(string(s)), w, locale)
 	if isTruncated {
 		w.WriteFormatf(`<span class="ui label diff-line-truncated">%s</span>`, locale.Tr("repo.diff.line_truncated"))
 	}
