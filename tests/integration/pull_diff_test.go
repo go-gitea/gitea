@@ -4,13 +4,22 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullDiff(t *testing.T) {
@@ -64,4 +73,37 @@ func testPullDiffAssertPage(t *testing.T, prDiffURL string, reviewBtnDisabled bo
 
 	// Ensure the review button is enabled for full PR reviews
 	assert.Equal(t, reviewBtnDisabled, doc.Find(".js-btn-review").HasClass("disabled"))
+}
+
+func TestPullDiffNoCommonMergeBase(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
+	_, _, err := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
+commit refs/heads/unrelated-history
+committer User <user@example.com> 1714310400 +0000
+data 13
+Second commit
+M 100644 inline file2.txt
+data 12
+Hello from 2
+`))).RunStdString(t.Context())
+	require.NoError(t, err)
+
+	// the compare page refuses branches without a merge base, but the API (and history rewrites) still produce such pull requests
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls", &api.CreatePullRequestOption{
+		Head:  "unrelated-history",
+		Base:  "master",
+		Title: "unrelated histories",
+	}).AddTokenAuth(token)
+	pr := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.PullRequest{})
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d/files", pr.Index))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, doc.Find(".diff-file-box").Length())
+	assert.Equal(t, "file2.txt", doc.Find(".diff-file-box").AttrOr("data-new-filename", ""))
 }

@@ -1318,7 +1318,7 @@ func prepareDiffCommits(ctx context.Context, gitRepo *git.Repository, opts *Diff
 
 	commitObjectFormat := afterCommit.ID.Type()
 	isBeforeCommitIDEmpty := opts.BeforeCommitID == "" || opts.BeforeCommitID == commitObjectFormat.EmptyObjectID().String()
-	if isBeforeCommitIDEmpty && afterCommit.ParentCount() == 0 {
+	if (isBeforeCommitIDEmpty && afterCommit.ParentCount() == 0) || opts.BeforeCommitID == commitObjectFormat.EmptyTree().String() {
 		// "git diff 4b825dc642cb6eb9a060e54bf8d69288fbee4904 after-commit" can work with tree ID as before commit ID
 		actualBeforeCommitID = commitObjectFormat.EmptyTree()
 	} else {
