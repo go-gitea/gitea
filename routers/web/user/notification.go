@@ -7,6 +7,8 @@ import (
 	stdCtx "context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
@@ -194,6 +196,27 @@ func NotificationPurgePost(ctx *context.Context) {
 	}
 
 	ctx.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
+}
+
+// NotificationPurgePagePost is a route for marking only the notifications on the current page as read
+func NotificationPurgePagePost(ctx *context.Context) {
+	_ = ctx.Req.ParseForm()
+	for _, idStr := range ctx.Req.Form["notification_id"] {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			continue
+		}
+		if _, err := notifications.SetNotificationStatus(ctx, id, ctx.Doer, activities_model.NotificationStatusRead); err != nil {
+			ctx.ServerError("SetNotificationStatus", err)
+			return
+		}
+	}
+
+	redirect := setting.AppSubURL + "/notifications"
+	if pageType := ctx.FormString("type"); pageType != "" {
+		redirect += "?type=" + url.QueryEscape(pageType)
+	}
+	ctx.Redirect(redirect, http.StatusSeeOther)
 }
 
 // NotificationSubscriptions returns the list of subscribed issues
