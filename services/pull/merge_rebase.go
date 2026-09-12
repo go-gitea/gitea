@@ -73,8 +73,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	if newMessage != "" {
-		cmdCommit := gitcmd.NewCommand("commit", "--amend").
-			AddOptionFormat("--message=%s", newMessage)
+		cmdCommit := gitcmd.NewCommand("commit", "--amend", "-F", "-").WithStdinBytes([]byte(newMessage))
 		addCommitSigningOptions(cmdCommit, ctx.signKey)
 		if err := cmdCommit.WithRepo(ctx.tmpRepo).Run(ctx); err != nil {
 			log.Error("Unable to amend commit message: %v", err)

@@ -460,7 +460,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 }
 
 func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
-	cmdCommit := gitcmd.NewCommand("commit").AddOptionFormat("--message=%s", message)
+	cmdCommit := gitcmd.NewCommand("commit", "-F", "-").WithStdinBytes([]byte(message))
 	addCommitSigningOptions(cmdCommit, ctx.signKey)
 	if err := ctx.PrepareGitCmd(cmdCommit).RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("git commit %v: %w\n%s", ctx.pr, err, ctx.outbuf.String())
