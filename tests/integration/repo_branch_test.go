@@ -192,12 +192,12 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	// create closed PR
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "closed-pr", http.StatusSeeOther)
 	prID := testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "closed-pr", "closed pr")
-	testIssueClose(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID)
+	testIssueChangeStatus(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, "close")
 
 	// create closed PR with deleted branch
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "closed-pr-deleted", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "closed-pr-deleted", "closed pr with deleted branch")
-	testIssueClose(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID)
+	testIssueChangeStatus(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, "close")
 	testUIDeleteBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "closed-pr-deleted")
 
 	// create merged PR

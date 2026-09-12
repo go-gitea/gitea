@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -212,6 +213,65 @@ func TestAPIPullUpdateStyleSettings(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
+	})
+}
+
+// TestPullReopenSyncsHeadRef checks that reopening a PR force-pushes the head branch into refs/pull/<index>/head.
+func TestPullReopenSyncsHeadRef(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		pr := setupOutdatedPRWithConfig(t, nil)
+		issueIndex := strconv.FormatInt(pr.Issue.Index, 10)
+
+		session := loginUser(t, "user2")
+		testIssueChangeStatus(t, session, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, issueIndex, "close")
+
+		closedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+		require.True(t, closedIssue.IsClosed)
+
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		_, err := files_service.ChangeRepoFiles(t.Context(), pr.HeadRepo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "File_C",
+					ContentReader: strings.NewReader("File C"),
+				},
+			},
+			Message:   "Add File C while PR is closed",
+			OldBranch: pr.HeadBranch,
+			NewBranch: pr.HeadBranch,
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		require.NoError(t, err)
+
+		headBranchRef := git.RefNameFromBranch(pr.HeadBranch)
+		headBranchCommitID, err := git.GetFullCommitID(t.Context(), pr.HeadRepo, headBranchRef.String())
+		require.NoError(t, err)
+
+		prHeadRef := pr.GetGitHeadRefName()
+		staleCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, prHeadRef)
+		require.NoError(t, err)
+		require.NotEqual(t, headBranchCommitID, staleCommitID)
+
+		testIssueChangeStatus(t, session, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, issueIndex, "reopen")
+
+		reopenedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+		assert.False(t, reopenedIssue.IsClosed)
+
+		syncedCommitID, err := git.GetFullCommitID(t.Context(), pr.BaseRepo, prHeadRef)
+		require.NoError(t, err)
+		assert.Equal(t, headBranchCommitID, syncedCommitID)
 	})
 }
 
