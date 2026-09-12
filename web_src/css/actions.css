@@ -1,8 +1,8 @@
-.runner-container {
+.actions-settings-container {
   padding-bottom: 30px;
 }
 
-.runner-container .ui.table.segment {
+.actions-settings-container .ui.table.segment {
   overflow-x: auto;
 }
 
