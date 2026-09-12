@@ -10,6 +10,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -18,6 +19,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	org_service "gitea.dev/services/org"
 
@@ -177,6 +179,8 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Only capitalization", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+
 		caps := strings.ToUpper(user.Name)
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
@@ -185,6 +189,11 @@ func TestRenameUser(t *testing.T) {
 
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
+		unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+			Action:    audit_model.UserName,
+			ScopeType: audit_model.ScopeUser,
+			ScopeID:   user.ID,
+		})
 	})
 
 	t.Run("Already exists", func(t *testing.T) {

@@ -8,30 +8,30 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
-// AddActionQueueIndexes adds the composite indexes the Actions job lookups need:
-// "pickup" (task_id, status, updated) matches the runner-poll query's WHERE task_id=0 AND status=waiting
-// ORDER BY updated, id, while (repo_id, status) on both action_run_job and action_run backs the
-// repository-scoped status lookups, which so far had to scan every row of a repository.
-func AddActionQueueIndexes(_ context.Context, x base.EngineMigration) error {
-	type ActionRunJob struct {
-		RepoID  int64              `xorm:"index(repo_status)"`
-		TaskID  int64              `xorm:"index(pickup)"`
-		Status  int                `xorm:"index(pickup) index(repo_status)"`
-		Updated timeutil.TimeStamp `xorm:"index(pickup)"`
-	}
+type AuditEvent struct {
+	ID               int64  `xorm:"pk autoincr"`
+	Action           string `xorm:"INDEX NOT NULL"`
+	ActorID          int64  `xorm:"INDEX NOT NULL"`
+	ActorName        string
+	ActorCredential  string
+	ImpersonatorID   int64 `xorm:"INDEX"`
+	ImpersonatorName string
+	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`
+	ScopeType        string `xorm:"INDEX INDEX(scope) NOT NULL"`
+	ScopeName        string
+	Origin           string `xorm:"INDEX NOT NULL"`
+	Message          string
+	Metadata         string `xorm:"LONGTEXT JSON"`
+	IPAddress        string
+	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+}
 
-	type ActionRun struct {
-		RepoID int64 `xorm:"index(repo_status)"`
-		Status int   `xorm:"index(repo_status)"`
-	}
+func (*AuditEvent) TableName() string {
+	return "audit_event"
+}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-		IgnoreConstrains:  true,
-	}, new(ActionRunJob), new(ActionRun))
-	return err
+func AddAuditEventTable(_ context.Context, x base.EngineMigration) error {
+	return x.Sync(new(AuditEvent))
 }

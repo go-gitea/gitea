@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/services/audit"
 	org_service "gitea.dev/services/org"
 )
 
@@ -31,6 +32,9 @@ func SyncGroupsToTeams(ctx context.Context, user *user_model.User, sourceUserGro
 
 // SyncGroupsToTeamsCached maps authentication source groups to organization and team memberships
 func SyncGroupsToTeamsCached(ctx context.Context, user *user_model.User, sourceUserGroups container.Set[string], sourceGroupTeamMapping map[string]map[string][]string, performRemoval bool, orgCache map[string]*organization.Organization, teamCache map[string]*organization.Team) error {
+	// team membership changes here come from the authentication source mapping
+	ctx = audit.WithDoer(ctx, user_model.NewAuthenticationSourceUser())
+
 	membershipsToAdd, membershipsToRemove := resolveMappedMemberships(sourceUserGroups, sourceGroupTeamMapping)
 
 	if performRemoval {
