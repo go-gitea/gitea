@@ -12,26 +12,28 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
-	"gitea.dev/services/pubsub"
 )
 
-func (n *wsNotifier) StopwatchChanged(ctx context.Context, user *user_model.User) {
-	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(user.ID)) {
-		return
-	}
+const eventStopwatches = "stopwatches" // keep in sync with web_src/js/types.ts
 
+func init() { registerUserData(stopwatchesEvent) }
+
+func (n *wsNotifier) StopwatchChanged(ctx context.Context, user *user_model.User) {
+	publishUserEvent(user.ID, func() []byte { return stopwatchesEvent(ctx, user) })
+}
+
+func stopwatchesEvent(ctx context.Context, user *user_model.User) []byte {
 	sws, err := issues_model.GetUserStopwatches(ctx, user.ID, db.ListOptions{})
 	if err != nil {
 		log.Error("websocket: GetUserStopwatches %d: %v", user.ID, err)
-		return
+		return nil
 	}
-
 	apiStopWatches, err := convert.ToStopWatches(ctx, user, sws)
 	if err != nil {
 		if !issues_model.IsErrIssueNotExist(err) {
 			log.Error("websocket: ToStopWatches: %v", err)
 		}
-		return
+		return nil
 	}
-	publishUserEvent(user.ID, EventStopwatches, util.SliceNilAsEmpty(apiStopWatches))
+	return makeUserEventMessage(eventStopwatches, util.SliceNilAsEmpty(apiStopWatches))
 }

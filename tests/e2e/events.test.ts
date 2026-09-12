@@ -23,7 +23,7 @@ test.describe('events', () => {
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     await apiCreateIssue(request, {owner, repo: repoName, title: 'events-notif', headers: apiUserHeaders(commenter)});
-    await expect(badge).toBeVisible();
+    await expect(badge).toHaveText('1');
   });
 
   test('stopwatch appears and hides via real-time push', async ({page, request}) => {
@@ -50,6 +50,7 @@ test.describe('events', () => {
     // Drive both directions from outside this tab; each push must reach it
     await apiStartStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeVisible();
+    await expect(stopwatch).toHaveAttribute('href', `/${name}/${name}/issues/1`);
 
     await apiCancelStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeHidden();
