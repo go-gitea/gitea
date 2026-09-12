@@ -158,6 +158,17 @@ func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
 	return err
 }
 
+// GetAccessTokenByID returns the access token with the given ID owned by userID.
+func GetAccessTokenByID(ctx context.Context, id, userID int64) (*AccessToken, error) {
+	t, has, err := db.Get[AccessToken](ctx, builder.Eq{"id": id, "uid": userID})
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("access token not found")
+	}
+	return t, nil
+}
+
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(ctx context.Context, id, userID int64) error {
 	cnt, err := db.GetEngine(ctx).ID(id).Delete(&AccessToken{UID: userID})

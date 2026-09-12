@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	source_service "gitea.dev/services/auth/source"
 	user_service "gitea.dev/services/user"
 )
@@ -23,6 +25,10 @@ import (
 // Sync causes this ldap source to synchronize its users with the db
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", source.AuthSource.Name)
+
+	// everything this sync changes is attributed to the authentication source,
+	// not to a signed-in user
+	ctx = audit.WithDoer(ctx, user_model.NewAuthenticationSourceUser())
 
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 	var sshKeysNeedUpdate bool
@@ -131,6 +137,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			err = user_model.CreateUser(ctx, usr, &user_model.Meta{}, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.AuthSource.Name, su.Username, err)
+			} else {
+				audit.Record(ctx, audit_model.UserCreate, usr)
 			}
 
 			if err == nil && isAttributeSSHPublicKeySet {
