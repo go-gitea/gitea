@@ -475,6 +475,49 @@ func TestGithubMultiToken(t *testing.T) {
 	}
 }
 
+// TestGitHubIssuesPageBasedLinkFallback proves the issues sweep terminates against
+// a server whose Link header carries page numbers but no `after` cursor (older
+// GitHub Enterprise). Without the page-number fallback a full first page would be
+// re-requested forever: the request never advances (no cursor to send) and a full
+// page never looks like the end. Mock-only: api.github.com now always includes a
+// cursor in the Link header, so live mode cannot reproduce this shape.
+func TestGitHubIssuesPageBasedLinkFallback(t *testing.T) {
+	if os.Getenv("GITHUB_READ_TOKEN") != "" {
+		t.Skip("page-based-only Link headers cannot be re-recorded from api.github.com")
+	}
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestGitHubDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://api.github.com", fixtureDir, false, unittest.MockServerOptions{
+		StripPrefix: "/api/v3",
+	})
+
+	ctx := t.Context()
+	downloader, err := NewGithubDownloaderV3(ctx, mockServer.URL, "", "", "", "go-gitea", "test_repo")
+	require.NoError(t, err)
+	downloader.SkipReactions = true
+	require.NoError(t, downloader.RefreshRate(ctx))
+
+	var all []*base.Issue
+	for page := 1; ; page++ {
+		require.LessOrEqual(t, page, 5, "issues sweep must terminate — page-based fallback regressed to an infinite loop")
+		issues, isEnd, err := downloader.GetIssues(ctx, page, 3)
+		require.NoError(t, err)
+		all = append(all, issues...)
+		if isEnd {
+			break
+		}
+	}
+	// page 1 is a FULL page (3 of 3) with a page-only rel="next"; page 2 is empty
+	// with no Link. The sweep must follow the page number and stop after page 2.
+	assert.Len(t, all, 3)
+	numbers := make([]int64, 0, len(all))
+	for _, issue := range all {
+		numbers = append(numbers, issue.Number)
+	}
+	assert.Equal(t, []int64{1, 2, 3}, numbers)
+}
+
 func TestGithubMultiTokenClientSelection(t *testing.T) {
 	downloader := &GithubDownloaderV3{
 		clients: make([]*github.Client, 3),

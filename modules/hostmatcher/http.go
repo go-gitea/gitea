@@ -6,6 +6,7 @@ package hostmatcher
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -13,6 +14,11 @@ import (
 	"syscall"
 	"time"
 )
+
+// ErrDialNotAllowed marks a dial refused by the allow/block lists. Callers that
+// retry failed requests use it to tell this permanent refusal apart from a
+// transient network failure, which is worth retrying.
+var ErrDialNotAllowed = errors.New("dial is not allowed")
 
 // NewDialContext returns a DialContext for Transport, the DialContext will do allow/block list check
 func NewDialContext(usage string, allowList, blockList *HostMatchList, proxy *url.URL) func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -49,13 +55,13 @@ func NewDialContext(usage string, allowList, blockList *HostMatchList, proxy *ur
 
 				var blockedError error
 				if blockList.MatchHostOrIP(host, tcpAddr.IP) {
-					blockedError = fmt.Errorf("%s can not call blocked HTTP servers (check your %s setting), deny '%s(%s)'", usage, blockList.SettingKeyHint, host, ipAddr)
+					blockedError = fmt.Errorf("%s can not call blocked HTTP servers (check your %s setting), deny '%s(%s)': %w", usage, blockList.SettingKeyHint, host, ipAddr, ErrDialNotAllowed)
 				}
 
 				// if we have an allow-list, check the allow-list first
 				if !allowList.IsEmpty() {
 					if !allowList.MatchHostOrIP(host, tcpAddr.IP) {
-						return fmt.Errorf("%s can only call allowed HTTP servers (check your %s setting), deny '%s(%s)'", usage, allowList.SettingKeyHint, host, ipAddr)
+						return fmt.Errorf("%s can only call allowed HTTP servers (check your %s setting), deny '%s(%s)': %w", usage, allowList.SettingKeyHint, host, ipAddr, ErrDialNotAllowed)
 					}
 				}
 				// otherwise, we always follow the blocked list
