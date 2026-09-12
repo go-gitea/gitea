@@ -13,15 +13,24 @@ function bindActionQueueList(el: HTMLElement): void {
     if (!resp.ok) return;
     // The queue rows carry no interactive state, so morph the whole fragment in place.
     const newEl = createElementFromHTML(await resp.text());
-    Idiomorph.morph(el, newEl, {
-      morphStyle: 'outerHTML',
-      // Leave the filter bar alone: it carries user input (and a fomantic-enhanced select) that a morph would reset.
-      callbacks: {beforeNodeMorphed: (node) => !(node instanceof Element && node.id === 'actions-queue-filter')},
-    });
+    updateActionQueueList(el, newEl);
   }
 
   activePageTimerRefresh({
     interval: () => Number(el.getAttribute('data-queue-refresh-interval')),
     callback: refresh,
   });
+}
+
+export function updateActionQueueList(el: HTMLElement, newEl: Element): void {
+  const filter = el.querySelector('#actions-queue-filter')!;
+  // Preserve filter interaction while the job rows continue to refresh.
+  const deferFilters = filter.querySelector('.dropdown.active') || filter.contains(document.activeElement);
+
+  const newFilter = newEl.querySelector('#actions-queue-filter')!.cloneNode(true);
+  Idiomorph.morph(el, newEl, {
+    morphStyle: 'outerHTML',
+    callbacks: {beforeNodeMorphed: (node) => node !== filter},
+  });
+  if (!deferFilters) filter.replaceWith(newFilter); // The global observer initializes fresh dropdown nodes.
 }

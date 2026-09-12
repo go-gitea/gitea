@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -137,4 +138,32 @@ func TestActionsQueue(t *testing.T) {
 	staleRefresh := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?refresh=1&page=2"), http.StatusOK).Body.String()
 	assert.Contains(t, staleRefresh, queuedJobName)
 	assert.NotContains(t, staleRefresh, "No jobs are running or waiting to be picked up.")
+
+	for _, query := range []string{"?repo_id=987654321", "?owner_id=987654321"} {
+		body := adminBody(query)
+		doc := NewHTMLParser(t, strings.NewReader(body))
+		refreshLink, ok := doc.Find("#actions-queue-list").Attr("data-queue-refresh-link")
+		require.True(t, ok)
+		assert.NotContains(t, refreshLink, "987654321")
+		refreshed := sessionAdmin.MakeRequest(t, NewRequest(t, "GET", refreshLink), http.StatusOK).Body.String()
+		assert.Contains(t, refreshed, queuedJobName)
+		assert.Contains(t, refreshed, otherJobName)
+	}
+	refreshDoc := NewHTMLParser(t, strings.NewReader(adminBody("?refresh=1")))
+	assert.NotZero(t, refreshDoc.Find("#actions-queue-filter a[href*='repo_id="+strconv.FormatInt(repo3.ID, 10)+"']").Length())
+
+	_, err := db.GetEngine(ctx).Where("repo_id = ?", repo3.ID).Cols("status").Update(&actions_model.ActionRunJob{Status: actions_model.StatusSuccess})
+	require.NoError(t, err)
+	for _, scope := range []string{"repo_id=" + strconv.FormatInt(repo3.ID, 10), "owner_id=" + strconv.FormatInt(repo3.OwnerID, 10)} {
+		for _, refresh := range []string{"", "&refresh=1"} {
+			body := adminBody("?" + scope + refresh)
+			assert.NotContains(t, body, queuedJobName, "an empty selection must not expand to all repositories")
+			assert.NotContains(t, body, otherJobName)
+			doc := NewHTMLParser(t, strings.NewReader(body))
+			link, ok := doc.Find("#actions-queue-list").Attr("data-queue-refresh-link")
+			require.True(t, ok)
+			assert.Contains(t, link, scope)
+			assert.Positive(t, doc.Find("#actions-queue-filter a.selected[href*='"+scope+"']").Length())
+		}
+	}
 }
