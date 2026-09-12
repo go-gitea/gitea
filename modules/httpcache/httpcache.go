@@ -57,8 +57,14 @@ func CacheControlForPrivateStatic() *CacheControlOptions {
 func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 	ifNoneMatch := req.Header.Get("If-None-Match")
 	if len(ifNoneMatch) > 0 {
+		// https://www.rfc-editor.org/rfc/rfc9110#section-13.1.2
+		if strings.TrimSpace(ifNoneMatch) == "*" {
+			return true
+		}
+		// https://www.rfc-editor.org/rfc/rfc9110#section-8.8.3.2
+		etag = strings.TrimPrefix(etag, "W/")
 		for item := range strings.SplitSeq(ifNoneMatch, ",") {
-			item = strings.TrimPrefix(strings.TrimSpace(item), "W/") // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#directives
+			item = strings.TrimPrefix(strings.TrimSpace(item), "W/")
 			if item == etag {
 				return true
 			}
