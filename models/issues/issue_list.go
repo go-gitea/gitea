@@ -580,6 +580,24 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 		return nil, err
 	}
 
+	// Comment reviews are never "official", so the query above skips them. Count them
+	// per issue, once per reviewer and only when their latest non-dismissed review is a
+	// comment, mirroring the reviewer sidebar so a later verdict or re-request wins.
+	laterReview := builder.Select("1").From("review", "later").Where(builder.Expr(
+		"later.issue_id = review.issue_id AND later.reviewer_id = review.reviewer_id AND later.dismissed = ? AND later.type <> ? AND (later.updated_unix > review.updated_unix OR (later.updated_unix = review.updated_unix AND later.id > review.id))", false, ReviewTypePending))
+	commentCounts := make([]*ReviewCount, 0, len(issues))
+	if err := db.GetEngine(ctx).Select("issue_id, type, count(distinct reviewer_id) as `count`").
+		Where("type = ? AND dismissed = ? AND reviewer_id > 0", ReviewTypeComment, false).
+		In("issue_id", ids).
+		And(builder.NotExists(laterReview)).
+		GroupBy("issue_id, type").
+		OrderBy("issue_id").
+		Table("review").
+		Find(&commentCounts); err != nil {
+		return nil, err
+	}
+	rCounts = append(rCounts, commentCounts...)
+
 	approvalCountMap := make(map[int64][]*ReviewCount, len(issues))
 
 	for _, c := range rCounts {
