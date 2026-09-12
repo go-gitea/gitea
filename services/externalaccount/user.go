@@ -8,10 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 
 	"github.com/markbates/goth"
 )
@@ -45,6 +47,9 @@ func LinkAccountToUser(ctx context.Context, authSourceID int64, user *user_model
 	if err := user_model.LinkExternalToUser(ctx, user, externalLoginUser); err != nil {
 		return err
 	}
+
+	audit.RecordAs(ctx, user, audit_model.UserExternalLoginAdd, user,
+		"external_id", externalLoginUser.ExternalID, "provider", externalLoginUser.Provider)
 
 	externalID := externalLoginUser.ExternalID
 

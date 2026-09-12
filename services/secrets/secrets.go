@@ -39,36 +39,36 @@ func CreateOrUpdateSecret(ctx context.Context, ownerID, repoID int64, name, data
 	return s[0], false, nil
 }
 
-func DeleteSecretByID(ctx context.Context, ownerID, repoID, secretID int64) error {
+func DeleteSecretByID(ctx context.Context, ownerID, repoID, secretID int64) (*secret_model.Secret, error) {
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		OwnerID:  ownerID,
 		RepoID:   repoID,
 		SecretID: secretID,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(s) != 1 {
-		return secret_model.ErrSecretNotFound{}
+		return nil, secret_model.ErrSecretNotFound{}
 	}
 
-	return deleteSecret(ctx, s[0])
+	return s[0], deleteSecret(ctx, s[0])
 }
 
-func DeleteSecretByName(ctx context.Context, ownerID, repoID int64, name string) error {
+func DeleteSecretByName(ctx context.Context, ownerID, repoID int64, name string) (*secret_model.Secret, error) {
 	s, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		OwnerID: ownerID,
 		RepoID:  repoID,
 		Name:    name,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(s) != 1 {
-		return secret_model.ErrSecretNotFound{}
+		return nil, secret_model.ErrSecretNotFound{}
 	}
 
-	return deleteSecret(ctx, s[0])
+	return s[0], deleteSecret(ctx, s[0])
 }
 
 func deleteSecret(ctx context.Context, s *secret_model.Secret) error {

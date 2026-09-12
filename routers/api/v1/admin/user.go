@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
@@ -26,6 +27,7 @@ import (
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/mailer"
@@ -151,6 +153,8 @@ func CreateUser(ctx *context.APIContext) {
 	if !user_model.IsEmailDomainAllowed(u.Email) {
 		ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", u.Email))
 	}
+
+	audit.Record(ctx, audit_model.UserCreate, u)
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
