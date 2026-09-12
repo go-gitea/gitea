@@ -77,6 +77,24 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*webhook.Webhoo
 	return w, nil
 }
 
+// GetRepoHookTask gets a delivery of a repo's webhook by UUID. If there is an error, write to `ctx`
+// accordingly and return the error
+func GetRepoHookTask(ctx *context.APIContext, repoID, hookID int64, uuid string) (*webhook.HookTask, error) {
+	if _, err := GetRepoHook(ctx, repoID, hookID); err != nil {
+		return nil, err
+	}
+	task, err := webhook.GetHookTaskByUUID(ctx, hookID, uuid)
+	if err != nil {
+		if webhook.IsErrHookTaskNotExist(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
 // checkCreateHookOption check if a CreateHookOption form is valid. If invalid,
 // write the appropriate error to `ctx`. Return whether the form is valid
 func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
