@@ -6,9 +6,11 @@ package session
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"net/http"
 
 	"gitea.com/go-chi/session"
+	"gitea.com/go-chi/session/core"
 )
 
 type mockMemRawStore struct {
@@ -61,6 +63,16 @@ var _ Store = (*mockMemStore)(nil)
 
 func (m mockMemStore) Destroy(writer http.ResponseWriter, request *http.Request) error {
 	return nil
+}
+
+// ListStoreByIndexer is not supported by the mock store; it exists to satisfy the Store interface.
+func (m mockMemStore) ListStoreByIndexer(_ any) ([]core.RawStoreReadOnly, error) {
+	return nil, errors.New("mock store does not support session index")
+}
+
+// DestroySessionByID is not supported by the mock store; it exists to satisfy the Store interface.
+func (m mockMemStore) DestroySessionByID(_ string, _ any) error {
+	return errors.New("mock store does not support session index")
 }
 
 func NewMockMemStore(sid string) Store {

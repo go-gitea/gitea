@@ -10,7 +10,9 @@ import (
 	"gitea.dev/modules/json"
 
 	"gitea.com/go-chi/session"
+	"gitea.com/go-chi/session/core"
 	couchbase "gitea.com/go-chi/session/couchbase"
+	"gitea.com/go-chi/session/index"
 	memcache "gitea.com/go-chi/session/memcache"
 	mysql "gitea.com/go-chi/session/mysql"
 	postgres "gitea.com/go-chi/session/postgres"
@@ -21,6 +23,8 @@ type VirtualSessionProvider struct {
 	lock     sync.RWMutex
 	provider session.Provider
 }
+
+var _ index.ProviderSupportIndex = (*VirtualSessionProvider)(nil)
 
 // Init initializes the cookie session provider with the given config.
 func (o *VirtualSessionProvider) Init(gcLifetime int64, config string) error {
@@ -97,6 +101,58 @@ func (o *VirtualSessionProvider) Count() (int, error) {
 // GC calls GC to clean expired sessions.
 func (o *VirtualSessionProvider) GC() {
 	o.provider.GC()
+}
+
+func (o *VirtualSessionProvider) loadProviderSupportIndex() (index.ProviderSupportIndex, error) {
+	if _, ok := o.provider.(index.ProviderSupportIndex); !ok {
+		return nil, fmt.Errorf("VirtualSessionProvider: provider %T does not support index", o.provider)
+	}
+	return o.provider.(index.ProviderSupportIndex), nil
+}
+
+func (o *VirtualSessionProvider) ReadIndex(key index.IndexKey) (index.SessionIndex, error) {
+	p, err := o.loadProviderSupportIndex()
+	if err != nil {
+		return nil, err
+	}
+
+	return p.ReadIndex(key)
+}
+
+func (o *VirtualSessionProvider) PeekIndex(key index.IndexKey) (index.SessionIndexReadOnly, error) {
+	p, err := o.loadProviderSupportIndex()
+	if err != nil {
+		return nil, err
+	}
+
+	return p.PeekIndex(key)
+}
+
+func (o *VirtualSessionProvider) Peek(sid string, withData bool) (store core.RawStoreReadOnly, alive bool, err error) {
+	p, err := o.loadProviderSupportIndex()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return p.Peek(sid, withData)
+}
+
+func (o *VirtualSessionProvider) CreateAt(sid string) (int64, error) {
+	p, err := o.loadProviderSupportIndex()
+	if err != nil {
+		return 0, err
+	}
+
+	return p.CreateAt(sid)
+}
+
+func (o *VirtualSessionProvider) ScanIndexes(fn func(key index.IndexKey) bool) error {
+	p, err := o.loadProviderSupportIndex()
+	if err != nil {
+		return err
+	}
+
+	return p.ScanIndexes(fn)
 }
 
 func init() {

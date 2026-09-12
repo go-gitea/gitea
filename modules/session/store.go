@@ -9,6 +9,7 @@ import (
 	"gitea.dev/modules/setting"
 
 	"gitea.com/go-chi/session"
+	"gitea.com/go-chi/session/core"
 )
 
 type RawStore = session.RawStore
@@ -16,6 +17,10 @@ type RawStore = session.RawStore
 type Store interface {
 	RawStore
 	Destroy(http.ResponseWriter, *http.Request) error
+	// ListStoreByIndexer returns read-only session stores indexed by indexValue.
+	ListStoreByIndexer(indexValue any) ([]core.RawStoreReadOnly, error)
+	// DestroySessionByID destroys the session identified by sid and removes its index entry.
+	DestroySessionByID(sid string, indexValue any) error
 }
 
 type mockStoreContextKeyStruct struct{}
