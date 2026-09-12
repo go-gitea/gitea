@@ -141,6 +141,27 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		require.NoError(t, repo_model.UpdateRepoUnitConfig(ctx, repo15ActionsUnit))
 	})
 
+	t.Run("ForkPR_SameRepo_CanReadPullRequests", func(t *testing.T) {
+		// task.RepoID == repo.ID here: the workflow still runs against its own base repo.
+		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
+		require.Equal(t, repo2.ID, task53.RepoID)
+
+		task53.IsForkPullRequest = true
+		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
+		t.Cleanup(func() {
+			task53.IsForkPullRequest = false
+			require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
+		})
+
+		perm, err := GetActionsUserRepoPermission(ctx, repo2, actionsUser, task53.ID)
+		require.NoError(t, err)
+
+		assert.True(t, perm.CanRead(unit.TypePullRequests))
+		assert.True(t, perm.CanRead(unit.TypeIssues))
+		assert.False(t, perm.CanWrite(unit.TypePullRequests))
+		assert.False(t, perm.CanWrite(unit.TypeIssues))
+	})
+
 	t.Run("Inheritance_And_Clamping", func(t *testing.T) {
 		task53 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 53})
 		task53.IsForkPullRequest = false
