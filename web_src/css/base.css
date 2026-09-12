@@ -686,6 +686,17 @@ overflow-menu .ui.label:empty {
   line-height: inherit; /* needed for inline code preview in markup */
 }
 
+.code-inner:has(.diff-line-truncated) {
+  text-decoration: underline dashed 1px;
+  text-underline-offset: 4px;
+}
+
+.code-inner .diff-line-truncated {
+  margin-left: var(--gap-inline);
+  padding: 0 4px;
+  user-select: none;
+}
+
 .blame .code-inner {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
