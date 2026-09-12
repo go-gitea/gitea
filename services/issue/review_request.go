@@ -131,6 +131,18 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 
 // isValidTeamReviewRequest Check permission for ReviewRequest Team
 func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
+	if isAdd {
+		members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
+			TeamID: reviewer.ID,
+		})
+		if err == nil {
+			for _, member := range members {
+				if user_model.IsUserBlockedBy(ctx, doer, member.ID) {
+					return user_model.ErrBlockedUser
+				}
+			}
+		}
+	}
 	if doer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",

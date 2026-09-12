@@ -100,6 +100,14 @@ func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, not
 			return err
 		}
 
+		// remove review requests
+		if err := removeReviewRequests(ctx, blocker, blockee); err != nil {
+			return err
+		}
+		if err := removeReviewRequests(ctx, blockee, blocker); err != nil {
+			return err
+		}
+
 		// unassign each other from issues
 		if err := unassignIssues(ctx, blocker, blockee); err != nil {
 			return err
@@ -299,4 +307,14 @@ func UnblockUser(ctx context.Context, doer, blocker, blockee *user_model.User) e
 		}
 		return nil
 	})
+}
+
+func removeReviewRequests(ctx context.Context, blocker, blockee *user_model.User) error {
+	// Find review requests where blocker is the reviewer and blockee is the issue poster
+	if _, err := db.GetEngine(ctx).Exec("DELETE FROM review WHERE type = ? AND reviewer_id = ? AND issue_id IN (SELECT id FROM issue WHERE poster_id = ?)", issues_model.ReviewTypeRequest, blocker.ID, blockee.ID); err != nil {
+		return err
+	}
+	// Note: We skip generating the "Review request removed" comment and notification here,
+	// as silently removing the review request fits the block semantic better without notifying the blockee.
+	return nil
 }
