@@ -4,16 +4,53 @@
 package migrations
 
 import (
+	"errors"
+	"fmt"
 	"net"
+	"net/http"
 	"path/filepath"
 	"testing"
 
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
+	"github.com/google/go-github/v89/github"
 	"github.com/stretchr/testify/assert"
 )
+
+type testStderrError struct{ stderr string }
+
+func (err testStderrError) Error() string  { return err.stderr }
+func (err testStderrError) Unwrap() error  { return nil }
+func (err testStderrError) Stderr() string { return err.stderr }
+
+func TestIsAuthenticationError(t *testing.T) {
+	githubError := func(code int) error {
+		return &github.ErrorResponse{Response: &http.Response{StatusCode: code}}
+	}
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"git authentication failed", testStderrError{string(gitcmd.StderrAuthenticationFailed) + " 'https://host/repo.git/'"}, true},
+		{"git could not read username", testStderrError{string(gitcmd.StderrCouldNotReadUsername) + " for 'https://host'"}, true},
+		{"github unauthorized", githubError(http.StatusUnauthorized), true},
+		{"github unauthorized sanitized", util.SanitizeErrorCredentialURLs(githubError(http.StatusUnauthorized)), true},
+		{"github unauthorized wrapped", fmt.Errorf("migrate: %w", githubError(http.StatusUnauthorized)), true},
+		{"github not found", githubError(http.StatusNotFound), false},
+		{"github without response", &github.ErrorResponse{}, false},
+		{"unrelated error", errors.New("something else"), false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.want, IsAuthenticationError(c.err))
+		})
+	}
+}
 
 func TestMigrateWhiteBlocklist(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

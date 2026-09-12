@@ -103,7 +103,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	err = runPushSync(ctx, m)
 	if err != nil {
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
-		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
+		m.LastError = stripExitStatus.ReplaceAllLiteralString(util.SanitizeErrorCredentialURLs(err).Error(), "")
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
@@ -132,6 +132,14 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if err != nil {
 			log.Error("GetRemoteURL %s failed, error %v", mirrorLogName, err)
 			return errors.New("GitRemoteGetURL failed")
+		}
+		// re-validate every sync, the allow/block lists may have changed since the mirror was added
+		switch remoteURL.URL.Scheme {
+		case "http", "https", "git":
+			if err := migrations.IsMigrateURLAllowed(remoteURL.String(), m.Repo.MustOwner(ctx)); err != nil {
+				log.Error("Push mirror %s remote is not allowed: %v", mirrorLogName, err)
+				return errors.New("remote address is not allowed")
+			}
 		}
 
 		if setting.LFS.StartServer {

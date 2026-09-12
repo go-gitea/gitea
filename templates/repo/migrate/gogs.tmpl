@@ -18,7 +18,7 @@
 					</span>
 				</div>
 
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field">
 					<label for="auth_token">{{ctx.Locale.Tr "access_token"}}</label>
 					<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}" {{if not .auth_token}} data-need-clear="true" {{end}}>
 					<!-- <a target="_blank" href="https://docs.gitea.com/development/api-usage">{{svg "octicon-question"}}</a> -->
