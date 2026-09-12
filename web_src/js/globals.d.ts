@@ -36,9 +36,6 @@ interface Window {
         numberOfFiles: number,
         numberOfViewedFiles: number,
       },
-      DiffFileTree?: import('./modules/diff-file.ts').DiffFileTreeData,
-      FolderIcon?: string,
-      FolderOpenIcon?: string,
       repoLink?: string,
       repoActivityTopAuthors?: Array<{
         avatar_link: string,
