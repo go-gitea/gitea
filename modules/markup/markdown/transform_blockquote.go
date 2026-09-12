@@ -77,6 +77,12 @@ func (g *ASTTransformer) extractBlockquoteAttention2(firstParagraph ast.Node, re
 			return attentionType, []ast.Node{node1, node2}
 		}
 	}
+	if val1 == `\[` && strings.HasPrefix(val2, "!") && strings.HasSuffix(val2, `\]`) {
+		attentionType := strings.ToLower(val2[1 : len(val2)-2])
+		if g.attentionTypes.Contains(attentionType) {
+			return attentionType, []ast.Node{node1, node2}
+		}
+	}
 	return "", nil
 }
 
@@ -110,6 +116,17 @@ func (g *ASTTransformer) extractBlockquoteAttention3(firstParagraph ast.Node, re
 	return "", nil
 }
 
+func (g *ASTTransformer) extractBlockquoteAttention(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
+	attentionType, processedNodes := g.extractBlockquoteAttentionEmphasis(firstParagraph, reader)
+	if attentionType == "" {
+		attentionType, processedNodes = g.extractBlockquoteAttention2(firstParagraph, reader)
+	}
+	if attentionType == "" {
+		attentionType, processedNodes = g.extractBlockquoteAttention3(firstParagraph, reader)
+	}
+	return attentionType, processedNodes
+}
+
 func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Reader) (ast.WalkStatus, error) {
 	// We only want attention blockquotes when the AST looks like:
 	// > Text("[") Text("!TYPE") Text("]")
@@ -123,13 +140,7 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 	}
 	g.applyElementDir(firstParagraph)
 
-	attentionType, processedNodes := g.extractBlockquoteAttentionEmphasis(firstParagraph, reader)
-	if attentionType == "" {
-		attentionType, processedNodes = g.extractBlockquoteAttention2(firstParagraph, reader)
-	}
-	if attentionType == "" {
-		attentionType, processedNodes = g.extractBlockquoteAttention3(firstParagraph, reader)
-	}
+	attentionType, processedNodes := g.extractBlockquoteAttention(firstParagraph, reader)
 	if attentionType == "" {
 		return ast.WalkContinue, nil
 	}
