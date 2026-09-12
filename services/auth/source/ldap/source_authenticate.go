@@ -8,12 +8,14 @@ import (
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	auth_module "gitea.dev/modules/auth"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	source_service "gitea.dev/services/auth/source"
 	user_service "gitea.dev/services/user"
 )
@@ -21,6 +23,8 @@ import (
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
+	ctx = audit.WithDoer(ctx, user_model.NewAuthenticationSourceUser())
+
 	loginName := userName
 	if user != nil {
 		loginName = user.LoginName
@@ -98,6 +102,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		if err != nil {
 			return user, err
 		}
+
+		audit.Record(ctx, audit_model.UserCreate, user)
 
 		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {

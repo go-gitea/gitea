@@ -8,11 +8,13 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/services/audit"
 )
 
 // RemoveOrgUser removes user from given organization.
@@ -47,7 +49,7 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 		}
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := db.DeleteByID[organization.OrgUser](ctx, ou.ID); err != nil {
 			return err
 		} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members=num_members-1 WHERE id=?", org.ID); err != nil {
@@ -94,5 +96,10 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 			}
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.OrganizationMemberRemove, audit.ScopeFromUserID(ctx, org.ID), "member", user.Name)
+	return nil
 }

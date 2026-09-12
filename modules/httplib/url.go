@@ -40,6 +40,19 @@ func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
 	ctx.SetContextValue(contextKeySupportPublicURL, true)
 }
 
+// RemoteHost returns the host part of req.RemoteAddr, or the full address when
+// it is not host:port form.
+func RemoteHost(req *http.Request) string {
+	if req == nil {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return req.RemoteAddr
+	}
+	return host
+}
+
 func urlIsRelative(s string, u *url.URL) bool {
 	// Unfortunately, browsers consider a redirect Location with preceding "//", "\\", "/\" and "\/" as meaning redirect to "http(s)://REST_OF_PATH"
 	// Therefore we should ignore these redirect locations to prevent open redirects
