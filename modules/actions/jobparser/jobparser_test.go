@@ -177,7 +177,6 @@ func TestParseInterpolatesRunName(t *testing.T) {
 		{"surrounding literals", "run ${{ 1 }} now", "run 1 now"},
 		{"two expressions", "${{ 1 }}-${{ true }}", "1-true"},
 		{"closing brace inside a string", "${{ 'a}}b' }}", "a}}b"},
-		{"incomplete expression stays literal", "${{ 1", "${{ 1"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := Parse(workflow(tt.runName), WithGitContext(&model.GithubContext{EventName: "push"}))
@@ -186,6 +185,11 @@ func TestParseInterpolatesRunName(t *testing.T) {
 			assert.Equal(t, tt.want, result[0].RunName)
 		})
 	}
+
+	t.Run("unclosed expression errors", func(t *testing.T) {
+		_, err := Parse(workflow("${{ 1"), WithGitContext(&model.GithubContext{EventName: "push"}))
+		require.ErrorContains(t, err, "unclosed expression")
+	})
 
 	// a malformed part must not restructure the surrounding expression
 	for _, runName := range []string{"${{ 1) && (2 }}", "run ${{ 1) && (2 }} now", "${{ 'a' }} ${{ b", "${{ 'a }}"} {
@@ -252,14 +256,14 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 	})
 
 	// GitHub rejects a matrix that yields no combinations instead of running the job unparameterized.
-	for _, tt := range []struct{ name, matrix string }{
-		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n"},
-		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n"},
-		{"whole matrix not a mapping", " ${{ fromJson(needs.setup.outputs.empty) }}\n"},
+	for _, tt := range []struct{ name, matrix, errHas string }{
+		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix vector "version" does not contain any values`},
+		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n", "Matrix must define at least one vector"},
+		{"whole matrix not a mapping", " ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix "" is not a map of matrix keys to values`},
 	} {
 		t.Run(tt.name+" errors", func(t *testing.T) {
 			_, err := expand(t, tt.matrix)
-			require.ErrorContains(t, err, "matrix must define at least one vector")
+			require.ErrorContains(t, err, tt.errHas)
 		})
 	}
 
@@ -331,10 +335,10 @@ jobs:
 	}{
 		// The canonical GitHub dynamic-matrix idiom. validateMatrixFilters rejects the still-scalar expression outright.
 		{name: "include expression", matrix: "include: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: "must be a list of mappings"},
-		// A static vector crossed with the unevaluated expression: one workflow per static value.
-		{name: "static vector and expression", matrix: "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}", parseCount: 2},
-		// The single-key case the feature shipped with happens to survive Parse, so it must keep working.
-		{name: "single expression vector", matrix: "version: ${{ fromJson(needs.setup.outputs.m) }}", parseCount: 1},
+		// An unevaluated expression is a scalar where a vector is required, rather than one
+		// combination holding the literal `${{ }}` text.
+		{name: "static vector and expression", matrix: "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: `Matrix vector "version" is not a list of values`},
+		{name: "single expression vector", matrix: "version: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: `Matrix vector "version" is not a list of values`},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			planned, err := Parse(fmt.Appendf(nil, workflow, tt.matrix))

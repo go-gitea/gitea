@@ -24,8 +24,10 @@ func NewInterpeter(
 ) exprparser.Interpreter {
 	strategy := make(map[string]any)
 	if job.Strategy != nil {
-		strategy["fail-fast"] = job.Strategy.FailFast
-		strategy["max-parallel"] = job.Strategy.MaxParallel
+		strategy["fail-fast"] = job.Strategy.GetFailFast()
+		if limit, declared, err := job.Strategy.ParseMaxParallel(); declared && err == nil {
+			strategy["max-parallel"] = limit
+		}
 	}
 
 	run := &model.Run{
