@@ -85,7 +85,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		return user, err
 	}
 
-	audit.RecordAs(ctx, user_model.NewAuthenticationSourceUser(), audit_model.UserCreate, user)
+	audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user, nil
 }
