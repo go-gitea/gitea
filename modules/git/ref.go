@@ -258,7 +258,17 @@ func ParseRefSuffix(ref string) (refName, refSuffix string) {
 }
 
 func UpdateRef(ctx context.Context, repo RepositoryFacade, refName, newCommitID string) error {
-	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
+	return UpdateRefWithOld(ctx, repo, refName, newCommitID, "")
+}
+
+// UpdateRefWithOld updates the ref only when it currently points to oldCommitID.
+// When oldCommitID is empty, the update is unconditional.
+func UpdateRefWithOld(ctx context.Context, repo RepositoryFacade, refName, newCommitID, oldCommitID string) error {
+	cmd := gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID)
+	if oldCommitID != "" {
+		cmd.AddDynamicArguments(oldCommitID)
+	}
+	return cmd.WithRepo(repo).Run(ctx)
 }
 
 func RemoveRef(ctx context.Context, repo RepositoryFacade, refName string) error {
