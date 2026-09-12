@@ -22,6 +22,9 @@
 		{{if and .IsPackageEnabled (or .ContextUser.IsIndividual .CanReadPackages)}}
 			<a href="{{.ContextUser.HomeLink}}/-/packages" class="{{if .IsPackagesPage}}active {{end}}item">
 				{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
+				{{if .PackageCount}}
+					<div class="ui small label">{{.PackageCount}}</div>
+				{{end}}
 			</a>
 		{{end}}
 		{{if and .IsRepoIndexerEnabled (or .ContextUser.IsIndividual .CanReadCode)}}
