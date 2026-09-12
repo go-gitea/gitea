@@ -173,7 +173,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		return nil
 	}
 
-	audit.RecordAs(req.Context(), user_model.NewAuthenticationSourceUser(), audit_model.UserCreate, user)
+	audit.RecordAs(req.Context(), user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user
 }

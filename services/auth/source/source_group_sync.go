@@ -33,7 +33,7 @@ func SyncGroupsToTeams(ctx context.Context, user *user_model.User, sourceUserGro
 // SyncGroupsToTeamsCached maps authentication source groups to organization and team memberships
 func SyncGroupsToTeamsCached(ctx context.Context, user *user_model.User, sourceUserGroups container.Set[string], sourceGroupTeamMapping map[string]map[string][]string, performRemoval bool, orgCache map[string]*organization.Organization, teamCache map[string]*organization.Team) error {
 	// team membership changes here come from the authentication source mapping
-	ctx = audit.WithDoer(ctx, user_model.NewAuthenticationSourceUser())
+	ctx = audit.WithDoer(ctx, user_model.NewAuthSourceUser())
 
 	membershipsToAdd, membershipsToRemove := resolveMappedMemberships(sourceUserGroups, sourceGroupTeamMapping)
 

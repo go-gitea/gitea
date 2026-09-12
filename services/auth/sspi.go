@@ -173,7 +173,7 @@ func (s *SSPI) newUser(ctx context.Context, username string, cfg *sspi.Source) (
 		return nil, err
 	}
 
-	audit.RecordAs(ctx, user_model.NewAuthenticationSourceUser(), audit_model.UserCreate, user)
+	audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user, nil
 }
