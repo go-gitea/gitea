@@ -1780,6 +1780,7 @@ tbody.commit-list {
   padding: 10px;
   border: 1px solid transparent;
   border-bottom: none;
+  border-radius: 0;
 }
 
 .branch-selector-dropdown .branch-tag-item.active {

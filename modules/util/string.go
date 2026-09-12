@@ -4,6 +4,7 @@
 package util
 
 import (
+	"iter"
 	"strings"
 	"unsafe"
 )
@@ -130,4 +131,11 @@ func AsciiEqualFold(s, t string) bool {
 		}
 	}
 	return true
+}
+
+func StringSplitSeq[T, S ~string](s T, sep S) iter.Seq[T] {
+	f := strings.SplitSeq(string(s), string(sep))
+	return func(yield func(T) bool) {
+		f(func(v string) bool { return yield(T(v)) })
+	}
 }
