@@ -13,5 +13,5 @@ import (
 
 func cliAuditContext(ctx context.Context) context.Context {
 	ctx = audit.WithOrigin(ctx, audit_model.OriginCLI)
-	return audit.WithDoer(ctx, user_model.NewCLIUser())
+	return audit.WithDoer(ctx, user_model.NewCliUser())
 }

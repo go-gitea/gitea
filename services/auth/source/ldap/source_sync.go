@@ -28,7 +28,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// everything this sync changes is attributed to the authentication source,
 	// not to a signed-in user
-	ctx = audit.WithDoer(ctx, user_model.NewAuthenticationSourceUser())
+	ctx = audit.WithDoer(ctx, user_model.NewAuthSourceUser())
 
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
 	var sshKeysNeedUpdate bool
