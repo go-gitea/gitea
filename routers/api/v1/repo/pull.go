@@ -152,6 +152,7 @@ func ListPullRequests(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	hideCrossRepoPRHeads(ctx, prs, apiPrs)
 
 	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
 	ctx.SetTotalCountHeader(maxResults)
@@ -210,7 +211,9 @@ func GetPullRequest(ctx *context.APIContext) {
 	// Consider API access a view for delayed checking.
 	pull_service.StartPullRequestCheckOnView(ctx, pr)
 
-	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
+	hideCrossRepoPRHead(ctx, pr, apiPR)
+	ctx.JSON(http.StatusOK, apiPR)
 }
 
 // GetPullRequest returns a single PR based on index
@@ -299,7 +302,9 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 	// Consider API access a view for delayed checking.
 	pull_service.StartPullRequestCheckOnView(ctx, pr)
 
-	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
+	hideCrossRepoPRHead(ctx, pr, apiPR)
+	ctx.JSON(http.StatusOK, apiPR)
 }
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
@@ -829,8 +834,11 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
+	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
+	hideCrossRepoPRHead(ctx, pr, apiPR)
+
 	// TODO this should be 200, not 201
-	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+	ctx.JSON(http.StatusCreated, apiPR)
 }
 
 // IsPullRequestMerged checks if a PR exists given an index
@@ -1074,6 +1082,34 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+// hideCrossRepoPRHead clears the head-repository fields of an API pull-request response when the
+// current token is not permitted to see the head repository (e.g. a public-only token and a
+// private/limited head repo). services/convert.ToAPIPullRequest(s) cannot apply this check itself
+// -- it only receives a doer, not the APIContext the token scope lives on -- so every handler that
+// serializes a PR's head must call this after conversion. Mirrors the guard already applied to
+// UpdatePullRequest and parseCompareInfo; without it, a public-only read:repository token can
+// read a private head repository's metadata and latest commit SHA through the base repo's PR
+// endpoints even though it was never granted access to that head repository.
+func hideCrossRepoPRHead(ctx *context.APIContext, pr *issues_model.PullRequest, apiPR *api.PullRequest) {
+	if apiPR == nil || pr.HeadRepo == nil || pr.HeadRepoID == pr.BaseRepoID {
+		return
+	}
+	if ctx.TokenCanAccessRepo(pr.HeadRepo) {
+		return
+	}
+	apiPR.Head.Repository = nil
+	apiPR.Head.Sha = ""
+}
+
+// hideCrossRepoPRHeads applies hideCrossRepoPRHead to every pull request in a listing response.
+func hideCrossRepoPRHeads(ctx *context.APIContext, prs issues_model.PullRequestList, apiPRs []*api.PullRequest) {
+	for i, pr := range prs {
+		if i < len(apiPRs) {
+			hideCrossRepoPRHead(ctx, pr, apiPRs[i])
+		}
+	}
 }
 
 // parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
