@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -35,6 +36,12 @@ type Mirror struct {
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
 	RemoteAddress string `xorm:"VARCHAR(2048)"`
+}
+
+// IsSSHRemoteAddress returns true if the mirror's remote address uses SSH.
+func (m *Mirror) IsSSHRemoteAddress() bool {
+	u, err := giturl.ParseGitURL(m.RemoteAddress)
+	return err == nil && u.Scheme == "ssh"
 }
 
 func init() {
