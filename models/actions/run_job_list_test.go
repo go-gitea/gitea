@@ -133,6 +133,11 @@ func TestFindQueueJobs(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []int64{jB.ID}, ids(page2))
 
+	pastEnd, pastTotal, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID}, 99, 3)
+	require.NoError(t, err)
+	assert.EqualValues(t, 4, pastTotal)
+	assert.Equal(t, []int64{jB.ID}, ids(pastEnd), "a page past the end returns the last page")
+
 	filterRepoIDs, err := QueueFilterRepoIDs(ctx, QueueJobsOptions{RepoID: repoID}, 10)
 	require.NoError(t, err)
 	assert.Contains(t, filterRepoIDs, repoID, "a repo with pending work is offered by the filter")

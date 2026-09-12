@@ -75,6 +75,10 @@ func FindQueueJobs(ctx context.Context, opts QueueJobsOptions, page, pageSize in
 		return nil, total, err
 	}
 
+	// Auto-refresh can shrink the queue under a user still on page 2; show the last page instead of empty.
+	pageSize = max(pageSize, 1)
+	page = min(max(page, 1), int((total+int64(pageSize)-1)/int64(pageSize)))
+
 	jobs := make([]*ActionRunJob, 0, pageSize)
 	return jobs, total, opts.session(ctx).
 		Cols(queueJobCols...).

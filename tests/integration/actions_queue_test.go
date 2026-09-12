@@ -129,4 +129,12 @@ func TestActionsQueue(t *testing.T) {
 	assert.Contains(t, refresh, `id="actions-queue-list"`)
 	assert.Contains(t, refresh, queuedJobName)
 	assert.NotContains(t, refresh, `<html`, "the refresh response is a fragment, not a full page")
+
+	// A stale page after the queue shrinks (or ?page=2 on a one-page list) still shows the jobs.
+	stalePage := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?page=2"), http.StatusOK).Body.String()
+	assert.Contains(t, stalePage, queuedJobName)
+	assert.NotContains(t, stalePage, "No jobs are running or waiting to be picked up.")
+	staleRefresh := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?refresh=1&page=2"), http.StatusOK).Body.String()
+	assert.Contains(t, staleRefresh, queuedJobName)
+	assert.NotContains(t, staleRefresh, "No jobs are running or waiting to be picked up.")
 }
