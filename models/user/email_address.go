@@ -497,7 +497,7 @@ func validateEmailBasic(email string) error {
 		return ErrEmailInvalid{email}
 	}
 
-	if !globalVars().emailRegexp.MatchString(email) {
+	if !validation.IsValidEmail(email) {
 		return ErrEmailCharIsNotSupported{email}
 	}
 
