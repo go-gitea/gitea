@@ -175,7 +175,7 @@ func TestEmailAddressValidate(t *testing.T) {
 		`first}last@iana.org`:            nil,
 		`first~last@iana.org`:            nil,
 		`first;last@iana.org`:            user_model.ErrEmailCharIsNotSupported{`first;last@iana.org`},
-		".233@qq.com":                    user_model.ErrEmailInvalid{".233@qq.com"},
+		".233@qq.com":                    user_model.ErrEmailCharIsNotSupported{".233@qq.com"},
 		"!233@qq.com":                    nil,
 		"#233@qq.com":                    nil,
 		"$233@qq.com":                    nil,
