@@ -65,6 +65,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	for _, reviewer := range opts.Reviewers {
 		reviewerIDs = append(reviewerIDs, reviewer.ID)
 	}
+	// Abort the PR creation if the creator is blocked by the repository owner, any requested assignees, or any requested reviewers.
 	if user_model.IsUserBlockedBy(ctx, issue.Poster, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, issue.Poster, assigneeIDs...) || user_model.IsUserBlockedBy(ctx, issue.Poster, reviewerIDs...) {
 		return user_model.ErrBlockedUser
 	}
