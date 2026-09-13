@@ -35,10 +35,33 @@ func TestCanBlockUser(t *testing.T) {
 	assert.False(t, CanBlockUser(t.Context(), user1, org3, user4))
 	// Doer must be organization owner or admin if blocker is an organization
 	assert.False(t, CanBlockUser(t.Context(), user4, org3, user2))
+	// Admins cannot be newly blocked (guard moved here from IsUserBlockedBy)
+	assert.False(t, CanBlockUser(t.Context(), user2, user2, user1))
 
 	assert.True(t, CanBlockUser(t.Context(), user1, user2, user4))
 	assert.True(t, CanBlockUser(t.Context(), user2, user2, user4))
 	assert.True(t, CanBlockUser(t.Context(), user2, org3, user29))
+}
+
+func TestUnblockUserPromotedToAdmin(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user2 blocks user29 in the fixtures; promote user29 to admin afterwards
+	// to simulate a user who was blocked before being promoted.
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	user29.IsAdmin = true
+
+	// The existing block must still be recognized...
+	assert.True(t, user_model.IsUserBlockedBy(t.Context(), user29, user2.ID))
+
+	// ...and remain removable.
+	assert.True(t, CanUnblockUser(t.Context(), user2, user2, user29))
+	assert.NoError(t, UnblockUser(t.Context(), user2, user2, user29))
+	assert.False(t, user_model.IsUserBlockedBy(t.Context(), user29, user2.ID))
+
+	// But a fresh block on an admin is rejected.
+	assert.False(t, CanBlockUser(t.Context(), user2, user2, user29))
 }
 
 func TestCanUnblockUser(t *testing.T) {
