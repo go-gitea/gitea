@@ -3547,6 +3547,8 @@
   "secrets.deletion.success": "Gizlilik kaldırıldı.",
   "secrets.deletion.failed": "Gizlilik kaldırılamadı.",
   "secrets.management": "Gizlilik Yönetimi",
+  "audit.actor": "Aktör",
+  "audit.details": "Ayrıntılar",
   "actions.actions": "İşlemler",
   "actions.unit.desc": "İşlemleri yönet",
   "actions.status.unknown": "Bilinmiyor",

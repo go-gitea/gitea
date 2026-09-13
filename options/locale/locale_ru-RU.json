@@ -2819,6 +2819,8 @@
   "secrets.deletion.success": "Секрет удалён.",
   "secrets.deletion.failed": "Не удалось удалить секрет.",
   "secrets.management": "Управление секретами",
+  "audit.actor": "Актор",
+  "audit.details": "Информация",
   "actions.actions": "Действия",
   "actions.unit.desc": "Управление действиями",
   "actions.status.unknown": "Неизвестно",

@@ -2874,6 +2874,8 @@
   "secrets.deletion.success": "Noslēpums tika izdzēsts.",
   "secrets.deletion.failed": "Neizdevās dzēst noslēpumu.",
   "secrets.management": "Noslēpumu pārvaldība",
+  "audit.actor": "Aktors",
+  "audit.details": "Papildu informācija",
   "actions.actions": "Darbības",
   "actions.unit.desc": "Pārvaldīt darbības",
   "actions.status.unknown": "Nezināms",
