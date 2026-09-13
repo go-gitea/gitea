@@ -129,7 +129,7 @@
 						</div>
 
 						{{if or $showCreateWorkflowBadge $showEnableDisableWorkflow}}
-						<button class="ui jump dropdown btn interact-bg tw-p-2">
+						<button type="button" class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if $showCreateWorkflowBadge}}
@@ -196,7 +196,7 @@
 				<label>{{ctx.Locale.Tr "actions.workflow.status_badge_url"}}</label>
 				<div class="ui action input">
 					<input id="workflow-badge-url" readonly autofocus>
-					<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-url">{{svg "octicon-copy" 14}}</button>
+					<button type="button" class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-url">{{svg "octicon-copy" 14}}</button>
 				</div>
 			</div>
 			<div class="field">
