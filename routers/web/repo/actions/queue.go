@@ -6,6 +6,8 @@ package actions
 import (
 	"errors"
 
+	"gitea.dev/models/unit"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/util"
 	shared_actions "gitea.dev/routers/web/shared/actions"
 	"gitea.dev/services/context"
@@ -26,20 +28,31 @@ func Queue(ctx *context.Context) {
 	shared_actions.RenderQueue(ctx, ctx.Repo.Repository.ID, "repo/actions/queue")
 }
 
-// prepareActionsSidebar fills the workflow list for the shared Actions left nav.
+// prepareActionsSidebar lists the navigation entries without binding run-list filters or validating workflows.
 func prepareActionsSidebar(ctx *context.Context) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if errors.Is(err, util.ErrNotExist) {
+		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
+		ctx.NotFound(nil)
 		return
 	} else if err != nil {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
 
-	workflows, _ := prepareWorkflowTemplate(ctx, commit)
-	if ctx.Written() {
+	_, entries, err := actions_module.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
+	if err != nil {
+		ctx.ServerError("ListWorkflows", err)
 		return
 	}
+	workflows := make([]WorkflowInfo, 0, len(entries))
+	for _, entry := range entries {
+		workflows = append(workflows, WorkflowInfo{EntryName: entry.Name()})
+	}
+	ctx.Data["workflows"] = workflows
+	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
+	ctx.Data["ActionsConfig"] = ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+
 	scopedNames := prepareScopedWorkflows(ctx, "", 0)
 	if ctx.Written() {
 		return

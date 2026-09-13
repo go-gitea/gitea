@@ -89,6 +89,9 @@ func TestActionsQueue(t *testing.T) {
 	assert.Contains(t, body, "actions-management", "queue sits under Management in the Actions sidebar")
 	assert.NotContains(t, body, callerJobName, "a reusable caller occupies no runner, so it is not a running job")
 	assert.Contains(t, body, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`)
+	queueWithWorkflowQuery := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?workflow=test.yaml"), http.StatusOK)
+	queueDoc := NewHTMLParser(t, queueWithWorkflowQuery.Body)
+	assert.Zero(t, queueDoc.Find(".flex-container-nav > .ui.menu > a.active").Length(), "queue chrome must not bind the runs-list workflow filter")
 
 	// The Actions runs list exposes Queue under Management, not as a top tab.
 	listBody := sessionUser2.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/actions"), http.StatusOK).Body.String()
@@ -127,7 +130,7 @@ func TestActionsQueue(t *testing.T) {
 
 	// The auto-refresh endpoint returns just the list fragment (no full-page chrome), still listing the job.
 	refresh := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?refresh=1"), http.StatusOK).Body.String()
-	assert.Contains(t, refresh, `id="actions-queue-list"`)
+	assert.Contains(t, refresh, `id="actions-queue"`)
 	assert.Contains(t, refresh, queuedJobName)
 	assert.NotContains(t, refresh, `<html`, "the refresh response is a fragment, not a full page")
 
@@ -142,7 +145,7 @@ func TestActionsQueue(t *testing.T) {
 	for _, query := range []string{"?repo_id=987654321", "?owner_id=987654321"} {
 		body := adminBody(query)
 		doc := NewHTMLParser(t, strings.NewReader(body))
-		refreshLink, ok := doc.Find("#actions-queue-list").Attr("data-queue-refresh-link")
+		refreshLink, ok := doc.Find("#actions-queue").Attr("data-queue-refresh-link")
 		require.True(t, ok)
 		assert.NotContains(t, refreshLink, "987654321")
 		refreshed := sessionAdmin.MakeRequest(t, NewRequest(t, "GET", refreshLink), http.StatusOK).Body.String()
@@ -160,7 +163,7 @@ func TestActionsQueue(t *testing.T) {
 			assert.NotContains(t, body, queuedJobName, "an empty selection must not expand to all repositories")
 			assert.NotContains(t, body, otherJobName)
 			doc := NewHTMLParser(t, strings.NewReader(body))
-			link, ok := doc.Find("#actions-queue-list").Attr("data-queue-refresh-link")
+			link, ok := doc.Find("#actions-queue").Attr("data-queue-refresh-link")
 			require.True(t, ok)
 			assert.Contains(t, link, scope)
 			assert.Positive(t, doc.Find("#actions-queue-filter a.selected[href*='"+scope+"']").Length())

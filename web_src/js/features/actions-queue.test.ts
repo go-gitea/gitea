@@ -1,17 +1,17 @@
 import {updateActionQueueList} from './actions-queue.ts';
 
 function queueHTML(disabled: boolean, job: string): string {
-  return `<div id="actions-queue-list" data-queue-refresh-link="?refresh=1&job=${job}">
+  return `<div id="actions-queue" data-queue-refresh-link="?refresh=1&job=${job}">
     <div id="actions-queue-filter"><div class="ui dropdown ${disabled ? 'disabled' : ''}">
       <input type="text"><div class="menu"><a>${job}</a></div>
     </div></div>
-    <div class="queue-job">${job}</div>
+    <div id="actions-queue-list"><div class="queue-job">${job}</div></div>
   </div>`;
 }
 
 test('queue refresh replaces disabled filters when new work arrives', () => {
   document.body.innerHTML = queueHTML(true, 'empty');
-  const el = document.querySelector<HTMLElement>('#actions-queue-list')!;
+  const el = document.querySelector<HTMLElement>('#actions-queue')!;
   const incoming = document.createElement('div');
   incoming.innerHTML = queueHTML(false, 'new-repo');
 
@@ -24,7 +24,7 @@ test('queue refresh replaces disabled filters when new work arrives', () => {
 
 test('queue refresh keeps rows live while deferring filter updates', () => {
   document.body.innerHTML = queueHTML(false, 'old-repo');
-  const el = document.querySelector<HTMLElement>('#actions-queue-list')!;
+  const el = document.querySelector<HTMLElement>('#actions-queue')!;
   const dropdown = el.querySelector('.dropdown')!;
   const input = el.querySelector('input')!;
   const incoming = document.createElement('div');

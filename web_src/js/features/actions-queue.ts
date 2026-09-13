@@ -11,7 +11,6 @@ function bindActionQueueList(el: HTMLElement): void {
   async function refresh() {
     const resp = await GET(el.getAttribute('data-queue-refresh-link')!);
     if (!resp.ok) return;
-    // The queue rows carry no interactive state, so morph the whole fragment in place.
     const newEl = createElementFromHTML(await resp.text());
     updateActionQueueList(el, newEl);
   }
@@ -24,13 +23,13 @@ function bindActionQueueList(el: HTMLElement): void {
 
 export function updateActionQueueList(el: HTMLElement, newEl: Element): void {
   const filter = el.querySelector('#actions-queue-filter')!;
-  // Preserve filter interaction while the job rows continue to refresh.
-  const deferFilters = filter.querySelector('.dropdown.active') || filter.contains(document.activeElement);
+  const newFilter = newEl.querySelector('#actions-queue-filter')!;
+  const list = el.querySelector('#actions-queue-list')!;
+  const newList = newEl.querySelector('#actions-queue-list')!;
 
-  const newFilter = newEl.querySelector('#actions-queue-filter')!.cloneNode(true);
-  Idiomorph.morph(el, newEl, {
-    morphStyle: 'outerHTML',
-    callbacks: {beforeNodeMorphed: (node) => node !== filter},
-  });
-  if (!deferFilters) filter.replaceWith(newFilter); // The global observer initializes fresh dropdown nodes.
+  for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
+  Idiomorph.morph(list, newList, {morphStyle: 'outerHTML'});
+  if (!filter.querySelector('.dropdown.active') && !filter.contains(document.activeElement)) {
+    filter.replaceWith(newFilter);
+  }
 }

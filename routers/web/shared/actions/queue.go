@@ -37,6 +37,14 @@ const (
 	queueFilterWaiting = "waiting"
 )
 
+// RefreshIntervalMs is how often an auto-refreshing Actions list re-fetches itself.
+func RefreshIntervalMs(hasActivity bool) int64 {
+	if !setting.IsProd {
+		return util.Iif[int64](hasActivity, 1000, 2*1000)
+	}
+	return util.Iif[int64](hasActivity, 3*1000, 12*1000)
+}
+
 // RenderQueue queries and renders a build-queue view (running jobs followed by the queued ones in pickup
 // order): a single repository when repoID > 0, otherwise the whole instance. It serves both the initial
 // full page (fullTemplate) and the in-place auto-refresh fragment. The list can be narrowed by status and,
@@ -90,7 +98,6 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 	ctx.Data["QueueJobRunners"] = runners
 	ctx.Data["QueueTotal"] = total
 	ctx.Data["ShowRepoColumn"] = repoID == 0
-	ctx.Data["ShowOwnerRepoFilters"] = repoID == 0
 	ctx.Data["QueueFilterStatus"] = filterStatus
 	ctx.Data["QueueFilterStatuses"] = []string{queueFilterRunning, queueFilterWaiting}
 
