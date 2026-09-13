@@ -47,8 +47,10 @@ func newSystemUser(id int64, name, fullName string) *User {
 }
 
 const (
-	ActionsUserID   int64 = -2
-	DeployKeyUserID int64 = -3
+	ActionsUserID    int64 = -2
+	DeployKeyUserID  int64 = -3
+	CliUserID        int64 = -4
+	AuthSourceUserID int64 = -5
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
@@ -90,30 +92,14 @@ func NewDeployKeyUserWithKeyID(id int64) *User {
 	return u
 }
 
-const (
-	CLIUserID   int64 = -4
-	CLIUserName       = "CLI"
-)
-
-func NewCLIUser() *User {
-	return &User{
-		ID:        CLIUserID,
-		Name:      CLIUserName,
-		LowerName: strings.ToLower(CLIUserName),
-	}
+func NewCliUser() *User {
+	// for audit log only
+	return newSystemUser(CliUserID, "(gitea-cli)", "Gitea CLI")
 }
 
-const (
-	AuthenticationSourceUserID   int64 = -5
-	AuthenticationSourceUserName       = "AuthenticationSource"
-)
-
-func NewAuthenticationSourceUser() *User {
-	return &User{
-		ID:        AuthenticationSourceUserID,
-		Name:      AuthenticationSourceUserName,
-		LowerName: strings.ToLower(AuthenticationSourceUserName),
-	}
+func NewAuthSourceUser() *User {
+	// for audit log only
+	return newSystemUser(AuthSourceUserID, "(gitea-auth-source)", "Gitea Auth Source")
 }
 
 func GetSystemUserByName(name string) *User {
@@ -125,7 +111,7 @@ func GetSystemUserByName(name string) *User {
 	return nil
 }
 
-func GetDoerUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
+func GetDoerPermissionUser(ctx context.Context, id int64, extDoerData string) (u *User, _ error) {
 	if id > 0 {
 		return GetUserByID(ctx, id)
 	}
@@ -137,6 +123,7 @@ func GetDoerUser(ctx context.Context, id int64, extDoerData string) (u *User, _ 
 		u = NewDeployKeyUser()
 		u.ExtDoerData = &extDoerDeployKey{}
 	default:
+		// other system users are not real doers for the permission system
 		return nil, ErrUserNotExist{UID: id}
 	}
 	return u, u.ExtDoerData.DecodeFromString(extDoerData)

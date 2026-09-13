@@ -3112,6 +3112,8 @@
   "secrets.deletion.success": "O segredo foi excluído.",
   "secrets.deletion.failed": "Falha ao excluir segredo.",
   "secrets.management": "Gerenciamento de Segredos",
+  "audit.actor": "Ator",
+  "audit.details": "Detalhes",
   "actions.actions": "Ações",
   "actions.unit.desc": "Gerenciar ações",
   "actions.status.unknown": "Desconhecido",

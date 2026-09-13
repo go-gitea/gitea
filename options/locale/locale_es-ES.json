@@ -2796,6 +2796,7 @@
   "secrets.deletion.success": "El secreto ha sido eliminado.",
   "secrets.deletion.failed": "Error al eliminar secreto.",
   "secrets.management": "Gestión de secretos",
+  "audit.details": "Detalles",
   "actions.actions": "Acciones",
   "actions.unit.desc": "Gestionar acciones",
   "actions.status.unknown": "Desconocido",
