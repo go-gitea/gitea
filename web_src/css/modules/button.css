@@ -90,16 +90,9 @@
   height: auto;
   opacity: 0.8;
 }
-.ui.button:not(.icon) > .icon:not(.button):not(.dropdown),
-.ui.button:not(.icon) > .icons:not(.button):not(.dropdown) {
+.ui.button:not(.icon) > .icon:not(.button):not(.dropdown) {
   margin: 0 0.42857143em 0 -0.21428571em;
   vertical-align: baseline;
-}
-.ui.button:not(.icon) > .icons:not(.button):not(.dropdown) > .icon {
-  vertical-align: baseline;
-}
-.ui.button:not(.icon) > .right.icon:not(.button):not(.dropdown) {
-  margin: 0 -0.21428571em 0 0.42857143em;
 }
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
@@ -120,9 +113,6 @@
 }
 
 /* reference size: mini: padding-x=16, height=30 ; compact: padding-x=12, height=26 */
-.ui.mini.buttons .dropdown,
-.ui.mini.buttons .dropdown .menu > .item,
-.ui.mini.buttons .button,
 .ui.ui.ui.ui.mini.button {
   gap: var(--gap-inline);
   font-size: 11px;
@@ -167,51 +157,23 @@
   vertical-align: top;
 }
 
-.ui.basic.buttons .button,
 .ui.basic.button {
   border-radius: var(--border-radius);
-  background: none;
-}
-.ui.basic.buttons {
-  border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
-}
-.ui.basic.buttons .button {
-  border-radius: 0;
-  border-left: 1px solid var(--color-secondary);
-}
-
-.ui.labeled.button.disabled > .button,
-.ui.basic.buttons .button,
-.ui.basic.button {
   color: var(--color-text-light);
   background: var(--color-button);
 }
 
-.ui.basic.buttons .button:hover,
 .ui.basic.button:hover {
   color: var(--color-text);
   background: var(--color-hover);
   border-color: var(--color-secondary-dark-2);
 }
 
-.ui.basic.buttons .button:active,
 .ui.basic.button:active,
-.ui.basic.buttons .active.button,
 .ui.basic.active.button,
-.ui.basic.buttons .active.button:hover,
 .ui.basic.active.button:hover {
   color: var(--color-text);
   background: var(--color-active);
-}
-
-.ui.button.toggle.active {
-  background-color: var(--color-green);
-  color: var(--color-white);
-}
-.ui.button.toggle.active:hover {
-  background-color: var(--color-green-dark-1);
-  color: var(--color-white);
 }
 
 .ui.fluid.button {
@@ -235,20 +197,17 @@
   background: var(--color-primary-active);
 }
 
-.ui.basic.primary.buttons .button,
 .ui.basic.primary.button {
   color: var(--color-primary);
   border-color: var(--color-primary);
   background: none;
 }
 
-.ui.basic.primary.buttons .button:hover,
 .ui.basic.primary.button:hover {
   color: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
 }
 
-.ui.basic.primary.buttons .button:active,
 .ui.basic.primary.button:active {
   color: var(--color-primary-active);
   border-color: var(--color-primary-active);
@@ -270,55 +229,46 @@
   background: var(--color-red-dark-2);
 }
 
-.ui.basic.red.buttons .button,
 .ui.basic.red.button {
   color: var(--color-red);
   border-color: var(--color-red);
   background: none;
 }
 
-.ui.basic.red.buttons .button:hover,
 .ui.basic.red.button:hover {
   color: var(--color-red-dark-1);
   border-color: var(--color-red-dark-1);
 }
 
-.ui.basic.red.buttons .button:active,
 .ui.basic.red.button:active {
   color: var(--color-red-dark-2);
   border-color: var(--color-red-dark-2);
 }
 
-.ui.green.button,
-.ui.green.buttons .button {
+.ui.green.button {
   color: var(--color-white);
   background: var(--color-green);
 }
 
-.ui.green.button:hover,
-.ui.green.buttons .button:hover {
+.ui.green.button:hover {
   background: var(--color-green-dark-1);
 }
 
-.ui.green.button:active,
-.ui.green.buttons .button:active {
+.ui.green.button:active {
   background: var(--color-green-dark-2);
 }
 
-.ui.basic.green.buttons .button,
 .ui.basic.green.button {
   color: var(--color-green);
   border-color: var(--color-green);
   background: none;
 }
 
-.ui.basic.green.buttons .button:hover,
 .ui.basic.green.button:hover {
   color: var(--color-green-dark-1);
   border-color: var(--color-green-dark-1);
 }
 
-.ui.basic.green.buttons .button:active,
 .ui.basic.green.button:active {
   color: var(--color-green-dark-2);
   border-color: var(--color-green-dark-2);
@@ -356,10 +306,6 @@ a.btn:hover {
 
 .btn.tiny {
   font-size: 12px;
-}
-
-.btn.small {
-  font-size: 13px;
 }
 
 /* By default, Fomantic UI doesn't support "bordered" buttons group, but Gitea would like to use it.

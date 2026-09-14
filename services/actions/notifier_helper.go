@@ -121,7 +121,7 @@ func (input *notifyInput) Notify(ctx context.Context) {
 
 func notify(ctx context.Context, input *notifyInput) error {
 	shouldDetectSchedules := input.Event == webhook_module.HookEventPush && input.Ref.BranchName() == input.Repo.DefaultBranch
-	if input.Doer.IsGiteaActions() {
+	if input.Doer.ID == user_model.ActionsUserID {
 		// avoiding triggering cyclically, for example:
 		// a comment of an issue will trigger the runner to add a new comment as reply,
 		// and the new comment will trigger the runner again.
@@ -595,7 +595,7 @@ func handleSchedules(
 		crons = append(crons, run)
 	}
 
-	return actions_model.CreateScheduleTask(ctx, crons)
+	return actions_model.CreateScheduleTaskBySchedules(ctx, crons)
 }
 
 // DetectAndHandleSchedules detects the schedule workflows on the default branch and create schedule tasks

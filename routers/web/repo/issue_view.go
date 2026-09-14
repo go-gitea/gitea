@@ -74,11 +74,7 @@ func roleDescriptor(ctx *context.Context, repo *repo_model.Repository, poster *u
 			return roleDesc, nil
 		}
 		// Otherwise (poster is site admin), check if poster is the real repo admin.
-		isRealRepoAdmin, err := access_model.IsUserRealRepoAdmin(ctx, repo, poster)
-		if err != nil {
-			return roleDesc, err
-		}
-		if isRealRepoAdmin {
+		if access_model.IsUserRealRepoAdmin(ctx, repo, poster) {
 			roleDesc.RoleInRepo = issues_model.RoleRepoOwner
 			return roleDesc, nil
 		}
@@ -595,7 +591,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 		isPullBranchDeletable, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
 	}
 
-	if isPullBranchDeletable && pull.HasMerged {
+	if isPullBranchDeletable && prInfo.issue.IsClosed {
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)

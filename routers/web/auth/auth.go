@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
@@ -27,6 +28,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
@@ -453,12 +455,15 @@ func SignOut(ctx *context.Context) {
 		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
 	}
 
+	impersonator := audit.ImpersonatorFromContext(ctx)
+
 	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
 	if err != nil {
 		ctx.ServerError("ExitImpersonatedUser", err)
 		return
 	}
 	if exitedImpersonated {
+		audit.RecordAs(ctx, impersonator, audit_model.UserImpersonationExit, ctx.Doer)
 		ctx.Redirect(setting.AppSubURL + "/-/admin")
 		return
 	}

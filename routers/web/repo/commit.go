@@ -19,6 +19,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
@@ -96,8 +97,7 @@ func Commits(ctx *context.Context) {
 	}
 	ctx.Data["CommitCount"] = commitsCount
 
-	pager := context.NewPagination(commitsCount, pageSize, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(commitsCount).PerPageLimit(pageSize).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
 }
@@ -164,10 +164,8 @@ func Graph(ctx *context.Context) {
 	ctx.Data["AllRefs"] = gitRefs
 
 	divOnly := ctx.FormBool("div-only")
-	queryParams := ctx.Req.URL.Query()
-	queryParams.Del("div-only")
-	paginator := context.NewPagination(graphCommitsCount, setting.UI.GraphMaxCommitNum, page, 5)
-	paginator.AddParamFromQuery(queryParams)
+	paginator := context.NewPagerBuilder(ctx).TotalCount(graphCommitsCount).PerPageLimit(setting.UI.GraphMaxCommitNum).CurPage(page).Build()
+	paginator.RemoveParam(container.SetOf("div-only"))
 	ctx.Data["Page"] = paginator
 	if divOnly {
 		ctx.HTML(http.StatusOK, tplGraphDiv)
@@ -258,11 +256,10 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(commitsCount, setting.Git.CommitsRangeSize, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(commitsCount).PerPageLimit(setting.Git.CommitsRangeSize).CurPage(page).Build()
 	if commitsCount == -1 {
 		pager.WithUnlimitedPaging(len(commits), hasMore)
 	}
-	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplCommits)
 }
@@ -321,19 +318,22 @@ func Diff(ctx *context.Context) {
 		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, &gitdiff.DiffOptions{
-		AfterCommitID:      commitID,
-		SkipTo:             ctx.FormString("skip-to"),
-		MaxLines:           maxLines,
-		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-		MaxFiles:           maxFiles,
+	diffCommonOptions := gitdiff.DiffCommonOptions{
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(GetWhitespaceBehavior(ctx)),
+		AfterCommitID:      commitID,
+	}
+	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, &gitdiff.DiffOptions{
+		DiffCommonOptions: diffCommonOptions,
+		SkipTo:            ctx.FormString("skip-to"),
+		MaxLines:          maxLines,
+		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:          maxFiles,
 	}, files...)
 	if err != nil {
 		ctx.NotFound(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, "", commitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &diffCommonOptions)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -393,11 +393,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatuses"] = statuses
 
 	verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
-	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = user_model.GetUserByGitAuthor(ctx, commit)
-	ctx.Data["CommitOtherParticipants"] = gituser.BuildAvatarStackData(ctx, commit.CoAuthorIdentities(), nil).Participants
+	ctx.Data["Verification"] = util.Iif(verification.IsCommitNotSigned(), nil, verification)
+	ctx.Data["CommitAvatarStackData"] = gituser.BuildAvatarStackData(ctx, commit.AllAuthorIdentities(), nil)
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
+	ctx.Data["ShowDiffSummaryInToolbar"] = false
+	ctx.Data["ShowDiffSummaryInCommitHeader"] = diffShortStat.NumFiles != 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 		return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)

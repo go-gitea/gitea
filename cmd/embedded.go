@@ -150,7 +150,7 @@ func runListDo(c *cli.Command) error {
 	}
 
 	for _, a := range matchedAssetFiles {
-		fmt.Println(a.path)
+		cprintln(c, a.path)
 	}
 
 	return nil
@@ -194,7 +194,7 @@ func runExtractDo(c *cli.Command) error {
 		destdir = c.String("destination")
 	} else if c.Bool("custom") {
 		destdir = setting.CustomPath
-		fmt.Println("Using app.ini at", setting.CustomConf)
+		cprintln(c, "Using app.ini at", setting.CustomConf)
 	}
 
 	fi, err := os.Stat(destdir)
@@ -213,13 +213,13 @@ func runExtractDo(c *cli.Command) error {
 		return fmt.Errorf("destination %q is not a directory", destdir)
 	}
 
-	fmt.Printf("Extracting to %s:\n", destdir)
+	cprintf(c, "Extracting to %s:\n", destdir)
 
 	overwrite := c.Bool("overwrite")
 	rename := c.Bool("rename")
 
 	for _, a := range matchedAssetFiles {
-		if err := extractAsset(destdir, a, overwrite, rename); err != nil {
+		if err := extractAsset(c, destdir, a, overwrite, rename); err != nil {
 			// Non-fatal error
 			_, _ = fmt.Fprintf(os.Stderr, "%s: %v\n", a.path, err)
 		}
@@ -228,7 +228,7 @@ func runExtractDo(c *cli.Command) error {
 	return nil
 }
 
-func extractAsset(d string, a assetFile, overwrite, rename bool) error {
+func extractAsset(c *cli.Command, d string, a assetFile, overwrite, rename bool) error {
 	dest := filepath.Join(d, filepath.FromSlash(a.path))
 	dir := filepath.Dir(dest)
 
@@ -249,7 +249,7 @@ func extractAsset(d string, a assetFile, overwrite, rename bool) error {
 			return fmt.Errorf("%s: %w", dest, err)
 		}
 	} else if !overwrite && !rename {
-		fmt.Printf("%s already exists; skipped.\n", dest)
+		cprintf(c, "%s already exists; skipped.\n", dest)
 		return nil
 	} else if !fi.Mode().IsRegular() {
 		return fmt.Errorf("%s already exists, but it's not a regular file", dest)
@@ -271,7 +271,7 @@ func extractAsset(d string, a assetFile, overwrite, rename bool) error {
 		return fmt.Errorf("%s: %w", dest, err)
 	}
 
-	fmt.Println(dest)
+	cprintln(c, dest)
 
 	return nil
 }
@@ -306,7 +306,7 @@ func compileCollectPatterns(args []string) (_ []glob.Glob, err error) {
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
 		if pat[i], err = glob.Compile(args[i], '/'); err != nil {
-			return nil, fmt.Errorf("invalid glob patterh %q: %w", args[i], err)
+			return nil, fmt.Errorf("invalid glob pattern %q: %w", args[i], err)
 		}
 	}
 	return pat, nil

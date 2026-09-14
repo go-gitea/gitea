@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
+	"strconv"
 	"time"
 
 	"gitea.dev/models/db"
@@ -123,7 +123,9 @@ func (run *ActionRun) RefLink() string {
 func (run *ActionRun) PrettyRef() string {
 	refName := git.RefName(run.Ref)
 	if refName.IsPull() {
-		return "#" + strings.TrimSuffix(strings.TrimPrefix(run.Ref, git.PullPrefix), "/head")
+		if pullIndex, ok := refName.PullIndex(); ok {
+			return "#" + strconv.FormatInt(pullIndex, 10)
+		}
 	}
 	return refName.ShortName()
 }

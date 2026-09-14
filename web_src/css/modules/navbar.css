@@ -95,10 +95,6 @@
     justify-content: flex-end;
     min-height: 49px;
   }
-  #navbar #mobile-stopwatch-icon,
-  #navbar #mobile-notifications-icon {
-    margin-right: 6px;
-  }
 }
 
 #navbar a.item:hover .notification_count,
