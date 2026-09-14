@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -25,13 +24,7 @@ import (
 )
 
 func isErrBlameNotFoundOrNotEnoughLines(err error) bool {
-	stdErr, ok := gitcmd.ErrorAsStderr(err)
-	if !ok {
-		return false
-	}
-	notFound := strings.HasPrefix(stdErr, "fatal: no such path")
-	notEnoughLines := strings.HasPrefix(stdErr, "fatal: file ") && strings.Contains(stdErr, " has only ") && strings.Contains(stdErr, " line")
-	return notFound || notEnoughLines
+	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchPath, gitcmd.StderrFileNoEnoughLines)
 }
 
 // ErrDismissRequestOnClosedPR represents an error when a user tries to dismiss a review associated to a closed or merged PR.
