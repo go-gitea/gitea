@@ -137,28 +137,34 @@ func TestLongLineDiffRendering(t *testing.T) {
 func TestPullDiffNoCommonMergeBase(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
-	createPull := func(head string) int64 {
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	createPull := func(head string) api.PullRequest {
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls", &api.CreatePullRequestOption{Head: head, Base: "master", Title: head}).AddTokenAuth(token)
-		return DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), api.PullRequest{}).Index
+		return DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), api.PullRequest{})
 	}
-	rewrittenBaseIndex := createPull("DefaultBranch")
+	rewrittenBase := createPull("DefaultBranch")
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{
 		{Ref: "refs/heads/master"},
 		{Ref: "refs/heads/unrelated-history", Files: []git.FastImportFile{{Path: "file2.txt", Content: "Hello from 2\n"}}},
 	}))
+	unrelated := createPull("unrelated-history")
 
-	for index, filename := range map[int64]string{rewrittenBaseIndex: "LICENSE", createPull("unrelated-history"): "file2.txt"} {
-		testPullDiffAssertPage(t, fmt.Sprintf("/user2/repo1/pulls/%d/files", index), false, []string{filename})
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/files", index)).AddTokenAuth(token)
-		files := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []*api.ChangedFile{})
+	for index, filename := range map[int64]string{rewrittenBase.Index: "LICENSE", unrelated.Index: "file2.txt"} {
+		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d/files", index)), http.StatusOK).Body)
+		assert.Equal(t, filename, doc.Find(".diff-file-box").AttrOr("data-new-filename", ""))
+		assert.Equal(t, "11", doc.Find(".pull.tabular.menu .item .label").Slice(1, 3).Text())
+		files := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/files", index)).AddTokenAuth(token), http.StatusOK), []*api.ChangedFile{})
 		require.Len(t, files, 1)
 		assert.Equal(t, filename, files[0].Filename)
+		assert.Len(t, DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/commits", index)).AddTokenAuth(token), http.StatusOK), []*api.Commit{}), 1)
 	}
+	doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d/commits/%s", unrelated.Index, unrelated.Head.Sha)), http.StatusOK).Body)
+	assert.Equal(t, "file2.txt", doc.Find(".diff-file-box").AttrOr("data-new-filename", ""))
 
-	updateURL := fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/update", rewrittenBaseIndex)
+	updateURL := fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/update", rewrittenBase.Index)
 	MakeRequest(t, NewRequest(t, "POST", updateURL).AddTokenAuth(token), http.StatusConflict)
 	MakeRequest(t, NewRequest(t, "POST", updateURL+"?style=rebase").AddTokenAuth(token), http.StatusConflict)
 }

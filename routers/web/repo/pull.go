@@ -730,19 +730,21 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	var beforeCommit *git.Commit
+	emptyTreeID := afterCommit.ID.Type().EmptyTree().String()
 	if isSingleCommit {
-		beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
-		if err != nil {
-			ctx.ServerError("afterCommit.Parent", err)
-			return
+		beforeCommitID = emptyTreeID
+		if afterCommit.ParentCount() > 0 {
+			beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
+			if err != nil {
+				ctx.ServerError("afterCommit.Parent", err)
+				return
+			}
+			beforeCommitID = beforeCommit.ID.String()
 		}
-		beforeCommitID = beforeCommit.ID.String()
-	} else if beforeCommitID == "" && prCompareInfo.CompareBase == "" {
-		beforeCommitID = afterCommit.ID.Type().EmptyTree().String()
 	} else {
 		beforeCommitID = util.IfZero(beforeCommitID, prCompareInfo.CompareBase)
 		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
-		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase {
+		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase && beforeCommitID != emptyTreeID {
 			// base commit is not in the list of the pull request commits
 			beforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 			if err != nil {
@@ -750,7 +752,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 				return
 			}
 		}
-		if beforeCommit == nil {
+		if beforeCommit == nil && beforeCommitID != prCompareInfo.CompareBase {
 			ctx.NotFound(nil)
 			return
 		}

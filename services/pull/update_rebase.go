@@ -33,6 +33,8 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	oldMergeBase, err := git.MergeBase(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
 	if errors.Is(err, util.ErrNotExist) {
 		return ErrMergeUnrelatedHistories{Err: err}
+	} else if err != nil {
+		return err
 	}
 
 	// Rebase the tracking branch on to the base as the staging branch

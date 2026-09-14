@@ -1054,15 +1054,31 @@ type CommitInfo struct {
 	Time                  string `json:"time"`
 }
 
-// GetCompareInfo falls back to the stored merge base while the head contains it, for a base history rewrite
-func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
-	headRef := git.RefName(pr.GetGitHeadRefName())
-	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, headRef, git_service.CompareOptions{})
-	if err == nil && compareInfo.CompareBase == "" {
-		if mergeBaseCompareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), headRef, git_service.CompareOptions{}); err == nil && mergeBaseCompareInfo.CompareBase == pr.MergeBase {
-			return mergeBaseCompareInfo, nil
-		}
+func headContainsMergeBase(ctx context.Context, repo git.RepositoryFacade, mergeBase, headCommitID string) bool {
+	if mergeBase == "" {
+		return false
 	}
+	found, _ := git.MergeBase(ctx, repo, mergeBase, headCommitID)
+	return found == mergeBase
+}
+
+// GetCompareInfo falls back to the stored merge base while the head contains it, else to the empty tree with all head commits
+func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
+	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, git.RefName(pr.GetGitHeadRefName()), git_service.CompareOptions{})
+	if err != nil || compareInfo.CompareBase != "" {
+		return compareInfo, err
+	}
+	commitRange := compareInfo.HeadCommitID
+	if headContainsMergeBase(ctx, pr.BaseRepo, pr.MergeBase, compareInfo.HeadCommitID) {
+		compareInfo.CompareBase = pr.MergeBase
+		commitRange = pr.MergeBase + ".." + compareInfo.HeadCommitID
+	} else {
+		compareInfo.CompareBase = git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()
+	}
+	if compareInfo.Commits, err = baseGitRepo.ShowPrettyFormatLogToList(ctx, commitRange); err != nil {
+		return compareInfo, err
+	}
+	compareInfo.NumFiles, err = baseGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
 	return compareInfo, err
 }
 

@@ -274,7 +274,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		}
 
 		patch, err = git.GetFileDiffCutAroundLine(ctx,
-			gitRepo, pr.MergeBase, headCommitID, treePath,
+			gitRepo, util.IfZero(pr.MergeBase, git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()), headCommitID, treePath,
 			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
 		)
 		if err != nil {

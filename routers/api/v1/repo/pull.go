@@ -1567,7 +1567,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	startCommitID := util.IfZero(compareInfo.CompareBase, git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String())
+	startCommitID := compareInfo.CompareBase
 	endCommitID := headCommitID
 
 	maxLines := setting.Git.MaxGitDiffLines

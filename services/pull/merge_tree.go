@@ -110,7 +110,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 		// if there is no merge base, keep the last known one while the head contains it, still need to allow the pull request to be created
 		// not quite right (e.g.: why not reset the fields like below), but no interest to do more investigation at the moment
 		log.Error("MergeBase: unable to find merge base between %s and %s: %v", baseCommitID, pr.HeadCommitID, err)
-		if lastMergeBase, _ := git.MergeBase(ctx, pr.BaseRepo, pr.MergeBase, pr.HeadCommitID); lastMergeBase != pr.MergeBase {
+		if !headContainsMergeBase(ctx, pr.BaseRepo, pr.MergeBase, pr.HeadCommitID) {
 			pr.MergeBase = ""
 		}
 		pr.Status = issues_model.PullRequestStatusEmpty
