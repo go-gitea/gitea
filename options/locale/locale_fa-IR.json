@@ -2144,6 +2144,7 @@
   "packages.terraform.unlock": "رفع انسداد",
   "packages.owner.settings.cleanuprules.enabled": "فعال شده",
   "secrets.creation.description": "شرح",
+  "audit.details": "جزئیات",
   "actions.runners.name": "نام",
   "actions.runners.owner_type": "نوع",
   "actions.runners.description": "شرح",

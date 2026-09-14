@@ -7,33 +7,31 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddRunnerGroups(_ context.Context, x base.EngineMigration) error {
-	type ActionRunner struct {
-		GroupID int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
-	}
-	type ActionRunJob struct {
-		RunsOnGroup string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
-	}
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(ActionRunner), new(ActionRunJob)); err != nil {
-		return err
-	}
+type AuditEvent struct {
+	ID               int64  `xorm:"pk autoincr"`
+	Action           string `xorm:"INDEX NOT NULL"`
+	ActorID          int64  `xorm:"INDEX NOT NULL"`
+	ActorName        string
+	ActorCredential  string
+	ImpersonatorID   int64 `xorm:"INDEX"`
+	ImpersonatorName string
+	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`
+	ScopeType        string `xorm:"INDEX INDEX(scope) NOT NULL"`
+	ScopeName        string
+	Origin           string `xorm:"INDEX NOT NULL"`
+	Message          string
+	Metadata         string `xorm:"LONGTEXT JSON"`
+	IPAddress        string
+	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+}
 
-	type ActionRunnerGroup struct {
-		ID      int64  `xorm:"pk autoincr"`
-		OwnerID int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
-		Name    string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
-	}
-	type ActionRunnerAccess struct {
-		ID      int64 `xorm:"pk autoincr"`
-		GroupID int64 `xorm:"UNIQUE(group_repo) NOT NULL"`
-		RepoID  int64 `xorm:"INDEX UNIQUE(group_repo) NOT NULL"`
-	}
-	return x.Sync(new(ActionRunnerGroup), new(ActionRunnerAccess)) // plain Sync, the ignore flags above would skip the unique indexes
+func (*AuditEvent) TableName() string {
+	return "audit_event"
+}
+
+func AddAuditEventTable(_ context.Context, x base.EngineMigration) error {
+	return x.Sync(new(AuditEvent))
 }

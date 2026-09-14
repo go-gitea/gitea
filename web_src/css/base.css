@@ -324,6 +324,12 @@ a.silenced:hover {
   text-decoration-line: none;
 }
 
+a.disabled {
+  cursor: default;
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
 a.label,
 .ui .menu a,
 .ui.cards a.card {
@@ -657,18 +663,6 @@ overflow-menu .ui.label:empty {
   vertical-align: top;
 }
 
-.lines-code pre {
-  background-color: inherit;
-  margin: 0;
-  padding: 0 !important;
-}
-
-.lines-code pre li {
-  display: block;
-  width: calc(100% - 1ch);
-  padding-left: 1ch;
-}
-
 .lines-escape {
   width: 0;
   white-space: nowrap;
@@ -684,6 +678,17 @@ overflow-menu .ui.label:empty {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: inherit; /* needed for inline code preview in markup */
+}
+
+.code-inner:has(.diff-line-truncated) {
+  text-decoration: underline dashed 1px;
+  text-underline-offset: 4px;
+}
+
+.code-inner .diff-line-truncated {
+  margin-left: var(--gap-inline);
+  padding: 0 4px;
+  user-select: none;
 }
 
 .blame .code-inner {

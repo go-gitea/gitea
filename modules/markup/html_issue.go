@@ -123,7 +123,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		case IssueNameStyleAlphanumeric:
 			ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 		case IssueNameStyleRegexp:
-			pattern, err := regexplru.GetCompiled(ctx.RenderOptions.Metas["regexp"])
+			pattern, err := regexplru.UserCache().GetCompiled(ctx.RenderOptions.Metas["regexp"])
 			if err != nil {
 				return
 			}
