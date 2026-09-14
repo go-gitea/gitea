@@ -171,25 +171,12 @@ func (j *Job) EraseNeeds() *Job {
 	return j
 }
 
-// TODO: use actionslib's split runs-on accessors from https://gitea.com/gitea/actionslib/pulls/17
 func (j *Job) RunsOnLabels() []string {
-	if j.RawRunsOn.Kind != yaml.MappingNode {
-		return model.RunsOnFromNode(j.RawRunsOn)
-	}
-	var val struct{ Labels yaml.Node }
-	if err := j.RawRunsOn.Decode(&val); err != nil {
-		return nil
-	}
-	return model.RunsOnFromNode(val.Labels)
+	return model.RunsOnLabelsFromNode(j.RawRunsOn)
 }
 
 func (j *Job) RunsOnGroup() string {
-	if j.RawRunsOn.Kind != yaml.MappingNode {
-		return ""
-	}
-	var val struct{ Group string }
-	_ = j.RawRunsOn.Decode(&val)
-	return val.Group
+	return model.RunsOnGroupFromNode(j.RawRunsOn)
 }
 
 // BlockSafeString works around https://github.com/yaml/go-yaml/issues/399, quoting a value whose
