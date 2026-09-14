@@ -5,72 +5,95 @@ package storage
 
 import (
 	"io"
+	"io/fs"
+	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func prepareAzureStorageConfig(t *testing.T, basePath ...string) *setting.Storage {
+type azureBlobFailOnceTransport struct {
+	failed atomic.Bool
+}
+
+func (t *azureBlobFailOnceTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if t.failed.CompareAndSwap(false, true) {
+		return &http.Response{StatusCode: http.StatusServiceUnavailable, Body: http.NoBody}, nil
+	}
+	return http.DefaultTransport.RoundTrip(req)
+}
+
+func newAzureBlobTestStorage(t *testing.T, basePath string) *AzureBlobStorage {
 	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
-	return &setting.Storage{
+	objStore, err := NewStorage(setting.AzureBlobStorageType, &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
-			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: endpoint,
-			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
+			Endpoint:    endpoint,
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
 			Container:   "test-container",
-			BasePath:    util.OptionalArg(basePath),
+			BasePath:    basePath,
 		},
-	}
+	})
+	require.NoError(t, err)
+	s, ok := objStore.(*AzureBlobStorage)
+	require.True(t, ok)
+	return s
 }
 
 func TestAzureBlobStorage(t *testing.T) {
-	t.Run("NoBasePath", func(t *testing.T) {
-		config := prepareAzureStorageConfig(t)
-		objStore, err := NewStorage(setting.AzureBlobStorageType, config)
-		require.NoError(t, err)
-		testStorageGeneral(t, objStore)
-	})
-	t.Run("WithBasePath", func(t *testing.T) {
-		config := prepareAzureStorageConfig(t, "test-base-path")
-		objStore, err := NewStorage(setting.AzureBlobStorageType, config)
-		require.NoError(t, err)
-		testStorageGeneral(t, objStore)
-	})
-}
+	testStorageGeneral(t, newAzureBlobTestStorage(t, ""))
+	testStorageGeneral(t, newAzureBlobTestStorage(t, "test-base-path"))
 
-func Test_azureBlobObject(t *testing.T) {
-	s, err := NewStorage(setting.AzureBlobStorageType, prepareAzureStorageConfig(t))
-	require.NoError(t, err)
+	s := newAzureBlobTestStorage(t, "")
+	s.blockSize, s.concurrency, s.retryDelay = 4, 2, 0
+	transport := &azureBlobFailOnceTransport{}
+	s.client.Transport = transport
 
 	data := "Q2xTckt6Y1hDOWh0"
-	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
-	assert.NoError(t, err)
+	written, err := s.Save("test.txt", strings.NewReader(data), -1)
+	require.NoError(t, err)
+	assert.EqualValues(t, len(data), written)
+	assert.True(t, transport.failed.Load())
+	info, err := s.Stat("test.txt")
+	require.NoError(t, err)
+	assert.EqualValues(t, len(data), info.Size())
+
 	obj, err := s.Open("test.txt")
-	assert.NoError(t, err)
-	offset, err := obj.Seek(2, io.SeekStart)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, offset)
-	buf1 := make([]byte, 3)
-	read, err := obj.Read(buf1)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, read)
-	assert.Equal(t, data[2:5], string(buf1))
-	offset, err = obj.Seek(-5, io.SeekEnd)
-	assert.NoError(t, err)
-	assert.EqualValues(t, len(data)-5, offset)
-	buf2 := make([]byte, 4)
-	read, err = obj.Read(buf2)
-	assert.NoError(t, err)
-	assert.Equal(t, 4, read)
-	assert.Equal(t, data[11:15], string(buf2))
+	require.NoError(t, err)
+	buf := make([]byte, 4)
+	_, err = io.ReadFull(obj, buf)
+	require.NoError(t, err)
+	assert.Equal(t, data[:4], string(buf))
+	_, err = obj.Seek(-5, io.SeekEnd)
+	require.NoError(t, err)
+	_, err = io.ReadFull(obj, buf)
+	require.NoError(t, err)
+	assert.Equal(t, data[11:15], string(buf))
 	assert.NoError(t, obj.Close())
+
+	u, err := s.ServeDirectURL("direct.txt", "direct.txt", http.MethodPut, nil)
+	require.NoError(t, err)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPut, u.String(), strings.NewReader("direct"))
+	require.NoError(t, err)
+	req.Header.Set("x-ms-blob-type", "BlockBlob")
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	_ = resp.Body.Close()
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	obj, err = s.Open("direct.txt")
+	require.NoError(t, err)
+	content, err := io.ReadAll(obj)
+	require.NoError(t, err)
+	assert.Equal(t, "direct", string(content))
+
 	assert.NoError(t, s.Delete("test.txt"))
+	assert.NoError(t, s.Delete("direct.txt"))
+	_, err = s.Stat("test.txt")
+	assert.ErrorIs(t, err, fs.ErrNotExist)
 }
