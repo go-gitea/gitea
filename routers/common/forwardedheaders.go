@@ -4,7 +4,6 @@
 package common
 
 import (
-	"net"
 	"net/http"
 	"net/netip"
 	"slices"
@@ -14,7 +13,6 @@ import (
 )
 
 func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Handler) http.Handler {
-	limit = max(limit, 1)
 	var trusted []netip.Prefix
 	for _, s := range trustedProxies {
 		if s == "*" {
@@ -23,12 +21,15 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 		}
 		prefix, err := netip.ParsePrefix(s)
 		if err != nil {
-			addr := parseClientAddr(s)
-			if !addr.IsValid() {
-				log.Error("Ignoring invalid trusted proxy %q", s)
-				continue
-			}
+			addr, _ := netip.ParseAddr(s)
 			prefix = netip.PrefixFrom(addr, addr.BitLen())
+		}
+		if prefix.Addr().Is4In6() {
+			prefix = netip.PrefixFrom(prefix.Addr().Unmap(), prefix.Bits()-96)
+		}
+		if !prefix.IsValid() {
+			log.Error("Ignoring invalid trusted proxy %q", s)
+			continue
 		}
 		trusted = append(trusted, prefix)
 	}
@@ -37,9 +38,10 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 			if req.RemoteAddr == "@" { // unix socket
 				req.RemoteAddr = "127.0.0.1:0"
 			}
-			if isTrustedProxy(req.RemoteAddr, trusted) {
-				if addr := forwardedClientIP(req.Header, limit); addr.IsValid() {
-					req.RemoteAddr = netip.AddrPortFrom(addr, 0).String()
+			peer, _ := netip.ParseAddrPort(req.RemoteAddr)
+			if slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer.Addr().Unmap()) }) {
+				if addr, err := netip.ParseAddr(forwardedClientIP(req.Header, limit)); err == nil {
+					req.RemoteAddr = netip.AddrPortFrom(addr.Unmap().WithZone(""), 0).String()
 				}
 			}
 			h.ServeHTTP(resp, req)
@@ -47,43 +49,19 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	}
 }
 
-func isTrustedProxy(remoteAddr string, trusted []netip.Prefix) bool {
-	host, _, err := net.SplitHostPort(remoteAddr)
-	if err != nil {
-		return false
+func forwardedClientIP(header http.Header, limit int) string {
+	if realIPs := header.Values("X-Real-Ip"); len(realIPs) > 0 && realIPs[len(realIPs)-1] != "" {
+		return realIPs[len(realIPs)-1] // the closest hop wrote the last value
 	}
-	addr := parseClientAddr(host)
-	return slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(addr) })
-}
-
-func forwardedClientIP(header http.Header, limit int) netip.Addr {
-	realIPs := header.Values("X-Real-Ip")
-	if len(realIPs) > 0 && realIPs[len(realIPs)-1] != "" {
-		return parseClientAddr(realIPs[len(realIPs)-1]) // the closest hop wrote the last value, an empty one falls through
-	}
-	remaining, leftmost := limit, ""
-	for _, value := range slices.Backward(header.Values("X-Forwarded-For")) { // walking from the right keeps an attacker-chosen chain length free
-		for rest := value; rest != ""; {
-			entry := rest
-			if comma := strings.LastIndexByte(rest, ','); comma >= 0 {
-				entry, rest = rest[comma+1:], rest[:comma]
-			} else {
-				rest = ""
+	entry := ""
+	for _, value := range slices.Backward(header.Values("X-Forwarded-For")) {
+		for rest := value; rest != "" && limit > 0; {
+			comma := strings.LastIndexByte(rest, ',')
+			if field := strings.TrimSpace(rest[comma+1:]); field != "" {
+				entry, limit = field, limit-1
 			}
-			if entry = strings.TrimSpace(entry); entry == "" {
-				continue
-			}
-			leftmost = entry
-			if remaining--; remaining == 0 {
-				return parseClientAddr(entry)
-			}
+			rest = rest[:max(comma, 0)]
 		}
 	}
-	return parseClientAddr(leftmost)
-}
-
-// parseClientAddr rejects non-IP input, so a header a proxy forgot to overwrite cannot put an arbitrary string into RemoteAddr.
-func parseClientAddr(s string) netip.Addr {
-	addr, _ := netip.ParseAddr(s)
-	return addr.Unmap().WithZone("")
+	return entry
 }

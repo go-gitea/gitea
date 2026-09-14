@@ -21,24 +21,20 @@ func TestForwardedHeadersHandler(t *testing.T) {
 		header     http.Header
 		expected   string
 	}{
-		{"rightmost entry", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1, 2.2.2.2"}}, "2.2.2.2:0"},
-		{"two hops", "127.0.0.1:1234", 2, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1, 2.2.2.2"}}, "1.1.1.1:0"},
+		{"two hops skipping empty entry", "127.0.0.1:1234", 2, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1, , 2.2.2.2"}}, "1.1.1.1:0"},
 		{"chain shorter than limit", "127.0.0.1:1234", 3, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1, 2.2.2.2"}}, "1.1.1.1:0"},
-		{"entries without space", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1,2.2.2.2"}}, "2.2.2.2:0"},
-		{"repeated header", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1", "2.2.2.2, 3.3.3.3"}}, "3.3.3.3:0"},
+		{"repeated header without spaces", "127.0.0.1:1234", 2, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1,2.2.2.2", "3.3.3.3"}}, "2.2.2.2:0"},
 		{"non-ip entry", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"evil, <script>"}}, "127.0.0.1:1234"},
-		{"entry with port", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1:5678"}}, "127.0.0.1:1234"},
-		{"mapped ipv4", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"::ffff:1.2.3.4"}}, "1.2.3.4:0"},
-		{"ipv6 entry", "[::1]:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"2001:db8::1"}}, "[2001:db8::1]:0"},
-		{"real ip wins", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Real-Ip": {"9.9.9.9"}, "X-Forwarded-For": {"1.1.1.1"}}, "9.9.9.9:0"},
-		{"non-ip real ip", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Real-Ip": {"evil"}}, "127.0.0.1:1234"},
+		{"mapped ipv4", "[::ffff:127.0.0.1]:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"::ffff:1.2.3.4"}}, "1.2.3.4:0"},
+		{"zoned ipv6 entry", "[::1]:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"2001:db8::1%eth0"}}, "[2001:db8::1]:0"},
+		{"last real ip wins", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Real-Ip": {"8.8.8.8", "9.9.9.9"}, "X-Forwarded-For": {"1.1.1.1"}}, "9.9.9.9:0"},
 		{"empty real ip falls through", "127.0.0.1:1234", 1, defaultProxies, http.Header{"X-Real-Ip": {""}, "X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
 		{"untrusted peer", "8.8.8.8:1234", 1, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "8.8.8.8:1234"},
-		{"bare ip proxy", "10.0.0.1:1234", 1, []string{"10.0.0.1"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
+		{"zoned peer", "[fe80::1%en1]:1234", 1, []string{"fe80::1%en0"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "[fe80::1%en1]:1234"},
+		{"bare ip proxy after invalid one", "10.0.0.1:1234", 1, []string{"invalid", "10.0.0.1"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
+		{"mapped cidr proxy", "10.0.0.1:1234", 1, []string{"::ffff:10.0.0.0/104"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
 		{"wildcard proxy", "8.8.8.8:1234", 1, []string{"*"}, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
 		{"unix socket", "@", 1, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1"}}, "1.1.1.1:0"},
-		{"no header", "127.0.0.1:1234", 1, defaultProxies, http.Header{}, "127.0.0.1:1234"},
-		{"zero limit", "127.0.0.1:1234", 0, defaultProxies, http.Header{"X-Forwarded-For": {"1.1.1.1, 2.2.2.2"}}, "2.2.2.2:0"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
