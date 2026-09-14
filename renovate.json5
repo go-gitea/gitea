@@ -123,6 +123,11 @@
       "allowedVersions": "/^8($|[.-])/", // pin to oldest supported major
     },
     {
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["mcr.microsoft.com/**"],
+      "minimumReleaseAgeBehaviour": "timestamp-optional", // registry has no release timestamps, https://github.com/renovatebot/renovate/issues/38656
+    },
+    {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
       "matchDepTypes": ["golang", "toolchain"], // fast-track go and toolchain in their own PR
