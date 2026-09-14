@@ -35,7 +35,7 @@ func TestUpdateReviewContentNotifications(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: comment.PosterID})
 	require.NoError(t, UpdateReviewContent(t.Context(), review, doer, "updated summary"))
 	assert.Equal(t, []bool{false}, notifier.inTransaction)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, Content: review.Content})
+	assert.Equal(t, review.Content, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID}).Content)
 
 	pending := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 4})
 	require.NoError(t, db.Insert(t.Context(), &issues_model.Comment{

@@ -626,7 +626,7 @@ func TestAPIPullReviewMutations(t *testing.T) {
 	assert.Equal(t, "edited summary", draft.Body)
 	assert.Equal(t, api.ReviewStatePending, draft.State)
 	assert.Equal(t, commitID, draft.CommitID)
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID, Content: draft.Body})
+	assert.Equal(t, draft.Body, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID}).Content)
 	var comments []*api.PullReviewComment
 	for _, opts := range []api.CreatePullReviewComment{appendOpts, {Path: "README.md", Body: "old comment", OldLineNum: 1}} {
 		comment := DecodeJSON(t, request(t, "POST", reviewURL+"/comments", token, opts, http.StatusCreated), &api.PullReviewComment{})
@@ -795,7 +795,8 @@ func TestAPIPullReviewMutations(t *testing.T) {
 			assert.Equal(t, step.want, storedHeader.Content)
 			assert.Equal(t, step.want, doc.Find("#"+header.HashTag()+"-raw").Text())
 			unittest.AssertCount(t, &issues_model.ContentHistory{CommentID: header.ID}, step.history)
-			unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{CommentID: header.ID, PosterID: author.ID, ContentText: header.Content, IsFirstCreated: true})
+			history := unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{CommentID: header.ID, PosterID: author.ID, IsFirstCreated: true})
+			assert.Equal(t, header.Content, history.ContentText)
 		}
 		comment := DecodeJSON(t, request(t, "PATCH", commentURL, step.auth, commentBody, http.StatusOK), &api.PullReviewComment{})
 		require.NotNil(t, comment.Poster)
@@ -827,7 +828,8 @@ func TestAPIPullReviewMutations(t *testing.T) {
 	assert.Equal(t, []*api.PullReviewComment{late}, DecodeJSON(t, request(t, "GET", reviewURL+"/comments", token, nil, http.StatusOK), []*api.PullReviewComment{}))
 	request(t, "DELETE", fmt.Sprintf("%s/comments/%d", pullsURL, late.ID), token, nil, http.StatusNoContent)
 	unittest.AssertCount(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeCode}, 0)
-	retained := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID, Content: "moderated"})
+	retained := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+	assert.Equal(t, "moderated", retained.Content)
 	retained.Content, retained.UpdatedUnix = before.Content, before.UpdatedUnix
 	assert.Equal(t, before, retained)
 	unittest.AssertCount(t, &issues_model.Comment{ReviewID: review.ID, Type: issues_model.CommentTypeReview}, 2)
