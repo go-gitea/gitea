@@ -94,6 +94,7 @@ func TestAzureBlobStorage(t *testing.T) {
 
 	assert.NoError(t, s.Delete("test.txt"))
 	assert.NoError(t, s.Delete("direct.txt"))
-	_, err = s.Stat("test.txt")
+	info, err = s.Stat("test.txt")
 	assert.ErrorIs(t, err, fs.ErrNotExist)
+	assert.Nil(t, info)
 }

@@ -272,7 +272,11 @@ func (a *AzureBlobStorage) stat(path string) (objectFileInfo, error) {
 }
 
 func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
-	return a.stat(path)
+	info, err := a.stat(path)
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
 }
 
 func (a *AzureBlobStorage) Delete(path string) error {
