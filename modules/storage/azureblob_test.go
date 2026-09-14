@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/iotest"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -18,15 +19,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type azureBlobFailOnceTransport struct {
-	failed atomic.Bool
+type azureBlobFaultTransport struct {
+	failed, truncated atomic.Bool
 }
 
-func (t *azureBlobFailOnceTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *azureBlobFaultTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if t.failed.CompareAndSwap(false, true) {
 		return &http.Response{StatusCode: http.StatusServiceUnavailable, Body: http.NoBody}, nil
 	}
-	return http.DefaultTransport.RoundTrip(req)
+	resp, err := http.DefaultTransport.RoundTrip(req)
+	if err == nil && req.Method == http.MethodGet && t.truncated.CompareAndSwap(false, true) {
+		resp.Body = struct {
+			io.Reader
+			io.Closer
+		}{io.MultiReader(io.LimitReader(resp.Body, 2), iotest.ErrReader(io.ErrUnexpectedEOF)), resp.Body}
+	}
+	return resp, err
 }
 
 func newAzureBlobTestStorage(t *testing.T, basePath string) *AzureBlobStorage {
@@ -52,7 +60,7 @@ func TestAzureBlobStorage(t *testing.T) {
 
 	s := newAzureBlobTestStorage(t, "")
 	s.blockSize, s.concurrency, s.retryDelay = 4, 2, 0
-	transport := &azureBlobFailOnceTransport{}
+	transport := &azureBlobFaultTransport{}
 	s.client.Transport = transport
 
 	data := "Q2xTckt6Y1hDOWh0"
@@ -60,6 +68,8 @@ func TestAzureBlobStorage(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, len(data), written)
 	assert.True(t, transport.failed.Load())
+	_, err = s.Save("truncated.txt", io.MultiReader(strings.NewReader(data), iotest.ErrReader(io.ErrUnexpectedEOF)), -1)
+	assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	info, err := s.Stat("test.txt")
 	require.NoError(t, err)
 	assert.EqualValues(t, len(data), info.Size())
@@ -70,6 +80,7 @@ func TestAzureBlobStorage(t *testing.T) {
 	_, err = io.ReadFull(obj, buf)
 	require.NoError(t, err)
 	assert.Equal(t, data[:4], string(buf))
+	assert.True(t, transport.truncated.Load())
 	_, err = obj.Seek(-5, io.SeekEnd)
 	require.NoError(t, err)
 	_, err = io.ReadFull(obj, buf)

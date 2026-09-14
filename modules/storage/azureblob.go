@@ -8,6 +8,7 @@ import (
 	"cmp"
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/xml"
@@ -16,6 +17,7 @@ import (
 	"io"
 	"io/fs"
 	"maps"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,6 +35,10 @@ import (
 
 const azureBlobAPIVersion = "2025-11-05" // must not exceed the Azurite version used in CI
 
+type azureBlobError string
+
+func (e azureBlobError) Error() string { return string(e) }
+
 type azureBlobObject struct {
 	storage *AzureBlobStorage
 	blobURL *url.URL
@@ -45,22 +51,26 @@ func (a *azureBlobObject) Read(p []byte) (int, error) {
 	if a.offset >= a.info.size {
 		return 0, io.EOF
 	}
-	if a.body == nil {
-		_, body, err := a.storage.do(a.storage.ctx, http.MethodGet, a.blobURL, http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}}, nil)
+	for retry := 0; ; retry++ {
+		if a.body == nil {
+			_, body, err := a.storage.do(a.storage.ctx, http.MethodGet, a.blobURL, http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}}, nil)
+			if err != nil {
+				return 0, err
+			}
+			a.body = body
+		}
+		n, err := io.ReadFull(a.body, p[:min(int64(len(p)), a.info.size-a.offset)])
+		a.offset += int64(n)
 		if err != nil {
-			return 0, err
+			_ = a.Close() // the next attempt reopens at the current offset
 		}
-		a.body = body
-	}
-	n, err := io.ReadFull(a.body, p[:min(int64(len(p)), a.info.size-a.offset)])
-	a.offset += int64(n)
-	if err != nil {
-		_ = a.Close()
-		if err == io.EOF {
-			err = io.ErrUnexpectedEOF
+		if err == nil || n > 0 {
+			return n, nil
+		}
+		if retry == 3 {
+			return 0, util.Iif(err == io.EOF, io.ErrUnexpectedEOF, err)
 		}
 	}
-	return n, err
 }
 
 func (a *azureBlobObject) Close() error {
@@ -120,8 +130,15 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 		return nil, err
 	}
 
-	a := &AzureBlobStorage{cfg: &config, ctx: ctx, client: &http.Client{Transport: http.DefaultTransport}, endpoint: endpoint, key: key, blockSize: 4 << 20, concurrency: 4, retryDelay: 800 * time.Millisecond}
-	if _, _, err := a.do(ctx, http.MethodPut, a.url(config.Container, url.Values{"restype": {"container"}}), nil, nil); err != nil && err.Error() != "ContainerAlreadyExists" {
+	transport := &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         (&net.Dialer{Timeout: 30 * time.Second}).DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConnsPerHost: 10,
+	}
+	a := &AzureBlobStorage{cfg: &config, ctx: ctx, client: &http.Client{Transport: transport}, endpoint: endpoint, key: key, blockSize: 4 << 20, concurrency: 4, retryDelay: 800 * time.Millisecond}
+	if _, _, err := a.do(ctx, http.MethodPut, a.url(config.Container, url.Values{"restype": {"container"}}), nil, nil); err != nil && !errors.Is(err, azureBlobError("ContainerAlreadyExists")) {
 		return nil, err
 	}
 	return a, nil
@@ -146,8 +163,8 @@ func (a *AzureBlobStorage) signString(s string) string {
 
 // https://learn.microsoft.com/rest/api/storageservices/authorize-with-shared-key
 func (a *AzureBlobStorage) signRequest(req *http.Request) string {
-	lines := []string{req.Method}
-	for _, name := range []string{"Content-Encoding", "Content-Language", "Content-Length", "Content-MD5", "Content-Type", "Date", "If-Modified-Since", "If-Match", "If-None-Match", "If-Unmodified-Since", "Range"} {
+	lines := []string{req.Method, req.Header.Get("Content-Encoding"), req.Header.Get("Content-Language"), util.Iif(req.ContentLength > 0, strconv.FormatInt(req.ContentLength, 10), "")}
+	for _, name := range []string{"Content-MD5", "Content-Type", "Date", "If-Modified-Since", "If-Match", "If-None-Match", "If-Unmodified-Since", "Range"} {
 		lines = append(lines, req.Header.Get(name))
 	}
 	msHeaders := map[string]string{}
@@ -169,14 +186,12 @@ func (a *AzureBlobStorage) signRequest(req *http.Request) string {
 
 // only GET returns the body, the caller closes it
 func (a *AzureBlobStorage) do(ctx context.Context, method string, u *url.URL, header http.Header, body []byte) (http.Header, io.ReadCloser, error) {
-	delay := a.retryDelay
 	for retry := 0; ; retry++ {
 		req, err := http.NewRequestWithContext(ctx, method, u.String(), bytes.NewReader(body))
 		if err != nil {
 			return nil, nil, err
 		}
 		maps.Copy(req.Header, header)
-		req.Header.Set("Content-Length", util.Iif(len(body) > 0, strconv.Itoa(len(body)), "")) // only for signing, net/http writes its own
 		req.Header.Set("x-ms-date", time.Now().UTC().Format(http.TimeFormat))
 		req.Header.Set("x-ms-version", azureBlobAPIVersion)
 		req.Header.Set("Authorization", "SharedKey "+a.cfg.AccountName+":"+a.signRequest(req))
@@ -189,9 +204,8 @@ func (a *AzureBlobStorage) do(ctx context.Context, method string, u *url.URL, he
 			select {
 			case <-ctx.Done():
 				return nil, nil, ctx.Err()
-			case <-time.After(delay):
+			case <-time.After(a.retryDelay << retry):
 			}
-			delay = min(delay*2, time.Minute)
 			continue
 		}
 		if err != nil {
@@ -208,7 +222,7 @@ func (a *AzureBlobStorage) do(ctx context.Context, method string, u *url.URL, he
 		if code == "BlobNotFound" {
 			return nil, nil, fs.ErrNotExist
 		}
-		return nil, nil, errors.New(code)
+		return nil, nil, azureBlobError(code)
 	}
 }
 
@@ -223,20 +237,22 @@ func (a *AzureBlobStorage) Open(path string) (Object, error) {
 func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error) {
 	name := a.blobName(path)
 	block := make([]byte, a.blockSize)
-	n, readErr := io.ReadFull(r, block)
-	if readErr == io.EOF || readErr == io.ErrUnexpectedEOF {
+	n, err := readBlock(r, block)
+	if err != nil {
+		return 0, err
+	}
+	if n < a.blockSize {
 		_, _, err := a.do(a.ctx, http.MethodPut, a.url(name, nil), http.Header{"X-Ms-Blob-Type": {"BlockBlob"}}, block[:n])
 		return int64(n), err
-	} else if readErr != nil {
-		return 0, readErr
 	}
 
 	g, ctx := errgroup.WithContext(a.ctx)
 	g.SetLimit(a.concurrency)
 	blockList := bytes.NewBufferString(`<?xml version="1.0" encoding="utf-8"?><BlockList>`)
+	idPrefix := rand.Text() // keeps concurrent uploads to the same blob from overwriting each other's blocks
 	var total int64
 	for blockNum := 0; n > 0 && ctx.Err() == nil; blockNum++ {
-		id := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%05d", blockNum))
+		id := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s%05d", idPrefix, blockNum))
 		blockList.WriteString("<Latest>" + id + "</Latest>")
 		total += int64(n)
 		data := block[:n]
@@ -244,21 +260,30 @@ func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error
 			_, _, err := a.do(ctx, http.MethodPut, a.url(name, url.Values{"comp": {"block"}, "blockid": {id}}), nil, data)
 			return err
 		})
-		if readErr != nil {
+		if n < a.blockSize {
 			break
 		}
 		block = make([]byte, a.blockSize)
-		n, readErr = io.ReadFull(r, block)
+		if n, err = readBlock(r, block); err != nil {
+			break
+		}
 	}
-	if err := g.Wait(); err != nil {
+	if err = errors.Join(g.Wait(), err); err != nil {
 		return 0, err
 	}
-	if readErr != nil && readErr != io.EOF && readErr != io.ErrUnexpectedEOF {
-		return 0, readErr
-	}
 	blockList.WriteString("</BlockList>")
-	_, _, err := a.do(a.ctx, http.MethodPut, a.url(name, url.Values{"comp": {"blocklist"}}), nil, blockList.Bytes())
+	_, _, err = a.do(a.ctx, http.MethodPut, a.url(name, url.Values{"comp": {"blocklist"}}), nil, blockList.Bytes())
 	return total, err
+}
+
+// readBlock is io.ReadFull where only io.EOF ends the input, so a truncated request body fails the upload
+func readBlock(r io.Reader, buf []byte) (n int, err error) {
+	for n < len(buf) && err == nil {
+		var read int
+		read, err = r.Read(buf[n:])
+		n += read
+	}
+	return n, util.Iif(err == io.EOF, nil, err)
 }
 
 func (a *AzureBlobStorage) stat(path string) (objectFileInfo, error) {
