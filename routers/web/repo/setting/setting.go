@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
@@ -31,6 +32,7 @@ import (
 	"gitea.dev/modules/web"
 	repo_router "gitea.dev/routers/web/repo"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/migrations"
@@ -478,6 +480,8 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, repo, "mirror_id", m.ID, "remote_address", m.RemoteAddress)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(repo.Link() + "/settings")
 }
@@ -541,6 +545,8 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.RepositoryMirrorPushAdd, repo, "mirror_id", m.ID, "remote_address", m.RemoteAddress)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(repo.Link() + "/settings")
@@ -724,6 +730,9 @@ func handleSettingsPostSigning(ctx *context.Context) {
 			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
 			return
 		}
+
+		audit.Record(ctx, audit_model.RepositorySigningVerification, repo, "trust_model", repo.TrustModel.String())
+
 		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 	}
 
@@ -808,6 +817,9 @@ func handleSettingsPostConvert(ctx *context.Context) {
 		ctx.ServerError("DeleteMirrorByRepoID", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.RepositoryConvertMirror, repo)
+
 	log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 	ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
 	ctx.JSONRedirect(repo.Link())
@@ -1018,6 +1030,8 @@ func handleSettingsPostArchive(ctx *context.Context) {
 	// update issue indexer
 	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 
+	audit.Record(ctx, audit_model.RepositoryArchive, repo)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 	log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -1045,6 +1059,8 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 
 	// update issue indexer
 	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+
+	audit.Record(ctx, audit_model.RepositoryUnarchive, repo)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 

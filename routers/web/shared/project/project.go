@@ -90,7 +90,7 @@ func AddColumnToProjectPost(ctx *context.Context) {
 		Color:     form.Color,
 		CreatorID: ctx.Doer.ID,
 	}); err != nil {
-		ctx.ServerError("NewProjectColumn", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -113,7 +113,7 @@ func EditProjectColumn(ctx *context.Context) {
 	}
 
 	if err := project_model.UpdateColumn(ctx, column); err != nil {
-		ctx.ServerError("UpdateProjectColumn", err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
