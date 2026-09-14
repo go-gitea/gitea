@@ -63,11 +63,11 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		return
 	}
 
-	pager := context.NewPagination(total, perPage, page, 5)
-	if pager.Paginater.Current() < page {
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(perPage).CurPage(page).Build()
+	if pager.Paginator.Current() < page {
 		// use the last page if the requested page is more than total pages
-		page = pager.Paginater.Current()
-		pager = context.NewPagination(total, perPage, page, 5)
+		page = pager.Paginator.Current()
+		pager = context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(perPage).CurPage(page).Build()
 	}
 
 	statuses := []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
@@ -138,9 +138,9 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 
-	pager.AddParamFromRequest(ctx.Req)
 	pager.RemoveParam(container.SetOf("div-only", "sequence-number"))
 	ctx.Data["Page"] = pager
+	ctx.Data["PageQueryParams"] = templates.QueryBuild(pager.GetParams(), "page", page)
 }
 
 func filterNotificationsByRepoAccess(ctx stdCtx.Context, doer *user_model.User, notifications activities_model.NotificationList) (activities_model.NotificationList, []int, error) {
@@ -305,12 +305,11 @@ func NotificationSubscriptions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("notification.subscriptions")
 
 	// redirect to last page if request page is more than total pages
-	pager := context.NewPagination(count, setting.UI.IssuePagingNum, page, 5)
-	if pager.Paginater.Current() < page {
-		ctx.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
+	if pager.Paginator.Current() < page {
+		ctx.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginator.Current()))
 		return
 	}
-	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplNotificationSubscriptions)
@@ -400,8 +399,7 @@ func NotificationWatching(ctx *context.Context) {
 	ctx.Data["Watches"] = watches
 
 	// redirect to last page if request page is more than total pages
-	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.User.RepoPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.Data["Status"] = 2

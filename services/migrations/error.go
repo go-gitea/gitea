@@ -10,7 +10,7 @@ import (
 
 	"gitea.dev/modules/git/gitcmd"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v91/github"
 )
 
 // ErrRepoNotCreated returns the error that repository not created
@@ -30,7 +30,7 @@ func IsTwoFactorAuthError(err error) bool {
 
 // IsAuthenticationError returns true if the remote rejected the credentials, over git or over its HTTP API
 func IsAuthenticationError(err error) bool {
-	if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) || gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) {
+	if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed, gitcmd.StderrCouldNotReadUsername) {
 		return true
 	}
 	githubErr, ok := errors.AsType[*github.ErrorResponse](err)

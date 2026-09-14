@@ -18,6 +18,18 @@ import {
   type RoutedEdge,
 } from './WorkflowGraph.utils.ts';
 
+export type WorkflowGraphLocale = {
+  graphJobsCount1: string,
+  graphJobsCountN: string,
+  graphDependenciesCount1: string,
+  graphDependenciesCountN: string,
+  graphSuccessRate: string,
+  graphZoomIn: string,
+  graphZoomMax: string,
+  graphZoomOut: string,
+  graphResetView: string,
+};
+
 interface StoredState {
   scale: number;
   translateX: number;
@@ -32,7 +44,7 @@ const props = defineProps<{
   workflowId: string;
   workflowLink?: string;
   triggerEvent?: string;
-  locale: Record<string, string>;
+  locale: WorkflowGraphLocale;
 }>();
 
 const settingKeyStates = 'actions-graph-states';

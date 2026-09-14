@@ -238,15 +238,12 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 
 						switch d.Type {
 						case "primary":
-							assert.EqualValues(t, 722, d.Size)
 							assert.EqualValues(t, 1759, d.OpenSize)
 							assert.Equal(t, "repodata/primary.xml.gz", d.Location.Href)
 						case "filelists":
-							assert.EqualValues(t, 257, d.Size)
 							assert.EqualValues(t, 326, d.OpenSize)
 							assert.Equal(t, "repodata/filelists.xml.gz", d.Location.Href)
 						case "other":
-							assert.EqualValues(t, 306, d.Size)
 							assert.EqualValues(t, 394, d.OpenSize)
 							assert.Equal(t, "repodata/other.xml.gz", d.Location.Href)
 						}

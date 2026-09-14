@@ -55,7 +55,7 @@ async function initRepoWikiForm(form: HTMLFormElement) {
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
         'preview', 'fullscreen', 'side-by-side', '|', 'gitea-switch-to-textarea',
-      ] as any, // to use custom toolbar buttons
+      ],
     },
   });
 

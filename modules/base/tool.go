@@ -16,8 +16,6 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
-
-	"github.com/dustin/go-humanize"
 )
 
 // EncodeSha256 string to sha256 hex value.
@@ -90,11 +88,6 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 		panic("there is a hard requirement for the length of time-limited code") // it shouldn't happen
 	}
 	return code
-}
-
-// FileSize calculates the file size and generate user-friendly string.
-func FileSize(s int64) string {
-	return humanize.IBytes(uint64(s))
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.

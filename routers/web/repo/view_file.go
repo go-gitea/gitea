@@ -255,7 +255,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 
 func prepareFileViewEditorButtons(ctx *context.Context) bool {
 	// archived or mirror repository, the buttons should not be shown
-	if !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanContentChange() {
 		return true
 	}
 

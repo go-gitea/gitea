@@ -4,6 +4,55 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.27.3](https://github.com/go-gitea/gitea/releases/tag/v1.27.3) - 2026-08-29
+
+* SECURITY
+  * fix(packages): restrict/limited/token-scope access (#39041, #39043, #39044, #39047, #39046) (#39058)
+  * fix(attachments): enforce owning repository path (#39048) (#39077)
+  * fix(markup): enforce same-repository issue access (#39045) (#39054)
+  * fix(actions): verify raw artifact signatures first (#39049) (#39053)
+  * fix(api): hide limited users from restricted viewers (#39004) (#39039)
+  * fix(repo): limit gitignore template selections (#39027) (#39040)
+  * fix(migrations): cancel GitLab version probes (#39023) (#39035)
+  * fix(packages): limit Swift package manifests (#39025) (#39032)
+  * fix(migrations): bound OneDev version responses (#39024) (#39033)
+  * fix(packages): limit Maven checksum uploads (#39028) (#39031)
+  * fix(packages): bound Alpine metadata entries (#39026) (#39029)
+  * fix(actions): enforce fork pull request trust boundaries (#39005) (#39018)
+  * fix(git): restrict hook permissions (#39008) (#39016)
+  * fix(api): enforce repository creation token authorization (#39007) (#39014)
+  * fix(api): enforce public-only scope for compare heads (#39006) (#39013)
+  * fix(repo): hide repositories of hidden owners (#39009) (#39012)
+  * fix: avoid enumerating every public repository in issue search (#38992) (#39000)
+  * refactor: private endpoints (#38964) (#38965)
+* ENHANCEMENTS
+  * enhance: add permalinks to pull request reviews (#38849) (#39036)
+* BUGFIXES
+  * fix: add missing query parameters on runner list page (#39163)
+  * fix(actions): keep step-level continue-on-error expressions unevaluated (#39141) (#39148)
+  * fix(packages): preserve SemVer prerelease identifiers in Swift Registry (#39156) (#39158)
+  * fix(repo): prevent MarkAsBrokenEmpty when repository is being migrated (#39091) (#39092)
+  * fix(asymkey): do not verify OpenPGP signatures with an SSH instance key (#39073) (#39086)
+  * fix(pull): keep the merged state in sync with git (#39062) (#39118)
+  * fix(pull): name the head repository in default compare links (#39075) (#39079)
+  * fix(git): parse co-author trailers that are not RFC 5322 addresses (#39076) (#39081)
+  * fix(actions): show "Complete job" logs when the last step is skipped (#38939) (#39003)
+  * fix(actions): Fix how jobs in matrixes are grouped (#38980) (#38998)
+  * fix: resolve YAML anchors and aliases in Actions workflows (#38984) (#38996)
+  * fix: honor environment variables during install (#38974) (#38976)
+  * fix: grant limited-org unit read access to authenticated non-members (#38871) (#38963)
+  * fix: allow anonymous theme switching when REQUIRE_SIGNIN_VIEW is set (#38956) (#38961)
+  * fix(actions): drop wrapper span around the action status icon (#38957) (#38959)
+  * fix(issues): sort scoped labels by exclusive order in dropdowns (#38893) (#38954)
+  * fix(indexer): correct bleve indexer token filters (#38853) (#38951)
+  * fix: make "login_name" field optional for API edit user (#38917) (#38945)
+  * fix(actions): reject non-mapping matrix include/exclude (#38933)
+  * fix(ui): respect FEED_PAGING_NUM on the dashboard feed (#38935) (#38936)
+* MISC
+  * chore: repo compare link (#39088) (#39119)
+  * ci: remove AWS S3 uploads from release workflows (#38928) (#38929)
+  * chore: Pre-register a builtin OAuth2 application for the official Gitea mobile app (#38880) (#38922)
+
 ## [1.27.2](https://github.com/go-gitea/gitea/releases/tag/v1.27.2) - 2026-08-14
 
 * SECURITY

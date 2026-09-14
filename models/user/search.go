@@ -58,6 +58,10 @@ type SearchUserOptions struct {
 	IncludeReserved    bool
 }
 
+func (opts *SearchUserOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
 	if publicOnly {
 		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic}

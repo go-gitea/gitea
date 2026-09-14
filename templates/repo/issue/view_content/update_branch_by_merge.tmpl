@@ -6,7 +6,7 @@
 	</div>
 	{{if $data.UpdatePrimaryAction}}
 	<div class="ui buttons"{{if $data.UpdateStyleOptions}} data-global-init="initRepoPullRequestUpdate"{{end}}>
-		<button class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
+		<button type="button" class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
 			{{$data.UpdatePrimaryAction.Text}}
 		</button>
 		{{if gt (len $data.UpdateStyleOptions) 1}}

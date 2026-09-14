@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"io/fs"
 	"os"
 	"strings"
 	"testing"
@@ -72,7 +73,7 @@ func TestLocalStorageDelete(t *testing.T) {
 		if exists {
 			require.NoError(t, err)
 		} else {
-			require.ErrorIs(t, err, os.ErrNotExist)
+			require.ErrorIs(t, err, fs.ErrNotExist)
 		}
 	}
 

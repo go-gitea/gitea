@@ -117,7 +117,7 @@ func TestMilestonesForSpecificRepo(t *testing.T) {
 
 func TestDashboardPagination(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	page := context.NewPagination(10, 3, 1, 3)
+	page := context.NewPagerBuilder(ctx).TotalCount(10).PerPageLimit(3).CurPage(1).NavPageNum(3).Build()
 
 	setting.AppSubURL = "/SubPath"
 	out, err := ctx.RenderToHTML("base/paginate", map[string]any{"Link": setting.AppSubURL, "Page": page})
