@@ -10,13 +10,11 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
@@ -236,10 +234,6 @@ Hello from 2
 	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
 	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
 	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
-
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls", &api.CreatePullRequestOption{Base: "master", Head: "unrelated-history", Title: "unrelated"}).AddTokenAuth(token)
-	assert.Contains(t, MakeRequest(t, req, http.StatusUnprocessableEntity).Body.String(), "The unrelated-history branch has no history in common with master")
 }
 
 func TestCompareDownloadDiffOrPatch(t *testing.T) {

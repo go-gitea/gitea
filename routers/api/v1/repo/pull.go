@@ -416,7 +416,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 
 	// Get repo/branch information
-	compareResult, closer := parseCompareInfo(ctx, form.Base+"..."+form.Head)
+	compareResult, closer := parseCompareInfo(ctx, form.Base+".."+form.Head)
 	if ctx.Written() {
 		return
 	}
@@ -424,10 +424,6 @@ func CreatePullRequest(ctx *context.APIContext) {
 
 	if !compareResult.BaseRef.IsBranch() || !compareResult.HeadRef.IsBranch() {
 		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head must be branches")
-		return
-	}
-	if compareResult.CompareBase == "" {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The %s branch has no history in common with %s", compareResult.HeadRef.ShortName(), compareResult.BaseRef.ShortName()))
 		return
 	}
 
