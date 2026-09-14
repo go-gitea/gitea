@@ -11,6 +11,7 @@
   "branchPrefix": "renovate/",
   "separateMajorMinor": false, // include major updates in group PRs
   "minimumReleaseAge": "5 days",
+  "postUpdateOptions": ["gomodUpdateImportPaths", "pnpmDedupe"],
   "semanticCommits": "enabled",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
@@ -46,7 +47,14 @@
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Makefile$/"],
       "matchStrings": [
-        "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
+        "(?<packageName>(?<depName>[^\\s/=@]+(?:/[^\\s/@]+){2})(?:/v[0-9]+)?)(?:/[^\\s@]+)?@(?<currentValue>v\\S+)\\s+# renovate: datasource=(?<datasource>go)",
+      ],
+      "autoReplaceStringTemplate": "{{{depName}}}{{#unless (or (equals newMajor 0) (equals newMajor 1))}}/v{{{newMajor}}}{{/unless}}{{{replace '^[^/]+(?:/[^/@]+){2}(?:/v[0-9]+)?(/[^@]*)?@.*$' '$1' replaceString}}}@{{{newValue}}} # renovate: datasource=go",
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Makefile$/"],
+      "matchStrings": [
         "[A-Z_]+_IMAGE\\s*\\?=\\s*(?<depName>[^:\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)\\s+# renovate: datasource=(?<datasource>\\S+)",
       ],
     },
@@ -115,10 +123,6 @@
     },
     {
       "matchManagers": ["gomod"],
-      "postUpdateOptions": ["gomodUpdateImportPaths"],
-    },
-    {
-      "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
       "matchDepTypes": ["golang", "toolchain"], // fast-track go and toolchain in their own PR
       "groupName": "golang",
@@ -132,10 +136,6 @@
       "matchDepTypes": ["golang"],
       "matchUpdateTypes": ["patch", "major"], // go minimum bumps on minor only
       "enabled": false,
-    },
-    {
-      "matchManagers": ["npm"],
-      "postUpdateOptions": ["pnpmDedupe"],
     },
   ],
 }
