@@ -15,6 +15,7 @@ import (
 	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	secret_service "gitea.dev/services/secrets"
 )
@@ -50,17 +51,17 @@ func CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
+
+	actions := audit.SecretUpdate
+	if created {
+		actions = audit.SecretAdd
+	}
+	audit.RecordScoped(ctx, ctx.Doer, nil, actions, "secret", s.Name)
 
 	if created {
 		ctx.Status(http.StatusCreated)
@@ -92,17 +93,13 @@ func DeleteSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := secret_service.DeleteSecretByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("secretname"))
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
+
+	audit.RecordScoped(ctx, ctx.Doer, nil, audit.SecretRemove, "secret", s.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -153,11 +150,7 @@ func CreateVariable(ctx *context.APIContext) {
 	}
 
 	if _, err := actions_service.CreateVariable(ctx, ownerID, 0, variableName, opt.Value, opt.Description); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -200,11 +193,7 @@ func UpdateVariable(ctx *context.APIContext) {
 		Name:    ctx.PathParam("variablename"),
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -217,11 +206,7 @@ func UpdateVariable(ctx *context.APIContext) {
 	v.Description = opt.Description
 
 	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -252,13 +237,7 @@ func DeleteVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := actions_service.DeleteVariableByName(ctx, ctx.Doer.ID, 0, ctx.PathParam("variablename")); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -291,11 +270,7 @@ func GetVariable(ctx *context.APIContext) {
 		Name:    ctx.PathParam("variablename"),
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

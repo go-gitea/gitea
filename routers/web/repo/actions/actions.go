@@ -503,8 +503,7 @@ func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWo
 		ctx.ServerError("FindAndCount", err)
 		return false
 	}
-	data.pager = context.NewPagination(total, opts.PageSize, opts.Page, 5)
-	data.pager.AddParamFromRequest(ctx.Req)
+	data.pager = context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	data.ActionRuns = runs
 	return true
 }

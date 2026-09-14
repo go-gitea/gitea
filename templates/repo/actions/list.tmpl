@@ -65,7 +65,7 @@
 			</div>
 			<div class="flex-container-main">
 				<div class="ui top attached header flex-left-right">
-					<strong>{{ctx.Locale.TrN .Page.Paginater.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginater.Total}}</strong>
+					<strong>{{ctx.Locale.TrN .Page.Paginator.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginator.Total}}</strong>
 					<div class="ui secondary filter menu flex-text-block tw-m-0">
 						<!-- Actor -->
 						<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
@@ -129,7 +129,7 @@
 						</div>
 
 						{{if or $showCreateWorkflowBadge $showEnableDisableWorkflow}}
-						<button class="ui jump dropdown btn interact-bg tw-p-2">
+						<button type="button" class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if $showCreateWorkflowBadge}}
@@ -196,7 +196,7 @@
 				<label>{{ctx.Locale.Tr "actions.workflow.status_badge_url"}}</label>
 				<div class="ui action input">
 					<input id="workflow-badge-url" readonly autofocus>
-					<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-url">{{svg "octicon-copy" 14}}</button>
+					<button type="button" class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-url">{{svg "octicon-copy" 14}}</button>
 				</div>
 			</div>
 			<div class="field">

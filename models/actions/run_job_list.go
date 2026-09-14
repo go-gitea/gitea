@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -155,10 +156,10 @@ func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunJobOptions) ToOrders() string {
-	return string(opts.OrderBy)
+	return util.IfZero(string(opts.OrderBy), "action_run_job.id")
 }
 
-var _ db.FindOptionsOrder = FindRunJobOptions{}
+var _ db.FindOptions = (*FindRunJobOptions)(nil)
 
 // CountRunJobsByRunAndAttemptID counts the jobs belonging to the given run attempt.
 // It is used to enforce MaxJobNumPerRun when reusable-workflow expansion inserts new jobs.

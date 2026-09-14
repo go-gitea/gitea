@@ -152,7 +152,7 @@ func InitWebInstalled(ctx context.Context) {
 	mirror_service.InitSyncMirrors()
 	mustInit(webhook.Init)
 	mustInit(pull_service.Init)
-	mustInit(automerge.Init)
+	mustInitCtx(ctx, automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
 	mustInit(websocket_service.Init)

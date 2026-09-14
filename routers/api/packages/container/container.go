@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,7 +27,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -250,7 +248,7 @@ func PostBlobsUploads(ctx *context.Context) {
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
 	if mount != "" {
-		blob, _ := workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
+		blob, _ := getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 			Repository: from,
 			Digest:     mount,
 		})
@@ -506,7 +504,7 @@ func getBlobFromContext(ctx *context.Context) (*packages_model.PackageFileDescri
 		return nil, container_model.ErrContainerBlobNotExist
 	}
 
-	return workaroundGetContainerBlob(ctx, &container_model.BlobSearchOptions{
+	return getExistingContainerBlob(ctx, &container_model.BlobSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Image:   ctx.PathParam("image"),
 		Digest:  string(d),
@@ -598,8 +596,7 @@ func PutManifest(ctx *context.Context) {
 
 	digest, err := processManifest(ctx, mci, buf)
 	if err != nil {
-		var namedError *namedError
-		if errors.As(err, &namedError) {
+		if namedError, ok := errors.AsType[*namedError](err); ok {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
@@ -644,7 +641,7 @@ func getManifestFromContext(ctx *context.Context) (*packages_model.PackageFileDe
 		return nil, err
 	}
 
-	return workaroundGetContainerBlob(ctx, opts)
+	return getExistingContainerBlob(ctx, opts)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#checking-if-content-exists-in-the-registry
@@ -790,23 +787,20 @@ func GetTagsList(ctx *context.Context) {
 	})
 }
 
-// FIXME: Workaround to be removed in v1.20.
-// Update maybe we should never really remote it, as long as there is legacy data?
-// https://github.com/go-gitea/gitea/issues/19586
-func workaroundGetContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
+// getExistingContainerBlob checks if the blob exists in the database and content store, and returns the package file descriptor if it does.
+func getExistingContainerBlob(ctx *context.Context, opts *container_model.BlobSearchOptions) (*packages_model.PackageFileDescriptor, error) {
 	blob, err := container_model.GetContainerBlob(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(blob.Blob.HashSHA256))
+	storeKey := packages_module.BlobHash256Key(blob.Blob.HashSHA256)
+	sz, err := packages_module.NewContentStore().OptionalSize(storeKey)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist) {
-			log.Debug("Package registry inconsistent: blob %s does not exist on file system", blob.Blob.HashSHA256)
-			return nil, container_model.ErrContainerBlobNotExist
-		}
-		return nil, err
+		return nil, fmt.Errorf("unable to check object size in content store: %w", err)
 	}
-
+	if sz.ValueOrDefault(-1) != blob.Blob.Size {
+		return nil, container_model.ErrContainerBlobNotExist
+	}
 	return blob, nil
 }

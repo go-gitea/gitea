@@ -34,7 +34,7 @@ export function strSubMatch(full: string, subLower: string) {
   return res;
 }
 
-export function calcMatchedWeight(matchResult: Array<any>) {
+export function calcMatchedWeight(matchResult: string[]) {
   let weight = 0;
   for (let i = 0; i < matchResult.length; i++) {
     if (i % 2 === 1) { // matches are on odd indices, see strSubMatch

@@ -32,7 +32,6 @@ const restrictedProperties = [
 
 export default defineConfig([
   globalIgnores([
-    'web_src/js/vendor',
     'web_src/fomantic',
     'public/assets/js',
   ]),
