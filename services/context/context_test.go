@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/reqctx"
@@ -63,4 +64,13 @@ func TestAppFullLink(t *testing.T) {
 	assert.Equal(t, "https://gitea.example.com/sub", string(tmplCtx.AppFullLink()))
 	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("user/repo")))
 	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("/user/repo")))
+}
+
+func TestHeadMetaContentSecurityPolicy(t *testing.T) {
+	tmplCtx := NewTemplateContext(reqctx.NewRequestContextForTest(t), nil)
+	nonce := tmplCtx.CspScriptNonce()
+	assert.Equal(t, `<meta http-equiv="Content-Security-Policy" content="default-src * data: blob:;script-src * 'nonce-`+nonce+`';style-src * 'unsafe-inline';">`, string(tmplCtx.HeadMetaContentSecurityPolicy()))
+	assert.False(t, strings.ContainsAny(WebContentSecurityPolicy(nonce), `"<>&`))
+	defer test.MockVariableValue(&setting.Security.ContentSecurityPolicyGeneral, "unset")()
+	assert.Empty(t, tmplCtx.HeadMetaContentSecurityPolicy())
 }

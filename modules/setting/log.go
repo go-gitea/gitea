@@ -56,13 +56,13 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("log")
 
 	if !sec.HasKey("logger.default.MODE") {
-		sec.Key("logger.default.MODE").MustString(",")
+		sec.Key("logger.default.MODE").MustString(",") // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	deprecatedSetting(rootCfg, "log", "ACCESS", "log", "logger.access.MODE", "1.21")
 	deprecatedSetting(rootCfg, "log", "ENABLE_ACCESS_LOG", "log", "logger.access.MODE", "1.21")
 	if val := sec.Key("ACCESS").String(); val != "" {
-		sec.Key("logger.access.MODE").MustString(val)
+		sec.Key("logger.access.MODE").MustString(val) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 	if sec.HasKey("ENABLE_ACCESS_LOG") && !sec.Key("ENABLE_ACCESS_LOG").MustBool() {
 		sec.Key("logger.access.MODE").SetValue("")
@@ -71,10 +71,11 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 	deprecatedSetting(rootCfg, "log", "ROUTER", "log", "logger.router.MODE", "1.21")
 	deprecatedSetting(rootCfg, "log", "DISABLE_ROUTER_LOG", "log", "logger.router.MODE", "1.21")
 	if val := sec.Key("ROUTER").String(); val != "" {
-		sec.Key("logger.router.MODE").MustString(val)
+		sec.Key("logger.router.MODE").MustString(val) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 	if !sec.HasKey("logger.router.MODE") {
-		sec.Key("logger.router.MODE").MustString(",") // use default logger
+		// Use the default logger.
+		sec.Key("logger.router.MODE").MustString(",") // FIXME: INI-MUST-SIDE-EFFECT
 	}
 	if sec.HasKey("DISABLE_ROUTER_LOG") && sec.Key("DISABLE_ROUTER_LOG").MustBool() {
 		sec.Key("logger.router.MODE").SetValue("")
@@ -83,10 +84,11 @@ func prepareLoggerConfig(rootCfg ConfigProvider) {
 	deprecatedSetting(rootCfg, "log", "XORM", "log", "logger.xorm.MODE", "1.21")
 	deprecatedSetting(rootCfg, "log", "ENABLE_XORM_LOG", "log", "logger.xorm.MODE", "1.21")
 	if val := sec.Key("XORM").String(); val != "" {
-		sec.Key("logger.xorm.MODE").MustString(val)
+		sec.Key("logger.xorm.MODE").MustString(val) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 	if !sec.HasKey("logger.xorm.MODE") {
-		sec.Key("logger.xorm.MODE").MustString(",") // use default logger
+		// Use the default logger.
+		sec.Key("logger.xorm.MODE").MustString(",") // FIXME: INI-MUST-SIDE-EFFECT
 	}
 	if sec.HasKey("ENABLE_XORM_LOG") && !sec.Key("ENABLE_XORM_LOG").MustBool() {
 		sec.Key("logger.xorm.MODE").SetValue("")

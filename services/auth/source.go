@@ -6,10 +6,36 @@ package auth
 import (
 	"context"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/services/audit"
 )
+
+// CreateSource creates a AuthSource record in DB.
+func CreateSource(ctx context.Context, source *auth.Source) error {
+	if err := auth.CreateSource(ctx, source); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.SystemAuthenticationSourceAdd, nil,
+		"auth_source", source.Name, "auth_source_type", source.Type.String(), "is_active", source.IsActive)
+
+	return nil
+}
+
+// UpdateSource updates a AuthSource record in DB.
+func UpdateSource(ctx context.Context, source *auth.Source) error {
+	if err := auth.UpdateSource(ctx, source); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.SystemAuthenticationSourceUpdate, nil,
+		"auth_source", source.Name, "auth_source_type", source.Type.String(), "is_active", source.IsActive)
+
+	return nil
+}
 
 // DeleteSource deletes a AuthSource record in DB.
 func DeleteSource(ctx context.Context, source *auth.Source) error {
@@ -37,6 +63,11 @@ func DeleteSource(ctx context.Context, source *auth.Source) error {
 		}
 	}
 
-	_, err = db.GetEngine(ctx).ID(source.ID).Delete(new(auth.Source))
-	return err
+	if _, err = db.GetEngine(ctx).ID(source.ID).Delete(new(auth.Source)); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.SystemAuthenticationSourceRemove, nil, "auth_source", source.Name)
+
+	return nil
 }

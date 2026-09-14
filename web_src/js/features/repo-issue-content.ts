@@ -6,6 +6,7 @@ import {parseIssuePageInfo} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import type {JQueryElem} from '../types.ts';
 
 let i18nTextEdited: string;
 let i18nTextOptions: string;
@@ -35,7 +36,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   $fomanticDropdownOptions.dropdown({
     showOnFocus: false,
     allowReselection: true,
-    async onChange(_value: string, _text: string, $item: any) {
+    async onChange(_value: string, _text: string, $item: JQueryElem) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
@@ -116,7 +117,7 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
     onHide() {
       $fomanticDropdown.dropdown('change values', null);
     },
-    onChange(value: string, itemHtml: string, $item: any) {
+    onChange(value: string, itemHtml: string, $item: JQueryElem) {
       if (value && !$item.find('[data-history-is-deleted=1]').length) {
         showContentHistoryDetail(issueBaseUrl, commentId, value, itemHtml);
       }

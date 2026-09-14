@@ -453,6 +453,8 @@
       ".htmlhintrc",
       ".imgbotconfig",
       ".nycrc",
+      ".releaserc",
+      ".secrets.baseline",
       ".tern-config",
       ".tern-project",
       ".watchmanconfig",
@@ -710,6 +712,7 @@
       ".buckconfig",
       ".coveragerc",
       ".flake8",
+      ".gitreview",
       ".pylintrc",
       "HOSTS",
       "buildozer.spec",
@@ -784,9 +787,12 @@
     "extensions": [
       "r",
       "rd",
+      "rhistory",
       "rsx"
     ],
     "filenames": [
+      ".Rapp.history",
+      ".Rhistory",
       ".Rprofile",
       "expr-dist"
     ]
@@ -906,6 +912,7 @@
       "bats",
       "command",
       "ksh",
+      "pacscript",
       "sbatch",
       "slurm",
       "tmux",
@@ -1169,6 +1176,7 @@
       "kml",
       "launch",
       "mdpolicy",
+      "meta4",
       "mjml",
       "mod",
       "mojo",
@@ -1189,6 +1197,7 @@
       "pt",
       "pubxml",
       "qhelp",
+      "rbxmx",
       "rdf",
       "res",
       "resx",
@@ -1275,7 +1284,9 @@
       ".clang-format",
       ".clang-tidy",
       ".clangd",
+      ".eslintrc",
       ".gemrc",
+      ".releaserc",
       "CITATION.cff",
       "glide.lock",
       "pixi.lock",

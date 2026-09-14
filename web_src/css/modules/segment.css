@@ -74,17 +74,6 @@
   border-radius: 0.28571429rem;
 }
 
-.ui.segments > .ui.segments {
-  border-top: 1px solid var(--color-secondary);
-  margin: 1rem;
-}
-.ui.segments > .segments:first-child {
-  border-top: none;
-}
-.ui.segments > .segment + .segments:not(.horizontal) {
-  margin-top: 0;
-}
-
 .ui.horizontal.segments {
   display: flex;
   flex-direction: row;
@@ -104,9 +93,6 @@
   border-left: 1px solid var(--color-secondary);
 }
 
-.ui.segments > .horizontal.segments:first-child {
-  border-top: none;
-}
 .ui.horizontal.segments:not(.stackable) > .segment:first-child {
   border-left: none;
 }
