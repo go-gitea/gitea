@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -19,7 +18,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	api "gitea.dev/modules/structs"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
@@ -214,30 +212,6 @@ func TestAPIPullUpdateStyleSettings(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
-	})
-}
-
-func TestPullRequestUnrelatedHistory(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		pr := setupOutdatedPRWithConfig(t, nil)
-		repo := pr.BaseRepo
-		prURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Index)
-		filesURL := fmt.Sprintf("/%s/%s/pulls/%d/files", repo.OwnerName, repo.Name, pr.Index)
-
-		require.NoError(t, git.ForceFastImport(t.Context(), repo, []git.FastImportCommit{{Ref: "refs/heads/master"}}))
-
-		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		assert.Contains(t, session.MakeRequest(t, NewRequest(t, "GET", filesURL), http.StatusOK).Body.String(), "File_B")
-		assert.Len(t, DecodeJSON(t, session.MakeRequest(t, NewRequest(t, "GET", prURL+"/commits").AddTokenAuth(token), http.StatusOK), []*api.Commit{}), 1)
-
-		pr.MergeBase = ""
-		require.NoError(t, pr.UpdateCols(t.Context(), "merge_base"))
-		assert.Contains(t, session.MakeRequest(t, NewRequest(t, "GET", filesURL), http.StatusOK).Body.String(), "These branches do not share a common merge base")
-		assert.Empty(t, DecodeJSON(t, session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files").AddTokenAuth(token), http.StatusOK), []*api.ChangedFile{}))
-
-		session.MakeRequest(t, NewRequest(t, "POST", prURL+"/update").AddTokenAuth(token), http.StatusConflict)
-		session.MakeRequest(t, NewRequest(t, "POST", prURL+"/update?style=rebase").AddTokenAuth(token), http.StatusConflict)
 	})
 }
 

@@ -706,18 +706,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	headCommitID := prCompareInfo.HeadCommitID
 	isSingleCommit := beforeCommitID == "" && afterCommitID != ""
 	// FIXME: when afterCommitID==headCommitID, isSingleCommit and isShowAllCommits can be both true, which doesn't seem right
-	isShowAllCommits := prCompareInfo.CompareBase != "" && (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
+	isShowAllCommits := (beforeCommitID == "" || beforeCommitID == prCompareInfo.CompareBase) && (afterCommitID == "" || afterCommitID == headCommitID)
 
 	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
-
-	if prCompareInfo.CompareBase == "" && !isSingleCommit {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
-		ctx.Data["DiffNotAvailable"] = true
-		ctx.Data["DiffShortStat"] = &gitdiff.DiffShortStat{}
-		ctx.HTML(http.StatusOK, tplPullFiles)
-		return
-	}
 
 	// "commits list" is half-open, half-closed: (base, head]
 	// * base commit is not in the list
@@ -746,7 +738,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 		beforeCommitID = beforeCommit.ID.String()
 	} else if beforeCommitID == "" && prCompareInfo.CompareBase == "" {
-		// no merge base (unrelated histories): the pull request brings in the whole head tree
 		beforeCommitID = afterCommit.ID.Type().EmptyTree().String()
 	} else {
 		beforeCommitID = util.IfZero(beforeCommitID, prCompareInfo.CompareBase)

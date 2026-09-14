@@ -113,7 +113,7 @@ func validateGitDiffTreeArguments(ctx context.Context, gitRepo *git.Repository, 
 	}
 
 	if baseSha == headCommit.ID.Type().EmptyTree().String() {
-		return false, baseSha, headCommitID, nil // the empty tree is not a commit, but a valid diff base
+		return false, baseSha, headCommitID, nil
 	}
 
 	// try and get the base commit
