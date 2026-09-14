@@ -16556,6 +16556,134 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/comments/{id}": {
+      "delete": {
+        "description": "The comment author or a user with write access to pull requests may delete the comment. The review itself is retained. Archived repositories return HTTP 404.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a pull request review comment",
+        "operationId": "repoDeletePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      },
+      "patch": {
+        "description": "The comment author or a user with write access to pull requests may edit the body. Omitting body leaves it unchanged; an empty body clears it. Archived repositories return HTTP 404.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a pull request review comment",
+        "operationId": "repoEditPullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditPullReviewCommentOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReviewComment"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/comments/{id}/resolve": {
       "post": {
         "produces": [
@@ -17122,6 +17250,148 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/files/unviewed": {
+      "post": {
+        "description": "Updates the authenticated user's state for a repository-relative path in the current pull request diff, including deleted files and rename destinations.\ncommit_id is an optional optimistic guard and defaults to the current pull request head. If provided, it must equal the full current head commit SHA; otherwise the response is HTTP 409.\nAn empty or invalid path, or a path outside the diff, is rejected with HTTP 422.\nArchived repositories return HTTP 404.\n",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Mark a pull request file as unviewed",
+        "operationId": "repoMarkPullReviewFileUnviewed",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MarkPullReviewFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/files/viewed": {
+      "post": {
+        "description": "Updates the authenticated user's state for a repository-relative path in the current pull request diff, including deleted files and rename destinations.\ncommit_id is an optional optimistic guard and defaults to the current pull request head. If provided, it must equal the full current head commit SHA; otherwise the response is HTTP 409.\nAn empty or invalid path, or a path outside the diff, is rejected with HTTP 422.\nArchived repositories return HTTP 404.\n",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Mark a pull request file as viewed",
+        "operationId": "repoMarkPullReviewFileViewed",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MarkPullReviewFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/merge": {
       "get": {
         "produces": [
@@ -17659,6 +17929,82 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "patch": {
+        "description": "The reviewer or a user with write access to pull requests may edit the body. Review requests cannot be edited. Omitting body leaves it unchanged; an empty body clears it. The review state is not changed. Archived repositories return HTTP 404.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a pull request review's body",
+        "operationId": "repoEditPullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditPullReviewOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/pulls/{index}/reviews/{id}/comments": {
@@ -17709,6 +18055,80 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "description": "Only the reviewer may add a comment. Pending reviews remain pending and submitted reviews are not resubmitted. Specify a nonempty body and path, and exactly one positive old_position or new_position in the review's commit snapshot. Review requests cannot receive comments. Archived repositories return HTTP 404.",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a comment to a pull request review",
+        "operationId": "repoCreatePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreatePullReviewComment"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/PullReviewComment"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "500": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -28931,6 +29351,28 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "EditPullReviewCommentOptions": {
+      "type": "object",
+      "title": "EditPullReviewCommentOptions are options to edit a code review comment.",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "EditPullReviewOptions": {
+      "type": "object",
+      "title": "EditPullReviewOptions are options to edit a review's body without changing its state.",
+      "properties": {
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "EditReactionOption": {
       "description": "EditReactionOption contain the reaction type",
       "type": "object",
@@ -30680,6 +31122,25 @@
         "lock_reason": {
           "type": "string",
           "x-go-name": "Reason"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "MarkPullReviewFileOptions": {
+      "type": "object",
+      "title": "MarkPullReviewFileOptions identifies a changed file in the current pull request.",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "commit_id": {
+          "description": "Optional full head commit SHA; a mismatch returns HTTP 409.",
+          "type": "string",
+          "x-go-name": "CommitID"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

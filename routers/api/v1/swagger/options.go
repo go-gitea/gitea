@@ -172,6 +172,15 @@ type swaggerParameterBodies struct {
 	CreatePullReviewOptions api.CreatePullReviewOptions
 
 	// in:body
+	EditPullReviewOptions api.EditPullReviewOptions
+
+	// in:body
+	EditPullReviewCommentOptions api.EditPullReviewCommentOptions
+
+	// in:body
+	MarkPullReviewFileOptions api.MarkPullReviewFileOptions
+
+	// in:body
 	CreatePullReviewComment api.CreatePullReviewComment
 
 	// in:body
