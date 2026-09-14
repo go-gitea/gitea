@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 
 	{{$compareSeparator := $.CompareInfo.CompareSeparator}}
-	{{$compareSeparatorSwitch := Iif $.CompareInfo.DirectComparison "..." ".."}}
+	{{$compareSeparatorSwitch := Iif (eq $compareSeparator "..") "..." ".."}}
 	<div class="ui container fluid padded">
 		<h2 class="ui header">
 			{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
@@ -170,7 +170,7 @@
 
 		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
 		{{if and .IsSigned .PageIsComparePull}}
-			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
+			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (eq $compareSeparator "...") (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">
 					{{if $allowCreatePR}}

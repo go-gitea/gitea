@@ -1054,12 +1054,14 @@ type CommitInfo struct {
 	Time                  string `json:"time"`
 }
 
+// GetCompareInfo falls back to the stored merge base while the head contains it, for a base history rewrite
 func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
-	baseRef = util.IfZero(baseRef, util.Iif(pr.HasMerged, git.RefName(pr.MergeBase), git.RefNameFromBranch(pr.BaseBranch)))
 	headRef := git.RefName(pr.GetGitHeadRefName())
-	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, headRef, false, false)
-	if err == nil && compareInfo.CompareBase == "" { // unrelated histories, compare directly with the last known merge base or the base itself
-		return git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, util.IfZero(git.RefName(pr.MergeBase), baseRef), headRef, true, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, headRef, git_service.CompareOptions{})
+	if err == nil && compareInfo.CompareBase == "" {
+		if mergeBaseCompareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), headRef, git_service.CompareOptions{}); err == nil && mergeBaseCompareInfo.CompareBase == pr.MergeBase {
+			return mergeBaseCompareInfo, nil
+		}
 	}
 	return compareInfo, err
 }
@@ -1073,7 +1075,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return nil, "", err
 	}
-	compareInfo, err := GetCompareInfo(ctx, pull, baseGitRepo, "")
+	compareInfo, err := GetCompareInfo(ctx, pull, baseGitRepo, pull.GetCompareBaseRef())
 	if err != nil {
 		return nil, "", err
 	}

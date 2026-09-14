@@ -228,16 +228,16 @@ func TestPullRequestUnrelatedHistory(t *testing.T) {
 
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		session.MakeRequest(t, NewRequest(t, "POST", prURL+"/update").AddTokenAuth(token), http.StatusConflict)
-		session.MakeRequest(t, NewRequest(t, "POST", prURL+"/update?style=rebase").AddTokenAuth(token), http.StatusConflict)
 		assert.Contains(t, session.MakeRequest(t, NewRequest(t, "GET", filesURL), http.StatusOK).Body.String(), "File_B")
-		var commits []*api.Commit
-		DecodeJSON(t, session.MakeRequest(t, NewRequest(t, "GET", prURL+"/commits").AddTokenAuth(token), http.StatusOK), &commits)
-		assert.Len(t, commits, 1)
+		assert.Len(t, DecodeJSON(t, session.MakeRequest(t, NewRequest(t, "GET", prURL+"/commits").AddTokenAuth(token), http.StatusOK), []*api.Commit{}), 1)
 
 		pr.MergeBase = ""
 		require.NoError(t, pr.UpdateCols(t.Context(), "merge_base"))
-		assert.Contains(t, session.MakeRequest(t, NewRequest(t, "GET", filesURL), http.StatusOK).Body.String(), "File_B")
+		assert.Contains(t, session.MakeRequest(t, NewRequest(t, "GET", filesURL), http.StatusOK).Body.String(), "These branches do not share a common merge base")
+		assert.Empty(t, DecodeJSON(t, session.MakeRequest(t, NewRequest(t, "GET", prURL+"/files").AddTokenAuth(token), http.StatusOK), []*api.ChangedFile{}))
+
+		session.MakeRequest(t, NewRequest(t, "POST", prURL+"/update").AddTokenAuth(token), http.StatusConflict)
+		session.MakeRequest(t, NewRequest(t, "POST", prURL+"/update?style=rebase").AddTokenAuth(token), http.StatusConflict)
 	})
 }
 

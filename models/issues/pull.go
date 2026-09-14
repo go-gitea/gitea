@@ -413,6 +413,10 @@ func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefN
 	return git.RefNameFromPullIndex(pr.Index).String()
 }
 
+func (pr *PullRequest) GetCompareBaseRef() git.RefName {
+	return util.Iif(pr.HasMerged, git.RefName(pr.MergeBase), git.RefNameFromBranch(pr.BaseBranch))
+}
+
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
 func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
