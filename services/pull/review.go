@@ -31,7 +31,7 @@ func isErrBlameNotFoundOrNotEnoughLines(err error) bool {
 		return false
 	}
 	notFound := strings.HasPrefix(stdErr, "fatal: no such path")
-	notEnoughLines := strings.HasPrefix(stdErr, "fatal: file ") && strings.Contains(stdErr, " has only ") && strings.Contains(stdErr, " lines?")
+	notEnoughLines := strings.HasPrefix(stdErr, "fatal: file ") && strings.Contains(stdErr, " has only ") && strings.Contains(stdErr, " line")
 	return notFound || notEnoughLines
 }
 
