@@ -368,7 +368,7 @@ func (prInfo *pullRequestViewInfo) prepareViewFillInfo(ctx *context.Context, bas
 func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Context, baseRef git.RefName) {
 	var err error
 	pull := prInfo.issue.PullRequest
-	prInfo.CompareInfo, err = git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo, baseRef, git.RefName(pull.GetGitHeadRefName()), false, false)
+	prInfo.CompareInfo, err = pull_service.GetCompareInfo(ctx, pull, ctx.Repo.GitRepo, baseRef)
 	if err != nil {
 		isKnownErrorForBroken := errors.Is(err, util.ErrNotExist) || gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath)
 		if !isKnownErrorForBroken {
@@ -1024,6 +1024,9 @@ func UpdatePullRequest(ctx *context.Context) {
 				return
 			}
 			ctx.JSONError(flashError)
+			return
+		} else if pull_service.IsErrMergeUnrelatedHistories(err) {
+			ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 			return
 		}
 		log.Error("Update pull request failed: %v", err)

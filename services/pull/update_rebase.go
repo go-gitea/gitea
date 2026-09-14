@@ -28,8 +28,11 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	defer cancel()
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
-	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(tmpRepoBaseBranch, tmpRepoTrackingBranch).
+	oldMergeBase, _, err := gitcmd.NewCommand("merge-base").AddDashesAndList(tmpRepoBaseBranch, tmpRepoTrackingBranch).
 		WithRepo(mergeCtx.tmpRepo).RunStdString(ctx)
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return ErrMergeUnrelatedHistories{Err: err}
+	}
 	oldMergeBase = strings.TrimSpace(oldMergeBase)
 
 	// Rebase the tracking branch on to the base as the staging branch

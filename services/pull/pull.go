@@ -1054,6 +1054,16 @@ type CommitInfo struct {
 	Time                  string `json:"time"`
 }
 
+func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
+	baseRef = util.IfZero(baseRef, util.Iif(pr.HasMerged, git.RefName(pr.MergeBase), git.RefNameFromBranch(pr.BaseBranch)))
+	headRef := git.RefName(pr.GetGitHeadRefName())
+	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, headRef, false, false)
+	if err == nil && compareInfo.CompareBase == "" { // unrelated histories, compare directly with the last known merge base or the base itself
+		return git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, util.IfZero(git.RefName(pr.MergeBase), baseRef), headRef, true, false)
+	}
+	return compareInfo, err
+}
+
 // GetPullCommits returns all commits on given pull request and the last review commit sha
 // Attention: The last review commit sha must be from the latest review whose commit id is not empty.
 // So the type of the latest review cannot be "ReviewTypeRequest".
@@ -1063,11 +1073,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return nil, "", err
 	}
-	baseBranch := pull.BaseBranch
-	if pull.HasMerged {
-		baseBranch = pull.MergeBase
-	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
+	compareInfo, err := GetCompareInfo(ctx, pull, baseGitRepo, "")
 	if err != nil {
 		return nil, "", err
 	}

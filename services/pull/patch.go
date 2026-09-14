@@ -35,7 +35,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	compareArg := pr.MergeBase + "..." + pr.GetGitHeadRefName()
+	compareArg := util.IfZero(pr.MergeBase, git.BranchPrefix+pr.BaseBranch) + ".." + pr.GetGitHeadRefName()
 	switch {
 	case patch:
 		err = gitRepo.GetPatch(ctx, compareArg, w)
