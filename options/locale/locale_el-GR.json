@@ -2833,6 +2833,8 @@
   "secrets.deletion.success": "Το μυστικό έχει αφαιρεθεί.",
   "secrets.deletion.failed": "Αποτυχία αφαίρεσης μυστικού.",
   "secrets.management": "Διαχείριση Μυστικών",
+  "audit.actor": "Φορέας",
+  "audit.details": "Λεπτομέρειες",
   "actions.actions": "Δράσεις",
   "actions.unit.desc": "Διαχείριση δράσεων",
   "actions.status.unknown": "Άγνωστη",

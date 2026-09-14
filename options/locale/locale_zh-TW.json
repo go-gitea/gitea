@@ -3111,6 +3111,8 @@
   "secrets.deletion.success": "已移除此 Secret。",
   "secrets.deletion.failed": "移除 Secret 失敗。",
   "secrets.management": "Secret 管理",
+  "audit.actor": "執行者",
+  "audit.details": "詳情",
   "actions.unit.desc": "管理 Actions",
   "actions.status.unknown": "未知",
   "actions.status.waiting": "正在等候",

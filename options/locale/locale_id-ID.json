@@ -1140,6 +1140,7 @@
   "packages.container.labels.value": "Nilai",
   "packages.owner.settings.cleanuprules.enabled": "Aktif",
   "secrets.creation.description": "Deskripsi",
+  "audit.actor": "Aktor",
   "actions.status.unknown": "Tidak diketahui",
   "actions.runners.name": "Nama",
   "actions.runners.owner_type": "Jenis",

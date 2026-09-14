@@ -3005,6 +3005,8 @@
   "secrets.creation.description": "Опис",
   "secrets.creation.value_placeholder": "Введіть довільний вміст. Пробіли на початку та в кінці будуть пропущені.",
   "secrets.creation.description_placeholder": "Введіть короткий опис (необов'язково).",
+  "audit.actor": "Актор",
+  "audit.details": "Подробиці",
   "actions.actions": "Дії",
   "actions.unit.desc": "Керувати діями",
   "actions.status.unknown": "Невідомий",

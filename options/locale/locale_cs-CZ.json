@@ -3118,6 +3118,8 @@
   "secrets.deletion.success": "Tajný klíč byl odstraněn.",
   "secrets.deletion.failed": "Nepodařilo se odstranit tajný klíč.",
   "secrets.management": "Správa tajných klíčů",
+  "audit.actor": "Aktér",
+  "audit.details": "Podrobnosti",
   "actions.actions": "Akce",
   "actions.unit.desc": "Spravovat akce",
   "actions.status.unknown": "Neznámý",
