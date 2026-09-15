@@ -123,7 +123,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(repo *repo_model.Repository, storageRepo gitrepo.RepositoryFacade) error {
+	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("GetRemoteURL failed: %w", err)
@@ -170,13 +170,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo, m.Repo.CodeStorageRepo())
+	err := performPush(m.Repo.CodeStorageRepo())
 	if err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo, m.Repo.WikiStorageRepo())
+		err := performPush(m.Repo.WikiStorageRepo())
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
