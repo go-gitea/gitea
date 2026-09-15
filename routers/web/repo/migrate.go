@@ -304,7 +304,7 @@ func MigrateStatus(ctx *context.Context) {
 	message := task.Message
 
 	// a failure message can echo bytes the remote chose, so only whoever started the migration may read it
-	canSeeFailure := ctx.IsSigned && (ctx.Doer.ID == task.DoerID || ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
+	canSeeFailure := ctx.Doer.ID == task.DoerID || ctx.Repo.Permission.IsAdmin()
 	if task.Status == structs.TaskStatusFailed && !canSeeFailure {
 		message = ctx.Locale.TrString("repo.migrate.migrating_failed_no_addr")
 	} else if message != "" && message[0] == '{' {
