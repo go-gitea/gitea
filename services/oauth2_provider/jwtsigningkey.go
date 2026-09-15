@@ -373,7 +373,7 @@ func loadOrCreateAsymmetricKey() (any, error) {
 
 			privateKeyPEM := &pem.Block{Type: "PRIVATE KEY", Bytes: bytes}
 
-			if err := os.MkdirAll(filepath.Dir(keyPath), os.ModePerm); err != nil {
+			if err := os.MkdirAll(filepath.Dir(keyPath), 0o700); err != nil {
 				return err
 			}
 
