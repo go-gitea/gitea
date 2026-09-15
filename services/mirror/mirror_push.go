@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -122,12 +123,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(repo *repo_model.Repository, isWiki bool) error {
-		storageRepo := repo.CodeStorageRepo()
-		if isWiki {
-			storageRepo = repo.WikiStorageRepo()
-		}
-		mirrorLogName := fmt.Sprintf("%s%s[mirror=%d]", m.Repo.FullName(), util.Iif(isWiki, ".wiki", ""), m.ID)
+	performPush := func(repo *repo_model.Repository, storageRepo gitrepo.RepositoryFacade) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			return fmt.Errorf("GetRemoteURL failed: %w", err)
@@ -158,7 +154,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 		}
 
-		log.Trace("Pushing %s remote %s", mirrorLogName, m.ID, m.RemoteName)
+		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
@@ -174,13 +170,13 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		return nil
 	}
 
-	err := performPush(m.Repo, false)
+	err := performPush(m.Repo, m.Repo.CodeStorageRepo())
 	if err != nil {
 		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		err := performPush(m.Repo, true)
+		err := performPush(m.Repo, m.Repo.WikiStorageRepo())
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
