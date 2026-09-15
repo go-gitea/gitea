@@ -1165,7 +1165,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, git_service.CompareOptions{CompareSeparator: compareReq.CompareSeparator})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1280,6 +1280,9 @@ func UpdatePullRequest(ctx *context.APIContext) {
 			return
 		} else if pull_service.IsErrRebaseConflicts(err) {
 			ctx.APIError(http.StatusConflict, "rebase failed because of conflict")
+			return
+		} else if pull_service.IsErrMergeUnrelatedHistories(err) {
+			ctx.APIError(http.StatusConflict, "update failed because of unrelated histories")
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -1431,12 +1434,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 	defer closer.Close()
 
-	var compareInfo git_service.CompareInfo
-	if pr.HasMerged {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
-	} else {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
-	}
+	compareInfo, err := pull_service.GetCompareInfo(ctx, pr, baseGitRepo, pr.GetCompareBaseRef())
 
 	if gitcmd.IsStderr(err, gitcmd.StderrBadRevision) {
 		ctx.APIError(http.StatusNotFound, "invalid base branch or revision")
@@ -1557,12 +1555,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	var compareInfo git_service.CompareInfo
-	if pr.HasMerged {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
-	} else {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
-	}
+	compareInfo, err := pull_service.GetCompareInfo(ctx, pr, baseGitRepo, pr.GetCompareBaseRef())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

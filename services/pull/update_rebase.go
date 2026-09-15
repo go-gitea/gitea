@@ -5,6 +5,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // updateHeadByRebaseOnToBase handles updating a PR's head branch by rebasing it on the PR current base branch
@@ -28,9 +30,12 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	defer cancel()
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
-	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(tmpRepoBaseBranch, tmpRepoTrackingBranch).
-		WithRepo(mergeCtx.tmpRepo).RunStdString(ctx)
-	oldMergeBase = strings.TrimSpace(oldMergeBase)
+	oldMergeBase, err := git.MergeBase(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
+	if errors.Is(err, util.ErrNotExist) {
+		return ErrMergeUnrelatedHistories{Err: err}
+	} else if err != nil {
+		return err
+	}
 
 	// Rebase the tracking branch on to the base as the staging branch
 	if err := rebaseTrackingOnToBase(mergeCtx, repo_model.MergeStyleRebaseUpdate); err != nil {
