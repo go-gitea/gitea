@@ -26,8 +26,11 @@ func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		"/range/5617b": "FD4CB34F0378BCB15D23F6FFD28F0775C9E:3\r\nFDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0",
 		"/range/79082": "FDF342FCD8C3611DAE4D76E8A992A3E4169:4\r\nFE81480327C992FE62065A827429DD1318B:0\r\nAFEF386F56EB0B4BE314E07696E5E6E6536:0",
 	}
+	if req.URL.Path == "/range/b6b47" { // sha1("ratelimited") prefix
+		return &http.Response{Request: req, StatusCode: http.StatusTooManyRequests, Body: io.NopCloser(strings.NewReader("rate limited"))}, nil
+	}
 	if resp, ok := respMap[req.URL.Path]; ok {
-		return &http.Response{Request: req, Body: io.NopCloser(strings.NewReader(resp))}, nil
+		return &http.Response{Request: req, StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(resp))}, nil
 	}
 	return nil, errors.New("unsupported path")
 }
@@ -58,4 +61,8 @@ func TestPassword(t *testing.T) {
 	count, err = client.CheckPassword("paddednotpwnedzero", true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
+
+	count, err = client.CheckPassword("ratelimited", false)
+	assert.Error(t, err)
+	assert.EqualValues(t, -1, count)
 }

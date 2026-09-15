@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/setting"
 )
@@ -32,7 +33,7 @@ type Client struct {
 func New(options ...ClientOption) *Client {
 	client := &Client{
 		ctx:  context.Background(),
-		http: http.DefaultClient,
+		http: &http.Client{Timeout: 10 * time.Second},
 	}
 
 	for _, opt := range options {
@@ -84,7 +85,7 @@ func (c *Client) CheckPassword(pw string, padding bool) (int64, error) {
 
 	req, err := newRequest(c.ctx, http.MethodGet, fmt.Sprintf("%s%s", passwordURL, prefix), nil)
 	if err != nil {
-		return -1, nil
+		return -1, err
 	}
 	if padding {
 		req.Header.Add("Add-Padding", "true")
@@ -94,12 +95,16 @@ func (c *Client) CheckPassword(pw string, padding bool) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return -1, fmt.Errorf("unexpected status code %d from HIBP API", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return -1, err
 	}
-	defer resp.Body.Close()
 
 	for pair := range strings.SplitSeq(string(body), "\n") {
 		parts := strings.Split(pair, ":")
