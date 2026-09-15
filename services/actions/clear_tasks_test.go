@@ -124,10 +124,11 @@ func TestStopEndlessTasksSkipsCancelling(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), job))
 		task := &actions_model.ActionTask{
 			JobID: job.ID, RepoID: run.RepoID, OwnerID: run.OwnerID,
-			CommitSHA: job.CommitSHA, Status: status, Started: longAgo,
+			CommitSHA: job.CommitSHA, Status: status, Created: longAgo,
 			TokenHash: fmt.Sprintf("endless-test-token-%d", seq), TokenSalt: "salt",
 		}
-		require.NoError(t, db.Insert(t.Context(), task))
+		_, err := db.GetEngine(t.Context()).NoAutoTime().Insert(task)
+		require.NoError(t, err)
 		return task
 	}
 

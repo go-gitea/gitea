@@ -848,7 +848,7 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 		}
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
-			Duration: v.Duration().String(),
+			Duration: v.Duration(task).String(),
 			Status:   status.String(),
 		})
 	}

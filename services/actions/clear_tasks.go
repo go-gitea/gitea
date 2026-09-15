@@ -31,7 +31,7 @@ func StopZombieTasks(ctx context.Context) error {
 // task mid post-cancel cleanup. StopZombieTasks covers a stalled one, keying off the last update instead.
 func StopEndlessTasks(ctx context.Context) error {
 	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
-		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
+		CreatedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
 	}, actions_model.StatusRunning)
 }
 
