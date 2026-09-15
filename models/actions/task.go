@@ -258,8 +258,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
 	if runner.GroupID != 0 {
-		jobCond = jobCond.And(builder.In("repo_id", builder.Select("repo_id").From("action_runner_access").
-			Where(builder.Eq{"group_id": runner.GroupID})))
+		jobCond = jobCond.And(builder.Exists(builder.Select("1").From("action_runner_group").
+			Where(builder.Eq{"id": runner.GroupID, "includes_all_repositories": true})).
+			Or(builder.In("repo_id", builder.Select("repo_id").From("action_runner_access").
+				Where(builder.Eq{"group_id": runner.GroupID}))))
 	}
 	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
 

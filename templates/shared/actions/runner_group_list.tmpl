@@ -27,7 +27,7 @@
 					<tr>
 						<td>{{.Name}}</td>
 						<td>{{.Runners}}</td>
-						<td>{{.Repos}}</td>
+						<td>{{if .IncludesAllRepositories}}{{ctx.Locale.Tr "org.teams.all_repositories"}}{{else}}{{.Repos}}{{end}}</td>
 						<td><a href="{{$.Link}}/{{.ID}}" aria-label="{{ctx.Locale.Tr "edit"}}">{{svg "octicon-pencil"}}</a></td>
 					</tr>
 				{{end}}

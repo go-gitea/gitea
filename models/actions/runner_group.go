@@ -15,9 +15,10 @@ import (
 )
 
 type ActionRunnerGroup struct {
-	ID      int64  `xorm:"pk autoincr"`
-	OwnerID int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
-	Name    string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
+	ID                      int64  `xorm:"pk autoincr"`
+	OwnerID                 int64  `xorm:"UNIQUE(owner_name) NOT NULL DEFAULT 0"`
+	Name                    string `xorm:"VARCHAR(255) UNIQUE(owner_name) NOT NULL"`
+	IncludesAllRepositories bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
 type ActionRunnerAccess struct {
@@ -61,12 +62,19 @@ func SetRunnerGroupMembers(ctx context.Context, group *ActionRunnerGroup, runner
 		}
 		if len(runnerIDs) > 0 {
 			alive := builder.Exists(builder.Select("1").From("action_runner_group").Where(builder.Eq{"id": group.ID}))
-			n, err := db.GetEngine(ctx).Where(builder.In("id", runnerIDs).And(alive)).Cols("group_id").Update(&ActionRunner{GroupID: group.ID})
+			joining := builder.In("id", runnerIDs).And(builder.Neq{"group_id": group.ID}).And(alive)
+			n, err := db.GetEngine(ctx).Where(joining).Cols("group_id").Update(&ActionRunner{GroupID: group.ID})
 			if err != nil {
 				return err
 			}
-			if n == 0 {
-				return util.NewInvalidArgumentErrorf("the runner group no longer exists")
+			if n == 0 { // runners already in the group match nothing either
+				exists, err := db.ExistByID[ActionRunnerGroup](ctx, group.ID)
+				if err != nil {
+					return err
+				}
+				if !exists {
+					return util.NewInvalidArgumentErrorf("the runner group no longer exists")
+				}
 			}
 		}
 		return IncreaseTaskVersion(ctx, group.OwnerID, 0)
@@ -108,7 +116,8 @@ func CountRunnerGroupUsage(ctx context.Context, groupIDs []int64) (runners, repo
 }
 
 func RunnerGroupsAllowingRepo(ctx context.Context, repoID int64) (container.Set[int64], error) {
-	groupIDs, err := db.FindIDs(ctx, "action_runner_access", "group_id", builder.Eq{"repo_id": repoID})
+	granted := builder.Select("group_id").From("action_runner_access").Where(builder.Eq{"repo_id": repoID})
+	groupIDs, err := db.FindIDs(ctx, "action_runner_group", "id", builder.In("id", granted).Or(builder.Eq{"includes_all_repositories": true}))
 	return container.SetOf(groupIDs...), err
 }
 
@@ -158,7 +167,10 @@ func FindRunnerGroupRepos(ctx context.Context, groupID int64) ([]*repo_model.Rep
 	return repos, err
 }
 
-func SetRunnerAccess(ctx context.Context, group *ActionRunnerGroup, repoIDs []int64) error {
+func SetRunnerAccess(ctx context.Context, group *ActionRunnerGroup, includesAllRepositories bool, repoIDs []int64) error {
+	if includesAllRepositories {
+		repoIDs = nil
+	}
 	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
@@ -172,6 +184,10 @@ func SetRunnerAccess(ctx context.Context, group *ActionRunnerGroup, repoIDs []in
 		rows = append(rows, &ActionRunnerAccess{GroupID: group.ID, RepoID: repoID})
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		group.IncludesAllRepositories = includesAllRepositories
+		if _, err := db.GetEngine(ctx).ID(group.ID).Cols("includes_all_repositories").Update(group); err != nil {
+			return err
+		}
 		if err := db.DeleteBeans(ctx, &ActionRunnerAccess{GroupID: group.ID}); err != nil {
 			return err
 		}

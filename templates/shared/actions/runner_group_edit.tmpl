@@ -16,16 +16,27 @@
 				<p class="help">{{ctx.Locale.Tr "actions.runners.groups.runners_help"}}</p>
 			</div>
 
-			<div class="field">
-				<label>{{ctx.Locale.Tr "actions.runners.groups.repos"}}</label>
-				<div class="ui fluid multiple search selection dropdown custom" data-global-init="initRunnerAccessInput" aria-label="{{ctx.Locale.Tr "actions.runners.groups.repos"}}" data-uid="{{.RunnerGroup.OwnerID}}">
+			<div class="grouped fields" data-global-init="initRunnerRepoAccess">
+				<label>{{ctx.Locale.Tr "org.team_access_desc"}}</label>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="repo_access" value="all" {{if .RunnerGroup.IncludesAllRepositories}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.teams.all_repositories"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="repo_access" value="selected" {{if not .RunnerGroup.IncludesAllRepositories}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.cross_repo_selected"}}</label>
+					</div>
+				</div>
+				<div class="ui fluid multiple search selection dropdown custom {{if .RunnerGroup.IncludesAllRepositories}}tw-hidden{{end}}" aria-label="{{ctx.Locale.Tr "actions.runners.groups.repos"}}" data-uid="{{.RunnerGroup.OwnerID}}">
 					<input type="hidden" name="repos" value="{{range $i, $repo := .RunnerGroupRepos}}{{if $i}},{{end}}{{$repo.ID}}{{end}}">
 					<div class="default text">{{ctx.Locale.Tr "search.repo_kind"}}</div>
 					<div class="menu">
 						{{range .RunnerGroupRepos}}<div class="item" data-value="{{.ID}}">{{.FullName}}</div>{{end}}
 					</div>
 				</div>
-				<p class="help">{{ctx.Locale.Tr "actions.runners.groups.repos_help"}}</p>
 			</div>
 
 			<div class="divider"></div>

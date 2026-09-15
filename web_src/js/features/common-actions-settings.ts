@@ -1,5 +1,5 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
-import {toggleElem, toggleElemClass} from '../utils/dom.ts';
+import {queryElems, toggleElem, toggleElemClass} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
@@ -9,13 +9,17 @@ type RepoSearchResponse = {data: Array<{repository: {id: number; full_name: stri
 export function initActionsSettings(): void {
   registerGlobalInitFunc('initRepoActionsPermissionsForm', initRepoActionsPermissionsForm);
   registerGlobalInitFunc('initOwnerActionsPermissionsForm', initOwnerActionsPermissionsForm);
-  registerGlobalInitFunc('initRunnerAccessInput', initRunnerAccessInput);
+  registerGlobalInitFunc('initRunnerRepoAccess', initRunnerRepoAccess);
   registerGlobalInitFunc('initRunnerGroupMembersInput', initRunnerGroupMembersInput);
 }
 
-function initRunnerAccessInput(el: HTMLElement) {
-  const uid = el.getAttribute('data-uid')!;
-  fomanticQuery(el).dropdown({
+function initRunnerRepoAccess(section: HTMLElement) {
+  const dropdown = section.querySelector<HTMLElement>('.ui.dropdown')!;
+  const uid = dropdown.getAttribute('data-uid')!;
+  queryElems<HTMLInputElement>(section, 'input[name=repo_access]', (radio) => {
+    radio.addEventListener('change', () => toggleElem(dropdown, radio.value === 'selected'));
+  });
+  fomanticQuery(dropdown).dropdown({
     preserveHTML: false,
     labelHref: (_value: string, text: string) => `${appSubUrl}/${text}`,
     apiSettings: {

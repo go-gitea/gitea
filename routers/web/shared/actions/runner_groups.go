@@ -135,7 +135,7 @@ func RunnerGroupEditPost(ctx *context.Context) {
 	err = errors.Join(err, errRunners)
 	if err == nil {
 		err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-			if err := actions_model.SetRunnerAccess(txCtx, group, repoIDs); err != nil {
+			if err := actions_model.SetRunnerAccess(txCtx, group, ctx.FormString("repo_access") == "all", repoIDs); err != nil {
 				return err
 			}
 			return actions_model.SetRunnerGroupMembers(txCtx, group, runnerIDs)
