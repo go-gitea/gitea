@@ -20,6 +20,7 @@ type globalVarsStruct struct {
 	invalidUsernamePattern  *regexp.Regexp
 	validBadgeSlugPattern   *regexp.Regexp
 	invalidBadgeSlugPattern *regexp.Regexp
+	validEmailPattern       *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
@@ -29,6 +30,7 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		invalidUsernamePattern:  regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
 		validBadgeSlugPattern:   regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`),
 		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
+		validEmailPattern:       regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
 	}
 })
 
@@ -107,4 +109,13 @@ func IsValidUsername(name string) bool {
 func IsValidBadgeSlug(slug string) bool {
 	vars := globalVars()
 	return vars.validBadgeSlugPattern.MatchString(slug) && !vars.invalidBadgeSlugPattern.MatchString(slug)
+}
+
+// IsValidEmail checks if an email is valid.
+// The validation is intentionally loose to support local and intranet email addresses
+// (like admin@localhost) without requiring a top-level domain. This ensures Gitea
+// remains fully functional in offline and self-hosted environments.
+func IsValidEmail(email string) bool {
+	vars := globalVars()
+	return vars.validEmailPattern.MatchString(email)
 }
