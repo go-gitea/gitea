@@ -49,7 +49,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := repository.CanUserForkBetweenOwners(forkRepo.OwnerID, ctx.Doer.ID) && !repo_model.HasForkedRepo(ctx, ctx.Doer.ID, forkRepo.ID)
+	canForkToUser := repository.CanUserForkBetweenOwners(forkRepo.OwnerID, ctx.Doer.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
@@ -60,7 +60,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	}
 	var orgs []*organization.Organization
 	for _, org := range ownedOrgs {
-		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(ctx, org.ID, forkRepo.ID) {
+		if forkRepo.OwnerID != org.ID {
 			orgs = append(orgs, org)
 		}
 	}
@@ -155,14 +155,17 @@ func ForkPost(ctx *context.Context) {
 		return
 	}
 
-	var err error
 	traverseParentRepo := forkRepo
 	for {
 		if !repository.CanUserForkBetweenOwners(ctxUser.ID, traverseParentRepo.OwnerID) {
 			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 			return
 		}
-		repo := repo_model.GetForkedRepo(ctx, ctxUser.ID, traverseParentRepo.ID)
+		repo, err := repo_model.GetUserForkByName(ctx, traverseParentRepo.ID, ctxUser.ID, form.RepoName)
+		if err != nil {
+			ctx.ServerError("GetUserForkByName", err)
+			return
+		}
 		if repo != nil {
 			ctx.JSONRedirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return
@@ -212,7 +215,7 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 			maxCreationLimit := owner.MaxCreationLimit()
 			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
 			ctx.JSONError(msg)
-		case repo_model.IsErrRepoAlreadyExist(err):
+		case repo_model.IsErrRepoAlreadyExist(err), repo_service.IsErrForkAlreadyExist(err):
 			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 		case repo_model.IsErrRepoFilesAlreadyExist(err):
 			switch {
