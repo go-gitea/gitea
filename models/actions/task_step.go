@@ -27,8 +27,8 @@ type ActionTaskStep struct {
 	Updated   timeutil.TimeStamp `xorm:"updated"`
 }
 
-func (step *ActionTaskStep) Duration(task *ActionTask) time.Duration {
-	return calculateDuration(task.serverTime(step.Started), task.serverTime(step.Stopped), step.Status, step.Updated)
+func (step *ActionTaskStep) Duration() time.Duration {
+	return calculateDuration(step.Started, step.Stopped, step.Status, step.Updated)
 }
 
 func init() {

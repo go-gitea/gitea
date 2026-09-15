@@ -53,7 +53,7 @@ type FindTaskOptions struct {
 	CommitSHA     string
 	Status        Status
 	UpdatedBefore timeutil.TimeStamp
-	CreatedBefore timeutil.TimeStamp
+	StartedBefore timeutil.TimeStamp
 	RunnerID      int64
 }
 
@@ -77,8 +77,8 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 	if opts.UpdatedBefore > 0 {
 		cond = cond.And(builder.Lt{"updated": opts.UpdatedBefore})
 	}
-	if opts.CreatedBefore > 0 {
-		cond = cond.And(builder.Lt{"created": opts.CreatedBefore})
+	if opts.StartedBefore > 0 {
+		cond = cond.And(builder.Lt{"started": opts.StartedBefore})
 	}
 	if opts.RunnerID > 0 {
 		cond = cond.And(builder.Eq{"runner_id": opts.RunnerID})

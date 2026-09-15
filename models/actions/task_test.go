@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/db"
@@ -389,36 +388,6 @@ func TestUpdateTaskByStateIsAtomic(t *testing.T) {
 	_, err = UpdateTaskByState(t.Context(), task.RunnerID, finalState)
 	require.NoError(t, err)
 	assert.Equal(t, StatusSuccess, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status)
-}
-
-func TestRunnerClockSkew(t *testing.T) {
-	startTask := func(t *testing.T, name string) *ActionTask {
-		t.Helper()
-		require.NoError(t, unittest.PrepareTestDatabase())
-		task, _ := newRunningTaskForCancelling(t, name, true)
-		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{Id: task.ID, StartedAt: timestamppb.New(task.Created.AsTime().Add(-time.Minute))})
-		require.NoError(t, err)
-		return unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
-	}
-	assertStopped := func(t *testing.T, task *ActionTask) {
-		t.Helper()
-		task = unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
-		assert.Equal(t, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: task.JobID}).Stopped.Add(-60), task.Stopped)
-	}
-
-	t.Run("runner reports result", func(t *testing.T) {
-		task := startTask(t, "runner-clock-result")
-		assert.Less(t, (&ActionTaskStep{Started: task.Started, Status: StatusRunning}).Duration(task), 30*time.Second)
-		_, err := UpdateTaskByState(t.Context(), task.RunnerID, &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_SUCCESS, StoppedAt: timestamppb.Now()})
-		require.NoError(t, err)
-		assertStopped(t, task)
-	})
-
-	t.Run("task is stopped", func(t *testing.T) {
-		task := startTask(t, "runner-clock-stop")
-		require.NoError(t, StopTask(t.Context(), task.ID, StatusCancelled))
-		assertStopped(t, task)
-	})
 }
 
 // newRunningTaskForCancelling inserts a running run/job/task assigned to a fresh runner,

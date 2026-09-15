@@ -256,7 +256,7 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 		URL:          httplib.MakeAbsoluteURL(ctx, t.Job.Run.Link()),
 		CreatedAt:    t.Created.AsLocalTime(),
 		UpdatedAt:    t.Updated.AsLocalTime(),
-		RunStartedAt: t.Created.AsLocalTime(),
+		RunStartedAt: t.Started.AsLocalTime(),
 	}, nil
 }
 

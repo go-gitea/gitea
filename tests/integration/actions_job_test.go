@@ -855,16 +855,15 @@ func TestLegacyRunsInCronTasks(t *testing.T) {
 				JobID:     job.ID,
 				Attempt:   1,
 				Status:    actions_model.StatusRunning,
-				Created:   oldTS,
+				Started:   oldTS,
 				RepoID:    repo.ID,
 				OwnerID:   repo.OwnerID,
 				CommitSHA: run.CommitSHA,
 			}
 			task.GenerateAndFillToken()
-			_, err := db.GetEngine(t.Context()).NoAutoTime().Insert(task)
-			require.NoError(t, err)
+			require.NoError(t, db.Insert(t.Context(), task))
 			job.TaskID = task.ID
-			_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
+			_, err := db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
 			require.NoError(t, err)
 
 			require.NoError(t, actions_service.StopEndlessTasks(t.Context()))

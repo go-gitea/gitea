@@ -69,15 +69,7 @@ func init() {
 }
 
 func (task *ActionTask) Duration() time.Duration {
-	return calculateDuration(task.serverTime(task.Started), task.serverTime(task.Stopped), task.Status, task.Updated)
-}
-
-// serverTime converts runner time to ours, Started and Created being the task start on each clock
-func (task *ActionTask) serverTime(timestamp timeutil.TimeStamp) timeutil.TimeStamp {
-	if timestamp.IsZero() {
-		return timestamp
-	}
-	return timestamp - task.Started + task.Created
+	return calculateDuration(task.Started, task.Stopped, task.Status, task.Updated)
 }
 
 func (task *ActionTask) IsStopped() bool {
@@ -492,10 +484,6 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return nil
 		}
 
-		if started := convertTimestamp(state.StartedAt); started != 0 {
-			task.Started = started
-		}
-
 		// state.Result is not unspecified means the task is finished
 		if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 			if task.Status == StatusCancelling {
@@ -505,21 +493,21 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 				task.Status = StatusFromResult(state.Result)
 			}
 			task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
-			if err := UpdateTask(ctx, task, "status", "started", "stopped"); err != nil {
+			if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
 				return err
 			}
 			if _, err := UpdateRunJob(ctx, &ActionRunJob{
 				ID:      task.JobID,
 				RepoID:  task.RepoID,
 				Status:  task.Status,
-				Stopped: task.serverTime(task.Stopped),
+				Stopped: task.Stopped,
 			}, nil, "status", "stopped"); err != nil {
 				return err
 			}
 		} else {
 			// Force update ActionTask.Updated to avoid the task being judged as a zombie task
 			task.Updated = timeutil.TimeStampNow()
-			if err := UpdateTask(ctx, task, "updated", "started"); err != nil {
+			if err := UpdateTask(ctx, task, "updated"); err != nil {
 				return err
 			}
 		}
@@ -606,12 +594,12 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 	}
 
 	task.Status = status
-	task.Stopped = now + task.Started - task.Created // inverse of serverTime
+	task.Stopped = now
 	if _, err := UpdateRunJob(ctx, &ActionRunJob{
 		ID:      task.JobID,
 		RepoID:  task.RepoID,
 		Status:  task.Status,
-		Stopped: now,
+		Stopped: task.Stopped,
 	}, nil); err != nil {
 		return err
 	}
@@ -628,9 +616,9 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 		if !step.Status.IsDone() {
 			step.Status = status
 			if step.Started == 0 {
-				step.Started = task.Stopped
+				step.Started = now
 			}
-			step.Stopped = task.Stopped
+			step.Stopped = now
 		}
 		if _, err := e.ID(step.ID).Update(step); err != nil {
 			return err
