@@ -139,6 +139,17 @@ const (
 //   - rebase, rebase-merge, squash: Gitea rewrites the commits and signs each, so only Gitea's
 //     signing ability is checked.
 func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, mergeStyle repo_model.MergeStyle, forceMerge bool) error {
+	// Push-triggered stale-review marking/dismissal (see AddTestPullRequestTask) runs
+	// asynchronously under the same per-PR lock. Acquire it here too, so a merge request
+	// arriving right after a push can't race that goroutine and observe reviews that are
+	// approved-but-actually-stale, or not-yet-dismissed. See go-gitea/gitea#39172.
+	releaser, err := globallock.Lock(stdCtx, getPullWorkingLockKey(pr.ID))
+	if err != nil {
+		log.Error("lock.Lock(): %v", err)
+		return fmt.Errorf("lock.Lock: %w", err)
+	}
+	defer releaser()
+
 	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
