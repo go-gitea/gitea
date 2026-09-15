@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -39,7 +38,7 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 		return nil, convertMinioErr(err)
 	}
 
-	return &minioFileInfo{oi}, nil
+	return objectFileInfo{oi.Key, oi.Size, oi.LastModified}, nil
 }
 
 // minio reports a missing key on the first Read, ReadAt or Seek rather than on Open, so all
@@ -234,34 +233,6 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 	return uploadInfo.Size, nil
 }
 
-type minioFileInfo struct {
-	minio.ObjectInfo
-}
-
-func (m minioFileInfo) Name() string {
-	return path.Base(m.ObjectInfo.Key)
-}
-
-func (m minioFileInfo) Size() int64 {
-	return m.ObjectInfo.Size
-}
-
-func (m minioFileInfo) ModTime() time.Time {
-	return m.LastModified
-}
-
-func (m minioFileInfo) IsDir() bool {
-	return strings.HasSuffix(m.ObjectInfo.Key, "/")
-}
-
-func (m minioFileInfo) Mode() os.FileMode {
-	return os.ModePerm
-}
-
-func (m minioFileInfo) Sys() any {
-	return nil
-}
-
 // Stat returns the stat information of the object
 func (m *MinioStorage) Stat(path string) (os.FileInfo, error) {
 	info, err := m.client.StatObject(
@@ -273,7 +244,7 @@ func (m *MinioStorage) Stat(path string) (os.FileInfo, error) {
 	if err != nil {
 		return nil, convertMinioErr(err)
 	}
-	return &minioFileInfo{info}, nil
+	return objectFileInfo{info.Key, info.Size, info.LastModified}, nil
 }
 
 // Delete delete a file

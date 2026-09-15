@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
@@ -41,6 +42,19 @@ type Object interface {
 	io.Seeker
 	Stat() (os.FileInfo, error)
 }
+
+type objectFileInfo struct {
+	name    string
+	size    int64
+	modTime time.Time
+}
+
+func (o objectFileInfo) Name() string       { return path.Base(o.name) }
+func (o objectFileInfo) Size() int64        { return o.size }
+func (o objectFileInfo) ModTime() time.Time { return o.modTime }
+func (o objectFileInfo) IsDir() bool        { return strings.HasSuffix(o.name, "/") }
+func (o objectFileInfo) Mode() os.FileMode  { return os.ModePerm }
+func (o objectFileInfo) Sys() any           { return nil }
 
 // ServeDirectOptions customizes HTTP headers for a generated signed URL.
 type ServeDirectOptions struct {
