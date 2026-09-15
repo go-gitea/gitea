@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
@@ -109,7 +110,7 @@ func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_mode
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	truncatedContent, truncatedRight := util.EllipsisDisplayStringX(comment.Content, 200)
+	truncatedContent, truncatedRight := util.EllipsisDisplayStringX(markdown.FirstExcerptLine(comment.Content), 200)
 	if truncatedRight != "" {
 		// in case the content is in a Latin family language, we remove the last broken word.
 		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
@@ -229,7 +230,7 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 				actions = append(actions, &activities_model.Action{
 					ActUserID: review.Reviewer.ID,
 					ActUser:   review.Reviewer,
-					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
+					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, markdown.FirstExcerptLine(comm.Content)),
 					OpType:    activities_model.ActionCommentPull,
 					RepoID:    review.Issue.RepoID,
 					Repo:      review.Issue.Repo,
@@ -245,7 +246,7 @@ func (a *actionNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 		action := &activities_model.Action{
 			ActUserID: review.Reviewer.ID,
 			ActUser:   review.Reviewer,
-			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
+			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, markdown.FirstExcerptLine(comment.Content)),
 			RepoID:    review.Issue.RepoID,
 			Repo:      review.Issue.Repo,
 			IsPrivate: review.Issue.Repo.IsPrivate,
