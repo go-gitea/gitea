@@ -44,6 +44,10 @@ func (r *runStdError) Stderr() string {
 	return r.stderr
 }
 
+func NewRunStdError(err error, stderr string) RunStdError {
+	return &runStdError{err: err, stderr: util.NormalizeStringEOL(stderr)}
+}
+
 func ErrorAsStderr(err error) (string, bool) {
 	if runErr, ok := errors.AsType[RunStdError](err); ok {
 		return runErr.Stderr(), true

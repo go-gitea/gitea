@@ -21,29 +21,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testStderrError struct{ stderr string }
-
-func (err testStderrError) Error() string  { return err.stderr }
-func (err testStderrError) Unwrap() error  { return nil }
-func (err testStderrError) Stderr() string { return err.stderr }
-
 func TestIsAuthenticationError(t *testing.T) {
-	githubError := func(code int) error {
-		return &github.ErrorResponse{Response: &http.Response{StatusCode: code}}
-	}
+	errDummy := errors.New("dummy")
 	cases := []struct {
 		name string
-		err  error
 		want bool
+		err  error
 	}{
-		{"git authentication failed", testStderrError{string(gitcmd.StderrAuthenticationFailed) + " 'https://host/repo.git/'"}, true},
-		{"git could not read username", testStderrError{string(gitcmd.StderrCouldNotReadUsername) + " for 'https://host'"}, true},
-		{"github unauthorized", githubError(http.StatusUnauthorized), true},
-		{"github unauthorized sanitized", util.SanitizeErrorCredentialURLs(githubError(http.StatusUnauthorized)), true},
-		{"github unauthorized wrapped", fmt.Errorf("migrate: %w", githubError(http.StatusUnauthorized)), true},
-		{"github not found", githubError(http.StatusNotFound), false},
-		{"github without response", &github.ErrorResponse{}, false},
-		{"unrelated error", errors.New("something else"), false},
+		{"git authentication failed", true, gitcmd.NewRunStdError(errDummy, "fatal: Authentication failed for 'https://host/repo.git/'")},
+		{"git could not read username", true, fmt.Errorf("%w", gitcmd.NewRunStdError(errDummy, "fatal: could not read Username for 'https://host'"))},
+		{"github unauthorized", true, util.SanitizeErrorCredentialURLs(&github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusUnauthorized}})},
+		{"github other", false, &github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusNotFound}}},
+		{"github nil response", false, &github.ErrorResponse{}},
+		{"unrelated error", false, errDummy},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
