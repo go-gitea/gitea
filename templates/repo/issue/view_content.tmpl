@@ -86,7 +86,7 @@
 									<div class="flex-text-block tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{$btnIconColor := ""}}{{$btnIcon := ""}}{{$btnTextNoComment := ""}}{{$btnTextWithComment := ""}}{{$btnValue := ""}}
-											{{if .Issue.IsClosed}}
+											{{if or .Issue.IsClosed .Issue.IsReviewState}}
 												{{$btnValue = "reopen"}}
 												{{$btnIconColor = "tw-text-green"}}
 												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-reopened"}}
@@ -98,6 +98,15 @@
 												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
 												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
 												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}{{/* general: Close with Comment */}}
+											{{end}}
+											{{if and (not .Issue.IsClosed) (not .Issue.IsReviewState)}}
+												<button class="ui orange button" name="status" value="first_review">
+													{{svg "octicon-search"}} {{ctx.Locale.Tr "repo.issues.send_to_first_review"}}
+												</button>
+											{{else if and (not .Issue.IsClosed) .Issue.IsFirstReview}}
+												<button class="ui yellow button" name="status" value="second_review">
+													{{svg "octicon-search"}} {{ctx.Locale.Tr "repo.issues.send_to_second_review"}}
+												</button>
 											{{end}}
 											<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
 												<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>

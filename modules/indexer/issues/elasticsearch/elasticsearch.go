@@ -64,6 +64,8 @@ const (
 
 			"is_pull": { "type": "boolean", "index": true },
 			"is_closed": { "type": "boolean", "index": true },
+			"is_first_review": { "type": "boolean", "index": true },
+			"is_second_review": { "type": "boolean", "index": true },
 			"is_archived": { "type": "boolean", "index": true },
 			"label_ids": { "type": "integer", "index": true },
 			"no_label": { "type": "boolean", "index": true },
@@ -174,6 +176,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		query.Must(elastic.NewTermQuery("is_closed", options.IsClosed.Value()))
+	}
+	if options.IsFirstReview.Has() {
+		query.Must(elastic.NewTermQuery("is_first_review", options.IsFirstReview.Value()))
+	}
+	if options.IsSecondReview.Has() {
+		query.Must(elastic.NewTermQuery("is_second_review", options.IsSecondReview.Value()))
 	}
 	if options.IsArchived.Has() {
 		query.Must(elastic.NewTermQuery("is_archived", options.IsArchived.Value()))

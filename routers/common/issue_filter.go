@@ -13,10 +13,32 @@ func ParseIssueFilterStateIsClosed(state string) optional.Option[bool] {
 		return optional.None[bool]()
 	case "closed":
 		return optional.Some(true)
-	case "", "open":
+	case "", "open", "verification", "first_review", "second_review":
 		return optional.Some(false)
 	default:
 		return optional.Some(false) // unknown state, undefined behavior
+	}
+}
+
+func ParseIssueFilterStateIsFirstReview(state string) optional.Option[bool] {
+	switch state {
+	case "all", "closed":
+		return optional.None[bool]()
+	case "verification", "first_review":
+		return optional.Some(true)
+	default:
+		return optional.Some(false)
+	}
+}
+
+func ParseIssueFilterStateIsSecondReview(state string) optional.Option[bool] {
+	switch state {
+	case "all", "closed":
+		return optional.None[bool]()
+	case "second_review":
+		return optional.Some(true)
+	default:
+		return optional.Some(false)
 	}
 }
 

@@ -39,6 +39,8 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	ProjectID          int64
 	ProjectColumnID    int64
 	IsClosed           optional.Option[bool]
+	IsFirstReview      optional.Option[bool]
+	IsSecondReview     optional.Option[bool]
 	IsPull             optional.Option[bool]
 	LabelIDs           []int64
 	IncludedLabelNames []string
@@ -244,6 +246,12 @@ func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
 
 	if opts.IsClosed.Has() {
 		sess.And("issue.is_closed=?", opts.IsClosed.Value())
+	}
+	if opts.IsFirstReview.Has() {
+		sess.And("issue.is_first_review=?", opts.IsFirstReview.Value())
+	}
+	if opts.IsSecondReview.Has() {
+		sess.And("issue.is_second_review=?", opts.IsSecondReview.Value())
 	}
 
 	applyAssigneeCondition(sess, opts.AssigneeID)

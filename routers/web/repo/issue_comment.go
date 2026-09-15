@@ -86,7 +86,7 @@ func NewComment(ctx *context.Context) {
 
 	// Check if doer can change the status of issue (close, reopen).
 	if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
-		(form.Status == "reopen" || form.Status == "close") &&
+		(form.Status == "reopen" || form.Status == "close" || form.Status == "verification" || form.Status == "first_review" || form.Status == "second_review") &&
 		!(issue.IsPull && issue.PullRequest.HasMerged) {
 		// Duplication and conflict check should apply to reopen pull request.
 		var branchOtherUnmergedPR *issues_model.PullRequest
@@ -159,7 +159,17 @@ func NewComment(ctx *context.Context) {
 			}
 		}
 
-		if form.Status == "close" && !issue.IsClosed {
+		if (form.Status == "verification" || form.Status == "first_review") && !issue.IsClosed && !issue.IsFirstReview {
+			if err := issue_service.MoveIssueToFirstReview(ctx, issue); err != nil {
+				log.Error("MoveIssueToFirstReview: %v", err)
+				ctx.Flash.Error(ctx.Tr("repo.issues.unable_to_send_to_first_review"))
+			}
+		} else if form.Status == "second_review" && !issue.IsClosed && !issue.IsSecondReview {
+			if err := issue_service.MoveIssueToSecondReview(ctx, issue); err != nil {
+				log.Error("MoveIssueToSecondReview: %v", err)
+				ctx.Flash.Error(ctx.Tr("repo.issues.unable_to_send_to_second_review"))
+			}
+		} else if form.Status == "close" && !issue.IsClosed {
 			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 				log.Error("CloseIssue: %v", err)
 				if issues_model.IsErrDependenciesLeft(err) {
@@ -176,8 +186,14 @@ func NewComment(ctx *context.Context) {
 				}
 				log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
 			}
-		} else if form.Status == "reopen" && issue.IsClosed && branchOtherUnmergedPR == nil {
-			if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+		} else if form.Status == "reopen" && (issue.IsClosed || issue.IsReviewState()) && branchOtherUnmergedPR == nil {
+			var err error
+			if issue.IsReviewState() {
+				err = issue_service.ReopenReviewIssue(ctx, issue)
+			} else {
+				err = issue_service.ReopenIssue(ctx, issue, ctx.Doer, "")
+			}
+			if err != nil {
 				log.Error("ReopenIssue: %v", err)
 				ctx.Flash.Error("Unable to reopen.")
 			}

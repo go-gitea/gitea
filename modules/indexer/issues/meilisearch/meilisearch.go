@@ -67,6 +67,8 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"is_public",
 			"is_pull",
 			"is_closed",
+			"is_first_review",
+			"is_second_review",
 			"is_archived",
 			"label_ids",
 			"no_label",
@@ -152,6 +154,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		query.And(inner_meilisearch.NewFilterEq("is_closed", options.IsClosed.Value()))
+	}
+	if options.IsFirstReview.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_first_review", options.IsFirstReview.Value()))
+	}
+	if options.IsSecondReview.Has() {
+		query.And(inner_meilisearch.NewFilterEq("is_second_review", options.IsSecondReview.Value()))
 	}
 	if options.IsArchived.Has() {
 		query.And(inner_meilisearch.NewFilterEq("is_archived", options.IsArchived.Value()))

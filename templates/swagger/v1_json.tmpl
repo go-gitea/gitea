@@ -4242,6 +4242,8 @@
           {
             "enum": [
               "open",
+              "first_review",
+              "second_review",
               "closed",
               "all"
             ],
@@ -9462,12 +9464,14 @@
           },
           {
             "enum": [
-              "closed",
               "open",
+              "first_review",
+              "second_review",
+              "closed",
               "all"
             ],
             "type": "string",
-            "description": "whether issue is open or closed",
+            "description": "Issue state",
             "name": "state",
             "in": "query"
           },
@@ -13816,6 +13820,8 @@
           {
             "enum": [
               "open",
+              "first_review",
+              "second_review",
               "closed",
               "all"
             ],
@@ -26362,9 +26368,11 @@
           "type": "string",
           "enum": [
             "open",
+            "first_review",
+            "second_review",
             "closed"
           ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-enum-desc": "open StateOpen  StateOpen means an issue or pull request is open.\nfirst_review StateFirstReview  StateFirstReview means an issue or pull request is waiting for first review.\nsecond_review StateSecondReview  StateSecondReview means an issue or pull request is waiting for second review.\nclosed StateClosed  StateClosed means an issue or pull request is closed.",
           "x-go-name": "State"
         },
         "time_estimate": {
@@ -26998,13 +27006,15 @@
           "x-go-name": "OpenIssues"
         },
         "state": {
-          "description": "State indicates if the milestone is open or closed\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "description": "State indicates if the milestone is open or closed\nopen StateOpen  StateOpen means an issue or pull request is open.\nfirst_review StateFirstReview  StateFirstReview means an issue or pull request is waiting for first review.\nsecond_review StateSecondReview  StateSecondReview means an issue or pull request is waiting for second review.\nclosed StateClosed  StateClosed means an issue or pull request is closed.",
           "type": "string",
           "enum": [
             "open",
+            "first_review",
+            "second_review",
             "closed"
           ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-enum-desc": "open StateOpen  StateOpen means an issue or pull request is open.\nfirst_review StateFirstReview  StateFirstReview means an issue or pull request is waiting for first review.\nsecond_review StateSecondReview  StateSecondReview means an issue or pull request is waiting for second review.\nclosed StateClosed  StateClosed means an issue or pull request is closed.",
           "x-go-name": "State"
         },
         "title": {
@@ -27932,13 +27942,15 @@
           "x-go-name": "ReviewComments"
         },
         "state": {
-          "description": "The current state of the pull request\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "description": "The current state of the pull request\nopen StateOpen  StateOpen means an issue or pull request is open.\nfirst_review StateFirstReview  StateFirstReview means an issue or pull request is waiting for first review.\nsecond_review StateSecondReview  StateSecondReview means an issue or pull request is waiting for second review.\nclosed StateClosed  StateClosed means an issue or pull request is closed.",
           "type": "string",
           "enum": [
             "open",
+            "first_review",
+            "second_review",
             "closed"
           ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
+          "x-go-enum-desc": "open StateOpen  StateOpen means an issue or pull request is open.\nfirst_review StateFirstReview  StateFirstReview means an issue or pull request is waiting for first review.\nsecond_review StateSecondReview  StateSecondReview means an issue or pull request is waiting for second review.\nclosed StateClosed  StateClosed means an issue or pull request is closed.",
           "x-go-name": "State"
         },
         "title": {

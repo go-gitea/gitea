@@ -15,13 +15,13 @@ import (
 
 // IssueStats represents issue statistic information.
 type IssueStats struct {
-	OpenCount, ClosedCount int64
-	YourRepositoriesCount  int64
-	AssignCount            int64
-	CreateCount            int64
-	MentionCount           int64
-	ReviewRequestedCount   int64
-	ReviewedCount          int64
+	OpenCount, FirstReviewCount, SecondReviewCount, ClosedCount int64
+	YourRepositoriesCount                                       int64
+	AssignCount                                                 int64
+	CreateCount                                                 int64
+	MentionCount                                                int64
+	ReviewRequestedCount                                        int64
+	ReviewedCount                                               int64
 }
 
 // Filter modes.
@@ -100,6 +100,8 @@ func GetIssueStats(ctx context.Context, opts *IssuesOptions) (*IssueStats, error
 			return nil, err
 		}
 		accum.OpenCount += stats.OpenCount
+		accum.FirstReviewCount += stats.FirstReviewCount
+		accum.SecondReviewCount += stats.SecondReviewCount
 		accum.ClosedCount += stats.ClosedCount
 		accum.YourRepositoriesCount += stats.YourRepositoriesCount
 		accum.AssignCount += stats.AssignCount
@@ -120,7 +122,19 @@ func getIssueStatsChunk(ctx context.Context, opts *IssuesOptions, issueIDs []int
 
 	var err error
 	stats.OpenCount, err = applyIssuesOptions(sess, opts, issueIDs).
-		And("issue.is_closed = ?", false).
+		And("issue.is_closed = ? AND issue.is_first_review = ? AND issue.is_second_review = ?", false, false, false).
+		Count(new(Issue))
+	if err != nil {
+		return stats, err
+	}
+	stats.FirstReviewCount, err = applyIssuesOptions(sess, opts, issueIDs).
+		And("issue.is_closed = ? AND issue.is_first_review = ?", false, true).
+		Count(new(Issue))
+	if err != nil {
+		return stats, err
+	}
+	stats.SecondReviewCount, err = applyIssuesOptions(sess, opts, issueIDs).
+		And("issue.is_closed = ? AND issue.is_second_review = ?", false, true).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err

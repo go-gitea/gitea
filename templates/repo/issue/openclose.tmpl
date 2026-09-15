@@ -1,23 +1,51 @@
 {{/* this tmpl is quite dirty, it should not mix unrelated things together .... need to split it in the future*/}}
-{{$allStatesLink := ""}}{{$openLink := ""}}{{$closedLink := ""}}
+{{$allStatesLink := ""}}{{$openLink := ""}}{{$firstReviewLink := ""}}{{$secondReviewLink := ""}}{{$closedLink := ""}}
 {{if .PageIsMilestones}}
 	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "sort" $.SortType "state" "all"}}
 {{else}}
 	{{$allStatesLink = QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" "all" "labels" $.SelectLabels "milestone" $.MilestoneID "project" $.ProjectID "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true")}}
 {{end}}
 {{$openLink = QueryBuild $allStatesLink "state" "open"}}
+{{$firstReviewLink = QueryBuild $allStatesLink "state" "first_review"}}
+{{$secondReviewLink = QueryBuild $allStatesLink "state" "second_review"}}
 {{$closedLink = QueryBuild $allStatesLink "state" "closed"}}
 <div class="small-menu-items ui compact tiny menu">
-	<a class="{{if eq .State "open"}}active {{end}}item flex-text-inline" href="{{if eq .State "open"}}{{$allStatesLink}}{{else}}{{$openLink}}{{end}}">
+	<a class="{{if eq .State "open"}}active {{end}}item flex-text-inline issue-open-state" href="{{if eq .State "open"}}{{$allStatesLink}}{{else}}{{$openLink}}{{end}}">
 		{{if .PageIsMilestones}}
 			{{svg "octicon-milestone"}}
 		{{else}}
-			{{Iif .PageIsPullList (svg "octicon-git-pull-request") (svg "octicon-issue-opened")}}
+			<svg aria-hidden="true" height="22" viewBox="0 0 16 16" width="22" fill="none" class="issue-status-icon issue-status-icon-open-door">
+				<path d="M3.25 14.25h9.5M4.25 14.25V2.75h5.5" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M6.25 14.25V3.75l5.5-1.25v12.25l-5.5-.5Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+				<path d="M9.75 8h.05" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+			</svg>
 		{{end}}
-		{{ctx.Locale.PrettyNumber .OpenCount}} {{ctx.Locale.Tr "repo.issues.open_title"}}
+		<span class="issue-status-label-block">
+			<span class="issue-status-count">{{ctx.Locale.PrettyNumber .OpenCount}}</span>
+			<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.open_title"}}</span>
+		</span>
 	</a>
-	<a class="{{if eq .State "closed"}}active {{end}}item flex-text-inline" href="{{if eq .State "closed"}}{{$allStatesLink}}{{else}}{{$closedLink}}{{end}}">
+	{{if not .PageIsMilestones}}
+		<a class="{{if eq .State "first_review"}}active {{end}}item flex-text-inline issue-first-review-state" href="{{if eq .State "first_review"}}{{$allStatesLink}}{{else}}{{$firstReviewLink}}{{end}}">
+			{{svg "octicon-search" 18 "issue-status-icon issue-status-icon-first-review"}}
+			<span class="issue-status-label-block">
+				<span class="issue-status-count">{{ctx.Locale.PrettyNumber .FirstReviewCount}}</span>
+				<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.first_review_title"}}</span>
+			</span>
+		</a>
+		<a class="{{if eq .State "second_review"}}active {{end}}item flex-text-inline issue-second-review-state" href="{{if eq .State "second_review"}}{{$allStatesLink}}{{else}}{{$secondReviewLink}}{{end}}">
+			{{svg "octicon-search" 18 "issue-status-icon issue-status-icon-second-review"}}
+			<span class="issue-status-label-block">
+				<span class="issue-status-count">{{ctx.Locale.PrettyNumber .SecondReviewCount}}</span>
+				<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.second_review_title"}}</span>
+			</span>
+		</a>
+	{{end}}
+	<a class="{{if eq .State "closed"}}active {{end}}item flex-text-inline issue-closed-state" href="{{if eq .State "closed"}}{{$allStatesLink}}{{else}}{{$closedLink}}{{end}}">
 		{{svg "octicon-issue-closed"}}
-		{{ctx.Locale.PrettyNumber .ClosedCount}} {{ctx.Locale.Tr "repo.issues.closed_title"}}
+		<span class="issue-status-label-block">
+			<span class="issue-status-count">{{ctx.Locale.PrettyNumber .ClosedCount}}</span>
+			<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.closed_title"}}</span>
+		</span>
 	</a>
 </div>

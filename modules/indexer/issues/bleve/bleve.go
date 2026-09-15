@@ -79,6 +79,8 @@ func generateIssueIndexMapping() (mapping.IndexMapping, error) {
 
 	docMapping.AddFieldMappingsAt("is_pull", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_closed", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_first_review", boolFieldMapping)
+	docMapping.AddFieldMappingsAt("is_second_review", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("is_archived", boolFieldMapping)
 	docMapping.AddFieldMappingsAt("label_ids", numberFieldMapping)
 	docMapping.AddFieldMappingsAt("no_label", boolFieldMapping)
@@ -201,6 +203,12 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.IsClosed.Has() {
 		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsClosed.Value(), "is_closed"))
+	}
+	if options.IsFirstReview.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsFirstReview.Value(), "is_first_review"))
+	}
+	if options.IsSecondReview.Has() {
+		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsSecondReview.Value(), "is_second_review"))
 	}
 	if options.IsArchived.Has() {
 		queries = append(queries, inner_bleve.BoolFieldQuery(options.IsArchived.Value(), "is_archived"))

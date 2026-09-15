@@ -36,13 +36,37 @@
 			<div class="flex-container-main">
 				<div class="list-header">
 					<div class="small-menu-items ui compact tiny menu list-header-toggle">
-						<a class="item{{if not .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-							{{svg "octicon-milestone" 16 "tw-mr-2"}}
-							{{ctx.Locale.PrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+						<a class="item flex-text-inline issue-open-state{{if not .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+							<svg aria-hidden="true" height="22" viewBox="0 0 16 16" width="22" fill="none" class="issue-status-icon issue-status-icon-open-door">
+								<path d="M3.25 14.25h9.5M4.25 14.25V2.75h5.5" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M6.25 14.25V3.75l5.5-1.25v12.25l-5.5-.5Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+								<path d="M9.75 8h.05" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							</svg>
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .MilestoneStats.OpenCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.open_title"}}</span>
+							</span>
 						</a>
-						<a class="item{{if .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-							{{svg "octicon-check" 16 "tw-mr-2"}}
-							{{ctx.Locale.PrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+						<a class="item flex-text-inline issue-first-review-state" href="{{AppSubUrl}}/issues?state=first_review">
+							{{svg "octicon-search" 18 "issue-status-icon issue-status-icon-first-review"}}
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .IssueStats.FirstReviewCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.first_review_title"}}</span>
+							</span>
+						</a>
+						<a class="item flex-text-inline issue-second-review-state" href="{{AppSubUrl}}/issues?state=second_review">
+							{{svg "octicon-search" 18 "issue-status-icon issue-status-icon-second-review"}}
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .IssueStats.SecondReviewCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.second_review_title"}}</span>
+							</span>
+						</a>
+						<a class="item flex-text-inline issue-closed-state{{if .IsShowClosed}} active{{end}}" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+							{{svg "octicon-check" 16 "issue-status-icon"}}
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .MilestoneStats.ClosedCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.closed_title"}}</span>
+							</span>
 						</a>
 					</div>
 					<form class="list-header-search ui form ignore-dirty">

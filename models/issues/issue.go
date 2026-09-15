@@ -90,6 +90,8 @@ type Issue struct {
 	Assignee          *user_model.User `xorm:"-"`
 	isAssigneeLoaded  bool             `xorm:"-"`
 	IsClosed          bool             `xorm:"INDEX"`
+	IsFirstReview     bool             `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsSecondReview    bool             `xorm:"INDEX NOT NULL DEFAULT false"`
 	IsRead            bool             `xorm:"-"`
 	IsPull            bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
 	PullRequest       *PullRequest     `xorm:"-"`
@@ -437,10 +439,20 @@ func (issue *Issue) PatchURL() string {
 
 // State returns string representation of issue status.
 func (issue *Issue) State() api.StateType {
+	if issue.IsFirstReview {
+		return api.StateFirstReview
+	}
+	if issue.IsSecondReview {
+		return api.StateSecondReview
+	}
 	if issue.IsClosed {
 		return api.StateClosed
 	}
 	return api.StateOpen
+}
+
+func (issue *Issue) IsReviewState() bool {
+	return issue.IsFirstReview || issue.IsSecondReview
 }
 
 // HashTag returns unique hash tag for issue.

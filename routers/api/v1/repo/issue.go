@@ -100,7 +100,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: State of the issue
 	//   type: string
-	//   enum: [open, closed, all]
+	//   enum: [open, first_review, second_review, closed, all]
 	//   default: open
 	// - name: labels
 	//   in: query
@@ -192,6 +192,8 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+	isFirstReview := common.ParseIssueFilterStateIsFirstReview(ctx.FormString("state"))
+	isSecondReview := common.ParseIssueFilterStateIsSecondReview(ctx.FormString("state"))
 
 	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
 	if err != nil {
@@ -250,6 +252,8 @@ func SearchIssues(ctx *context.APIContext) {
 		AllPublic:           allPublic,
 		IsPull:              isPull,
 		IsClosed:            isClosed,
+		IsFirstReview:       isFirstReview,
+		IsSecondReview:      isSecondReview,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
 		SortBy:              issue_indexer.SortByCreatedDesc,
@@ -325,9 +329,9 @@ func ListIssues(ctx *context.APIContext) {
 	//   required: true
 	// - name: state
 	//   in: query
-	//   description: whether issue is open or closed
+	//   description: Issue state
 	//   type: string
-	//   enum: [closed, open, all]
+	//   enum: [open, first_review, second_review, closed, all]
 	// - name: labels
 	//   in: query
 	//   description: comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.
@@ -389,6 +393,8 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+	isFirstReview := common.ParseIssueFilterStateIsFirstReview(ctx.FormString("state"))
+	isSecondReview := common.ParseIssueFilterStateIsSecondReview(ctx.FormString("state"))
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
@@ -476,12 +482,14 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
-		Paginator: &listOptions,
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		SortBy:    issue_indexer.SortByCreatedDesc,
+		Paginator:      &listOptions,
+		Keyword:        keyword,
+		RepoIDs:        []int64{ctx.Repo.Repository.ID},
+		IsPull:         isPull,
+		IsClosed:       isClosed,
+		IsFirstReview:  isFirstReview,
+		IsSecondReview: isSecondReview,
+		SortBy:         issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
@@ -1036,12 +1044,30 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 }
 
 func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
-	if state != api.StateOpen && state != api.StateClosed {
+	if state == api.StateType("verification") {
+		state = api.StateFirstReview
+	}
+
+	if state != api.StateOpen && state != api.StateFirstReview && state != api.StateSecondReview && state != api.StateClosed {
 		ctx.APIError(http.StatusPreconditionFailed, fmt.Sprintf("unknown state: %s", state))
 		return
 	}
 
-	if state == api.StateClosed && !issue.IsClosed {
+	if state == api.StateFirstReview {
+		if !issue.IsFirstReview {
+			if err := issue_service.MoveIssueToFirstReview(ctx, issue); err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
+	} else if state == api.StateSecondReview {
+		if !issue.IsSecondReview {
+			if err := issue_service.MoveIssueToSecondReview(ctx, issue); err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+		}
+	} else if state == api.StateClosed && !issue.IsClosed {
 		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			if issues_model.IsErrDependenciesLeft(err) {
 				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue or pull request because it still has open dependencies")
@@ -1050,8 +1076,14 @@ func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, stat
 			ctx.APIErrorInternal(err)
 			return
 		}
-	} else if state == api.StateOpen && issue.IsClosed {
-		if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
+	} else if state == api.StateOpen && (issue.IsClosed || issue.IsReviewState()) {
+		var err error
+		if issue.IsReviewState() {
+			err = issue_service.ReopenReviewIssue(ctx, issue)
+		} else {
+			err = issue_service.ReopenIssue(ctx, issue, ctx.Doer, "")
+		}
+		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}

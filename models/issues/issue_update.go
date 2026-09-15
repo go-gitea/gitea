@@ -72,9 +72,11 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 	}
 
 	issue.IsClosed = true
+	issue.IsFirstReview = false
+	issue.IsSecondReview = false
 	issue.ClosedUnix = timeutil.TimeStampNow()
 
-	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "is_first_review", "is_second_review", "closed_unix").
 		Where("is_closed = ?", false).
 		Update(issue); err != nil {
 		return nil, err
@@ -83,6 +85,63 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 	}
 
 	return updateIssueNumbers(ctx, issue, doer, util.Iif(isMergePull, CommentTypeMergePull, CommentTypeClose))
+}
+
+// SetIssueAsFirstReview moves an open issue or pull request into the first review workflow state.
+func SetIssueAsFirstReview(ctx context.Context, issue *Issue) error {
+	if issue.IsClosed || issue.IsFirstReview {
+		return ErrIssueAlreadyChanged
+	}
+	issue.IsFirstReview = true
+	issue.IsSecondReview = false
+	count, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_first_review", "is_second_review").
+		Where("is_closed = ?", false).
+		Update(issue)
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return ErrIssueAlreadyChanged
+	}
+	return nil
+}
+
+// SetIssueAsSecondReview moves an open issue or pull request into the second review workflow state.
+func SetIssueAsSecondReview(ctx context.Context, issue *Issue) error {
+	if issue.IsClosed || issue.IsSecondReview {
+		return ErrIssueAlreadyChanged
+	}
+	issue.IsFirstReview = false
+	issue.IsSecondReview = true
+	count, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_first_review", "is_second_review").
+		Where("is_closed = ?", false).
+		Update(issue)
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return ErrIssueAlreadyChanged
+	}
+	return nil
+}
+
+// ReopenReviewIssue moves a review issue or pull request back to open.
+func ReopenReviewIssue(ctx context.Context, issue *Issue) error {
+	if issue.IsClosed || !issue.IsReviewState() {
+		return ErrIssueAlreadyChanged
+	}
+	issue.IsFirstReview = false
+	issue.IsSecondReview = false
+	count, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_first_review", "is_second_review").
+		Where("is_closed = ?", false).
+		Update(issue)
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return ErrIssueAlreadyChanged
+	}
+	return nil
 }
 
 // ErrIssueIsOpen is used when reopen an opened issue
@@ -114,9 +173,11 @@ func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) 
 	}
 
 	issue.IsClosed = false
+	issue.IsFirstReview = false
+	issue.IsSecondReview = false
 	issue.ClosedUnix = 0
 
-	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "is_first_review", "is_second_review", "closed_unix").
 		Where("is_closed = ?", true).
 		Update(issue); err != nil {
 		return nil, err

@@ -39,14 +39,42 @@
 			{{$queryLinkWithFilter := QueryBuild $queryLink "poster" $.FilterPosterUsername "assignee" $.FilterAssigneeUsername}}
 			<div class="flex-container-main content">
 				<div class="list-header">
+					{{$openStatusLink := QueryBuild $queryLink "state" "open"}}
+					{{$firstReviewStatusLink := QueryBuild $queryLink "state" "first_review"}}
+					{{$secondReviewStatusLink := QueryBuild $queryLink "state" "second_review"}}
+					{{$closedStatusLink := QueryBuild $queryLink "state" "closed"}}
 					<div class="small-menu-items ui compact tiny menu list-header-toggle flex-items-block">
-						<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{QueryBuild $queryLink "state" "open"}}">
-							{{svg "octicon-issue-opened"}}
-							{{ctx.Locale.PrettyNumber .IssueStats.OpenCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
+						<a class="item flex-text-inline issue-open-state{{if eq $.State "open"}} active{{end}}" href="{{if eq $.State "open"}}{{$queryLink}}{{else}}{{$openStatusLink}}{{end}}">
+							<svg aria-hidden="true" height="22" viewBox="0 0 16 16" width="22" fill="none" class="issue-status-icon issue-status-icon-open-door">
+								<path d="M3.25 14.25h9.5M4.25 14.25V2.75h5.5" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+								<path d="M6.25 14.25V3.75l5.5-1.25v12.25l-5.5-.5Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+								<path d="M9.75 8h.05" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							</svg>
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .IssueStats.OpenCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.open_title"}}</span>
+							</span>
 						</a>
-						<a class="item{{if .IsShowClosed}} active{{end}}" href="{{QueryBuild $queryLink "state" "closed"}}">
+						<a class="item flex-text-inline issue-first-review-state{{if eq $.State "first_review"}} active{{end}}" href="{{if eq $.State "first_review"}}{{$queryLink}}{{else}}{{$firstReviewStatusLink}}{{end}}">
+							{{svg "octicon-search" 18 "issue-status-icon issue-status-icon-first-review"}}
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .IssueStats.FirstReviewCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.first_review_title"}}</span>
+							</span>
+						</a>
+						<a class="item flex-text-inline issue-second-review-state{{if eq $.State "second_review"}} active{{end}}" href="{{if eq $.State "second_review"}}{{$queryLink}}{{else}}{{$secondReviewStatusLink}}{{end}}">
+							{{svg "octicon-search" 18 "issue-status-icon issue-status-icon-second-review"}}
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .IssueStats.SecondReviewCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.second_review_title"}}</span>
+							</span>
+						</a>
+						<a class="item flex-text-inline issue-closed-state{{if eq $.State "closed"}} active{{end}}" href="{{if eq $.State "closed"}}{{$queryLink}}{{else}}{{$closedStatusLink}}{{end}}">
 							{{svg "octicon-issue-closed"}}
-							{{ctx.Locale.PrettyNumber .IssueStats.ClosedCount}}&nbsp;{{ctx.Locale.Tr "repo.issues.closed_title"}}
+							<span class="issue-status-label-block">
+								<span class="issue-status-count">{{ctx.Locale.PrettyNumber .IssueStats.ClosedCount}}</span>
+								<span class="issue-status-label">{{ctx.Locale.Tr "repo.issues.closed_title"}}</span>
+							</span>
 						</a>
 					</div>
 					<form class="list-header-search ui form ignore-dirty">

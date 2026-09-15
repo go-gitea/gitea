@@ -301,6 +301,19 @@ func Milestones(ctx *context.Context) {
 		return !showRepoIDs.Contains(v)
 	})
 
+	issueStatRepoIDs := repoIDs
+	if len(issueStatRepoIDs) == 0 {
+		issueStatRepoIDs = []int64{0}
+	}
+	issueStats, err := issues_model.GetIssueStats(ctx, &issues_model.IssuesOptions{
+		RepoIDs: issueStatRepoIDs,
+		IsPull:  optional.None[bool](),
+	})
+	if err != nil {
+		ctx.ServerError("GetIssueStats", err)
+		return
+	}
+
 	var pagerCount int64
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -316,6 +329,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
+	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SortType"] = sortType
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["RepoIDs"] = repoIDs
@@ -509,7 +523,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Educated guess: Do or don't show closed issues.
 	isShowClosed := ctx.FormString("state") == "closed"
+	isShowFirstReview := ctx.FormString("state") == "verification" || ctx.FormString("state") == "first_review"
+	isShowSecondReview := ctx.FormString("state") == "second_review"
 	opts.IsClosed = optional.Some(isShowClosed)
+	opts.IsFirstReview = optional.Some(isShowFirstReview)
+	opts.IsSecondReview = optional.Some(isShowSecondReview)
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
 	page := max(ctx.FormInt("page"), 1)
@@ -579,7 +597,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Will be posted to ctx.Data.
 	var shownIssues int64
-	if !isShowClosed {
+	if isShowFirstReview {
+		shownIssues = issueStats.FirstReviewCount
+	} else if isShowSecondReview {
+		shownIssues = issueStats.SecondReviewCount
+	} else if !isShowClosed {
 		shownIssues = issueStats.OpenCount
 	} else {
 		shownIssues = issueStats.ClosedCount
@@ -630,6 +652,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
+	} else if isShowFirstReview {
+		ctx.Data["State"] = "first_review"
+	} else if isShowSecondReview {
+		ctx.Data["State"] = "second_review"
 	} else {
 		ctx.Data["State"] = "open"
 	}
@@ -779,7 +805,7 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		o.AllPublic = doerID == ctxUser.ID
 	})
 
-	// Open/Closed are for the tabs of the issue list
+	// Open/Review/Closed are for the tabs of the issue list.
 	{
 		openClosedOpts := opts.Copy()
 		switch filterMode {
@@ -799,11 +825,26 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 			openClosedOpts.ReviewedID = optional.Some(doerID)
 		}
 		openClosedOpts.IsClosed = optional.Some(false)
+		openClosedOpts.IsFirstReview = optional.Some(false)
+		openClosedOpts.IsSecondReview = optional.Some(false)
 		ret.OpenCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err
 		}
+		openClosedOpts.IsFirstReview = optional.Some(true)
+		ret.FirstReviewCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
+		if err != nil {
+			return nil, err
+		}
+		openClosedOpts.IsFirstReview = optional.Some(false)
+		openClosedOpts.IsSecondReview = optional.Some(true)
+		ret.SecondReviewCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
+		if err != nil {
+			return nil, err
+		}
 		openClosedOpts.IsClosed = optional.Some(true)
+		openClosedOpts.IsFirstReview = optional.None[bool]()
+		openClosedOpts.IsSecondReview = optional.None[bool]()
 		ret.ClosedCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
 		if err != nil {
 			return nil, err

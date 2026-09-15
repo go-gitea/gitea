@@ -19,9 +19,13 @@ import (
 type StateType string
 
 const (
-	// StateOpen pr is opened
+	// StateOpen means an issue or pull request is open.
 	StateOpen StateType = "open"
-	// StateClosed pr is closed
+	// StateFirstReview means an issue or pull request is waiting for first review.
+	StateFirstReview StateType = "first_review"
+	// StateSecondReview means an issue or pull request is waiting for second review.
+	StateSecondReview StateType = "second_review"
+	// StateClosed means an issue or pull request is closed.
 	StateClosed StateType = "closed"
 )
 

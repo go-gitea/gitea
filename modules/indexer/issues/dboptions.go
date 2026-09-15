@@ -18,12 +18,14 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		setting.PanicInDevOrTesting("Indexer SearchOptions doesn't support IssueIDs")
 	}
 	searchOpt := &SearchOptions{
-		Keyword:    keyword,
-		RepoIDs:    opts.RepoIDs,
-		AllPublic:  opts.AllPublic,
-		IsPull:     opts.IsPull,
-		IsClosed:   opts.IsClosed,
-		IsArchived: opts.IsArchived,
+		Keyword:        keyword,
+		RepoIDs:        opts.RepoIDs,
+		AllPublic:      opts.AllPublic,
+		IsPull:         opts.IsPull,
+		IsClosed:       opts.IsClosed,
+		IsFirstReview:  opts.IsFirstReview,
+		IsSecondReview: opts.IsSecondReview,
+		IsArchived:     opts.IsArchived,
 	}
 
 	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {

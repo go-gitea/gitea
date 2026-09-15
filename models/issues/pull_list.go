@@ -41,8 +41,14 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
 	switch opts.State {
-	case "closed", "open":
-		sess.And("issue.is_closed=?", opts.State == "closed")
+	case "closed":
+		sess.And("issue.is_closed=?", true)
+	case "verification", "first_review":
+		sess.And("issue.is_closed=? AND issue.is_first_review=?", false, true)
+	case "second_review":
+		sess.And("issue.is_closed=? AND issue.is_second_review=?", false, true)
+	case "", "open":
+		sess.And("issue.is_closed=? AND issue.is_first_review=? AND issue.is_second_review=?", false, false, false)
 	}
 
 	if len(opts.Labels) > 0 {

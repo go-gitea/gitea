@@ -73,7 +73,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	//   in: query
 	//   description: State of pull request
 	//   type: string
-	//   enum: [open, closed, all]
+	//   enum: [open, first_review, second_review, closed, all]
 	//   default: open
 	// - name: sort
 	//   in: query

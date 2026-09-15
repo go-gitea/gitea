@@ -47,6 +47,8 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+	isFirstReview := common.ParseIssueFilterStateIsFirstReview(ctx.FormString("state"))
+	isSecondReview := common.ParseIssueFilterStateIsSecondReview(ctx.FormString("state"))
 
 	var (
 		repoIDs   []int64
@@ -180,6 +182,8 @@ func SearchIssues(ctx *context.Context) {
 		AllPublic:           allPublic,
 		IsPull:              isPull,
 		IsClosed:            isClosed,
+		IsFirstReview:       isFirstReview,
+		IsSecondReview:      isSecondReview,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
 		ProjectID:           projectID,
@@ -262,6 +266,8 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	}
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+	isFirstReview := common.ParseIssueFilterStateIsFirstReview(ctx.FormString("state"))
+	isSecondReview := common.ParseIssueFilterStateIsSecondReview(ctx.FormString("state"))
 
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
@@ -330,12 +336,14 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:   keyword,
-		RepoIDs:   []int64{ctx.Repo.Repository.ID},
-		IsPull:    isPull,
-		IsClosed:  isClosed,
-		ProjectID: projectID,
-		SortBy:    issue_indexer.SortByCreatedDesc,
+		Keyword:        keyword,
+		RepoIDs:        []int64{ctx.Repo.Repository.ID},
+		IsPull:         isPull,
+		IsClosed:       isClosed,
+		IsFirstReview:  isFirstReview,
+		IsSecondReview: isSecondReview,
+		ProjectID:      projectID,
+		SortBy:         issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
@@ -559,10 +567,14 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	}
 
 	isShowClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+	isShowFirstReview := common.ParseIssueFilterStateIsFirstReview(ctx.FormString("state"))
+	isShowSecondReview := common.ParseIssueFilterStateIsSecondReview(ctx.FormString("state"))
 
 	// if there are closed issues and no open issues, default to showing all issues
-	if ctx.FormString("state") == "" && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
+	if ctx.FormString("state") == "" && issueStats.OpenCount == 0 && issueStats.FirstReviewCount == 0 && issueStats.SecondReviewCount == 0 && issueStats.ClosedCount != 0 {
 		isShowClosed = optional.None[bool]()
+		isShowFirstReview = optional.None[bool]()
+		isShowSecondReview = optional.None[bool]()
 	}
 
 	if repo.IsTimetrackerEnabled(ctx) {
@@ -575,8 +587,12 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	}
 
 	// prepare pager
-	total := issueStats.OpenCount + issueStats.ClosedCount
-	if isShowClosed.Has() {
+	total := issueStats.OpenCount + issueStats.FirstReviewCount + issueStats.SecondReviewCount + issueStats.ClosedCount
+	if ctx.FormString("state") == "verification" || ctx.FormString("state") == "first_review" {
+		total = issueStats.FirstReviewCount
+	} else if ctx.FormString("state") == "second_review" {
+		total = issueStats.SecondReviewCount
+	} else if isShowClosed.Has() {
 		total = util.Iif(isShowClosed.Value(), issueStats.ClosedCount, issueStats.OpenCount)
 	}
 	page := max(ctx.FormInt("page"), 1)
@@ -602,6 +618,8 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			IsClosed:          isShowClosed,
+			IsFirstReview:     isShowFirstReview,
+			IsSecondReview:    isShowSecondReview,
 			IsPull:            isPullOption,
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 			SortType:          sortType,
@@ -704,6 +722,8 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
+	ctx.Data["FirstReviewCount"] = issueStats.FirstReviewCount
+	ctx.Data["SecondReviewCount"] = issueStats.SecondReviewCount
 	ctx.Data["SelLabelIDs"] = preparedLabelFilter.SelectedLabelIDs
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
@@ -714,6 +734,10 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 	switch {
+	case ctx.FormString("state") == "verification" || ctx.FormString("state") == "first_review":
+		ctx.Data["State"] = "first_review"
+	case ctx.FormString("state") == "second_review":
+		ctx.Data["State"] = "second_review"
 	case isShowClosed.Value():
 		ctx.Data["State"] = "closed"
 	case !isShowClosed.Has():

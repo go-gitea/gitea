@@ -68,6 +68,8 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		ProjectID:          convertID(options.ProjectID),
 		ProjectColumnID:    convertID(options.ProjectColumnID),
 		IsClosed:           options.IsClosed,
+		IsFirstReview:      options.IsFirstReview,
+		IsSecondReview:     options.IsSecondReview,
 		IsPull:             options.IsPull,
 		IncludedLabelNames: nil,
 		ExcludedLabelNames: nil,

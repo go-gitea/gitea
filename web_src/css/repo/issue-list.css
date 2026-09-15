@@ -84,3 +84,173 @@
   margin-right: 8px;
   text-align: left;
 }
+:root {
+  --issue-workflow-open: #ff6b6b;
+  --issue-workflow-open-surface: rgb(255 107 107 / 16%);
+  --issue-workflow-first-review: #f97316;
+  --issue-workflow-first-review-surface: rgb(249 115 22 / 18%);
+  --issue-workflow-second-review: #facc15;
+  --issue-workflow-second-review-surface: rgb(250 204 21 / 18%);
+  --issue-workflow-closed: #b6f27c;
+  --issue-workflow-closed-surface: rgb(182 242 124 / 16%);
+  --issue-workflow-comments: #69b9ff;
+}
+
+.page-content.issues .issue-open-state,
+.page-content.issues .issue-first-review-state,
+.page-content.issues .issue-second-review-state,
+.page-content.issues .issue-closed-state {
+  font-weight: 700 !important;
+}
+
+.page-content.issues .issue-open-state {
+  color: var(--issue-workflow-open) !important;
+}
+
+.page-content.issues .issue-first-review-state {
+  color: var(--issue-workflow-first-review) !important;
+}
+
+.page-content.issues .issue-second-review-state {
+  color: var(--issue-workflow-second-review) !important;
+}
+
+.page-content.issues .issue-closed-state {
+  color: var(--issue-workflow-closed) !important;
+}
+
+.page-content.issues .issue-open-state.active {
+  background-color: var(--issue-workflow-open-surface) !important;
+  box-shadow: inset 0 0 0 1px var(--issue-workflow-open) !important;
+}
+
+.page-content.issues .issue-first-review-state.active {
+  background-color: var(--issue-workflow-first-review-surface) !important;
+  box-shadow: inset 0 0 0 1px var(--issue-workflow-first-review) !important;
+}
+
+.page-content.issues .issue-second-review-state.active {
+  background-color: var(--issue-workflow-second-review-surface) !important;
+  box-shadow: inset 0 0 0 1px var(--issue-workflow-second-review) !important;
+}
+
+.page-content.issues .issue-closed-state.active {
+  background-color: var(--issue-workflow-closed-surface) !important;
+  box-shadow: inset 0 0 0 1px var(--issue-workflow-closed) !important;
+}
+
+.issue-status-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+}
+
+.issue-status-icon-open-door {
+  width: 1.35rem;
+  height: 1.35rem;
+  color: currentColor;
+  stroke: currentColor;
+}
+
+.page-content.issues .small-menu-items .item.flex-text-inline {
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  min-width: 132px;
+  justify-content: center;
+  flex: 1 1 0;
+}
+
+.page-content.issues .small-menu-items.ui.menu:has(.issue-second-review-state) {
+  display: inline-grid !important;
+  grid-template-columns: repeat(4, minmax(132px, 1fr));
+}
+
+.page-content.issues .small-menu-items.ui.menu:has(.issue-second-review-state) > .item.flex-text-inline {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.page-content.issues .small-menu-items .issue-status-label-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.05;
+  min-width: 82px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.page-content.issues .small-menu-items .issue-status-count {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.page-content.issues .small-menu-items .issue-status-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.page-content.dashboard.issues > .ui.container,
+.page-content.dashboard.milestones > .ui.container,
+.page-content.repository.issue-list > .ui.container {
+  width: calc(100% - 56px) !important;
+  max-width: none !important;
+  margin-left: 20px !important;
+  margin-right: 36px !important;
+}
+
+.page-content.dashboard.issues .flex-container-main,
+.page-content.dashboard.milestones .flex-container-main,
+.page-content.repository.issue-list .ui.container {
+  min-width: 0;
+}
+
+.page-content.dashboard.issues .flex-container-main,
+.page-content.dashboard.milestones .flex-container-main,
+.page-content.repository.issue-list #issue-list {
+  box-sizing: border-box;
+  padding-right: 12px;
+}
+
+.page-content.dashboard.issues .flex-container-nav,
+.page-content.dashboard.milestones .flex-container-nav {
+  flex: 0 0 300px;
+}
+
+.page-content.dashboard.issues .flex-container-nav .filter.menu .item,
+.page-content.dashboard.milestones .flex-container-nav .filter.menu .item {
+  display: grid !important;
+  grid-template-columns: 165px max-content;
+  column-gap: 14px;
+  justify-content: flex-start !important;
+  align-items: center;
+}
+
+.page-content.dashboard.issues .flex-container-nav .filter.menu .item strong,
+.page-content.dashboard.milestones .flex-container-nav .filter.menu .item strong {
+  margin-left: 0 !important;
+  text-align: left;
+}
+
+#issue-list .octicon-issue-opened,
+.list-header-toggle .octicon-issue-opened,
+.issue-list-toolbar-left .octicon-issue-opened {
+  color: var(--issue-workflow-open) !important;
+}
+
+#issue-list .octicon-issue-closed,
+.list-header-toggle .octicon-issue-closed,
+.issue-list-toolbar-left .octicon-issue-closed {
+  color: var(--issue-workflow-closed) !important;
+}
+
+#issue-list .flex-item-trailing a.muted.flex-text-block {
+  font-weight: 600 !important;
+}
+
+#issue-list .flex-item-trailing a.muted.flex-text-block .octicon-comment {
+  color: var(--issue-workflow-comments) !important;
+}

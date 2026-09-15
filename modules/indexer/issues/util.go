@@ -110,6 +110,8 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		Comments:           comments,
 		IsPull:             issue.IsPull,
 		IsClosed:           issue.IsClosed,
+		IsFirstReview:      issue.IsFirstReview,
+		IsSecondReview:     issue.IsSecondReview,
 		IsArchived:         issue.Repo.IsArchived,
 		LabelIDs:           labels,
 		NoLabel:            len(labels) == 0,
