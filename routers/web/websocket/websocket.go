@@ -9,10 +9,8 @@ import (
 	"time"
 
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/services/context"
-	"gitea.dev/services/pubsub"
 	websocket_service "gitea.dev/services/websocket"
 
 	gitea_ws "github.com/coder/websocket"
@@ -30,23 +28,6 @@ const (
 	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
 )
 
-// filterLogout forwards a session-free logout only to the targeted connection
-// (its own session, or every session when SessionID is empty) and drops it for
-// the rest. Non-logout messages pass through untouched.
-func filterLogout(eventType string, eventDataBytes []byte, connSessionID string) []byte {
-	if eventType != websocket_service.EventLogout {
-		return eventDataBytes
-	}
-	var lm websocket_service.UserEventMessage[websocket_service.LogoutEventData]
-	if err := json.Unmarshal(eventDataBytes, &lm); err != nil {
-		return eventDataBytes
-	}
-	if lm.EventData.SessionID == "" || lm.EventData.SessionID == connSessionID {
-		return []byte(`{"eventType":"logout"}`)
-	}
-	return nil
-}
-
 func Serve(ctx *context.Context) {
 	// Answer plain GETs (health checks, crawlers) here; letting Accept reject them
 	// would log an error per request. Same reply it would have sent.
@@ -57,6 +38,15 @@ func Serve(ctx *context.Context) {
 		return
 	}
 
+	if !ctx.IsSigned {
+		rejectUnauthenticated(ctx)
+		return
+	}
+
+	// subscribe before the handshake, so no event can fire before we are listening
+	ch, cancel := websocket_service.SubscribeUser(ctx.Doer.ID)
+	defer cancel()
+
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, nil)
 	if err != nil {
 		log.Error("websocket: accept failed: %v", err)
@@ -64,14 +54,7 @@ func Serve(ctx *context.Context) {
 	}
 	defer conn.CloseNow() //nolint:errcheck // best-effort close
 
-	if !ctx.IsSigned {
-		_ = conn.Close(closeCodeUnauthenticated, "unauthenticated")
-		return
-	}
-
 	sessionID := ctx.Session.ID()
-	ch, cancel := pubsub.DefaultBroker.Subscribe(pubsub.UserTopic(ctx.Doer.ID))
-	defer cancel()
 
 	// Ping requires a concurrent reader to observe the pong frame; CloseRead
 	// spawns one and cancels its context when the peer goes away.
@@ -79,6 +62,27 @@ func Serve(ctx *context.Context) {
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 	pingTicker := time.NewTicker(pingInterval)
 	defer pingTicker.Stop()
+
+	send := func(brokerPayload []byte) error {
+		eventDataBytes := websocket_service.EventForSession(brokerPayload, sessionID)
+		if eventDataBytes == nil {
+			return nil
+		}
+		// bound the write so a stalled peer can't starve the ping ticker
+		writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout)
+		defer cancelWrite()
+		err := conn.Write(writeCtx, gitea_ws.MessageText, eventDataBytes)
+		if err != nil {
+			log.Trace("websocket: write failed: %v", err)
+		}
+		return err
+	}
+
+	for _, brokerPayload := range websocket_service.UserData(ctx, ctx.Doer) {
+		if err := send(brokerPayload); err != nil {
+			return
+		}
+	}
 
 	for {
 		select {
@@ -98,20 +102,19 @@ func Serve(ctx *context.Context) {
 			if !ok {
 				return
 			}
-			eventType, eventDataBytes := websocket_service.ExtractUserEventMessage(brokerPayload)
-			eventDataBytes = filterLogout(eventType, eventDataBytes, sessionID)
-			if eventDataBytes == nil {
-				continue
-			}
-			// Bound the write so a stalled/slow peer can't block this goroutine
-			// indefinitely and starve the ping ticker.
-			writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout)
-			err := conn.Write(writeCtx, gitea_ws.MessageText, eventDataBytes)
-			cancelWrite()
-			if err != nil {
-				log.Trace("websocket: write failed: %v", err)
+			if err := send(brokerPayload); err != nil {
 				return
 			}
 		}
 	}
+}
+
+// rejectUnauthenticated upgrades only to close, so clients stop reconnecting.
+func rejectUnauthenticated(ctx *context.Context) {
+	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, nil)
+	if err != nil {
+		log.Error("websocket: accept failed: %v", err)
+		return
+	}
+	_ = conn.Close(closeCodeUnauthenticated, "unauthenticated")
 }
