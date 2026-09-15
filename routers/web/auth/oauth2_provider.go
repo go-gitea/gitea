@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
@@ -20,6 +21,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
@@ -320,10 +322,20 @@ func AuthorizeOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
+	var oldScopes, newScopes []string
+	var addedScopes, removedScopes []string
+	scopeChanged := false
 
+	if grant != nil {
+		oldScopes = strings.Fields(grant.Scope)
+		newScopes = strings.Fields(form.Scope)
+		addedScopes, removedScopes = util.DiffSlice(oldScopes, newScopes)
+		scopeChanged = len(addedScopes) > 0 || len(removedScopes) > 0
+	}
 	// Redirect if user already granted access and the application is confidential or trusted otherwise
 	// I.e. always require authorization for untrusted public clients as recommended by RFC 6749 Section 10.2
-	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil {
+	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil &&
+		!scopeChanged {
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -345,8 +357,14 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	// check if additional scopes
-	ctx.Data["AdditionalScopes"] = oauth2_provider.GrantAdditionalScopes(form.Scope) != auth.AccessTokenScopeAll
+	// Check if the requested scopes differ from the existing grant.
+	ctx.Data["ScopeChanged"] = scopeChanged
+	if scopeChanged {
+		ctx.Data["OldScopes"] = oldScopes
+		ctx.Data["NewScopes"] = newScopes
+		ctx.Data["AddedScopes"] = addedScopes
+		ctx.Data["RemovedScopes"] = removedScopes
+	}
 
 	// show authorize page to grant access
 	ctx.Data["Application"] = app
@@ -432,12 +450,10 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 		audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, "oauth2_application", app.Name, "granted_scope", form.Scope)
 	} else if grant.Scope != form.Scope {
-		handleAuthorizeError(ctx, AuthorizeError{
-			State:            form.State,
-			ErrorDescription: "a grant exists with different scope",
-			ErrorCode:        ErrorCodeServerError,
-		}, form.RedirectURI)
-		return
+		if err := auth.UpdateGrantScope(ctx, grant, form.Scope); err != nil {
+			handleServerError(ctx, form.State, form.RedirectURI)
+			return
+		}
 	}
 
 	if len(form.Nonce) > 0 {
