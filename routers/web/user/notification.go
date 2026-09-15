@@ -7,7 +7,6 @@ import (
 	stdCtx "context"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
@@ -133,9 +132,14 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		ctx.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
 
+	var notificationIDs []int64
+	for _, n := range notifications {
+		notificationIDs = append(notificationIDs, n.ID)
+	}
 	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageType"] = pageType
 	ctx.Data["Notifications"] = notifications
+	ctx.Data["NotificationIDs"] = strings.Join(base.Int64sToStrings(notificationIDs), ",")
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 
@@ -193,28 +197,22 @@ func NotificationPurgePost(ctx *context.Context) {
 		ctx.ServerError("MarkAllRead", err)
 		return
 	}
-
-	ctx.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
+	ctx.JSONRedirect(setting.AppSubURL + "/notifications")
 }
 
 // NotificationPurgePagePost is a route for marking only the notifications on the current page as read
 func NotificationPurgePagePost(ctx *context.Context) {
-	for _, idStr := range ctx.FormStrings("notification_id") {
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			continue
-		}
-		if _, err := notifications.SetNotificationStatus(ctx, id, ctx.Doer, activities_model.NotificationStatusRead); err != nil {
-			ctx.ServerError("SetNotificationStatus", err)
-			return
-		}
-	}
-
-	prepareUserNotificationsData(ctx)
-	if ctx.Written() {
+	nl, err := activities_model.GetNotificationsByIDs(ctx, ctx.FormStringInt64s("notification_ids"), ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetNotificationsByIDs", err)
 		return
 	}
-	ctx.HTML(http.StatusOK, tplNotificationDiv)
+	_, err = notifications.SetManyNotificationStatuses(ctx, nl, ctx.Doer, activities_model.NotificationStatusRead)
+	if err != nil {
+		ctx.ServerError("SetManyNotificationStatuses", err)
+		return
+	}
+	ctx.JSONRedirect("")
 }
 
 // NotificationSubscriptions returns the list of subscribed issues
