@@ -126,7 +126,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
-			return fmt.Errorf("GetRemoteURL failed: %w", err)
+			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
 		}
 		// re-validate every sync, the allow/block lists may have changed since the mirror was added
 		switch remoteURL.URL.Scheme {
