@@ -43,9 +43,12 @@ var (
 		LimitSizeVagrant        int64
 
 		DefaultRPMSignEnabled bool
+
+		GoProxyURL string
 	}{
 		Enabled:              true,
 		LimitTotalOwnerCount: -1,
+		GoProxyURL:           "https://proxy.golang.org",
 	}
 )
 
