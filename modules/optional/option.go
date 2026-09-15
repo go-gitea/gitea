@@ -68,6 +68,15 @@ func ParseBool(s string) Option[bool] {
 	return Some(v)
 }
 
+// ParseInt64 get the corresponding optional.Option[int64] of a string using strconv.ParseInt
+func ParseInt64(s string) Option[int64] {
+	v, e := strconv.ParseInt(s, 10, 64)
+	if e != nil {
+		return None[int64]()
+	}
+	return Some(v)
+}
+
 func AssignPtrValue[T comparable](changed *bool, target, src *T) {
 	if src != nil && *src != *target {
 		*target = *src
