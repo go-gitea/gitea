@@ -22,6 +22,11 @@
 			{{ctx.Locale.Tr "settings.security"}}
 		</a>
 		{{end}}
+		{{if $.EnableSessionManager}}
+		<a class="{{if .PageIsSettingsActiveSessions}}active {{end}}item" href="{{AppSubUrl}}/user/settings/active_sessions">
+			{{ctx.Locale.Tr "settings.active_sessions"}}
+		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsBlockedUsers}}active {{end}}item" href="{{AppSubUrl}}/user/settings/blocked_users">
 			{{ctx.Locale.Tr "user.block.list"}}
 		</a>
