@@ -4,6 +4,7 @@
 package context
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -25,6 +26,18 @@ func TestRemoveSessionCookieHeader(t *testing.T) {
 	removeSessionCookieHeader(w)
 	assert.Len(t, w.Header().Values("Set-Cookie"), 1)
 	assert.Contains(t, "other=bar", w.Header().Get("Set-Cookie"))
+}
+
+func TestServerErrorFetchActionRespondsJSON(t *testing.T) {
+	setting.IsInTesting = true
+	req, _ := http.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Add("X-Gitea-Fetch-Action", "1")
+	resp := httptest.NewRecorder()
+	ctx := NewWebContext(NewBaseContextForTest(t, resp, req), nil, nil)
+	ctx.ServerError("test", errors.New("boom"))
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, resp.Header().Get("Content-Type"), "application/json")
+	assert.JSONEq(t, `{"errorMessage":"test, boom","renderFormat":"text"}`, resp.Body.String())
 }
 
 func TestRedirectToCurrentSite(t *testing.T) {
