@@ -479,7 +479,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return nil
 		}
 
-		now := timeutil.TimeStampNow() // lifecycle times use our clock, runner clocks may be skewed
+		now := timeutil.TimeStampNow()
 		// state.Result is not unspecified means the task is finished
 		if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 			if task.Status == StatusCancelling {

@@ -46,7 +46,7 @@ type JobStepState = {
   cursor: string|null,
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
-  firstLogTime?: number, // "Show seconds" baseline, a runner time like the lines it is subtracted from
+  firstLogTime?: number, // the step's first log line time, what "Show seconds" counts from
 }
 
 // one ANSI renderer per step, so an unterminated color carries between that step's lines only
