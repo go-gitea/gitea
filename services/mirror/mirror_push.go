@@ -180,14 +180,9 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		_, err := git.ParseRemoteAddressURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName)
-		if err == nil {
-			err := performPush(m.Repo, true)
-			if err != nil {
-				return fmt.Errorf("performPush(wiki) failed: %w", err)
-			}
-		} else if !errors.Is(err, util.ErrNotExist) {
-			log.Error("Failed to get wiki remote for %s: %v", m.Repo.WikiStorageRepo().LogString(), err)
+		err := performPush(m.Repo, true)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
 	}
 
