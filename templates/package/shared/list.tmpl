@@ -16,31 +16,33 @@
 {{end}}
 <div>
 	{{range .PackageDescriptors}}
-	<div class="flex-divided-list items-with-main">
-		<div class="item">
-			<div class="item-main">
-				<div class="item-title">
-					<a href="{{.VersionWebLink}}">{{.Package.Name}}</a>
-					<span class="label-list">
-						{{template "package/shared/visibility_badge" dict "Package" .Package "Owner" .Owner}}
-						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
-					</span>
-				</div>
-				<div class="item-body">
-					{{$timeStr := DateUtils.TimeSince .Version.CreatedUnix}}
-					{{$hasRepositoryAccess := false}}
-					{{if .Repository}}
-						{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
-					{{end}}
-					{{if $hasRepositoryAccess}}
-						{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink .Creator.GetDisplayName .Repository.Link .Repository.FullName}}
-					{{else}}
-						{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink .Creator.GetDisplayName}}
-					{{end}}
+	{{$hasAccess := true}}
+	{{if .Repository}}
+		{{$hasAccess = index $.RepositoryAccessMap .Repository.ID}}
+	{{end}}
+	{{if $hasAccess}}
+		<div class="flex-divided-list items-with-main">
+			<div class="item">
+				<div class="item-main">
+					<div class="item-title">
+						<a href="{{.VersionWebLink}}">{{.Package.Name}}</a>
+						<span class="label-list">
+							{{template "package/shared/visibility_badge" dict "Package" .Package "Owner" .Owner}}
+							<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
+						</span>
+					</div>
+					<div class="item-body">
+						{{$timeStr := DateUtils.TimeSince .Version.CreatedUnix}}
+						{{if .Repository}}
+							{{ctx.Locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink .Creator.GetDisplayName .Repository.Link .Repository.FullName}}
+						{{else}}
+							{{ctx.Locale.Tr "packages.published_by" $timeStr .Creator.HomeLink .Creator.GetDisplayName}}
+						{{end}}
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
+	{{end}}
 	{{else}}
 		{{if not .HasPackages}}
 			<div class="empty-placeholder">
