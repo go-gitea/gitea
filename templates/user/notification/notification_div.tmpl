@@ -16,11 +16,11 @@
 			{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 				<div class="flex-text-block">
 					{{if .NotificationIDs}}
-						<button class="ui mini button link-action" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_page_as_read"}}"
+						<button type="button" class="ui mini button link-action" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_page_as_read"}}"
 							data-url="{{AppSubUrl}}/notifications/purge-page?notification_ids={{.NotificationIDs}}"
 						>{{svg "octicon-check"}}</button>
 					{{end}}
-					<button type="submit" class="ui mini button primary link-action" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_all_as_read"}}"
+					<button type="button" class="ui mini button primary link-action" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_all_as_read"}}"
 						data-url="{{AppSubUrl}}/notifications/purge"
 					>{{svg "octicon-checklist"}}</button>
 				</div>
