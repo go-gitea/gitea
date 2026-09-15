@@ -16,7 +16,9 @@
 			{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 				<div class="flex-text-inline">
 					{{if .Notifications}}
-						<form action="{{AppSubUrl}}/notifications/purge-page?{{$.PageQueryParams}}" method="post">
+						<form class="form-fetch-action" action="{{AppSubUrl}}/notifications/purge-page?{{$.PageQueryParams}}" method="post"
+									data-fetch-sync="$body #notification_div"
+						>
 							{{range $one := .Notifications}}
 								{{if ne $one.Status $statusPinned}}
 									<input type="hidden" name="notification_id" value="{{$one.ID}}">

@@ -7,7 +7,6 @@ import (
 	stdCtx "context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -200,8 +199,7 @@ func NotificationPurgePost(ctx *context.Context) {
 
 // NotificationPurgePagePost is a route for marking only the notifications on the current page as read
 func NotificationPurgePagePost(ctx *context.Context) {
-	_ = ctx.Req.ParseForm()
-	for _, idStr := range ctx.Req.Form["notification_id"] {
+	for _, idStr := range ctx.FormStrings("notification_id") {
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			continue
@@ -212,11 +210,11 @@ func NotificationPurgePagePost(ctx *context.Context) {
 		}
 	}
 
-	redirect := setting.AppSubURL + "/notifications"
-	if pageType := ctx.FormString("type"); pageType != "" {
-		redirect += "?type=" + url.QueryEscape(pageType)
+	prepareUserNotificationsData(ctx)
+	if ctx.Written() {
+		return
 	}
-	ctx.Redirect(redirect, http.StatusSeeOther)
+	ctx.HTML(http.StatusOK, tplNotificationDiv)
 }
 
 // NotificationSubscriptions returns the list of subscribed issues
