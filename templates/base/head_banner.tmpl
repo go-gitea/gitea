@@ -9,3 +9,13 @@
 	</button>
 </div>
 {{end}}
+
+{{$requiredAdditionalInfoWarning := ctx.CurrentRequiredAdditionalInfoFailureWarning}}
+{{if $requiredAdditionalInfoWarning}}
+<div class="ui warning message web-banner-container">
+	<div class="render-content markup web-banner-content">
+		<strong>{{ctx.Locale.Tr "auth.oauth.required_additional_info_fetch_failed_banner.title"}}</strong>
+		<p>{{ctx.Locale.Tr "auth.oauth.required_additional_info_fetch_failed_banner.desc" $requiredAdditionalInfoWarning.SourceName (DateUtils.AbsoluteShort $requiredAdditionalInfoWarning.LastFailedUnix)}}</p>
+	</div>
+</div>
+{{end}}
