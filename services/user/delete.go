@@ -104,6 +104,10 @@ func deleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 		return fmt.Errorf("deleteBeans: %w", err)
 	}
 
+	if err := actions_model.DeleteRunnerGroupsByOwner(ctx, u.ID); err != nil {
+		return fmt.Errorf("DeleteRunnerGroupsByOwner: %w", err)
+	}
+
 	if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
 		return err
 	}
