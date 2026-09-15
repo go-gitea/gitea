@@ -1081,6 +1081,7 @@
   "packages.terraform.lock": "Læsa",
   "packages.terraform.unlock": "Aflæsa",
   "secrets.creation.description": "Lýsing",
+  "audit.details": "Nánar",
   "actions.runners.id": "Auðkenni",
   "actions.runners.name": "Heiti",
   "actions.runners.owner_type": "Tegund",
