@@ -1,8 +1,19 @@
 #!/usr/bin/env node
 import {initWasm, Resvg} from '@resvg/resvg-wasm';
 import {optimize} from 'svgo';
-import {readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
+
+async function generateMailIcon(icon: string, name: string, color: string) {
+  await generate(
+    (await readFile(
+      new URL(import.meta.resolve(`${icon.replace('octicon-', '@primer/octicons/build/svg/')}.svg`)),
+      'utf8',
+    )).replace('<svg ', `<svg fill="${color}" `),
+    `../services/mailer/icons/${name}.png`,
+    {size: 48},
+  );
+}
 
 async function generate(svg: string, path: string, {size, bg}: {size: number, bg?: boolean}) {
   const outputFile = new URL(path, import.meta.url);
@@ -41,8 +52,13 @@ async function main() {
   const logoSvg = await readFile(new URL('../assets/logo.svg', import.meta.url), 'utf8');
   const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
   await initWasm(await readFile(new URL(import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm'))));
+  await mkdir(new URL('../services/mailer/icons/', import.meta.url), {recursive: true});
 
   await Promise.all([
+    generateMailIcon('octicon-check-circle-fill-16', 'status-success', '#2da44e'),
+    generateMailIcon('octicon-x-circle-fill-16', 'status-failure', '#e5534b'),
+    generateMailIcon('octicon-stop-16', 'status-cancelled', '#8c959f'),
+    generateMailIcon('octicon-skip-16', 'status-skipped', '#8c959f'),
     generate(logoSvg, '../public/assets/img/logo.svg', {size: 32}),
     generate(logoSvg, '../public/assets/img/logo.png', {size: 512}),
     generate(faviconSvg, '../public/assets/img/favicon.svg', {size: 32}),

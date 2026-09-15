@@ -7,22 +7,31 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddDeletionAllowlistToBranchProtection(_ context.Context, x base.EngineMigration) error {
-	type ProtectedBranch struct {
-		CanDelete                   bool    `xorm:"NOT NULL DEFAULT false"`
-		EnableDeletionAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
-		DeletionAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
-	}
+type AuditEvent struct {
+	ID               int64  `xorm:"pk autoincr"`
+	Action           string `xorm:"INDEX NOT NULL"`
+	ActorID          int64  `xorm:"INDEX NOT NULL"`
+	ActorName        string
+	ActorCredential  string
+	ImpersonatorID   int64 `xorm:"INDEX"`
+	ImpersonatorName string
+	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`
+	ScopeType        string `xorm:"INDEX INDEX(scope) NOT NULL"`
+	ScopeName        string
+	Origin           string `xorm:"INDEX NOT NULL"`
+	Message          string
+	Metadata         string `xorm:"LONGTEXT JSON"`
+	IPAddress        string
+	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: true,
-		IgnoreIndices:    true,
-	}, new(ProtectedBranch))
-	return err
+func (*AuditEvent) TableName() string {
+	return "audit_event"
+}
+
+func AddAuditEventTable(_ context.Context, x base.EngineMigration) error {
+	return x.Sync(new(AuditEvent))
 }

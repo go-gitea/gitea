@@ -4,48 +4,45 @@
 package v28
 
 import (
+	"context"
+	"slices"
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/xorm/schemas"
 )
 
-type protectedBranchBeforeV353 struct {
-	ID         int64  `xorm:"pk autoincr"`
-	RepoID     int64  `xorm:"UNIQUE(s)"`
-	BranchName string `xorm:"UNIQUE(s)"`
-}
-
-func (protectedBranchBeforeV353) TableName() string { return "protected_branch" }
-
-func TestAddDeletionAllowlistToBranchProtection(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(protectedBranchBeforeV353))
+func TestAddAuditEventTable(t *testing.T) {
+	x, deferable := migrationtest.PrepareTestEnv(t, 0)
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	_, err := x.Insert(&protectedBranchBeforeV353{RepoID: 1, BranchName: "release/*"})
-	require.NoError(t, err)
-	require.NoError(t, AddDeletionAllowlistToBranchProtection(t.Context(), x))
+	require.NoError(t, AddAuditEventTable(t.Context(), x))
 
-	type protectedBranchAfterV353 struct {
-		CanDelete                   bool
-		EnableDeletionAllowlist     bool
-		DeletionAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistDeployKeys bool
+	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "audit_event")
+	require.NoError(t, err)
+	for _, columns := range [][]string{
+		{"action"},
+		{"actor_id"},
+		{"scope_id", "scope_type"},
+		{"scope_type"},
+		{"origin"},
+		{"timestamp_unix"},
+	} {
+		assert.True(t, hasAuditIndexWithColumns(indexes, columns), "missing index on %v", columns)
 	}
+}
 
-	var branch protectedBranchAfterV353
-	has, err := x.Table("protected_branch").Where("repo_id = ? AND branch_name = ?", 1, "release/*").Get(&branch)
-	require.NoError(t, err)
-	require.True(t, has)
-	assert.False(t, branch.CanDelete)
-	assert.False(t, branch.EnableDeletionAllowlist)
-	assert.Nil(t, branch.DeletionAllowlistUserIDs)
-	assert.Nil(t, branch.DeletionAllowlistTeamIDs)
-	assert.False(t, branch.DeletionAllowlistDeployKeys)
+func hasAuditIndexWithColumns(indexes map[string]*schemas.Index, columns []string) bool {
+	for _, index := range indexes {
+		if slices.Equal(index.Cols, columns) {
+			return true
+		}
+	}
+	return false
 }

@@ -30,17 +30,17 @@ Still needs to figure out:
 			<input name="search" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
 		</div>
 		<div class="branch-tag-tab">
-			<a class="branch-tag-item reference column muted active" href="#" data-target="#branch-list">
+			<button type="button" class="btn branch-tag-item reference column active" data-target="#branch-list">
 				{{svg "octicon-git-branch" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.branches"}}
-			</a>
-			<a class="branch-tag-item reference column muted" href="#" data-target="#tag-list">
+			</button>
+			<button type="button" class="btn branch-tag-item reference column" data-target="#tag-list">
 				{{svg "octicon-tag" 16 "tw-mr-1"}} {{ctx.Locale.Tr "repo.tags"}}
-			</a>
+			</button>
 		</div>
 		<div class="branch-tag-divider"></div>
 		<div id="branch-list" class="scrolling menu reference-list-menu">
 			{{if or .Reference (not .Issue)}}
-				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
+				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong>{{ctx.Locale.Tr "repo.clear_ref"}}</strong></div>
 			{{end}}
 			{{range .Branches}}
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector" title="{{.}}">{{.}}</div>
@@ -50,7 +50,7 @@ Still needs to figure out:
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
 			{{if or .Reference (not .Issue)}}
-				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
+				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong>{{ctx.Locale.Tr "repo.clear_ref"}}</strong></div>
 			{{end}}
 			{{range .Tags}}
 				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>
