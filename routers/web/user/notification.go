@@ -132,14 +132,17 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		ctx.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
 
-	var notificationIDs []int64
+	var unreadNotificationIDs []int64
 	for _, n := range notifications {
-		notificationIDs = append(notificationIDs, n.ID)
+		if n.Status == activities_model.NotificationStatusUnread {
+			unreadNotificationIDs = append(unreadNotificationIDs, n.ID)
+		}
 	}
+
 	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageType"] = pageType
 	ctx.Data["Notifications"] = notifications
-	ctx.Data["NotificationIDs"] = strings.Join(base.Int64sToStrings(notificationIDs), ",")
+	ctx.Data["CurUnreadNotificationIDs"] = strings.Join(base.Int64sToStrings(unreadNotificationIDs), ",")
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 
@@ -202,7 +205,7 @@ func NotificationPurgePost(ctx *context.Context) {
 
 // NotificationPurgePagePost is a route for marking only the notifications on the current page as read
 func NotificationPurgePagePost(ctx *context.Context) {
-	nl, err := activities_model.GetNotificationsByIDs(ctx, ctx.FormStringInt64s("notification_ids"), ctx.Doer.ID)
+	nl, err := activities_model.GetNotificationsByIDs(ctx, ctx.FormStringInt64s("ids"), ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetNotificationsByIDs", err)
 		return
