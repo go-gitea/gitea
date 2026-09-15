@@ -516,6 +516,34 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 				cm.NewRef = fmt.Sprint(comment.Meta["NewRef"])
 				cm.Content = ""
 			}
+		case issues_model.CommentTypeLabel:
+			// A label event names its label; resolve it to the one this migration
+			// created. label_id 0 renders as nothing and is what `gitea doctor`
+			// deletes as inconsistency, so a name with no local label (deleted
+			// upstream, never seen by CreateLabels) drops the event instead.
+			if name, ok := comment.Meta["LabelName"].(string); ok {
+				if lb, ok := g.labels[name]; ok {
+					cm.LabelID = lb.ID
+				}
+			}
+			if cm.LabelID == 0 {
+				continue
+			}
+		case issues_model.CommentTypeMilestone:
+			// Likewise by title. MilestoneID alone renders as "added to milestone X",
+			// OldMilestoneID alone as "removed from X".
+			if title, ok := comment.Meta["MilestoneTitle"].(string); ok {
+				if id := g.milestones[title]; id != 0 {
+					if removed, _ := comment.Meta["Removed"].(bool); removed {
+						cm.OldMilestoneID = id
+					} else {
+						cm.MilestoneID = id
+					}
+				}
+			}
+			if cm.MilestoneID == 0 && cm.OldMilestoneID == 0 {
+				continue
+			}
 		case issues_model.CommentTypeMergePull:
 			cm.Content = ""
 		case issues_model.CommentTypePRScheduledToAutoMerge, issues_model.CommentTypePRUnScheduledToAutoMerge:
