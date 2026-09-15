@@ -8,6 +8,8 @@
 			{{template "shared/variables/variable_list" .}}
 		{{else if eq .PageType "general"}}
 			{{template "repo/settings/actions_general" .}}
+		{{else if eq .PageType "schedules"}}
+			{{template "shared/actions/schedule_list" .}}
 		{{end}}
 	</div>
 {{template "repo/settings/layout_footer" .}}

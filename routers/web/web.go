@@ -733,6 +733,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
 			addSettingsScopedWorkflowsRoutes()
+			m.Get("/schedules", shared_actions.Schedules)
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -904,6 +905,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
 			addSettingsScopedWorkflowsRoutes()
+			m.Get("/schedules", shared_actions.Schedules)
 		})
 	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
 	// ***** END: Admin *****
@@ -1060,6 +1062,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
 					addSettingsScopedWorkflowsRoutes()
+					m.Get("/schedules", shared_actions.Schedules)
 				}, actions.MustEnableActions)
 
 				m.Get("/audit_logs", org_setting.ViewAuditLogs)
@@ -1267,6 +1270,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			m.Get("/schedules", shared_actions.Schedules)
 			m.Group("/general", func() {
 				m.Group("/collaborative_owner", func() {
 					m.Post("/add", repo_setting.AddCollaborativeOwner)
