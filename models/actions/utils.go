@@ -87,7 +87,7 @@ func calculateDuration(started, stopped timeutil.TimeStamp, status Status, fallb
 		}
 		return end.AsTime().Sub(s)
 	}
-	return max(timeSince(s), 0).Truncate(time.Second) // a runner clock stepped forward mid-task puts started ahead of us
+	return max(timeSince(s), 0).Truncate(time.Second)
 }
 
 // best effort function to convert an action schedule to action run, to be used in GenerateGiteaContext

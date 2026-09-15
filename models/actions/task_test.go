@@ -391,7 +391,7 @@ func TestUpdateTaskByStateIsAtomic(t *testing.T) {
 	assert.Equal(t, StatusSuccess, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status)
 }
 
-func TestTaskTimesConvertFromRunnerClockMinuteBehind(t *testing.T) {
+func TestRunnerClockSkew(t *testing.T) {
 	startTask := func(t *testing.T, name string) *ActionTask {
 		t.Helper()
 		require.NoError(t, unittest.PrepareTestDatabase())

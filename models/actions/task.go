@@ -72,7 +72,7 @@ func (task *ActionTask) Duration() time.Duration {
 	return calculateDuration(task.serverTime(task.Started), task.serverTime(task.Stopped), task.Status, task.Updated)
 }
 
-// serverTime converts a task or step timestamp from the runner clock to ours, Started being runner-reported and Created our claim time of the same moment
+// serverTime converts runner time to ours, Started and Created being the task start on each clock
 func (task *ActionTask) serverTime(timestamp timeutil.TimeStamp) timeutil.TimeStamp {
 	if timestamp.IsZero() {
 		return timestamp
