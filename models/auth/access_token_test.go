@@ -5,14 +5,51 @@ package auth_test
 
 import (
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestShouldPersistTokenUse(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name string
+		last timeutil.TimeStamp
+		want bool
+	}{
+		{
+			name: "fresh, skip write",
+			last: timeutil.TimeStamp(now.Add(-5 * time.Second).Unix()),
+			want: false,
+		},
+		{
+			name: "exactly at interval, write",
+			last: timeutil.TimeStamp(now.Add(-auth_model.AccessTokenUseInterval).Unix()),
+			want: true,
+		},
+		{
+			name: "stale, write",
+			last: timeutil.TimeStamp(now.Add(-2 * auth_model.AccessTokenUseInterval).Unix()),
+			want: true,
+		},
+		{
+			name: "zero (never used), write",
+			last: 0,
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, auth_model.ShouldPersistTokenUse(tt.last, now))
+		})
+	}
+}
 
 func TestNewAccessToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
