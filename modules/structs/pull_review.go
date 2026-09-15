@@ -83,6 +83,24 @@ type CreatePullReviewOptions struct {
 	Comments []CreatePullReviewComment `json:"comments"`
 }
 
+// EditPullReviewOptions are options to edit a review's body without changing its state.
+type EditPullReviewOptions struct {
+	Body *string `json:"body"`
+}
+
+// EditPullReviewCommentOptions are options to edit a code review comment.
+type EditPullReviewCommentOptions struct {
+	Body *string `json:"body"`
+}
+
+// MarkPullReviewFileOptions identifies a changed file in the current pull request.
+type MarkPullReviewFileOptions struct {
+	// required: true
+	Path string `json:"path" binding:"Required"`
+	// Optional full head commit SHA; a mismatch returns HTTP 409.
+	CommitID string `json:"commit_id"`
+}
+
 // CreatePullReviewComment represent a review comment for creation api
 type CreatePullReviewComment struct {
 	// the tree path
