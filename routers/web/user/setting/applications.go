@@ -8,12 +8,14 @@ import (
 	"errors"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -123,6 +125,7 @@ func ApplicationsPost(ctx *context.Context) {
 	case err != nil:
 		ctx.ServerError("NewAccessTokenFromForm", err)
 	default:
+		audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.Doer, "token", t.Name, "token_scope", t.Scope)
 		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 		ctx.Flash.Info(t.Token)
 		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
@@ -131,9 +134,14 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := auth_model.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	t, err := auth_model.GetAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
+	if err != nil {
+		ctx.Flash.Error("GetAccessTokenByID: " + err.Error())
+	} else if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.Doer, "token", t.Name)
+
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 
