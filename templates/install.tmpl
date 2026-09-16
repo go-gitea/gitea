@@ -150,7 +150,7 @@
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label>{{ctx.Locale.Tr "install.enable_update_checker"}}</label>
-							<input name="enable_update_checker" type="checkbox">
+							<input name="enable_update_checker" type="checkbox" {{if .enable_update_checker}}checked{{end}}>
 						</div>
 						<span class="help">{{ctx.Locale.Tr "install.enable_update_checker_helper"}}</span>
 					</div>
