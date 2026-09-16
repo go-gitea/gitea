@@ -33,6 +33,8 @@ var SessionConfig = struct {
 	Domain string
 	// SameSite declares if your cookie should be restricted to a first-party or same-site context. Valid strings are "none", "lax", "strict". Default is "lax"
 	SameSite http.SameSite
+	// EnableSessionManager controls whether the session indexer and /user/settings/active_sessions page are enabled.
+	EnableSessionManager bool
 }{
 	CookieName:  "i_like_gitea",
 	Gclifetime:  86400,
@@ -66,6 +68,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
 	SessionConfig.Domain = sec.Key("DOMAIN").String()
+	SessionConfig.EnableSessionManager = sec.Key("ENABLE_SESSION_MANAGER").MustBool(false)
 	samesiteString := sec.Key("SAME_SITE").In("lax", []string{"none", "lax", "strict"})
 	switch strings.ToLower(samesiteString) {
 	case "none":
