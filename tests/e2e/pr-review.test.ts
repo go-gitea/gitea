@@ -1,4 +1,4 @@
-import {test, expect} from '@playwright/test';
+import {test, expect, type Page} from '@playwright/test';
 import {
   apiAddCollaborator,
   apiCreateFiles,
@@ -11,7 +11,7 @@ import {
   randomString,
 } from './utils.ts';
 
-test('pr review flow', async ({page, request}) => {
+test('pr review flow', async ({browser, page, request}) => {
   const poster = `rv-poster-${randomString(8)}`;
   const reviewer = `rv-reviewer-${randomString(8)}`;
   const officialReviewer = `rv-official-${randomString(8)}`;
@@ -42,15 +42,22 @@ test('pr review flow', async ({page, request}) => {
   const prIndex = await apiCreatePR(request, poster, repoName, 'feat', 'main', 'review test', {headers: posterHeaders});
   const pullUrl = `/${poster}/${repoName}/pulls/${prIndex}`;
 
+  const loginInNewContext = async (username: string) => {
+    const userPage = await (await browser.newContext()).newPage();
+    await loginUser(userPage, username);
+    return userPage;
+  };
+
   const reRequestAndApprove = async (
+    userPage: Page,
     username: string,
     approvalTooltip: string,
     pendingStateClass: string,
     official: boolean,
   ) => {
-    await page.goto(pullUrl);
-    const reviewerItem = page.locator('.issue-sidebar-combo .ui.relaxed.list > .item', {
-      has: page.locator(`a[href="/${username}"]`),
+    await userPage.goto(pullUrl);
+    const reviewerItem = userPage.locator('.issue-sidebar-combo .ui.relaxed.list > .item', {
+      has: userPage.locator(`a[href="/${username}"]`),
     });
     const reviewState = reviewerItem.locator('span[data-tooltip-content]');
     await expect(reviewState).toHaveAttribute('data-tooltip-content', approvalTooltip);
@@ -97,20 +104,17 @@ test('pr review flow', async ({page, request}) => {
   await replyForm.getByRole('button', {name: 'Reply', exact: true}).click();
   await expect(conversation.locator('.comment-body')).toContainText(['inline to reply to', 'my reply body']);
 
-  await page.goto('about:blank');
-  await page.context().clearCookies();
-  await loginUser(page, reviewer);
-  await page.goto(`${pullUrl}/files`);
-  await page.locator('#review-box .js-btn-review').click();
-  const panel = page.locator('.review-box-panel');
+  const reviewerPage = await loginInNewContext(reviewer);
+  await reviewerPage.goto(`${pullUrl}/files`);
+  await reviewerPage.locator('#review-box .js-btn-review').click();
+  const panel = reviewerPage.locator('.review-box-panel');
   await panel.locator('textarea[name="content"]').fill(`First approval from ${reviewer}`);
   await panel.getByRole('button', {name: 'Approve', exact: true}).click();
-  await expect(page.locator('.timeline-item').filter({hasText: `First approval from ${reviewer}`})).toBeVisible();
+  await expect(reviewerPage.locator('.timeline-item').filter({hasText: `First approval from ${reviewer}`})).toBeVisible();
 
-  await reRequestAndApprove(reviewer, 'Uncounted approval', 'tw-text-text-light', false);
+  await reRequestAndApprove(reviewerPage, reviewer, 'Uncounted approval', 'tw-text-text-light', false);
 
-  await page.goto('about:blank');
-  await page.context().clearCookies();
-  await loginUser(page, officialReviewer);
-  await reRequestAndApprove(officialReviewer, 'Approved', 'tw-text-yellow', true);
+  const officialPage = await loginInNewContext(officialReviewer);
+  await reRequestAndApprove(officialPage, officialReviewer, 'Approved', 'tw-text-yellow', true);
+  await Promise.all([reviewerPage.context().close(), officialPage.context().close()]);
 });
