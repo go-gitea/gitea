@@ -324,6 +324,12 @@ a.silenced:hover {
   text-decoration-line: none;
 }
 
+a.disabled {
+  cursor: default;
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
 a.label,
 .ui .menu a,
 .ui.cards a.card {
@@ -655,18 +661,6 @@ overflow-menu .ui.label:empty {
   padding-top: 0;
   padding-bottom: 0;
   vertical-align: top;
-}
-
-.lines-code pre {
-  background-color: inherit;
-  margin: 0;
-  padding: 0 !important;
-}
-
-.lines-code pre li {
-  display: block;
-  width: calc(100% - 1ch);
-  padding-left: 1ch;
 }
 
 .lines-escape {
