@@ -31,12 +31,6 @@ make test-frontend
 pnpm exec vitest <path-filter>
 ```
 
-### Recorded API responses
-
-The repository migration tests in `services/migrations/` replay API responses recorded
-under `_mock_data/`, so they run offline. To re-record, delete the test's `_mock_data`
-directory, run the test with the credential variables it reads, and update its assertions.
-
 ## Integration tests
 
 Integration tests exercise Gitea against a real database. They live in
@@ -116,6 +110,12 @@ List the available job names, then run a single one:
 gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
 gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
+
+## Recorded API responses
+
+Repository migration unit and integration tests replay API responses recorded under
+`_mock_data/`, so they run offline. To re-record, delete the test's `_mock_data`
+directory, run the test with the credential variables it reads, and update its assertions.
 
 ## End-to-end tests
 
