@@ -115,7 +115,7 @@ func IsValidBadgeSlug(slug string) bool {
 
 func IsEmailAddressValid(email string) bool {
 	if strings.ContainsFunc(email, func(r rune) bool { return r >= utf8.RuneSelf }) {
-		// At the moment, we don't support UTF8 email address. To support it, need to correctly handle IDN/puycode
+		// At the moment, we don't support UTF8 email address. To support it, need to correctly handle IDN/punycode
 		return false
 	}
 	addr, err := mail.ParseAddress(email)
