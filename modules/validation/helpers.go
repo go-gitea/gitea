@@ -4,6 +4,7 @@
 package validation
 
 import (
+	"net/mail"
 	"net/url"
 	"regexp"
 	"slices"
@@ -111,11 +112,14 @@ func IsValidBadgeSlug(slug string) bool {
 	return vars.validBadgeSlugPattern.MatchString(slug) && !vars.invalidBadgeSlugPattern.MatchString(slug)
 }
 
-// IsValidEmail checks if an email is valid.
-// The validation is intentionally loose to support local and intranet email addresses
-// (like admin@localhost) without requiring a top-level domain. This ensures Gitea
-// remains fully functional in offline and self-hosted environments.
 func IsValidEmail(email string) bool {
-	vars := globalVars()
-	return vars.validEmailPattern.MatchString(email)
+	if !IsEmailCharSupported(email) || strings.HasPrefix(email, "-") {
+		return false
+	}
+	_, err := mail.ParseAddress(email)
+	return err == nil
+}
+
+func IsEmailCharSupported(email string) bool {
+	return globalVars().validEmailPattern.MatchString(email)
 }

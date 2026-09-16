@@ -99,10 +99,8 @@ func AddBindingRules(b *binding.Binder) {
 		return ruleGlobPattern(ctx, f)
 	})
 
-	// Register a custom "Email" binding rule to ensure web forms use the same
-	// validation logic as the core models. This intentionally allows local/intranet
-	// email addresses without a top-level domain.
-	b.AddRuleNonZero("Email", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+	b.ClearRules("Email")
+	b.AddRuleNonZero("Email", func(_ context.Context, f *binding.ValidationField) *binding.Error {
 		if !IsValidEmail(f.ValueMustString()) {
 			return newFieldError(f.StructField, binding.ERR_EMAIL, "Email")
 		}

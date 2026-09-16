@@ -21,9 +21,16 @@ type (
 		URL          string `form:"ValidUrl" binding:"ValidUrl"`
 		GlobPattern  string `form:"GlobPattern" binding:"GlobPattern"`
 		RegexPattern string `form:"RegexPattern" binding:"RegexPattern"`
+		Email        string `form:"Email" binding:"Email"`
 	}
 )
 
 func performValidationTest(t *testing.T, testCase validationTestCase) {
 	assert.Equal(t, testCase.expectedErrors, Binder().Validate(t.Context(), testCase.data))
+}
+
+func TestEmailValidation(t *testing.T) {
+	assert.Nil(t, Binder().Validate(t.Context(), &TestForm{Email: "b@a"}))
+	assert.Equal(t, BindingErrors{{FieldNames: []string{"Email"}, Classification: "EmailError", Message: "Email"}},
+		Binder().Validate(t.Context(), &TestForm{Email: "abc"}))
 }

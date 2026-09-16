@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/validation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -151,6 +152,9 @@ func TestListEmails(t *testing.T) {
 
 func TestEmailAddressValidate(t *testing.T) {
 	kases := map[string]error{
+		"":                               user_model.ErrEmailInvalid{""},
+		"root@localhost":                 nil,
+		"@a":                             user_model.ErrEmailInvalid{"@a"},
 		"abc@gmail.com":                  nil,
 		"132@hotmail.com":                nil,
 		"1-3-2@test.org":                 nil,
@@ -174,6 +178,7 @@ func TestEmailAddressValidate(t *testing.T) {
 		`first|last@iana.org`:            nil,
 		`first}last@iana.org`:            nil,
 		`first~last@iana.org`:            nil,
+		`first,last@iana.org`:            user_model.ErrEmailInvalid{`first,last@iana.org`},
 		`first;last@iana.org`:            user_model.ErrEmailCharIsNotSupported{`first;last@iana.org`},
 		".233@qq.com":                    user_model.ErrEmailInvalid{".233@qq.com"},
 		"!233@qq.com":                    nil,
@@ -202,6 +207,7 @@ func TestEmailAddressValidate(t *testing.T) {
 	for kase, err := range kases {
 		t.Run(kase, func(t *testing.T) {
 			assert.Equal(t, err, user_model.ValidateEmail(kase))
+			assert.Equal(t, err == nil, validation.IsValidEmail(kase))
 		})
 	}
 }

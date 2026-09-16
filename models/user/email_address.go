@@ -7,7 +7,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"net/mail"
 	"strings"
 	"time"
 
@@ -493,23 +492,13 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 
 // validateEmailBasic checks whether the email complies with the rules
 func validateEmailBasic(email string) error {
-	if len(email) == 0 {
-		return ErrEmailInvalid{email}
+	if validation.IsValidEmail(email) {
+		return nil
 	}
-
-	if !validation.IsValidEmail(email) {
+	if email != "" && !validation.IsEmailCharSupported(email) {
 		return ErrEmailCharIsNotSupported{email}
 	}
-
-	if email[0] == '-' {
-		return ErrEmailInvalid{email}
-	}
-
-	if _, err := mail.ParseAddress(email); err != nil {
-		return ErrEmailInvalid{email}
-	}
-
-	return nil
+	return ErrEmailInvalid{email}
 }
 
 // validateEmailDomain checks whether the email domain is allowed or blocked
