@@ -28,7 +28,7 @@ func ReadAtMost(r io.Reader, buf []byte) (n int, err error) {
 }
 
 // ReadWithLimit reads at most "limit" bytes from r into buf.
-// If EOF or ErrUnexpectedEOF occurs while reading, err will be nil.
+// If EOF occurs while reading, err will be nil.
 func ReadWithLimit(r io.Reader, n int) (buf []byte, err error) {
 	return readWithLimit(r, 4*1024, n)
 }
@@ -50,12 +50,11 @@ func readWithLimit(r io.Reader, batch, limit int) ([]byte, error) {
 		if res.Len()+batch > limit {
 			bufTmp = bufFix[:limit-res.Len()]
 		}
-		n, err := io.ReadFull(r, bufTmp)
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			eof = true
-		} else if err != nil {
+		n, err := ReadAtMost(r, bufTmp)
+		if err != nil {
 			return nil, err
 		}
+		eof = n != len(bufTmp)
 		if _, err = res.Write(bufTmp[:n]); err != nil {
 			return nil, err
 		}
