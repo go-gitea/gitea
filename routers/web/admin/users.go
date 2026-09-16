@@ -422,6 +422,7 @@ func NewBotTokenPost(ctx *context.Context) {
 	case err != nil:
 		ctx.ServerError("NewAccessTokenFromForm", err)
 	default:
+		audit.Record(ctx, audit_model.UserAccessTokenAdd, u, "token", t.Name, "token_scope", t.Scope)
 		bat, err := newBotAccessTokensData(ctx, u)
 		if err != nil {
 			return
@@ -453,9 +454,13 @@ func DeleteBotToken(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), u.ID); err != nil {
+	t, err := auth.GetAccessTokenByID(ctx, ctx.FormInt64("id"), u.ID)
+	if err != nil {
+		ctx.Flash.Error("GetAccessTokenByID: " + err.Error())
+	} else if err := auth.DeleteAccessTokenByID(ctx, t.ID, u.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.UserAccessTokenRemove, u, "token", t.Name)
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 	ctx.JSONRedirect(redirect)

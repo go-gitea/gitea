@@ -9,9 +9,12 @@ import (
 	"strconv"
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -191,6 +194,7 @@ func TestAdminBotUser(t *testing.T) {
 	})
 
 	t.Run("TokenScope", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
 		tokenURL := fmt.Sprintf("/-/admin/users/%d/access_tokens", bot.ID)
 
@@ -235,6 +239,15 @@ func TestAdminBotUser(t *testing.T) {
 			"id": strconv.FormatInt(token.ID, 10),
 		}), http.StatusOK)
 		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
+
+		// minting and revoking a bot's token are audited against the bot, with the admin as the actor
+		for _, action := range []audit_model.Action{audit_model.UserAccessTokenAdd, audit_model.UserAccessTokenRemove} {
+			events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{Action: action, ScopeType: audit_model.ScopeUser, ScopeID: bot.ID})
+			require.NoError(t, err)
+			require.Len(t, events, 1, "audit events for %s", action)
+			assert.Equal(t, int64(1), events[0].ActorID)
+			assert.Equal(t, "ci", audit_model.DecodeMetadata(events[0].Metadata)["token"])
+		}
 	})
 
 	t.Run("APIRejectsAuthSource", func(t *testing.T) {
