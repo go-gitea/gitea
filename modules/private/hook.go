@@ -83,7 +83,7 @@ type HookProcReceiveRefResult struct {
 	HeadBranch        string
 }
 
-func newInternalRequestAPIForHooks(ctx context.Context, hookName, ownerName, repoName string, opts HookOptions) *httplib.Request {
+func newInternalRequestAPIForHooks(ctx context.Context, hookName, ownerName, repoName string, opts HookOptions) *httplib.ClientRequest {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/%s/%s/%s", hookName, url.PathEscape(ownerName), url.PathEscape(repoName))
 	req := newInternalRequestAPI(ctx, reqURL, "POST", opts)
 	// This "timeout" applies to http.Client's timeout: A Timeout of zero means no timeout.

@@ -46,7 +46,7 @@ func (c *Client) CheckPassword(ctx context.Context, pw string, padding bool) (in
 	enc := hex.EncodeToString(sha.Sum(nil))
 	prefix, suffix := enc[:5], enc[5:]
 
-	req := httplib.NewRequest(fmt.Sprintf("%s%s", passwordURL, prefix), http.MethodGet)
+	req := httplib.NewClientRequest(http.MethodGet, fmt.Sprintf("%s%s", passwordURL, prefix))
 	req.SetContext(ctx).SetTransport(c.mockTransport)
 	req.Header("User-Agent", "Gitea "+setting.AppVer)
 	if padding {
@@ -59,7 +59,7 @@ func (c *Client) CheckPassword(ctx context.Context, pw string, padding bool) (in
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return -1, fmt.Errorf("unexpected status code %d from HIBP API", resp.StatusCode)
+		return -1, fmt.Errorf("unexpected status code %d from HaveIBeenPwned API", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize+1))
@@ -67,7 +67,7 @@ func (c *Client) CheckPassword(ctx context.Context, pw string, padding bool) (in
 		return -1, err
 	}
 	if len(body) > maxResponseSize {
-		return -1, fmt.Errorf("response from HIBP API exceeds %d bytes", maxResponseSize)
+		return -1, fmt.Errorf("response from HaveIBeenPwned API exceeds %d bytes", maxResponseSize)
 	}
 
 	for pair := range strings.SplitSeq(string(body), "\n") {
