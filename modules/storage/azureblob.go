@@ -44,6 +44,7 @@ type azureBlobObject struct {
 	storage *AzureBlobStorage
 	blobURL *url.URL
 	info    *objectFileInfo
+	etag    string
 	offset  int64
 	closed  bool
 
@@ -67,7 +68,7 @@ func (a *azureBlobObject) Read(p []byte) (int, error) {
 	}
 	for retry := 0; ; retry++ {
 		if a.respBody == nil {
-			reqHeader := http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}}
+			reqHeader := http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}, "If-Match": {a.etag}}
 			_, body, err := a.storage.do(a.storage.ctx, http.MethodGet, a.blobURL, reqHeader, nil)
 			if err != nil {
 				return 0, err
@@ -172,7 +173,7 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 func (a *AzureBlobStorage) url(name string, query url.Values) *url.URL {
 	u := *a.endpoint
 	u.Path = strings.TrimSuffix(u.Path, "/") + "/" + name
-	u.RawQuery = query.Encode()
+	u.RawQuery = strings.ReplaceAll(query.Encode(), "+", "%20") // Azure doesn't decode "+" as space
 	return &u
 }
 
@@ -209,10 +210,11 @@ func (a *AzureBlobStorage) signRequest(req *http.Request) string {
 	for _, key := range slices.Sorted(maps.Keys(msHeaders)) {
 		lines = append(lines, msHeaders[key])
 	}
-	lines = append(lines, "/"+a.cfg.AccountName+req.URL.EscapedPath())
+	lines = append(lines, "/"+a.cfg.AccountName+req.URL.EscapedPath()) // encoded as sent, not decoded
 	query := req.URL.Query()
 	for _, key := range slices.Sorted(maps.Keys(query)) {
-		lines = append(lines, strings.ToLower(key)+":"+strings.Join(slices.Sorted(slices.Values(query[key])), ","))
+		slices.Sort(query[key])
+		lines = append(lines, strings.ToLower(key)+":"+strings.Join(query[key], ","))
 	}
 	return a.signString(strings.Join(lines, "\n"))
 }
@@ -245,27 +247,33 @@ func (a *AzureBlobStorage) do(ctx context.Context, method string, u *url.URL, he
 		if err != nil {
 			return nil, nil, err
 		}
-		if resp.StatusCode < http.StatusBadRequest && method == http.MethodGet {
-			return resp.Header, resp.Body, nil
-		}
-		_ = resp.Body.Close()
 		if resp.StatusCode < http.StatusBadRequest {
+			if method == http.MethodGet {
+				return resp.Header, resp.Body, nil
+			}
+			_ = resp.Body.Close()
 			return resp.Header, nil, nil
 		}
+		var errBody struct{ Message, AuthenticationErrorDetail string }
+		_ = xml.NewDecoder(resp.Body).Decode(&errBody)
+		_ = resp.Body.Close()
 		code := cmp.Or(resp.Header.Get("x-ms-error-code"), resp.Status)
 		if code == "BlobNotFound" {
 			return nil, nil, fs.ErrNotExist
 		}
-		return nil, nil, azureBlobError(code)
+		if errBody.Message == "" {
+			return nil, nil, azureBlobError(code)
+		}
+		return nil, nil, fmt.Errorf("%w: %s", azureBlobError(code), strings.TrimSpace(errBody.Message+"\n"+errBody.AuthenticationErrorDetail))
 	}
 }
 
 func (a *AzureBlobStorage) Open(path string) (Object, error) {
-	info, err := a.stat(path)
+	obj, err := a.stat(path)
 	if err != nil {
 		return nil, err
 	}
-	return &azureBlobObject{storage: a, blobURL: a.url(a.blobName(path), nil), info: info}, nil
+	return obj, nil
 }
 
 func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error) {
@@ -283,10 +291,10 @@ func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error
 	g, ctx := errgroup.WithContext(a.ctx)
 	g.SetLimit(a.concurrency)
 	blockList := bytes.NewBufferString(`<?xml version="1.0" encoding="utf-8"?><BlockList>`)
-	idPrefix := rand.Text() // keeps concurrent uploads to the same blob from overwriting each other's blocks
+	idPrefix := rand.Text()
 	var total int64
 	for blockNum := 0; n > 0 && ctx.Err() == nil; blockNum++ {
-		id := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s%05d", idPrefix, blockNum))
+		id := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s%038d", idPrefix, blockNum)) // 64 bytes like the old SDK, Azure rejects mixed ID lengths
 		blockList.WriteString("<Latest>" + id + "</Latest>")
 		total += int64(n)
 		data := block[:n]
@@ -310,19 +318,23 @@ func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error
 	return total, err
 }
 
-func (a *AzureBlobStorage) stat(p string) (*objectFileInfo, error) {
-	header, _, err := a.do(a.ctx, http.MethodHead, a.url(a.blobName(p), nil), nil, nil)
+func (a *AzureBlobStorage) stat(p string) (*azureBlobObject, error) {
+	blobURL := a.url(a.blobName(p), nil)
+	header, _, err := a.do(a.ctx, http.MethodHead, blobURL, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	size, sizeErr := strconv.ParseInt(header.Get("Content-Length"), 10, 64)
 	modTime, timeErr := http.ParseTime(header.Get("Last-Modified"))
-	return &objectFileInfo{path.Base(p), size, modTime}, errors.Join(sizeErr, timeErr)
+	return &azureBlobObject{storage: a, blobURL: blobURL, info: &objectFileInfo{path.Base(p), size, modTime}, etag: header.Get("ETag")}, errors.Join(sizeErr, timeErr)
 }
 
 func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
-	info, err := a.stat(path)
-	return info, err
+	obj, err := a.stat(path)
+	if err != nil {
+		return nil, err // not obj.info, a nil pointer would be a non-nil os.FileInfo
+	}
+	return obj.info, nil
 }
 
 func (a *AzureBlobStorage) Delete(path string) error {
@@ -334,8 +346,8 @@ func (a *AzureBlobStorage) Delete(path string) error {
 func (a *AzureBlobStorage) ServeDirectURL(storePath, name, method string, reqParams *ServeDirectOptions) (*url.URL, error) {
 	permissions := util.Iif(method == http.MethodPut, "w", "r")
 	param := prepareServeDirectOptions(reqParams, name)
-	startTime := time.Now().UTC()
-	start, expiry := startTime.Format(time.RFC3339), startTime.Add(5*time.Minute).Format(time.RFC3339)
+	now := time.Now().UTC()
+	start, expiry := now.Add(-15*time.Minute).Format(time.RFC3339), now.Add(5*time.Minute).Format(time.RFC3339) // SAS expiration policies require a start, backdated for clock skew
 	canonicalName := "/blob/" + a.cfg.AccountName + "/" + a.blobName(storePath)
 	signature := a.signString(strings.Join([]string{permissions, start, expiry, canonicalName, "", "", "", azureBlobAPIVersion, "b", "", "", "", param.ContentDisposition, "", "", param.ContentType}, "\n"))
 
@@ -362,6 +374,8 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 				Name          string `xml:"Name"`
 				ContentLength int64  `xml:"Properties>Content-Length"`
 				LastModified  string `xml:"Properties>Last-Modified"`
+				Etag          string `xml:"Properties>Etag"`
+				ResourceType  string `xml:"Properties>ResourceType"`
 			} `xml:"Blobs>Blob"`
 			NextMarker string `xml:"NextMarker"`
 		}
@@ -371,6 +385,9 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			return err
 		}
 		for _, blob := range result.Blobs {
+			if blob.ResourceType == "directory" { // listed by hierarchical namespace accounts
+				continue
+			}
 			modTime, err := http.ParseTime(blob.LastModified)
 			if err != nil {
 				return err
@@ -379,6 +396,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 				storage: a,
 				blobURL: a.url(a.cfg.Container+"/"+blob.Name, nil),
 				info:    &objectFileInfo{path.Base(blob.Name), blob.ContentLength, modTime},
+				etag:    blob.Etag,
 			}
 			err = fn(strings.TrimPrefix(blob.Name, basePrefix), object)
 			_ = object.Close()
