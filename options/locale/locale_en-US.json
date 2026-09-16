@@ -2621,7 +2621,7 @@
   "repo.diff.comment.start_review": "Start review",
   "repo.diff.comment.reply": "Reply",
   "repo.diff.review": "Review",
-  "repo.diff.review.header": "Submit review",
+  "repo.diff.review.header": "Finish your review",
   "repo.diff.review.placeholder": "Review comment",
   "repo.diff.review.comment": "Comment",
   "repo.diff.review.approve": "Approve",
