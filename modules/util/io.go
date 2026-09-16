@@ -37,7 +37,7 @@ func readWithLimit(r io.Reader, batch, limit int) ([]byte, error) {
 	if limit <= batch {
 		buf := make([]byte, limit)
 		n, err := ReadAtMost(r, buf)
-		if err != nil {
+		if err != nil && err != io.ErrUnexpectedEOF {
 			return nil, err
 		}
 		return buf[:n], nil
