@@ -165,6 +165,6 @@ func TestPullDiffNoCommonMergeBase(t *testing.T) {
 	assert.Equal(t, "file2.txt", doc.Find(".diff-file-box").AttrOr("data-new-filename", ""))
 
 	updateURL := fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/update", rewrittenBase.Index)
-	MakeRequest(t, NewRequest(t, "POST", updateURL).AddTokenAuth(token), http.StatusConflict)
-	MakeRequest(t, NewRequest(t, "POST", updateURL+"?style=rebase").AddTokenAuth(token), http.StatusConflict)
+	MakeRequest(t, NewRequest(t, "POST", updateURL).AddTokenAuth(token), http.StatusUnprocessableEntity)
+	MakeRequest(t, NewRequest(t, "POST", updateURL+"?style=rebase").AddTokenAuth(token), http.StatusUnprocessableEntity)
 }

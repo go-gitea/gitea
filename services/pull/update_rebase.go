@@ -32,7 +32,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
 	oldMergeBase, err := git.MergeBase(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
 	if errors.Is(err, util.ErrNotExist) {
-		return ErrMergeUnrelatedHistories{Err: err}
+		return errUpdateUnrelatedHistories
 	} else if err != nil {
 		return err
 	}

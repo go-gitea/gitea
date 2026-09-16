@@ -136,6 +136,9 @@ func TestCompareBranches(t *testing.T) {
 	diffChanges = []string{"test.txt"}
 
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
+
+	req = NewRequestWithValues(t, "POST", "/user2/repo20/compare/remove-files-b..remove-files-a", map[string]string{"title": "direct comparison"})
+	session.MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestCompareWithRefSuffix(t *testing.T) {

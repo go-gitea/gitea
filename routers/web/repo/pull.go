@@ -1029,12 +1029,8 @@ func UpdatePullRequest(ctx *context.Context) {
 			}
 			ctx.JSONError(flashError)
 			return
-		} else if pull_service.IsErrMergeUnrelatedHistories(err) {
-			ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
-			return
 		}
-		log.Error("Update pull request failed: %v", err)
-		ctx.JSONError("Unable to update pull request")
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -1331,6 +1327,9 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ci := comparePageInfo.compareInfo
 	if ci.CompareBase == "" {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
+		return
+	} else if !comparePageInfo.allowCreatePull() {
+		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("pull requests can only be created from a three-dot comparison of two branches"))
 		return
 	}
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)

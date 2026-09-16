@@ -1281,11 +1281,8 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		} else if pull_service.IsErrRebaseConflicts(err) {
 			ctx.APIError(http.StatusConflict, "rebase failed because of conflict")
 			return
-		} else if pull_service.IsErrMergeUnrelatedHistories(err) {
-			ctx.APIError(http.StatusConflict, "update failed because of unrelated histories")
-			return
 		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 

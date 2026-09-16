@@ -150,11 +150,17 @@ func setCsvCompareContext(ctx *context.Context) {
 type comparePageInfoType struct {
 	compareInfo      *git_service.CompareInfo
 	nothingToCompare bool
-	allowCreatePull  bool
+	isComparePull    bool
+	allowEmptyPr     bool
 }
 
 func newComparePageInfo() *comparePageInfoType {
 	return &comparePageInfoType{}
+}
+
+// allowCreatePull excludes direct ".." comparisons because a pull request always merges the "..." changes
+func (cpi *comparePageInfoType) allowCreatePull() bool {
+	return cpi.isComparePull && cpi.compareInfo.CompareSeparator == "..."
 }
 
 // parseCompareInfo parse compare info between two commit for preparing comparing references
@@ -302,8 +308,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	}
 
 	// Treat as pull request if both references are branches
-	cpi.allowCreatePull = baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true)
-	cpi.allowCreatePull = cpi.allowCreatePull && compareInfo.CompareBase != ""
+	cpi.isComparePull = baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true) && compareInfo.CompareBase != ""
 	cpi.compareInfo = &compareInfo
 	return nil
 }
@@ -396,7 +401,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		// if auto-detect manual merge, an empty PR will be closed immediately because it is already on base branch
 		supportEmptyPr := !config.AutodetectManualMerge
 		acrossRepoPr := !ci.IsSameRef()
-		ctx.Data["AllowEmptyPr"] = supportEmptyPr && acrossRepoPr
+		cpi.allowEmptyPr = supportEmptyPr && acrossRepoPr
 
 		cpi.nothingToCompare = true
 		return
@@ -558,8 +563,10 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
 		ctx.Data["CommitCount"] = 0
 	}
-	ctx.Data["PageIsComparePull"] = comparePageInfo.allowCreatePull
+	ctx.Data["PageIsComparePull"] = comparePageInfo.isComparePull
 	ctx.Data["IsNothingToCompare"] = comparePageInfo.nothingToCompare
+	ctx.Data["AllowCreatePR"] = comparePageInfo.allowCreatePull() && (comparePageInfo.allowEmptyPr || !comparePageInfo.nothingToCompare)
+	ctx.Data["CompareSeparatorSwitch"] = util.Iif(ci.CompareSeparator == "..", "...", "..")
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
@@ -604,7 +611,7 @@ func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
 
 func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Context) {
 	ci := cpi.compareInfo
-	if cpi.allowCreatePull {
+	if cpi.isComparePull {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {

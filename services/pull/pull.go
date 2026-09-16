@@ -1055,25 +1055,26 @@ type CommitInfo struct {
 }
 
 func headContainsMergeBase(ctx context.Context, repo git.RepositoryFacade, mergeBase, headCommitID string) bool {
-	if mergeBase == "" {
-		return false
-	}
-	found, _ := git.MergeBase(ctx, repo, mergeBase, headCommitID)
-	return found == mergeBase
+	return mergeBase != "" && gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(mergeBase, headCommitID).WithRepo(repo).Run(ctx) == nil
 }
 
-// GetCompareInfo falls back to the stored merge base while the head contains it, else to the empty tree with all head commits
+func storedCompareBase(ctx context.Context, pr *issues_model.PullRequest, headCommitID string) string {
+	if headContainsMergeBase(ctx, pr.BaseRepo, pr.MergeBase, headCommitID) {
+		return pr.MergeBase
+	}
+	return git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()
+}
+
+// GetCompareInfo falls back to storedCompareBase when head and base share no history, listing the head commits since it
 func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
 	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, git.RefName(pr.GetGitHeadRefName()), git_service.CompareOptions{})
 	if err != nil || compareInfo.CompareBase != "" {
 		return compareInfo, err
 	}
+	compareInfo.CompareBase = storedCompareBase(ctx, pr, compareInfo.HeadCommitID)
 	commitRange := compareInfo.HeadCommitID
-	if headContainsMergeBase(ctx, pr.BaseRepo, pr.MergeBase, compareInfo.HeadCommitID) {
-		compareInfo.CompareBase = pr.MergeBase
-		commitRange = pr.MergeBase + ".." + compareInfo.HeadCommitID
-	} else {
-		compareInfo.CompareBase = git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()
+	if compareInfo.CompareBase == pr.MergeBase {
+		commitRange = pr.MergeBase + ".." + commitRange
 	}
 	if compareInfo.Commits, err = baseGitRepo.ShowPrettyFormatLogToList(ctx, commitRange); err != nil {
 		return compareInfo, err
