@@ -19,11 +19,12 @@ func (NopCloser) Close() error { return nil }
 // It returns the number of bytes copied. n is only less than len(buf) if r provides fewer bytes.
 // If EOF occurs while reading, err will be nil.
 func ReadAtMost(r io.Reader, buf []byte) (n int, err error) {
-	n, err = io.ReadFull(r, buf)
-	if err == io.EOF {
-		err = nil
+	for n < len(buf) && err == nil {
+		var read int
+		read, err = r.Read(buf[n:])
+		n += read
 	}
-	return n, err
+	return n, Iif(err == io.EOF, nil, err)
 }
 
 // ReadWithLimit reads at most "limit" bytes from r into buf.

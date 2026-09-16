@@ -52,8 +52,10 @@ type azureBlobObject struct {
 
 func (a *azureBlobObject) resetRespBody() {
 	// close resp, the next attempt reopens at the current offset
-	_ = a.respBody.Close()
-	a.respBody = nil
+	if a.respBody != nil {
+		_ = a.respBody.Close()
+		a.respBody = nil
+	}
 }
 
 func (a *azureBlobObject) Read(p []byte) (int, error) {
