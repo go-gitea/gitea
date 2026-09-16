@@ -12,6 +12,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // checkConflictsMergeTree uses git merge-tree to check for conflicts and if none are found checks if the patch is empty
@@ -106,7 +107,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	}
 
 	mergeBase, err := git.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
 		// if there is no merge base, keep the last known one while the head contains it, still need to allow the pull request to be created
 		// not quite right (e.g.: why not reset the fields like below), but no interest to do more investigation at the moment
 		log.Error("MergeBase: unable to find merge base between %s and %s: %v", baseCommitID, pr.HeadCommitID, err)
@@ -115,6 +116,8 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 		}
 		pr.Status = issues_model.PullRequestStatusEmpty
 		return nil
+	} else if err != nil {
+		return fmt.Errorf("MergeBase: %w", err)
 	}
 	pr.MergeBase = mergeBase
 

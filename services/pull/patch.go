@@ -6,6 +6,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -84,12 +85,14 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 	mergeBase, err := git.MergeBase(ctx, prCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
-	if err != nil {
+	if errors.Is(err, util.ErrNotExist) {
 		if !headContainsMergeBase(ctx, prCtx.tmpRepo, pr.MergeBase, pr.HeadCommitID) {
 			pr.MergeBase = ""
 		}
 		pr.Status = issues_model.PullRequestStatusEmpty
 		return nil
+	} else if err != nil {
+		return fmt.Errorf("MergeBase: %w", err)
 	}
 	pr.MergeBase = mergeBase
 

@@ -1329,7 +1329,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
 	} else if !comparePageInfo.allowCreatePull() {
-		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("pull requests can only be created from a three-dot comparison of two branches"))
+		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("pull request can't be created from this comparison"))
 		return
 	}
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)

@@ -160,7 +160,7 @@ func newComparePageInfo() *comparePageInfoType {
 
 // allowCreatePull excludes direct ".." comparisons because a pull request always merges the "..." changes
 func (cpi *comparePageInfoType) allowCreatePull() bool {
-	return cpi.isComparePull && cpi.compareInfo.CompareSeparator == "..."
+	return cpi.isComparePull && cpi.compareInfo.CompareSeparator == "..." && (cpi.allowEmptyPr || !cpi.nothingToCompare)
 }
 
 // parseCompareInfo parse compare info between two commit for preparing comparing references
@@ -309,6 +309,9 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 
 	// Treat as pull request if both references are branches
 	cpi.isComparePull = baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true) && compareInfo.CompareBase != ""
+	cpi.nothingToCompare = compareInfo.CompareBase == "" || compareInfo.HeadCommitID == compareInfo.CompareBase
+	// if auto-detect manual merge, an empty PR will be closed immediately because it is already on base branch
+	cpi.allowEmptyPr = !baseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().AutodetectManualMerge && !compareInfo.IsSameRef()
 	cpi.compareInfo = &compareInfo
 	return nil
 }
@@ -379,7 +382,6 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitespaceBehavior gitcmd.TrustedCmdArgs) {
 	ci := cpi.compareInfo
 	if ci.CompareBase == "" {
-		cpi.nothingToCompare = true
 		return
 	}
 	repo := ctx.Repo.Repository
@@ -397,13 +399,6 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	ctx.Data["BodyQuery"] = newPrFormBody
 
 	if headCommitID == ci.CompareBase {
-		config := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
-		// if auto-detect manual merge, an empty PR will be closed immediately because it is already on base branch
-		supportEmptyPr := !config.AutodetectManualMerge
-		acrossRepoPr := !ci.IsSameRef()
-		cpi.allowEmptyPr = supportEmptyPr && acrossRepoPr
-
-		cpi.nothingToCompare = true
 		return
 	}
 
@@ -565,7 +560,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["PageIsComparePull"] = comparePageInfo.isComparePull
 	ctx.Data["IsNothingToCompare"] = comparePageInfo.nothingToCompare
-	ctx.Data["AllowCreatePR"] = comparePageInfo.allowCreatePull() && (comparePageInfo.allowEmptyPr || !comparePageInfo.nothingToCompare)
+	ctx.Data["AllowCreatePR"] = comparePageInfo.allowCreatePull()
 	ctx.Data["CompareSeparatorSwitch"] = util.Iif(ci.CompareSeparator == "..", "...", "..")
 	ctx.HTML(http.StatusOK, tplCompare)
 }
