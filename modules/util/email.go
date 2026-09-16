@@ -30,6 +30,7 @@ func EmailDomainToASCII(domain string) (string, error) {
 	return asciiDomain, nil
 }
 
+// EmailToASCII returns email with its domain in punycode, or unchanged when the domain isn't valid IDNA
 func EmailToASCII(email string) string {
 	localPart, domain, found := strings.CutLast(email, "@")
 	if !found {
@@ -42,6 +43,7 @@ func EmailToASCII(email string) string {
 	return localPart + "@" + asciiDomain
 }
 
+// ToLowerEmail returns the case-insensitive identity of an email address, the same for both spellings of an IDN domain
 func ToLowerEmail(email string) string {
 	return strings.ToLower(EmailToASCII(email))
 }
