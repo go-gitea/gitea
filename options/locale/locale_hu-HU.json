@@ -265,7 +265,6 @@
   "form.cannot_add_org_to_team": "Egy szervezet nem adható hozzá egy csoporthoz tagként.",
   "form.invalid_ssh_key": "Nem tudtuk ellenőrizni az SSH kulcsodat: %s",
   "form.invalid_gpg_key": "Nem tudtuk ellenőrizni a GPG kulcsodat: %s",
-  "form.auth_failed": "A hitelesítés sikertelen: %v",
   "form.target_branch_not_exist": "Cél ág nem létezik.",
   "user.change_avatar": "Profilkép megváltoztatása…",
   "user.repositories": "Tárolók",
