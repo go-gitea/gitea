@@ -945,6 +945,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -1028,6 +1031,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -22272,6 +22278,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/EmailList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
