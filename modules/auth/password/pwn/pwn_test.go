@@ -39,7 +39,7 @@ func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestPassword(t *testing.T) {
-	ctx :=  t.Context()
+	ctx := t.Context()
 	client := New()
 	client.mockTransport = mockTransport{}
 
