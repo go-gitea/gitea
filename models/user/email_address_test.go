@@ -49,6 +49,10 @@ func TestIsEmailUsed(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, isExist)
 	assert.True(t, user_model.IsErrEmailAlreadyUsed(user_model.ChangeInactivePrimaryEmail(t.Context(), 1, "user1@example.com", "USER@xn--f-1gaa.de")))
+	_, err = user_model.GetEmailAddressOfUser(t.Context(), "USER@xn--f-1gaa.de", 2)
+	require.NoError(t, err)
+	_, err = user_model.InsertEmailAddress(t.Context(), &user_model.EmailAddress{UID: 1, Email: "user@xn--f-1gaa.de"})
+	assert.Error(t, err)
 }
 
 func TestMakeEmailPrimary(t *testing.T) {

@@ -96,7 +96,7 @@ func init() {
 // BeforeInsert will be invoked by XORM before inserting a record
 func (email *EmailAddress) BeforeInsert() {
 	if email.LowerEmail == "" {
-		email.LowerEmail = strings.ToLower(email.Email)
+		email.LowerEmail = util.ToLowerEmail(email.Email)
 	}
 }
 
@@ -149,7 +149,7 @@ func GetEmailAddressByEmail(ctx context.Context, email string) (*EmailAddress, e
 
 func GetEmailAddressOfUser(ctx context.Context, email string, uid int64) (*EmailAddress, error) {
 	ea := &EmailAddress{}
-	if has, err := db.GetEngine(ctx).Where("lower_email=? AND uid=?", strings.ToLower(email), uid).Get(ea); err != nil {
+	if has, err := db.GetEngine(ctx).Where(builder.Eq{"uid": uid, "lower_email": util.LowerEmailSpellings(email)}).Get(ea); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrEmailAddressNotExist{email}
@@ -304,7 +304,7 @@ func makeEmailPrimaryInternal(ctx context.Context, ownerID, emailID int64, isAct
 // ChangeInactivePrimaryEmail replaces the inactive primary email of a given user
 func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, newEmailAddr string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		_, err := db.GetEngine(ctx).Where(builder.Eq{"uid": uid, "lower_email": strings.ToLower(oldEmailAddr)}).Delete(&EmailAddress{})
+		_, err := db.GetEngine(ctx).Where(builder.Eq{"uid": uid, "lower_email": util.LowerEmailSpellings(oldEmailAddr)}).Delete(&EmailAddress{})
 		if err != nil {
 			return err
 		}
@@ -426,7 +426,7 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		// Activate/deactivate a user's secondary email address
 		// First check if there's another user active with the same address
-		addr, exist, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": strings.ToLower(email)})
+		addr, exist, err := db.Get[EmailAddress](ctx, builder.Eq{"uid": userID, "lower_email": util.LowerEmailSpellings(email)})
 		if err != nil {
 			return err
 		} else if !exist {
@@ -453,7 +453,7 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 			user, exist, err := db.Get[User](ctx, builder.Eq{"id": userID})
 			if err != nil {
 				return err
-			} else if !exist || !strings.EqualFold(user.Email, email) {
+			} else if !exist || util.ToLowerEmail(user.Email) != util.ToLowerEmail(email) {
 				return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 			}
 

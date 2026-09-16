@@ -815,7 +815,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		return db.Insert(ctx, &EmailAddress{
 			UID:         u.ID,
 			Email:       u.Email,
-			LowerEmail:  strings.ToLower(u.Email),
+			LowerEmail:  util.ToLowerEmail(u.Email),
 			IsActivated: u.IsActive,
 			IsPrimary:   true,
 		})
@@ -1310,7 +1310,8 @@ func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, 
 		return nil, ErrUserNotExist{Name: email}
 	}
 
-	user, has, err := db.Get[User](ctx, builder.Eq{"email": util.LowerEmailSpellings(email), "type": UserTypeIndividual})
+	user, has, err := db.Get[User](ctx, builder.Eq{"type": UserTypeIndividual}.And(builder.In("id",
+		builder.Select("uid").From("email_address").Where(builder.Eq{"lower_email": util.LowerEmailSpellings(email), "is_primary": true}))))
 	if err != nil {
 		return nil, err
 	}
