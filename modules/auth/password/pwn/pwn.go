@@ -18,7 +18,10 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-const passwordURL = "https://api.pwnedpasswords.com/range/"
+const (
+	passwordURL     = "https://api.pwnedpasswords.com/range/"
+	maxResponseSize = 1 << 20
+)
 
 // ErrEmptyPassword is an empty password error
 var ErrEmptyPassword = errors.New("password cannot be empty")
@@ -101,9 +104,12 @@ func (c *Client) CheckPassword(pw string, padding bool) (int64, error) {
 		return -1, fmt.Errorf("unexpected status code %d from HIBP API", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize+1))
 	if err != nil {
 		return -1, err
+	}
+	if len(body) > maxResponseSize {
+		return -1, fmt.Errorf("response from HIBP API exceeds %d bytes", maxResponseSize)
 	}
 
 	for pair := range strings.SplitSeq(string(body), "\n") {

@@ -29,6 +29,9 @@ func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.URL.Path == "/range/b6b47" { // sha1("ratelimited") prefix
 		return &http.Response{Request: req, StatusCode: http.StatusTooManyRequests, Body: io.NopCloser(strings.NewReader("rate limited"))}, nil
 	}
+	if req.URL.Path == "/range/76eff" {
+		return &http.Response{Request: req, StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(strings.Repeat("0", maxResponseSize+1)))}, nil
+	}
 	if resp, ok := respMap[req.URL.Path]; ok {
 		return &http.Response{Request: req, StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(resp))}, nil
 	}
@@ -64,5 +67,9 @@ func TestPassword(t *testing.T) {
 
 	count, err = client.CheckPassword("ratelimited", false)
 	assert.Error(t, err)
+	assert.EqualValues(t, -1, count)
+
+	count, err = client.CheckPassword("oversized", false)
+	assert.ErrorContains(t, err, "exceeds")
 	assert.EqualValues(t, -1, count)
 }
