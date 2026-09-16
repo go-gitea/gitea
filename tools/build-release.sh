@@ -13,9 +13,7 @@ RELEASE_PLATFORMS_DEFAULT=(
   freebsd/amd64
 )
 
-# Disable gogit builds (windows/amd64 windows/arm64) since there seems no real requirement for them.
-# If no real requirement, we can completely remove gogit support in the future.
-RELEASE_PLATFORMS_GOGIT=()
+RELEASE_PLATFORMS_GOGIT=(windows/amd64 windows/arm64)
 
 build() {
   echo "building ${*} ..."
@@ -64,7 +62,9 @@ main() {
     fi
   done
 
-  if [ ${#RELEASE_PLATFORMS_GOGIT[@]} != 0 ]; then
+  # Only build with gogit for main-nightly, disable gogit for stable releases since there seems no real requirement for them.
+  # If no real requirement (no user feedbacks), we can completely remove gogit support in the future.
+  if [ "$VERSION" = "main-nightly" ]; then
     for target in "${RELEASE_PLATFORMS_GOGIT[@]}"; do
       if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
         build "$target" "gogit"
