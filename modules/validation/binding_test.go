@@ -31,6 +31,6 @@ func performValidationTest(t *testing.T, testCase validationTestCase) {
 
 func TestEmailValidation(t *testing.T) {
 	assert.Nil(t, Binder().Validate(t.Context(), &TestForm{Email: "b@a"}))
-	assert.Equal(t, BindingErrors{{FieldNames: []string{"Email"}, Classification: "EmailError", Message: "Email"}},
+	assert.Equal(t, BindingErrors{{FieldNames: []string{"Email"}, Classification: "EmailError", Message: "invalid email"}},
 		Binder().Validate(t.Context(), &TestForm{Email: "abc"}))
 }

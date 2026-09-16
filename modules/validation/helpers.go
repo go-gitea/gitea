@@ -10,9 +10,12 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/setting"
+
+	"golang.org/x/net/idna"
 )
 
 type globalVarsStruct struct {
@@ -111,6 +114,14 @@ func IsValidBadgeSlug(slug string) bool {
 }
 
 func IsEmailAddressValid(email string) bool {
-	_, err := mail.ParseAddress(email)
-	return err == nil && email == strings.TrimSpace(email) && !strings.Contains(email, "<")
+	addr, err := mail.ParseAddress(email)
+	if err != nil || addr.Address != email || strings.ContainsFunc(email, func(r rune) bool { return r >= utf8.RuneSelf }) {
+		return false
+	}
+	_, domain, _ := strings.Cut(email, "@")
+	if strings.HasPrefix(domain, "[") {
+		return true
+	}
+	_, err = idna.Registration.ToASCII(strings.ToLower(domain))
+	return err == nil
 }

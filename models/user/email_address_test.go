@@ -158,6 +158,9 @@ func TestEmailAddressValidate(t *testing.T) {
 		"abc@gmail.com":      true,
 		"abc@gmail.com\n":    false,
 		"Foo <foo@bar.com>":  false,
+		"abc@gmail.com (x)":  false,
+		"jürgen@example.com": false,
+		"a@foo_bar.com":      false,
 	}
 	for tc, isValid := range cases {
 		t.Run(tc, func(t *testing.T) {
