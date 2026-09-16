@@ -74,6 +74,8 @@ func CreateUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -181,6 +183,8 @@ func EditUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 

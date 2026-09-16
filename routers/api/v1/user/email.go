@@ -54,6 +54,10 @@ func AddEmail(ctx *context.APIContext) {
 	// responses:
 	//   '201':
 	//     "$ref": "#/responses/EmailList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
