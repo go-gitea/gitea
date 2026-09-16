@@ -216,7 +216,7 @@ func checkKeyEmails(ctx context.Context, email string, keys ...*asymkey_model.GP
 					return true, e.Email
 				}
 			}
-			if user != nil && strings.EqualFold(email, user.GetPlaceholderEmail()) {
+			if user != nil && util.ToLowerEmail(email) == util.ToLowerEmail(user.GetPlaceholderEmail()) {
 				return true, user.GetPlaceholderEmail()
 			}
 		}

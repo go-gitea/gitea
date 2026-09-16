@@ -121,6 +121,11 @@ func TestUserEmails(t *testing.T) {
 			setting.Service.NoReplyAddress = "example.com"
 			testGetUserByEmail(t, "user1-2@example.COM", 1)
 		})
+
+		t.Run("IDNNoReplyAddress", func(t *testing.T) {
+			setting.Service.NoReplyAddress = "föö.de"
+			testGetUserByEmail(t, "user4@xn--f-1gaa.de", 4)
+		})
 	})
 	t.Run("GetIndividualUserByPrimaryEmail", func(t *testing.T) {
 		require.NoError(t, user_model.MakeActiveEmailPrimary(t.Context(), 2, idnEmail.ID))

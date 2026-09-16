@@ -1293,7 +1293,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if localPart, ok := strings.CutSuffix(email, strings.ToLower("@"+setting.Service.NoReplyAddress)); ok {
+	if localPart, ok := strings.CutSuffix(util.ToLowerEmail(email), util.ToLowerEmail("@"+setting.Service.NoReplyAddress)); ok {
 		name, id := parseLocalPartToNameID(localPart)
 		if id != 0 {
 			return GetUserByID(ctx, id)
