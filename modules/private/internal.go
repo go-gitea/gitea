@@ -99,7 +99,7 @@ Ensure you are running in the correct environment or set the correct configurati
 		log.Fatal("Invalid internal request URL: %q", url)
 	}
 
-	return httplib.NewClientRequest(url, method).
+	return httplib.NewClientRequest(method, url).
 		SetContext(ctx).
 		SetTransport(internalAPITransport()).
 		Header("X-Real-IP", getClientIP()).
