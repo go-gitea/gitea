@@ -690,10 +690,10 @@ func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, comm
 	ctx.Data["SingleCommitNumber"] = len(commits) - idx
 	ctx.Data["SingleCommitCount"] = len(commits)
 	if idx+1 < len(commits) {
-		ctx.Data["SingleCommitPrevID"] = commits[idx+1].ID.String()
+		ctx.Data["PreviousCommitID"] = commits[idx+1].ID.String()
 	}
 	if idx > 0 {
-		ctx.Data["SingleCommitNextID"] = commits[idx-1].ID.String()
+		ctx.Data["NextCommitID"] = commits[idx-1].ID.String()
 	}
 }
 

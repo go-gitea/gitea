@@ -45,14 +45,13 @@ func testPullDiffSingleCommitBar(t *testing.T) {
 	bar := doc.Find(".single-commit-bar")
 	require.Equal(t, 1, bar.Length())
 	barText := bar.Text()
-	assert.Contains(t, barText, "test 3")
-	assert.Contains(t, barText, "Sebastian Sauer")
-	assert.Contains(t, barText, "Commit 3 of 10")
+	assert.Contains(t, barText, "test 3")          // commit message
+	assert.Contains(t, barText, "Sebastian Sauer") // author
+	assert.Equal(t, "3", bar.AttrOr("data-commit-index", ""))
+	assert.Equal(t, "10", bar.AttrOr("data-commit-count", ""))
 
-	prev := bar.Find(`a[data-tooltip-content="Previous commit"]`)
-	next := bar.Find(`a[data-tooltip-content="Next commit"]`)
-	assert.Contains(t, prev.AttrOr("href", ""), "/pulls/1/commits/96cef4a7b72b3c208340ae6f0cf55a93e9077c93")
-	assert.Contains(t, next.AttrOr("href", ""), "/pulls/1/commits/23576dd018294e476c06e569b6b0f170d0558705")
+	assert.Contains(t, bar.Find(".js-previous-commit-link").AttrOr("href", ""), "/pulls/1/commits/96cef4a7b72b3c208340ae6f0cf55a93e9077c93")
+	assert.Contains(t, bar.Find(".js-next-commit-link").AttrOr("href", ""), "/pulls/1/commits/23576dd018294e476c06e569b6b0f170d0558705")
 
 	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", doc.Find("#diff-commit-select").AttrOr("data-current-commit", ""))
 
@@ -68,9 +67,9 @@ func testPullDiffSingleCommitBar(t *testing.T) {
 	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/4ca8bcaf27e28504df7bf996819665986b01c847")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	bar = NewHTMLParser(t, resp.Body).Find(".single-commit-bar")
-	assert.Contains(t, bar.Text(), "Commit 1 of 10")
-	assert.True(t, bar.Find(`a[data-tooltip-content="Previous commit"]`).HasClass("disabled"))
-	assert.False(t, bar.Find(`a[data-tooltip-content="Next commit"]`).HasClass("disabled"))
+	assert.Equal(t, "1", bar.AttrOr("data-commit-index", ""))
+	assert.True(t, bar.Find(".js-previous-commit-link").HasClass("disabled"))
+	assert.False(t, bar.Find(".js-next-commit-link").HasClass("disabled"))
 }
 
 func testPullDiffSingleHeadCommitReviewFormAction(t *testing.T) {
