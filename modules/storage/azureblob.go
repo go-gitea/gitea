@@ -66,7 +66,8 @@ func (a *azureBlobObject) Read(p []byte) (int, error) {
 	if a.offset >= a.info.size {
 		return 0, io.EOF
 	}
-	for retry := 0; ; retry++ {
+	var lastErr error
+	for range 4 {
 		if a.respBody == nil {
 			reqHeader := http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}, "If-Match": {a.etag}}
 			_, body, err := a.storage.do(a.storage.ctx, http.MethodGet, a.blobURL, reqHeader, nil)
@@ -83,10 +84,9 @@ func (a *azureBlobObject) Read(p []byte) (int, error) {
 		if err == nil || n > 0 {
 			return n, nil
 		}
-		if retry == 3 {
-			return 0, util.Iif(err == io.EOF, io.ErrUnexpectedEOF, err)
-		}
+		lastErr = err
 	}
+	return 0, util.Iif(lastErr == io.EOF, io.ErrUnexpectedEOF, lastErr)
 }
 
 func (a *azureBlobObject) Close() (err error) {
