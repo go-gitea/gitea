@@ -55,19 +55,20 @@ func CacheControlForPrivateStatic() *CacheControlOptions {
 
 // checkIfNoneMatchIsValid tests if the header If-None-Match matches the ETag
 func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
-	ifNoneMatch := req.Header.Get("If-None-Match")
-	if len(ifNoneMatch) > 0 {
-		// https://www.rfc-editor.org/rfc/rfc9110#section-13.1.2
-		if strings.TrimSpace(ifNoneMatch) == "*" {
+	ifNoneMatch := strings.TrimSpace(req.Header.Get("If-None-Match"))
+	if ifNoneMatch == "" {
+		return false
+	}
+	// https://www.rfc-editor.org/rfc/rfc9110#section-13.1.2
+	if ifNoneMatch == "*" {
+		return true
+	}
+	// https://www.rfc-editor.org/rfc/rfc9110#section-8.8.3.2
+	etag = strings.TrimPrefix(etag, "W/")
+	for item := range strings.SplitSeq(ifNoneMatch, ",") {
+		item = strings.TrimPrefix(strings.TrimSpace(item), "W/")
+		if item == etag {
 			return true
-		}
-		// https://www.rfc-editor.org/rfc/rfc9110#section-8.8.3.2
-		etag = strings.TrimPrefix(etag, "W/")
-		for item := range strings.SplitSeq(ifNoneMatch, ",") {
-			item = strings.TrimPrefix(strings.TrimSpace(item), "W/")
-			if item == etag {
-				return true
-			}
 		}
 	}
 	return false
