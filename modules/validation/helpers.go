@@ -10,12 +10,13 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"unicode/utf8"
 
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/net/idna"
+	"golang.org/x/text/secure/precis"
 )
 
 type globalVarsStruct struct {
@@ -73,10 +74,14 @@ func IsEmailDomainListed(globs []glob.Glob, email string) bool {
 		return false
 	}
 
-	domain = strings.ToLower(domain)
+	domains := []string{util.ToLowerASCII(domain)}
+	if asciiDomain, err := util.EmailDomainToASCII(domain); err == nil {
+		unicodeDomain, _ := idna.Registration.ToUnicode(asciiDomain)
+		domains = append(domains, asciiDomain, unicodeDomain)
+	}
 
 	for _, g := range globs {
-		if g.Match(domain) {
+		if slices.ContainsFunc(domains, g.Match) {
 			return true
 		}
 	}
@@ -115,13 +120,18 @@ func IsValidBadgeSlug(slug string) bool {
 
 func IsEmailAddressValid(email string) bool {
 	addr, err := mail.ParseAddress(email)
-	if err != nil || addr.Address != email || strings.ContainsFunc(email, func(r rune) bool { return r >= utf8.RuneSelf }) {
+	if err != nil || addr.Address != email {
 		return false
 	}
-	_, domain, _ := strings.Cut(email, "@")
+	localPart, domain, _ := strings.Cut(email, "@")
+	preserved, err := precis.UsernameCasePreserved.String(localPart)
+	mapped, _ := precis.UsernameCaseMapped.String(localPart)
+	if err != nil || preserved != localPart || !strings.EqualFold(mapped, localPart) {
+		return false
+	}
 	if strings.HasPrefix(domain, "[") {
 		return true
 	}
-	_, err = idna.Registration.ToASCII(strings.ToLower(domain))
+	_, err = util.EmailDomainToASCII(domain)
 	return err == nil
 }

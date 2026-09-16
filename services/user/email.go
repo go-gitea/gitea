@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"errors"
-	"strings"
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
@@ -24,7 +23,7 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		return util.NewInvalidArgumentErrorf("user %s is an organization", u.Name)
 	}
 
-	if strings.EqualFold(u.Email, emailStr) {
+	if util.ToLowerEmail(u.Email) == util.ToLowerEmail(emailStr) {
 		return nil
 	}
 

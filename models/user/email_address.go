@@ -139,7 +139,7 @@ func ValidateEmailForAdmin(email string) error {
 
 func GetEmailAddressByEmail(ctx context.Context, email string) (*EmailAddress, error) {
 	ea := &EmailAddress{}
-	if has, err := db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(ea); err != nil {
+	if has, err := db.GetEngine(ctx).In("lower_email", util.LowerEmailSpellings(email)).Get(ea); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrEmailAddressNotExist{email}
@@ -199,7 +199,7 @@ func IsEmailActive(ctx context.Context, email string, excludeEmailID int64) (boo
 
 	// Can't filter by boolean field unless it's explicit
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"lower_email": strings.ToLower(email)}, builder.Neq{"id": excludeEmailID})
+	cond = cond.And(builder.Eq{"lower_email": util.LowerEmailSpellings(email)}, builder.Neq{"id": excludeEmailID})
 	if setting.Service.RegisterEmailConfirm {
 		// Inactive (unvalidated) addresses don't count as active if email validation is required
 		cond = cond.And(builder.Eq{"is_activated": true})
@@ -222,7 +222,7 @@ func IsEmailUsed(ctx context.Context, email string) (bool, error) {
 		return true, nil
 	}
 
-	return db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
+	return db.GetEngine(ctx).In("lower_email", util.LowerEmailSpellings(email)).Get(&EmailAddress{})
 }
 
 // ActivateEmail activates the email address to given user.
@@ -307,6 +307,11 @@ func ChangeInactivePrimaryEmail(ctx context.Context, uid int64, oldEmailAddr, ne
 		_, err := db.GetEngine(ctx).Where(builder.Eq{"uid": uid, "lower_email": strings.ToLower(oldEmailAddr)}).Delete(&EmailAddress{})
 		if err != nil {
 			return err
+		}
+		if used, err := IsEmailUsed(ctx, newEmailAddr); err != nil {
+			return err
+		} else if used {
+			return ErrEmailAlreadyUsed{Email: newEmailAddr}
 		}
 		newEmail, err := InsertEmailAddress(ctx, &EmailAddress{UID: uid, Email: newEmailAddr})
 		if err != nil {

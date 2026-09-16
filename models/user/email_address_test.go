@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetEmailAddresses(t *testing.T) {
@@ -41,6 +42,13 @@ func TestIsEmailUsed(t *testing.T) {
 	assert.True(t, isExist)
 	isExist, _ = user_model.IsEmailUsed(t.Context(), "user1234567890@example.com")
 	assert.False(t, isExist)
+
+	_, err := user_model.InsertEmailAddress(t.Context(), &user_model.EmailAddress{UID: 2, Email: "user@föö.de"})
+	require.NoError(t, err)
+	isExist, err = user_model.IsEmailUsed(t.Context(), "USER@xn--f-1gaa.de")
+	require.NoError(t, err)
+	assert.True(t, isExist)
+	assert.True(t, user_model.IsErrEmailAlreadyUsed(user_model.ChangeInactivePrimaryEmail(t.Context(), 1, "user1@example.com", "USER@xn--f-1gaa.de")))
 }
 
 func TestMakeEmailPrimary(t *testing.T) {
@@ -151,16 +159,20 @@ func TestListEmails(t *testing.T) {
 
 func TestEmailAddressValidate(t *testing.T) {
 	cases := map[string]bool{
-		"":                   false,
-		"root@localhost":     true,
-		"user@[192.168.1.2]": true,
-		"@a":                 false,
-		"abc@gmail.com":      true,
-		"abc@gmail.com\n":    false,
-		"Foo <foo@bar.com>":  false,
-		"abc@gmail.com (x)":  false,
-		"jürgen@example.com": false,
-		"a@foo_bar.com":      false,
+		"":                         false,
+		"root@localhost":           true,
+		"@a":                       false,
+		"abc@gmail.com":            true,
+		"abc@gmail.com\n":          false,
+		"Foo <foo@bar.com>":        false,
+		"abc@gmail.com (x)":        false,
+		"user@[192.168.1.2]":       true,
+		"user@FÖÖ.de":              true,
+		"jürgen@example.com":       true,
+		"a@foo_bar.com":            false,
+		"v\u0130ctim@example.com":  false,
+		"user@v\u0130ctim.example": false,
+		"\u212Aelvin@example.com":  false,
 	}
 	for tc, isValid := range cases {
 		t.Run(tc, func(t *testing.T) {

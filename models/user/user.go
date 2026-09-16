@@ -1172,7 +1172,7 @@ type EmailUserMap struct {
 }
 
 func (eum *EmailUserMap) GetByEmail(email string) *User {
-	return eum.m[strings.ToLower(email)]
+	return eum.m[util.ToLowerEmail(email)]
 }
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
@@ -1183,10 +1183,10 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
 	needCheckUserIDs := make(container.Set[int64])
-	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
+	noReplyAddressSuffix := util.ToLowerEmail("@" + setting.Service.NoReplyAddress)
 	for _, email := range emails {
-		emailLower := strings.ToLower(email)
-		needCheckEmails.Add(emailLower)
+		emailLower := util.ToLowerEmail(email)
+		needCheckEmails.AddMultiple(util.LowerEmailSpellings(email)...)
 		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
 			name, id := parseLocalPartToNameID(localPart)
 			if id != 0 {
@@ -1218,7 +1218,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		for _, email := range emailAddresses {
 			user := users[email.UID]
 			if user != nil {
-				results[email.LowerEmail] = user
+				results[util.ToLowerEmail(email.Email)] = user
 			}
 		}
 	}
@@ -1243,7 +1243,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	}
 
 	for _, email := range emails {
-		emailLower := strings.ToLower(email)
+		emailLower := util.ToLowerEmail(email)
 		if _, ok := results[emailLower]; ok {
 			continue
 		}
@@ -1284,7 +1284,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 
 	email = strings.ToLower(email)
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": email, "is_activated": true})
+	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": util.LowerEmailSpellings(email), "is_activated": true})
 	if err != nil {
 		return nil, err
 	}
@@ -1310,7 +1310,7 @@ func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, 
 		return nil, ErrUserNotExist{Name: email}
 	}
 
-	user, has, err := db.Get[User](ctx, builder.Eq{"email": email, "type": UserTypeIndividual})
+	user, has, err := db.Get[User](ctx, builder.Eq{"email": util.LowerEmailSpellings(email), "type": UserTypeIndividual})
 	if err != nil {
 		return nil, err
 	}
