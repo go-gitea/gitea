@@ -97,6 +97,7 @@ test('pr review flow', async ({page, request}) => {
   await replyForm.getByRole('button', {name: 'Reply', exact: true}).click();
   await expect(conversation.locator('.comment-body')).toContainText(['inline to reply to', 'my reply body']);
 
+  await page.goto('about:blank');
   await page.context().clearCookies();
   await loginUser(page, reviewer);
   await page.goto(`${pullUrl}/files`);
@@ -108,6 +109,7 @@ test('pr review flow', async ({page, request}) => {
 
   await reRequestAndApprove(reviewer, 'Uncounted approval', 'tw-text-text-light', false);
 
+  await page.goto('about:blank');
   await page.context().clearCookies();
   await loginUser(page, officialReviewer);
   await reRequestAndApprove(officialReviewer, 'Approved', 'tw-text-yellow', true);
