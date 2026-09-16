@@ -68,7 +68,7 @@ func NewCodeCommitDownloader(_ context.Context, repoName, baseURL, accessKeyID, 
 	downloader := CodeCommitDownloader{
 		repoName:        repoName,
 		baseURL:         baseURL,
-		client:          http.DefaultClient,
+		client:          getMigrationHTTPClient(),
 		endpoint:        "https://codecommit." + region + ".amazonaws.com",
 		region:          region,
 		accessKeyID:     accessKeyID,
