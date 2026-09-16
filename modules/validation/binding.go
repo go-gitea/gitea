@@ -48,8 +48,21 @@ func newFieldError(field reflect.StructField, cls, msg string) *BindingError {
 	return &BindingError{[]string{field.Name}, cls, msg} //nolint:govet // make sure no missing fields
 }
 
+func AddValidationError(errs BindingErrors, fieldName, errorMsg string) BindingErrors {
+	errs.Add([]string{fieldName}, ErrCustomMessage, errorMsg)
+	return errs
+}
+
 // AddBindingRules adds additional binding rules
 func AddBindingRules(b *binding.Binder) {
+	b.ClearRules("Email")
+	b.AddRuleNonZero("Email", func(_ context.Context, f *binding.ValidationField) *binding.Error {
+		if !IsEmailAddressValid(f.ValueMustString()) {
+			return newFieldError(f.StructField, binding.ERR_EMAIL, "invalid email")
+		}
+		return nil
+	})
+
 	b.AddRuleNonZero("GitRefName", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
 		if !git.IsValidRefPattern(f.ValueMustString()) {
 			return newFieldError(f.StructField, ErrGitRefName, "GitRefName")
@@ -97,14 +110,6 @@ func AddBindingRules(b *binding.Binder) {
 			return ruleRegexPattern(ctx, f, str[1:len(str)-1])
 		}
 		return ruleGlobPattern(ctx, f)
-	})
-
-	b.ClearRules("Email")
-	b.AddRuleNonZero("Email", func(_ context.Context, f *binding.ValidationField) *binding.Error {
-		if !IsEmailAddressValid(f.ValueMustString()) {
-			return newFieldError(f.StructField, binding.ERR_EMAIL, "Email")
-		}
-		return nil
 	})
 
 	b.AddRuleNonZero("Username", func(ctx context.Context, f *binding.ValidationField) *binding.Error {

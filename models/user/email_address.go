@@ -120,10 +120,10 @@ func (err ErrEmailInvalid) Unwrap() error {
 // ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
 	if !validation.IsEmailAddressValid(email) {
-		return ErrEmailInvalid(fmt.Sprintf("email address is invalid: %s", email))
+		return ErrEmailInvalid("email address is invalid: " + email)
 	}
 	if !IsEmailDomainAllowed(email) {
-		return ErrEmailInvalid(fmt.Sprintf("email domain is not allowed: %s", email))
+		return ErrEmailInvalid("email domain is not allowed: " + email)
 	}
 	return nil
 }
@@ -132,7 +132,7 @@ func ValidateEmail(email string) error {
 func ValidateEmailForAdmin(email string) error {
 	// In this case we do not need to check the email domain
 	if !validation.IsEmailAddressValid(email) {
-		return ErrEmailInvalid(fmt.Sprintf("email address is invalid: %s", email))
+		return ErrEmailInvalid("email address is invalid: " + email)
 	}
 	return nil
 }
