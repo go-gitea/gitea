@@ -39,37 +39,39 @@ func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestPassword(t *testing.T) {
-	client := New(WithHTTP(&http.Client{Transport: mockTransport{}}))
+	ctx :=  t.Context()
+	client := New()
+	client.mockTransport = mockTransport{}
 
-	count, err := client.CheckPassword("", false)
-	assert.ErrorIs(t, err, ErrEmptyPassword, "blank input should return ErrEmptyPassword")
+	count, err := client.CheckPassword(ctx, "", false)
+	assert.ErrorContains(t, err, "password cannot be empty")
 	assert.EqualValues(t, -1, count)
 
-	count, err = client.CheckPassword("pwned", false)
+	count, err = client.CheckPassword(ctx, "pwned", false)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	count, err = client.CheckPassword("notpwned", false)
+	count, err = client.CheckPassword(ctx, "notpwned", false)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 
-	count, err = client.CheckPassword("paddedpwned", true)
+	count, err = client.CheckPassword(ctx, "paddedpwned", true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 
-	count, err = client.CheckPassword("paddednotpwned", true)
+	count, err = client.CheckPassword(ctx, "paddednotpwned", true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 
-	count, err = client.CheckPassword("paddednotpwnedzero", true)
+	count, err = client.CheckPassword(ctx, "paddednotpwnedzero", true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 
-	count, err = client.CheckPassword("ratelimited", false)
+	count, err = client.CheckPassword(ctx, "ratelimited", false)
 	assert.Error(t, err)
 	assert.EqualValues(t, -1, count)
 
-	count, err = client.CheckPassword("oversized", false)
+	count, err = client.CheckPassword(ctx, "oversized", false)
 	assert.ErrorContains(t, err, "exceeds")
 	assert.EqualValues(t, -1, count)
 }
