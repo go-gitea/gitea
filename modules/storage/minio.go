@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -38,7 +39,7 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 		return nil, convertMinioErr(err)
 	}
 
-	return objectFileInfo{oi.Key, oi.Size, oi.LastModified}, nil
+	return &objectFileInfo{path.Base(oi.Key), oi.Size, oi.LastModified}, nil
 }
 
 // minio reports a missing key on the first Read, ReadAt or Seek rather than on Open, so all
@@ -234,17 +235,17 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 }
 
 // Stat returns the stat information of the object
-func (m *MinioStorage) Stat(path string) (os.FileInfo, error) {
+func (m *MinioStorage) Stat(p string) (os.FileInfo, error) {
 	info, err := m.client.StatObject(
 		m.ctx,
 		m.bucket,
-		m.buildMinioPath(path),
+		m.buildMinioPath(p),
 		minio.StatObjectOptions{},
 	)
 	if err != nil {
 		return nil, convertMinioErr(err)
 	}
-	return objectFileInfo{info.Key, info.Size, info.LastModified}, nil
+	return &objectFileInfo{path.Base(info.Key), info.Size, info.LastModified}, nil
 }
 
 // Delete delete a file

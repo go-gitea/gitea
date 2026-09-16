@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -42,27 +43,39 @@ func (e azureBlobError) Error() string { return string(e) }
 type azureBlobObject struct {
 	storage *AzureBlobStorage
 	blobURL *url.URL
-	info    objectFileInfo
+	info    *objectFileInfo
 	offset  int64
-	body    io.ReadCloser
+	closed  bool
+
+	respBody io.ReadCloser
+}
+
+func (a *azureBlobObject) resetRespBody() {
+	// close resp, the next attempt reopens at the current offset
+	_ = a.respBody.Close()
+	a.respBody = nil
 }
 
 func (a *azureBlobObject) Read(p []byte) (int, error) {
+	if a.closed {
+		return 0, fs.ErrClosed
+	}
 	if a.offset >= a.info.size {
 		return 0, io.EOF
 	}
 	for retry := 0; ; retry++ {
-		if a.body == nil {
-			_, body, err := a.storage.do(a.storage.ctx, http.MethodGet, a.blobURL, http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}}, nil)
+		if a.respBody == nil {
+			reqHeader := http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}}
+			_, body, err := a.storage.do(a.storage.ctx, http.MethodGet, a.blobURL, reqHeader, nil)
 			if err != nil {
 				return 0, err
 			}
-			a.body = body
+			a.respBody = body
 		}
-		n, err := io.ReadFull(a.body, p[:min(int64(len(p)), a.info.size-a.offset)])
+		n, err := io.ReadFull(a.respBody, p[:min(int64(len(p)), a.info.size-a.offset)])
 		a.offset += int64(n)
 		if err != nil {
-			_ = a.Close() // the next attempt reopens at the current offset
+			a.resetRespBody()
 		}
 		if err == nil || n > 0 {
 			return n, nil
@@ -73,12 +86,12 @@ func (a *azureBlobObject) Read(p []byte) (int, error) {
 	}
 }
 
-func (a *azureBlobObject) Close() error {
-	if a.body == nil {
-		return nil
+func (a *azureBlobObject) Close() (err error) {
+	a.closed = true
+	if a.respBody != nil {
+		err = a.respBody.Close()
+		a.respBody = nil
 	}
-	err := a.body.Close()
-	a.body = nil
 	return err
 }
 
@@ -90,13 +103,13 @@ func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekEnd:
 		offset = a.info.size + offset
 	default:
-		return 0, errors.New("Seek: invalid whence")
+		return 0, errors.New("seek: invalid whence")
 	}
 
 	if offset < 0 || offset > a.info.size {
-		return 0, errors.New("Seek: invalid offset")
+		return 0, errors.New("seek: invalid offset")
 	}
-	_ = a.Close()
+	a.resetRespBody()
 	a.offset = offset
 	return a.offset, nil
 }
@@ -132,13 +145,23 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 
 	transport := &http.Transport{
 		Proxy:               http.ProxyFromEnvironment,
-		DialContext:         (&net.Dialer{Timeout: 30 * time.Second}).DialContext,
+		DialContext:         (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
 		TLSHandshakeTimeout: 10 * time.Second,
 		IdleConnTimeout:     90 * time.Second,
 		MaxIdleConnsPerHost: 10,
 	}
-	a := &AzureBlobStorage{cfg: &config, ctx: ctx, client: &http.Client{Transport: transport}, endpoint: endpoint, key: key, blockSize: 4 << 20, concurrency: 4, retryDelay: 800 * time.Millisecond}
-	if _, _, err := a.do(ctx, http.MethodPut, a.url(config.Container, url.Values{"restype": {"container"}}), nil, nil); err != nil && !errors.Is(err, azureBlobError("ContainerAlreadyExists")) {
+	a := &AzureBlobStorage{
+		cfg:         &config,
+		ctx:         ctx,
+		client:      &http.Client{Transport: transport},
+		endpoint:    endpoint,
+		key:         key,
+		blockSize:   4 * 1024 * 1024,
+		concurrency: 4,
+		retryDelay:  200 * time.Millisecond,
+	}
+	_, _, err = a.do(ctx, http.MethodPut, a.url(config.Container, url.Values{"restype": {"container"}}), nil, nil)
+	if err != nil && !errors.Is(err, azureBlobError("ContainerAlreadyExists")) {
 		return nil, err
 	}
 	return a, nil
@@ -163,8 +186,16 @@ func (a *AzureBlobStorage) signString(s string) string {
 
 // https://learn.microsoft.com/rest/api/storageservices/authorize-with-shared-key
 func (a *AzureBlobStorage) signRequest(req *http.Request) string {
-	lines := []string{req.Method, req.Header.Get("Content-Encoding"), req.Header.Get("Content-Language"), util.Iif(req.ContentLength > 0, strconv.FormatInt(req.ContentLength, 10), "")}
-	for _, name := range []string{"Content-MD5", "Content-Type", "Date", "If-Modified-Since", "If-Match", "If-None-Match", "If-Unmodified-Since", "Range"} {
+	lines := []string{
+		req.Method,
+		req.Header.Get("Content-Encoding"),
+		req.Header.Get("Content-Language"),
+		util.Iif(req.ContentLength > 0, strconv.FormatInt(req.ContentLength, 10), ""),
+	}
+	for _, name := range []string{
+		"Content-MD5", "Content-Type", "Date",
+		"If-Modified-Since", "If-Match", "If-None-Match", "If-Unmodified-Since", "Range",
+	} {
 		lines = append(lines, req.Header.Get(name))
 	}
 	msHeaders := map[string]string{}
@@ -186,6 +217,7 @@ func (a *AzureBlobStorage) signRequest(req *http.Request) string {
 
 // only GET returns the body, the caller closes it
 func (a *AzureBlobStorage) do(ctx context.Context, method string, u *url.URL, header http.Header, body []byte) (http.Header, io.ReadCloser, error) {
+	const maxDelay = 3 * time.Second
 	for retry := 0; ; retry++ {
 		req, err := http.NewRequestWithContext(ctx, method, u.String(), bytes.NewReader(body))
 		if err != nil {
@@ -204,7 +236,7 @@ func (a *AzureBlobStorage) do(ctx context.Context, method string, u *url.URL, he
 			select {
 			case <-ctx.Done():
 				return nil, nil, ctx.Err()
-			case <-time.After(a.retryDelay << retry):
+			case <-time.After(min(a.retryDelay<<retry, maxDelay)):
 			}
 			continue
 		}
@@ -276,22 +308,19 @@ func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error
 	return total, err
 }
 
-func (a *AzureBlobStorage) stat(path string) (objectFileInfo, error) {
-	header, _, err := a.do(a.ctx, http.MethodHead, a.url(a.blobName(path), nil), nil, nil)
+func (a *AzureBlobStorage) stat(p string) (*objectFileInfo, error) {
+	header, _, err := a.do(a.ctx, http.MethodHead, a.url(a.blobName(p), nil), nil, nil)
 	if err != nil {
-		return objectFileInfo{}, err
+		return nil, err
 	}
 	size, sizeErr := strconv.ParseInt(header.Get("Content-Length"), 10, 64)
 	modTime, timeErr := http.ParseTime(header.Get("Last-Modified"))
-	return objectFileInfo{path, size, modTime}, errors.Join(sizeErr, timeErr)
+	return &objectFileInfo{path.Base(p), size, modTime}, errors.Join(sizeErr, timeErr)
 }
 
 func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
 	info, err := a.stat(path)
-	if err != nil {
-		return nil, err
-	}
-	return info, nil
+	return info, err
 }
 
 func (a *AzureBlobStorage) Delete(path string) error {
@@ -344,7 +373,11 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			if err != nil {
 				return err
 			}
-			object := &azureBlobObject{storage: a, blobURL: a.url(a.cfg.Container+"/"+blob.Name, nil), info: objectFileInfo{blob.Name, blob.ContentLength, modTime}}
+			object := &azureBlobObject{
+				storage: a,
+				blobURL: a.url(a.cfg.Container+"/"+blob.Name, nil),
+				info:    &objectFileInfo{path.Base(blob.Name), blob.ContentLength, modTime},
+			}
 			err = fn(strings.TrimPrefix(blob.Name, basePrefix), object)
 			_ = object.Close()
 			if err != nil {

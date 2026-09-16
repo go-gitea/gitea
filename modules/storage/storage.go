@@ -49,12 +49,12 @@ type objectFileInfo struct {
 	modTime time.Time
 }
 
-func (o objectFileInfo) Name() string       { return path.Base(o.name) }
-func (o objectFileInfo) Size() int64        { return o.size }
-func (o objectFileInfo) ModTime() time.Time { return o.modTime }
-func (o objectFileInfo) IsDir() bool        { return strings.HasSuffix(o.name, "/") }
-func (o objectFileInfo) Mode() os.FileMode  { return os.ModePerm }
-func (o objectFileInfo) Sys() any           { return nil }
+func (o *objectFileInfo) Name() string       { return o.name } // base name, no dir path
+func (o *objectFileInfo) Size() int64        { return o.size }
+func (o *objectFileInfo) ModTime() time.Time { return o.modTime }
+func (o *objectFileInfo) IsDir() bool        { return false } // object storage doesn't support dir
+func (o *objectFileInfo) Mode() os.FileMode  { return os.ModePerm }
+func (o *objectFileInfo) Sys() any           { return nil }
 
 // ServeDirectOptions customizes HTTP headers for a generated signed URL.
 type ServeDirectOptions struct {
