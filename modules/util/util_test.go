@@ -136,12 +136,6 @@ func TestToLowerASCII(t *testing.T) {
 	}
 }
 
-func TestToLowerEmail(t *testing.T) {
-	assert.Equal(t, "user@xn--f-1gaa.de", ToLowerEmail("User@FÖÖ.de"))
-	assert.Equal(t, "user@foo_bar.com", ToLowerEmail("User@Foo_Bar.com"))
-	assert.ElementsMatch(t, []string{"user@xn--f-1gaa.de", "user@föö.de"}, LowerEmailSpellings("User@FÖÖ.de"))
-}
-
 func BenchmarkToLower(b *testing.B) {
 	for _, tc := range lowerTests {
 		b.Run(tc.in, func(b *testing.B) {

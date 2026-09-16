@@ -12,7 +12,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/auth/source/smtp"
 
@@ -31,7 +30,7 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 	if strings.Contains(username, "@") {
 		isEmail = true
 		// check same email
-		emailAddress, has, err := db.Get[user_model.EmailAddress](ctx, builder.Eq{"lower_email": util.LowerEmailSpellings(strings.TrimSpace(username))})
+		emailAddress, has, err := db.Get[user_model.EmailAddress](ctx, builder.Eq{"lower_email": strings.ToLower(strings.TrimSpace(username))})
 		if err != nil {
 			return nil, nil, err
 		}

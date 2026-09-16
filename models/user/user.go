@@ -815,7 +815,7 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		return db.Insert(ctx, &EmailAddress{
 			UID:         u.ID,
 			Email:       u.Email,
-			LowerEmail:  util.ToLowerEmail(u.Email),
+			LowerEmail:  strings.ToLower(u.Email),
 			IsActivated: u.IsActive,
 			IsPrimary:   true,
 		})
@@ -1172,7 +1172,7 @@ type EmailUserMap struct {
 }
 
 func (eum *EmailUserMap) GetByEmail(email string) *User {
-	return eum.m[util.ToLowerEmail(email)]
+	return eum.m[strings.ToLower(email)]
 }
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
@@ -1183,10 +1183,10 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
 	needCheckUserIDs := make(container.Set[int64])
-	noReplyAddressSuffix := util.ToLowerEmail("@" + setting.Service.NoReplyAddress)
+	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
-		emailLower := util.ToLowerEmail(email)
-		needCheckEmails.AddMultiple(util.LowerEmailSpellings(email)...)
+		emailLower := strings.ToLower(email)
+		needCheckEmails.Add(emailLower)
 		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
 			name, id := parseLocalPartToNameID(localPart)
 			if id != 0 {
@@ -1218,7 +1218,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		for _, email := range emailAddresses {
 			user := users[email.UID]
 			if user != nil {
-				results[util.ToLowerEmail(email.Email)] = user
+				results[email.LowerEmail] = user
 			}
 		}
 	}
@@ -1243,7 +1243,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	}
 
 	for _, email := range emails {
-		emailLower := util.ToLowerEmail(email)
+		emailLower := strings.ToLower(email)
 		if _, ok := results[emailLower]; ok {
 			continue
 		}
@@ -1284,7 +1284,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 
 	email = strings.ToLower(email)
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": util.LowerEmailSpellings(email), "is_activated": true})
+	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": email, "is_activated": true})
 	if err != nil {
 		return nil, err
 	}
@@ -1293,7 +1293,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if localPart, ok := strings.CutSuffix(util.ToLowerEmail(email), util.ToLowerEmail("@"+setting.Service.NoReplyAddress)); ok {
+	if localPart, ok := strings.CutSuffix(email, strings.ToLower("@"+setting.Service.NoReplyAddress)); ok {
 		name, id := parseLocalPartToNameID(localPart)
 		if id != 0 {
 			return GetUserByID(ctx, id)
@@ -1310,8 +1310,7 @@ func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, 
 		return nil, ErrUserNotExist{Name: email}
 	}
 
-	user, has, err := db.Get[User](ctx, builder.Eq{"type": UserTypeIndividual}.And(builder.In("id",
-		builder.Select("uid").From("email_address").Where(builder.Eq{"lower_email": util.LowerEmailSpellings(email), "is_primary": true}))))
+	user, has, err := db.Get[User](ctx, builder.Eq{"email": email, "type": UserTypeIndividual})
 	if err != nil {
 		return nil, err
 	}

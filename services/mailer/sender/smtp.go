@@ -16,7 +16,6 @@ import (
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
 
 // SMTPSender Sender SMTP mail sender
@@ -168,5 +167,5 @@ func sanitizeEmailAddress(raw string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return util.EmailToASCII(addr.Address), nil
+	return addr.Address, nil
 }

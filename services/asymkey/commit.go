@@ -151,7 +151,7 @@ func parseCommitWithGPGSignature(ctx context.Context, c *git.Commit, committer *
 			}
 			if !canValidate {
 				for _, e := range k.Emails {
-					if e.IsActivated && util.ToLowerEmail(e.Email) == util.ToLowerEmail(c.Committer.Email) {
+					if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
 						canValidate = true
 						email = e.Email
 						break
@@ -201,7 +201,7 @@ func checkKeyEmails(ctx context.Context, email string, keys ...*asymkey_model.GP
 	var user *user_model.User
 	for _, key := range keys {
 		for _, e := range key.Emails {
-			if e.IsActivated && (email == "" || util.ToLowerEmail(e.Email) == util.ToLowerEmail(email)) {
+			if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
 				return true, e.Email
 			}
 		}
@@ -212,11 +212,11 @@ func checkKeyEmails(ctx context.Context, email string, keys ...*asymkey_model.GP
 				user, _ = cache.GetWithContextCache(ctx, cachegroup.User, uid, user_model.GetUserByID)
 			}
 			for _, e := range userEmails {
-				if e.IsActivated && (email == "" || util.ToLowerEmail(e.Email) == util.ToLowerEmail(email)) {
+				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
 					return true, e.Email
 				}
 			}
-			if user != nil && util.ToLowerEmail(email) == util.ToLowerEmail(user.GetPlaceholderEmail()) {
+			if user != nil && strings.EqualFold(email, user.GetPlaceholderEmail()) {
 				return true, user.GetPlaceholderEmail()
 			}
 		}

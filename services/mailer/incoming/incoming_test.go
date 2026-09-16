@@ -80,8 +80,6 @@ func TestSearchTokenInHeadersCaseInsensitive(t *testing.T) {
 	assert.Equal(t, "abc", searchTokenInHeaders(mkEnv("To: incoming+abc@EXAMPLE.COM")))
 	assert.Equal(t, "abc", searchTokenInHeaders(mkEnv("Delivered-To: INCOMING+abc@example.com")))
 	assert.Equal(t, "abc", searchTokenInHeaders(mkEnv("References: <ReplY-abc@DomaiN.COM>")))
-	setting.IncomingEmail.ReplyToAddress = "InComing+%{token}@FÖÖ.de"
-	assert.Equal(t, "aBc", searchTokenInHeaders(mkEnv("To: incoming+aBc@xn--f-1gaa.de")))
 }
 
 func TestGetContentFromMailReader(t *testing.T) {

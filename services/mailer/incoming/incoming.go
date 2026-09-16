@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 	"gitea.dev/services/mailer/token"
 
 	"github.com/emersion/go-imap"
@@ -322,12 +321,12 @@ func searchTokenInHeaders(env *enmime.Envelope) string {
 
 // searchTokenInAddresses looks for the token in an address
 func searchTokenInAddresses(addresses []*net_mail.Address) string {
-	tokenPrefix, tokenSuffix, _ := strings.Cut(util.EmailToASCII(setting.IncomingEmail.ReplyToAddress), setting.IncomingEmailTokenPlaceholder)
+	tokenPrefix, tokenSuffix, _ := strings.Cut(setting.IncomingEmail.ReplyToAddress, setting.IncomingEmailTokenPlaceholder)
 	if tokenSuffix == "" {
 		return ""
 	}
 	for _, address := range addresses {
-		if t := extractToken(util.EmailToASCII(address.Address), tokenPrefix, tokenSuffix); t != "" {
+		if t := extractToken(address.Address, tokenPrefix, tokenSuffix); t != "" {
 			return t
 		}
 	}

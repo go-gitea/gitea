@@ -13,8 +13,6 @@ func TestSanitizeEmailAddress(t *testing.T) {
 	}{
 		{"abc@gitea.com", "abc@gitea.com", false},
 		{"<abc@gitea.com>", "abc@gitea.com", false},
-		{"jürgen@föö.de", "jürgen@xn--f-1gaa.de", false},
-		{"abc@[192.168.1.5]", "abc@[192.168.1.5]", false},
 		{"ssss.com", "", true},
 		{"<invalid-email>", "", true},
 	}

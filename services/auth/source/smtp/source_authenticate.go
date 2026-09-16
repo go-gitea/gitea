@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net/smtp"
 	"net/textproto"
-	"slices"
 	"strings"
 
 	audit_model "gitea.dev/models/audit"
@@ -27,7 +26,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		_, after, ok := strings.Cut(userName, "@")
 		if !ok {
 			return nil, user_model.ErrUserNotExist{Name: userName}
-		} else if !isDomainAllowed(after, source.AllowedDomains) {
+		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), after, true) {
 			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 	}
@@ -89,10 +88,4 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user, nil
-}
-
-func isDomainAllowed(domain, allowedDomains string) bool {
-	return slices.ContainsFunc(strings.Split(allowedDomains, ","), func(allowedDomain string) bool {
-		return util.ToLowerEmailDomain(allowedDomain) == util.ToLowerEmailDomain(domain)
-	})
 }

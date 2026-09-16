@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
@@ -169,9 +168,9 @@ func parseGPGKey(ctx context.Context, ownerID int64, e *openpgp.Entity, verified
 		if ident.Revoked(time.Now()) {
 			continue
 		}
-		email := util.ToLowerEmail(strings.TrimSpace(ident.UserId.Email))
+		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
-			if e.IsActivated && util.ToLowerEmail(e.Email) == email {
+			if e.IsActivated && e.LowerEmail == email {
 				emails = append(emails, e)
 				break
 			}

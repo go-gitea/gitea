@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"gitea.dev/modules/cache"
-	"gitea.dev/modules/util"
 )
 
 // LookupFederatedHost returns the avatar host from the email domain's SRV record. https://wiki.libravatar.org/api/
@@ -21,7 +20,7 @@ func LookupFederatedHost(ctx context.Context, email string, secure bool) string 
 	if !found {
 		return ""
 	}
-	domain = util.ToLowerEmailDomain(domain)
+	domain = strings.ToLower(domain)
 
 	service, defaultPort := "avatars", uint16(80)
 	if secure {

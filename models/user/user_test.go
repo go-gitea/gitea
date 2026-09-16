@@ -52,8 +52,6 @@ func TestOAuth2Application_LoadUser(t *testing.T) {
 func TestUserEmails(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
-	idnEmail, err := user_model.InsertEmailAddress(t.Context(), &user_model.EmailAddress{UID: 2, Email: "user@föö.de", IsActivated: true})
-	require.NoError(t, err)
 	t.Run("GetUserEmailsByNames", func(t *testing.T) {
 		// ignore not active user email
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user9"}))
@@ -72,8 +70,6 @@ func TestUserEmails(t *testing.T) {
 		{"2+oldUser2UsernameWhichDoesNotMatterForQuery@" + setting.Service.NoReplyAddress, 2},
 		{"99999+badUser@" + setting.Service.NoReplyAddress, 0},
 		{"user4@example.com", 4},
-		{"USER@FÖÖ.de", 2},
-		{"USER@xn--f-1gaa.de", 2},
 		{"no-such", 0},
 	}
 	t.Run("GetUsersByEmails", func(t *testing.T) {
@@ -121,17 +117,6 @@ func TestUserEmails(t *testing.T) {
 			setting.Service.NoReplyAddress = "example.com"
 			testGetUserByEmail(t, "user1-2@example.COM", 1)
 		})
-
-		t.Run("IDNNoReplyAddress", func(t *testing.T) {
-			setting.Service.NoReplyAddress = "föö.de"
-			testGetUserByEmail(t, "user4@xn--f-1gaa.de", 4)
-		})
-	})
-	t.Run("GetIndividualUserByPrimaryEmail", func(t *testing.T) {
-		require.NoError(t, user_model.MakeActiveEmailPrimary(t.Context(), 2, idnEmail.ID))
-		user, err := user_model.GetIndividualUserByPrimaryEmail(t.Context(), "USER@xn--f-1gaa.de")
-		require.NoError(t, err)
-		assert.Equal(t, int64(2), user.ID)
 	})
 }
 

@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/audit"
 	source_service "gitea.dev/services/auth/source"
@@ -53,7 +52,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	for _, u := range users {
 		usernameUsers[u.LowerName] = u
-		mailUsers[util.ToLowerEmail(u.Email)] = u
+		mailUsers[strings.ToLower(u.Email)] = u
 	}
 
 	sr, err := source.SearchEntries()
@@ -101,7 +100,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			usr = usernameUsers[su.LowerName]
 		}
 		if usr == nil && su.Mail != "" {
-			usr = mailUsers[util.ToLowerEmail(su.Mail)]
+			usr = mailUsers[strings.ToLower(su.Mail)]
 		}
 
 		if usr != nil {
@@ -161,7 +160,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			// Check if user data has changed
 			if (source.AdminFilter != "" && usr.IsAdmin != su.IsAdmin) ||
 				(source.RestrictedFilter != "" && usr.IsRestricted != su.IsRestricted) ||
-				util.ToLowerEmail(usr.Email) != util.ToLowerEmail(su.Mail) ||
+				!strings.EqualFold(usr.Email, su.Mail) ||
 				usr.FullName != fullName ||
 				!usr.IsActive {
 				log.Trace("SyncExternalUsers[%s]: Updating user %s", source.AuthSource.Name, usr.Name)

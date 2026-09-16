@@ -38,7 +38,7 @@ func TestRegisterForm_IsDomainAllowed_InvalidEmail(t *testing.T) {
 }
 
 func TestRegisterForm_IsDomainAllowed_AllowedEmail(t *testing.T) {
-	defer test.MockVariableValue(&setting.Service.EmailDomainAllowList, []glob.Glob{glob.MustCompile("gitea.io"), glob.MustCompile("*.allow"), glob.MustCompile("xn--f-1gaa.de")})()
+	defer test.MockVariableValue(&setting.Service.EmailDomainAllowList, []glob.Glob{glob.MustCompile("gitea.io"), glob.MustCompile("*.allow")})()
 
 	tt := []struct {
 		email string
@@ -46,14 +46,12 @@ func TestRegisterForm_IsDomainAllowed_AllowedEmail(t *testing.T) {
 	}{
 		{"security@gitea.io", true},
 		{"security@gITea.io", true},
-		{"security@g\u0130tea.io", false},
 		{"hack%evil.example@gitea.io", false},
 		{"invalid", false},
 		{"seee@example.com", false},
 
 		{"user@my.allow", true},
 		{"user@my.allow1", false},
-		{"user@föö.de", true},
 	}
 
 	for _, v := range tt {
