@@ -58,8 +58,11 @@ func testPullDiffSingleCommitBar(t *testing.T) {
 
 	panel := doc.Find(".review-box-panel form")
 	require.Equal(t, 1, panel.Length())
-	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", panel.Find(`input[name="commit_id"]`).AttrOr("value", ""))
-	assert.Contains(t, panel.Text(), "on commit c5626fc9ef")
+	// the review targets the pull request head, not the commit on screen
+	assert.Equal(t, "1978192d98bb1b65e11c2cf37da854fbf94bffd6", panel.Find(`input[name="commit_id"]`).AttrOr("value", ""))
+	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/files/reviews/new_comment")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "1978192d98bb1b65e11c2cf37da854fbf94bffd6", NewHTMLParser(t, resp.Body).Find(`input[name="latest_commit_id"]`).AttrOr("value", ""))
 
 	// the oldest commit has nothing before it
 	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/4ca8bcaf27e28504df7bf996819665986b01c847")

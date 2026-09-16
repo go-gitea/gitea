@@ -778,6 +778,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
+	ctx.Data["ReviewCommitID"] = headCommitID // a review is always against the head, whichever diff is on screen
 
 	if isSingleCommit {
 		setSingleCommitNavContext(ctx, prCompareInfo.Commits, afterCommit)

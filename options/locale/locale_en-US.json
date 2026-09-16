@@ -2622,7 +2622,6 @@
   "repo.diff.comment.reply": "Reply",
   "repo.diff.review": "Review",
   "repo.diff.review.header": "Submit review",
-  "repo.diff.review.on_commit": "on commit %[1]s",
   "repo.diff.review.placeholder": "Review comment",
   "repo.diff.review.comment": "Comment",
   "repo.diff.review.approve": "Approve",
