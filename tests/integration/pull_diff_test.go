@@ -53,7 +53,9 @@ func testPullDiffSingleCommitBar(t *testing.T) {
 	assert.Contains(t, bar.Find(".js-previous-commit-link").AttrOr("href", ""), "/pulls/1/commits/96cef4a7b72b3c208340ae6f0cf55a93e9077c93")
 	assert.Contains(t, bar.Find(".js-next-commit-link").AttrOr("href", ""), "/pulls/1/commits/23576dd018294e476c06e569b6b0f170d0558705")
 
-	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", doc.Find("#diff-commit-select").AttrOr("data-current-commit", ""))
+	commitSelect := doc.Find("#diff-commit-select")
+	assert.Equal(t, "96cef4a7b72b3c208340ae6f0cf55a93e9077c93", commitSelect.AttrOr("data-before-commit", ""))
+	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", commitSelect.AttrOr("data-after-commit", ""))
 
 	panel := doc.Find(".review-box-panel form")
 	require.Equal(t, 1, panel.Length())

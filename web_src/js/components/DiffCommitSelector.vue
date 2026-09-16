@@ -29,7 +29,9 @@ const elMount = document.querySelector('#diff-commit-select')!;
 const queryParams = elMount.getAttribute('data-queryparams');
 const issueLink = elMount.getAttribute('data-issuelink');
 const mergeBase = elMount.getAttribute('data-merge-base');
-const currentCommit = elMount.getAttribute('data-current-commit');
+// the diff on screen covers (beforeCommit, afterCommit], both unset when showing all commits
+const beforeCommit = elMount.getAttribute('data-before-commit');
+const afterCommit = elMount.getAttribute('data-after-commit');
 const uniqueIdMenu = generateElemId('diff-commit-selector-menu-');
 const uniqueIdShowAll = generateElemId('diff-commit-selector-show-all-');
 
@@ -39,6 +41,11 @@ const locale = shallowRef<Record<string, string>>({filter_changes_by_commit: elM
 const commits = ref<Array<Commit>>([]); // deep, the commit objects are mutated in place
 const hoverActivated = shallowRef(false);
 const lastReviewCommitSha = shallowRef<string | null>(null);
+const activeRange = shallowRef<[number, number] | null>(null); // inclusive indexes into commits
+
+function isActive(idx: number) {
+  return activeRange.value !== null && activeRange.value[0] <= idx && idx <= activeRange.value[1];
+}
 
 const commitsSinceLastReview = computed(() => {
   if (lastReviewCommitSha.value) {
@@ -165,6 +172,9 @@ async function fetchCommits() {
     lastReviewCommitSha.value = null;
   }
   locale.value = {...locale.value, ...results.locale};
+  const end = commits.value.findIndex((x) => x.id === afterCommit);
+  // beforeCommit is the merge base or the parent of the first commit when it is not in the list
+  if (end >= 0) activeRange.value = [commits.value.findIndex((x) => x.id === beforeCommit) + 1, end];
 }
 
 function showAllChanges() {
@@ -262,8 +272,8 @@ function commitClickedShift(commit: Commit) {
       <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
           class="item" role="menuitem"
-          :class="{selected: commit.selected, hovered: commit.hovered, active: commit.id === currentCommit}"
-          :aria-current="commit.id === currentCommit || undefined"
+          :class="{selected: commit.selected, hovered: commit.hovered, active: isActive(idx)}"
+          :aria-current="isActive(idx) || undefined"
           :data-commit-idx="idx"
           @keydown.enter.exact="commitClicked(commit.id)"
           @keydown.enter.shift.exact="commitClickedShift(commit)"
@@ -286,7 +296,7 @@ function commitClickedShift(commit: Commit) {
             </div>
           </div>
           <div class="tw-font-mono flex-text-block">
-            <svg-icon name="octicon-check" :size="14" v-if="commit.id === currentCommit"/>
+            <svg-icon name="octicon-check" :size="14" v-if="isActive(idx)"/>
             {{ commit.short_sha }}
           </div>
         </div>
