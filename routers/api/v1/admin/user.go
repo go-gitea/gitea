@@ -136,17 +136,7 @@ func CreateUser(ctx *context.APIContext) {
 	}
 
 	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
-		if user_model.IsErrUserAlreadyExist(err) ||
-			user_model.IsErrEmailAlreadyUsed(err) ||
-			db.IsErrNameReserved(err) ||
-			db.IsErrNameCharsNotAllowed(err) ||
-			user_model.IsErrEmailCharIsNotSupported(err) ||
-			user_model.IsErrEmailInvalid(err) ||
-			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -219,17 +209,7 @@ func EditUser(ctx *context.APIContext) {
 
 	if form.Email != nil {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
-			switch {
-			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
-				if !user_model.IsEmailDomainAllowed(*form.Email) {
-					err = fmt.Errorf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email)
-				}
-				ctx.APIError(http.StatusBadRequest, err.Error())
-			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.APIError(http.StatusBadRequest, err.Error())
-			default:
-				ctx.APIErrorInternal(err)
-			}
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}

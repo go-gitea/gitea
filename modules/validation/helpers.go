@@ -21,7 +21,6 @@ type globalVarsStruct struct {
 	invalidUsernamePattern  *regexp.Regexp
 	validBadgeSlugPattern   *regexp.Regexp
 	invalidBadgeSlugPattern *regexp.Regexp
-	validEmailPattern       *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
@@ -31,7 +30,6 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		invalidUsernamePattern:  regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
 		validBadgeSlugPattern:   regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`),
 		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
-		validEmailPattern:       regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
 	}
 })
 
@@ -112,14 +110,7 @@ func IsValidBadgeSlug(slug string) bool {
 	return vars.validBadgeSlugPattern.MatchString(slug) && !vars.invalidBadgeSlugPattern.MatchString(slug)
 }
 
-func IsValidEmail(email string) bool {
-	if !IsEmailCharSupported(email) || strings.HasPrefix(email, "-") {
-		return false
-	}
+func IsEmailAddressValid(email string) bool {
 	_, err := mail.ParseAddress(email)
-	return err == nil
-}
-
-func IsEmailCharSupported(email string) bool {
-	return globalVars().validEmailPattern.MatchString(email)
+	return err == nil && email == strings.TrimSpace(email) && !strings.Contains(email, "<")
 }

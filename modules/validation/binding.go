@@ -101,7 +101,7 @@ func AddBindingRules(b *binding.Binder) {
 
 	b.ClearRules("Email")
 	b.AddRuleNonZero("Email", func(_ context.Context, f *binding.ValidationField) *binding.Error {
-		if !IsValidEmail(f.ValueMustString()) {
+		if !IsEmailAddressValid(f.ValueMustString()) {
 			return newFieldError(f.StructField, binding.ERR_EMAIL, "Email")
 		}
 		return nil

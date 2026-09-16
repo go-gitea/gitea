@@ -4,7 +4,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	user_model "gitea.dev/models/user"
@@ -70,22 +69,7 @@ func AddEmail(ctx *context.APIContext) {
 	}
 
 	if err := user_service.AddEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
-		if errEmailAlreadyUsed, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
-			ctx.APIError(http.StatusUnprocessableEntity, "Email address has been used: "+errEmailAlreadyUsed.Email)
-		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
-			email := ""
-			if typedError, ok := err.(user_model.ErrEmailInvalid); ok {
-				email = typedError.Email
-			}
-			if typedError, ok := err.(user_model.ErrEmailCharIsNotSupported); ok {
-				email = typedError.Email
-			}
-
-			errMsg := fmt.Sprintf("Email address %q invalid", email)
-			ctx.APIError(http.StatusUnprocessableEntity, errMsg)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
