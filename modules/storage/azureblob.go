@@ -237,7 +237,7 @@ func (a *AzureBlobStorage) Open(path string) (Object, error) {
 func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error) {
 	name := a.blobName(path)
 	block := make([]byte, a.blockSize)
-	n, err := readBlock(r, block)
+	n, err := util.ReadAtMost(r, block)
 	if err != nil {
 		return 0, err
 	}
@@ -264,7 +264,7 @@ func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error
 			break
 		}
 		block = make([]byte, a.blockSize)
-		if n, err = readBlock(r, block); err != nil {
+		if n, err = util.ReadAtMost(r, block); err != nil {
 			break
 		}
 	}
@@ -274,16 +274,6 @@ func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error
 	blockList.WriteString("</BlockList>")
 	_, _, err = a.do(a.ctx, http.MethodPut, a.url(name, url.Values{"comp": {"blocklist"}}), nil, blockList.Bytes())
 	return total, err
-}
-
-// readBlock is io.ReadFull where only io.EOF ends the input, so a truncated request body fails the upload
-func readBlock(r io.Reader, buf []byte) (n int, err error) {
-	for n < len(buf) && err == nil {
-		var read int
-		read, err = r.Read(buf[n:])
-		n += read
-	}
-	return n, util.Iif(err == io.EOF, nil, err)
 }
 
 func (a *AzureBlobStorage) stat(path string) (objectFileInfo, error) {
