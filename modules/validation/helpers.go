@@ -114,14 +114,20 @@ func IsValidBadgeSlug(slug string) bool {
 }
 
 func IsEmailAddressValid(email string) bool {
+	if strings.ContainsFunc(email, func(r rune) bool { return r >= utf8.RuneSelf }) {
+		// At the moment, we don't support UTF8 email address. To support it, need to correctly handle IDN/puycode
+		return false
+	}
 	addr, err := mail.ParseAddress(email)
-	if err != nil || addr.Address != email || strings.ContainsFunc(email, func(r rune) bool { return r >= utf8.RuneSelf }) {
+	if err != nil || addr.Address != email {
+		// email must be parseable, and the "email" string must be the address, no other parts
 		return false
 	}
 	_, domain, _ := strings.Cut(email, "@")
 	if strings.HasPrefix(domain, "[") {
+		// address like "foo@[192.168.1.2]"
 		return true
 	}
-	_, err = idna.Registration.ToASCII(strings.ToLower(domain))
+	_, err = idna.Registration.ToASCII(domain)
 	return err == nil
 }
