@@ -1,0 +1,27 @@
+{{$queryParams := printf "?style=%s&whitespace=%s&show-outdated=%v" (Iif $.IsSplitStyle "split" "unified") $.WhitespaceBehavior $.ShowOutdatedComments}}
+<div class="ui info message single-commit-bar tw-flex tw-items-center tw-justify-between tw-gap-4 tw-flex-wrap">
+	<div class="tw-flex tw-flex-col tw-gap-1 tw-min-w-0">
+		<div class="flex-text-block">
+			{{svg "octicon-git-commit" 16 "tw-flex-shrink-0"}}
+			<a class="tw-font-mono muted tw-flex-shrink-0" href="{{$.RepoLink}}/commit/{{PathEscape $.SingleCommit.ID.String}}">{{ShortSha $.SingleCommit.ID.String}}</a>
+			<strong class="gt-ellipsis">{{$.SingleCommit.MessageTitle | ctx.RenderUtils.RenderEmoji}}</strong>
+		</div>
+		<div class="flex-text-block tw-text-text-light-2">
+			{{ctx.AvatarUtils.AvatarByEmail $.SingleCommit.Author.Email $.SingleCommit.Author.Name 16}}
+			<span class="gt-ellipsis">{{$.SingleCommit.Author.Name}}</span>
+			{{DateUtils.TimeSince $.SingleCommit.Author.When}}
+		</div>
+	</div>
+	<div class="flex-text-block tw-flex-shrink-0">
+		<span class="tw-whitespace-nowrap">{{ctx.Locale.Tr "repo.pulls.commit_position" $.SingleCommitNumber $.SingleCommitCount}}</span>
+		<div class="ui compact icon buttons">
+			<a class="ui tiny basic button{{if not $.SingleCommitPrevID}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.previous_commit"}}"
+				{{if $.SingleCommitPrevID}}href="{{$.Issue.Link}}/commits/{{PathEscape $.SingleCommitPrevID}}{{$queryParams}}"{{end}}
+			>{{svg "octicon-chevron-left"}}</a>
+			<a class="ui tiny basic button{{if not $.SingleCommitNextID}} disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.next_commit"}}"
+				{{if $.SingleCommitNextID}}href="{{$.Issue.Link}}/commits/{{PathEscape $.SingleCommitNextID}}{{$queryParams}}"{{end}}
+			>{{svg "octicon-chevron-right"}}</a>
+		</div>
+		<a class="ui tiny basic button" href="{{$.Issue.Link}}/files{{$queryParams}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a>
+	</div>
+</div>

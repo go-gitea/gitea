@@ -36,6 +36,7 @@
 			{{template "repo/diff/options_dropdown" .}}
 			{{if .PageIsPullFiles}}
 				<div id="diff-commit-select" data-merge-base="{{$.CompareInfo.CompareBase}}" data-issuelink="{{$.Issue.Link}}"
+					{{if $.IsShowingOnlySingleCommit}}data-current-commit="{{$.AfterCommitID}}"{{end}}
 					data-queryparams="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}"
 					data-text-filter-changes-by-commit="{{ctx.Locale.Tr "repo.pulls.filter_changes_by_commit"}}">
 					{{/* the following will be replaced by vue component, but this avoids any loading artifacts till the vue component is initialized */}}
@@ -50,10 +51,8 @@
 		</div>
 	</div>
 	{{if not .DiffNotAvailable}}
-		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles}}
-			<div class="ui info message">
-				<div>{{ctx.Locale.Tr "repo.pulls.showing_only_single_commit" (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>
-			</div>
+		{{if and .IsShowingOnlySingleCommit .PageIsPullFiles .SingleCommit}}
+			{{template "repo/diff/single_commit_bar" .}}
 		{{else if and (not .IsShowingAllCommits) .PageIsPullFiles}}
 			<div class="ui info message">
 				<div>{{ctx.Locale.Tr "repo.pulls.showing_specified_commit_range" (ShortSha .BeforeCommitID) (ShortSha .AfterCommitID)}} - <a href="{{$.Issue.Link}}/files?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}">{{ctx.Locale.Tr "repo.pulls.show_all_commits"}}</a></div>

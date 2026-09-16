@@ -1,6 +1,6 @@
 <div id="review-box" {{if $.Repository.IsArchived}}data-tooltip-content="{{ctx.Locale.Tr "repo.archive.pull.nocomment"}}"{{end}}>
-	<button type="button" class="ui tiny primary button tw-pr-1 js-btn-review {{if not $.IsShowingAllCommits}}disabled{{end}}"
-		{{if not $.IsShowingAllCommits}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_only_possible_for_full_diff"}}"{{end}}
+	<button type="button" class="ui tiny primary button tw-pr-1 js-btn-review {{if not $.CanSubmitReview}}disabled{{end}}"
+		{{if not $.CanSubmitReview}}data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.review_not_possible_for_commit_range"}}"{{end}}
 		{{if $.Repository.IsArchived}}disabled{{end}}
 	>
 		{{ctx.Locale.Tr "repo.diff.review"}}
@@ -8,13 +8,17 @@
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
 </div>
-{{if $.IsShowingAllCommits}}
+{{if $.CanSubmitReview}}
 <div class="review-box-panel tippy-target">
 	<div class="ui segment">
 		<form class="ui form form-fetch-action" action="{{.Issue.Link}}/files/reviews/submit" method="post">
 			<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
 			<div class="field flex-text-block">
-				<div class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</div>
+				<div class="tw-flex-1">
+					{{ctx.Locale.Tr "repo.diff.review.header"}}
+					{{/* an older commit is submitted as its own commit_id, so the review is recorded as stale */}}
+					{{if .IsShowingOnlySingleCommit}}<div class="tw-text-text-light-2">{{ctx.Locale.Tr "repo.diff.review.on_commit" (ShortSha .AfterCommitID)}}</div>{{end}}
+				</div>
 				<a class="muted close">{{svg "octicon-x" 16}}</a>
 			</div>
 			<div class="field">

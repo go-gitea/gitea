@@ -11,6 +11,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -677,6 +678,25 @@ func indexCommit(commits []*git.Commit, commitID string) *git.Commit {
 	return nil
 }
 
+// setSingleCommitNavContext exposes the reviewed commit and its neighbours.
+// The commit list is newest-first while a reviewer walks it oldest-first, so the indexes are mirrored.
+func setSingleCommitNavContext(ctx *context.Context, commits []*git.Commit, commit *git.Commit) {
+	commitID := commit.ID.String()
+	idx := slices.IndexFunc(commits, func(c *git.Commit) bool { return c.ID.String() == commitID })
+	if idx < 0 {
+		return
+	}
+	ctx.Data["SingleCommit"] = commit
+	ctx.Data["SingleCommitNumber"] = len(commits) - idx
+	ctx.Data["SingleCommitCount"] = len(commits)
+	if idx+1 < len(commits) {
+		ctx.Data["SingleCommitPrevID"] = commits[idx+1].ID.String()
+	}
+	if idx > 0 {
+		ctx.Data["SingleCommitNextID"] = commits[idx-1].ID.String()
+	}
+}
+
 // ViewPullFiles render pull request changed files list page
 func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	var err error
@@ -710,6 +730,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	ctx.Data["IsShowingOnlySingleCommit"] = isSingleCommit
 	ctx.Data["IsShowingAllCommits"] = isShowAllCommits
+	ctx.Data["CanSubmitReview"] = isShowAllCommits || isSingleCommit // a range has no commit to anchor the review to
 
 	// "commits list" is half-open, half-closed: (base, head]
 	// * base commit is not in the list
@@ -757,6 +778,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["CompareInfo"] = prCompareInfo
 	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["BeforeCommitID"] = beforeCommitID
+
+	if isSingleCommit {
+		setSingleCommitNavContext(ctx, prCompareInfo.Commits, afterCommit)
+	}
 
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")

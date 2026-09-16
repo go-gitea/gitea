@@ -26,12 +26,48 @@ func TestPullDiff(t *testing.T) {
 		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files", false, []string{"test1.txt", "test10.txt", "test2.txt", "test3.txt", "test4.txt", "test5.txt", "test6.txt", "test7.txt", "test8.txt", "test9.txt"})
 	})
 	t.Run("SingleCommitPRDiff", func(t *testing.T) {
-		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", true, []string{"test3.txt"})
+		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", false, []string{"test3.txt"})
 	})
 	t.Run("CommitRangePRDiff", func(t *testing.T) {
 		testPullDiffAssertPage(t, "/user2/commitsonpr/pulls/1/files/4ca8bcaf27e28504df7bf996819665986b01c847..23576dd018294e476c06e569b6b0f170d0558705", true, []string{"test2.txt", "test3.txt", "test4.txt"})
 	})
 	t.Run("SingleHeadCommitReviewFormAction", testPullDiffSingleHeadCommitReviewFormAction)
+	t.Run("SingleCommitBar", testPullDiffSingleCommitBar)
+}
+
+func testPullDiffSingleCommitBar(t *testing.T) {
+	session := loginUser(t, "user2")
+	// "test 3" is the 3rd of the 10 commits on this pull request, "test 2" precedes it and "test 4" follows it
+	req := NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+
+	bar := doc.Find(".single-commit-bar")
+	require.Equal(t, 1, bar.Length())
+	barText := bar.Text()
+	assert.Contains(t, barText, "test 3")
+	assert.Contains(t, barText, "Sebastian Sauer")
+	assert.Contains(t, barText, "Commit 3 of 10")
+
+	prev := bar.Find(`a[data-tooltip-content="Previous commit"]`)
+	next := bar.Find(`a[data-tooltip-content="Next commit"]`)
+	assert.Contains(t, prev.AttrOr("href", ""), "/pulls/1/commits/96cef4a7b72b3c208340ae6f0cf55a93e9077c93")
+	assert.Contains(t, next.AttrOr("href", ""), "/pulls/1/commits/23576dd018294e476c06e569b6b0f170d0558705")
+
+	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", doc.Find("#diff-commit-select").AttrOr("data-current-commit", ""))
+
+	panel := doc.Find(".review-box-panel form")
+	require.Equal(t, 1, panel.Length())
+	assert.Equal(t, "c5626fc9eff57eb1bb7b796b01d4d0f2f3f792a2", panel.Find(`input[name="commit_id"]`).AttrOr("value", ""))
+	assert.Contains(t, panel.Text(), "on commit c5626fc9ef")
+
+	// the oldest commit has nothing before it
+	req = NewRequest(t, "GET", "/user2/commitsonpr/pulls/1/commits/4ca8bcaf27e28504df7bf996819665986b01c847")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	bar = NewHTMLParser(t, resp.Body).Find(".single-commit-bar")
+	assert.Contains(t, bar.Text(), "Commit 1 of 10")
+	assert.True(t, bar.Find(`a[data-tooltip-content="Previous commit"]`).HasClass("disabled"))
+	assert.False(t, bar.Find(`a[data-tooltip-content="Next commit"]`).HasClass("disabled"))
 }
 
 func testPullDiffSingleHeadCommitReviewFormAction(t *testing.T) {
