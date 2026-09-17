@@ -77,19 +77,17 @@ onUnmounted(() => {
   <div ref="panelEl" class="tippy-target">
     <div class="diff-ext-filter-menu" role="menu" :aria-label="props.locale.fileExtensions">
       <div class="diff-ext-filter-header">{{ props.locale.fileExtensions }}</div>
-      <div class="diff-ext-filter-list">
-        <button
-          v-for="ext in allExtensions" :key="ext.ext"
-          type="button" class="item" role="menuitemcheckbox"
-          :aria-checked="isChecked(ext.ext)" @click="toggleExt(ext.ext)"
-        >
-          <span class="diff-ext-filter-check">
-            <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check"/>
-          </span>
-          <span class="gt-ellipsis">{{ extLabel(ext.ext) }}</span>
-          <span class="diff-ext-filter-count">{{ ext.count }}</span>
-        </button>
-      </div>
+      <button
+        v-for="ext in allExtensions" :key="ext.ext"
+        type="button" class="item" role="menuitemcheckbox"
+        :aria-checked="isChecked(ext.ext)" @click="toggleExt(ext.ext)"
+      >
+        <span class="diff-ext-filter-check">
+          <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check"/>
+        </span>
+        <span class="gt-ellipsis">{{ extLabel(ext.ext) }}</span>
+        <span class="diff-ext-filter-count">{{ ext.count }}</span>
+      </button>
       <div class="divider"/>
       <button
         type="button" class="item" role="menuitemcheckbox"
@@ -106,6 +104,8 @@ onUnmounted(() => {
 
 <style scoped>
 .diff-ext-filter-menu {
+  display: flex;
+  flex-direction: column;
   min-width: 192px;
   max-width: 320px;
 }
@@ -115,11 +115,6 @@ onUnmounted(() => {
   color: var(--color-text-light-2);
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
-}
-
-.diff-ext-filter-list {
-  display: flex;
-  flex-direction: column;
 }
 
 .diff-ext-filter-menu .item {
