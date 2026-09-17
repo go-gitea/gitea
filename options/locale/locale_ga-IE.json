@@ -3531,6 +3531,7 @@
   "notification.mark_as_read": "Marcáil mar léite",
   "notification.mark_as_unread": "Marcáil mar neamh-léite",
   "notification.mark_all_as_read": "Marcáil gach ceann mar léite",
+  "notification.mark_page_as_read": "Marcáil an leathanach seo mar léite",
   "notification.subscriptions": "Síntiúis",
   "notification.watching": "Ag féachaint",
   "notification.no_subscriptions": "Gan síntiúis",
