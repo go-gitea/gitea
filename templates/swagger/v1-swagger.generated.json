@@ -26795,8 +26795,12 @@
       ],
       "properties": {
         "user_type": {
-          "description": "The target user type, \"User\" or \"Bot\", case-insensitive",
+          "description": "The target user type, accepted case-insensitively",
           "type": "string",
+          "enum": [
+            "User",
+            "Bot"
+          ],
           "x-go-name": "UserType"
         }
       },
