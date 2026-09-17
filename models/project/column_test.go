@@ -123,7 +123,7 @@ func Test_NewColumn(t *testing.T) {
 		assert.NoError(t, err)
 	}
 	err = NewColumn(t.Context(), &Column{
-		Title:     "column-21",
+		Title:     fmt.Sprintf("column-%d", maxProjectColumns+1),
 		ProjectID: project1.ID,
 	})
 	assert.Error(t, err)

@@ -4,7 +4,6 @@
 package pull
 
 import (
-	"path/filepath"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
@@ -102,7 +101,7 @@ func TestAddCommitMessageTailer(t *testing.T) {
 
 func TestResolveMergeMessageTemplate(t *testing.T) {
 	t.Run("NoDefault", func(t *testing.T) {
-		repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "test-repo"), []git.FastImportCommit{
+		repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
 			{Ref: "refs/heads/master", Files: []git.FastImportFile{
 				{Path: ".gitea/default_merge_message/REBASE_TEMPLATE.md", Content: "rebase template"},
 			}},
@@ -122,7 +121,7 @@ func TestResolveMergeMessageTemplate(t *testing.T) {
 		assert.Equal(t, "rebase template", tmpl)
 	})
 	t.Run("WithDefault", func(t *testing.T) {
-		repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "test-repo"), []git.FastImportCommit{
+		repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
 			{Ref: "refs/heads/master", Files: []git.FastImportFile{
 				{Path: ".gitea/default_merge_message/DEFAULT_TEMPLATE.md", Content: "default template"},
 				{Path: ".gitea/default_merge_message/REBASE_TEMPLATE.md", Content: "rebase template"},

@@ -79,7 +79,7 @@ type MigrateRepoForm struct {
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	middleware.FormDefaultValidator
-	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	RepoName               string `binding:"TrimSpace;Required;AlphaDashDot;MaxSize(100)"`
 	Description            string `binding:"MaxSize(2048)"`
 	Website                string `binding:"ValidUrl;MaxSize(1024)"`
 	Interval               string
@@ -264,7 +264,7 @@ type NewSlackHookForm struct {
 
 func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
-		errs = middleware.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
+		errs = validation.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
 	}
 	return errs
 }

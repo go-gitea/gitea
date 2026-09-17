@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
@@ -22,9 +23,11 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -174,6 +177,7 @@ func NewUserPost(ctx *context.Context) {
 		var errNameReserved db.ErrNameReserved
 		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
+		var errEmailInvalid user_model.ErrEmailInvalid
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -181,7 +185,7 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, &form)
-		case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
+		case errors.As(err, &errEmailInvalid):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case errors.As(err, &errNameReserved):
@@ -202,6 +206,8 @@ func NewUserPost(ctx *context.Context) {
 	if !user_model.IsEmailDomainAllowed(u.Email) {
 		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
 	}
+
+	audit.Record(ctx, audit_model.UserCreate, u)
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
@@ -405,12 +411,12 @@ func EditUserPost(ctx *context.Context) {
 	if form.Email != "" {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, u, form.Email); err != nil {
 			switch {
-			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
-				ctx.Data["Err_Email"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 			case user_model.IsErrEmailAlreadyUsed(err):
 				ctx.Data["Err_Email"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
+			case errors.Is(err, util.ErrInvalidArgument):
+				ctx.Data["Err_Email"] = true
+				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 			default:
 				ctx.ServerError("AddOrSetPrimaryEmailAddress", err)
 			}
@@ -468,6 +474,7 @@ func ImpersonateUser(ctx *context.Context) {
 		ctx.ServerError("unable to impersonate user", err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserImpersonation, u)
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 

@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
@@ -27,6 +28,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
@@ -453,12 +455,15 @@ func SignOut(ctx *context.Context) {
 		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
 	}
 
+	impersonator := audit.ImpersonatorFromContext(ctx)
+
 	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
 	if err != nil {
 		ctx.ServerError("ExitImpersonatedUser", err)
 		return
 	}
 	if exitedImpersonated {
+		audit.RecordAs(ctx, impersonator, audit_model.UserImpersonationExit, ctx.Doer)
 		ctx.Redirect(setting.AppSubURL + "/-/admin")
 		return
 	}
@@ -654,6 +659,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		var errNameReserved db.ErrNameReserved
 		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
+		var errEmailInvalid user_model.ErrEmailInvalid
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -661,10 +667,7 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tpl, form)
-		case user_model.IsErrEmailCharIsNotSupported(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tpl, form)
-		case user_model.IsErrEmailInvalid(err):
+		case errors.As(err, &errEmailInvalid):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tpl, form)
 		case errors.As(err, &errNameReserved):

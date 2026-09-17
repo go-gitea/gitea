@@ -138,7 +138,7 @@ func createDefaultColumnsForProject(ctx context.Context, project *Project) error
 
 // maxProjectColumns max columns allowed in a project, this should not bigger than 127
 // because sorting is int8 in database
-const maxProjectColumns = 20
+const maxProjectColumns = 127
 
 // NewColumn adds a new project column to a given project
 func NewColumn(ctx context.Context, column *Column) error {

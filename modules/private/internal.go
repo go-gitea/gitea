@@ -89,7 +89,7 @@ var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
 	}
 })
 
-func NewInternalRequest(ctx context.Context, url, method string) *httplib.Request {
+func NewInternalRequest(ctx context.Context, url, method string) *httplib.ClientRequest {
 	if setting.InternalToken == "" {
 		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
 Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
@@ -99,14 +99,14 @@ Ensure you are running in the correct environment or set the correct configurati
 		log.Fatal("Invalid internal request URL: %q", url)
 	}
 
-	return httplib.NewRequest(url, method).
+	return httplib.NewClientRequest(method, url).
 		SetContext(ctx).
 		SetTransport(internalAPITransport()).
 		Header("X-Real-IP", getClientIP()).
 		Header("X-Gitea-Internal-Auth", "Bearer "+setting.InternalToken)
 }
 
-func newInternalRequestAPI(ctx context.Context, url, method string, body ...any) *httplib.Request {
+func newInternalRequestAPI(ctx context.Context, url, method string, body ...any) *httplib.ClientRequest {
 	req := NewInternalRequest(ctx, url, method)
 	if len(body) == 1 {
 		req.Header("Content-Type", "application/json")

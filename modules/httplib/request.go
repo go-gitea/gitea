@@ -30,16 +30,10 @@ func DialContextWithTimeout(timeout time.Duration) func(ctx context.Context, net
 	}
 }
 
-func NewRequest(url, method string) *Request {
-	return &Request{
-		url: url,
-		req: &http.Request{
-			Method:     method,
-			Header:     make(http.Header),
-			Proto:      "HTTP/1.1", // FIXME: from legacy httplib, it shouldn't be hardcoded
-			ProtoMajor: 1,
-			ProtoMinor: 1,
-		},
+func NewClientRequest(method, url string) *ClientRequest {
+	return &ClientRequest{
+		url:    url,
+		req:    &http.Request{Method: method, Header: make(http.Header)},
 		params: map[string]string{},
 
 		// ATTENTION: from legacy httplib, callers must pay more attention to it, it will cause annoying bugs when the response takes a long time
@@ -47,7 +41,7 @@ func NewRequest(url, method string) *Request {
 	}
 }
 
-type Request struct {
+type ClientRequest struct {
 	url    string
 	req    *http.Request
 	params map[string]string
@@ -57,38 +51,38 @@ type Request struct {
 }
 
 // SetContext sets the request's Context
-func (r *Request) SetContext(ctx context.Context) *Request {
+func (r *ClientRequest) SetContext(ctx context.Context) *ClientRequest {
 	r.req = r.req.WithContext(ctx)
 	return r
 }
 
 // SetTransport sets the request transport, if not set, will use httplib's default transport with environment proxy support
 // ATTENTION: the http.Transport has a connection pool, so it should be reused as much as possible, do not create a lot of transports
-func (r *Request) SetTransport(transport http.RoundTripper) *Request {
+func (r *ClientRequest) SetTransport(transport http.RoundTripper) *ClientRequest {
 	r.transport = transport
 	return r
 }
 
-func (r *Request) SetReadWriteTimeout(readWriteTimeout time.Duration) *Request {
+func (r *ClientRequest) SetReadWriteTimeout(readWriteTimeout time.Duration) *ClientRequest {
 	r.readWriteTimeout = readWriteTimeout
 	return r
 }
 
 // Header set header item string in request.
-func (r *Request) Header(key, value string) *Request {
+func (r *ClientRequest) Header(key, value string) *ClientRequest {
 	r.req.Header.Set(key, value)
 	return r
 }
 
 // Param adds query param in to request.
 // params build query string as ?key1=value1&key2=value2...
-func (r *Request) Param(key, value string) *Request {
+func (r *ClientRequest) Param(key, value string) *ClientRequest {
 	r.params[key] = value
 	return r
 }
 
 // Body adds request raw body. It supports string, []byte and io.Reader as body.
-func (r *Request) Body(data any) *Request {
+func (r *ClientRequest) Body(data any) *ClientRequest {
 	if r == nil {
 		return nil
 	}
@@ -114,7 +108,7 @@ func (r *Request) Body(data any) *Request {
 
 // Response executes request client and returns the response.
 // Caller MUST close the response body if no error occurs.
-func (r *Request) Response() (*http.Response, error) {
+func (r *ClientRequest) Response() (*http.Response, error) {
 	var paramBody string
 	if len(r.params) > 0 {
 		var buf bytes.Buffer
@@ -160,6 +154,6 @@ func (r *Request) Response() (*http.Response, error) {
 	return client.Do(r.req)
 }
 
-func (r *Request) GoString() string {
+func (r *ClientRequest) GoString() string {
 	return fmt.Sprintf("%s %s", r.req.Method, r.url)
 }
