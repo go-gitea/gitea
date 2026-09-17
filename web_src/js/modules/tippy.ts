@@ -13,6 +13,8 @@ type TippyOpts = {
 type PopperModifier = NonNullable<NonNullable<Props['popperOptions']>['modifiers']>[number];
 
 const visibleInstances = new Set<Instance>();
+const menuItemSelector = '.item:not(.disabled, .tw-hidden)';
+
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
 // shrink tippy's default 3px arrow padding so the arrow can point at the center of
@@ -59,6 +61,31 @@ function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): Popper
   };
 }
 
+function focusMenuItem(instance: Instance, delta: number) {
+  const items = [...instance.popper.querySelectorAll<HTMLElement>(menuItemSelector)];
+  if (!items.length) return;
+  const current = items.indexOf(document.activeElement as HTMLElement);
+  const next = current === -1 ? (delta > 0 ? 0 : items.length - 1) : (current + delta + items.length) % items.length;
+  items[next].focus();
+}
+
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (e.isComposing) return;
+  const menuInstance = [...visibleInstances].findLast((instance) => instance.props.role === 'menu');
+  if (!menuInstance) return;
+  if (e.key === 'Escape') {
+    menuInstance.hide();
+  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    if (!menuInstance.popper.contains(document.activeElement)) return;
+    (document.activeElement as HTMLElement).click();
+  } else {
+    return;
+  }
+  e.preventDefault();
+});
+
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
@@ -77,6 +104,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     maxWidth: 500, // increase over default 350px
     onHide: (instance: Instance) => {
       visibleInstances.delete(instance);
+      if (instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
       return onHide?.(instance);
     },
     onDestroy: (instance: Instance) => {
@@ -92,6 +120,9 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       }
       visibleInstances.add(instance);
       target.setAttribute('aria-controls', instance.popper.id);
+      if (instance.props.role === 'menu') { // make items focusable for the arrow keys
+        for (const item of instance.popper.querySelectorAll<HTMLElement>(menuItemSelector)) item.tabIndex = -1;
+      }
       return onShow?.(instance);
     },
     arrow: resolvedArrow,
