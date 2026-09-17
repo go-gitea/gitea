@@ -8,9 +8,11 @@ import (
 	"fmt"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	deploykey_model "gitea.dev/models/deploykey"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/services/audit"
 )
 
 // DeleteRepoDeployKeys deletes all deploy keys of a repository. permissions check should be done outside
@@ -64,6 +66,9 @@ func DeleteDeployKey(ctx context.Context, repo *repo_model.Repository, id int64)
 	if err != nil {
 		return nil, err
 	}
+
+	audit.Record(ctx, audit_model.RepositoryDeployKeyRemove, repo, "deploy_key", deleted.Name)
+
 	if deleted.KeyType == deploykey_model.KeyTypeToken {
 		return deleted, nil // a token never appears in the authorized_keys file
 	}

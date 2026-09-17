@@ -254,7 +254,6 @@ export default defineConfig(commonViteOpts({
     },
   },
   build: {
-    modulePreload: false,
     manifest: true,
     rolldownOptions: {
       input: {

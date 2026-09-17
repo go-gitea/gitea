@@ -12058,6 +12058,9 @@
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/components/responses/error"
+          },
           "422": {
             "$ref": "#/components/responses/validationError"
           }
@@ -12141,6 +12144,9 @@
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
@@ -32754,6 +32760,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Replace list of topics for a repository",
@@ -32803,6 +32812,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a topic from a repository",
@@ -32850,6 +32862,9 @@
           },
           "422": {
             "$ref": "#/components/responses/invalidTopicsError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add a topic to a repository",
@@ -34992,6 +35007,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/EmailList"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
