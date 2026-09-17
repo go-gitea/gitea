@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -282,4 +283,38 @@ func TestGetCountLatestCommitStatus(t *testing.T) {
 	count, err := git_model.CountLatestCommitStatus(t.Context(), repo1.ID, sha1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
+}
+
+func TestGetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
+
+	var commitIDs []string
+	for i := range 60 { // pad so that sha1 lands in a later query batch
+		commitIDs = append(commitIDs, fmt.Sprintf("%040d", i))
+	}
+	commitIDs = append(commitIDs, sha1)
+
+	statusMap, err := git_model.GetLatestCommitStatusForRepoCommitIDs(t.Context(), 1, commitIDs)
+	assert.NoError(t, err)
+	assert.Len(t, statusMap, 1)
+
+	states := make([]commitstatus.CommitStatusState, 0, 3)
+	for _, status := range statusMap[sha1] {
+		states = append(states, status.State)
+	}
+	assert.ElementsMatch(t, []commitstatus.CommitStatusState{
+		commitstatus.CommitStatusFailure, // ci/awesomeness, index 4
+		commitstatus.CommitStatusSuccess, // cov/awesomeness, index 3
+		commitstatus.CommitStatusError,   // deploy/awesomeness, index 5
+	}, states)
+
+	pairStatuses, err := git_model.GetLatestCommitStatusForPairs(t.Context(), []git_model.RepoSHA{
+		{RepoID: 1, SHA: sha1},
+		{RepoID: 2, SHA: sha1},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, pairStatuses, 1)
+	assert.Len(t, pairStatuses[1], 3)
 }
