@@ -49,51 +49,7 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	priv, pub, err := getKeyPair(ctx, ownerID)
-	if err != nil {
-		return "", "", err
-	}
-	if priv != "" && pub != "" {
-		return priv, pub, nil
-	}
-
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("package-keypair-arch-%d", ownerID), func(ctx context.Context) error {
-		var err error
-		priv, pub, err = getKeyPair(ctx, ownerID) // re-read inside the lock
-		if err != nil || (priv != "" && pub != "") {
-			return err
-		}
-
-		priv, pub, err = generateKeypair()
-		if err != nil {
-			return err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, arch_module.SettingKeyPrivate, priv); err != nil {
-			return err
-		}
-
-		return user_model.SetUserSetting(ctx, ownerID, arch_module.SettingKeyPublic, pub)
-	})
-	if err != nil {
-		return "", "", err
-	}
-
-	return priv, pub, nil
-}
-
-func getKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ctx, ownerID, arch_module.SettingKeyPrivate)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	pub, err := user_model.GetSetting(ctx, ownerID, arch_module.SettingKeyPublic)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	return priv, pub, nil
+	return packages_service.GetOrCreateKeyPair(ctx, packages_model.TypeArch, ownerID, arch_module.SettingKeyPrivate, arch_module.SettingKeyPublic, generateKeypair)
 }
 
 func generateKeypair() (string, string, error) {

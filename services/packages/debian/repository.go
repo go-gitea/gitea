@@ -18,7 +18,6 @@ import (
 	packages_model "gitea.dev/models/packages"
 	debian_model "gitea.dev/models/packages/debian"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/globallock"
 	packages_module "gitea.dev/modules/packages"
 	debian_module "gitea.dev/modules/packages/debian"
 	"gitea.dev/modules/setting"
@@ -40,51 +39,7 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	priv, pub, err := getKeyPair(ctx, ownerID)
-	if err != nil {
-		return "", "", err
-	}
-	if priv != "" && pub != "" {
-		return priv, pub, nil
-	}
-
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("package-keypair-debian-%d", ownerID), func(ctx context.Context) error {
-		var err error
-		priv, pub, err = getKeyPair(ctx, ownerID) // re-read inside the lock
-		if err != nil || (priv != "" && pub != "") {
-			return err
-		}
-
-		priv, pub, err = generateKeypair()
-		if err != nil {
-			return err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPrivate, priv); err != nil {
-			return err
-		}
-
-		return user_model.SetUserSetting(ctx, ownerID, debian_module.SettingKeyPublic, pub)
-	})
-	if err != nil {
-		return "", "", err
-	}
-
-	return priv, pub, nil
-}
-
-func getKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ctx, ownerID, debian_module.SettingKeyPrivate)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	pub, err := user_model.GetSetting(ctx, ownerID, debian_module.SettingKeyPublic)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	return priv, pub, nil
+	return packages_service.GetOrCreateKeyPair(ctx, packages_model.TypeDebian, ownerID, debian_module.SettingKeyPrivate, debian_module.SettingKeyPublic, generateKeypair)
 }
 
 func generateKeypair() (string, string, error) {
