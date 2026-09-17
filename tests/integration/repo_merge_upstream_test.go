@@ -17,6 +17,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -170,6 +172,18 @@ func TestRepoMergeUpstream(t *testing.T) {
 				FfOnly: true,
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusBadRequest)
+		})
+
+		t.Run("UnrelatedHistories", func(t *testing.T) {
+			require.NoError(t, git.ForceFastImport(t.Context(), forkRepo.CodeStorageRepo(), []git.FastImportCommit{{Ref: "refs/heads/unrelated-branch"}}))
+			_, err := repo_module.SyncRepoBranches(t.Context(), forkRepo.ID, forkUser.ID)
+			require.NoError(t, err)
+
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/test-repo-fork/merge-upstream", forkUser.Name), &api.MergeUpstreamRequest{
+				Branch: "unrelated-branch",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusUnprocessableEntity)
+			session.MakeRequest(t, NewRequestf(t, "POST", "/%s/test-repo-fork/branches/merge-upstream?branch=unrelated-branch", forkUser.Name), http.StatusBadRequest)
 		})
 
 		t.Run("BasePrivateBlocksSync", func(t *testing.T) {
