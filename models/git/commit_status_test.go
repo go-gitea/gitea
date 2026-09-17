@@ -318,3 +318,42 @@ func TestGetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
 	assert.Len(t, pairStatuses, 1)
 	assert.Len(t, pairStatuses[1], 3)
 }
+
+func TestGetLatestCommitStatusForRepoAndSHAs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
+	sha2 := "2345234523452345234523452345234523452345"
+
+	// a second repository, plus a decoy status at repo 1 / sha2 that is never asked for:
+	// matching repositories and SHAs as a cross product would wrongly return it
+	for _, repoID := range []int64{1, 2} {
+		assert.NoError(t, db.Insert(t.Context(), &git_model.CommitStatus{
+			Index:       6,
+			RepoID:      repoID,
+			SHA:         sha2,
+			State:       commitstatus.CommitStatusSuccess,
+			Context:     "ci/awesomeness",
+			ContextHash: "c65f4d64a3b14a3eced0c9b36799e66e1bd5ced7",
+			CreatorID:   2,
+		}))
+		assert.NoError(t, git_model.UpdateCommitStatusSummary(t.Context(), repoID, sha2))
+	}
+	assert.NoError(t, git_model.UpdateCommitStatusSummary(t.Context(), 1, sha1))
+
+	statuses, err := git_model.GetLatestCommitStatusForRepoAndSHAs(t.Context(), []git_model.RepoSHA{
+		{RepoID: 1, SHA: sha1},
+		{RepoID: 2, SHA: sha2},
+		{RepoID: 2, SHA: sha1}, // a repository asked for with two SHAs must still be matched by both
+	})
+	assert.NoError(t, err)
+
+	pairs := make([]git_model.RepoSHA, 0, len(statuses))
+	for _, status := range statuses {
+		pairs = append(pairs, git_model.RepoSHA{RepoID: status.RepoID, SHA: status.SHA})
+		if status.RepoID == 2 {
+			assert.Equal(t, commitstatus.CommitStatusSuccess, status.State)
+		}
+	}
+	assert.ElementsMatch(t, []git_model.RepoSHA{{RepoID: 1, SHA: sha1}, {RepoID: 2, SHA: sha2}}, pairs)
+}
