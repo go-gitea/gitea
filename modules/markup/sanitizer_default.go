@@ -70,7 +70,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		"mi", "mn", "mo", "mtext", "mspace", "ms",
 		// layout elements
 		"mrow", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom",
-		"maction", // although MDN says "maction" is deprecated, we sill need to allow it, otherwise, if it is removed, the layout will be wrong
+		"maction", // although MDN says "maction" is deprecated, we still need to allow it, otherwise, if it is removed, the layout will be wrong
 		// scripting elements
 		"msub", "msup", "msubsup", "munder", "mover", "munderover", "mmultiscripts", "mprescripts", "none",
 		// tabular elements
