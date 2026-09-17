@@ -97,7 +97,7 @@ func ChangeTitle(ctx context.Context, issue *issues_model.Issue, doer *user_mode
 	}
 
 	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, issue.Repo.OwnerID) {
-		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, issue.Repo, doer); !isAdmin {
+		if !access_model.IsUserRepoAdmin(ctx, issue.Repo, doer) {
 			return user_model.ErrBlockedUser
 		}
 	}

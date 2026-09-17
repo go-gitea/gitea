@@ -25,13 +25,14 @@ func TestHandlePullRequestMerging(t *testing.T) {
 	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	err = pull_model.ScheduleAutoMerge(t.Context(), user1, pr.ID, repo_model.MergeStyleSquash, "squash merge a pr", false)
 	assert.NoError(t, err)
 
 	autoMerge := unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 
 	ctx, resp := contexttest.MockPrivateContext(t, "/")
+	ctx.Doer = user2
 	hookPostReceiveHandlePullRequestMerging(ctx, &private.HookOptions{
 		PullRequestID: pr.ID,
 		UserID:        2,

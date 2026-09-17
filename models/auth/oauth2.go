@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/container"
@@ -21,7 +22,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"xorm.io/builder"

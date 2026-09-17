@@ -124,7 +124,7 @@ func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds
 				log.Error("GetDoerRepoPermission[%d]: %v", pd.Repository.ID, err)
 			} else if permission.HasAnyUnitAccessOrPublicAccess() {
 				pkg.Source = Source{
-					URL:       pd.Repository.HTMLURL(),
+					URL:       pd.Repository.HTMLURL(ctx),
 					Type:      "git",
 					Reference: pd.Version.Version,
 				}

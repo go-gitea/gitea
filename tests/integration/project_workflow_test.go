@@ -215,7 +215,7 @@ func testProjectWorkflowCreate(t *testing.T, f *projectWorkflowFixture) {
 	var result map[string]any
 	err = json.Unmarshal(resp.Body.Bytes(), &result)
 	assert.NoError(t, err)
-	assert.True(t, result["success"].(bool))
+	assert.Equal(t, true, result["success"])
 
 	// Verify workflow was created
 	workflows, err := project_model.FindWorkflowsByProjectID(t.Context(), project.ID)
@@ -274,7 +274,7 @@ func testProjectWorkflowUpdate(t *testing.T, f *projectWorkflowFixture) {
 	var result map[string]any
 	err = json.Unmarshal(resp.Body.Bytes(), &result)
 	assert.NoError(t, err)
-	assert.True(t, result["success"].(bool))
+	assert.Equal(t, true, result["success"])
 
 	// Verify workflow was updated
 	updatedWorkflow, err := project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
@@ -312,7 +312,7 @@ func testProjectWorkflowToggleStatus(t *testing.T, f *projectWorkflowFixture) {
 		var result map[string]any
 		err := json.Unmarshal(resp.Body.Bytes(), &result)
 		assert.NoError(t, err)
-		assert.True(t, result["success"].(bool), "Response should indicate success")
+		assert.Equal(t, true, result["success"], "Response should indicate success")
 
 		// Verify status was changed to disabled
 		updatedWorkflow, err := project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
@@ -332,7 +332,7 @@ func testProjectWorkflowToggleStatus(t *testing.T, f *projectWorkflowFixture) {
 		var result map[string]any
 		err := json.Unmarshal(resp.Body.Bytes(), &result)
 		assert.NoError(t, err)
-		assert.True(t, result["success"].(bool), "Response should indicate success")
+		assert.Equal(t, true, result["success"], "Response should indicate success")
 
 		// Verify status was changed back to enabled
 		updatedWorkflow, err := project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
@@ -365,7 +365,7 @@ func testProjectWorkflowDelete(t *testing.T, f *projectWorkflowFixture) {
 	var result map[string]any
 	err = json.Unmarshal(resp.Body.Bytes(), &result)
 	assert.NoError(t, err)
-	assert.True(t, result["success"].(bool), "Delete response should indicate success")
+	assert.Equal(t, true, result["success"], "Delete response should indicate success")
 
 	// Verify workflow was deleted - should return ErrNotExist
 	_, err = project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)

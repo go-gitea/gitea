@@ -16,15 +16,15 @@ img.ui.avatar,
 }
 
 .avatar-stack-names > a.muted,
+.avatar-stack-names > .avatar-stack-name,
 .avatar-stack-names > .avatar-stack-popup-trigger {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 240px;
 }
 
-/* use semibold for latest commit author */
-.latest-commit .avatar-stack-names > a,
-.latest-commit .avatar-stack-names > .avatar-stack-popup-trigger {
+.avatar-stack-names > a,
+.avatar-stack-names > .avatar-stack-popup-trigger {
   font-weight: var(--font-weight-semibold);
 }
 

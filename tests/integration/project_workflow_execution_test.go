@@ -36,7 +36,7 @@ func testCreateProjectWorkflow(t *testing.T, session *TestSession, userName, rep
 	var result map[string]any
 	err := json.Unmarshal(resp.Body.Bytes(), &result)
 	assert.NoError(t, err)
-	assert.True(t, result["success"].(bool))
+	assert.Equal(t, true, result["success"])
 }
 
 // testNewIssueReturnIssue creates an issue through the web form and returns its ID.

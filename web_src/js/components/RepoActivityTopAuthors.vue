@@ -15,15 +15,7 @@ const colors = shallowRef({
   textAltColor: 'white',
 });
 
-type ActivityAuthorData = {
-  avatar_link: string;
-  commits: number;
-  home_link: string;
-  login: string;
-  name: string;
-}
-
-const activityTopAuthors: Array<ActivityAuthorData> = window.config.pageData.repoActivityTopAuthors || [];
+const activityTopAuthors = window.config.pageData.repoActivityTopAuthors || [];
 
 const graphWidth = activityTopAuthors.length * barSlotWidth;
 const maxCommits = Math.max(...activityTopAuthors.map((author) => author.commits));

@@ -12,6 +12,7 @@ import (
 	"html/template"
 	"slices"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"gitea.dev/models/db"
@@ -257,18 +258,24 @@ type CommentMetaData struct {
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
+const projectWorkflowDoerPrefix = "project-workflow:"
+
 type projectWorkflowDoer struct {
-	// user is the same *User this ExtDoerData is attached to (see
-	// NewProjectWorkflowDoer): GetDoerUserID reads .ID off it directly instead of
-	// keeping a second, independently-stale copy of the ID around.
-	user                 *user_model.User
-	projectTitle         string
-	projectWorkflowID    int64
-	projectWorkflowEvent project_model.WorkflowEvent
+	ProjectTitle         string                      `json:"project_title"`
+	ProjectWorkflowID    int64                       `json:"project_workflow_id"`
+	ProjectWorkflowEvent project_model.WorkflowEvent `json:"project_workflow_event"`
 }
 
-func (p projectWorkflowDoer) GetDoerUserID() int64 {
-	return p.user.ID
+var _ user_model.ExtDoerData = (*projectWorkflowDoer)(nil)
+
+func (p *projectWorkflowDoer) EncodeToString() string {
+	b, _ := json.Marshal(p)
+	return projectWorkflowDoerPrefix + string(b)
+}
+
+func (p *projectWorkflowDoer) DecodeFromString(s string) error {
+	data, _ := strings.CutPrefix(s, projectWorkflowDoerPrefix)
+	return json.Unmarshal([]byte(data), p)
 }
 
 // NewProjectWorkflowDoer returns triggeringUser (the real user whose action fired
@@ -293,10 +300,9 @@ func (p projectWorkflowDoer) GetDoerUserID() int64 {
 func NewProjectWorkflowDoer(triggeringUser *user_model.User, title string, workflowID int64, workflowEvent project_model.WorkflowEvent) *user_model.User {
 	doer := *triggeringUser
 	doer.ExtDoerData = &projectWorkflowDoer{
-		user:                 &doer,
-		projectTitle:         title,
-		projectWorkflowID:    workflowID,
-		projectWorkflowEvent: workflowEvent,
+		ProjectTitle:         title,
+		ProjectWorkflowID:    workflowID,
+		ProjectWorkflowEvent: workflowEvent,
 	}
 	return &doer
 }
@@ -902,9 +908,9 @@ func buildCreateCommentMetaData(opts *CreateCommentOptions) (commentMetaData *Co
 	if extDoer, ok := opts.Doer.ExtDoerData.(*projectWorkflowDoer); ok {
 		makeCommentMetaData()
 		commentMetaData.SpecialDoerName = SpecialDoerNameProjectWorkflow
-		commentMetaData.ProjectWorkflowID = extDoer.projectWorkflowID
-		commentMetaData.ProjectWorkflowEvent = extDoer.projectWorkflowEvent
-		commentMetaData.ProjectTitle = extDoer.projectTitle
+		commentMetaData.ProjectWorkflowID = extDoer.ProjectWorkflowID
+		commentMetaData.ProjectWorkflowEvent = extDoer.ProjectWorkflowEvent
+		commentMetaData.ProjectTitle = extDoer.ProjectTitle
 	}
 	return commentMetaData
 }
@@ -1155,6 +1161,10 @@ type FindCommentsOptions struct {
 	IssueIDs    []int64
 	Invalidated optional.Option[bool]
 	IsPull      optional.Option[bool]
+}
+
+func (opts FindCommentsOptions) ToOrders() string {
+	return "id"
 }
 
 // ToConds implements FindOptions interface

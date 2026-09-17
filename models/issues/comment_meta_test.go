@@ -40,8 +40,6 @@ func TestBuildCreateCommentMetaData(t *testing.T) {
 	assert.Equal(t, SpecialDoerNameCodeOwners, meta.SpecialDoerName)
 	assert.Zero(t, meta.ProjectWorkflowID)
 
-	// ExtDoerData must be stored as *projectWorkflowDoer (pointer); a value type
-	// would not match the type assertion and all workflow fields would silently be zero.
 	const (
 		wfID      = int64(42)
 		wfEvent   = project_model.WorkflowEventItemOpened
@@ -60,19 +58,6 @@ func TestBuildCreateCommentMetaData(t *testing.T) {
 	assert.Equal(t, wfEvent, meta.ProjectWorkflowEvent)
 	assert.Equal(t, projTitle, meta.ProjectTitle)
 
-	// Passing a value-type projectWorkflowDoer (not pointer) must NOT match
-	// the *projectWorkflowDoer assertion, so metadata must remain nil.
-	nilMetaDoer := &user_model.User{
-		ID: 1,
-		ExtDoerData: projectWorkflowDoer{ // value, not *projectWorkflowDoer
-			projectTitle:         "WrongTitle",
-			projectWorkflowID:    99,
-			projectWorkflowEvent: project_model.WorkflowEventItemClosed,
-		},
-	}
-	meta = buildCreateCommentMetaData(&CreateCommentOptions{Doer: nilMetaDoer})
-	assert.Nil(t, meta, "value-type projectWorkflowDoer must not match *projectWorkflowDoer type assertion")
 	assert.True(t, IsProjectWorkflowDoer(workflowDoer))
-	assert.False(t, IsProjectWorkflowDoer(nilMetaDoer))
 	assert.False(t, IsProjectWorkflowDoer(&user_model.User{ID: 1}))
 }

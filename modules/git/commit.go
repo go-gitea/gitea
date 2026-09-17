@@ -114,8 +114,7 @@ func (c *Commit) HasPreviousCommit(ctx context.Context, gitRepo *Repository, obj
 	if err == nil {
 		return true, nil
 	}
-	var exitError *exec.ExitError
-	if errors.As(err, &exitError) {
+	if exitError, ok := errors.AsType[*exec.ExitError](err); ok {
 		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
 			return false, nil
 		}

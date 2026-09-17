@@ -156,7 +156,7 @@ func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repo Repo
 	rd.bufferedReader = bufio.NewReader(stdoutReader)
 	rd.cleanupFuncs = append(rd.cleanupFuncs, stdoutReaderClose)
 
-	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
+	if !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err := tryCreateBlameIgnoreRevsFile(ctx, gitRepo, commit)
 		if err != nil && !IsErrNotExist(err) {
 			return nil, err

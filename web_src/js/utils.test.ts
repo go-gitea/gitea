@@ -17,6 +17,9 @@ test('basename', () => {
 });
 
 test('extname', () => {
+  expect(extname('.gitignore')).toEqual('');
+  expect(extname('/path/to/.gitignore')).toEqual('');
+  expect(extname('/path/to/.eslintrc.json')).toEqual('.json');
   expect(extname('/path/to/file.js')).toEqual('.js');
   expect(extname('/path/')).toEqual('');
   expect(extname('/path')).toEqual('');
@@ -48,13 +51,13 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
-  expect(parseIssueHref('')).toEqual({ownerName: undefined, repoName: undefined, type: undefined, index: undefined});
+  expect(parseIssueHref('')).toBeNull();
 });
 
 test('parseRepoOwnerPathInfo', () => {
   expect(parseRepoOwnerPathInfo('/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
   expect(parseRepoOwnerPathInfo('/owner/repo/releases')).toEqual({ownerName: 'owner', repoName: 'repo'});
-  expect(parseRepoOwnerPathInfo('/other')).toEqual({});
+  expect(parseRepoOwnerPathInfo('/other')).toBeNull();
   window.config.appSubUrl = '/sub';
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
   expect(parseRepoOwnerPathInfo('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo'});
@@ -123,16 +126,17 @@ test('formatBytes', () => {
 });
 
 test('file detection', () => {
+  const type = null;
   for (const name of ['a.avif', 'a.jpg', '/a.jpeg', '.file.png', '.webp', 'file.svg']) {
-    expect(isImageFile({name})).toBeTruthy();
+    expect(isImageFile({name, type})).toBeTruthy();
   }
   for (const name of ['', 'a.jpg.x', '/path.png/x', 'webp']) {
-    expect(isImageFile({name})).toBeFalsy();
+    expect(isImageFile({name, type})).toBeFalsy();
   }
   for (const name of ['a.mpg', '/a.mpeg', '.file.mp4', '.webm', 'file.mkv']) {
-    expect(isVideoFile({name})).toBeTruthy();
+    expect(isVideoFile({name, type})).toBeTruthy();
   }
   for (const name of ['', 'a.mpg.x', '/path.mp4/x', 'webm']) {
-    expect(isVideoFile({name})).toBeFalsy();
+    expect(isVideoFile({name, type})).toBeFalsy();
   }
 });

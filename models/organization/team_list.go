@@ -39,6 +39,18 @@ func (t TeamList) AnyRepoUnitMaxAccess(ctx context.Context, tp unit.Type) perm.A
 	return maxAccess
 }
 
+func (t TeamList) HasAllRepoAdminAccess() bool {
+	for _, team := range t {
+		if team.IsOwnerTeam() || team.AccessMode == perm.AccessModeOwner {
+			return true
+		}
+		if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
+			return true
+		}
+	}
+	return false
+}
+
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
 	db.ListOptions

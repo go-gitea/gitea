@@ -7,24 +7,22 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm"
 )
 
-func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {
-	type ProjectWorkflow struct {
-		ID              int64
-		ProjectID       int64 `xorm:"INDEX"`
-		WorkflowEvent   string
-		WorkflowFilters string `xorm:"TEXT JSON"`
-		WorkflowActions string `xorm:"TEXT JSON"`
-		// SchemaVersion allows the shape of WorkflowFilters/WorkflowActions to change
-		// in the future without an offline rewrite of every row, following the same
-		// pattern as HookTask.PayloadVersion.
-		SchemaVersion int                `xorm:"DEFAULT 1"`
-		Enabled       bool               `xorm:"DEFAULT true NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+func AddPublishedUnixToRelease(_ context.Context, x base.EngineMigration) error {
+	type Release struct {
+		PublishedUnix int64 `xorm:"NOT NULL DEFAULT 0"`
+	}
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(Release)); err != nil {
+		return err
 	}
 
-	return x.Sync(&ProjectWorkflow{})
+	// existing rows have no recorded publication time, so fall back to their creation time
+	_, err := x.Exec("UPDATE `release` SET published_unix = created_unix WHERE published_unix = 0 AND is_draft = ?", false)
+	return err
 }

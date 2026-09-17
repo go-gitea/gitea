@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
@@ -145,7 +146,7 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 func TestEscapeControlReader(t *testing.T) {
 	for _, tt := range escapeControlTests {
 		t.Run(tt.name, func(t *testing.T) {
-			output := &strings.Builder{}
+			output := &htmlutil.HTMLBuilder{}
 			status, err := EscapeControlReader(strings.NewReader(tt.text), output, &translation.MockLocale{})
 			assert.NoError(t, err)
 			assert.Equal(t, tt.status, *status)

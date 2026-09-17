@@ -77,6 +77,9 @@ func TestUserOrgs(t *testing.T) {
 	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
 	assert.Empty(t, orgs)
 
+	orgs = getUserOrgs(t, "user29", adminUsername)
+	assert.Empty(t, orgs)
+
 	// not authenticated call should not be allowed
 	testUserOrgsUnauthenticated(t, privateMemberUsername)
 }
