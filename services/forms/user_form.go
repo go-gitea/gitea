@@ -276,7 +276,7 @@ func DetectInvalidOAuth2ApplicationRedirectURI(uris []string) (invalidURL string
 func (f *EditOAuth2ApplicationForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	invalidURI := DetectInvalidOAuth2ApplicationRedirectURI(util.SplitTrimSpace(f.RedirectURIs, "\n"))
 	if invalidURI != "" {
-		errs = middleware.AddValidationError(errs, "RedirectURIs", "RedirectURIs: "+ctx.Locale.TrString("form.url_error", `"`+invalidURI+`"`))
+		errs = validation.AddValidationError(errs, "RedirectURIs", "RedirectURIs: "+ctx.Locale.TrString("form.url_error", `"`+invalidURI+`"`))
 	}
 	return errs
 }
