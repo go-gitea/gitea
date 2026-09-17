@@ -159,5 +159,5 @@ var Binder = sync.OnceValue(func() *binding.Binder {
 
 type (
 	BindingErrors = binding.Errors
-	BindingError  = binding.Error
+	BindingError  = binding.Error //exhaustruct:enforce
 )
