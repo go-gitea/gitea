@@ -581,7 +581,7 @@ async function hashChangeListener() {
 
 .job-info-header:has(+ .job-step-container) {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
-  border-bottom: 1px solid var(--color-console-border);
+  border-bottom: 1px solid var(--color-secondary);
 }
 
 .job-info-header .job-info-header-title {
