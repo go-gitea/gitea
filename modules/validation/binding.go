@@ -45,7 +45,7 @@ func (j jsonProvider) NewEncoder(writer io.Writer) binding.JSONEncoder {
 }
 
 func newFieldError(field reflect.StructField, cls, msg string) *BindingError {
-	return &BindingError{[]string{field.Name}, cls, msg} //nolint:govet // make sure no missing fields
+	return &BindingError{FieldNames: []string{field.Name}, Classification: cls, Message: msg}
 }
 
 func AddValidationError(errs BindingErrors, fieldName, errorMsg string) BindingErrors {
