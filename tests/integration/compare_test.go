@@ -10,11 +10,12 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
@@ -211,21 +212,18 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
-
-	_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
-commit refs/heads/unrelated-history
-committer User <user@example.com> 1714310400 +0000
-data 13
-Second commit
-M 100644 inline file2.txt
-data 12
-Hello from 2
-`))).RunStdString(t.Context())
-	require.NoError(t, runErr)
-
 	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	createPull := func(head string) api.PullRequest {
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls", &api.CreatePullRequestOption{Head: head, Base: "master", Title: head}).AddTokenAuth(token)
+		return DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), api.PullRequest{})
+	}
+	rewrittenBase := createPull("DefaultBranch")
+	require.NoError(t, git.ForceFastImport(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}), []git.FastImportCommit{
+		{Ref: "refs/heads/master"},
+		{Ref: "refs/heads/unrelated-history", Files: []git.FastImportFile{{Path: "file2.txt", Content: "Hello from 2\n"}}},
+	}))
+
 	req := NewRequest(t, "GET", "/user2/repo1/compare/master...unrelated-history")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	body := resp.Body.String()
@@ -237,6 +235,19 @@ Hello from 2
 	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...unrelated-history"]`).Length())
 	assert.Equal(t, 1, htmlDoc.doc.Find(`a.item[href="/user2/repo1/compare/master...master"]`).Length())
 	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+	unrelated := createPull("unrelated-history")
+	for link, filename := range map[string]string{
+		fmt.Sprintf("/user2/repo1/pulls/%d/files", rewrittenBase.Index):                      "LICENSE",
+		fmt.Sprintf("/user2/repo1/pulls/%d/files", unrelated.Index):                          "file2.txt",
+		fmt.Sprintf("/user2/repo1/pulls/%d/commits/%s", unrelated.Index, unrelated.Head.Sha): "file2.txt",
+	} {
+		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
+		assert.Equal(t, filename, doc.Find(".diff-file-box").AttrOr("data-new-filename", ""))
+		assert.Equal(t, "11", doc.Find(".pull.tabular.menu .item .label").Slice(1, 3).Text())
+	}
+	assert.Len(t, DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/files", unrelated.Index)).AddTokenAuth(token), http.StatusOK), []*api.ChangedFile{}), 1)
+	MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/update?style=rebase", rewrittenBase.Index)).AddTokenAuth(token), http.StatusUnprocessableEntity)
 }
 
 func TestCompareDownloadDiffOrPatch(t *testing.T) {
