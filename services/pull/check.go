@@ -41,6 +41,7 @@ var (
 	ErrNoPermissionToMerge       = errors.New("no permission to merge")
 	ErrNotReadyToMerge           = errors.New("not ready to merge")
 	ErrHasMerged                 = errors.New("has already been merged")
+	ErrIsMerging                 = errors.New("is being merged already")
 	ErrIsWorkInProgress          = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking                = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergeableState         = errors.New("not in mergeable state")
@@ -435,8 +436,7 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 // InitializePullRequests checks and tests untested patches of pull requests.
 func InitializePullRequests(ctx context.Context) {
 	if err := enqueueMergingPullRequests(ctx); err != nil {
-		log.Error("Find Merging PRs: %v", err)
-		return
+		log.Error("Find Merging PRs: %v", err) // keep going, the checking PRs below are independent of this
 	}
 
 	// If we prefer to delay the checks, then no need to do any check during startup, there should be not much difference
@@ -458,6 +458,8 @@ func InitializePullRequests(ctx context.Context) {
 	}
 }
 
+// enqueueMergingPullRequests re-queues pull requests whose merge was interrupted, so a restart settles them
+// even when DelayCheckForInactiveDays would otherwise skip the startup checks.
 func enqueueMergingPullRequests(ctx context.Context) error {
 	prIDs, err := issues_model.GetPullRequestIDsByMerging(ctx)
 	if err != nil {
@@ -502,12 +504,13 @@ func checkPullRequestMergeable(id int64) {
 		return
 	}
 
-	if pr.MergeState != issues_model.PullRequestMergeStateNone {
-		if _, err := recoverMergingPullRequest(ctx, pr); err != nil {
+	if pr.MergeState != issues_model.PullRequestMergeStateNone { // an interrupted merge, decide from git whether it landed
+		merged, err := recoverMergingPullRequest(ctx, pr)
+		if err != nil {
 			log.Error("recoverMergingPullRequest[%-v]: %v", pr, err)
 			return
 		}
-		if pr.HasMerged {
+		if merged {
 			log.Trace("%-v recovered as merged (status: %s, merge commit: %s)", pr, pr.Status, pr.MergedCommitID)
 			return
 		}

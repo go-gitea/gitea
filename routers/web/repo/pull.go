@@ -1150,6 +1150,10 @@ func MergePullRequest(ctx *context.Context) {
 	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
+			ctx.JSONError(ctx.Tr("repo.pulls.has_merged"))
+		} else if errors.Is(err, pull_service.ErrIsMerging) {
+			ctx.JSONError(ctx.Tr("repo.pulls.is_merging"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.editor.merge_conflict"),

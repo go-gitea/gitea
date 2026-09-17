@@ -241,6 +241,8 @@ func addTestPullRequestTaskAfterWebOperation(pr *issues_model.PullRequest, doer 
 	// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
 	// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
 	// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
+	// Note that it is also what settles a merge whose result could not be recorded, see the merge_state handling in
+	// checkPullRequestMergeable, so removing it would delay such a recovery until the next restart.
 	go AddTestPullRequestTask(TestPullRequestOptions{
 		RepoID:      pr.BaseRepo.ID,
 		Doer:        doer,
@@ -278,7 +280,7 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 	}
 
 	err = globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
-		mergePR, err := issues_model.GetPullRequestByID(ctx, pr.ID)
+		mergePR, err := issues_model.GetPullRequestByID(ctx, pr.ID) // re-read under the lock, the caller's copy may be stale
 		if err != nil {
 			return err
 		}
@@ -286,29 +288,39 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 			return ErrHasMerged
 		}
 		if mergePR.MergeState != issues_model.PullRequestMergeStateNone {
-			if _, err := recoverMergingPullRequest(ctx, mergePR); err != nil {
+			// a previous merge attempt died before it could record its result, settle it before starting a new one
+			merged, err := recoverMergingPullRequest(ctx, mergePR)
+			if err != nil {
 				return err
 			}
-			if mergePR.HasMerged {
+			if merged {
 				return ErrHasMerged
 			}
 		}
 
-		if err := markPullRequestMerging(ctx, pr.ID, doer.ID, wasAutoMerged); err != nil {
+		if err := markPullRequestMerging(ctx, mergePR, doer.ID, wasAutoMerged); err != nil {
 			return err
 		}
 
-		mergeCommitID, err := doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+		// record the merge commit before it is pushed, so that recovery can later tell whether the push landed
+		beforePush := func(ctx context.Context, mergeCommitID string) error {
+			return setPullRequestMergingCommitID(ctx, mergePR, mergeCommitID)
+		}
+		mergeCommitID, err := doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, beforePush)
 		if err != nil {
-			_ = clearPullRequestMerging(ctx, pr.ID)
+			// git can fail after the ref was already updated, so ask git whether the merge landed rather than
+			// assuming it did not: recovery either records the merge or releases the mark for a retry
+			if merged, recoverErr := recoverMergingPullRequest(ctx, mergePR); recoverErr != nil {
+				log.Error("recoverMergingPullRequest[%-v] after a failed merge: %v", mergePR, recoverErr)
+			} else if merged {
+				log.Warn("%-v was merged even though the merge operation reported a failure: %v", mergePR, err)
+			}
 			return err
 		}
 
-		if err := syncMergedState(ctx, pr.ID, doer, mergeCommitID); err != nil {
-			_ = clearPullRequestMerging(ctx, pr.ID)
-			return err
-		}
-		return nil
+		// the merge commit is on the base branch now. If this fails, the merging mark is deliberately left in place so
+		// that the check queue (see the deferred task below) or the next restart settles the pull request.
+		return syncMergedState(ctx, pr.ID, doer, mergeCommitID)
 	})
 	defer addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
 	if err != nil {
@@ -317,8 +329,9 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 	return handleMergePostProcess(ctx, pr.ID, doer, wasAutoMerged)
 }
 
+// syncMergedState records the merge result in the database after the merge commit has been pushed to the base branch.
 func syncMergedState(ctx context.Context, prID int64, doer *user_model.User, mergeCommitID string) error {
-	pr, err := issues_model.GetPullRequestByID(ctx, prID)
+	pr, err := issues_model.GetPullRequestByID(ctx, prID) // re-read, the push triggered hooks which may have changed the row
 	if err != nil {
 		return err
 	}
@@ -332,45 +345,67 @@ func syncMergedState(ctx context.Context, prID int64, doer *user_model.User, mer
 	return nil
 }
 
-func markPullRequestMerging(ctx context.Context, prID, mergerID int64, auto bool) error {
+// markPullRequestMerging persists the intent to merge before any git work, so a merge that dies half way can be
+// settled later by recoverMergingPullRequest instead of leaving the base branch merged and the pull request open.
+func markPullRequestMerging(ctx context.Context, pr *issues_model.PullRequest, mergerID int64, auto bool) error {
 	mergeState := issues_model.PullRequestMergeStateMerging
 	if auto {
 		mergeState = issues_model.PullRequestMergeStateAutoMerging
 	}
-	cnt, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ? AND merge_state = ?", prID, false, issues_model.PullRequestMergeStateNone).
-		Cols("merge_state, merger_id").
-		Update(&issues_model.PullRequest{MergeState: mergeState, MergerID: mergerID})
+	// conditional update: also rejects a concurrent merge from another instance, which the local lock does not cover.
+	// NoAutoTime because MergedUnix is an xorm "updated" column and this pull request is not merged yet.
+	cnt, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ? AND merge_state = ?", pr.ID, false, issues_model.PullRequestMergeStateNone).
+		Cols("merge_state, merger_id, merged_commit_id").NoAutoTime().
+		Update(&issues_model.PullRequest{MergeState: mergeState, MergerID: mergerID, MergedCommitID: ""})
 	if err != nil {
 		return err
 	}
 	if cnt != 1 {
-		return fmt.Errorf("pull request %d is already merging or merged", prID)
+		return ErrIsMerging
 	}
+	pr.MergeState, pr.MergerID, pr.MergedCommitID = mergeState, mergerID, ""
 	return nil
 }
 
-func clearPullRequestMerging(ctx context.Context, prID int64) error {
-	_, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", prID, false).
-		Cols("merge_state, merger_id").
-		Update(&issues_model.PullRequest{MergeState: issues_model.PullRequestMergeStateNone, MergerID: 0})
-	return err
+// setPullRequestMergingCommitID records the merge commit that is about to be pushed to the base branch. It is the only
+// reliable way for recovery to identify the merge afterwards, because squash and rebase merges rewrite the commits.
+func setPullRequestMergingCommitID(ctx context.Context, pr *issues_model.PullRequest, mergeCommitID string) error {
+	if _, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).
+		Cols("merged_commit_id").NoAutoTime().
+		Update(&issues_model.PullRequest{MergedCommitID: mergeCommitID}); err != nil {
+		return err
+	}
+	pr.MergedCommitID = mergeCommitID
+	return nil
 }
 
+func clearPullRequestMerging(ctx context.Context, pr *issues_model.PullRequest) error {
+	if _, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).
+		Cols("merge_state, merger_id, merged_commit_id").NoAutoTime().
+		Update(&issues_model.PullRequest{MergeState: issues_model.PullRequestMergeStateNone, MergerID: 0, MergedCommitID: ""}); err != nil {
+		return err
+	}
+	pr.MergeState, pr.MergerID, pr.MergedCommitID = issues_model.PullRequestMergeStateNone, 0, ""
+	return nil
+}
+
+// recoverMergingPullRequest settles a pull request left in a merging state: git is the source of truth, so if the merge
+// reached the base branch the database is caught up, otherwise the merging mark is released for a later retry.
 func recoverMergingPullRequest(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
 	if pr.MergeState == issues_model.PullRequestMergeStateNone || pr.HasMerged {
 		return false, nil
 	}
 
-	commit, err := getMergeCommit(ctx, pr)
-	if err != nil {
-		return false, err
-	}
-	if commit == nil {
-		if err := clearPullRequestMerging(ctx, pr.ID); err != nil {
+	// MergedCommitID is written before the push, so an empty value means the push was never attempted
+	var commit *git.Commit
+	if pr.MergedCommitID != "" {
+		var err error
+		if commit, err = getPushedMergeCommit(ctx, pr); err != nil {
 			return false, err
 		}
-		pr.MergeState = issues_model.PullRequestMergeStateNone
-		return false, nil
+	}
+	if commit == nil { // the merge never reached the base branch, let the pull request be merged again
+		return false, clearPullRequestMerging(ctx, pr)
 	}
 
 	merger, err := getMergerForMergingPullRequest(ctx, pr)
@@ -378,7 +413,8 @@ func recoverMergingPullRequest(ctx context.Context, pr *issues_model.PullRequest
 		return false, err
 	}
 	wasAutoMerged := pr.MergeState == issues_model.PullRequestMergeStateAutoMerging
-	merged, err := SetMerged(ctx, pr, commit.ID.String(), timeutil.TimeStamp(commit.Author.When.Unix()), merger, pr.Status)
+	// the committer date is when the merge was created, the author date belongs to the merged work itself
+	merged, err := SetMerged(ctx, pr, commit.ID.String(), timeutil.TimeStamp(commit.Committer.When.Unix()), merger, pr.Status)
 	if err != nil {
 		return false, err
 	}
@@ -390,8 +426,30 @@ func recoverMergingPullRequest(ctx context.Context, pr *issues_model.PullRequest
 	return merged, nil
 }
 
+// getPushedMergeCommit returns the recorded merge commit if it reached the base branch, and nil if it did not.
+// Identifying the merge by its commit id works for every merge style, unlike getMergeCommit, which cannot see squash
+// or rebase merges because those rewrite the commits and leave the pull request head outside the base branch ancestry.
+func getPushedMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Commit, error) {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return nil, err
+	}
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
+	if !gitRepo.IsObjectExist(ctx, pr.MergedCommitID) { // the merge failed before or during the push
+		return nil, nil //nolint:nilnil // nil commit means "not merged"
+	}
+	if inBranch, err := gitRepo.IsCommitInBranch(ctx, pr.MergedCommitID, pr.BaseBranch); err != nil || !inBranch {
+		return nil, err
+	}
+	return gitRepo.GetCommit(ctx, pr.MergedCommitID)
+}
+
 func getMergerForMergingPullRequest(ctx context.Context, pr *issues_model.PullRequest) (*user_model.User, error) {
-	if pr.MergerID > 0 {
+	if pr.MergerID > 0 { // recorded by markPullRequestMerging, the user who actually pressed merge
 		merger, err := user_model.GetUserByID(ctx, pr.MergerID)
 		if err == nil {
 			return merger, nil
@@ -464,7 +522,9 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+// beforePush, when set, is called with the new merge commit id after the merge has been created locally but before it
+// is pushed, so the caller can persist it and be able to tell afterwards whether the push landed.
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, beforePush func(ctx context.Context, mergeCommitID string) error) (string, error) {
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
@@ -539,11 +599,17 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.Index,
 	)
 
+	if beforePush != nil {
+		if err := beforePush(ctx, mergeCommitID); err != nil {
+			return "", err
+		}
+	}
+
 	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
-	// Push back to upstream.
-	// This cause an api call to "/api/internal/hook/post-receive/...",
-	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
+	// Push back to upstream. This causes an api call to "/api/internal/hook/post-receive/...".
+	// The merge result is recorded by the caller once the push has returned, not by that hook, because git ignores the
+	// post-receive exit code: a failing hook must not leave the base branch merged while the pull request stays open.
 	if err := mergeCtx.PrepareGitCmd(pushCmd).RunWithStderr(ctx); err != nil {
 		if strings.Contains(err.Stderr(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{

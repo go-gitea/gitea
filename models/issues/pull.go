@@ -154,12 +154,14 @@ type PullRequest struct {
 	MergeBase           string `xorm:"VARCHAR(64)"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
-	HasMerged      bool                  `xorm:"INDEX"`
-	MergeState     PullRequestMergeState `xorm:"NOT NULL DEFAULT 0 INDEX"`
-	MergedCommitID string                `xorm:"VARCHAR(64)"`
-	MergerID       int64                 `xorm:"INDEX"`
-	Merger         *user_model.User      `xorm:"-"`
-	MergedUnix     timeutil.TimeStamp    `xorm:"updated INDEX"`
+	HasMerged  bool                  `xorm:"INDEX"`
+	MergeState PullRequestMergeState `xorm:"NOT NULL DEFAULT 0 INDEX"`
+	// MergedCommitID is set before the merge is pushed, so while MergeState is not None and HasMerged is false it
+	// holds the merge commit that a merge in flight intends to push. Only trust it once HasMerged is true.
+	MergedCommitID string             `xorm:"VARCHAR(64)"`
+	MergerID       int64              `xorm:"INDEX"`
+	Merger         *user_model.User   `xorm:"-"`
+	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 
 	isHeadRepoLoaded bool `xorm:"-"`
 
