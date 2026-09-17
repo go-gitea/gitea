@@ -74,7 +74,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     startOnLoad: false,
     theme: isDarkTheme() ? 'dark' : 'neutral', // TODO: maybe it should use "darkMode" to adopt more user-specified theme instead of just "dark" or "neutral"
     look: 'neo',
-    themeVariables: {dropShadow: 'none', useGradient: false},
+    themeVariables: {dropShadow: 'none', useGradient: false}, // hide ugly shadows and gradients from neo
     themeCSS: '[filter] { filter: none; }', // sequence diagrams hardcode the neo drop shadow as an attribute
     securityLevel: 'strict',
     suppressErrorRendering: true,
