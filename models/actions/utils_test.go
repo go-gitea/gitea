@@ -74,6 +74,14 @@ func Test_calculateDuration(t *testing.T) {
 			want: 500 * time.Second,
 		},
 		{
+			name: "running started in the future",
+			args: args{
+				started: 1005,
+				status:  StatusRunning,
+			},
+			want: 0,
+		},
+		{
 			name: "done",
 			args: args{
 				started: 500,
