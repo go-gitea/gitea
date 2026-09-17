@@ -77,6 +77,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		// semantic annotations
 		"semantics", "annotation", "annotation-xml",
 	}
+	policy.AllowNoAttrs().OnElements(mathMLElements...) // most MathML elements carry no attributes
 	policy.AllowAttrs("display", "alttext").OnElements("math")
 	policy.AllowAttrs(
 		// global presentation attributes

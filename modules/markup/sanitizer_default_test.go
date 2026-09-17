@@ -62,7 +62,8 @@ func TestSanitizer(t *testing.T) {
 		`<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`, `<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`,
 
 		// MathML
-		`<math display="display" class="foo"><mi mathcolor="c" class="bar"></mi></math>`, `<math display="display"><mi mathcolor="c"></mi></math>`,
+		`<math display="block" class="foo"><mi mathcolor="c" class="bar"></mi></math>`, `<math display="block"><mi mathcolor="c"></mi></math>`,
+		`<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><msqrt><mn>2</mn></msqrt></mfrac></math>`, `<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><msqrt><mn>2</mn></msqrt></mfrac></math>`,
 
 		// Disallow dangerous url schemes
 		`<a href="javascript:alert('xss')">bad</a>`, `bad`,
