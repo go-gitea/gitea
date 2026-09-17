@@ -46,10 +46,10 @@ export async function apiCreateRepo(requestContext: APIRequestContext, {name, au
   }), 'apiCreateRepo');
 }
 
-export async function apiAddCollaborator(requestContext: APIRequestContext, owner: string, repo: string, collaborator: string, {headers}: {headers?: Record<string, string>} = {}) {
+export async function apiAddCollaborator(requestContext: APIRequestContext, owner: string, repo: string, collaborator: string, {permission = 'write', headers}: {permission?: 'read' | 'write' | 'admin'; headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/collaborators/${collaborator}`, {
     headers: headers || apiHeaders(),
-    data: {permission: 'write'},
+    data: {permission},
   }), 'apiAddCollaborator');
 }
 
@@ -182,13 +182,6 @@ export async function createProject(
   if (!match) throw new Error(`createProject: no project titled ${title} in ${owner}/${repo}`);
 
   return {id: parseInt(match[1])};
-}
-
-export async function apiAddCollaborator(requestContext: APIRequestContext, owner: string, repo: string, collaborator: string, permission: 'read' | 'write' | 'admin' = 'read') {
-  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/collaborators/${collaborator}`, {
-    headers: apiHeaders(),
-    data: {permission},
-  }), 'apiAddCollaborator');
 }
 
 export async function apiCreateIssue(

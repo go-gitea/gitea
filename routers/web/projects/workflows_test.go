@@ -4,6 +4,7 @@
 package projects
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"testing"
@@ -351,11 +352,10 @@ func TestWorkflowsStatusRejectsInvalidEnabledValue(t *testing.T) {
 		},
 		Enabled: true,
 	}
-	// use ctx (not t.Context()) for setup/cleanup: t.Context() is already canceled by the
-	// time t.Cleanup functions run, but ctx's underlying context is not test-scoped
 	require.NoError(t, project_model.CreateWorkflow(ctx, wf))
 	t.Cleanup(func() {
-		require.NoError(t, project_model.DeleteWorkflow(ctx, wf.ProjectID, wf.ID))
+		// ctx derives from t.Context(), which is canceled before cleanups run
+		require.NoError(t, project_model.DeleteWorkflow(context.WithoutCancel(ctx), wf.ProjectID, wf.ID))
 	})
 	ctx.SetPathParam("id", "1")
 	ctx.SetPathParam("workflow_id", strconv.FormatInt(wf.ID, 10))

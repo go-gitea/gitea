@@ -350,7 +350,7 @@ test('project workflow: a project reader sees the page read-only', async ({page}
     await login(page);
     const project = await openWorkflowsPage(page, repoName);
     await configureWorkflow(page, 'Item opened', 'Backlog');
-    await apiAddCollaborator(page.request, owner, repoName, readerName, 'read');
+    await apiAddCollaborator(page.request, owner, repoName, readerName, {permission: 'read'});
 
     // Drop the owner's session first: /user/login on an already-authenticated
     // request redirects without switching user, so the page would stay an owner.
