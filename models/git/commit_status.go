@@ -37,10 +37,10 @@ import (
 type CommitStatus struct {
 	ID     int64                          `xorm:"pk autoincr"`
 	Index  int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID int64                          `xorm:"INDEX INDEX(repo_sha) UNIQUE(repo_sha_index)"`
+	RepoID int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
 	Repo   *repo_model.Repository         `xorm:"-"`
 	State  commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
-	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX INDEX(repo_sha) UNIQUE(repo_sha_index)"`
+	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 
 	// TargetURL points to the commit status page reported by a CI system
 	// If Gitea Actions is used, it is a relative link like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"
@@ -365,8 +365,9 @@ func CountLatestCommitStatus(ctx context.Context, repoID int64, sha string) (int
 		Count()
 }
 
-// commitStatusSHABatchSize caps how many SHAs go into one "sha IN (...)" query:
-// a huge condition list makes the database abandon the (repo_id, sha) index and scan the whole table
+// commitStatusSHABatchSize caps how many SHAs go into one "sha IN (...)" query. The cost of a
+// long condition list is superlinear: on a MariaDB table of 1.3M rows, 3000 conditions took 36s
+// while batches of 50 stayed under a millisecond each, whatever indexes were available.
 const commitStatusSHABatchSize = 50
 
 // getLatestCommitStatusForRepoSHAs returns the latest status of every context for the given SHAs of one repository
@@ -382,8 +383,8 @@ func getLatestCommitStatusForRepoSHAs(ctx context.Context, repoID int64, shas []
 
 	statuses := make([]*CommitStatus, 0, len(shas))
 	for batch := range slices.Chunk(shas, commitStatusSHABatchSize) {
-		// most listed commits have no status at all, and this narrowing query is answered from the
-		// (repo_id, sha) index alone, so the grouping below only has to touch the few SHAs that do
+		// most listed commits have no status at all, and the sha index answers this narrowing
+		// query cheaply, so the grouping below only has to touch the few SHAs that do have one
 		shasWithStatus := make([]string, 0, len(batch))
 		if err := getBase().And(builder.In("sha", batch)).Distinct("sha").Find(&shasWithStatus); err != nil {
 			return nil, err
