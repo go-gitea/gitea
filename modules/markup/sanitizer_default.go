@@ -69,7 +69,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		// token elements
 		"mi", "mn", "mo", "mtext", "mspace", "ms",
 		// layout elements
-		"mrow", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom",
+		"mrow", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom", "maction",
 		// scripting elements
 		"msub", "msup", "msubsup", "munder", "mover", "munderover", "mmultiscripts", "mprescripts", "none",
 		// tabular elements
@@ -80,8 +80,8 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowNoAttrs().OnElements(mathMLElements...) // most MathML elements carry no attributes
 	policy.AllowAttrs("display", "alttext").OnElements("math")
 	policy.AllowAttrs(
-		// global presentation attributes
-		"dir", "displaystyle", "mathbackground", "mathcolor", "mathsize", "mathvariant", "scriptlevel",
+		// global attributes
+		"dir", "displaystyle", "mathbackground", "mathcolor", "mathsize", "mathvariant", "scriptlevel", "intent", "arg",
 		// operator attributes
 		"accent", "accentunder", "fence", "form", "largeop", "lspace", "maxsize", "minsize", "movablelimits", "rspace", "separator", "stretchy", "symmetric",
 		// space and padding attributes
@@ -92,6 +92,8 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		"columnalign", "columnlines", "columnspacing", "frame", "framespacing", "rowalign", "rowlines", "rowspacing",
 		// cell attributes
 		"columnspan", "rowspan",
+		// maction attributes
+		"actiontype", "selection",
 		// annotation attribute
 		"encoding",
 	).OnElements(mathMLElements...)
