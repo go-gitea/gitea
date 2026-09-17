@@ -1277,7 +1277,7 @@ Commit description.
 						commitMessage: `loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong message`,
 					},
 				},
-				expectedMessage: "looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...\n\n",
+				expectedMessage: "* looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...\n\n",
 			},
 			{
 				name:                    "Test Co-authored-by with repository override",

@@ -16,8 +16,6 @@ import (
 // CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.
 const CoAuthoredByTrailer = "Co-authored-by"
 
-const SignedOffByTrailer = "Signed-off-by"
-
 const (
 	commitIdentityRoleAuthor    = 1
 	commitIdentityRoleCommitter = 2
@@ -82,7 +80,7 @@ var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
 	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer and not quite right in some cases.
 	// For the key characters: it follows RFC 822 field name syntax (or RFC 2822/RFC 5322): printable ASCII characters between 33 and 126 except the colon (:),
 	// but maybe we don't want to make it that complicated, so here we only support some common "symbol-like" characters.
-	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n\s+[^\n]*)*\n?)*\n*)$`)
+	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n[ \t]+[^\n]*)*\n?)*\n*)$`)
 })
 
 // CommitMessageSplitTrailer tries to split the message by the trailer separator
@@ -95,38 +93,6 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 		return s, "", ""
 	}
 	return v[re.SubexpIndex("content")], v[re.SubexpIndex("sep")], v[re.SubexpIndex("trailer")]
-}
-
-var commitMessageIdentityTrailerRegexp = sync.OnceValue(func() *regexp.Regexp {
-	return regexp.MustCompile(`(?i)^(signed-off-by|co-authored-by):[ \t]+(\S.*?)[ \t]*<([^<>\s@]+@[^<>\s@]+)>$`)
-})
-
-type CommitIdentityTrailer struct {
-	Key   string
-	Name  string
-	Email string
-}
-
-func (trailer CommitIdentityTrailer) String() string {
-	return trailer.Key + ": " + trailer.Name + " <" + trailer.Email + ">"
-}
-
-// CommitMessageCutIdentityTrailers blanks and returns the Signed-off-by and Co-authored-by lines of the last paragraph
-func CommitMessageCutIdentityTrailers(message string) (rest string, trailers []CommitIdentityTrailer) {
-	message = strings.TrimSpace(util.NormalizeStringEOL(message))
-	head, lastParagraph := "", message
-	if idx := strings.LastIndex(message, "\n\n"); idx != -1 {
-		head, lastParagraph = message[:idx+2], message[idx+2:]
-	}
-	lines := strings.Split(lastParagraph, "\n")
-	for i, line := range lines {
-		if match := commitMessageIdentityTrailerRegexp().FindStringSubmatch(line); match != nil {
-			key := util.Iif(strings.EqualFold(match[1], SignedOffByTrailer), SignedOffByTrailer, CoAuthoredByTrailer)
-			trailers = append(trailers, CommitIdentityTrailer{Key: key, Name: match[2], Email: match[3]})
-			lines[i] = ""
-		}
-	}
-	return strings.TrimSpace(head + strings.Join(lines, "\n")), trailers
 }
 
 // CommitMessageMerge merges two commit messages with their trailers
@@ -166,14 +132,20 @@ func CommitMessageMerge(m1, m2 string) string {
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	ret := CommitMessageTrailerValues{}
+	var lastKey string
 	for line := range strings.SplitSeq(util.NormalizeStringEOL(s), "\n") {
+		if values := ret[lastKey]; len(values) > 0 && strings.IndexAny(line, " \t") == 0 && strings.TrimSpace(line) != "" {
+			values[len(values)-1] += " " + strings.TrimSpace(line) // continuation line of the previous trailer
+			continue
+		}
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
+			lastKey = ""
 			continue
 		}
 		k, v = strings.TrimSpace(k), strings.TrimSpace(v)
-		kLower := strings.ToLower(k)
-		ret[kLower] = append(ret[kLower], v)
+		lastKey = strings.ToLower(k)
+		ret[lastKey] = append(ret[lastKey], v)
 	}
 	return ret
 }

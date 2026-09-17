@@ -18,15 +18,6 @@ func TestCommitMessageSanitizesInvalidUTF8(t *testing.T) {
 	assert.Equal(t, "title ÿ\n\n\n\nbody ÿ\n\n\n", commit.MessageUTF8())
 }
 
-func TestCommitMessageCutIdentityTrailers(t *testing.T) {
-	rest, trailers := CommitMessageCutIdentityTrailers("title\r\n\r\nCo-authored-by: Middle <middle@example.com>\n\nbody\nSIGNED-OFF-BY: Sign <sign@example.com>\nChange-Id: I1\nco-authored-by:   Spaced   <spaced@example.com>\nCo-authored-by: Bad <not-an-email>\nCo-authored-by: Trailing <trailing@example.com> extra\n")
-	assert.Equal(t, "title\n\nCo-authored-by: Middle <middle@example.com>\n\nbody\n\nChange-Id: I1\n\nCo-authored-by: Bad <not-an-email>\nCo-authored-by: Trailing <trailing@example.com> extra", rest)
-	assert.Equal(t, []CommitIdentityTrailer{
-		{Key: SignedOffByTrailer, Name: "Sign", Email: "sign@example.com"},
-		{Key: CoAuthoredByTrailer, Name: "Spaced", Email: "spaced@example.com"},
-	}, trailers)
-}
-
 func TestCommitMessageTrailer(t *testing.T) {
 	cases := []struct {
 		msg, body, sep, trailer string
@@ -38,6 +29,7 @@ func TestCommitMessageTrailer(t *testing.T) {
 		{"a\n\nk:v\n  next-line", "a", "\n\n", "k:v\n  next-line"},
 		{"a\n\nk:v\n  next-line\nother: v", "a", "\n\n", "k:v\n  next-line\nother: v"},
 		{"a\n\nk:v\n\n", "a", "\n\n", "k:v\n\n"},
+		{"a\n\nk:v\n\nb", "a\n\nk:v\n\nb", "", ""},
 		{"a\n--\nk:v", "a\n--\nk:v", "", ""},
 		{"a\n---\nk:v", "a", "\n---\n", "k:v"}, // TODO: should we support such case? No empty line between "---" and the trailer
 		{"a\n\n---\n\nk:v", "a", "\n\n---\n\n", "k:v"},
@@ -111,6 +103,14 @@ func TestCommitMessageParticipants(t *testing.T) {
 					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: b\nCo-authored-by: b\nCo-authored-by: c"},
 				},
 				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("b", "", roleCoAuthor), idt("c", "", roleCoAuthor)},
+			},
+			{
+				"CoAuthorFolded",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: Full\n  Name <x@m.com>"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("Full Name", "x@m.com", roleCoAuthor)},
 			},
 			{
 				"CoAuthorNameNotAnEmailAddress", // names net/mail rejects, e.g. bots and names with a comma

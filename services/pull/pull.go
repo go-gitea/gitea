@@ -813,23 +813,9 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 		trailerCommits = slices.Concat(limitedCommits, slices.DeleteFunc(remainingCommits, isMergeCommit))
 	}
-	signOffs, coAuthors := collectSquashMergeCommitTrailers(trailerCommits)
-	coAuthors = slices.DeleteFunc(coAuthors, func(coAuthor git.CommitIdentityTrailer) bool {
-		return strings.EqualFold(coAuthor.Email, pr.Issue.Poster.GetEmail())
-	})
-	emailUsers, err := user_model.GetUsersByEmails(ctx, container.FilterSlice(coAuthors, func(coAuthor git.CommitIdentityTrailer) (string, bool) {
-		return coAuthor.Email, true
-	}))
+	trailers, err := collectSquashMergeCommitTrailers(ctx, pr.Issue.Poster, trailerCommits)
 	if err != nil {
 		return "", err
-	}
-	trailers := signOffs
-	for _, coAuthor := range coAuthors {
-		// Compare use account as well to avoid adding the same author multiple times
-		// when email addresses are private or multiple emails are used.
-		if commitUser := emailUsers.GetByEmail(coAuthor.Email); commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
-			trailers = append(trailers, coAuthor.String())
-		}
 	}
 	return buildSquashMergeCommitMessages(mergeMessage, trailers, len(limitedCommits) > 1), nil
 }
@@ -839,35 +825,47 @@ func isMergeCommit(commit *git.Commit) bool {
 }
 
 func buildSquashMergeCommitMessages(mergeMessage string, trailers []string, multipleCommits bool) string {
+	_, _, trailer := git.CommitMessageSplitTrailer(mergeMessage)
+	existingTrailers := git.CommitMessageParseTrailer(trailer)
+	trailers = slices.DeleteFunc(trailers, func(line string) bool {
+		key, value, _ := strings.Cut(line, ": ")
+		return slices.Contains(existingTrailers[strings.ToLower(key)], value)
+	})
 	if len(trailers) == 0 {
 		return mergeMessage
 	}
-	if mergeMessage = strings.TrimSpace(mergeMessage); mergeMessage == "" {
-		return strings.Join(trailers, "\n")
-	}
-	return mergeMessage + util.Iif(multipleCommits, "\n\n---------\n\n", "\n\n") + strings.Join(trailers, "\n")
+	return git.CommitMessageMerge(mergeMessage, util.Iif(multipleCommits, "\n\n---------\n\n", "")+strings.Join(trailers, "\n")) // appending to existing trailers keeps them recognized: https://github.com/go-gitea/gitea/issues/37529
 }
 
-func collectSquashMergeCommitTrailers(commits []*git.Commit) (signOffs []string, coAuthors []git.CommitIdentityTrailer) {
-	uniqueAuthors := make(container.Set[string])
-	addCoAuthor := func(coAuthor git.CommitIdentityTrailer) {
-		if coAuthor.Email != "" && uniqueAuthors.Add(strings.ToLower(coAuthor.Email)) {
-			coAuthors = append(coAuthors, coAuthor)
-		}
-	}
-	// commits list is in reverse chronological order
+func collectSquashMergeCommitTrailers(ctx context.Context, poster *user_model.User, commits []*git.Commit) ([]string, error) {
+	var trailers []string
+	var coAuthors []*git.CommitIdentity
+	uniqueEmails := make(container.Set[string])
 	for _, commit := range slices.Backward(commits) {
-		addCoAuthor(git.CommitIdentityTrailer{Key: git.CoAuthoredByTrailer, Name: commit.Author.Name, Email: commit.Author.Email})
-		_, identities := git.CommitMessageCutIdentityTrailers(commit.MessageUTF8())
-		for _, identity := range identities {
-			if identity.Key == git.CoAuthoredByTrailer {
-				addCoAuthor(identity)
-			} else if signOff := identity.String(); !slices.Contains(signOffs, signOff) {
-				signOffs = append(signOffs, signOff)
+		for _, signOff := range commit.MessageTrailer()["signed-off-by"] {
+			if line := "Signed-off-by: " + signOff; !slices.Contains(trailers, line) {
+				trailers = append(trailers, line)
+			}
+		}
+		for _, identity := range commit.AllAuthorIdentities() {
+			if identity.Email != "" && !strings.EqualFold(identity.Email, poster.GetEmail()) && uniqueEmails.Add(strings.ToLower(identity.Email)) {
+				coAuthors = append(coAuthors, identity)
 			}
 		}
 	}
-	return signOffs, coAuthors
+
+	emailUsers, err := user_model.GetUsersByEmails(ctx, uniqueEmails.Values())
+	if err != nil {
+		return nil, err
+	}
+	for _, coAuthor := range coAuthors {
+		// Compare use account as well to avoid adding the same author multiple times
+		// when email addresses are private or multiple emails are used.
+		if commitUser := emailUsers.GetByEmail(coAuthor.Email); commitUser == nil || commitUser.ID != poster.ID {
+			trailers = append(trailers, fmt.Sprintf("%s: %s <%s>", git.CoAuthoredByTrailer, coAuthor.Name, coAuthor.Email))
+		}
+	}
+	return trailers, nil
 }
 
 func formatSquashMergeCommitMessages(commits []*git.Commit) string {
@@ -876,9 +874,6 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 	// commits list is in reverse chronological order
 	for _, commit := range slices.Backward(commits) {
 		msg := strings.TrimSpace(commit.MessageUTF8())
-		if len(commits) == 1 {
-			msg, _ = git.CommitMessageCutIdentityTrailers(msg)
-		}
 		if msg == "" {
 			continue
 		}
@@ -886,7 +881,7 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 		// This format follows GitHub's squash commit message style,
 		// even if there are other "* " in the commit message body, they are written as-is.
 		// Maybe, ideally, we should indent those lines too.
-		_, _ = fmt.Fprintf(sb, "%s%s\n\n", util.Iif(len(commits) > 1, "* ", ""), msg)
+		_, _ = fmt.Fprintf(sb, "* %s\n\n", msg)
 		if maxMsgSize > 0 && sb.Len() >= maxMsgSize {
 			break
 		}
