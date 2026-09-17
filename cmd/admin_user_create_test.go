@@ -65,6 +65,12 @@ func TestAdminUserCreate(t *testing.T) {
 		assert.Equal(t, user_model.UserTypeBot, u.Type)
 		assert.Empty(t, u.Passwd)
 		assert.False(t, u.MustChangePassword, "bot users should not be forced to change password")
+
+		changeType := func(userType string) error {
+			return microcmdUserChangeType().Run(t.Context(), []string{"change-type", "--username", "u", "--user-type", userType})
+		}
+		assert.NoError(t, changeType("User"))
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"}).IsIndividual())
 	})
 
 	t.Run("AccessToken", func(t *testing.T) {

@@ -124,8 +124,6 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 		if err == nil {
 			switch {
 			case !authUser.IsIndividual():
-				// only individual users may sign in interactively; an external source
-				// must not return a bot/organization account for a login session
 				err = user_model.ErrUserNotExist{Name: username}
 			case authUser.ProhibitLogin:
 				err = user_model.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}

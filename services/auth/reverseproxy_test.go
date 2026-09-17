@@ -18,35 +18,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReverseProxyAuth_BotIgnored(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	bot := &user_model.User{
-		Name:               "rp-bot",
-		Email:              "rp-bot@example.com",
-		Type:               user_model.UserTypeBot,
-		MustChangePassword: false,
-		IsActive:           true,
-	}
-	require.NoError(t, user_model.AdminCreateUser(t.Context(), bot, &user_model.Meta{}))
-
+func TestReverseProxyIgnoresBot(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.ReverseProxyAuthUser, "X-WEBAUTH-USER")()
+	defer test.MockVariableValue(&setting.ReverseProxyAuthEmail, "X-WEBAUTH-EMAIL")()
 	defer test.MockVariableValue(&setting.Service.EnableReverseProxyEmail, true)()
-
-	rp := &ReverseProxy{}
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 2, Type: user_model.UserTypeBot}, "type"))
 
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
-
-	// resolving a bot by reverse-proxy username header must yield no user
-	req.Header.Set(setting.ReverseProxyAuthUser, "rp-bot")
-	u, err := rp.getUserFromAuthUser(req)
-	assert.NoError(t, err)
-	assert.Nil(t, u)
-
-	// resolving a bot by reverse-proxy email header must yield no user
-	req.Header.Del(setting.ReverseProxyAuthUser)
-	req.Header.Set(setting.ReverseProxyAuthEmail, "rp-bot@example.com")
-	assert.Nil(t, rp.getUserFromAuthEmail(req))
+	req.Header.Set(setting.ReverseProxyAuthUser, "user2")
+	req.Header.Set(setting.ReverseProxyAuthEmail, "user2@example.com")
+	user, err := (&ReverseProxy{}).Verify(req, nil, nil, nil)
+	require.NoError(t, err)
+	assert.Nil(t, user)
 }
 
 func TestReverseProxyLastLogin(t *testing.T) {

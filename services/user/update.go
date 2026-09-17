@@ -222,33 +222,25 @@ type UpdateAuthOptions struct {
 }
 
 func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
+	if u.IsTypeBot() && (opts.Password.Has() || opts.LoginSource.ValueOrDefault(0) != 0 || opts.LoginName.ValueOrDefault("") != "") {
+		return util.NewInvalidArgumentErrorf("a bot account cannot have a password or authentication source")
+	}
 	loginSourceChanged := false
 	authSourceName := ""
-	if u.IsTypeBot() {
-		// a bot only ever authenticates with an access token, so it has neither a password nor an auth source
-		if opts.Password.Has() {
-			return fmt.Errorf("%w: a bot account cannot have a password", util.ErrInvalidArgument)
+	if opts.LoginSource.Has() {
+		source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
+		if err != nil {
+			return err
 		}
-		if opts.LoginSource.ValueOrDefault(0) != 0 || opts.LoginName.ValueOrDefault("") != "" {
-			return fmt.Errorf("%w: a bot account cannot be linked to an authentication source", util.ErrInvalidArgument)
-		}
-		u.LoginType, u.LoginSource, u.LoginName = auth_model.Plain, 0, ""
-	} else {
-		if opts.LoginSource.Has() {
-			source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
-			if err != nil {
-				return err
-			}
 
-			loginSourceChanged = u.LoginSource != source.ID
-			authSourceName = source.Name
+		loginSourceChanged = u.LoginSource != source.ID
+		authSourceName = source.Name
 
-			u.LoginType = source.Type
-			u.LoginSource = source.ID
-		}
-		if opts.LoginName.Has() {
-			u.LoginName = opts.LoginName.Value()
-		}
+		u.LoginType = source.Type
+		u.LoginSource = source.ID
+	}
+	if opts.LoginName.Has() {
+		u.LoginName = opts.LoginName.Value()
 	}
 
 	deleteAuthTokens := false
@@ -297,12 +289,9 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	return nil
 }
 
-// CheckConvertUserType checks whether the account type of the given user can be converted
 func CheckConvertUserType(u *user_model.User) error {
 	switch {
 	case u.IsAdmin:
-		// automation does not need site-wide root access, so the admin permission has to be
-		// dropped deliberately before the account can become a bot
 		return user_model.ErrBotCanNotBeAdmin
 	case !u.IsIndividual() && !u.IsTypeBot():
 		return user_model.ErrUserTypeCanNotConvert
@@ -310,69 +299,44 @@ func CheckConvertUserType(u *user_model.User) error {
 	return nil
 }
 
-// ConvertUserType converts a user between the individual and bot types.
-// When converting to a bot the user becomes a local, non-interactive account:
-// its password and auth source are cleared so it can only be used with access tokens.
+// ConvertUserType converts between individual and bot, a bot loses every interactive sign-in credential
 func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_model.UserType) error {
 	if u.Type == targetType {
 		return nil
 	}
-	if targetType != user_model.UserTypeIndividual && targetType != user_model.UserTypeBot {
-		return user_model.ErrUserTypeCanNotConvert
-	}
 	if err := CheckConvertUserType(u); err != nil {
 		return err
 	}
-
-	updatedUser := *u
-	updatedUser.Type = targetType
-	cols := []string{"type"}
-
-	if targetType == user_model.UserTypeBot {
-		// see models/user/bot_user_design.md for the fate of every credential and auth artifact
-		updatedUser.Passwd = ""
-		updatedUser.PasswdHashAlgo = ""
-		updatedUser.Salt = ""
-		updatedUser.MustChangePassword = false
-		updatedUser.LoginType = auth_model.Plain
-		updatedUser.LoginSource = 0
-		updatedUser.LoginName = ""
-		cols = append(cols, "passwd", "passwd_hash_algo", "salt", "must_change_password", "login_type", "login_source", "login_name")
-
-		// atomic, so a mid-sequence failure cannot leave a half-converted account
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			if err := user_model.UpdateUserCols(ctx, &updatedUser, cols...); err != nil {
-				return err
-			}
-			// revoke persisted sign-in sessions so the former individual cannot stay logged in
-			if err := auth_model.DeleteAuthTokensByUserID(ctx, updatedUser.ID); err != nil {
-				return err
-			}
-			// remove OAuth2 applications and grants owned/authorized by the account
-			if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, updatedUser.ID); err != nil {
-				return err
-			}
-			// TOTP and WebAuthn only guard an interactive sign-in, which a bot no longer has
-			if _, _, err := auth_model.DisableTwoFactor(ctx, updatedUser.ID); err != nil {
-				return err
-			}
-			// a bot has no inbox, so drop the notifications it accumulated as an individual
-			if err := db.DeleteBeans(ctx, &activities_model.Notification{UserID: updatedUser.ID}); err != nil {
-				return err
-			}
-			// an OpenID URI is an external identity that can sign the account in, so it goes too
-			if err := db.DeleteBeans(ctx, &user_model.UserOpenID{UID: updatedUser.ID}); err != nil {
-				return err
-			}
-			// the account is now local, so drop any external (OAuth2/LDAP/...) login links
-			return user_model.RemoveAllAccountLinks(ctx, &updatedUser)
-		}); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		u.Type = targetType
+		if targetType != user_model.UserTypeBot {
+			return user_model.UpdateUserCols(ctx, u, "type")
+		}
+		rands, err := user_model.GetUserSalt()
+		if err != nil {
 			return err
 		}
-	} else if err := user_model.UpdateUserCols(ctx, &updatedUser, cols...); err != nil {
+		u.Rands, u.Passwd, u.PasswdHashAlgo, u.Salt, u.MustChangePassword = rands, "", "", "", false
+		u.LoginType, u.LoginSource, u.LoginName = auth_model.Plain, 0, ""
+		if err := user_model.UpdateUserCols(ctx, u, "type", "rands", "passwd", "passwd_hash_algo", "salt", "must_change_password", "login_type", "login_source", "login_name"); err != nil {
+			return err
+		}
+		if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+			return err
+		}
+		if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
+			return err
+		}
+		if _, _, err := auth_model.DisableTwoFactor(ctx, u.ID); err != nil {
+			return err
+		}
+		if err := db.DeleteBeans(ctx, &activities_model.Notification{UserID: u.ID}, &user_model.UserOpenID{UID: u.ID}); err != nil {
+			return err
+		}
+		return user_model.RemoveAllAccountLinks(ctx, u)
+	}); err != nil {
 		return err
 	}
-
-	*u = updatedUser
+	audit.Record(ctx, audit_model.UserType, u, "user_type", targetType.Name())
 	return nil
 }

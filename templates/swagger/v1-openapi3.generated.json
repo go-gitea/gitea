@@ -3711,7 +3711,7 @@
         "description": "ConvertUserTypeOption options when converting a user between individual and bot",
         "properties": {
           "user_type": {
-            "description": "The target user type: \"individual\" or \"bot\"",
+            "description": "The target user type, \"User\" or \"Bot\", case-insensitive",
             "type": "string",
             "x-go-name": "UserType"
           }
@@ -10736,6 +10736,16 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "StarredRepos"
+          },
+          "type": {
+            "description": "the account type",
+            "enum": [
+              "User",
+              "Organization",
+              "Bot"
+            ],
+            "type": "string",
+            "x-go-name": "Type"
           },
           "visibility": {
             "allOf": [

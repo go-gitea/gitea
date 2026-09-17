@@ -1,5 +1,5 @@
 {{template "admin/layout_head" (dict "pageClass" "admin edit user")}}
-	{{$convertTo := Iif .User.IsTypeBot "individual" "bot"}}
+	{{$convertTo := Iif .User.IsTypeBot "user" "bot"}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.edit_account"}}
@@ -26,6 +26,8 @@
 							</div>
 						</div>
 					</div>
+				{{else}}
+					<input type="hidden" name="login_type" value="0-0">
 				{{end}}
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
@@ -52,12 +54,10 @@
 					</div>
 				</div>
 
-				{{if not .User.IsTypeBot}}
-					<div class="required js-non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
-						<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
-						<input id="login_name" name="login_name" value="{{.User.LoginName}}">
-					</div>
-				{{end}}
+				<div class="required js-non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
+					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
+					<input id="login_name" name="login_name" value="{{.User.LoginName}}">
+				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
@@ -216,34 +216,20 @@
 			<div class="flex-divided-list items-with-main">
 				<div class="item">
 					<div class="item-main">
-						<div class="item-title">{{ctx.Locale.Tr "admin.users.convert_type"}}</div>
+						<div class="item-title">{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}</div>
 						<div class="item-body">{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_desc" $convertTo)}}</div>
 					</div>
 					<div class="item-trailing">
-						<button type="button" class="ui basic red show-modal button" data-modal="#convert-user-type-modal">
-							{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}
-						</button>
+						<button type="button" class="ui basic red button link-action" data-url="./convert_type?user_type={{$convertTo}}"
+							data-modal-confirm-header="{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}"
+							data-modal-confirm-content="{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_notice" $convertTo)}}"
+						>{{ctx.Locale.Tr "admin.users.convert_type"}}</button>
 					</div>
 				</div>
 			</div>
 		</div>
 		{{end}}
 	</div>
-
-{{if .CanConvertUserType}}
-<div class="ui small modal" id="convert-user-type-modal">
-	<div class="header">
-		{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}
-	</div>
-	<form class="ui form" method="post" action="./convert_type">
-		<input type="hidden" name="user_type" value="{{$convertTo}}">
-		<div class="content">
-			<p>{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_notice" $convertTo)}}</p>
-		</div>
-		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "admin.users.convert_type"))}}
-	</form>
-</div>
-{{end}}
 
 <div class="ui g-modal-confirm delete modal" id="delete-user-modal">
 	<div class="header">

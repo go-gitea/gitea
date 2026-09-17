@@ -583,11 +583,6 @@ func ConvertUserType(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if ctx.ContextUser.ID == ctx.Doer.ID {
-		ctx.APIError(http.StatusBadRequest, "the own account type can not be converted")
-		return
-	}
-
 	targetType, err := user_model.ParseUserType(web.GetForm[*api.ConvertUserTypeOption](ctx).UserType)
 	if err != nil {
 		ctx.APIErrorAuto(err)

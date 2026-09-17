@@ -16,10 +16,8 @@ export function initAdminUserListSearchForm(): void {
     }
   }
 
-  if (searchForm.UserTypeFilter) {
-    for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="user_type"][value="${CSS.escape(searchForm.UserTypeFilter)}"]`)) {
-      input.checked = true;
-    }
+  for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="user_type"][value="${CSS.escape(searchForm.UserTypeFilter)}"]`)) {
+    input.checked = true;
   }
 
   for (const radio of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
@@ -28,20 +26,16 @@ export function initAdminUserListSearchForm(): void {
     });
   }
 
-  const resetFilter = (selector: string, namePrefix: string) => {
-    for (const button of form.querySelectorAll<HTMLAnchorElement>(selector)) {
-      button.addEventListener('click', (e) => {
-        e.preventDefault();
-        for (const input of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
-          if (input.name.startsWith(namePrefix)) {
-            input.checked = false;
-          }
+  const resetButtons = form.querySelectorAll<HTMLAnchorElement>('.js-reset-status-filter');
+  for (const button of resetButtons) {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      for (const input of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
+        if (input.name.startsWith('status_filter[')) {
+          input.checked = false;
         }
-        form.submit();
-      });
-    }
-  };
-
-  resetFilter('.js-reset-status-filter', 'status_filter[');
-  resetFilter('.js-reset-type-filter', 'user_type');
+      }
+      form.submit();
+    });
+  }
 }

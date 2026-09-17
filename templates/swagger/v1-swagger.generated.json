@@ -26795,7 +26795,7 @@
       ],
       "properties": {
         "user_type": {
-          "description": "The target user type: \"individual\" or \"bot\"",
+          "description": "The target user type, \"User\" or \"Bot\", case-insensitive",
           "type": "string",
           "x-go-name": "UserType"
         }
@@ -33811,6 +33811,16 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "StarredRepos"
+        },
+        "type": {
+          "description": "the account type",
+          "type": "string",
+          "enum": [
+            "User",
+            "Organization",
+            "Bot"
+          ],
+          "x-go-name": "Type"
         },
         "visibility": {
           "description": "User visibility level option: public, limited, private",

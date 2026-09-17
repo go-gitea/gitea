@@ -27,7 +27,7 @@ func microcmdUserChangeType() *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:     "user-type",
-				Usage:    "New user type: individual or bot",
+				Usage:    "New user type: User or Bot",
 				Required: true,
 			},
 		},
@@ -55,6 +55,6 @@ func runChangeUserType(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	cprintf(c, "%s's type has been successfully changed to %s!\n", user.Name, c.String("user-type"))
+	cprintf(c, "%s's type has been successfully changed to %s!\n", user.Name, targetType.Name())
 	return nil
 }

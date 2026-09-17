@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockBotSource reproduces the behaviour of external sources (e.g. LDAP) that
-// resolve an already existing local user by name without checking its type.
 type mockBotSource struct {
 	auth_model.ConfigBase
 }
@@ -29,7 +27,6 @@ func (s *mockBotSource) Authenticate(ctx context.Context, _ *user_model.User, lo
 	return user_model.GetUserByName(ctx, login)
 }
 
-// mockBotSourceType is a test-only auth source type, kept out of the real enum range.
 const mockBotSourceType auth_model.Type = 100
 
 func init() {
@@ -39,16 +36,8 @@ func init() {
 func TestUserSignIn_BotCannotSignIn(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	bot := &user_model.User{
-		Name:               "test-bot",
-		Email:              "test-bot@example.com",
-		Type:               user_model.UserTypeBot,
-		MustChangePassword: false,
-		IsActive:           true,
-	}
+	bot := &user_model.User{Name: "test-bot", Email: "test-bot@example.com", Type: user_model.UserTypeBot, IsActive: true}
 	require.NoError(t, user_model.AdminCreateUser(t.Context(), bot, &user_model.Meta{}))
-
-	// register an active external source that would otherwise hand back the bot user
 	require.NoError(t, db.Insert(t.Context(), &auth_model.Source{
 		Type:     mockBotSourceType,
 		Name:     "mock-bot-source",
@@ -56,8 +45,6 @@ func TestUserSignIn_BotCannotSignIn(t *testing.T) {
 		Cfg:      &mockBotSource{},
 	}))
 
-	// a bot has no password and must not be able to sign in interactively, neither
-	// via the local source nor via the external source fallback loop
 	_, _, err := UserSignIn(t.Context(), "test-bot", "")
 	assert.ErrorAs(t, err, &user_model.ErrUserNotExist{})
 }

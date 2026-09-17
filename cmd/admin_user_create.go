@@ -44,8 +44,8 @@ func microcmdUserCreate() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "user-type",
-				Usage: "Set user's type: individual or bot",
-				Value: "individual",
+				Usage: "Set user's type: User or Bot",
+				Value: "User",
 			},
 			&cli.StringFlag{
 				Name:  "password",
@@ -116,7 +116,6 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		if c.IsSet("password") || c.IsSet("random-password") {
 			return errors.New("password can only be set for individual users")
 		}
-		// automation does not need site-wide root access
 		if c.Bool("admin") {
 			return errors.New("admin flag can only be set for individual users")
 		}

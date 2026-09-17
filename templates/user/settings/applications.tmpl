@@ -1,16 +1,6 @@
 {{template "user/settings/layout_head" (dict "pageClass" "user settings applications")}}
 	<div class="user-setting-content">
-		{{template "shared/user/access_tokens" (dict
-			"Description" (ctx.Locale.Tr "settings.tokens_desc")
-			"Tokens" .Tokens
-			"ScopeCategories" .TokenCategories
-			"ScopePublicOnly" .AccessTokenScopePublicOnly
-			"CreateURL" .Link
-			"DeleteURL" (print .Link "/delete")
-			"RegenerateURL" (print .Link "/regenerate")
-			"NameValue" .name
-			"ErrName" .Err_Name
-		)}}
+		{{template "shared/user/access_tokens" .AccessTokens}}
 
 		{{if .EnableOAuth2}}
 			{{template "user/settings/grants_oauth2" .}}

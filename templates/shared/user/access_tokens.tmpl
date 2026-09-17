@@ -14,7 +14,7 @@
 		{{end}}
 		<div class="flex-divided-list items-with-main">
 			<div class="item">
-				{{.Description}}
+				{{if .IsBot}}{{ctx.Locale.Tr "admin.users.bot_token_desc"}}{{else}}{{ctx.Locale.Tr "settings.tokens_desc"}}{{end}}
 			</div>
 			{{range $token := .Tokens}}
 				<div class="item">
@@ -48,13 +48,13 @@
 						</div>
 					</div>
 					<div class="item-trailing">
-						{{if $.RegenerateURL}}
-							<button type="button" class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.RegenerateURL}}?id={{$token.ID}}">
+						{{if not $.IsBot}}
+							<button type="button" class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.Link}}/regenerate?id={{$token.ID}}">
 								{{svg "octicon-sync"}}
 								{{ctx.Locale.Tr "settings.regenerate_token"}}
 							</button>
 						{{end}}
-						<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.DeleteURL}}?id={{$token.ID}}">
+						<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.Link}}/delete?id={{$token.ID}}">
 							{{svg "octicon-trash"}}
 							{{ctx.Locale.Tr "settings.delete_token"}}
 						</button>
@@ -64,12 +64,12 @@
 		</div>
 	</div>
 	<div class="ui bottom attached segment">
-		<details {{if or .NameValue (not .Tokens)}}open{{end}}>
+		<details {{if not .Tokens}}open{{end}}>
 			<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.generate_new_token"}}</h4></summary>
-			<form class="ui form ignore-dirty form-fetch-action" action="{{.CreateURL}}" method="post" data-fetch-sync="$body #access-token-panel">
-				<div class="field {{if .ErrName}}error{{end}}">
+			<form class="ui form ignore-dirty form-fetch-action" action="{{.Link}}" method="post" data-fetch-sync="$body #access-token-panel">
+				<div class="field">
 					<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
-					<input id="name" name="name" value="{{.NameValue}}" required maxlength="255">
+					<input id="name" name="name" required maxlength="255">
 				</div>
 				<div class="field">
 					<div class="tw-my-2">{{ctx.Locale.Tr "settings.repo_and_org_access"}}</div>
@@ -112,10 +112,9 @@
 	{{template "base/modal_actions_confirm"}}
 </div>
 
-{{if .RegenerateURL}}
+{{if not .IsBot}}
 	<div class="ui small modal" id="regenerate-token">
 		<div class="header">
-			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.access_token_regeneration"}}
 		</div>
 		<div class="content">

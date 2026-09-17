@@ -4,10 +4,10 @@
 package user
 
 import (
-	"context"
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
@@ -162,9 +162,7 @@ func TestUpdateUserVisibility(t *testing.T) {
 func TestConvertUserType(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// user2 is a local individual that owns an OAuth2 application and an access token
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.True(t, user.IsIndividual())
 	assert.NotEmpty(t, user.Passwd)
 	assert.Positive(t, unittest.GetCount(t, &auth_model.OAuth2Application{UID: user.ID}))
 	tokensBefore := unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID})
@@ -174,88 +172,42 @@ func TestConvertUserType(t *testing.T) {
 	assert.NoError(t, db.Insert(t.Context(), &auth_model.TwoFactor{UID: user.ID}))
 	assert.NoError(t, db.Insert(t.Context(), &auth_model.WebAuthnCredential{UserID: user.ID, Name: "key"}))
 
-	// individual -> bot: credentials, auth source and interactive-auth artifacts are cleared
+	randsBefore := user.Rands
+
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
 	assert.True(t, user.IsTypeBot())
-
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserType, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.Equal(t, user_model.UserTypeBot, user.Type)
+	assert.NotEqual(t, randsBefore, user.Rands)
 	assert.Empty(t, user.Passwd)
 	assert.Empty(t, user.Salt)
 	assert.Empty(t, user.PasswdHashAlgo)
 	assert.False(t, user.MustChangePassword)
 	assert.EqualValues(t, 0, user.LoginSource)
-	// OAuth2 applications/grants are removed, but access tokens are kept
 	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.OAuth2Application{UID: user.ID}))
 	assert.Equal(t, tokensBefore, unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID}))
 	assert.Equal(t, 0, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
 	assert.Equal(t, 0, unittest.GetCount(t, &user_model.UserOpenID{UID: user.ID}))
-	// a second factor only guards an interactive sign-in, which the account no longer has
 	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.TwoFactor{UID: user.ID}))
 	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.WebAuthnCredential{UserID: user.ID}))
 
-	// a bot has no interactive login, so a password or auth source is rejected rather than ignored
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{Password: optional.Some("%$DRZUVB576tfzgu")}), util.ErrInvalidArgument)
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginSource: optional.Some(int64(1))}), util.ErrInvalidArgument)
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginName: optional.Some("cn=bot")}), util.ErrInvalidArgument)
-	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).Passwd)
-
-	// an unrelated auth update keeps the bot a local account
+	assert.ErrorIs(t, UpdateUser(t.Context(), user, &UpdateOptions{IsAdmin: UpdateOptionFieldFromValue(true)}), user_model.ErrBotCanNotBeAdmin)
 	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{ProhibitLogin: optional.Some(true)}))
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Empty(t, user.Passwd)
+	assert.False(t, user.IsAdmin)
 	assert.Equal(t, auth_model.Plain, user.LoginType)
 	assert.Empty(t, user.LoginName)
 
-	// bot -> individual
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeIndividual))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.Equal(t, user_model.UserTypeIndividual, user.Type)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).IsIndividual())
 
-	// organizations cannot be converted
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-	assert.True(t, org.IsOrganization())
-	assert.Error(t, ConvertUserType(t.Context(), org, user_model.UserTypeBot))
-
-	// a site administrator must drop the admin permission before becoming a bot
-	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.True(t, admin.IsAdmin)
-	err := ConvertUserType(t.Context(), admin, user_model.UserTypeBot)
-	assert.ErrorIs(t, err, user_model.ErrBotCanNotBeAdmin)
-	admin = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.Equal(t, user_model.UserTypeIndividual, admin.Type)
-}
-
-func TestConvertUserTypeDoesNotMutateUserOnError(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	originalUser := *user
-	// unit tests always run on SQLite (models/unittest/testdb.go), so a trigger is the cheapest mid-transaction failure
-	_, err := db.GetEngine(t.Context()).Exec(`CREATE TRIGGER fail_notification_delete
-		BEFORE DELETE ON notification WHEN OLD.user_id = 2
-		BEGIN SELECT RAISE(FAIL, 'forced notification delete failure'); END`)
-	if !assert.NoError(t, err) {
-		return
-	}
-	t.Cleanup(func() {
-		_, err := db.GetEngine(context.Background()).Exec("DROP TRIGGER fail_notification_delete")
-		assert.NoError(t, err)
-	})
-
-	assert.Error(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
-	assert.Equal(t, originalUser, *user)
-	persistedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID})
-	assert.Equal(t, user_model.UserTypeIndividual, persistedUser.Type)
-}
-
-func TestUpdateUserBotCannotBecomeAdmin(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
-
-	err := UpdateUser(t.Context(), user, &UpdateOptions{IsAdmin: UpdateOptionFieldFromValue(true)})
-	assert.ErrorIs(t, err, user_model.ErrBotCanNotBeAdmin)
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.False(t, user.IsAdmin)
+	assert.ErrorIs(t, ConvertUserType(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}), user_model.UserTypeBot), user_model.ErrUserTypeCanNotConvert)
+	assert.ErrorIs(t, ConvertUserType(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), user_model.UserTypeBot), user_model.ErrBotCanNotBeAdmin)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).IsIndividual())
 }

@@ -50,6 +50,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
+		Type:        user.Type.Name(),
 		FullName:    user.FullName,
 		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),
