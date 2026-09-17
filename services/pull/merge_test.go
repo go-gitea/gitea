@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
@@ -137,4 +140,68 @@ func TestResolveMergeMessageTemplate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "rebase template", tmpl)
 	})
+}
+
+func TestSyncMergedState(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.False(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+
+	require.NoError(t, markPullRequestMerging(t.Context(), pr.ID, doer.ID, false))
+
+	mergeCommitID := "0123456789abcdef0123456789abcdef01234567"
+	require.NoError(t, syncMergedState(t.Context(), pr.ID, doer, mergeCommitID))
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.True(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.Equal(t, mergeCommitID, pr.MergedCommitID)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+	assert.True(t, issue.IsClosed)
+}
+
+func TestMarkAndClearPullRequestMerging(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+
+	require.NoError(t, markPullRequestMerging(t.Context(), pr.ID, 2, true))
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Equal(t, issues_model.PullRequestMergeStateAutoMerging, pr.MergeState)
+	assert.EqualValues(t, 2, pr.MergerID)
+
+	mergingIDs, err := issues_model.GetPullRequestIDsByMerging(t.Context())
+	require.NoError(t, err)
+	assert.Contains(t, mergingIDs, pr.ID)
+
+	require.NoError(t, clearPullRequestMerging(t.Context(), pr.ID))
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.EqualValues(t, 0, pr.MergerID)
+
+	mergingIDs, err = issues_model.GetPullRequestIDsByMerging(t.Context())
+	require.NoError(t, err)
+	assert.NotContains(t, mergingIDs, pr.ID)
+}
+
+func TestRecoverMergingPullRequestNotMerged(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, markPullRequestMerging(t.Context(), pr.ID, 2, false))
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+
+	merged, err := recoverMergingPullRequest(t.Context(), pr)
+	require.NoError(t, err)
+	assert.False(t, merged)
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.False(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.EqualValues(t, 0, pr.MergerID)
 }

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
@@ -139,6 +141,48 @@ func TestPullMerge(t *testing.T) {
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
 		assertPullMergeWebhookTask(t, 1)
+	})
+}
+
+func TestPullMergeWithPostReceiveFailure(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.Equal(t, "pulls", elem[3])
+		user, repoName, pullNum := elem[1], elem[2], elem[4]
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user, Name: repoName})
+		hookPath := filepath.Join(gitrepo.RepoLocalPath(repo), "hooks", "post-receive.d", "gitea")
+		require.FileExists(t, hookPath)
+		require.NoError(t, os.WriteFile(hookPath, []byte("#!/bin/sh\nexit 1\n"), 0o755))
+		defer func() {
+			_ = git.CreateDelegateHooks(t.Context(), repo)
+		}()
+
+		testPullMerge(t, session, user, repoName, pullNum, MergeOptions{
+			Style:        repo_model.MergeStyleMerge,
+			DeleteBranch: false,
+		})
+
+		pullNumInt, err := strconv.ParseInt(pullNum, 10, 64)
+		require.NoError(t, err)
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: repo.ID,
+			Index:      pullNumInt,
+		})
+		assert.True(t, pr.HasMerged)
+
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+
+		baseCommit, err := gitRepo.GetBranchCommit(t.Context(), pr.BaseBranch)
+		require.NoError(t, err)
+		assert.Equal(t, pr.MergedCommitID, baseCommit.ID.String())
 	})
 }
 

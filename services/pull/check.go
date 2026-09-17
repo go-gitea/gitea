@@ -434,6 +434,11 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 
 // InitializePullRequests checks and tests untested patches of pull requests.
 func InitializePullRequests(ctx context.Context) {
+	if err := enqueueMergingPullRequests(ctx); err != nil {
+		log.Error("Find Merging PRs: %v", err)
+		return
+	}
+
 	// If we prefer to delay the checks, then no need to do any check during startup, there should be not much difference
 	if setting.Repository.PullRequest.DelayCheckForInactiveDays >= 0 {
 		return
@@ -451,6 +456,22 @@ func InitializePullRequests(ctx context.Context) {
 			AddPullRequestToCheckQueue(prID)
 		}
 	}
+}
+
+func enqueueMergingPullRequests(ctx context.Context) error {
+	prIDs, err := issues_model.GetPullRequestIDsByMerging(ctx)
+	if err != nil {
+		return err
+	}
+	for _, prID := range prIDs {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			AddPullRequestToCheckQueue(prID)
+		}
+	}
+	return nil
 }
 
 func checkPullRequestMergeable(id int64) {
@@ -479,6 +500,17 @@ func checkPullRequestMergeable(id int64) {
 	if pr.HasMerged {
 		log.Trace("%-v is already merged (status: %s, merge commit: %s)", pr, pr.Status, pr.MergedCommitID)
 		return
+	}
+
+	if pr.MergeState != issues_model.PullRequestMergeStateNone {
+		if _, err := recoverMergingPullRequest(ctx, pr); err != nil {
+			log.Error("recoverMergingPullRequest[%-v]: %v", pr, err)
+			return
+		}
+		if pr.HasMerged {
+			log.Trace("%-v recovered as merged (status: %s, merge commit: %s)", pr, pr.Status, pr.MergedCommitID)
+			return
+		}
 	}
 
 	if manuallyMerged(ctx, pr) {

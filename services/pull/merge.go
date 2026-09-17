@@ -278,21 +278,129 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 	}
 
 	err = globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
-		_, err := doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
-		return err
+		mergePR, err := issues_model.GetPullRequestByID(ctx, pr.ID)
+		if err != nil {
+			return err
+		}
+		if mergePR.HasMerged {
+			return ErrHasMerged
+		}
+		if mergePR.MergeState != issues_model.PullRequestMergeStateNone {
+			if _, err := recoverMergingPullRequest(ctx, mergePR); err != nil {
+				return err
+			}
+			if mergePR.HasMerged {
+				return ErrHasMerged
+			}
+		}
+
+		if err := markPullRequestMerging(ctx, pr.ID, doer.ID, wasAutoMerged); err != nil {
+			return err
+		}
+
+		mergeCommitID, err := doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+		if err != nil {
+			_ = clearPullRequestMerging(ctx, pr.ID)
+			return err
+		}
+
+		if err := syncMergedState(ctx, pr.ID, doer, mergeCommitID); err != nil {
+			_ = clearPullRequestMerging(ctx, pr.ID)
+			return err
+		}
+		return nil
 	})
 	defer addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
-	// TODO: the "merge" operation has finished, there could still be some edge cases:
-	// * if the post-process hook isn't executed correctly:
-	//   * the commit has been merged into target branch
-	//   * the PR's status is still "open (unmerged)"
-	// * something wrong happens (e.g.: out of sync?)
-	//   * maybe this is the reason that why the duplicate AddTestPullRequestTask is called in defer func above
 	if err != nil {
 		return err
 	}
-	// TODO: it is questionable whether it should return error here, the "merge" operation has succeeded
 	return handleMergePostProcess(ctx, pr.ID, doer, wasAutoMerged)
+}
+
+func syncMergedState(ctx context.Context, prID int64, doer *user_model.User, mergeCommitID string) error {
+	pr, err := issues_model.GetPullRequestByID(ctx, prID)
+	if err != nil {
+		return err
+	}
+	if pr.HasMerged {
+		return nil
+	}
+
+	if _, err := SetMerged(ctx, pr, mergeCommitID, timeutil.TimeStampNow(), doer, pr.Status); err != nil {
+		return fmt.Errorf("failed to mark pull request %d as merged after pushing to base branch: %w", prID, err)
+	}
+	return nil
+}
+
+func markPullRequestMerging(ctx context.Context, prID, mergerID int64, auto bool) error {
+	mergeState := issues_model.PullRequestMergeStateMerging
+	if auto {
+		mergeState = issues_model.PullRequestMergeStateAutoMerging
+	}
+	cnt, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ? AND merge_state = ?", prID, false, issues_model.PullRequestMergeStateNone).
+		Cols("merge_state, merger_id").
+		Update(&issues_model.PullRequest{MergeState: mergeState, MergerID: mergerID})
+	if err != nil {
+		return err
+	}
+	if cnt != 1 {
+		return fmt.Errorf("pull request %d is already merging or merged", prID)
+	}
+	return nil
+}
+
+func clearPullRequestMerging(ctx context.Context, prID int64) error {
+	_, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", prID, false).
+		Cols("merge_state, merger_id").
+		Update(&issues_model.PullRequest{MergeState: issues_model.PullRequestMergeStateNone, MergerID: 0})
+	return err
+}
+
+func recoverMergingPullRequest(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
+	if pr.MergeState == issues_model.PullRequestMergeStateNone || pr.HasMerged {
+		return false, nil
+	}
+
+	commit, err := getMergeCommit(ctx, pr)
+	if err != nil {
+		return false, err
+	}
+	if commit == nil {
+		if err := clearPullRequestMerging(ctx, pr.ID); err != nil {
+			return false, err
+		}
+		pr.MergeState = issues_model.PullRequestMergeStateNone
+		return false, nil
+	}
+
+	merger, err := getMergerForMergingPullRequest(ctx, pr)
+	if err != nil {
+		return false, err
+	}
+	wasAutoMerged := pr.MergeState == issues_model.PullRequestMergeStateAutoMerging
+	merged, err := SetMerged(ctx, pr, commit.ID.String(), timeutil.TimeStamp(commit.Author.When.Unix()), merger, pr.Status)
+	if err != nil {
+		return false, err
+	}
+	if merged {
+		if err := handleMergePostProcess(ctx, pr.ID, merger, wasAutoMerged); err != nil {
+			return false, err
+		}
+	}
+	return merged, nil
+}
+
+func getMergerForMergingPullRequest(ctx context.Context, pr *issues_model.PullRequest) (*user_model.User, error) {
+	if pr.MergerID > 0 {
+		merger, err := user_model.GetUserByID(ctx, pr.MergerID)
+		if err == nil {
+			return merger, nil
+		}
+		if !user_model.IsErrUserNotExist(err) {
+			return nil, err
+		}
+	}
+	return getMergerForManuallyMergedPullRequest(ctx, pr)
 }
 
 func handleMergePostProcess(ctx context.Context, prID int64, doer *user_model.User, wasAutoMerged bool) error {
@@ -356,7 +464,7 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 }
 
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, pushTrigger repo_module.PushTrigger) (string, error) { //nolint:unparam // non-error result is never used
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
@@ -431,7 +539,6 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.Index,
 	)
 
-	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
 	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
@@ -719,6 +826,7 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 	pr.Merger = merger
 	pr.MergerID = merger.ID
 	pr.Status = mergeStatus
+	pr.MergeState = issues_model.PullRequestMergeStateNone
 	// reset the conflicted files as there cannot be any if we're merged
 	pr.ConflictedFiles = []string{}
 
@@ -753,7 +861,7 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 		// We need to save all of the data used to compute this merge as it may have already been changed by checkPullRequestBranchMergeable. FIXME: need to set some state to prevent checkPullRequestBranchMergeable from running whilst we are merging.
 		if cnt, err := db.GetEngine(ctx).Where("id = ?", pr.ID).
 			And("has_merged = ?", false).
-			Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").
+			Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files, merge_state").
 			Update(pr); err != nil {
 			return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
 		} else if cnt != 1 {
