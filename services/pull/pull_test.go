@@ -27,16 +27,13 @@ func TestPullRequest_FormatSquashMergeCommitMessages(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 0)()
 
 	assert.Equal(t, "* commit msg 1\n\n* commit msg 2\n\nCommit description.\n\n", formatSquashMergeCommitMessages([]*git.Commit{newest, oldest}))
+	assert.Equal(t, "commit msg 2\n\nbody\n\n", formatSquashMergeCommitMessages([]*git.Commit{{CommitMessage: git.CommitMessage{MessageRaw: "commit msg 2\n\nbody\n\nCo-authored-by: a <a@example.com>"}}}))
 
 	utf8Msg := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "🌞"}}
 	setting.Repository.PullRequest.DefaultMergeMessageSize = 3
-	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
-	setting.Repository.PullRequest.DefaultMergeMessageSize = 4
-	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
-	setting.Repository.PullRequest.DefaultMergeMessageSize = 5
-	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
+	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg, utf8Msg}))
 	setting.Repository.PullRequest.DefaultMergeMessageSize = 6
-	assert.Equal(t, "* 🌞\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
+	assert.Equal(t, "* 🌞\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg, utf8Msg}))
 }
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
@@ -94,25 +91,27 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 }
 
 func TestBuildSquashMergeCommitMessages(t *testing.T) {
-	cases := []struct {
-		msg       string
-		coAuthors []string
-		expected  string
-	}{
-		{"title", nil, "title"},
-		{"title", []string{"the-user"}, "title\n\n---------\n\nCo-authored-by: the-user\n"},
-		{"title\n\n", []string{"the-user"}, "title\n\n---------\n\nCo-authored-by: the-user\n"},
-		{"title\n\nKey: val", []string{"the-user"}, "title\n\nKey: val\nCo-authored-by: the-user\n"},
-		{"title\n\n----\nKey: val", []string{"the-user"}, "title\n\n----\nKey: val\nCo-authored-by: the-user\n"},
-		{"title\n\n----\nKey: val\n\n", []string{"the-user"}, "title\n\n----\nKey: val\nCo-authored-by: the-user\n"},
+	trailers := []string{"Signed-off-by: a <a@example.com>", "Co-authored-by: b <b@example.com>"}
+	assert.Equal(t, "body", buildSquashMergeCommitMessages("body", nil, true))
+	assert.Equal(t, "Signed-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("", trailers, true))
+	assert.Equal(t, "body\n\nSigned-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body", trailers, false))
+	assert.Equal(t, "body\n\n---------\n\nSigned-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body", trailers, true))
+}
 
-		{"title\n\nbody", nil, "title\n\nbody"},
-		{"title\n\nbody", []string{"the-user"}, "title\n\nbody\n\n---------\n\nCo-authored-by: the-user\n"},
-		{"title\n\nbody\n\nKey: val", []string{"the-user"}, "title\n\nbody\n\nKey: val\nCo-authored-by: the-user\n"},
-		{"title\n\nbody\n\n----\nKey: val", []string{"the-user"}, "title\n\nbody\n\n----\nKey: val\nCo-authored-by: the-user\n"},
+func TestCollectSquashMergeCommitTrailers(t *testing.T) {
+	newCommit := func(authorName, msg string) *git.Commit {
+		return &git.Commit{Author: &git.Signature{Name: authorName, Email: authorName + "@example.com"}, CommitMessage: git.CommitMessage{MessageRaw: msg}}
 	}
-	for _, c := range cases {
-		msg := buildSquashMergeCommitMessages(c.msg, c.coAuthors)
-		assert.Equal(t, c.expected, msg, "msg: %s", c.msg)
-	}
+	signOffs, coAuthors := collectSquashMergeCommitTrailers([]*git.Commit{
+		newCommit("whiskey", "third\n\nCo-authored-by: Renamed <ZULU@example.com>"),
+		newCommit("xray", "second\n\nSigned-off-by: One <one@example.com>\nSigned-off-by: Two <two@example.com>"),
+		newCommit("zulu", "first\n\nCo-authored-by: Yankee <yankee@example.com>\nSigned-off-by: Two <two@example.com>"),
+	})
+	assert.Equal(t, []string{"Signed-off-by: Two <two@example.com>", "Signed-off-by: One <one@example.com>"}, signOffs)
+	assert.Equal(t, []git.CommitIdentityTrailer{
+		{Key: git.CoAuthoredByTrailer, Name: "zulu", Email: "zulu@example.com"},
+		{Key: git.CoAuthoredByTrailer, Name: "Yankee", Email: "yankee@example.com"},
+		{Key: git.CoAuthoredByTrailer, Name: "xray", Email: "xray@example.com"},
+		{Key: git.CoAuthoredByTrailer, Name: "whiskey", Email: "whiskey@example.com"},
+	}, coAuthors)
 }

@@ -607,6 +607,20 @@
 							</div>
 						</div>
 						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_squash_commit_message"}}</label>
+							<div class="ui selection dropdown">
+								<input type="hidden" name="pulls_default_squash_commit_message" value="{{$prUnit.PullRequestsConfig.DefaultSquashCommitMessage}}">
+								<div class="default text"></div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									<div class="item" data-value="">{{ctx.Locale.Tr "repo.settings.pulls.squash_commit_message.default"}}</div>
+									<div class="item" data-value="pr-title">{{ctx.Locale.Tr "repo.settings.pulls.squash_commit_message.pr_title"}}</div>
+									<div class="item" data-value="pr-title-commits">{{ctx.Locale.Tr "repo.settings.pulls.squash_commit_message.pr_title_commits"}}</div>
+									<div class="item" data-value="pr-title-description">{{ctx.Locale.Tr "repo.settings.pulls.squash_commit_message.pr_title_description"}}</div>
+								</div>
+							</div>
+						</div>
+						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
 							<div class="ui search selection dropdown">
 								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">

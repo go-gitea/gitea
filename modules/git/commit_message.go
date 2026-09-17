@@ -16,6 +16,8 @@ import (
 // CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.
 const CoAuthoredByTrailer = "Co-authored-by"
 
+const SignedOffByTrailer = "Signed-off-by"
+
 const (
 	commitIdentityRoleAuthor    = 1
 	commitIdentityRoleCommitter = 2
@@ -93,6 +95,38 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 		return s, "", ""
 	}
 	return v[re.SubexpIndex("content")], v[re.SubexpIndex("sep")], v[re.SubexpIndex("trailer")]
+}
+
+var commitMessageIdentityTrailerRegexp = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`(?i)^(signed-off-by|co-authored-by):[ \t]+(\S.*?)[ \t]*<([^<>\s@]+@[^<>\s@]+)>$`)
+})
+
+type CommitIdentityTrailer struct {
+	Key   string
+	Name  string
+	Email string
+}
+
+func (trailer CommitIdentityTrailer) String() string {
+	return trailer.Key + ": " + trailer.Name + " <" + trailer.Email + ">"
+}
+
+// CommitMessageCutIdentityTrailers blanks and returns the Signed-off-by and Co-authored-by lines of the last paragraph
+func CommitMessageCutIdentityTrailers(message string) (rest string, trailers []CommitIdentityTrailer) {
+	message = strings.TrimSpace(util.NormalizeStringEOL(message))
+	head, lastParagraph := "", message
+	if idx := strings.LastIndex(message, "\n\n"); idx != -1 {
+		head, lastParagraph = message[:idx+2], message[idx+2:]
+	}
+	lines := strings.Split(lastParagraph, "\n")
+	for i, line := range lines {
+		if match := commitMessageIdentityTrailerRegexp().FindStringSubmatch(line); match != nil {
+			key := util.Iif(strings.EqualFold(match[1], SignedOffByTrailer), SignedOffByTrailer, CoAuthoredByTrailer)
+			trailers = append(trailers, CommitIdentityTrailer{Key: key, Name: match[2], Email: match[3]})
+			lines[i] = ""
+		}
+	}
+	return strings.TrimSpace(head + strings.Join(lines, "\n")), trailers
 }
 
 // CommitMessageMerge merges two commit messages with their trailers

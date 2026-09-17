@@ -29066,6 +29066,11 @@
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
         },
+        "default_squash_commit_message": {
+          "description": "set to the default squash commit message: \"pr-title\", \"pr-title-commits\", \"pr-title-description\", or \"\" to use the instance default.",
+          "type": "string",
+          "x-go-name": "DefaultSquashCommitMessage"
+        },
         "default_update_style": {
           "description": "set to an update style to be used by this repository: \"merge\" or \"rebase\".",
           "type": "string",
@@ -32666,6 +32671,10 @@
         "default_merge_style": {
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
+        },
+        "default_squash_commit_message": {
+          "type": "string",
+          "x-go-name": "DefaultSquashCommitMessage"
         },
         "default_target_branch": {
           "type": "string",

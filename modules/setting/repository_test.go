@@ -64,3 +64,24 @@ ORG_MAX_CREATION_LIMIT = -1
 		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
 	})
 }
+
+func TestLoadRepositoryDefaultSquashCommitMessage(t *testing.T) {
+	defer test.MockVariableValue(&Repository.PullRequest.DefaultSquashCommitMessage)()
+
+	cfg, err := NewConfigProviderFromData(`
+[repository.pull-request]
+POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES = true
+`)
+	assert.NoError(t, err)
+	loadRepositoryFrom(cfg)
+	assert.Equal(t, RepoPRSquashCommitMessagePRTitleCommits, Repository.PullRequest.DefaultSquashCommitMessage)
+
+	cfg, err = NewConfigProviderFromData(`
+[repository.pull-request]
+POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES = true
+DEFAULT_SQUASH_COMMIT_MESSAGE = pr-body
+`)
+	assert.NoError(t, err)
+	loadRepositoryFrom(cfg)
+	assert.Equal(t, RepoPRSquashCommitMessagePRTitleDescription, Repository.PullRequest.DefaultSquashCommitMessage)
+}

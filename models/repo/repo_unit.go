@@ -6,6 +6,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
@@ -133,6 +134,7 @@ type PullRequestsConfig struct {
 	DefaultMergeStyle             MergeStyle
 	DefaultAllowMaintainerEdit    bool
 	DefaultTargetBranch           string
+	DefaultSquashCommitMessage    string
 }
 
 func DefaultPullRequestsConfig() *PullRequestsConfig {
@@ -199,6 +201,13 @@ func (cfg *PullRequestsConfig) ValidateUpdateSettings() error {
 	}
 	if !cfg.IsUpdateStyleAllowed(cfg.DefaultUpdateStyle) {
 		return util.NewInvalidArgumentErrorf("default update style must be enabled")
+	}
+	return nil
+}
+
+func (cfg *PullRequestsConfig) ValidateDefaultSquashCommitMessage() error {
+	if cfg.DefaultSquashCommitMessage != "" && !slices.Contains(setting.RepoPRSquashCommitMessages, cfg.DefaultSquashCommitMessage) {
+		return util.NewInvalidArgumentErrorf("invalid default squash commit message %q", cfg.DefaultSquashCommitMessage)
 	}
 	return nil
 }

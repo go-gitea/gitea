@@ -18,6 +18,15 @@ func TestCommitMessageSanitizesInvalidUTF8(t *testing.T) {
 	assert.Equal(t, "title ÿ\n\n\n\nbody ÿ\n\n\n", commit.MessageUTF8())
 }
 
+func TestCommitMessageCutIdentityTrailers(t *testing.T) {
+	rest, trailers := CommitMessageCutIdentityTrailers("title\r\n\r\nCo-authored-by: Middle <middle@example.com>\n\nbody\nSIGNED-OFF-BY: Sign <sign@example.com>\nChange-Id: I1\nco-authored-by:   Spaced   <spaced@example.com>\nCo-authored-by: Bad <not-an-email>\nCo-authored-by: Trailing <trailing@example.com> extra\n")
+	assert.Equal(t, "title\n\nCo-authored-by: Middle <middle@example.com>\n\nbody\n\nChange-Id: I1\n\nCo-authored-by: Bad <not-an-email>\nCo-authored-by: Trailing <trailing@example.com> extra", rest)
+	assert.Equal(t, []CommitIdentityTrailer{
+		{Key: SignedOffByTrailer, Name: "Sign", Email: "sign@example.com"},
+		{Key: CoAuthoredByTrailer, Name: "Spaced", Email: "spaced@example.com"},
+	}, trailers)
+}
+
 func TestCommitMessageTrailer(t *testing.T) {
 	cases := []struct {
 		msg, body, sep, trailer string
