@@ -445,11 +445,6 @@ a.label,
   color: var(--color-text) !important;
 }
 
-.user-menu > .item {
-  width: 100%;
-  border-radius: 0 !important;
-}
-
 .color-preview {
   display: inline-block;
   margin-left: 0.4em;
@@ -544,24 +539,27 @@ overflow-menu .overflow-menu-popup::after {
   border-bottom-color: var(--color-menu);
 }
 
-overflow-menu .overflow-menu-popup > .item {
+/* the doubled class outweighs the tab bar item styles of the ".ui.menu" host */
+overflow-menu.ui.menu .overflow-menu-popup > .item.item {
   display: flex;
   align-items: center;
-  padding: 9px 18px !important;
-  color: var(--color-text) !important;
-  background: transparent !important;
+  margin: 0 4px;
+  padding: 9px 14px !important;
+  border-radius: var(--border-radius-medium);
+  color: var(--color-text);
+  background: transparent;
   text-decoration: none;
   gap: 10px;
-  width: 100%;
+  width: calc(100% - 8px);
 }
 
-overflow-menu .overflow-menu-popup > .item:hover,
-overflow-menu .overflow-menu-popup > .item:focus {
-  background: var(--color-hover) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:hover,
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:focus {
+  background: var(--color-hover);
 }
 
-overflow-menu .overflow-menu-popup > .item.active {
-  background: var(--color-active) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item.active {
+  background: var(--color-active);
 }
 
 overflow-menu .overflow-menu-items {
