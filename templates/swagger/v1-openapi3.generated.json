@@ -12058,6 +12058,9 @@
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
+          "409": {
+            "$ref": "#/components/responses/error"
+          },
           "422": {
             "$ref": "#/components/responses/validationError"
           }
@@ -12141,6 +12144,9 @@
           },
           "403": {
             "$ref": "#/components/responses/forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
@@ -27149,6 +27155,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           }
         },
         "summary": "Merge a branch from upstream",
@@ -34998,6 +35007,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/EmailList"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "409": {
+            "$ref": "#/components/responses/error"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
