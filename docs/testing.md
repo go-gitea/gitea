@@ -114,8 +114,9 @@ gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request 
 ## Recorded API responses
 
 Repository migration unit and integration tests replay API responses recorded under
-`_mock_data/`, so they run offline. To re-record, delete the test's `_mock_data`
-directory, run the test with the credential variables it reads, and update its assertions.
+`_mock_data/`, so they run offline. Setting the environment variables a test reads, usually
+API credentials, makes it record from the live API instead. To re-record, delete the test's
+`_mock_data` directory, run the test with those variables set, and update its assertions.
 
 ## End-to-end tests
 
