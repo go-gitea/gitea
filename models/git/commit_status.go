@@ -382,8 +382,18 @@ func getLatestCommitStatusForRepoSHAs(ctx context.Context, repoID int64, shas []
 
 	statuses := make([]*CommitStatus, 0, len(shas))
 	for batch := range slices.Chunk(shas, commitStatusSHABatchSize) {
-		indexes := make([]contextIndex, 0, len(batch))
-		if err := getBase().And(builder.In("sha", batch)).
+		// most listed commits have no status at all, and this narrowing query is answered from the
+		// (repo_id, sha) index alone, so the grouping below only has to touch the few SHAs that do
+		shasWithStatus := make([]string, 0, len(batch))
+		if err := getBase().And(builder.In("sha", batch)).Distinct("sha").Find(&shasWithStatus); err != nil {
+			return nil, err
+		}
+		if len(shasWithStatus) == 0 {
+			continue
+		}
+
+		indexes := make([]contextIndex, 0, len(shasWithStatus))
+		if err := getBase().And(builder.In("sha", shasWithStatus)).
 			Select("max( `index` ) as `index`, sha").
 			GroupBy("context_hash, sha").Find(&indexes); err != nil {
 			return nil, err
@@ -398,7 +408,7 @@ func getLatestCommitStatusForRepoSHAs(ctx context.Context, repoID int64, shas []
 		}
 		batchStatuses := make([]*CommitStatus, 0, len(indexes))
 		// the redundant "sha IN" narrows the rows down by index before the pairs are evaluated
-		if err := getBase().And(builder.In("sha", batch)).And(builder.Or(conds...)).Find(&batchStatuses); err != nil {
+		if err := getBase().And(builder.In("sha", shasWithStatus)).And(builder.Or(conds...)).Find(&batchStatuses); err != nil {
 			return nil, err
 		}
 		statuses = append(statuses, batchStatuses...)

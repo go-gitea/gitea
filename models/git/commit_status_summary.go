@@ -32,9 +32,14 @@ type RepoSHA struct {
 }
 
 func GetLatestCommitStatusForRepoAndSHAs(ctx context.Context, repoSHAs []RepoSHA) ([]*CommitStatus, error) {
-	cond := builder.NewCond()
+	shasByRepo := make(map[int64][]string)
 	for _, rs := range repoSHAs {
-		cond = cond.Or(builder.Eq{"repo_id": rs.RepoID, "sha": rs.SHA})
+		shasByRepo[rs.RepoID] = append(shasByRepo[rs.RepoID], rs.SHA)
+	}
+
+	cond := builder.NewCond()
+	for repoID, shas := range shasByRepo {
+		cond = cond.Or(builder.Eq{"repo_id": repoID}.And(builder.In("sha", shas)))
 	}
 
 	var summaries []CommitStatusSummary
