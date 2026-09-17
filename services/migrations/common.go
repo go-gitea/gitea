@@ -50,19 +50,22 @@ func CheckAndEnsureSafePR(pr *base.PullRequest, commonCloneBaseURL string, g bas
 		valid = false
 	}
 
-	// SECURITY: SHAs Must be a SHA
-	// FIXME: hash only a SHA1
-	CommitType := git.Sha1ObjectFormat
-	if pr.MergeCommitSHA != "" && !CommitType.IsValid(pr.MergeCommitSHA) {
+	// SECURITY: SHAs must be valid Git object IDs. Migration sources may use either
+	// SHA-1 or SHA-256 repositories, and the repository object format is not yet
+	// available at this stage.
+	isValidCommitID := func(id string) bool {
+		return git.Sha1ObjectFormat.IsValid(id) || git.Sha256ObjectFormat.IsValid(id)
+	}
+	if pr.MergeCommitSHA != "" && !isValidCommitID(pr.MergeCommitSHA) {
 		WarnAndNotice("PR #%d in %s has invalid MergeCommitSHA: %s", pr.Number, g, pr.MergeCommitSHA)
 		pr.MergeCommitSHA = ""
 	}
-	if pr.Head.SHA != "" && !CommitType.IsValid(pr.Head.SHA) {
+	if pr.Head.SHA != "" && !isValidCommitID(pr.Head.SHA) {
 		WarnAndNotice("PR #%d in %s has invalid HeadSHA: %s", pr.Number, g, pr.Head.SHA)
 		pr.Head.SHA = ""
 		valid = false
 	}
-	if pr.Base.SHA != "" && !CommitType.IsValid(pr.Base.SHA) {
+	if pr.Base.SHA != "" && !isValidCommitID(pr.Base.SHA) {
 		WarnAndNotice("PR #%d in %s has invalid BaseSHA: %s", pr.Number, g, pr.Base.SHA)
 		pr.Base.SHA = ""
 		valid = false
