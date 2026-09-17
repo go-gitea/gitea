@@ -8,8 +8,10 @@ const {mermaidMaxSourceCharacters} = window.config;
 
 function initMermaidViewController(viewController: Element, dragElement: SVGSVGElement) {
   let scale = 1, left = 0, top = 0, lastPageX = 0, lastPageY = 0;
+  let dragPointerId: number | null = null;
   const applyTransform = () => {
     dragElement.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
+    dragElement.style.touchAction = scale === 1 ? '' : 'none'; // touch scrolls the page until zoomed, then pans the diagram
   };
 
   for (const el of viewController.querySelectorAll('[data-control-action]')) {
@@ -31,9 +33,11 @@ function initMermaidViewController(viewController: Element, dragElement: SVGSVGE
   }
 
   dragElement.addEventListener('pointerdown', (e) => {
-    if (!isPlainClick(e)) return;
+    if (dragPointerId !== null || !isPlainClick(e) || (e.pointerType !== 'mouse' && scale === 1)) return;
     // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
     if ((e.target as Element).closest('div, p, a, span, button, input, text')) return;
+    e.preventDefault(); // prevent text selection while dragging
+    dragPointerId = e.pointerId;
     dragElement.setPointerCapture(e.pointerId);
     lastPageX = e.pageX;
     lastPageY = e.pageY;
@@ -41,7 +45,7 @@ function initMermaidViewController(viewController: Element, dragElement: SVGSVGE
   });
 
   dragElement.addEventListener('pointermove', (e) => {
-    if (!dragElement.hasPointerCapture(e.pointerId)) return;
+    if (e.pointerId !== dragPointerId) return;
     left += e.pageX - lastPageX;
     top += e.pageY - lastPageY;
     lastPageX = e.pageX;
@@ -49,7 +53,13 @@ function initMermaidViewController(viewController: Element, dragElement: SVGSVGE
     applyTransform();
   });
 
-  dragElement.addEventListener('lostpointercapture', () => dragElement.style.removeProperty('cursor'));
+  const endDrag = (e: PointerEvent) => {
+    if (e.pointerId !== dragPointerId) return;
+    dragPointerId = null;
+    dragElement.style.removeProperty('cursor');
+  };
+  dragElement.addEventListener('pointerup', endDrag);
+  dragElement.addEventListener('pointercancel', endDrag);
 }
 
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
