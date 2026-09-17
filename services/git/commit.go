@@ -71,8 +71,10 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 
 // maxCommitStatusLookupCount bounds the commit status lookup: the compare and pull request commit
 // pages are not paginated, so an unrelated-histories comparison would otherwise ask the database
-// for the statuses of every commit in the repository
-const maxCommitStatusLookupCount = 500
+// for the statuses of every commit in the repository. The lookup runs one batch per 50 commits at
+// well under a millisecond each, so this is set high enough never to drop a status for a real
+// comparison, and still far below what verifying the same commits' signatures costs.
+const maxCommitStatusLookupCount = 5000
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
 func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
