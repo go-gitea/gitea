@@ -91,7 +91,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		// table attributes
 		"columnalign", "columnlines", "columnspacing", "frame", "framespacing", "rowalign", "rowlines", "rowspacing",
 		// cell attributes
-		"columnspan",
+		"columnspan", "rowspan",
 		// annotation attribute
 		"encoding",
 	).OnElements(mathMLElements...)
