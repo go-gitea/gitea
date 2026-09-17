@@ -106,6 +106,6 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// Count number of changed files.
 	// TODO: This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
+	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.CompareBase, compareInfo.HeadCommitID)
 	return compareInfo, err
 }

@@ -1041,7 +1041,7 @@ func storedCompareBase(ctx context.Context, pr *issues_model.PullRequest, headCo
 	return git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()
 }
 
-// GetCompareInfo falls back to storedCompareBase when head and base share no history, listing the head commits since it
+// GetCompareInfo falls back to storedCompareBase for unrelated histories
 func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
 	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, git.RefName(pr.GetGitHeadRefName()), git_service.CompareOptions{})
 	if err != nil || compareInfo.CompareBase != "" {
@@ -1055,7 +1055,7 @@ func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRe
 	if compareInfo.Commits, err = baseGitRepo.ShowPrettyFormatLogToList(ctx, commitRange); err != nil {
 		return compareInfo, err
 	}
-	compareInfo.NumFiles, err = baseGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.CompareBase+".."+compareInfo.HeadCommitID)
+	compareInfo.NumFiles, err = baseGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.CompareBase, compareInfo.HeadCommitID)
 	return compareInfo, err
 }
 

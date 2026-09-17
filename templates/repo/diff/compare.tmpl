@@ -3,6 +3,7 @@
 	{{template "repo/header" .}}
 
 	{{$compareSeparator := $.CompareInfo.CompareSeparator}}
+	{{$compareSeparatorSwitch := Iif (eq $compareSeparator "..") "..." ".."}}
 	<div class="ui container fluid padded">
 		<h2 class="ui header">
 			{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
@@ -95,7 +96,7 @@
 				</div>
 			</div>
 
-			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{$.CompareSeparatorSwitch}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{$compareSeparator}}</div></a>
+			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{$compareSeparatorSwitch}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{$compareSeparator}}</div></a>
 
 			<div class="ui dropdown jump select-branch">
 				<div class="ui basic small button">

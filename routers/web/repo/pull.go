@@ -730,21 +730,17 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	}
 
 	var beforeCommit *git.Commit
-	emptyTreeID := afterCommit.ID.Type().EmptyTree().String()
-	if isSingleCommit {
-		beforeCommitID = emptyTreeID
-		if afterCommit.ParentCount() > 0 {
-			beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
-			if err != nil {
-				ctx.ServerError("afterCommit.Parent", err)
-				return
-			}
-			beforeCommitID = beforeCommit.ID.String()
+	if isSingleCommit && afterCommit.ParentCount() > 0 {
+		beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
+		if err != nil {
+			ctx.ServerError("afterCommit.Parent", err)
+			return
 		}
-	} else {
+		beforeCommitID = beforeCommit.ID.String()
+	} else if !isSingleCommit {
 		beforeCommitID = util.IfZero(beforeCommitID, prCompareInfo.CompareBase)
 		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
-		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase && beforeCommitID != emptyTreeID {
+		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase && beforeCommitID != afterCommit.ID.Type().EmptyTree().String() {
 			// base commit is not in the list of the pull request commits
 			beforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 			if err != nil {
@@ -752,10 +748,10 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 				return
 			}
 		}
-		if beforeCommit == nil && beforeCommitID != prCompareInfo.CompareBase {
-			ctx.NotFound(nil)
-			return
-		}
+	}
+	if beforeCommit == nil && !isSingleCommit && beforeCommitID != prCompareInfo.CompareBase {
+		ctx.NotFound(nil)
+		return
 	}
 
 	ctx.Data["CompareInfo"] = prCompareInfo
@@ -1328,8 +1324,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	if ci.CompareBase == "" {
 		ctx.JSONError(ctx.Tr("repo.pulls.no_common_history"))
 		return
-	} else if !comparePageInfo.allowCreatePull() {
-		ctx.JSONErrorAuto(util.NewInvalidArgumentErrorf("pull request can't be created from this comparison"))
+	} else if !comparePageInfo.allowCreatePull {
+		ctx.JSONError("pull request can't be created from this comparison")
 		return
 	}
 	validateRet := ValidateRepoMetasForNewIssue(ctx, *form, true)

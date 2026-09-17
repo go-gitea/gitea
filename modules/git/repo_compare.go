@@ -31,12 +31,12 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, compareArg string) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head string) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
 
 	if err := gitcmd.NewCommand("diff", "-z", "--name-only").
-		AddDynamicArguments(compareArg).
+		AddDynamicArguments(base + ".." + head).
 		AddArguments("--").
 		WithRepo(repo).
 		WithStdoutCopy(w).
