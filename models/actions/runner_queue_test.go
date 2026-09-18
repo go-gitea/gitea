@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -16,8 +18,12 @@ import (
 func TestListRunnerRepoQueues(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	const label = "queue-test-label"
+	// The actions package fixture set does not load repo_unit.yml.
+	enableActionsUnit(t, 1)
+	enableActionsUnit(t, 3)
+	enableActionsUnit(t, 4)
 
-	// user2 owns repo1 (actions enabled) and repo2 (actions not enabled).
+	// user2 owns repo1 (actions enabled here) and repo2 (left without Actions).
 	ownerRunner := insertQueueRunner(t, "11111111-1111-4111-8111-000000000001", 2, 0, label)
 	queues, err := ListRunnerRepoQueues(t.Context(), ownerRunner)
 	require.NoError(t, err)
@@ -30,7 +36,7 @@ func TestListRunnerRepoQueues(t *testing.T) {
 	insertQueueJob(t, 1, 2, StatusWaiting, []string{"other-label"}, false)
 	insertQueueJob(t, 1, 2, StatusSuccess, []string{label}, false)
 	insertQueueJob(t, 1, 2, StatusBlocked, []string{label}, false)
-	insertQueueJob(t, 1, 2, StatusWaiting, []string{label}, true) // reusable caller is not pickable
+	insertQueueJob(t, 1, 2, StatusWaiting, []string{label}, true)  // reusable caller is not pickable
 	insertQueueJob(t, 3, 3, StatusWaiting, []string{label}, false) // other owner
 
 	queues, err = ListRunnerRepoQueues(t.Context(), ownerRunner)
@@ -93,6 +99,15 @@ func TestFindRunningTasksByRunnerIDs(t *testing.T) {
 	found, err = FindRunningTasksByRunnerIDs(t.Context(), nil)
 	require.NoError(t, err)
 	assert.Empty(t, found)
+}
+
+func enableActionsUnit(t *testing.T, repoID int64) {
+	t.Helper()
+	require.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{
+		RepoID: repoID,
+		Type:   unit.TypeActions,
+		Config: &repo_model.ActionsConfig{},
+	}))
 }
 
 func insertQueueRunner(t *testing.T, uuid string, ownerID, repoID int64, label string) *ActionRunner {
