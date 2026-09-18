@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -158,6 +159,24 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 	return handleCreateManifestResult(ctx, err, mci, contentStore, &txRet)
 }
 
+const maxIndexManifests = 256
+
+func indexManifestDigests(index *oci.Index) ([]digest.Digest, error) {
+	if len(index.Manifests) > maxIndexManifests {
+		return nil, errManifestInvalid.WithMessage("Index references too many manifests")
+	}
+	digests := make([]digest.Digest, 0, len(index.Manifests))
+	for _, manifest := range index.Manifests {
+		if !container_module.IsMediaTypeImageManifest(manifest.MediaType) {
+			return nil, errManifestInvalid
+		}
+		if !slices.Contains(digests, manifest.Digest) {
+			digests = append(digests, manifest.Digest)
+		}
+	}
+	return digests, nil
+}
+
 func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (manifestDigest string, errRet error) {
 	var index oci.Index
 	if err := json.NewDecoder(buf).Decode(&index); err != nil {
@@ -166,32 +185,20 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		return "", err
 	}
+	digests, err := indexManifestDigests(&index)
+	if err != nil {
+		return "", err
+	}
 
 	contentStore := packages_module.NewContentStore()
 	var txRet processManifestTxRet
-	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
-		metadata := &container_module.Metadata{
-			Type:      container_module.TypeOCI,
-			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
-		}
-
-		for _, manifest := range index.Manifests {
-			if !container_module.IsMediaTypeImageManifest(manifest.MediaType) {
-				return errManifestInvalid
-			}
-
-			platform := container_module.DefaultPlatform
-			if manifest.Platform != nil {
-				platform = fmt.Sprintf("%s/%s", manifest.Platform.OS, manifest.Platform.Architecture)
-				if manifest.Platform.Variant != "" {
-					platform = fmt.Sprintf("%s/%s", platform, manifest.Platform.Variant)
-				}
-			}
-
+	err = db.WithTx(ctx, func(ctx context.Context) (err error) {
+		sizes := make(map[digest.Digest]int64, len(digests))
+		for _, d := range digests {
 			pfd, err := container_model.GetContainerBlob(ctx, &container_model.BlobSearchOptions{
 				OwnerID:    mci.Owner.ID,
 				Image:      mci.Image,
-				Digest:     string(manifest.Digest),
+				Digest:     string(d),
 				IsManifest: true,
 			})
 			if err != nil {
@@ -201,17 +208,31 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 				return fmt.Errorf("GetContainerBlob: %w", err)
 			}
 
-			size, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
+			sizes[d], err = packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
 				VersionID: pfd.File.VersionID,
 			})
 			if err != nil {
 				return fmt.Errorf("CalculateFileSize: %w", err)
 			}
+		}
+
+		metadata := &container_module.Metadata{
+			Type:      container_module.TypeOCI,
+			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
+		}
+		for _, manifest := range index.Manifests {
+			platform := container_module.DefaultPlatform
+			if manifest.Platform != nil {
+				platform = fmt.Sprintf("%s/%s", manifest.Platform.OS, manifest.Platform.Architecture)
+				if manifest.Platform.Variant != "" {
+					platform = fmt.Sprintf("%s/%s", platform, manifest.Platform.Variant)
+				}
+			}
 
 			metadata.Manifests = append(metadata.Manifests, &container_module.Manifest{
 				Platform: platform,
 				Digest:   string(manifest.Digest),
-				Size:     size,
+				Size:     sizes[manifest.Digest],
 			})
 		}
 

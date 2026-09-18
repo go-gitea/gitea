@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 )
 
@@ -86,7 +87,7 @@ func parsePackageTarGz(r io.Reader) (*Package, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -134,7 +135,7 @@ func parsePackageZip(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			p, err := ParseDescription(f)
+			p, err := ParseDescription(packages.NewLimitedDecompressor(f, packages.MaxMetadataScanSize))
 			if p != nil {
 				p.FileExtension = ".zip"
 			}
@@ -173,11 +174,11 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		b.WriteString(line)
 	}
 
-	if err := setField(p, b.String()); err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := setField(p, b.String()); err != nil {
 		return nil, err
 	}
 

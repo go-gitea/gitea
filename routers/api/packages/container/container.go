@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -600,6 +601,8 @@ func PutManifest(ctx *context.Context) {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
+		} else if errors.Is(err, util.ErrInvalidArgument) {
+			apiErrorDefined(ctx, errManifestInvalid.WithMessage(err.Error()))
 		} else if errors.Is(err, packages_service.ErrQuotaTotalCount) || errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
 			apiError(ctx, http.StatusForbidden, err)
 		} else {

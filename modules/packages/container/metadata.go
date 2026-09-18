@@ -4,11 +4,13 @@
 package container
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/packages/container/helm"
 	"gitea.dev/modules/validation"
 
@@ -83,8 +85,17 @@ func IsMediaTypeImageIndex(mt string) bool {
 	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
 }
 
+// MaxImageConfigSize bounds a config blob before it is decoded
+const MaxImageConfigSize = 8 << 20
+
 // ParseImageConfig parses the metadata of an image config
 func ParseImageConfig(mediaType string, r io.Reader) (*Metadata, error) {
+	data, err := io.ReadAll(packages.NewLimitedDecompressor(r, MaxImageConfigSize))
+	if err != nil {
+		return nil, err
+	}
+	r = bytes.NewReader(data)
+
 	if strings.EqualFold(mediaType, helm.ConfigMediaType) {
 		return parseHelmConfig(r)
 	}

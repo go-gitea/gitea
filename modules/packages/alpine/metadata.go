@@ -9,10 +9,12 @@ import (
 	"compress/gzip"
 	"crypto/sha1"
 	"encoding/base64"
+	"errors"
 	"io"
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 )
@@ -39,6 +41,8 @@ const (
 	NoArch = "noarch"
 
 	maxPackageInfoEntries = 1024
+
+	maxMetadataScanSize = 10 << 20
 )
 
 // https://wiki.alpinelinux.org/wiki/Apk_spec
@@ -90,7 +94,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	for {
 		gzr.Multistream(false)
 
-		tr := tar.NewReader(gzr)
+		tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, maxMetadataScanSize))
 		for {
 			hd, err := tr.Next()
 			if err == io.EOF {
@@ -109,6 +113,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				// drain the reader
 				for {
 					if _, err := tr.Next(); err != nil {
+						if errors.Is(err, packages.ErrPackageTooLarge) {
+							return nil, err // an incomplete read means an incomplete checksum
+						}
 						break
 					}
 				}

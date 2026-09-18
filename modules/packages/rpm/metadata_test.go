@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,8 +47,10 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 
 	zr, err := gzip.NewReader(bytes.NewReader(rpmPackageContent))
 	assert.NoError(t, err)
+	decompressed, err := io.ReadAll(zr)
+	assert.NoError(t, err)
 
-	p, err := ParsePackage(zr)
+	p, err := ParsePackage(bytes.NewReader(decompressed))
 	assert.NotNil(t, p)
 	assert.NoError(t, err)
 

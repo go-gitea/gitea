@@ -11,10 +11,13 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/zstd"
 )
+
+const maxZstdWindowSize = 128 << 20
 
 var (
 	ErrInvalidStructure = util.NewInvalidArgumentErrorf("package structure is invalid")
@@ -91,9 +94,7 @@ type ReaderAndReaderAt interface {
 
 // ParsePackageBZ2 parses the Conda package file compressed with bzip2
 func ParsePackageBZ2(r io.Reader) (*Package, error) {
-	gzr := bzip2.NewReader(r)
-
-	return parsePackageTar(gzr)
+	return parsePackageTar(packages.NewLimitedDecompressor(bzip2.NewReader(r), packages.MaxMetadataScanSize))
 }
 
 // ParsePackageConda parses the Conda package file compressed with zip and zstd
@@ -111,13 +112,13 @@ func ParsePackageConda(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			dec, err := zstd.NewReader(f)
+			dec, err := zstd.NewReader(f, zstd.WithDecoderMaxMemory(maxZstdWindowSize))
 			if err != nil {
 				return nil, err
 			}
 			defer dec.Close()
 
-			p, err := parsePackageTar(dec)
+			p, err := parsePackageTar(packages.NewLimitedDecompressor(dec, packages.MaxMetadataScanSize))
 			if p != nil {
 				p.FileMetadata.IsCondaPackage = true
 			}

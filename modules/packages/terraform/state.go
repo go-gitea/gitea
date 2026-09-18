@@ -18,10 +18,12 @@ type State struct {
 	Lineage string `json:"lineage"`
 }
 
+const maxStateSize = 256 << 20
+
 // ParseState parses the required parts of Terraform state file
 func ParseState(r io.Reader) (*State, error) {
 	var state State
-	err := json.NewDecoder(r).Decode(&state)
+	err := json.NewDecoder(io.LimitReader(r, maxStateSize)).Decode(&state)
 	if err != nil {
 		return nil, err
 	}

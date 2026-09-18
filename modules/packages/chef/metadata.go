@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 )
@@ -74,7 +75,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {

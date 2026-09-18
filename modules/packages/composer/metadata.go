@@ -6,6 +6,7 @@ package composer
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -134,13 +136,16 @@ func readPackageFileZip(r ReadSeekAt, filename string, limit int) ([]byte, error
 	for _, file := range archive.File {
 		filePath := path.Clean(file.Name)
 		if util.AsciiEqualFold(filePath, filename) {
+			if file.UncompressedSize64 > uint64(packages.MaxMetadataScanSize) {
+				return nil, packages.ErrPackageTooLarge // cheap early rejection, but the declared size is untrusted so the read is bounded too
+			}
 			f, err := archive.Open(file.Name)
 			if err != nil {
 				return nil, err
 			}
 			defer f.Close()
 
-			return util.ReadWithLimit(f, limit)
+			return util.ReadWithLimit(packages.NewLimitedDecompressor(f, packages.MaxMetadataScanSize), limit)
 		}
 	}
 	return nil, fs.ErrNotExist
@@ -191,26 +196,38 @@ func detectPackageExtName(r ReadSeekAt) (string, error) {
 	return "", util.NewInvalidArgumentErrorf("not a valid package file")
 }
 
-func readPackageFile(pkgExt string, r ReadSeekAt, filename string, limit int) ([]byte, error) {
-	_, err := r.Seek(0, io.SeekStart)
-	if err != nil {
+type packageFileReader func(filename string, limit int) ([]byte, error)
+
+func newPackageFileReader(pkgExt string, r ReadSeekAt) (packageFileReader, error) {
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
 		return nil, err
 	}
 
+	var decompressed io.Reader
 	switch pkgExt {
 	case pkgExtZip:
-		return readPackageFileZip(r, filename, limit)
+		return func(filename string, limit int) ([]byte, error) {
+			return readPackageFileZip(r, filename, limit)
+		}, nil
 	case pkgExtTarBz2:
-		bzip2Reader := bzip2.NewReader(r)
-		return readPackageFileTar(bzip2Reader, filename, limit)
+		decompressed = bzip2.NewReader(r)
 	case pkgExtTarGz:
 		gzReader, err := gzip.NewReader(r)
 		if err != nil {
 			return nil, err
 		}
-		return readPackageFileTar(gzReader, filename, limit)
+		decompressed = gzReader
+	default:
+		return nil, util.NewInvalidArgumentErrorf("not a valid package file")
 	}
-	return nil, util.NewInvalidArgumentErrorf("not a valid package file")
+
+	data, err := io.ReadAll(packages.NewLimitedDecompressor(decompressed, packages.MaxMetadataScanSize))
+	if err != nil {
+		return nil, err
+	}
+	return func(filename string, limit int) ([]byte, error) {
+		return readPackageFileTar(bytes.NewReader(data), filename, limit)
+	}, nil
 }
 
 // ParsePackage parses the metadata of a Composer package file
@@ -219,7 +236,11 @@ func ParsePackage(r ReadSeekAt, optVersion ...string) (*PackageInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	dataComposerJSON, err := readPackageFile(pkgExt, r, "composer.json", 10*1024*1024)
+	readPackageFile, err := newPackageFileReader(pkgExt, r)
+	if err != nil {
+		return nil, err
+	}
+	dataComposerJSON, err := readPackageFile("composer.json", 10*1024*1024)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, ErrMissingComposerFile
 	} else if err != nil {
@@ -260,7 +281,7 @@ func ParsePackage(r ReadSeekAt, optVersion ...string) (*PackageInfo, error) {
 	if cj.Readme == "" {
 		cj.Readme = "README.md"
 	}
-	dataReadmeMd, _ := readPackageFile(pkgExt, r, cj.Readme, 10*1024)
+	dataReadmeMd, _ := readPackageFile(cj.Readme, 10*1024)
 
 	// FIXME: legacy problem, the "Readme" field is abused, it should always be the path to the readme file
 	if len(dataReadmeMd) == 0 {

@@ -53,6 +53,9 @@ func ParseManifestMetadata(ctx context.Context, rd io.Reader, ownerID int64, ima
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	if configDescriptor.Blob.Size > container_module.MaxImageConfigSize {
+		return nil, nil, nil, packages.ErrPackageTooLarge
+	}
 
 	configReader, err := packages.NewContentStore().OpenBlob(packages.BlobHash256Key(configDescriptor.Blob.HashSHA256))
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sync"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -175,8 +176,13 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 	}
 	defer zr.Close()
 
+	data, err := io.ReadAll(packages.NewLimitedDecompressor(zr, packages.MaxMetadataScanSize))
+	if err != nil {
+		return nil, err
+	}
+
 	var spec gemspec
-	if err := yaml.NewDecoder(zr).Decode(&spec); err != nil {
+	if err := yaml.Unmarshal(data, &spec); err != nil {
 		return nil, err
 	}
 

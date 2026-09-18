@@ -17,7 +17,11 @@ import (
 	"xorm.io/builder"
 )
 
-const LockFile = "terraform.lock"
+const (
+	LockFile = "terraform.lock"
+
+	maxLockInfoSize = 64 << 10
+)
 
 // LockInfo is the metadata for a terraform lock.
 type LockInfo struct {
@@ -36,7 +40,7 @@ func (l *LockInfo) IsLocked() bool {
 
 func ParseLockInfo(r io.Reader) (*LockInfo, error) {
 	var lock LockInfo
-	err := json.NewDecoder(r).Decode(&lock)
+	err := json.NewDecoder(io.LimitReader(r, maxLockInfoSize)).Decode(&lock)
 	if err != nil {
 		return nil, err
 	}

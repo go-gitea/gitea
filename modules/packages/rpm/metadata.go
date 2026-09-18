@@ -4,14 +4,26 @@
 package rpm
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"strings"
 
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
 	"github.com/sassoftware/go-rpmutils"
+)
+
+var ErrInvalidHeaderSize = util.NewInvalidArgumentErrorf("RPM header declares an invalid size")
+
+const (
+	leadSize         = 96
+	headerIntroSize  = 16
+	headerMagic      = 0x8eade801
+	maxHeaderEntries = 0xffff
+	maxHeaderData    = 0x0fffffff
 )
 
 const (
@@ -99,7 +111,11 @@ type Changelog struct {
 }
 
 // ParsePackage parses the RPM package file
-func ParsePackage(r io.Reader) (*Package, error) {
+func ParsePackage(r io.ReadSeeker) (*Package, error) {
+	if err := checkHeaderSizes(r); err != nil {
+		return nil, err
+	}
+
 	rpm, err := rpmutils.ReadRpm(r)
 	if err != nil {
 		return nil, err
@@ -153,6 +169,48 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 
 	return p, nil
+}
+
+func checkHeaderSizes(r io.ReadSeeker) error {
+	size, err := r.Seek(0, io.SeekEnd)
+	if err != nil {
+		return err
+	}
+
+	offset := int64(leadSize)
+	for _, isSignature := range []bool{true, false} {
+		remaining := size - offset - headerIntroSize
+		if remaining < 0 {
+			break // too short for an intro, rpmutils reports the truncation itself
+		}
+		if _, err := r.Seek(offset, io.SeekStart); err != nil {
+			return err
+		}
+		var intro [headerIntroSize]byte
+		if _, err := io.ReadFull(r, intro[:]); err != nil {
+			return err
+		}
+		if binary.BigEndian.Uint32(intro[0:4]) != headerMagic {
+			break // rpmutils reports the bad magic itself
+		}
+
+		entries := int64(binary.BigEndian.Uint32(intro[8:12]))
+		data := int64(binary.BigEndian.Uint32(intro[12:16]))
+		if entries > maxHeaderEntries || data > maxHeaderData {
+			return ErrInvalidHeaderSize
+		}
+		if isSignature {
+			data = (data + 7) &^ 7 // the signature header is padded to 8 bytes
+		}
+		length := entries*16 + data
+		if length > remaining {
+			return ErrInvalidHeaderSize
+		}
+		offset += headerIntroSize + length
+	}
+
+	_, err = r.Seek(0, io.SeekStart)
+	return err
 }
 
 func getString(h *rpmutils.RpmHeader, tag int) string {

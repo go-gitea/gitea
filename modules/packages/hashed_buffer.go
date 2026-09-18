@@ -28,6 +28,8 @@ type HashedBuffer struct {
 
 const DefaultMemorySize = 32 * 1024 * 1024
 
+var maxHashedBufferSize int64 = 64 << 30
+
 // NewHashedBuffer creates a hashed buffer with the default memory size
 func NewHashedBuffer() (*HashedBuffer, error) {
 	return NewHashedBufferWithSize(DefaultMemorySize)
@@ -63,8 +65,8 @@ func CreateHashedBufferFromReaderWithSize(r io.Reader, maxMemorySize int) (*Hash
 		return nil, err
 	}
 
-	_, err = io.Copy(b, r)
-	if err != nil {
+	if _, err := io.Copy(b, NewLimitedDecompressor(r, maxHashedBufferSize)); err != nil {
+		_ = b.Close()
 		return nil, err
 	}
 

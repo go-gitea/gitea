@@ -10,6 +10,7 @@ import (
 	"io"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -77,7 +78,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -96,7 +97,11 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 				continue
 			}
 
-			return ParseChartFile(tr)
+			data, err := io.ReadAll(tr)
+			if err != nil {
+				return nil, err
+			}
+			return ParseChartFile(bytes.NewReader(data))
 		}
 	}
 

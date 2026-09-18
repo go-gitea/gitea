@@ -6,10 +6,12 @@ package vagrant
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"io"
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/validation"
 )
 
@@ -33,10 +35,10 @@ func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(gzr)
+	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
 	for {
 		hd, err := tr.Next()
-		if err == io.EOF {
+		if err == io.EOF || errors.Is(err, packages.ErrPackageTooLarge) {
 			break
 		}
 		if err != nil {
