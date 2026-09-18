@@ -5,38 +5,61 @@ package mailer
 
 import (
 	"bytes"
+	"cmp"
 	"context"
+	"embed"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
-	"gitea.dev/services/convert"
+	"gitea.dev/modules/util"
 	sender_service "gitea.dev/services/mailer/sender"
 )
 
-const tplWorkflowRun templates.TplName = "repo/actions/workflow_run"
+const tplWorkflowRun templates.TplName = "mail/repo/actions/workflow_run"
 
-type convertedWorkflowJob struct {
-	HTMLURL  string
-	Name     string
-	Status   actions_model.Status
-	Attempt  int64
-	Duration time.Duration
+//go:embed icons/*.png
+var iconsFS embed.FS
+
+// LoadMailIcon returns an embedded mail icon.
+func LoadMailIcon(name string) ([]byte, error) {
+	return iconsFS.ReadFile("icons/" + name)
 }
 
-func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Repository, run *actions_model.ActionRun) string {
-	return fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain)
+type workflowRunMailJob struct {
+	HTMLURL       string
+	Name          string
+	Status        actions_model.Status
+	StatusIconCID string
+	StatusIconAlt string
+	StatusClass   string
+	Attempt       int64
+	Duration      time.Duration
 }
 
-func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, sender *user_model.User, recipients []*user_model.User) error {
+func workflowRunJobStatusPresentation(status actions_model.Status) (icon, class string) {
+	switch {
+	case status.IsSuccess():
+		return "status-success.png", "status-success"
+	case status.IsCancelled():
+		return "status-cancelled.png", "status-neutral"
+	case status.IsSkipped():
+		return "status-skipped.png", "status-neutral"
+	default:
+		return "status-failure.png", "status-failure"
+	}
+}
+
+func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, recipient *user_model.User) error {
 	jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, repo.ID, run.ID)
 	if err != nil {
 		return err
@@ -48,103 +71,80 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		}
 	}
 
-	var subjectTrString string
-	switch run.Status {
-	case actions_model.StatusFailure:
-		subjectTrString = "mail.repo.actions.run.failed"
-	case actions_model.StatusCancelled:
-		subjectTrString = "mail.repo.actions.run.cancelled"
-	case actions_model.StatusSuccess:
-		subjectTrString = "mail.repo.actions.run.succeeded"
-	}
-	displayName := fromDisplayName(sender)
-	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
-	metadataHeaders := generateMetadataHeaders(repo)
+	locale := translation.NewLocale(recipient.Language)
 
-	sort.SliceStable(jobs, func(i, j int) bool {
-		si, sj := jobs[i].Status, jobs[j].Status
-		/*
-			If both i and j are/are not success, leave it to si < sj.
-			If i is success and j is not, since the desired is j goes "smaller" and i goes "bigger", this func should return false.
-			If j is success and i is not, since the desired is i goes "smaller" and j goes "bigger", this func should return true.
-		*/
-		if si.IsSuccess() != sj.IsSuccess() {
-			return !si.IsSuccess()
+	slices.SortStableFunc(jobs, func(a, b *actions_model.ActionRunJob) int {
+		if a.Status.IsSuccess() != b.Status.IsSuccess() {
+			return util.Iif(a.Status.IsSuccess(), 1, -1)
 		}
-		return si < sj
+		return cmp.Compare(a.Status, b.Status)
 	})
 
-	convertedJobs := make([]convertedWorkflowJob, 0, len(jobs))
+	mailJobs := make([]workflowRunMailJob, 0, len(jobs))
+	var embeds []sender_service.EmbeddedFile
+	embedded := make(container.Set[string])
 	for _, job := range jobs {
-		converted0, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
-		if err != nil {
-			log.Error("convert.ToActionWorkflowJob: %v", err)
+		icon, class := workflowRunJobStatusPresentation(job.Status)
+		contentID := fmt.Sprintf("%s.actions-run-%d@%s", icon, run.ID, setting.Domain)
+		mailJobs = append(mailJobs, workflowRunMailJob{
+			HTMLURL:       fmt.Sprintf("%s/actions/runs/%d/jobs/%d", repo.HTMLURL(ctx), run.ID, job.ID),
+			Name:          job.Name,
+			Status:        job.Status,
+			StatusIconCID: contentID,
+			StatusIconAlt: job.Status.LocaleString(locale),
+			StatusClass:   class,
+			Attempt:       job.Attempt,
+			Duration:      job.Duration(),
+		})
+		if !embedded.Add(icon) {
 			continue
 		}
-		convertedJobs = append(convertedJobs, convertedWorkflowJob{
-			HTMLURL:  converted0.HTMLURL,
-			Name:     converted0.Name,
-			Status:   job.Status,
-			Attempt:  converted0.RunAttempt,
-			Duration: job.Duration(),
-		})
-	}
-
-	langMap := make(map[string][]*user_model.User)
-	for _, user := range recipients {
-		langMap[user.Language] = append(langMap[user.Language], user)
-	}
-	for lang, tos := range langMap {
-		locale := translation.NewLocale(lang)
-		var runStatusTrString string
-		switch run.Status {
-		case actions_model.StatusSuccess:
-			runStatusTrString = "mail.repo.actions.jobs.all_succeeded"
-		case actions_model.StatusFailure:
-			runStatusTrString = "mail.repo.actions.jobs.all_failed"
-			for _, job := range jobs {
-				if !job.Status.IsFailure() {
-					runStatusTrString = "mail.repo.actions.jobs.some_not_successful"
-					break
-				}
-			}
-		case actions_model.StatusCancelled:
-			runStatusTrString = "mail.repo.actions.jobs.all_cancelled"
-		}
-		subject := fmt.Sprintf("%s: %s (%s)", locale.TrString(subjectTrString), run.WorkflowID, base.ShortSha(run.CommitSHA))
-		var mailBody bytes.Buffer
-		if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{
-			"Subject":       subject,
-			"Repo":          repo,
-			"Run":           run,
-			"RunStatusText": locale.TrString(runStatusTrString),
-			"Jobs":          convertedJobs,
-			"locale":        locale,
-		}); err != nil {
+		content, err := LoadMailIcon(icon)
+		if err != nil {
 			return err
 		}
-		msgs := make([]*sender_service.Message, 0, len(tos))
-		for _, rec := range tos {
-			log.Trace("Sending actions email to %s (UID: %d)", rec.Name, rec.ID)
-			msg := sender_service.NewMessageFrom(
-				rec.Email,
-				displayName,
-				setting.MailService.FromEmail,
-				subject,
-				mailBody.String(),
-			)
-			msg.Info = subject
-			for k, v := range generateSenderRecipientHeaders(sender, rec) {
-				msg.SetHeader(k, v)
-			}
-			for k, v := range metadataHeaders {
-				msg.SetHeader(k, v)
-			}
-			msg.SetHeader("Message-ID", messageID)
-			msgs = append(msgs, msg)
-		}
-		SendAsync(msgs...)
+		embeds = append(embeds, sender_service.EmbeddedFile{Name: icon, ContentID: contentID, Content: content})
 	}
+
+	var runStatusTrString string
+	switch run.Status {
+	case actions_model.StatusSuccess:
+		runStatusTrString = "mail.repo.actions.jobs.all_succeeded"
+	case actions_model.StatusFailure:
+		runStatusTrString = "mail.repo.actions.jobs.all_failed"
+		for _, job := range jobs {
+			if !job.Status.IsFailure() {
+				runStatusTrString = "mail.repo.actions.jobs.some_not_successful"
+				break
+			}
+		}
+	case actions_model.StatusCancelled:
+		runStatusTrString = "mail.repo.actions.jobs.all_cancelled"
+	}
+	subject := fmt.Sprintf("[%s] %s: %s (%s - %s)", repo.FullName(), run.Status.LocaleString(locale), run.WorkflowID, run.PrettyRef(), base.ShortSha(run.CommitSHA))
+	var mailBody bytes.Buffer
+	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{
+		"Subject":       subject,
+		"Repo":          repo,
+		"Run":           run,
+		"RunStatusText": locale.TrString(runStatusTrString),
+		"Jobs":          mailJobs,
+		"locale":        locale,
+	}); err != nil {
+		return err
+	}
+	log.Trace("Sending actions email to %s (UID: %d)", recipient.Name, recipient.ID)
+	msg := sender_service.NewMessageFrom(recipient.Email, fromDisplayName(recipient), setting.MailService.FromEmail, subject, mailBody.String())
+	msg.Info = subject
+	msg.Embeds = embeds
+	for key, value := range generateSenderRecipientHeaders(recipient, recipient) {
+		msg.SetHeader(key, value)
+	}
+	for key, value := range generateMetadataHeaders(repo) {
+		msg.SetHeader(key, value)
+	}
+	msg.SetHeader("Message-ID", fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain))
+	SendAsync(msg)
 
 	return nil
 }
@@ -175,5 +175,5 @@ func MailActionsTrigger(ctx context.Context, recipient *user_model.User, repo *r
 	}
 
 	log.Debug("MailActionsTrigger: Initiate email composition")
-	return composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, recipient, []*user_model.User{recipient})
+	return composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, recipient)
 }

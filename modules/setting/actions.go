@@ -102,7 +102,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	}
 
 	if urls := string(Actions.DefaultActionsURL); urls != defaultActionsURLGitHub && urls != defaultActionsURLSelf {
-		url := strings.Split(urls, ",")[0]
+		url, _, _ := strings.Cut(urls, ",")
 		if strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") {
 			log.Error("[actions] DEFAULT_ACTIONS_URL does not support %q as custom URL any longer, fallback to %q",
 				urls,

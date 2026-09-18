@@ -4,6 +4,7 @@
 package npm
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 
 	packages_model "gitea.dev/models/packages"
 	npm_module "gitea.dev/modules/packages/npm"
-	"gitea.dev/modules/setting"
 )
 
 func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageMetadata {
@@ -78,6 +78,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Maintainers:          []npm_module.User{{Name: pd.Owner.Name}},
 		Homepage:             metadata.ProjectURL,
 		License:              metadata.License,
+		Repository:           metadata.Repository,
 		Keywords:             metadata.Keywords,
 		Dependencies:         metadata.Dependencies,
 		BundleDependencies:   metadata.BundleDependencies,
@@ -99,12 +100,12 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),
-			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.QueryEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)),
+			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.PathEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)),
 		},
 	}
 }
 
-func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total int64) *npm_module.PackageSearch {
+func createPackageSearchResponse(ctx context.Context, pds []*packages_model.PackageDescriptor, total int64) *npm_module.PackageSearch {
 	objects := make([]*npm_module.PackageSearchObject, 0, len(pds))
 	for _, pd := range pds {
 		metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
@@ -126,7 +127,7 @@ func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total 
 				Maintainers: []npm_module.User{}, // npm cli needs this field
 				Keywords:    metadata.Keywords,
 				Links: &npm_module.PackageSearchPackageLinks{
-					Registry: setting.AppURL + "api/packages/" + pd.Owner.Name + "/npm",
+					Registry: buildNpmRegistryURL(ctx, pd.Owner),
 					Homepage: metadata.ProjectURL,
 				},
 			},

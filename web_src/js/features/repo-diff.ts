@@ -12,6 +12,7 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {performFetchActionTrigger} from '../modules/fetch-action.ts';
+import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
@@ -158,12 +159,11 @@ async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
     const resp = await GET(url);
     if (!resp.ok) return false;
     const respText = await resp.text();
-    const respDoc = parseDom(respText, 'text/html');
+    const respDoc = parseDom(respText, 'text/html'); // the response is a full HTML page, extract the new file boxes from it
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
-    // the response is a full HTML page, we need to extract the relevant contents:
-    // * append the newly loaded file list items to the existing list
     const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
+    applyFiltersToFileBoxes(diffTreeStore());
     onDiffFileBodyChange();
     return true;
   } catch (error) {

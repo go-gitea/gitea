@@ -34,20 +34,6 @@
   color: var(--color-text-light-1);
 }
 
-.ui.header > i.icon {
-  display: table-cell;
-  opacity: 1;
-  font-size: 1.5em;
-  padding-top: 0;
-  vertical-align: middle;
-}
-
-.ui.header > i.icon:only-child {
-  display: inline-block;
-  padding: 0;
-  margin-right: 0.75rem;
-}
-
 .ui.header + p {
   margin-top: 0;
 }
@@ -61,9 +47,6 @@ h2.ui.header .sub.header {
 
 h4.ui.header {
   font-size: 1.07142857rem;
-}
-h4.ui.header .sub.header {
-  font-size: 1rem;
 }
 
 .ui.sub.header {
@@ -107,10 +90,6 @@ h4.ui.header .sub.header {
   border-radius: 0.28571429rem 0.28571429rem 0 0;
 }
 
-.ui.bottom.attached.header {
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
-}
-
 .ui.attached.header:not(h1,h2,h3,h4,h5,h6) {
   font-size: 1em;
 }
@@ -144,10 +123,6 @@ h4.ui.header .sub.header {
 
 .ui.dividing.header .sub.header {
   padding-bottom: 0.21428571rem;
-}
-
-.ui.dividing.header i.icon {
-  margin-bottom: 0;
 }
 
 .ui.error.header {

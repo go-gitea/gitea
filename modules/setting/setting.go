@@ -120,6 +120,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
+	loadAuditFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
 
@@ -257,5 +258,5 @@ func PanicInDevOrTesting(msg string, a ...any) {
 	if !IsProd || IsInTesting {
 		panic(fmt.Sprintf(msg, a...))
 	}
-	log.Error(msg, a...)
+	log.ErrorWithSkip(1, msg, a...)
 }

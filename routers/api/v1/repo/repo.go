@@ -14,6 +14,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -33,6 +34,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -729,6 +731,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		return err
 	}
 
+	if visibilityChanged {
+		audit.Record(ctx, audit_model.RepositoryVisibility, repo, "visibility", repo.IsPrivate)
+	}
+
 	if updateRepoLicense {
 		if err := repo_service.AddRepoToLicenseUpdaterQueue(&repo_service.LicenseUpdaterOptions{
 			RepoID: ctx.Repo.Repository.ID,
@@ -1153,15 +1159,6 @@ func Delete(ctx *context.APIContext) {
 
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
-
-	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !canDelete {
-		ctx.APIError(http.StatusForbidden, "Given user is not owner of organization.")
-		return
-	}
 
 	if ctx.Repo.GitRepo != nil {
 		ctx.Repo.GitRepo.Close()

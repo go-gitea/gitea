@@ -5,6 +5,8 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	neturl "net/url"
@@ -56,6 +58,7 @@ func TestPackageComposer(t *testing.T) {
 		]
 	}`,
 	}).Bytes()
+	contentChecksum := sha1.Sum(content)
 
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
@@ -209,7 +212,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pkgs[0].Authors, 1)
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Equal(t, hex.EncodeToString(contentChecksum[:]), pkgs[0].Dist.Checksum)
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 
@@ -239,7 +242,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pkgs[0].Authors, 1)
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Equal(t, hex.EncodeToString(contentChecksum[:]), pkgs[0].Dist.Checksum)
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
