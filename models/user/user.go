@@ -80,12 +80,12 @@ func (t UserType) Name() string {
 	}
 }
 
-// ParseUserType case-insensitively parses a user type an admin may create or convert to, "individual" is kept as an alias of "User"
+// ParseUserType parses a user type an admin may create or convert to, the lowercase names are the values the CLI accepted before
 func ParseUserType(s string) (UserType, error) {
-	switch {
-	case strings.EqualFold(s, "User"), strings.EqualFold(s, "individual"):
+	switch s {
+	case "User", "individual":
 		return UserTypeIndividual, nil
-	case strings.EqualFold(s, "Bot"):
+	case "Bot", "bot":
 		return UserTypeBot, nil
 	}
 	return 0, util.NewInvalidArgumentErrorf("invalid user type %q, must be User or Bot", s)

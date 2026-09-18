@@ -256,7 +256,7 @@ func TestAdminBotUser(t *testing.T) {
 			}), http.StatusSeeOther)
 		}
 
-		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/convert-type", map[string]string{"user_type": "bot"}).AddBasicAuth("user1"), http.StatusNoContent)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/convert-type", map[string]string{"user_type": "Bot"}).AddBasicAuth("user1"), http.StatusNoContent)
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		assert.True(t, user4.IsTypeBot())
 		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user4"), http.StatusOK)

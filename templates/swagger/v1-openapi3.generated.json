@@ -3711,7 +3711,7 @@
         "description": "ConvertUserTypeOption options when converting a user between individual and bot",
         "properties": {
           "user_type": {
-            "description": "The target user type, accepted case-insensitively",
+            "description": "The target user type",
             "enum": [
               "User",
               "Bot"

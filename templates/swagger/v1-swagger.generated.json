@@ -26798,7 +26798,7 @@
       ],
       "properties": {
         "user_type": {
-          "description": "The target user type, accepted case-insensitively",
+          "description": "The target user type",
           "type": "string",
           "enum": [
             "User",

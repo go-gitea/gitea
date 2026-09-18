@@ -80,9 +80,9 @@ type EditUserOption struct {
 
 // ConvertUserTypeOption options when converting a user between individual and bot
 type ConvertUserTypeOption struct {
-	// The target user type, accepted case-insensitively
+	// The target user type
 	//
 	// required: true
 	// enum: ["User","Bot"]
-	UserType string `json:"user_type" binding:"Required"`
+	UserType string `json:"user_type" binding:"Required;In(User,Bot)"`
 }
