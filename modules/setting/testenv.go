@@ -121,6 +121,8 @@ func SetupGiteaTestEnv() {
 		panic("SetupGiteaTestEnv failed, paths are not initialized")
 	}
 
+	SSH.RootPath = AppDataTempDir("ssh").JoinPath()
+
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
