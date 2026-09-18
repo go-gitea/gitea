@@ -76,13 +76,6 @@ type EditUserOption struct {
 	Restricted *bool `json:"restricted"`
 	// User visibility level: public, limited, or private
 	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
-}
-
-// ConvertUserTypeOption options when converting a user between individual and bot
-type ConvertUserTypeOption struct {
-	// The target user type
-	//
-	// required: true
-	// enum: ["User","Bot"]
-	UserType UserTypeString `json:"user_type" binding:"Required;In(User,Bot)"`
+	// The user type
+	Type UserTypeString `json:"type" binding:"In(User,Organization,Bot)"`
 }

@@ -506,9 +506,6 @@ func EditUserPost(ctx *context.Context) {
 		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
 			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
 			ctx.Redirect(userLink)
-		case errors.Is(err, user_model.ErrUserTypeCanNotConvert):
-			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.not_convertible"))
-			ctx.Redirect(userLink)
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.Flash.Error(err.Error())
 			ctx.Redirect(userLink)
