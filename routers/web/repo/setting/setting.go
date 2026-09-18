@@ -620,7 +620,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.settings.tracker_url_format_error"))
 			return
 		}
-		if form.EnableInternalTracker && form.TrackerIssueStyle == markup.IssueNameStyleNumeric {
+		if form.EnableInternalTracker && (form.TrackerIssueStyle == "" || form.TrackerIssueStyle == markup.IssueNameStyleNumeric) {
 			ctx.JSONError(ctx.Tr("repo.settings.tracker_issue_style_desc"))
 			return
 		}

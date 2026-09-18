@@ -762,7 +762,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if opts.InternalTracker == nil && !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
 				return util.NewInvalidArgumentErrorf("external tracker URL not valid")
 			}
-			if opts.InternalTracker != nil && opts.ExternalTracker.ExternalTrackerFormat == markup.IssueNameStyleNumeric {
+			if opts.InternalTracker != nil && (opts.ExternalTracker.ExternalTrackerStyle == "" || opts.ExternalTracker.ExternalTrackerStyle == markup.IssueNameStyleNumeric) {
 				return util.NewInvalidArgumentErrorf("external tracker style Numeric is only used for internal tracker")
 			}
 			if opts.ExternalTracker.ExternalTrackerFormat != "" && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
@@ -782,7 +782,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		} else {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 		}
-		if opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
+		if (opts.ExternalTracker == nil || opts.InternalTracker != nil) && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *repo_model.IssuesConfig
 

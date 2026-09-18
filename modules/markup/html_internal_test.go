@@ -39,7 +39,7 @@ func link(href, class, contents string) string {
 }
 
 var numericMetas = map[string]string{
-	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"externalTrackerLinkFormat":    "https://someurl.com/{user}/{repo}/{index}",
 	"user":                         "someUser",
 	"repo":                         "someRepo",
 	"style":                        IssueNameStyleNumeric,
@@ -47,7 +47,7 @@ var numericMetas = map[string]string{
 }
 
 var alphanumericMetas = map[string]string{
-	"format":                       "https://someurl.com/{user}/{repo}/{index}",
+	"externalTrackerLinkFormat":    "https://someurl.com/{user}/{repo}/{index}",
 	"user":                         "someUser",
 	"repo":                         "someRepo",
 	"style":                        IssueNameStyleAlphanumeric,
@@ -55,10 +55,10 @@ var alphanumericMetas = map[string]string{
 }
 
 var regexpMetas = map[string]string{
-	"format": "https://someurl.com/{user}/{repo}/{index}",
-	"user":   "someUser",
-	"repo":   "someRepo",
-	"style":  IssueNameStyleRegexp,
+	"externalTrackerLinkFormat": "https://someurl.com/{user}/{repo}/{index}",
+	"user":                      "someUser",
+	"repo":                      "someRepo",
+	"style":                     IssueNameStyleRegexp,
 }
 
 // these values should match the TestOrgRepo const above
