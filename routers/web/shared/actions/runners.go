@@ -153,7 +153,12 @@ func Runners(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = opts.Filter
-	ctx.Data["Runners"] = runners
+	rows, err := runnerListRows(ctx, runners)
+	if err != nil {
+		ctx.ServerError("runnerListRows", err)
+		return
+	}
+	ctx.Data["Runners"] = rows
 	ctx.Data["Total"] = count
 	ctx.Data["RegistrationToken"] = token.Token
 	ctx.Data["RunnerOwnerID"] = opts.OwnerID
@@ -166,6 +171,40 @@ func Runners(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
+}
+
+type runnerListRow struct {
+	*actions_model.ActionRunner
+	RunningTasks []*actions_model.ActionTask
+}
+
+func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner) ([]runnerListRow, error) {
+	rows := make([]runnerListRow, len(runners))
+	if len(runners) == 0 {
+		return rows, nil
+	}
+	ids := make([]int64, len(runners))
+	for i, runner := range runners {
+		rows[i].ActionRunner = runner
+		ids[i] = runner.ID
+	}
+	byRunner, err := actions_model.FindRunningTasksByRunnerIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	var running actions_model.TaskList
+	for _, tasks := range byRunner {
+		running = append(running, tasks...)
+	}
+	if len(running) > 0 {
+		if err := running.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
+	}
+	for i := range rows {
+		rows[i].RunningTasks = byRunner[rows[i].ID]
+	}
+	return rows, nil
 }
 
 // RunnersEdit renders runner edit page for repository level
@@ -200,6 +239,31 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Runner"] = runner
+
+	runningByRunner, err := actions_model.FindRunningTasksByRunnerIDs(ctx, []int64{runner.ID})
+	if err != nil {
+		ctx.ServerError("FindRunningTasksByRunnerIDs", err)
+		return
+	}
+	runningTasks := runningByRunner[runner.ID]
+	if len(runningTasks) > 0 {
+		if err = actions_model.TaskList(runningTasks).LoadAttributes(ctx); err != nil {
+			ctx.ServerError("RunningTasksLoadAttributes", err)
+			return
+		}
+	}
+	repoQueues, err := actions_model.ListRunnerRepoQueues(ctx, runner)
+	if err != nil {
+		ctx.ServerError("ListRunnerRepoQueues", err)
+		return
+	}
+	repoQueueEmpty := "actions.runners.repo_queue.none"
+	if runner.RepoID == 0 && runner.OwnerID == 0 {
+		repoQueueEmpty = "actions.runners.repo_queue.none_global"
+	}
+	ctx.Data["RunningTasks"] = runningTasks
+	ctx.Data["RepoQueues"] = repoQueues
+	ctx.Data["RepoQueueEmpty"] = repoQueueEmpty
 
 	opts := actions_model.FindTaskOptions{
 		ListOptions: db.ListOptions{
