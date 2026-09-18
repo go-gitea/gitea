@@ -378,9 +378,23 @@ func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) *Re
 		return nil
 	}
 
-	action, location := findActionKeywords([]byte(content), match[2])
+	// The external tracker pattern can use alternatives with separate capture
+	// groups. Pick the first group that participated in this match instead of
+	// assuming the first group always did.
+	issueStart, issueEnd := -1, -1
+	for i := 2; i+1 < len(match); i += 2 {
+		if match[i] >= 0 {
+			issueStart, issueEnd = match[i], match[i+1]
+			break
+		}
+	}
+	if issueStart < 0 {
+		return nil
+	}
+
+	action, location := findActionKeywords([]byte(content), issueStart)
 	return &RenderizableReference{
-		Issue:          content[match[2]:match[3]],
+		Issue:          content[issueStart:issueEnd],
 		RefLocation:    &RefSpan{Start: match[0], End: match[1]},
 		Action:         action,
 		ActionLocation: location,
