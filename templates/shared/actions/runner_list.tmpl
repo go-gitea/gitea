@@ -70,6 +70,7 @@
 						{{ctx.Locale.Tr "actions.runners.status"}}
 						{{SortArrow "online" "offline" .SortType false}}
 					</th>
+					<th>{{ctx.Locale.Tr "actions.runners.running_now"}}</th>
 					<th data-sortt-asc="newest" data-sortt-desc="oldest">
 						{{ctx.Locale.Tr "actions.runners.id"}}
 						{{SortArrow "oldest" "newest" .SortType false}}
@@ -91,6 +92,15 @@
 						<td>
 							<span class="ui label {{if eq .StatusName "active"}}green{{else if eq .StatusName "idle"}}yellow{{else if eq .StatusName "offline"}}red{{end}}">{{.StatusLocaleName ctx.Locale}}</span>
 							{{if .IsDisabled}}<span class="ui grey label">{{ctx.Locale.Tr "disabled"}}</span>{{end}}
+						</td>
+						<td>
+							{{if .RunningTasks}}
+							<span class="flex-text-inline tw-flex-wrap">
+								{{range .RunningTasks}}
+									{{if .GetRunJobLink}}<a href="{{.GetRunJobLink}}">{{if .Job}}{{.Job.Name}}{{else}}#{{.JobID}}{{end}}</a>{{else}}#{{.JobID}}{{end}}
+								{{end}}
+							</span>
+							{{else}}-{{end}}
 						</td>
 						<td>{{.ID}}</td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
