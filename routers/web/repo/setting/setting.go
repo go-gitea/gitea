@@ -612,7 +612,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-		if !form.EnableInternalTracker && !validation.IsValidURL(form.ExternalTrackerURL) {
+		if (!form.EnableInternalTracker || form.ExternalTrackerURL != "") && !validation.IsValidURL(form.ExternalTrackerURL) {
 			ctx.JSONError(ctx.Tr("repo.settings.external_tracker_url_error"))
 			return
 		}
