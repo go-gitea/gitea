@@ -2148,7 +2148,7 @@
   "repo.settings.tracker_url_format": "External Issue Tracker URL Format",
   "repo.settings.tracker_url_format_error": "The external issue tracker URL format is not a valid URL.",
   "repo.settings.tracker_issue_style": "External Issue Tracker Number Format",
-  "repo.settings.tracker_issue_style_desc": "When internal issue tracker is enabled, Numberic style is only used for internal issue tracker.",
+  "repo.settings.tracker_issue_style_desc": "When the internal issue tracker is enabled, the Numeric style can only be used for the internal issue tracker.",
   "repo.settings.tracker_issue_style.numeric": "Numeric",
   "repo.settings.tracker_issue_style.alphanumeric": "Alphanumeric",
   "repo.settings.tracker_issue_style.regexp": "Regular Expression",
