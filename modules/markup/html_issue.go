@@ -112,7 +112,9 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 	for node != nil && node != next {
 		_, hasExternalTracker := ctx.RenderOptions.Metas["externalTrackerLinkFormat"]
 		hasInternalTracker := ctx.RenderOptions.Metas["internalTrackerEnabled"] == "true"
-
+		if !hasExternalTracker && !hasInternalTracker {
+			hasInternalTracker = true // legacy logic: if no tracker is enabled, fallback to internal
+		}
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
 		isNumericStyle := ctx.RenderOptions.Metas["style"] == "" || ctx.RenderOptions.Metas["style"] == IssueNameStyleNumeric

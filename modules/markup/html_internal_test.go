@@ -219,25 +219,25 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	}
 
 	test("abc ISSUE-123 def", "abc %s def",
-		"ISSUE-(\\d+)",
+		`ISSUE-(\d+)`,
 		[]string{"123"},
 		[]string{"ISSUE-123"},
 	)
 
 	test("abc (ISSUE 123) def", "abc %s def",
-		"\\(ISSUE (\\d+)\\)",
+		`\(ISSUE (\d+)\)`,
 		[]string{"123"},
 		[]string{"(ISSUE 123)"},
 	)
 
 	test("abc ISSUE-123 def", "abc %s def",
-		"(ISSUE-(\\d+))",
+		`(ISSUE-(\d+))`,
 		[]string{"ISSUE-123"},
 		[]string{"ISSUE-123"},
 	)
 
 	test("123456: TEST-123456", "%s %s",
-		"(\\d+):|TEST-(\\d+)",
+		`(\d+):|TEST-(\d+)`,
 		[]string{"123456", "123456"},
 		[]string{"123456:", "TEST-123456"},
 	)

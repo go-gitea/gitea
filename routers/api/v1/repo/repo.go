@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/label"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -612,6 +613,7 @@ func Edit(ctx *context.APIContext) {
 	}
 
 	if err := updateRepoUnits(ctx, opts); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -750,24 +752,21 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 // updateRepoUnits updates repo units: Issue settings, Wiki settings, PR settings
 func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	var units []repo_model.RepoUnit
 	var deleteUnitTypes []unit_model.Type
 
-	if opts.HasIssues != nil {
-		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-			// Check that values are valid
-			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
-				err := errors.New("External tracker URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return err
+	if opts.HasIssues != nil && *opts.HasIssues {
+		if opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+			if opts.InternalTracker == nil && !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
+				return util.NewInvalidArgumentErrorf("external tracker URL not valid")
 			}
-			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
-				err := errors.New("External tracker URL format not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return err
+			if opts.InternalTracker != nil && opts.ExternalTracker.ExternalTrackerFormat == markup.IssueNameStyleNumeric {
+				return util.NewInvalidArgumentErrorf("external tracker style Numeric is only used for internal tracker")
+			}
+			if opts.ExternalTracker.ExternalTrackerFormat != "" && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
+				return util.NewInvalidArgumentErrorf("External tracker URL format not valid")
 			}
 
 			units = append(units, repo_model.RepoUnit{
@@ -780,8 +779,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalTrackerRegexpPattern: opts.ExternalTracker.ExternalTrackerRegexpPattern,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-		} else if *opts.HasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+		}
+		if opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *repo_model.IssuesConfig
 
@@ -807,24 +808,20 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   unit_model.TypeIssues,
 				Config: config,
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		} else if !*opts.HasIssues {
-			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-			}
-			if !unit_model.TypeIssues.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-			}
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 		}
+	}
+	if opts.HasIssues != nil && !*opts.HasIssues {
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 	}
 
 	if opts.HasWiki != nil {
 		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidURL(opts.ExternalWiki.ExternalWikiURL) {
-				err := errors.New("External wiki URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
-				return err
+				return util.NewInvalidArgumentErrorf("external wiki URL not valid")
 			}
 
 			units = append(units, repo_model.RepoUnit{
@@ -902,7 +899,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// so unrelated PATCH calls don't reject historical configs.
 			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
 				if err := config.ValidateUpdateSettings(); err != nil {
-					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return err
 				}
 			}
@@ -977,12 +973,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	if len(units)+len(deleteUnitTypes) > 0 {
 		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
-			ctx.APIErrorInternal(err)
 			return err
 		}
 	}
-
-	log.Trace("Repository advanced settings updated: %s/%s", owner.Name, repo.Name)
 	return nil
 }
 
