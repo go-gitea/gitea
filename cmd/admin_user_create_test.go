@@ -56,9 +56,9 @@ func TestAdminUserCreate(t *testing.T) {
 	t.Run("UserType", func(t *testing.T) {
 		reset()
 		assert.ErrorContains(t, createUser("u", "--user-type", "invalid"), "invalid user type")
-		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--password", "123"), "can only be set for individual users")
-		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--must-change-password"), "can only be set for individual users")
-		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--admin"), "can only be set for individual users")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--password", "123"), "can only be set for user accounts")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--must-change-password"), "can only be set for user accounts")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--admin"), "bot user can not be a site administrator")
 
 		assert.NoError(t, createUser("u", "--user-type", "bot"))
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})

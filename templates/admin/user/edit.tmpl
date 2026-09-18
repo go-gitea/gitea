@@ -1,5 +1,4 @@
 {{template "admin/layout_head" (dict "pageClass" "admin edit user")}}
-	{{$convertTo := Iif .User.IsTypeBot "user" "bot"}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.edit_account"}}
@@ -11,9 +10,23 @@
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
 				</div>
+				{{if .CanConvertUserType}}
+					<div class="required field">
+						<label for="user_type">{{ctx.Locale.Tr "admin.users.user_type"}}</label>
+						<div class="ui selection type dropdown">
+							<input type="hidden" id="user_type" name="user_type" value="{{.User.Type.Name}}" required>
+							<div class="text">{{ctx.Locale.Tr (Iif .User.IsTypeBot "concept_user_bot" "concept_user_user")}}</div>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="item" data-value="User">{{ctx.Locale.Tr "concept_user_user"}}</div>
+								<div class="item" data-value="Bot">{{ctx.Locale.Tr "concept_user_bot"}}</div>
+							</div>
+						</div>
+					</div>
+				{{end}}
 				{{if not .User.IsTypeBot}}
-					<div class="inline required field {{if .Err_LoginType}}error{{end}}">
-						<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
+					<div class="required field {{if .Err_LoginType}}error{{end}}">
+						<label for="login_type">{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
 						<div class="ui selection type dropdown">
 							<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
 							<div class="text">{{ctx.Locale.Tr "admin.users.local"}}</div>
@@ -30,8 +43,8 @@
 					<input type="hidden" name="login_type" value="0-0">
 				{{end}}
 
-				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
+				<div class="required field {{if .Err_Visibility}}error{{end}}">
+					<label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="visibility" name="visibility" value="{{if .User.Visibility.IsPublic}}0{{else if .User.Visibility.IsLimited}}1{{else}}2{{end}}">
 						<div class="text">
@@ -208,27 +221,6 @@
 				</div>
 			</form>
 		</div>
-		{{if .CanConvertUserType}}
-		<h4 class="ui top attached error header">
-			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
-		</h4>
-		<div class="ui attached error danger segment">
-			<div class="flex-divided-list items-with-main">
-				<div class="item">
-					<div class="item-main">
-						<div class="item-title">{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}</div>
-						<div class="item-body">{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_desc" $convertTo)}}</div>
-					</div>
-					<div class="item-trailing">
-						<button type="button" class="ui basic red button link-action" data-url="./convert_type?user_type={{$convertTo}}"
-							data-modal-confirm-header="{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}"
-							data-modal-confirm-content="{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_notice" $convertTo)}}"
-						>{{ctx.Locale.Tr "admin.users.convert_type"}}</button>
-					</div>
-				</div>
-			</div>
-		</div>
-		{{end}}
 	</div>
 
 <div class="ui g-modal-confirm delete modal" id="delete-user-modal">

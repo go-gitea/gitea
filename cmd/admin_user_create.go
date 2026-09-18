@@ -110,14 +110,11 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 	if userType != user_model.UserTypeIndividual {
-		// Some other commands like "change-password" also only support individual users.
+		// Some other commands like "change-password" also only support regular user accounts.
 		// It needs to clarify the "password" behavior for bot users in the future.
 		// At the moment, we do not allow setting password for bot users.
 		if c.IsSet("password") || c.IsSet("random-password") {
-			return errors.New("password can only be set for individual users")
-		}
-		if c.Bool("admin") {
-			return errors.New("admin flag can only be set for individual users")
+			return errors.New("password can only be set for user accounts")
 		}
 	}
 
@@ -161,7 +158,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	mustChangePassword := userType == user_model.UserTypeIndividual
 	if c.IsSet("must-change-password") {
 		if userType != user_model.UserTypeIndividual {
-			return errors.New("must-change-password flag can only be set for individual users")
+			return errors.New("must-change-password flag can only be set for user accounts")
 		}
 		// if the flag is set, use the value provided by the user
 		mustChangePassword = c.Bool("must-change-password")

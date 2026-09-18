@@ -12329,7 +12329,7 @@
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "Convert a user between the individual and bot types",
+        "summary": "Convert an account between the user and bot types",
         "tags": [
           "admin"
         ]

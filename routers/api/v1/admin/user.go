@@ -553,11 +553,11 @@ func RenameUser(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// ConvertUserType converts a user between the individual and bot types
+// ConvertUserType converts an account between the user and bot types
 func ConvertUserType(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users/{username}/convert-type admin adminConvertUserType
 	// ---
-	// summary: Convert a user between the individual and bot types
+	// summary: Convert an account between the user and bot types
 	// consumes:
 	// - application/json
 	// produces:

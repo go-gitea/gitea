@@ -16,10 +16,6 @@ export function initAdminUserListSearchForm(): void {
     }
   }
 
-  for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="user_type"][value="${CSS.escape(searchForm.UserTypeFilter)}"]`)) {
-    input.checked = true;
-  }
-
   for (const radio of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
     radio.addEventListener('click', () => {
       form.submit();

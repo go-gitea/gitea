@@ -137,7 +137,7 @@
 				{{$committerAvatar := ""}}{{$committerDisplayName := ""}}
 				{{if .Verification.CommittingUser}}
 					{{$committerAvatar = ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
-					{{$committerDisplayName = .Verification.CommittingUser.GetShortDisplayNameLinkHTML}}
+					{{$committerDisplayName = HTMLFormat `%s%s` .Verification.CommittingUser.GetShortDisplayNameLinkHTML (ctx.RenderUtils.UserBotLabel .Verification.CommittingUser)}}
 				{{else}}
 					{{$committerAvatar = ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20}}
 					{{$committerDisplayName = .Commit.Committer.Name}}

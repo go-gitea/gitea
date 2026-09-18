@@ -37,14 +37,13 @@
 						</div>
 					</div>
 
-					<!-- User Type Filter Menu Item -->
 					<div class="ui dropdown type jump item">
-						<span class="text">{{ctx.Locale.Tr "admin.users.list_type_filter.menu_text"}}</span>
+						<span class="text">{{ctx.Locale.Tr "admin.users.user_type"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu flex-items-menu">
-							<label class="item"><input type="radio" name="user_type" value=""> {{ctx.Locale.Tr "all"}}</label>
-							<label class="item"><input type="radio" name="user_type" value="User"> {{ctx.Locale.Tr "concept_user_individual"}}</label>
-							<label class="item"><input type="radio" name="user_type" value="Bot"> {{ctx.Locale.Tr "admin.users.bot"}}</label>
+						<div class="menu">
+							<button type="submit" class="item{{if not $.UserTypeFilter}} active{{end}}" name="user_type" value="">{{ctx.Locale.Tr "all"}}</button>
+							<button type="submit" class="item{{if eq $.UserTypeFilter "User"}} active{{end}}" name="user_type" value="User">{{ctx.Locale.Tr "concept_user_user"}}</button>
+							<button type="submit" class="item{{if eq $.UserTypeFilter "Bot"}} active{{end}}" name="user_type" value="Bot">{{ctx.Locale.Tr "concept_user_bot"}}</button>
 						</div>
 					</div>
 
@@ -94,14 +93,13 @@
 							<td>
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 								{{if .IsAdmin}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
+									<span class="ui basic label tw-py-0 tw-align-baseline">{{ctx.Locale.Tr "admin.users.admin"}}</span>
 								{{else if eq 2 .Type}}{{/* Reserved user */}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>
-								{{else if eq 4 .Type}}{{/* Bot "user" */}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.bot"}}</span>
+									<span class="ui basic label tw-py-0 tw-align-baseline">{{ctx.Locale.Tr "admin.users.reserved"}}</span>
 								{{else if eq 5 .Type}}{{/* Remote user */}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.remote"}}</span>
+									<span class="ui basic label tw-py-0 tw-align-baseline">{{ctx.Locale.Tr "admin.users.remote"}}</span>
 								{{end}}
+								{{template "shared/user/bot_label" .}}
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>

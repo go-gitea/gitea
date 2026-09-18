@@ -16,7 +16,7 @@ import (
 func microcmdUserChangeType() *cli.Command {
 	return &cli.Command{
 		Name:   "change-type",
-		Usage:  "Convert a user between the individual and bot types",
+		Usage:  "Convert an account between the user and bot types",
 		Action: runChangeUserType,
 		Flags: []cli.Flag{
 			&cli.StringFlag{

@@ -11,7 +11,7 @@
 				<a href="{{.HomeLink}}">
 					{{ctx.AvatarUtils.Avatar . 48}}
 				</a>
-				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
+				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a>{{template "shared/user/bot_label" .}}</h3>
 
 				<div class="meta">
 					{{if .Website}}

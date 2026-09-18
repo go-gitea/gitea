@@ -41,6 +41,7 @@ type AdminEditBadgeForm struct {
 type AdminEditUserForm struct {
 	middleware.FormDefaultValidator
 	LoginType               string `binding:"Required"`
+	UserType                string `binding:"In(,User,Bot)"`
 	UserName                string `binding:"Username;MaxSize(40)"`
 	LoginName               string
 	FullName                string `binding:"MaxSize(100)"`

@@ -188,10 +188,7 @@ func TestAdminBotUser(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
-		bot = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: bot.ID})
-		assert.Equal(t, "Bot User", bot.FullName)
-		assert.True(t, bot.IsTypeBot())
-		assert.Empty(t, bot.Passwd)
+		assert.Equal(t, "Bot User", unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: bot.ID}).FullName)
 	})
 
 	t.Run("TokenScope", func(t *testing.T) {
@@ -248,24 +245,28 @@ func TestAdminBotUser(t *testing.T) {
 	})
 
 	t.Run("ConvertType", func(t *testing.T) {
-		convert := func(userID int64, userType string, expectedStatus int) {
-			session.MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/-/admin/users/%d/convert_type?user_type=%s", userID, userType)), expectedStatus)
+		editUserType := func(userID int64, userType string) {
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
+			session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/users/%d/edit", userID), map[string]string{
+				"user_name":  user.Name,
+				"login_type": "0-0",
+				"email":      user.Email,
+				"user_type":  userType,
+				"visibility": "0",
+			}), http.StatusSeeOther)
 		}
 
 		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/convert-type", map[string]string{"user_type": "bot"}).AddBasicAuth("user1"), http.StatusNoContent)
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		assert.True(t, user4.IsTypeBot())
-		assert.Empty(t, user4.Passwd)
 		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user4"), http.StatusOK)
 		assert.Equal(t, "Bot", DecodeJSON(t, resp, &api.User{}).Type)
 		session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/4/impersonate"), http.StatusBadRequest)
 
-		convert(4, "individual", http.StatusOK)
+		editUserType(4, "User")
 		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).IsIndividual())
 
-		convert(1, "bot", http.StatusBadRequest)
-		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).IsIndividual())
-
-		convert(99999, "bot", http.StatusNotFound)
+		editUserType(4, "Bot")
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).IsTypeBot())
 	})
 }

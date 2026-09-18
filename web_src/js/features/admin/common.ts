@@ -75,7 +75,7 @@ function initAdminUser() {
     if (isNew) {
       elPassword.toggleAttribute('required', isLocal);
     } else {
-      elUserName.toggleAttribute('disabled', !isLocal);
+      elUserName.toggleAttribute('disabled', !isBot && !isLocal);
     }
     if (focusField) (isBot || isLocal ? elUserName : elLoginName).focus();
   };

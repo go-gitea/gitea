@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
@@ -166,6 +167,14 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	// It should be the same as long as there are no bugs.
 
 	return ret
+}
+
+// UserBotLabel marks a bot account next to a name built in Go, the template equivalent is shared/user/bot_label
+func (ut *RenderUtils) UserBotLabel(u *user_model.User) template.HTML {
+	if u == nil || !u.IsTypeBot() {
+		return ""
+	}
+	return htmlutil.HTMLFormat(`&nbsp;<span class="ui basic label tw-py-0 tw-align-baseline">%s</span>`, ut.locale().TrString("concept_user_bot"))
 }
 
 func filenameIsImage(filename string) bool {

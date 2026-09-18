@@ -967,7 +967,7 @@ func GenerateUserTimeLimitCode(opts *TimeLimitCodeOptions, u *User) string {
 
 // VerifyUserTimeLimitCode verifies the time-limit code
 func VerifyUserTimeLimitCode(ctx context.Context, opts *TimeLimitCodeOptions, code string) (user *User) {
-	if user = GetVerifyUser(ctx, code); user != nil {
+	if user = GetVerifyUser(ctx, code); user != nil && user.IsIndividual() {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := makeTimeLimitCodeHashData(opts, user)
@@ -984,6 +984,9 @@ func ValidateUser(u *User, cols ...string) error {
 		if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
 			return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 		}
+	}
+	if u.IsAdmin && u.IsTypeBot() {
+		return ErrBotCanNotBeAdmin
 	}
 
 	return nil

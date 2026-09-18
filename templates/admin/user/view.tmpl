@@ -25,7 +25,7 @@
 			</div>
 		</div>
 	</div>
-	{{if .User.IsTypeBot}}
+	{{if .BotAccessTokens}}
 		{{template "shared/user/access_tokens" .BotAccessTokens}}
 	{{end}}
 	<h4 class="ui top attached header">

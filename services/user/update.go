@@ -7,10 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	activities_model "gitea.dev/models/activities"
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
 	"gitea.dev/modules/optional"
@@ -222,7 +220,7 @@ type UpdateAuthOptions struct {
 }
 
 func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
-	if u.IsTypeBot() && (opts.Password.Has() || opts.LoginSource.ValueOrDefault(0) != 0 || opts.LoginName.ValueOrDefault("") != "") {
+	if u.IsTypeBot() && (opts.Password.Has() || opts.LoginSource.Value() != 0 || opts.LoginName.Value() != "") {
 		return util.NewInvalidArgumentErrorf("a bot account cannot have a password or authentication source")
 	}
 	loginSourceChanged := false
@@ -299,7 +297,7 @@ func CheckConvertUserType(u *user_model.User) error {
 	return nil
 }
 
-// ConvertUserType converts between individual and bot, a bot loses every interactive sign-in credential
+// ConvertUserType converts between user and bot, the account keeps its credentials but they stay inert while it is a bot
 func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_model.UserType) error {
 	if u.Type == targetType {
 		return nil
@@ -307,34 +305,8 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 	if err := CheckConvertUserType(u); err != nil {
 		return err
 	}
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		u.Type = targetType
-		if targetType != user_model.UserTypeBot {
-			return user_model.UpdateUserCols(ctx, u, "type")
-		}
-		rands, err := user_model.GetUserSalt()
-		if err != nil {
-			return err
-		}
-		u.Rands, u.Passwd, u.PasswdHashAlgo, u.Salt, u.MustChangePassword = rands, "", "", "", false
-		u.LoginType, u.LoginSource, u.LoginName = auth_model.Plain, 0, ""
-		if err := user_model.UpdateUserCols(ctx, u, "type", "rands", "passwd", "passwd_hash_algo", "salt", "must_change_password", "login_type", "login_source", "login_name"); err != nil {
-			return err
-		}
-		if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
-			return err
-		}
-		if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
-			return err
-		}
-		if _, _, err := auth_model.DisableTwoFactor(ctx, u.ID); err != nil {
-			return err
-		}
-		if err := db.DeleteBeans(ctx, &activities_model.Notification{UserID: u.ID}, &user_model.UserOpenID{UID: u.ID}); err != nil {
-			return err
-		}
-		return user_model.RemoveAllAccountLinks(ctx, u)
-	}); err != nil {
+	u.Type = targetType
+	if err := user_model.UpdateUserCols(ctx, u, "type"); err != nil {
 		return err
 	}
 	audit.Record(ctx, audit_model.UserType, u, "user_type", targetType.Name())

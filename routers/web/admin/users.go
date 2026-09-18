@@ -61,18 +61,15 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
 
-	userTypeFilter := ctx.FormString("user_type")
-	types := []user_model.UserType{user_model.UserTypeIndividual}
-	if t, err := user_model.ParseUserType(userTypeFilter); err == nil {
-		types = []user_model.UserType{t}
-		userTypeFilter = t.Name()
-	} else {
-		userTypeFilter = ""
+	// unfiltered, an administrator needs to list every account kind
+	types := []user_model.UserType{user_model.UserTypeIndividual, user_model.UserTypeUserReserved, user_model.UserTypeBot, user_model.UserTypeRemoteUser}
+	ctx.Data["UserTypeFilter"] = ""
+	if t, err := user_model.ParseUserType(ctx.FormString("user_type")); err == nil {
+		types, ctx.Data["UserTypeFilter"] = []user_model.UserType{t}, t.Name()
 	}
 
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
-		"UserTypeFilter":  userTypeFilter,
 		"SortType":        sortType,
 	}
 
@@ -88,7 +85,6 @@ func Users(ctx *context.Context) {
 		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
-		IncludeReserved:    userTypeFilter == "", // unfiltered, administrator needs to list all accounts include reserved, bot, remote ones
 		OrderBy:            db.SearchOrderBy(sortType),
 	}, tplUsers)
 }
@@ -340,28 +336,29 @@ func getTargetUser(ctx *context.Context) *user_model.User {
 	return u
 }
 
-func NewBotTokenPost(ctx *context.Context) {
+// getTargetBot loads the bot whose tokens an admin manages, other accounts manage their own
+func getTargetBot(ctx *context.Context) *user_model.User {
 	u := getTargetUser(ctx)
 	if ctx.Written() {
-		return
+		return nil
 	}
 	if !u.IsTypeBot() {
 		ctx.JSONError(ctx.Tr("admin.users.bot_token_only"))
-		return
+		return nil
 	}
-	user_setting.CreateAccessToken(ctx, u)
+	return u
+}
+
+func NewBotTokenPost(ctx *context.Context) {
+	if u := getTargetBot(ctx); u != nil {
+		user_setting.CreateAccessToken(ctx, u)
+	}
 }
 
 func DeleteBotToken(ctx *context.Context) {
-	u := getTargetUser(ctx)
-	if ctx.Written() {
-		return
+	if u := getTargetBot(ctx); u != nil {
+		user_setting.DeleteAccessToken(ctx, u)
 	}
-	if !u.IsTypeBot() {
-		ctx.JSONError(ctx.Tr("admin.users.bot_token_only"))
-		return
-	}
-	user_setting.DeleteAccessToken(ctx, u)
 }
 
 func editUserCommon(ctx *context.Context) {
@@ -505,14 +502,30 @@ func EditUserPost(ctx *context.Context) {
 		switch {
 		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
-		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
-			ctx.Flash.Error(ctx.Tr("admin.users.bot_no_admin"))
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.Flash.Error(err.Error())
 			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 		default:
 			ctx.ServerError("UpdateUser", err)
 		}
 		return
 	}
+	if targetType, err := user_model.ParseUserType(form.UserType); err == nil {
+		if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
+			switch {
+			case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
+				ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
+			case errors.Is(err, user_model.ErrUserTypeCanNotConvert):
+				ctx.Flash.Error(ctx.Tr("admin.users.convert_type.not_convertible"))
+			default:
+				ctx.ServerError("ConvertUserType", err)
+				return
+			}
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+			return
+		}
+	}
+
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	if form.Reset2FA {
@@ -585,29 +598,6 @@ func DeleteUser(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users")
-}
-
-func ConvertUserType(ctx *context.Context) {
-	u := getTargetUser(ctx)
-	if ctx.Written() {
-		return
-	}
-	targetType, err := user_model.ParseUserType(ctx.FormString("user_type"))
-	if err != nil {
-		ctx.JSONError(ctx.Tr("admin.users.user_type.invalid"))
-		return
-	}
-	switch err := user_service.ConvertUserType(ctx, u, targetType); {
-	case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
-		ctx.JSONError(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
-	case errors.Is(err, user_model.ErrUserTypeCanNotConvert):
-		ctx.JSONError(ctx.Tr("admin.users.convert_type.not_convertible"))
-	case err != nil:
-		ctx.ServerError("ConvertUserType", err)
-	default:
-		ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-		ctx.JSONRedirect("")
-	}
 }
 
 func RemoveUserFromOrg(ctx *context.Context) {

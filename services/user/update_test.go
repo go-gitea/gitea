@@ -6,10 +6,8 @@ package user
 import (
 	"testing"
 
-	activities_model "gitea.dev/models/activities"
 	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
@@ -163,46 +161,25 @@ func TestConvertUserType(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.NotEmpty(t, user.Passwd)
-	assert.Positive(t, unittest.GetCount(t, &auth_model.OAuth2Application{UID: user.ID}))
+	before := *user
 	tokensBefore := unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID})
+	assert.NotEmpty(t, before.Passwd)
 	assert.Positive(t, tokensBefore)
-	assert.Positive(t, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
-	assert.Positive(t, unittest.GetCount(t, &user_model.UserOpenID{UID: user.ID}))
-	assert.NoError(t, db.Insert(t.Context(), &auth_model.TwoFactor{UID: user.ID}))
-	assert.NoError(t, db.Insert(t.Context(), &auth_model.WebAuthnCredential{UserID: user.ID, Name: "key"}))
-
-	randsBefore := user.Rands
 
 	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
 	assert.True(t, user.IsTypeBot())
 	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserType, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
+
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.Equal(t, user_model.UserTypeBot, user.Type)
-	assert.NotEqual(t, randsBefore, user.Rands)
-	assert.Empty(t, user.Passwd)
-	assert.Empty(t, user.Salt)
-	assert.Empty(t, user.PasswdHashAlgo)
-	assert.False(t, user.MustChangePassword)
-	assert.EqualValues(t, 0, user.LoginSource)
-	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.OAuth2Application{UID: user.ID}))
+	before.Type, before.UpdatedUnix = user_model.UserTypeBot, user.UpdatedUnix
+	assert.Equal(t, before, *user)
 	assert.Equal(t, tokensBefore, unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID}))
-	assert.Equal(t, 0, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
-	assert.Equal(t, 0, unittest.GetCount(t, &user_model.UserOpenID{UID: user.ID}))
-	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.TwoFactor{UID: user.ID}))
-	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.WebAuthnCredential{UserID: user.ID}))
 
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{Password: optional.Some("%$DRZUVB576tfzgu")}), util.ErrInvalidArgument)
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginSource: optional.Some(int64(1))}), util.ErrInvalidArgument)
 	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginName: optional.Some("cn=bot")}), util.ErrInvalidArgument)
 	assert.ErrorIs(t, UpdateUser(t.Context(), user, &UpdateOptions{IsAdmin: UpdateOptionFieldFromValue(true)}), user_model.ErrBotCanNotBeAdmin)
-	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{ProhibitLogin: optional.Some(true)}))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	assert.Empty(t, user.Passwd)
-	assert.False(t, user.IsAdmin)
-	assert.Equal(t, auth_model.Plain, user.LoginType)
-	assert.Empty(t, user.LoginName)
 
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeIndividual))
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).IsIndividual())

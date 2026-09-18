@@ -33,7 +33,7 @@
 		<span class="item empty-list {{if $issueAssignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
 		{{range $issueAssignees}}
 			<a class="item" href="{{$listBaseLink}}?assignee={{.ID}}">
-				{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+				{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}{{template "shared/user/bot_label" .}}
 			</a>
 		{{end}}
 	</div>
