@@ -105,7 +105,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
 	setting.LoadSettings()
 
-	userType, err := user_model.ParseUserType(c.String("user-type"))
+	userType, err := parseUserTypeFlag(c.String("user-type"))
 	if err != nil {
 		return err
 	}

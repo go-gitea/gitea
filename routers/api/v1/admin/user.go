@@ -583,7 +583,7 @@ func ConvertUserType(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	targetType, err := user_model.ParseUserType(web.GetForm[*api.ConvertUserTypeOption](ctx).UserType)
+	targetType, err := convert.UserTypeFromString(web.GetForm[*api.ConvertUserTypeOption](ctx).UserType)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return

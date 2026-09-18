@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -30,6 +31,7 @@ import (
 	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
 	org_service "gitea.dev/services/org"
@@ -63,9 +65,10 @@ func Users(ctx *context.Context) {
 
 	// unfiltered, an administrator needs to list every account kind
 	types := []user_model.UserType{user_model.UserTypeIndividual, user_model.UserTypeUserReserved, user_model.UserTypeBot, user_model.UserTypeRemoteUser}
+	userTypeFilter := api.UserTypeString(ctx.FormString("user_type"))
 	ctx.Data["UserTypeFilter"] = ""
-	if t, err := user_model.ParseUserType(ctx.FormString("user_type")); err == nil {
-		types, ctx.Data["UserTypeFilter"] = []user_model.UserType{t}, t.Name()
+	if t, err := convert.UserTypeFromString(userTypeFilter); err == nil {
+		types, ctx.Data["UserTypeFilter"] = []user_model.UserType{t}, userTypeFilter
 	}
 
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
@@ -97,7 +100,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.Data["login_type"] = "0-0"
-	ctx.Data["user_type"] = user_model.UserTypeIndividual.Name()
+	ctx.Data["user_type"] = api.UserTypeStringUser
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: optional.Some(true),
@@ -148,7 +151,7 @@ func NewUserPost(ctx *context.Context) {
 		Visibility: &form.Visibility,
 	}
 
-	if userType, err := user_model.ParseUserType(form.UserType); err == nil && userType == user_model.UserTypeBot {
+	if userType, err := convert.UserTypeFromString(form.UserType); err == nil && userType == user_model.UserTypeBot {
 		u.Type = user_model.UserTypeBot
 		u.Passwd = ""
 	} else if len(form.LoginType) > 0 {
@@ -491,7 +494,7 @@ func EditUserPost(ctx *context.Context) {
 		Visibility:              optional.Some(form.Visibility),
 		Language:                optional.Some(form.Language),
 	}
-	if userType, err := user_model.ParseUserType(form.UserType); err == nil {
+	if userType, err := convert.UserTypeFromString(form.UserType); err == nil {
 		opts.UserType = optional.Some(userType)
 	}
 

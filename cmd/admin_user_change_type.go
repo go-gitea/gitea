@@ -36,7 +36,7 @@ func microcmdUserChangeType() *cli.Command {
 }
 
 func runChangeUserType(ctx context.Context, c *cli.Command) error {
-	targetType, err := user_model.ParseUserType(c.String("user-type"))
+	targetType, err := parseUserTypeFlag(c.String("user-type"))
 	if err != nil {
 		return err
 	}
@@ -56,6 +56,6 @@ func runChangeUserType(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	cprintf(c, "%s's type has been successfully changed to %s!\n", user.Name, targetType.Name())
+	cprintf(c, "%s's type has been successfully changed to %s!\n", user.Name, targetType.DisplayName())
 	return nil
 }

@@ -84,5 +84,5 @@ type ConvertUserTypeOption struct {
 	//
 	// required: true
 	// enum: ["User","Bot"]
-	UserType string `json:"user_type" binding:"Required;In(User,Bot)"`
+	UserType UserTypeString `json:"user_type" binding:"Required;In(User,Bot)"`
 }

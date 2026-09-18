@@ -214,7 +214,7 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		audit.Record(ctx, audit_model.UserVisibility, u, "old_visibility", oldVisibility.String(), "new_visibility", u.Visibility.String())
 	}
 	if u.Type != oldType {
-		audit.Record(ctx, audit_model.UserType, u, "user_type", u.Type.Name())
+		audit.Record(ctx, audit_model.UserType, u, "user_type", u.Type.DisplayName())
 	}
 
 	return nil

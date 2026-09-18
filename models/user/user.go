@@ -68,8 +68,8 @@ const (
 	UserTypeRemoteUser // 5
 )
 
-// Name returns the GitHub compatible name of the user type
-func (t UserType) Name() string {
+// DisplayName returns the English name of the user type for logs and the CLI, the UI translates "concept_user_*" instead
+func (t UserType) DisplayName() string {
 	switch t {
 	case UserTypeOrganization, UserTypeOrganizationReserved:
 		return "Organization"
@@ -78,17 +78,6 @@ func (t UserType) Name() string {
 	default:
 		return "User"
 	}
-}
-
-// ParseUserType parses a user type an admin may create or convert to, the lowercase names are the values the CLI accepted before
-func ParseUserType(s string) (UserType, error) {
-	switch s {
-	case "User", "individual":
-		return UserTypeIndividual, nil
-	case "Bot", "bot":
-		return UserTypeBot, nil
-	}
-	return 0, util.NewInvalidArgumentErrorf("invalid user type %q, must be User or Bot", s)
 }
 
 const (

@@ -18,8 +18,7 @@ type User struct {
 	// login of the user, same as `username`
 	UserName string `json:"login"`
 	// the account type
-	// enum: ["User","Organization","Bot"]
-	Type string `json:"type"`
+	Type UserTypeString `json:"type"`
 	// identifier of the user, provided by the external authenticator (if configured)
 	LoginName string `json:"login_name"`
 	// The ID of the user's Authentication Source

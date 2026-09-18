@@ -260,7 +260,7 @@ func TestAdminBotUser(t *testing.T) {
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		assert.True(t, user4.IsTypeBot())
 		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user4"), http.StatusOK)
-		assert.Equal(t, "Bot", DecodeJSON(t, resp, &api.User{}).Type)
+		assert.Equal(t, api.UserTypeStringBot, DecodeJSON(t, resp, &api.User{}).Type)
 		session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/4/impersonate"), http.StatusBadRequest)
 
 		editUserType(4, "User")

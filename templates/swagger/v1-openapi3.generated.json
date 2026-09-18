@@ -10749,6 +10749,7 @@
               "Bot"
             ],
             "type": "string",
+            "x-go-enum-desc": "User UserTypeStringUser\nOrganization UserTypeStringOrganization\nBot UserTypeStringBot",
             "x-go-name": "Type"
           },
           "visibility": {
