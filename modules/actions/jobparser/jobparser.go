@@ -18,11 +18,12 @@ import (
 )
 
 // HasDeferredMatrix reports whether the job's matrix can only be expanded once its needs finish:
-// it reads the needs context and the job has needs to resolve that context against.
+// it or another field of the strategy reads the needs context and the job has needs to resolve that context against.
 // Parse emits such a job as a single placeholder rather than one job per combination, so every
 // caller that persists a job must agree with Parse on this condition.
 func HasDeferredMatrix(job *Job) bool {
-	return len(job.Needs()) > 0 && (nodeMatches(&job.Strategy.RawMatrix, expressionReadsNeeds) || expressionReadsNeeds(job.Strategy.RawExpression.Value))
+	return len(job.Needs()) > 0 && (nodeMatches(&job.Strategy.RawMatrix, expressionReadsNeeds) || expressionReadsNeeds(job.Strategy.RawExpression.Value) ||
+		job.Strategy.RawMatrix.Kind != 0 && (expressionReadsNeeds(job.Strategy.MaxParallelString) || expressionReadsNeeds(job.Strategy.FailFastString)))
 }
 
 func nodeMatches(node *yaml.Node, match func(string) bool) bool {
@@ -138,9 +139,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 
 		var combos []*Job
 		if HasDeferredMatrix(job) || pc.gitContext == nil && (job.Strategy.RawExpression.Kind != 0 || nodeMatches(&job.Strategy.RawMatrix, hasExpression)) {
-			// The matrix reads values that do not exist yet (a needs output), so emit a single
-			// placeholder keeping it raw. Re-parsing that placeholder's payload yields it again,
-			// and the server expands it once the needs finish.
+			// The strategy reads values that do not exist yet (a needs output, or any context without
+			// a git context), so emit a single placeholder keeping it raw. Re-parsing that placeholder's
+			// payload yields it again, and the server expands it once the needs finish.
 			placeholder := job.Clone()
 			if placeholder.Name == "" {
 				placeholder.Name = id
@@ -153,11 +154,11 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				}
 				originJob.Strategy = job.Strategy.actStrategy()
 			}
-			matricxes, err := originJob.GetMatrixes()
+			matrixes, err := originJob.GetMatrixes()
 			if err != nil {
 				return nil, fmt.Errorf("getMatrixes: %w", err)
 			}
-			if combos, err = buildMatrixCombos(id, job, matricxes, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
+			if combos, err = buildMatrixCombos(id, job, matrixes, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
 				return nil, err
 			}
 		}

@@ -124,6 +124,7 @@ jobs:
   build:
     %s
     strategy:
+      %s
       matrix:
         os: [a, b]
         version: %s
@@ -132,24 +133,26 @@ jobs:
 	for _, tt := range []struct {
 		name     string
 		needs    string
+		strategy string
 		version  string
 		deferred bool
 		want     int
 	}{
-		{"needs outputs", "needs: setup", "${{ fromJson(needs.setup.outputs.v) }}", true, 1},
-		{"static", "needs: setup", "[1, 2]", false, 4},
+		{"needs outputs", "needs: setup", "", "${{ fromJson(needs.setup.outputs.v) }}", true, 1},
+		{"static", "needs: setup", "", "[1, 2]", false, 4},
+		{"max-parallel over needs outputs", "needs: setup", "max-parallel: ${{ needs.setup.outputs.limit }}", "[1, 2]", true, 1},
 		// Without needs there is nothing to resolve the expression from later, so deferring would
 		// strand the job as a single combination that never expands.
-		{"expression without needs", "", `["${{ github.sha }}"]`, false, 2},
+		{"expression without needs", "", "", `["${{ github.sha }}"]`, false, 2},
 		// A context that is already available while planning must keep expanding there, otherwise
 		// such a workflow would silently lose the per-combination commit statuses it used to create.
-		{"expression over another context", "needs: setup", `["${{ github.sha }}"]`, false, 2},
+		{"expression over another context", "needs: setup", "", `["${{ github.sha }}"]`, false, 2},
 		// The needs context is looked up in the parsed expression, not in the raw text.
-		{"needs inside a string literal", "needs: setup", `["${{ format('needs.setup.outputs.v {0}', github.sha) }}"]`, false, 2},
-		{"vars", "needs: setup", "${{ fromJSON(vars.VERSIONS) }}", false, 4},
+		{"needs inside a string literal", "needs: setup", "", `["${{ format('needs.setup.outputs.v {0}', github.sha) }}"]`, false, 2},
+		{"vars", "needs: setup", "", "${{ fromJSON(vars.VERSIONS) }}", false, 4},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := Parse(fmt.Appendf(nil, workflow, tt.needs, tt.version), WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"VERSIONS": "[1, 2]"}))
+			result, err := Parse(fmt.Appendf(nil, workflow, tt.needs, tt.strategy, tt.version), WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"VERSIONS": "[1, 2]"}))
 			require.NoError(t, err)
 
 			var builds []*Job

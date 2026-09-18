@@ -180,10 +180,16 @@ func TestResolveUses(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
 
+		ref, err = ResolveUses(ctx, "self://owner/repo/.gitea/scoped_workflows/lib.yml@v1")
+		require.NoError(t, err)
+		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
+
 		// A directory that is neither WORKFLOW_DIRS nor SCOPED_WORKFLOW_DIRS parses but is rejected by the allowlist.
 		_, err = ResolveUses(ctx, "./not-workflows/build.yml")
 		require.Error(t, err)
 		_, err = ResolveUses(ctx, "owner/repo/lib/build.yml@v1")
+		require.Error(t, err)
+		_, err = ResolveUses(ctx, "self://owner/repo/lib/build.yml@v1")
 		require.Error(t, err)
 	})
 
