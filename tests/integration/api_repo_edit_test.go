@@ -529,7 +529,7 @@ func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 		AllowMergeUpdate:  &allowMergeUpdate,
 		AllowRebaseUpdate: &allowRebaseUpdate,
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	allowRebaseUpdate = true
 	defaultUpdateStyle := string(repo_model.UpdateStyleMerge)
@@ -538,5 +538,5 @@ func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 		AllowRebaseUpdate:  &allowRebaseUpdate,
 		DefaultUpdateStyle: &defaultUpdateStyle,
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusBadRequest)
 }
