@@ -76,6 +76,6 @@ type EditUserOption struct {
 	Restricted *bool `json:"restricted"`
 	// User visibility level: public, limited, or private
 	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
-	// The account type, a change converts between User and Bot
+	// The user type
 	Type UserTypeString `json:"type" binding:"In(User,Organization,Bot)"`
 }

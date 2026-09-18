@@ -29393,7 +29393,7 @@
           "x-go-name": "SourceID"
         },
         "type": {
-          "description": "The account type, a change converts between User and Bot",
+          "description": "The user type",
           "type": "string",
           "enum": [
             "User",
@@ -33766,7 +33766,7 @@
           "x-go-name": "StarredRepos"
         },
         "type": {
-          "description": "the account type",
+          "description": "the user type",
           "type": "string",
           "enum": [
             "User",

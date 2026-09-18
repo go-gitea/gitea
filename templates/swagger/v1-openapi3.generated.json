@@ -6317,7 +6317,7 @@
                 "$ref": "#/components/schemas/UserTypeString"
               }
             ],
-            "description": "The account type, a change converts between User and Bot"
+            "description": "The user type"
           },
           "visibility": {
             "allOf": [
@@ -10736,7 +10736,7 @@
                 "$ref": "#/components/schemas/UserTypeString"
               }
             ],
-            "description": "the account type"
+            "description": "the user type"
           },
           "visibility": {
             "allOf": [
