@@ -17,7 +17,7 @@ type User struct {
 	ID int64 `json:"id"`
 	// login of the user, same as `username`
 	UserName string `json:"login"`
-	// the account type
+	// the user type
 	Type UserTypeString `json:"type"`
 	// identifier of the user, provided by the external authenticator (if configured)
 	LoginName string `json:"login_name"`

@@ -3,7 +3,7 @@
 
 package structs
 
-// UserTypeString defines the account type as rendered in API responses, webhook payloads and
+// UserTypeString defines the user type as rendered in API responses, webhook payloads and
 // the resulting GitHub Actions event context, where workflows read it as `github.event.sender.type`.
 // The values are capitalized to stay compatible with GitHub, unlike VisibilityString and the other
 // lowercase API enums. The DB representation is user.UserType (int).

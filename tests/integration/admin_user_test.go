@@ -259,7 +259,9 @@ func TestAdminBotUser(t *testing.T) {
 			}), http.StatusSeeOther)
 		}
 
-		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user4/convert-type", map[string]string{"user_type": "Bot"}).AddBasicAuth("user1"), http.StatusNoContent)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", "/api/v1/admin/users/org3", map[string]string{"type": "Organization"}).AddBasicAuth("user1"), http.StatusOK)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", "/api/v1/admin/users/user4", map[string]string{"type": "Bot", "password": "Bot-Password-1234"}).AddBasicAuth("user1"), http.StatusBadRequest)
+		MakeRequest(t, NewRequestWithJSON(t, "PATCH", "/api/v1/admin/users/user4", map[string]string{"type": "Bot"}).AddBasicAuth("user1"), http.StatusOK)
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		assert.True(t, user4.IsTypeBot())
 		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/users/user4"), http.StatusOK)
