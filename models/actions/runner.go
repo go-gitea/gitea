@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -200,8 +200,7 @@ func (r *ActionRunner) GenerateAndFillToken() {
 // CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
 func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
-	runnerLabelSet := container.SetOf(r.AgentLabels...)
-	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
+	return model.MatchRunsOn(r.AgentLabels, "", jobRunsOn, "")
 }
 
 func init() {

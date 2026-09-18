@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"testing"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -55,6 +55,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		)
 		err := checkCallerChain(t.Context(), chain[len(chain)-1])
 		assert.ErrorContains(t, err, "cycle detected")
+		assert.Equal(t, canonicalCallUses("owner/repo/.gitea/workflows/a.yml@v1"), canonicalCallUses("self://owner/repo/.gitea/workflows/a.yml@v1"))
 	})
 
 	t.Run("NoCycle", func(t *testing.T) {
@@ -162,11 +163,11 @@ func TestResolveUses(t *testing.T) {
 		// Same-repo and cross-repo forms are not URLs and are parsed as-is.
 		ref, err := ResolveUses(ctx, "./.gitea/workflows/build.yml")
 		require.NoError(t, err)
-		assert.Equal(t, jobparser.UsesRef{Kind: jobparser.UsesKindLocalSameRepo, Path: ".gitea/workflows/build.yml"}, *ref)
+		assert.Equal(t, model.ReusableWorkflowUses{Path: ".gitea/workflows/build.yml"}, *ref)
 
 		ref, err = ResolveUses(ctx, "owner/repo/.gitea/workflows/build.yml@v1")
 		require.NoError(t, err)
-		assert.Equal(t, jobparser.UsesRef{Kind: jobparser.UsesKindLocalCrossRepo, Owner: "owner", Repo: "repo", Path: ".gitea/workflows/build.yml", Ref: "v1"}, *ref)
+		assert.Equal(t, model.ReusableWorkflowUses{Owner: "owner", Repo: "repo", Path: ".gitea/workflows/build.yml", Ref: "v1"}, *ref)
 	})
 
 	t.Run("DirectoryAllowlist", func(t *testing.T) {
@@ -201,7 +202,7 @@ func TestResolveUses(t *testing.T) {
 		// An absolute URL on this instance (incl. AppSubURL) resolves to the equivalent cross-repo ref.
 		ref, err := ResolveUses(ctx, "https://gitea.example.com/sub/owner/repo/.gitea/workflows/ci.yml@refs/heads/main")
 		require.NoError(t, err)
-		assert.Equal(t, jobparser.UsesRef{Kind: jobparser.UsesKindLocalCrossRepo, Owner: "owner", Repo: "repo", Path: ".gitea/workflows/ci.yml", Ref: "refs/heads/main"}, *ref)
+		assert.Equal(t, model.ReusableWorkflowUses{Owner: "owner", Repo: "repo", Path: ".gitea/workflows/ci.yml", Ref: "refs/heads/main"}, *ref)
 	})
 
 	t.Run("InvalidSyntax", func(t *testing.T) {

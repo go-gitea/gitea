@@ -8,7 +8,7 @@
 		{{end}}
 	</div>
 {{else}}
-	{{range $item := .WorkflowDispatchConfig.Inputs}}
+	{{range $item := .WorkflowDispatchInputs}}
 		<div class="ui field {{if .Required}}required{{end}}">
 			{{if eq .Type "choice"}}
 				<label>{{or .Description .Name}}:</label>
@@ -19,7 +19,7 @@
 				</select>
 			{{else if eq .Type "boolean"}}
 				<label class="tw-flex flex-text-inline">
-					<input type="checkbox" name="{{.Name}}" {{if .IsDefaultTrue}}checked{{end}}>
+					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true" "True" "TRUE"}}checked{{end}}>
 					{{or .Description .Name}}
 				</label>
 			{{else if eq .Type "number"}}
