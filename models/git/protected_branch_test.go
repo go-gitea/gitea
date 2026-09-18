@@ -7,11 +7,14 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBranchRuleMatch(t *testing.T) {
@@ -236,4 +239,24 @@ func TestProtectedBranchCanUserDelete(t *testing.T) {
 	pb.DeletionAllowlistTeamIDs = []int64{1}
 	assert.True(t, pb.CanUserDelete(t.Context(), owner))
 	assert.False(t, pb.CanUserDelete(t.Context(), user))
+}
+
+func TestProtectedBranchCanUserDeleteWithPermission(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	actionsUser := user_model.NewActionsUserWithTaskID(47)
+	pb := &ProtectedBranch{RepoID: repo.ID, Repo: repo, CanPush: true, CanDelete: true}
+
+	ownerPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, owner)
+	require.NoError(t, err)
+	assert.True(t, pb.CanUserDeleteWithPermission(t.Context(), owner, ownerPermission))
+	assert.False(t, pb.CanUserDeleteWithPermission(t.Context(), owner, access_model.Permission{}))
+
+	actionsPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, actionsUser)
+	require.NoError(t, err)
+	assert.True(t, actionsPermission.CanWrite(unit.TypeCode))
+	assert.False(t, pb.CanUserPush(t.Context(), actionsUser))
+	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser))
+	assert.False(t, pb.CanUserDeleteWithPermission(t.Context(), actionsUser, actionsPermission))
 }
