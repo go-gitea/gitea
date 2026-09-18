@@ -302,7 +302,7 @@ func CheckConvertUserType(u *user_model.User) error {
 		return user_model.ErrBotCanNotBeAdmin
 	case !u.IsIndividual() && !u.IsTypeBot():
 		return user_model.ErrUserTypeCanNotConvert
-	case !u.IsLocal(): // an auth source keeps syncing the account, e.g. LDAP deactivates it
+	case !u.IsLocal():
 		return user_model.ErrBotMustBeLocal
 	}
 	return nil
