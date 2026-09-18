@@ -1144,6 +1144,52 @@
         }
       }
     },
+    "/admin/users/{username}/convert-type": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Convert an account between the user and bot types",
+        "operationId": "adminConvertUserType",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user to convert",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConvertUserTypeOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/admin/users/{username}/keys": {
       "post": {
         "consumes": [
@@ -26744,6 +26790,25 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ConvertUserTypeOption": {
+      "description": "ConvertUserTypeOption options when converting a user between individual and bot",
+      "type": "object",
+      "required": [
+        "user_type"
+      ],
+      "properties": {
+        "user_type": {
+          "description": "The target user type",
+          "type": "string",
+          "enum": [
+            "User",
+            "Bot"
+          ],
+          "x-go-name": "UserType"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "CreateAccessTokenOption": {
       "description": "CreateAccessTokenOption options when create access token",
       "type": "object",
@@ -33753,6 +33818,17 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "StarredRepos"
+        },
+        "type": {
+          "description": "the account type",
+          "type": "string",
+          "enum": [
+            "User",
+            "Organization",
+            "Bot"
+          ],
+          "x-go-enum-desc": "User UserTypeStringUser\nOrganization UserTypeStringOrganization\nBot UserTypeStringBot",
+          "x-go-name": "Type"
         },
         "visibility": {
           "description": "User visibility level option: public, limited, private",

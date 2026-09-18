@@ -68,6 +68,18 @@ const (
 	UserTypeRemoteUser // 5
 )
 
+// DisplayName returns the English name of the user type for logs and the CLI, the UI translates "concept_user_*" instead
+func (t UserType) DisplayName() string {
+	switch t {
+	case UserTypeOrganization, UserTypeOrganizationReserved:
+		return "Organization"
+	case UserTypeBot:
+		return "Bot"
+	default:
+		return "User"
+	}
+}
+
 const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
 	EmailNotificationsEnabled = "enabled"
@@ -907,7 +919,7 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 	// use tail hex username query user
 	hexStr := code[base.TimeLimitCodeLength:]
 	if b, err := hex.DecodeString(hexStr); err == nil {
-		if user, err = GetUserByName(ctx, string(b)); user != nil {
+		if user, err = GetUserByName(ctx, string(b)); user != nil && user.IsIndividual() {
 			return user
 		}
 		log.Error("user.getVerifyUser: %v", err)
@@ -961,6 +973,9 @@ func ValidateUser(u *User, cols ...string) error {
 		if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
 			return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 		}
+	}
+	if u.IsAdmin && u.IsTypeBot() {
+		return ErrBotCanNotBeAdmin
 	}
 
 	return nil
