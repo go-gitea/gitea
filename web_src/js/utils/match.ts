@@ -9,7 +9,7 @@ const maxMatches = 6;
 
 function sortAndReduce<T>(map: Map<T, number>): T[] {
   const sortedMap = new Map(Array.from(map).sort((a, b) => a[1] - b[1]));
-  return Array.from(sortedMap.keys()).slice(0, maxMatches);
+  return sortedMap.keys().take(maxMatches).toArray();
 }
 
 export function matchEmoji(queryText: string): string[] {
