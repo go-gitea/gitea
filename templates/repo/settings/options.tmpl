@@ -154,16 +154,16 @@
 											<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
 											<p class="help">{{ctx.Locale.Tr "repo.mirror_address_desc"}}</p>
 										</div>
-										<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
+										<details class="ui optional field" {{if $address.Username}}open{{end}}>
 											<summary class="tw-p-1">
 												{{ctx.Locale.Tr "repo.need_auth"}}
 											</summary>
 											<div class="tw-p-1">
-												<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<div class="inline field">
 													<label for="mirror_username">{{ctx.Locale.Tr "username"}}</label>
 													<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 												</div>
-												<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<div class="inline field">
 													<label for="mirror_password">{{ctx.Locale.Tr "password"}}</label>
 													<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{ctx.Locale.Tr "repo.mirror_password_placeholder"}}{{else}}{{ctx.Locale.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 												</div>
@@ -303,7 +303,7 @@
 			{{ctx.Locale.Tr "repo.settings.advanced_settings"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" method="post">
+			<form class="ui form form-fetch-action" method="post">
 				<input type="hidden" name="action" value="advanced">
 
 				{{$isCodeEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeCode}}
@@ -357,25 +357,19 @@
 
 				<div class="divider"></div>
 
-				{{$isIssuesEnabled := or (.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeIssues) (.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker)}}
 				{{$isIssuesGlobalDisabled := ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 				{{$isExternalTrackerGlobalDisabled := ctx.Consts.RepoUnitTypeExternalTracker.UnitGlobalDisabled}}
 				{{$isIssuesAndExternalGlobalDisabled := and $isIssuesGlobalDisabled $isExternalTrackerGlobalDisabled}}
-				<div class="inline field">
+				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.issues"}}</label>
-					<div class="ui checkbox{{if $isIssuesAndExternalGlobalDisabled}} disabled{{end}}"{{if $isIssuesAndExternalGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-						<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "repo.settings.issues_desc"}}</label>
-					</div>
-				</div>
-				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
+					{{$isInternalTrackerEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeIssues}}
 					<div class="field">
-						<div class="ui radio checkbox{{if $isIssuesGlobalDisabled}} disabled{{end}}"{{if $isIssuesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker)}}checked{{end}}>
+						<div class="ui checkbox {{if $isIssuesGlobalDisabled}}disabled{{end}}"{{if $isIssuesGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+							<input class="enable-system" name="enable_internal_tracker" type="checkbox" data-target="#internal_issue_box" {{if $isInternalTrackerEnabled}}checked{{end}}>
 							<label>{{ctx.Locale.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field tw-pl-4 {{if (.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker)}}disabled{{end}}" id="internal_issue_box">
+					<div class="field tw-pl-4 {{if not $isInternalTrackerEnabled}}disabled{{end}}" id="internal_issue_box">
 						{{if .Repository.CanEnableTimetracker}}
 							<div class="field">
 								<div class="ui checkbox">
@@ -401,13 +395,15 @@
 							<label>{{ctx.Locale.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
 						</div>
 					</div>
+
+					{{$isExternalTrackerEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker}}
 					<div class="field">
-						<div class="ui radio checkbox{{if $isExternalTrackerGlobalDisabled}} disabled{{end}}"{{if $isExternalTrackerGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system-radio" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker}}checked{{end}}>
+						<div class="ui checkbox {{if $isExternalTrackerGlobalDisabled}}disabled{{end}}" {{if $isExternalTrackerGlobalDisabled}}data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+							<input class="enable-system" name="enable_external_tracker" type="checkbox" data-target="#external_issue_box" {{if $isExternalTrackerEnabled}}checked{{end}}>
 							<label>{{ctx.Locale.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
 					</div>
-					<div class="field tw-pl-4 {{if not (.Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeExternalTracker)}}disabled{{end}}" id="external_issue_box">
+					<div class="field tw-pl-4 {{if not $isExternalTrackerEnabled}}disabled{{end}}" id="external_issue_box">
 						<div class="field">
 							<label for="external_tracker_url">{{ctx.Locale.Tr "repo.settings.external_tracker_url"}}</label>
 							<input id="external_tracker_url" name="external_tracker_url" type="url" value="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerURL}}">
@@ -418,9 +414,12 @@
 							<input id="tracker_url_format" name="tracker_url_format" type="url" value="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerFormat}}" placeholder="https://github.com/{user}/{repo}/issues/{index}">
 							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_url_format_desc"}}</p>
 						</div>
-						<div class="inline fields">
-							<label for="issue_style">{{ctx.Locale.Tr "repo.settings.tracker_issue_style"}}</label>
-							<div class="field">
+						<div class="field tw-m-0">
+							<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style"}}</label>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.tracker_issue_style_desc"}}</p>
+						</div>
+						<div class="flex-text-block flex-wrap tw-gap-4 tw-mb-2">
+							<div>
 								<div class="ui radio checkbox">
 								{{$externalTracker := (.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalTracker)}}
 								{{$externalTrackerStyle := $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle}}
@@ -428,13 +427,13 @@
 									<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">#1234</span></label>
 								</div>
 							</div>
-							<div class="field">
+							<div>
 								<div class="ui radio checkbox">
 									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="alphanumeric" {{if eq $externalTrackerStyle "alphanumeric"}}checked{{end}}>
 									<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">ABC-123 , DEFG-234</span></label>
 								</div>
 							</div>
-							<div class="field">
+							<div>
 								<div class="ui radio checkbox">
 									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="regexp" {{if eq $externalTrackerStyle "regexp"}}checked{{end}}>
 									<label>{{ctx.Locale.Tr "repo.settings.tracker_issue_style.regexp"}} <span class="ui light grey text">(ISSUE-\d+) , ISSUE-(\d+)</span></label>
