@@ -98,15 +98,17 @@ func loadSSHFrom(rootCfg ConfigProvider) {
 		SSH.Domain = Domain
 	}
 
-	homeDir, err := util.HomeDir()
-	if err != nil {
-		log.Fatal("Failed to get home directory: %v", err)
+	if IsInTesting {
+		SSH.RootPath = AppDataTempDir("ssh").JoinPath()
+	} else {
+		homeDir, err := util.HomeDir()
+		if err != nil {
+			log.Fatal("Failed to get home directory: %v", err)
+		}
+		SSH.RootPath = filepath.Join(strings.ReplaceAll(homeDir, "\\", "/"), ".ssh")
 	}
-	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
-	SSH.RootPath = filepath.Join(homeDir, ".ssh")
-
-	if err = sec.MapTo(&SSH); err != nil {
+	if err := sec.MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}
 
