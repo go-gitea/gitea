@@ -121,7 +121,7 @@ func SetupGiteaTestEnv() {
 		panic("SetupGiteaTestEnv failed, paths are not initialized")
 	}
 
-	SSH.RootPath = AppDataTempDir("ssh").JoinPath()
+	SSH.RootPath = AppDataTempDir("ssh").JoinPath() // prevent tests from writing into ~/.ssh
 
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
