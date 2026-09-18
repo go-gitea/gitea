@@ -56,6 +56,7 @@ type UpdateOptions struct {
 	AllowCreateOrganization      optional.Option[bool]
 	IsActive                     optional.Option[bool]
 	IsAdmin                      optional.Option[UpdateOptionField[bool]]
+	UserType                     optional.Option[user_model.UserType]
 	EmailNotificationsPreference optional.Option[string]
 	SetLastLogin                 bool
 	RepoAdminChangeTeamAccess    optional.Option[bool]
@@ -64,7 +65,7 @@ type UpdateOptions struct {
 func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
 	cols := make([]string, 0, 20)
 
-	oldIsActive, oldIsRestricted, oldIsAdmin, oldVisibility := u.IsActive, u.IsRestricted, u.IsAdmin, u.Visibility
+	oldIsActive, oldIsRestricted, oldIsAdmin, oldVisibility, oldType := u.IsActive, u.IsRestricted, u.IsAdmin, u.Visibility, u.Type
 
 	if opts.KeepEmailPrivate.Has() {
 		u.KeepEmailPrivate = opts.KeepEmailPrivate.Value()
@@ -137,9 +138,6 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	}
 	if opts.IsAdmin.Has() {
 		if opts.IsAdmin.Value().FieldValue /* true */ {
-			if u.IsTypeBot() {
-				return user_model.ErrBotCanNotBeAdmin
-			}
 			u.IsAdmin = opts.IsAdmin.Value().FieldValue // set IsAdmin=true
 			cols = append(cols, "is_admin")
 		} else if !user_model.IsLastAdminUser(ctx, u) /* not the last admin */ {
@@ -179,6 +177,14 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "repo_admin_change_team_access")
 	}
 
+	if opts.UserType.Has() && opts.UserType.Value() != u.Type {
+		if err := CheckConvertUserType(u); err != nil {
+			return err
+		}
+		u.Type = opts.UserType.Value()
+		cols = append(cols, "type")
+	}
+
 	if opts.EmailNotificationsPreference.Has() {
 		u.EmailNotificationsPreference = opts.EmailNotificationsPreference.Value()
 
@@ -206,6 +212,9 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	}
 	if u.Visibility != oldVisibility {
 		audit.Record(ctx, audit_model.UserVisibility, u, "old_visibility", oldVisibility.String(), "new_visibility", u.Visibility.String())
+	}
+	if u.Type != oldType {
+		audit.Record(ctx, audit_model.UserType, u, "user_type", u.Type.Name())
 	}
 
 	return nil
@@ -294,21 +303,5 @@ func CheckConvertUserType(u *user_model.User) error {
 	case !u.IsIndividual() && !u.IsTypeBot():
 		return user_model.ErrUserTypeCanNotConvert
 	}
-	return nil
-}
-
-// ConvertUserType converts between user and bot, the account keeps its credentials but they stay inert while it is a bot
-func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_model.UserType) error {
-	if u.Type == targetType {
-		return nil
-	}
-	if err := CheckConvertUserType(u); err != nil {
-		return err
-	}
-	u.Type = targetType
-	if err := user_model.UpdateUserCols(ctx, u, "type"); err != nil {
-		return err
-	}
-	audit.Record(ctx, audit_model.UserType, u, "user_type", targetType.Name())
 	return nil
 }

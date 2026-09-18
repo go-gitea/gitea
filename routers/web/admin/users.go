@@ -148,7 +148,7 @@ func NewUserPost(ctx *context.Context) {
 		Visibility: &form.Visibility,
 	}
 
-	if form.UserType == user_model.UserTypeBot.Name() {
+	if userType, err := user_model.ParseUserType(form.UserType); err == nil && userType == user_model.UserTypeBot {
 		u.Type = user_model.UserTypeBot
 		u.Passwd = ""
 	} else if len(form.LoginType) > 0 {
@@ -327,19 +327,11 @@ func ViewUser(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplUserView)
 }
 
-func getTargetUser(ctx *context.Context) *user_model.User {
+// getTargetBot loads the bot whose tokens an admin manages, other accounts manage their own
+func getTargetBot(ctx *context.Context) *user_model.User {
 	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
-		return nil
-	}
-	return u
-}
-
-// getTargetBot loads the bot whose tokens an admin manages, other accounts manage their own
-func getTargetBot(ctx *context.Context) *user_model.User {
-	u := getTargetUser(ctx)
-	if ctx.Written() {
 		return nil
 	}
 	if !u.IsTypeBot() {
@@ -396,6 +388,8 @@ func EditUserPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplUserEdit)
 		return
 	}
+
+	userLink := setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid"))
 
 	if form.UserName != "" {
 		if err := user_service.RenameUser(ctx, u, form.UserName, ctx.Doer); err != nil {
@@ -457,7 +451,7 @@ func EditUserPost(ctx *context.Context) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.Flash.Error(err.Error())
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+			ctx.Redirect(userLink)
 		default:
 			ctx.ServerError("UpdateUser", err)
 		}
@@ -497,33 +491,27 @@ func EditUserPost(ctx *context.Context) {
 		Visibility:              optional.Some(form.Visibility),
 		Language:                optional.Some(form.Language),
 	}
+	if userType, err := user_model.ParseUserType(form.UserType); err == nil {
+		opts.UserType = optional.Some(userType)
+	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 		switch {
 		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
+		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
+			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
+			ctx.Redirect(userLink)
+		case errors.Is(err, user_model.ErrUserTypeCanNotConvert):
+			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.not_convertible"))
+			ctx.Redirect(userLink)
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.Flash.Error(err.Error())
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+			ctx.Redirect(userLink)
 		default:
 			ctx.ServerError("UpdateUser", err)
 		}
 		return
-	}
-	if targetType, err := user_model.ParseUserType(form.UserType); err == nil {
-		if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
-			switch {
-			case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
-				ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
-			case errors.Is(err, user_model.ErrUserTypeCanNotConvert):
-				ctx.Flash.Error(ctx.Tr("admin.users.convert_type.not_convertible"))
-			default:
-				ctx.ServerError("ConvertUserType", err)
-				return
-			}
-			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
-			return
-		}
 	}
 
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
@@ -536,7 +524,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+	ctx.Redirect(userLink)
 }
 
 func ImpersonateUser(ctx *context.Context) {

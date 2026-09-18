@@ -930,7 +930,7 @@ func GetVerifyUser(ctx context.Context, code string) (user *User) {
 	// use tail hex username query user
 	hexStr := code[base.TimeLimitCodeLength:]
 	if b, err := hex.DecodeString(hexStr); err == nil {
-		if user, err = GetUserByName(ctx, string(b)); user != nil {
+		if user, err = GetUserByName(ctx, string(b)); user != nil && user.IsIndividual() {
 			return user
 		}
 		log.Error("user.getVerifyUser: %v", err)
@@ -967,7 +967,7 @@ func GenerateUserTimeLimitCode(opts *TimeLimitCodeOptions, u *User) string {
 
 // VerifyUserTimeLimitCode verifies the time-limit code
 func VerifyUserTimeLimitCode(ctx context.Context, opts *TimeLimitCodeOptions, code string) (user *User) {
-	if user = GetVerifyUser(ctx, code); user != nil && user.IsIndividual() {
+	if user = GetVerifyUser(ctx, code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
 		data := makeTimeLimitCodeHashData(opts, user)

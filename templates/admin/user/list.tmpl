@@ -99,7 +99,7 @@
 								{{else if eq 5 .Type}}{{/* Remote user */}}
 									<span class="ui basic label tw-py-0 tw-align-baseline">{{ctx.Locale.Tr "admin.users.remote"}}</span>
 								{{end}}
-								{{template "shared/user/bot_label" .}}
+								{{template "shared/user/user_type_label" .}}
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>

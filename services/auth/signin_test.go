@@ -29,12 +29,9 @@ func (s *mockBotSource) Authenticate(ctx context.Context, _ *user_model.User, lo
 
 const mockBotSourceType auth_model.Type = 100
 
-func init() {
-	auth_model.RegisterTypeConfig(mockBotSourceType, &mockBotSource{})
-}
-
 func TestUserSignIn_BotCannotSignIn(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	auth_model.RegisterTypeConfig(mockBotSourceType, &mockBotSource{})
 
 	bot := &user_model.User{Name: "test-bot", Email: "test-bot@example.com", Type: user_model.UserTypeBot, IsActive: true}
 	require.NoError(t, user_model.AdminCreateUser(t.Context(), bot, &user_model.Meta{}))

@@ -7,6 +7,7 @@ import (
 	"context"
 
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	user_service "gitea.dev/services/user"
 
@@ -51,7 +52,7 @@ func runChangeUserType(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	if err := user_service.ConvertUserType(ctx, user, targetType); err != nil {
+	if err := user_service.UpdateUser(ctx, user, &user_service.UpdateOptions{UserType: optional.Some(targetType)}); err != nil {
 		return err
 	}
 

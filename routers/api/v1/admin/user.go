@@ -589,7 +589,7 @@ func ConvertUserType(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.ConvertUserType(ctx, ctx.ContextUser, targetType); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.ContextUser, &user_service.UpdateOptions{UserType: optional.Some(targetType)}); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}

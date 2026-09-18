@@ -78,7 +78,7 @@
 						{{.Issue.OriginalAuthor}}
 						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{else}}
-						<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>{{template "shared/user/bot_label" .Issue.PullRequest.Merger}}
+						{{template "shared/user/namelink" .Issue.PullRequest.Merger}}
 						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 					{{end}}
 				{{else}}
@@ -86,7 +86,7 @@
 						<span id="pull-desc-display" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}</span>
 					{{else}}
 						<span id="pull-desc-display" class="pull-desc">
-							<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>{{template "shared/user/bot_label" .Issue.Poster}}
+							{{template "shared/user/namelink" .Issue.Poster}}
 							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
