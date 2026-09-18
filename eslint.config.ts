@@ -955,7 +955,7 @@ export default defineConfig([
       'unicorn/prefer-includes-over-repeated-comparisons': [0], // too opinionated
       'unicorn/prefer-iterable-in-constructor': [2],
       'unicorn/prefer-iterator-concat': [0], // too opinionated
-      'unicorn/prefer-iterator-helpers': [2],
+      'unicorn/prefer-iterator-helpers': [0],
       'unicorn/prefer-iterator-to-array': [2],
       'unicorn/prefer-iterator-to-array-at-end': [2],
       'unicorn/prefer-iterator-zip': [0],
