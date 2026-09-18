@@ -236,6 +236,12 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 		[]string{"ISSUE-123"},
 	)
 
+	test("123456: TEST-123456", "%s %s",
+		"(\\d+):|TEST-(\\d+)",
+		[]string{"123456", "123456"},
+		[]string{"123456:", "TEST-123456"},
+	)
+
 	testRenderIssueIndexPattern(t, "will not match", "will not match", NewTestRenderContext(regexpMetas))
 }
 
