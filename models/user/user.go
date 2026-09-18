@@ -553,7 +553,6 @@ type globalVarsStruct struct {
 	transformDiacritics    transform.Transformer
 	replaceCharsHyphenRE   *regexp.Regexp
 	emailToReplacer        *strings.Replacer
-	emailRegexp            *regexp.Regexp
 	systemUserNewFuncs     map[int64]func() *User
 	systemUserNameIdMap    map[string]int64
 }
@@ -577,7 +576,6 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 			":", "",
 			";", "",
 		),
-		emailRegexp: regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
 	}
 
 	userFuncs := []func() *User{NewGhostUser, NewActionsUser, NewDeployKeyUser, NewCliUser, NewAuthSourceUser}

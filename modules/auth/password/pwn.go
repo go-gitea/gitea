@@ -38,8 +38,7 @@ func IsPwned(ctx context.Context, password string) error {
 		return nil
 	}
 
-	client := pwn.New(pwn.WithContext(ctx))
-	count, err := client.CheckPassword(password, true)
+	count, err := pwn.New().CheckPassword(ctx, password, true)
 	if err != nil {
 		return ErrIsPwnedRequest{err}
 	}

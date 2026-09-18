@@ -311,7 +311,6 @@
   "form.cannot_add_org_to_team": "Organisaatiota ei voida lisätä tiimin jäseneksi.",
   "form.invalid_ssh_key": "SSH-avaintasi ei voi vahvistaa: %s",
   "form.invalid_gpg_key": "GPG-avaintasi ei voi vahvistaa: %s",
-  "form.auth_failed": "Todennus epäonnistui: %v",
   "form.target_branch_not_exist": "Kohde branchia ei ole olemassa.",
   "user.change_avatar": "Vaihda profiilikuvasi…",
   "user.repositories": "Repot",
