@@ -6,6 +6,7 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/log"
@@ -24,6 +25,15 @@ const (
 	RepoPRTitleSourceAuto        = "auto"
 	RepoPRTitleSourceBranchName  = "branch-name"
 )
+
+// enumerates the values for [repository.pull-request] DEFAULT_SQUASH_COMMIT_MESSAGE
+const (
+	RepoPRSquashCommitMessagePRTitle            = "pr-title"
+	RepoPRSquashCommitMessagePRTitleCommits     = "pr-title-commits"
+	RepoPRSquashCommitMessagePRTitleDescription = "pr-title-description"
+)
+
+var RepoPRSquashCommitMessages = []string{RepoPRSquashCommitMessagePRTitle, RepoPRSquashCommitMessagePRTitleCommits, RepoPRSquashCommitMessagePRTitleDescription}
 
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo
 const ItemsPerPage = 40
@@ -94,7 +104,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashCommitMessage               string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -188,7 +198,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
-			PopulateSquashCommentWithCommitMessages  bool
+			DefaultSquashCommitMessage               string
 			AddCoCommitterTrailers                   bool
 			RetargetChildrenOnMerge                  bool
 			DelayCheckForInactiveDays                int
@@ -206,7 +216,7 @@ var (
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
-			PopulateSquashCommentWithCommitMessages:  false,
+			DefaultSquashCommitMessage:               RepoPRSquashCommitMessagePRTitleDescription,
 			AddCoCommitterTrailers:                   true,
 			RetargetChildrenOnMerge:                  true,
 			DelayCheckForInactiveDays:                7,
@@ -337,6 +347,16 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.Upload settings: %v", err)
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	secPullRequest := rootCfg.Section("repository.pull-request")
+	deprecatedSetting(rootCfg, "repository.pull-request", "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES", "repository.pull-request", "DEFAULT_SQUASH_COMMIT_MESSAGE", "")
+	if ConfigSectionKeyBool(secPullRequest, "POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES") && !secPullRequest.HasKey("DEFAULT_SQUASH_COMMIT_MESSAGE") {
+		Repository.PullRequest.DefaultSquashCommitMessage = RepoPRSquashCommitMessagePRTitleCommits
+	}
+	if !slices.Contains(RepoPRSquashCommitMessages, Repository.PullRequest.DefaultSquashCommitMessage) {
+		LogStartupProblem(1, log.ERROR, "Invalid [repository.pull-request] DEFAULT_SQUASH_COMMIT_MESSAGE %q, using %q", Repository.PullRequest.DefaultSquashCommitMessage, RepoPRSquashCommitMessagePRTitleDescription)
+		Repository.PullRequest.DefaultSquashCommitMessage = RepoPRSquashCommitMessagePRTitleDescription
 	}
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {

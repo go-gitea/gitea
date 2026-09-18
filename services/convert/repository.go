@@ -107,6 +107,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	defaultUpdateStyle := repo_model.UpdateStyleMerge
 	defaultAllowMaintainerEdit := false
 	defaultTargetBranch := ""
+	defaultSquashCommitMessage := ""
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -125,6 +126,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		defaultUpdateStyle = config.DefaultUpdateStyle
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
 		defaultTargetBranch = config.DefaultTargetBranch
+		defaultSquashCommitMessage = config.DefaultSquashCommitMessage
 	}
 	hasProjects := false
 	projectsMode := repo_model.ProjectsModeAll
@@ -253,6 +255,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		DefaultUpdateStyle:            string(defaultUpdateStyle),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
 		DefaultTargetBranch:           defaultTargetBranch,
+		DefaultSquashCommitMessage:    defaultSquashCommitMessage,
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorLastSyncAt:              lastSync,

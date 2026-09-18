@@ -129,6 +129,7 @@ type RepoSettingForm struct {
 	PullsAllowFastForwardOnly        bool
 	PullsAllowManualMerge            bool
 	PullsDefaultMergeStyle           string
+	PullsDefaultSquashCommitMessage  string
 	EnableAutodetectManualMerge      bool
 	PullsAllowMergeUpdate            bool
 	PullsAllowRebaseUpdate           bool

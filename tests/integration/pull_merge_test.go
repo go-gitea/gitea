@@ -23,6 +23,7 @@ import (
 	"gitea.dev/models/perm"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
@@ -1199,7 +1200,7 @@ func TestPullSquashMessage(t *testing.T) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 
-		defer test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)()
+		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultSquashCommitMessage, setting.RepoPRSquashCommitMessagePRTitleCommits)()
 		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 80)()
 
 		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
@@ -1217,9 +1218,10 @@ func TestPullSquashMessage(t *testing.T) {
 		}
 
 		testCases := []struct {
-			name            string
-			commitInfos     []*commitInfo
-			expectedMessage string
+			name                    string
+			repoSquashCommitMessage string
+			commitInfos             []*commitInfo
+			expectedMessage         string
 		}{
 			{
 				name: "Single-line messages",
@@ -1278,7 +1280,8 @@ Commit description.
 				expectedMessage: "* looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...\n\n",
 			},
 			{
-				name: "Test Co-authored-by",
+				name:                    "Test Co-authored-by with repository override",
+				repoSquashCommitMessage: setting.RepoPRSquashCommitMessagePRTitle,
 				commitInfos: []*commitInfo{
 					{
 						userName:      user2.Name,
@@ -1289,14 +1292,7 @@ Commit description.
 						commitMessage: "commit msg 2",
 					},
 				},
-				expectedMessage: `* commit msg 1
-
-* commit msg 2
-
----------
-
-Co-authored-by: user4 <user4@example.com>
-`,
+				expectedMessage: "Co-authored-by: user4 <user4@example.com>",
 			},
 		}
 
@@ -1324,6 +1320,9 @@ Co-authored-by: user4 <user4@example.com>
 				pullIndex, err := strconv.ParseInt(elems[4], 10, 64)
 				assert.NoError(t, err)
 				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: pullIndex})
+				prUnit := repo.MustGetUnit(t.Context(), unit_model.TypePullRequests)
+				prUnit.PullRequestsConfig().DefaultSquashCommitMessage = tc.repoSquashCommitMessage
+				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), prUnit))
 				squashMergeCommitMessage, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)

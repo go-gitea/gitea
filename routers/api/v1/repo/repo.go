@@ -898,6 +898,11 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			optional.AssignPtrValue(changed, &config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
 			optional.AssignPtrString(changed, &config.DefaultMergeStyle, opts.DefaultMergeStyle)
 			optional.AssignPtrString(changed, &config.DefaultUpdateStyle, opts.DefaultUpdateStyle)
+			optional.AssignPtrString(changed, &config.DefaultSquashCommitMessage, opts.DefaultSquashCommitMessage)
+			if err := config.ValidateDefaultSquashCommitMessage(); err != nil {
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+				return err
+			}
 			// only validate update-style fields when the caller is actually changing one of them,
 			// so unrelated PATCH calls don't reject historical configs.
 			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {

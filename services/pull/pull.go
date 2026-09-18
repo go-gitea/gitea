@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 	"unicode/utf8"
 
 	"gitea.dev/models/db"
@@ -750,13 +749,17 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 	return errors.Join(errs...)
 }
 
-// GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
+// GetSquashMergeCommitMessages returns the default squash commit message body of the pull request
 func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) (_ string, err error) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return "", err
 	}
 
 	if err := pr.Issue.LoadPoster(ctx); err != nil {
+		return "", err
+	}
+
+	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return "", err
 	}
 
@@ -792,83 +795,77 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	if err != nil {
 		return "", err
 	}
+	limitedCommits = slices.DeleteFunc(limitedCommits, isMergeCommit)
 
 	mergeMessage := strings.TrimSpace(pr.Issue.Content) // use PR's title and description as squash commit message
-	if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+	switch util.IfZero(pr.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultSquashCommitMessage, setting.Repository.PullRequest.DefaultSquashCommitMessage) {
+	case setting.RepoPRSquashCommitMessagePRTitle:
+		mergeMessage = ""
+	case setting.RepoPRSquashCommitMessagePRTitleCommits:
 		mergeMessage = formatSquashMergeCommitMessages(limitedCommits) // use PR's commit messages as squash commit message
 	}
-	coAuthors := collectSquashMergeCommitCoAuthors(ctx, gitRepo, pr, headCommitRef, mergeBaseRef, limit, limitedCommits)
-	return buildSquashMergeCommitMessages(mergeMessage, coAuthors), nil
+
+	trailerCommits := limitedCommits
+	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
+		remainingCommits, err := gitRepo.CommitsBetween(ctx, headCommitRef, mergeBaseRef, -1, limit)
+		if err != nil {
+			return "", err
+		}
+		trailerCommits = slices.Concat(limitedCommits, slices.DeleteFunc(remainingCommits, isMergeCommit))
+	}
+	trailers, err := collectSquashMergeCommitTrailers(ctx, pr.Issue.Poster, trailerCommits)
+	if err != nil {
+		return "", err
+	}
+	return buildSquashMergeCommitMessages(mergeMessage, trailers, len(limitedCommits) > 1), nil
 }
 
-func buildSquashMergeCommitMessages(mergeMessage string, coAuthors []string) string {
-	if len(coAuthors) == 0 {
+func isMergeCommit(commit *git.Commit) bool {
+	return commit.ParentCount() > 1
+}
+
+func buildSquashMergeCommitMessages(mergeMessage string, trailers []string, multipleCommits bool) string {
+	_, _, trailer := git.CommitMessageSplitTrailer(mergeMessage)
+	existingTrailers := git.CommitMessageParseTrailer(trailer)
+	trailers = slices.DeleteFunc(trailers, func(line string) bool {
+		key, value, _ := strings.Cut(line, ": ")
+		return slices.Contains(existingTrailers[strings.ToLower(key)], value)
+	})
+	if len(trailers) == 0 {
 		return mergeMessage
 	}
-
-	msgContent, msgSep, msgTrailer := git.CommitMessageSplitTrailer(mergeMessage)
-	if (msgSep == "" || msgSep == "\n\n") && msgTrailer == "" {
-		msgContent = strings.TrimRightFunc(msgContent, unicode.IsSpace)
-		msgSep = "\n\n---------\n\n"
-	}
-	var sb strings.Builder
-	sb.WriteString(msgContent)
-	sb.WriteString(msgSep)
-	if msgTrailer = strings.TrimSpace(msgTrailer); msgTrailer != "" {
-		sb.WriteString(msgTrailer)
-		sb.WriteRune('\n')
-	}
-	for _, author := range coAuthors {
-		sb.WriteString(git.CoAuthoredByTrailer + ": ")
-		sb.WriteString(author)
-		sb.WriteRune('\n')
-	}
-	return sb.String()
+	return git.CommitMessageMerge(mergeMessage, util.Iif(multipleCommits, "\n\n---------\n\n", "")+strings.Join(trailers, "\n")) // appending to existing trailers keeps them recognized: https://github.com/go-gitea/gitea/issues/37529
 }
 
-func collectSquashMergeCommitCoAuthors(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest, headCommitRef, mergeBaseRef git.RefName, limitFirst int, limitedCommits []*git.Commit) []string {
-	posterSig := pr.Issue.Poster.NewGitSig().String()
-	uniqueAuthors := make(container.Set[string])
-	authors := make([]string, 0, len(limitedCommits))
-
-	for _, commit := range limitedCommits {
-		authorString := commit.Author.String()
-		if uniqueAuthors.Add(authorString) && authorString != posterSig {
-			// Compare use account as well to avoid adding the same author multiple times
-			// when email addresses are private or multiple emails are used.
-			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
-			if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
-				authors = append(authors, authorString)
+func collectSquashMergeCommitTrailers(ctx context.Context, poster *user_model.User, commits []*git.Commit) ([]string, error) {
+	var trailers []string
+	var coAuthors []*git.CommitIdentity
+	uniqueEmails := make(container.Set[string])
+	for _, commit := range slices.Backward(commits) {
+		for _, signOff := range commit.MessageTrailer()["signed-off-by"] {
+			if line := "Signed-off-by: " + signOff; !slices.Contains(trailers, line) {
+				trailers = append(trailers, line)
+			}
+		}
+		for _, identity := range commit.AllAuthorIdentities() {
+			if identity.Email != "" && !strings.EqualFold(identity.Email, poster.GetEmail()) && uniqueEmails.Add(strings.ToLower(identity.Email)) {
+				coAuthors = append(coAuthors, identity)
 			}
 		}
 	}
 
-	// collect the remaining authors
-	if limitFirst >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
-		skip := limitFirst
-		batchLimit := 30
-		for {
-			commits, err := gitRepo.CommitsBetween(ctx, headCommitRef, mergeBaseRef, batchLimit, skip)
-			if err != nil {
-				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
-				return authors
-			}
-			if len(commits) == 0 {
-				break
-			}
-			for _, commit := range commits {
-				authorString := commit.Author.String()
-				if uniqueAuthors.Add(authorString) && authorString != posterSig {
-					commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
-					if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
-						authors = append(authors, authorString)
-					}
-				}
-			}
-			skip += batchLimit
+	emailUsers, err := user_model.GetUsersByEmails(ctx, uniqueEmails.Values())
+	if err != nil {
+		return nil, err
+	}
+	for _, coAuthor := range coAuthors {
+		// Compare use account as well to avoid adding the same author multiple times
+		// when email addresses are private or multiple emails are used.
+		if commitUser := emailUsers.GetByEmail(coAuthor.Email); commitUser == nil || commitUser.ID != poster.ID {
+			trailers = append(trailers, fmt.Sprintf("%s: %s <%s>", git.CoAuthoredByTrailer, coAuthor.Name, coAuthor.Email))
 		}
 	}
-	return authors
+	return trailers, nil
 }
 
 func formatSquashMergeCommitMessages(commits []*git.Commit) string {

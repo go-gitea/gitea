@@ -505,7 +505,7 @@ func TestAPIRepoEdit(t *testing.T) {
 	})
 }
 
-func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
+func TestAPIRepoEditPullSettingsValidation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -530,5 +530,9 @@ func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 		AllowRebaseUpdate:  &allowRebaseUpdate,
 		DefaultUpdateStyle: &defaultUpdateStyle,
 	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	defaultSquashCommitMessage := "pr-body"
+	req = NewRequestWithJSON(t, "PATCH", repoURL, &api.EditRepoOption{DefaultSquashCommitMessage: &defaultSquashCommitMessage}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 }

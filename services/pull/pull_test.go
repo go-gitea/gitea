@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -94,25 +95,30 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 }
 
 func TestBuildSquashMergeCommitMessages(t *testing.T) {
-	cases := []struct {
-		msg       string
-		coAuthors []string
-		expected  string
-	}{
-		{"title", nil, "title"},
-		{"title", []string{"the-user"}, "title\n\n---------\n\nCo-authored-by: the-user\n"},
-		{"title\n\n", []string{"the-user"}, "title\n\n---------\n\nCo-authored-by: the-user\n"},
-		{"title\n\nKey: val", []string{"the-user"}, "title\n\nKey: val\nCo-authored-by: the-user\n"},
-		{"title\n\n----\nKey: val", []string{"the-user"}, "title\n\n----\nKey: val\nCo-authored-by: the-user\n"},
-		{"title\n\n----\nKey: val\n\n", []string{"the-user"}, "title\n\n----\nKey: val\nCo-authored-by: the-user\n"},
+	trailers := []string{"Signed-off-by: a <a@example.com>", "Co-authored-by: b <b@example.com>"}
+	assert.Equal(t, "body\n\nSigned-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body", trailers, false))
+	assert.Equal(t, "body\n\n---------\n\nSigned-off-by: a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body", trailers, true))
+	assert.Equal(t, "body\n\nRefs: #1\nsigned-off-by:  a <a@example.com>\nCo-authored-by: b <b@example.com>", buildSquashMergeCommitMessages("body\n\nRefs: #1\nsigned-off-by:  a <a@example.com>", trailers, true))
+}
 
-		{"title\n\nbody", nil, "title\n\nbody"},
-		{"title\n\nbody", []string{"the-user"}, "title\n\nbody\n\n---------\n\nCo-authored-by: the-user\n"},
-		{"title\n\nbody\n\nKey: val", []string{"the-user"}, "title\n\nbody\n\nKey: val\nCo-authored-by: the-user\n"},
-		{"title\n\nbody\n\n----\nKey: val", []string{"the-user"}, "title\n\nbody\n\n----\nKey: val\nCo-authored-by: the-user\n"},
+func TestCollectSquashMergeCommitTrailers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	poster := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	newCommit := func(authorName, msg string) *git.Commit {
+		return &git.Commit{Author: &git.Signature{Name: authorName, Email: authorName + "@example.com"}, CommitMessage: git.CommitMessage{MessageRaw: msg}}
 	}
-	for _, c := range cases {
-		msg := buildSquashMergeCommitMessages(c.msg, c.coAuthors)
-		assert.Equal(t, c.expected, msg, "msg: %s", c.msg)
-	}
+
+	trailers, err := collectSquashMergeCommitTrailers(t.Context(), poster, []*git.Commit{
+		newCommit("whiskey", "third\n\nCo-authored-by: renamed <ZULU@example.com>"),
+		newCommit("user2", "second\n\nSigned-off-by: one <one@example.com>\nSigned-off-by: two <two@example.com>"),
+		newCommit("zulu", "first\n\nCo-authored-by: yankee <yankee@example.com>\nSigned-off-by: two <two@example.com>"),
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{
+		"Signed-off-by: two <two@example.com>",
+		"Signed-off-by: one <one@example.com>",
+		"Co-authored-by: zulu <zulu@example.com>",
+		"Co-authored-by: yankee <yankee@example.com>",
+		"Co-authored-by: whiskey <whiskey@example.com>",
+	}, trailers)
 }
