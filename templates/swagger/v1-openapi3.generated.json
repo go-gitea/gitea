@@ -3707,25 +3707,6 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
-      "ConvertUserTypeOption": {
-        "description": "ConvertUserTypeOption options when converting a user between individual and bot",
-        "properties": {
-          "user_type": {
-            "description": "The target user type",
-            "enum": [
-              "User",
-              "Bot"
-            ],
-            "type": "string",
-            "x-go-name": "UserType"
-          }
-        },
-        "required": [
-          "user_type"
-        ],
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
       "CreateAccessTokenOption": {
         "description": "CreateAccessTokenOption options when create access token",
         "properties": {
@@ -6329,6 +6310,14 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "SourceID"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserTypeString"
+              }
+            ],
+            "description": "The account type, a change converts between User and Bot"
           },
           "visibility": {
             "allOf": [
@@ -10742,15 +10731,12 @@
             "x-go-name": "StarredRepos"
           },
           "type": {
-            "description": "the account type",
-            "enum": [
-              "User",
-              "Organization",
-              "Bot"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserTypeString"
+              }
             ],
-            "type": "string",
-            "x-go-enum-desc": "User UserTypeStringUser\nOrganization UserTypeStringOrganization\nBot UserTypeStringBot",
-            "x-go-name": "Type"
+            "description": "the account type"
           },
           "visibility": {
             "allOf": [
@@ -10907,6 +10893,14 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "UserTypeString": {
+        "enum": [
+          "User",
+          "Organization",
+          "Bot"
+        ],
+        "type": "string"
       },
       "VisibilityString": {
         "enum": [
@@ -12286,51 +12280,6 @@
           }
         },
         "summary": "Add a badge to a user",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/admin/users/{username}/convert-type": {
-      "post": {
-        "operationId": "adminConvertUserType",
-        "parameters": [
-          {
-            "description": "username of the user to convert",
-            "in": "path",
-            "name": "username",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConvertUserTypeOption"
-              }
-            }
-          },
-          "required": true,
-          "x-originalParamName": "body"
-        },
-        "responses": {
-          "204": {
-            "$ref": "#/components/responses/empty"
-          },
-          "400": {
-            "$ref": "#/components/responses/error"
-          },
-          "403": {
-            "$ref": "#/components/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
-          }
-        },
-        "summary": "Convert an account between the user and bot types",
         "tags": [
           "admin"
         ]

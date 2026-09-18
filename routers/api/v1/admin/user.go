@@ -190,12 +190,26 @@ func EditUser(ctx *context.APIContext) {
 
 	form := web.GetForm[*api.EditUserOption](ctx)
 
+	var userType optional.Option[user_model.UserType]
+	if form.Type != "" && form.Type != convert.UserTypeToString(ctx.ContextUser.Type) {
+		newType, err := convert.UserTypeFromString(form.Type)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+		userType = optional.Some(newType)
+	}
+
 	authOpts := &user_service.UpdateAuthOptions{
 		LoginSource:        optional.FromNonDefault(form.SourceID),
 		LoginName:          optional.FromPtr(form.LoginName),
 		Password:           optional.FromNonDefault(form.Password),
 		MustChangePassword: optional.FromPtr(form.MustChangePassword),
 		ProhibitLogin:      optional.FromPtr(form.ProhibitLogin),
+	}
+	if userType.Value() == user_model.UserTypeBot && (authOpts.Password.Has() || authOpts.LoginSource.Value() != 0 || authOpts.LoginName.Value() != "") {
+		ctx.APIError(http.StatusBadRequest, "a bot account cannot have a password or authentication source")
+		return
 	}
 	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
 		switch {
@@ -231,6 +245,7 @@ func EditUser(ctx *context.APIContext) {
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
 		AllowCreateOrganization: optional.FromPtr(form.AllowCreateOrganization),
 		IsRestricted:            optional.FromPtr(form.Restricted),
+		UserType:                userType,
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
@@ -548,49 +563,6 @@ func RenameUser(ctx *context.APIContext) {
 		} else {
 			ctx.APIErrorInternal(err)
 		}
-		return
-	}
-	ctx.Status(http.StatusNoContent)
-}
-
-// ConvertUserType converts an account between the user and bot types
-func ConvertUserType(ctx *context.APIContext) {
-	// swagger:operation POST /admin/users/{username}/convert-type admin adminConvertUserType
-	// ---
-	// summary: Convert an account between the user and bot types
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: username
-	//   in: path
-	//   description: username of the user to convert
-	//   type: string
-	//   required: true
-	// - name: body
-	//   in: body
-	//   required: true
-	//   schema:
-	//     "$ref": "#/definitions/ConvertUserTypeOption"
-	// responses:
-	//   "204":
-	//     "$ref": "#/responses/empty"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-
-	targetType, err := convert.UserTypeFromString(web.GetForm[*api.ConvertUserTypeOption](ctx).UserType)
-	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-
-	if err := user_service.UpdateUser(ctx, ctx.ContextUser, &user_service.UpdateOptions{UserType: optional.Some(targetType)}); err != nil {
-		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

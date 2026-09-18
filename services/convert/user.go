@@ -12,7 +12,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func userTypeToString(t user_model.UserType) api.UserTypeString {
+func UserTypeToString(t user_model.UserType) api.UserTypeString {
 	switch t {
 	case user_model.UserTypeOrganization, user_model.UserTypeOrganizationReserved:
 		return api.UserTypeStringOrganization
@@ -74,7 +74,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
-		Type:        userTypeToString(user.Type),
+		Type:        UserTypeToString(user.Type),
 		FullName:    user.FullName,
 		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),
