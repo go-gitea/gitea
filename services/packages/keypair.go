@@ -8,22 +8,20 @@ import (
 	"errors"
 	"fmt"
 
-	packages_model "gitea.dev/models/packages"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/util"
 )
 
-// GetOrCreateKeyPair gets the owner's key pair used to sign repository files of the given package type,
+// GetOrCreateKeyPair gets the owner's key pair used to sign repository files,
 // generating and storing it if it does not exist yet.
-func GetOrCreateKeyPair(ctx context.Context, packageType packages_model.Type, ownerID int64, settingKeyPriv, settingKeyPub string, generate func() (priv, pub string, err error)) (string, string, error) {
+func GetOrCreateKeyPair(ctx context.Context, ownerID int64, settingKeyPriv, settingKeyPub string, generate func() (priv, pub string, err error)) (string, string, error) {
 	priv, pub, err := getKeyPair(ctx, ownerID, settingKeyPriv, settingKeyPub)
 	if err != nil || (priv != "" && pub != "") {
 		return priv, pub, err
 	}
 
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("pkg-keypair-%s-%d", packageType, ownerID), func(ctx context.Context) error {
-		var err error
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("pkg-keypair-%s-%d", settingKeyPriv, ownerID), func(ctx context.Context) error {
 		priv, pub, err = getKeyPair(ctx, ownerID, settingKeyPriv, settingKeyPub) // re-read inside the lock, another request may have created it
 		if err != nil || (priv != "" && pub != "") {
 			return err

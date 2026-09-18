@@ -39,7 +39,7 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	return packages_service.GetOrCreateKeyPair(ctx, packages_model.TypeDebian, ownerID, debian_module.SettingKeyPrivate, debian_module.SettingKeyPublic, generateKeypair)
+	return packages_service.GetOrCreateKeyPair(ctx, ownerID, debian_module.SettingKeyPrivate, debian_module.SettingKeyPublic, generateKeypair)
 }
 
 func generateKeypair() (string, string, error) {

@@ -44,7 +44,7 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 
 // GetOrCreateKeyPair gets or creates the RSA keys used to sign repository files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	return packages_service.GetOrCreateKeyPair(ctx, packages_model.TypeAlpine, ownerID, alpine_module.SettingKeyPrivate, alpine_module.SettingKeyPublic, func() (string, string, error) {
+	return packages_service.GetOrCreateKeyPair(ctx, ownerID, alpine_module.SettingKeyPrivate, alpine_module.SettingKeyPublic, func() (string, string, error) {
 		return util.GenerateKeyPair(4096)
 	})
 }
