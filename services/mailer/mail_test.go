@@ -168,6 +168,28 @@ func TestMailMentionsComment(t *testing.T) {
 	assert.Equal(t, 3, mails)
 }
 
+func TestMailsSkipBots(t *testing.T) {
+	doer, repo, issue, comment := prepareMailerTest(t)
+	comment.Poster = doer
+	var recipients []string
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		for _, msg := range msgs {
+			recipients = append(recipients, msg.To)
+		}
+	})()
+
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 5, Type: user_model.UserTypeBot}, "type"))
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	require.NoError(t, SendIssueAssignedMail(t.Context(), issue, doer, "", comment, []*user_model.User{user, bot}))
+	require.NoError(t, MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{bot}))
+	require.NoError(t, SendRepoTransferNotifyMail(t.Context(), doer, bot, repo))
+	SendCollaboratorMail(bot, doer, repo)
+	SendRegisterNotifyMail(bot)
+	assert.Contains(t, recipients, user.Email)
+	assert.NotContains(t, strings.Join(recipients, " "), bot.Email)
+}
+
 func TestComposeIssueMessage(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 

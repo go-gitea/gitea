@@ -89,5 +89,6 @@ func IsErrUserIsNotLocal(err error) bool {
 
 var (
 	ErrBotCanNotBeAdmin      = util.NewInvalidArgumentErrorf("bot user can not be a site administrator")
+	ErrBotMustBeLocal        = util.NewInvalidArgumentErrorf("bot user must use local authentication")
 	ErrUserTypeCanNotConvert = util.NewInvalidArgumentErrorf("user type can not be converted")
 )

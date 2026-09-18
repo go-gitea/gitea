@@ -83,7 +83,7 @@
 
 				<!-- Send register notify e-mail -->
 				{{if .CanSendEmail}}
-					<div class="inline field">
+					<div class="inline js-non-bot field">
 						<div class="ui checkbox">
 							<label><strong>{{ctx.Locale.Tr "admin.users.send_register_notify"}}</strong></label>
 							<input name="send_notify" type="checkbox" {{if .send_notify}}checked{{end}}>

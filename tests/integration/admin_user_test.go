@@ -172,6 +172,7 @@ func TestAdminBotUser(t *testing.T) {
 		assert.False(t, bot.MustChangePassword)
 
 		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d/edit", bot.ID)), http.StatusOK).Body)
+		assert.Equal(t, "Bot", doc.Find("#user_type").AttrOr("value", ""))
 		assert.Empty(t, doc.Find("#login_type").Nodes)
 		assert.Empty(t, doc.Find("#password").Nodes)
 		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", bot.ID)), http.StatusOK).Body)
@@ -250,6 +251,8 @@ func TestAdminBotUser(t *testing.T) {
 			session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/users/%d/edit", userID), map[string]string{
 				"user_name":  user.Name,
 				"login_type": "0-0",
+				"login_name": user.LoginName,
+				"password":   "Bot-Password-1234",
 				"email":      user.Email,
 				"user_type":  userType,
 				"visibility": "0",
@@ -267,6 +270,8 @@ func TestAdminBotUser(t *testing.T) {
 		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).IsIndividual())
 
 		editUserType(4, "Bot")
-		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).IsTypeBot())
+		converted := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		assert.True(t, converted.IsTypeBot())
+		assert.Equal(t, user4.Passwd, converted.Passwd)
 	})
 }

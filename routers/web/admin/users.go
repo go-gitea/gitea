@@ -151,7 +151,7 @@ func NewUserPost(ctx *context.Context) {
 		Visibility: &form.Visibility,
 	}
 
-	if userType, err := convert.UserTypeFromString(form.UserType); err == nil && userType == user_model.UserTypeBot {
+	if form.UserType == api.UserTypeStringBot {
 		u.Type = user_model.UserTypeBot
 		u.Passwd = ""
 	} else if len(form.LoginType) > 0 {
@@ -419,9 +419,19 @@ func EditUserPost(ctx *context.Context) {
 		}
 	}
 
-	authOpts := &user_service.UpdateAuthOptions{
-		Password:  optional.FromNonDefault(form.Password),
-		LoginName: optional.Some(form.LoginName),
+	userType := u.Type
+	if formUserType, err := convert.UserTypeFromString(form.UserType); err == nil {
+		userType = formUserType
+	}
+
+	authOpts := &user_service.UpdateAuthOptions{}
+	if !u.IsTypeBot() && userType != user_model.UserTypeBot { // the auth fields hidden for bots still submit their values
+		authOpts.Password = optional.FromNonDefault(form.Password)
+		authOpts.LoginName = optional.Some(form.LoginName)
+		if fields := strings.Split(form.LoginType, "-"); len(fields) == 2 {
+			authSource, _ := strconv.ParseInt(fields[1], 10, 64)
+			authOpts.LoginSource = optional.Some(authSource)
+		}
 	}
 
 	// skip self Prohibit Login
@@ -429,13 +439,6 @@ func EditUserPost(ctx *context.Context) {
 		authOpts.ProhibitLogin = optional.Some(false)
 	} else {
 		authOpts.ProhibitLogin = optional.Some(form.ProhibitLogin)
-	}
-
-	fields := strings.Split(form.LoginType, "-")
-	if len(fields) == 2 {
-		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
-
-		authOpts.LoginSource = optional.Some(authSource)
 	}
 
 	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
@@ -493,9 +496,7 @@ func EditUserPost(ctx *context.Context) {
 		IsRestricted:            optional.Some(form.Restricted),
 		Visibility:              optional.Some(form.Visibility),
 		Language:                optional.Some(form.Language),
-	}
-	if userType, err := convert.UserTypeFromString(form.UserType); err == nil {
-		opts.UserType = optional.Some(userType)
+		UserType:                optional.Some(userType),
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {

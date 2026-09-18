@@ -190,4 +190,6 @@ func TestConvertUserType(t *testing.T) {
 	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}), toBot), user_model.ErrUserTypeCanNotConvert)
 	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), toBot), user_model.ErrBotCanNotBeAdmin)
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).IsIndividual())
+	assert.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 4, LoginType: auth_model.LDAP}, "login_type"))
+	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}), toBot), user_model.ErrBotMustBeLocal)
 }

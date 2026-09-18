@@ -125,12 +125,12 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			if err != nil || len(users) == 0 {
 				return err
 			}
-			for i := range users {
-				if users[i].IsTypeBot() {
+			for i, user := range users {
+				if user.IsTypeBot() {
 					continue
 				}
 				notify = append(notify, &Notification{
-					UserID:    users[i].ID,
+					UserID:    i,
 					RepoID:    repo.ID,
 					Status:    NotificationStatusUnread,
 					UpdatedBy: doer.ID,
