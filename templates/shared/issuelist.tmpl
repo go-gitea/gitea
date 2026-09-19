@@ -112,6 +112,7 @@
 						{{$approveOfficial := call $approvalCounts .ID "approve"}}
 						{{$rejectOfficial := call $approvalCounts .ID "reject"}}
 						{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
+						{{$commented := call $approvalCounts .ID "comment"}}
 						{{if gt $approveOfficial 0}}
 							<span class="approvals green flex-text-inline">
 								{{svg "octicon-check" 14}}
@@ -128,6 +129,12 @@
 							<span class="waiting flex-text-inline">
 								{{svg "octicon-eye" 14}}
 								{{ctx.Locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
+							</span>
+						{{end}}
+						{{if gt $commented 0}}
+							<span class="comments flex-text-inline">
+								{{svg "octicon-comment" 14}}
+								{{ctx.Locale.TrN $commented "repo.pulls.comment_count_1" "repo.pulls.comment_count_n" $commented}}
 							</span>
 						{{end}}
 						{{if and (not .PullRequest.HasMerged) .PullRequest.ConflictedFiles}}
