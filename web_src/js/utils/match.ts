@@ -4,9 +4,9 @@ import {parseIssuePageInfo} from '../utils.ts';
 import {errorMessage} from '../modules/errors.ts';
 import type {Issue, Mention} from '../types.ts';
 
-export const maxMatches = 6;
+const maxMatches = 6;
 
-export function sortAndReduce<T>(map: Map<T, number>): T[] {
+function sortAndReduce<T>(map: Map<T, number>): T[] {
   const sortedMap = new Map(Array.from(map).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }

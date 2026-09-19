@@ -1,9 +1,9 @@
 import emojis from '../../../assets/emoji.json' with {type: 'json'};
 import {html} from '../utils/html.ts';
-import {maxMatches, sortAndReduce} from '../utils/match.ts';
 
 const {assetUrlPrefix, customEmojis} = window.config;
 const emojiAliases = Object.values(emojis);
+const maxMatches = 6;
 
 const tempMap = {...customEmojis};
 for (const [emoji, aliases] of Object.entries(emojis)) {
@@ -56,5 +56,5 @@ export function matchEmoji(queryText: string): string[] {
     }
   }
 
-  return sortAndReduce(results);
+  return Array.from(results).sort((a, b) => a[1] - b[1]).slice(0, maxMatches).map(([alias]) => alias);
 }
