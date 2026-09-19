@@ -199,11 +199,7 @@
 									</div>
 								{{else if $file.Sections}}
 									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
-										{{if $.IsSplitStyle}}
-											{{template "repo/diff/section_split" dict "file" . "root" $}}
-										{{else}}
-											{{template "repo/diff/section_unified" dict "file" . "root" $}}
-										{{end}}
+										{{template "repo/diff/section" dict "file" . "root" $}}
 									</table>
 								{{else if $file.IsRenamed}}
 									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_renamed_no_changes"}}</div>

@@ -27,9 +27,10 @@ type BlobExcerptOptions struct {
 	RightHunkSize int
 	Direction     string
 	Language      string
+	GapKey        string // the gap being expanded, so its lines stay attributable to it
 }
 
-func (diffSection *DiffSection) fillExcerptLines(reader io.Reader, leftStart, rightStart, chunkSize int) error {
+func (diffSection *DiffSection) fillExcerptLines(reader io.Reader, leftStart, rightStart, chunkSize int, gapKey string) error {
 	buf := &bytes.Buffer{}
 	scanner := git.NewGitDiffScanner(reader)
 	var diffLines []*DiffLine
@@ -46,10 +47,11 @@ func (diffSection *DiffSection) fillExcerptLines(reader io.Reader, leftStart, ri
 			continue
 		}
 		diffLine := &DiffLine{
-			LeftIdx:  leftStart + (rightLineIdx - rightStart),
-			RightIdx: rightLineIdx,
-			Type:     DiffLinePlain,
-			Content:  " " + lineText,
+			LeftIdx:         leftStart + (rightLineIdx - rightStart),
+			RightIdx:        rightLineIdx,
+			Type:            DiffLinePlain,
+			Content:         " " + lineText,
+			ExpandedFromGap: gapKey,
 		}
 		diffLines = append(diffLines, diffLine)
 	}
@@ -81,9 +83,9 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 		idxRight -= expandLimit
 		leftHunkSize += expandLimit
 		rightHunkSize += expandLimit
-		err = section.fillExcerptLines(reader, idxLeft, idxRight, expandLimit)
+		err = section.fillExcerptLines(reader, idxLeft, idxRight, expandLimit, opts.GapKey)
 	} else if direction == "down" && remainingLines > expandLimit {
-		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
+		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit, opts.GapKey)
 		lastLeft += expandLimit
 		lastRight += expandLimit
 	} else /* "single" or [ ("up" or "down") and (remainingLines <= expandLimit) ] */ {
@@ -99,7 +101,7 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 			// * "last" line is already rendered, so just render the remaining lines from the next line
 			expandLimit = remainingLines
 		}
-		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
+		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit, opts.GapKey)
 		// now, the hidden lines are fewer than "expand limit", after expand, no hidden lines anymore,
 		// no need to show new "expand buttons" (setting them to 0 will make GetExpandDirection returns "no direction")
 		leftHunkSize, rightHunkSize, idxLeft, idxRight = 0, 0, 0, 0
@@ -109,7 +111,8 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 	}
 
 	newLineSection := &DiffLine{
-		Type: DiffLineSection,
+		Type:            DiffLineSection,
+		ExpandedFromGap: opts.GapKey,
 		SectionInfo: &DiffLineSectionInfo{
 			language:      &diffVarMutable[string]{value: opts.Language},
 			Path:          filePath,

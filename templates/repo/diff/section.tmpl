@@ -1,0 +1,8 @@
+{{/* the diff box and ExcerptBlob both render their rows through here, so the diff style is chosen once.
+The conversation and editor previews bypass it on purpose: they are always unified. */}}
+{{$root := or $.root $}}
+{{if $root.IsSplitStyle}}
+	{{template "repo/diff/section_split" dict "file" $.file "root" $root}}
+{{else}}
+	{{template "repo/diff/section_unified" dict "file" $.file "root" $root}}
+{{end}}
