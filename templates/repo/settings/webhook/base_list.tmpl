@@ -19,7 +19,7 @@
 					<span class="tw-ml-2 tw-text-grey-light">{{.URL}}</span>
 				</div>
 				<a class="muted" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
-				<a class="tw-text-red tw-pr-2 link-action"
+				<a class="tw-text-red tw-pr-2 link-action negative"
 					data-url="{{$.Link}}/delete?id={{.ID}}"
 					data-modal-confirm="{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}"
 				>{{svg "octicon-trash"}}</a>

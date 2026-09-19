@@ -62,7 +62,7 @@
 							</a>
 						{{end}}
 						{{if and $data.CanWriteRepoUnitActions $run.Status.IsDone}}
-							<a class="item link-action"
+							<a class="item link-action negative"
 								data-url="{{$run.Link}}/delete"
 								data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
 							>

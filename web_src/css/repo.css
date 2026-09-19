@@ -302,11 +302,6 @@
   margin-bottom: 1rem;
 }
 
-.issue-title-meta {
-  display: flex;
-  align-items: center;
-}
-
 .repository.view.issue .issue-title-buttons {
   display: flex;
   gap: 0.5em;
@@ -1785,6 +1780,7 @@ tbody.commit-list {
   padding: 10px;
   border: 1px solid transparent;
   border-bottom: none;
+  border-radius: 0;
 }
 
 .branch-selector-dropdown .branch-tag-item.active {

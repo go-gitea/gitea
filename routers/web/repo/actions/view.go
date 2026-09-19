@@ -406,10 +406,9 @@ type ViewJobStep struct {
 }
 
 type ViewStepLog struct {
-	Step    int                `json:"step"`
-	Cursor  int64              `json:"cursor"`
-	Lines   []*ViewStepLogLine `json:"lines"`
-	Started int64              `json:"started"`
+	Step   int                `json:"step"`
+	Cursor int64              `json:"cursor"`
+	Lines  []*ViewStepLogLine `json:"lines"`
 }
 
 type ViewStepLogLine struct {
@@ -875,7 +874,6 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 							Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
 						},
 					},
-					Started: int64(step.Started),
 				})
 			}
 			continue
@@ -911,10 +909,9 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 		}
 
 		logs = append(logs, &ViewStepLog{
-			Step:    cursor.Step,
-			Cursor:  cursor.Cursor + int64(len(logLines)),
-			Lines:   logLines,
-			Started: int64(step.Started),
+			Step:   cursor.Step,
+			Cursor: cursor.Cursor + int64(len(logLines)),
+			Lines:  logLines,
 		})
 	}
 
@@ -1385,6 +1382,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
+	actions_service.RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow, isEnable)
 
 	if isEnable {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.enable_success", workflow))
