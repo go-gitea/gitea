@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBuildBlobExcerptDiffSection(t *testing.T) {
+func TestBuildBlobExcerptDiffSections_OneChunk(t *testing.T) {
 	data := &bytes.Buffer{}
 	for i := range 100 {
 		data.WriteString("a = " + strconv.Itoa(i+1) + "\n")
@@ -22,14 +22,16 @@ func TestBuildBlobExcerptDiffSection(t *testing.T) {
 
 	locale := translation.MockLocale{}
 	lineMiddle := 50
-	diffSection, err := BuildBlobExcerptDiffSection("a.py", bytes.NewReader(data.Bytes()), BlobExcerptOptions{
+	sections, err := BuildBlobExcerptDiffSections("a.py", bytes.NewReader(data.Bytes()), []BlobExcerptOptions{{
 		LeftIndex:     lineMiddle,
 		RightIndex:    lineMiddle,
 		LeftHunkSize:  10,
 		RightHunkSize: 10,
 		Direction:     "up",
-	})
+	}})
 	require.NoError(t, err)
+	require.Len(t, sections, 1)
+	diffSection := sections[0]
 	assert.Len(t, diffSection.highlightedRightLines.value, BlobExcerptChunkSize)
 	assert.NotEmpty(t, diffSection.highlightedRightLines.value[lineMiddle-BlobExcerptChunkSize-1])
 	assert.NotEmpty(t, diffSection.highlightedRightLines.value[lineMiddle-2]) // 0-based
@@ -44,13 +46,13 @@ func TestDiffLineSectionInfoGapKey(t *testing.T) {
 	assert.Equal(t, "31-54", info.GapKey())
 }
 
-func TestBuildBlobExcerptDiffSectionsForGaps(t *testing.T) {
+func TestBuildBlobExcerptDiffSections_WholeGaps(t *testing.T) {
 	data := &bytes.Buffer{}
 	for i := range 100 {
 		data.WriteString("a = " + strconv.Itoa(i+1) + "\n")
 	}
 	// a leading gap that stops before the first rendered line, and one that runs to the end of the file
-	sections, err := BuildBlobExcerptDiffSectionsForGaps("a.py", bytes.NewReader(data.Bytes()), []BlobExcerptOptions{
+	sections, err := BuildBlobExcerptDiffSections("a.py", bytes.NewReader(data.Bytes()), []BlobExcerptOptions{
 		{LastLeft: 0, LastRight: 0, LeftIndex: 13, RightIndex: 13, LeftHunkSize: 6, RightHunkSize: 7},
 		{LastLeft: 80, LastRight: 80, LeftIndex: 100, RightIndex: 100},
 	})

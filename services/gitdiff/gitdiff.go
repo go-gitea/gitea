@@ -81,8 +81,6 @@ type DiffLine struct {
 	SectionInfo *DiffLineSectionInfo
 	IsTruncated bool
 
-	ExpandedFromGap string // set on lines revealed from a gap, the GapKey of the section row they belong to
-
 	cachedDiffInline *DiffInlineComputed
 }
 
@@ -310,6 +308,9 @@ type DiffSection struct {
 
 	FileName string
 	Lines    []*DiffLine
+
+	// set when the section holds lines revealed from a gap, naming the gap they came from
+	ExpandedFromGap string
 }
 
 func (diffSection *DiffSection) GetLine(idx int) *DiffLine {

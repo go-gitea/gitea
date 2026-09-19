@@ -709,6 +709,9 @@ func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerpt
 	if len(gapSpecs) > maxExcerptGaps {
 		return nil, errors.New("too many gaps requested")
 	}
+	if len(gapSpecs) == 0 {
+		return nil, errors.New("no gap requested")
+	}
 	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapSpecs))
 	for _, spec := range gapSpecs {
 		nums := strings.Split(spec, ",")
@@ -739,19 +742,17 @@ func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerpt
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
-	opts := gitdiff.BlobExcerptOptions{
-		LastLeft:      ctx.FormInt("last_left"),
-		LastRight:     ctx.FormInt("last_right"),
-		LeftIndex:     ctx.FormInt("left"),
-		RightIndex:    ctx.FormInt("right"),
-		LeftHunkSize:  ctx.FormInt("left_hunk_size"),
-		RightHunkSize: ctx.FormInt("right_hunk_size"),
-		Direction:     ctx.FormString("direction"),
-		Language:      ctx.FormString("filelang"),
+	gapOpts, err := parseExcerptGaps(ctx.FormStrings("gap"), ctx.FormString("filelang"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		return
 	}
-	// the key of the gap this excerpt belongs to, so its rows can be collapsed and re-expanded later;
-	// a request without one is expanding a gap nothing has touched yet
-	opts.GapKey = util.IfZero(ctx.FormString("gap_key"), gitdiff.GapKeyOf(opts.LastRight, opts.RightIndex))
+	if len(gapOpts) == 1 {
+		// one gap may be revealed a chunk at a time, from whichever end its arrow points at. Its
+		// numbers have moved with what it already revealed, so the key it started with is sent too.
+		gapOpts[0].Direction = ctx.FormString("direction")
+		gapOpts[0].GapKey = util.IfZero(ctx.FormString("gap_key"), gapOpts[0].GapKey)
+	}
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
 
@@ -788,26 +789,10 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	defer reader.Close()
 
-	// "gap" names whole gaps to reveal, in file order, so showing a whole file takes one request
-	var sections []*gitdiff.DiffSection
-	if gapSpecs := ctx.FormStrings("gap"); len(gapSpecs) > 0 {
-		gapOpts, err := parseExcerptGaps(gapSpecs, opts.Language)
-		if err != nil {
-			ctx.HTTPError(http.StatusBadRequest, err.Error())
-			return
-		}
-		sections, err = gitdiff.BuildBlobExcerptDiffSectionsForGaps(filePath, reader, gapOpts)
-		if err != nil {
-			ctx.ServerError("BuildBlobExcerptDiffSectionsForGaps", err)
-			return
-		}
-	} else {
-		section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
-		if err != nil {
-			ctx.ServerError("BuildBlobExcerptDiffSection", err)
-			return
-		}
-		sections = []*gitdiff.DiffSection{section}
+	sections, err := gitdiff.BuildBlobExcerptDiffSections(filePath, reader, gapOpts)
+	if err != nil {
+		ctx.ServerError("BuildBlobExcerptDiffSections", err)
+		return
 	}
 	section := sections[0]
 

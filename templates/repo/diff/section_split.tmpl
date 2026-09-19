@@ -14,7 +14,7 @@
 	{{range $k, $line := $section.Lines}}
 		{{$hasmatch := ne $line.Match -1}}
 		{{if or (ne .GetType 2) (not $hasmatch)}}
-			<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}{{if $line.ExpandedFromGap}} line-expanded{{end}}" data-line-type="{{.GetHTMLDiffLineType}}"{{if $line.ExpandedFromGap}} data-expand-gap="{{$line.ExpandedFromGap}}"{{end}}>
+			<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}{{if $section.ExpandedFromGap}} line-expanded{{end}}" data-line-type="{{.GetHTMLDiffLineType}}"{{if $section.ExpandedFromGap}} data-expand-gap="{{$section.ExpandedFromGap}}"{{end}}>
 				{{if eq .GetType 4}}
 					{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale}}
 					<td class="lines-num lines-num-old">{{$line.RenderGapExpander $file.NameHash $diffBlobExcerptData}}</td>
