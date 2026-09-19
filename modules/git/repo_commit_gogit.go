@@ -48,7 +48,7 @@ func (repo *Repository) ConvertToGitID(ctx context.Context, commitID string) (Ob
 	if err != nil {
 		return nil, err
 	}
-	if len(commitID) == hash.HexSize && objectFormat.IsValid(commitID) {
+	if len(commitID) == hash.HexSize && IsStringValidObjectID(objectFormat, commitID) {
 		ID, err := NewIDFromString(commitID)
 		if err == nil {
 			return ID, nil

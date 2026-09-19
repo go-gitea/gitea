@@ -7,7 +7,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
+	"gitea.dev/modules/util"
 )
+
+// objectIdMinLen is the min length that can be used to determine if a string is a valid object id
+const objectIdMinLen = 4
 
 type ObjectID interface {
 	String() string
@@ -103,4 +108,29 @@ func IsEmptyCommitID(commitID string) bool {
 // ComputeBlobHash compute the hash for a given blob content
 func ComputeBlobHash(hashType ObjectFormat, content []byte) ObjectID {
 	return hashType.ComputeHash(ObjectBlob, content)
+}
+
+func IsStringValidObjectID(objFmt ObjectFormat, s string, optMinLen ...int) bool {
+	var minLen, maxLen int
+	if objFmt != nil {
+		maxLen = objFmt.FullLength()
+		minLen = util.OptionalArg(optMinLen, maxLen)
+	} else {
+		maxLen = Sha256ObjectFormat.FullLength()
+		minLen = util.OptionalArg(optMinLen, Sha1ObjectFormat.FullLength())
+	}
+	if len(s) < minLen || len(s) > maxLen {
+		return false
+	}
+	return isStringLowerHex(s)
+}
+
+func isStringLowerHex(s string) bool {
+	for _, c := range s {
+		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !isHex {
+			return false
+		}
+	}
+	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
 }

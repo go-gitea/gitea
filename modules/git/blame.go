@@ -74,7 +74,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 		var objectID string
 		objectFormatLength := r.objectFormat.FullLength()
 
-		if len(lineBytes) > objectFormatLength && lineBytes[objectFormatLength] == ' ' && r.objectFormat.IsValid(string(lineBytes[0:objectFormatLength])) {
+		if len(lineBytes) > objectFormatLength && lineBytes[objectFormatLength] == ' ' && IsStringValidObjectID(r.objectFormat, string(lineBytes[0:objectFormatLength])) {
 			objectID = string(lineBytes[0:objectFormatLength])
 		}
 		if len(objectID) > 0 {

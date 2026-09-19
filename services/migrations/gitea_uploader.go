@@ -918,7 +918,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 
 			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
-			if !objectFormat.IsValid(comment.CommitID) {
+			if git.IsStringValidObjectID(objectFormat, comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}
