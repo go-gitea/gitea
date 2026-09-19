@@ -740,12 +740,6 @@ func ExcerptBlob(ctx *context.Context) {
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
 
-	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
-		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
-		DiffStyle:     GetDiffViewStyle(ctx),
-		AfterCommitID: commitID,
-	}
-
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
 		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
@@ -753,7 +747,6 @@ func ExcerptBlob(ctx *context.Context) {
 			ctx.ServerError("OpenRepository", err)
 			return
 		}
-		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
 
 	commit, err := gitRepo.GetCommit(ctx, commitID)
@@ -780,14 +773,14 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	section := sections[0]
 
-	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
-	if diffBlobExcerptData.PullIssueIndex > 0 {
+	pullIssueIndex := ctx.FormInt64("pull_issue_index")
+	if pullIssueIndex > 0 {
 		if !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
 			ctx.NotFound(nil)
 			return
 		}
 
-		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, pullIssueIndex)
 		if err != nil {
 			log.Error("GetIssueByIndex error: %v", err)
 		} else if issue.IsPull {
@@ -798,7 +791,7 @@ func ExcerptBlob(ctx *context.Context) {
 			}
 			// and "diff/comment_form.tmpl" (reply comment) needs them
 			ctx.Data["PageIsPullFiles"] = true
-			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+			ctx.Data["AfterCommitID"] = commitID
 
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
@@ -820,7 +813,6 @@ func ExcerptBlob(ctx *context.Context) {
 		Sections: sections,
 	}
 	ctx.Data["IsExpandedLines"] = true
-	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	ctx.HTML(http.StatusOK, tplDiffSection)
 }
