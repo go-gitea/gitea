@@ -262,6 +262,31 @@ func TestHookTasks(t *testing.T) {
 	assert.Empty(t, hookTasks)
 }
 
+func TestListHookTasks(t *testing.T) {
+	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
+	tasks, count, err := ListHookTasks(t.Context(), ListHookTaskOptions{HookID: hook.ID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, count)
+	assert.Len(t, tasks, 3)
+
+	tasks, count, err = ListHookTasks(t.Context(), ListHookTaskOptions{HookID: unittest.NonexistentID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, count)
+	assert.Empty(t, tasks)
+}
+
+func TestGetHookTaskByUUID(t *testing.T) {
+	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{RepoID: 1, IsActive: true})
+	existing := unittest.AssertExistsAndLoadBean(t, &HookTask{HookID: hook.ID})
+
+	task, err := GetHookTaskByUUID(t.Context(), hook.ID, existing.UUID)
+	assert.NoError(t, err)
+	assert.Equal(t, existing.ID, task.ID)
+
+	_, err = GetHookTaskByUUID(t.Context(), hook.ID, "non-existent-uuid")
+	assert.True(t, IsErrHookTaskNotExist(err))
+}
+
 func TestCreateHookTask(t *testing.T) {
 	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{OwnerID: 3, IsActive: true})
 	hookTask := &HookTask{HookID: hook.ID, PayloadVersion: 2}

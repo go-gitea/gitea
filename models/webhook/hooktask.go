@@ -19,6 +19,20 @@ import (
 	"xorm.io/builder"
 )
 
+// ListHookTaskOptions are options to filter deliveries on ListHookTasks
+type ListHookTaskOptions struct {
+	db.ListOptions
+	HookID int64
+}
+
+func (opts ListHookTaskOptions) ToConds() builder.Cond {
+	return builder.NewCond().And(builder.Eq{"hook_task.hook_id": opts.HookID})
+}
+
+func (opts ListHookTaskOptions) ToOrders() string {
+	return "hook_task.id DESC"
+}
+
 //   ___ ___                __   ___________              __
 //  /   |   \  ____   ____ |  | _\__    ___/____    _____|  | __
 // /    ~    \/  _ \ /  _ \|  |/ / |    |  \__  \  /  ___/  |/ /
@@ -116,6 +130,25 @@ func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error)
 		Find(&tasks)
 }
 
+// ListHookTasks returns a paginated list of hook tasks (deliveries) for a webhook, most recent first.
+func ListHookTasks(ctx context.Context, opts ListHookTaskOptions) ([]*HookTask, int64, error) {
+	return db.FindAndCount[HookTask](ctx, opts)
+}
+
+// GetHookTaskByUUID gets a hook task (delivery) of the given hook by its UUID.
+func GetHookTaskByUUID(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
+	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
+	if err != nil {
+		return nil, err
+	} else if !exist {
+		return nil, ErrHookTaskNotExist{
+			HookID: hookID,
+			UUID:   uuid,
+		}
+	}
+	return task, nil
+}
+
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
@@ -152,14 +185,9 @@ func UpdateHookTask(ctx context.Context, t *HookTask) error {
 
 // ReplayHookTask copies a hook task to get re-delivered
 func ReplayHookTask(ctx context.Context, hookID int64, uuid string) (*HookTask, error) {
-	task, exist, err := db.Get[HookTask](ctx, builder.Eq{"hook_id": hookID, "uuid": uuid})
+	task, err := GetHookTaskByUUID(ctx, hookID, uuid)
 	if err != nil {
 		return nil, err
-	} else if !exist {
-		return nil, ErrHookTaskNotExist{
-			HookID: hookID,
-			UUID:   uuid,
-		}
 	}
 
 	return CreateHookTask(ctx, &HookTask{
