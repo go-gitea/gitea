@@ -240,3 +240,7 @@ func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
 	}
 	return ret
 }
+
+func IsGiteaFetchActionRequest(req *http.Request) bool {
+	return req.Header.Get("X-Gitea-Fetch-Action") != ""
+}

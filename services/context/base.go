@@ -161,7 +161,7 @@ func (b *Base) Redirect(location string, status ...int) {
 	}
 	// In case the request is made by "fetch-action" module, make JS redirect to the new location
 	// Otherwise, the JS fetch will follow the redirection and read a "login" page, embed it to the current page, which is not expected.
-	if b.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
+	if httplib.IsGiteaFetchActionRequest(b.Req) {
 		b.JSON(http.StatusOK, map[string]any{"redirect": location})
 		return
 	}
