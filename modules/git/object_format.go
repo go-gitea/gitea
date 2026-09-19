@@ -88,34 +88,13 @@ func (h Sha256ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) Object
 
 type invalidObjectFormatImpl struct{}
 
-var emptyInvalidObjectID = &Sha1Hash{}
-
-func (h invalidObjectFormatImpl) Name() string {
-	return "invalid-object-format"
-}
-
-func (h invalidObjectFormatImpl) EmptyObjectID() ObjectID {
-	return emptyInvalidObjectID
-}
-
-func (h invalidObjectFormatImpl) EmptyTree() ObjectID {
-	return emptyInvalidObjectID
-}
-
-func (h invalidObjectFormatImpl) FullLength() int {
-	return len(emptyInvalidObjectID) * 2
-}
-
-func (h invalidObjectFormatImpl) IsValid(input string) bool {
-	return false
-}
-
-func (h invalidObjectFormatImpl) MustID(b []byte) ObjectID {
-	return emptyInvalidObjectID
-}
-
+func (h invalidObjectFormatImpl) Name() string             { return "invalid-object-format" }
+func (h invalidObjectFormatImpl) EmptyObjectID() ObjectID  { return &Sha1Hash{} }
+func (h invalidObjectFormatImpl) EmptyTree() ObjectID      { return h.EmptyObjectID() }
+func (h invalidObjectFormatImpl) FullLength() int          { return len(h.EmptyObjectID().RawValue()) * 2 }
+func (h invalidObjectFormatImpl) MustID(b []byte) ObjectID { return h.EmptyObjectID() }
 func (h invalidObjectFormatImpl) ComputeHash(t ObjectType, content []byte) ObjectID {
-	return emptyInvalidObjectID
+	return h.EmptyObjectID()
 }
 
 var (

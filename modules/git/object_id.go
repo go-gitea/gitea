@@ -108,6 +108,9 @@ func ComputeBlobHash(hashType ObjectFormat, content []byte) ObjectID {
 }
 
 func IsStringValidObjectID(objFmt ObjectFormat, s string, optMinLen ...int) bool {
+	if objFmt == invalidObjectFormat {
+		return false
+	}
 	var minLen, maxLen int
 	if objFmt != nil {
 		maxLen = objFmt.FullLength()

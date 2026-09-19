@@ -45,4 +45,7 @@ func TestIsStringValidObjectID(t *testing.T) {
 	assert.False(t, IsStringValidObjectID(Sha1ObjectFormat, strings.Repeat("a", 39)))
 	assert.True(t, IsStringValidObjectID(Sha1ObjectFormat, strings.Repeat("a", 40)))
 	assert.False(t, IsStringValidObjectID(Sha1ObjectFormat, strings.Repeat("a", 41)))
+
+	assert.False(t, IsStringValidObjectID(invalidObjectFormat, strings.Repeat("a", 40)))
+	assert.False(t, IsStringValidObjectID(invalidObjectFormat, strings.Repeat("a", 40)), 4)
 }
