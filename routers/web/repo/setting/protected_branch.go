@@ -213,7 +213,12 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		protectBranch.ForcePushAllowlistDeployKeys = false
 	}
 
-	switch f.EnableDeletion {
+	enableDeletion := f.EnableDeletion
+	if !protectBranch.CanPush {
+		// Deletion requires push access (see CanUserDelete), so mirror the API and never store an unusable deletion policy
+		enableDeletion = ""
+	}
+	switch enableDeletion {
 	case "all":
 		protectBranch.CanDelete = true
 		protectBranch.EnableDeletionAllowlist = false

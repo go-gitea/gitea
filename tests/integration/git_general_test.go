@@ -21,9 +21,11 @@ import (
 	"time"
 
 	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/commitstatus"
@@ -494,11 +496,36 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 		t.Run("ProtectBranchWithDeletionButWithoutPush", doProtectBranchExt(ctx, "protected-delete", doProtectBranchOptions{
 			UserToWhitelistDelete: baseCtx.Username,
 		}))
+		t.Run("DeletionWithoutPushIsNotPersisted", func(t *testing.T) {
+			repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), baseCtx.Username, baseCtx.Reponame)
+			require.NoError(t, err)
+			rule, err := git_model.GetProtectedBranchRuleByName(t.Context(), repo.ID, "protected-delete")
+			require.NoError(t, err)
+			require.NotNil(t, rule)
+			assert.False(t, rule.CanPush)
+			assert.False(t, rule.CanDelete)
+			assert.False(t, rule.EnableDeletionAllowlist)
+			assert.False(t, rule.DeletionAllowlistDeployKeys)
+			assert.Empty(t, rule.DeletionAllowlistUserIDs)
+			assert.Empty(t, rule.DeletionAllowlistTeamIDs)
+		})
 		t.Run("DeleteProtectedBranchWithoutPushDenied", doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete"))
 		t.Run("ProtectBranchWithDeletionAllowlist", doProtectBranchExt(ctx, "protected-delete", doProtectBranchOptions{
 			UserToWhitelistPush:   baseCtx.Username,
 			UserToWhitelistDelete: baseCtx.Username,
 		}))
+		t.Run("DeletePullRequestTargetBranchDenied", func(t *testing.T) {
+			repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), baseCtx.Username, baseCtx.Reponame)
+			require.NoError(t, err)
+			setPullRequestTargetBranch := func(target string) {
+				prUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repo.ID, Type: unit.TypePullRequests})
+				prUnit.PullRequestsConfig().DefaultTargetBranch = target
+				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), prUnit))
+			}
+			setPullRequestTargetBranch("protected-delete")
+			defer setPullRequestTargetBranch("")
+			doGitPushTestRepositoryFail(dstPath, "origin", "--delete", "protected-delete")(t)
+		})
 		t.Run("DeleteProtectedBranchAllowed", doGitPushTestRepository(dstPath, "origin", "--delete", "protected-delete"))
 	}
 }
