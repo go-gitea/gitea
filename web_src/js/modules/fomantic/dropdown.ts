@@ -241,8 +241,12 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
     }
   };
 
+  // stands in for ":focus-visible", the menu items never receive focus themselves
+  dropdown.addEventListener('mousemove', () => dropdown.classList.remove('keyboard-nav'));
+
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.isComposing) return;
+    if (e.key.startsWith('Arrow')) dropdown.classList.add('keyboard-nav');
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
       const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
@@ -279,6 +283,7 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
   }, {capture: true});
   dropdown.addEventListener('blur', () => {
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
+    dropdown.classList.remove('keyboard-nav');
     deferredRefreshAriaActiveItem(100);
   }, {capture: true});
   dropdown.addEventListener('mouseup', () => {

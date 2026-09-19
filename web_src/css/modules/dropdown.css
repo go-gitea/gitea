@@ -18,7 +18,7 @@
   top: 100%;
   min-width: max-content;
   margin: 0;
-  padding: 0;
+  padding: 4px 0;
   background: var(--color-menu);
   font-size: 1em;
   text-align: left;
@@ -69,7 +69,10 @@
   line-height: var(--line-height-default);
   font-size: 1rem;
   color: var(--color-text);
-  padding: 0.78571429rem 1.14285714rem !important;
+  width: calc(100% - 8px); /* button items do not stretch on their own */
+  margin: 0 4px;
+  padding: 0.78571429rem 0.85714286rem !important; /* 12px, the margin adds the remaining 4px */
+  border-radius: var(--border-radius-medium);
   text-transform: none;
   font-weight: var(--font-weight-normal);
   box-shadow: none;
@@ -211,6 +214,7 @@ select.ui.dropdown {
   border-top-width: 0 !important;
   outline: none;
   margin: 0 -1px;
+  padding: 0;
   min-width: calc(100% + 2px);
   width: calc(100% + 2px);
   border-radius: 0 0 0.28571429rem 0.28571429rem;
@@ -252,13 +256,12 @@ select.ui.dropdown {
 
 .ui.selection.dropdown .menu > .item {
   border-top: 1px solid var(--color-secondary);
+  width: 100%;
+  margin: 0;
   padding: 0.78571429rem 1.14285714rem !important;
+  border-radius: 0;
   white-space: normal;
   overflow-wrap: normal;
-}
-
-.ui.selection.dropdown .menu .item:first-of-type {
-  border-radius: 0;
 }
 
 .ui.selection.dropdown .menu > .hidden.addition.item {
@@ -505,7 +508,11 @@ select.ui.dropdown {
   color: var(--color-text);
   box-shadow: none;
   z-index: 12;
-  border-radius: 0;
+}
+
+.ui.dropdown.keyboard-nav .menu .selected.item {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .ui.dropdown .menu > .item:hover {
@@ -821,18 +828,6 @@ select.ui.dropdown {
   margin-right: 0.78571429rem;
 }
 
-.ui.dropdown .menu .item {
-  border-radius: 0;
-}
-
-.ui.dropdown .menu .item:first-of-type {
-  border-radius: var(--border-radius) var(--border-radius) 0 0;
-}
-
-.ui.dropdown .menu .item:last-of-type {
-  border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
 /* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
 .ui.ui.dropdown > .icon.icon {
   position: initial;
@@ -895,10 +890,6 @@ select.ui.dropdown {
   box-shadow: none !important;
   border-bottom: 1px solid var(--color-secondary);
   max-width: 80vw;
-}
-
-.scrolling.menu .item.selected {
-  font-weight: var(--font-weight-semibold) !important;
 }
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content

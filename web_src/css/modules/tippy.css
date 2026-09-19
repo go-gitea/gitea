@@ -91,12 +91,14 @@
 .tippy-box[data-theme="menu"] .item {
   display: flex;
   align-items: center;
-  padding: 9px 18px;
+  margin: 0 4px;
+  padding: 9px 14px;
+  border-radius: var(--border-radius-medium);
   color: inherit;
   background: inherit;
   text-decoration: none;
   gap: 10px;
-  width: 100%;
+  width: calc(100% - 8px); /* button items do not stretch on their own */
 }
 
 .tippy-box[data-theme="menu"] .item:hover {
