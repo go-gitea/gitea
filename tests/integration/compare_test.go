@@ -348,8 +348,11 @@ func TestCompareCodeExpand(t *testing.T) {
 				req := NewRequest(t, "GET", excerptURL+"&gap="+gap)
 				session.MakeRequest(t, req, http.StatusBadRequest)
 			}
-			// and one request may only ask for so many, however many it claims the file has
-			req := NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 101))
+			// a heavily rewritten file has many gaps, and naming them all is fine
+			req := NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 200))
+			session.MakeRequest(t, req, http.StatusOK)
+			// but absurd input is still turned away
+			req = NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 1001))
 			session.MakeRequest(t, req, http.StatusBadRequest)
 		})
 	})
