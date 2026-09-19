@@ -109,6 +109,12 @@
 									</a>
 								</div>
 								<button type="button" class="btn interact-fg tw-p-2 tw-shrink-0" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
+								{{if and $file.IsRenderedAsDiffLines $file.HasHiddenLines}}
+									<button type="button" class="btn interact-fg tw-p-2 tw-shrink-0 diff-expand-lines-button" data-global-click="diffToggleAllHiddenLines"
+										data-text-expand="{{ctx.Locale.Tr "repo.diff.expand_all"}}" data-text-collapse="{{ctx.Locale.Tr "repo.diff.collapse_expanded"}}"
+										data-tooltip-content="{{ctx.Locale.Tr "repo.diff.expand_all"}}" aria-label="{{ctx.Locale.Tr "repo.diff.expand_all"}}"
+									>{{svg "octicon-unfold" 14}}{{svg "octicon-fold" 14 "tw-hidden"}}</button>
+								{{end}}
 								{{if $file.IsLFSFile}}
 									<span class="ui label">LFS</span>
 								{{end}}
@@ -145,13 +151,6 @@
 									<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.AfterCommitID}}" class="viewed-file-form unselectable {{if $file.IsViewed}}viewed-file-checked-form{{end}}" data-global-init="initDiffFileViewedForm">
 										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
-								{{end}}
-								{{if and $file.IsRenderedAsDiffLines $file.HasHiddenLines}}
-									<button type="button" class="btn interact-fg tw-p-1 diff-expand-lines-button" data-global-click="diffToggleAllHiddenLines"
-										data-expand-url="?file-only=true&expand-all=true&style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&files={{$file.Name}}&files={{$file.OldName}}"
-										data-text-expand="{{ctx.Locale.Tr "repo.diff.expand_all"}}" data-text-collapse="{{ctx.Locale.Tr "repo.diff.collapse_expanded"}}"
-										data-tooltip-content="{{ctx.Locale.Tr "repo.diff.expand_all"}}" aria-label="{{ctx.Locale.Tr "repo.diff.expand_all"}}"
-									>{{svg "octicon-unfold" 16}}{{svg "octicon-fold" 16 "tw-hidden"}}</button>
 								{{end}}
 								{{if not $file.IsSubmodule}}
 									<button type="button" class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
