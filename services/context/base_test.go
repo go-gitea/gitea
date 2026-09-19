@@ -6,6 +6,7 @@ package context
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -15,6 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	setting.IsInTesting = true
+	os.Exit(m.Run())
 }
 
 func TestRedirect(t *testing.T) {

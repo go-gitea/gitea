@@ -28,7 +28,7 @@ func (repo *Repository) CreateTag(ctx context.Context, name, revision string) er
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(ctx context.Context, name, message, revision string) error {
 	cmd := gitcmd.NewCommand("tag", "--annotate")
-	if err := AddObjectMessageArgument(cmd, ObjectTree, message); err != nil {
+	if err := AddObjectMessageArgument(cmd, ObjectTag, message); err != nil {
 		return err
 	}
 	_, _, err := cmd.AddDashesAndList(name, revision).WithRepo(repo).RunStdString(ctx)

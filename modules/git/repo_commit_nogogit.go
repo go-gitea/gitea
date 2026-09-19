@@ -115,7 +115,9 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 
 		return commit, nil
 	default:
-		setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
+		if info.Type != "blob" && info.Type != "tree" {
+			setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
+		}
 		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
