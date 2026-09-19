@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -306,13 +308,41 @@ func TestCompareCodeExpand(t *testing.T) {
 		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		els := htmlDoc.Find(`button.code-expander-button[data-fetch-url]`)
+		els := htmlDoc.Find(`button.code-expander-button[data-expand-url]`)
 
 		// all the links in the comparison should be to the forked repo&branch
 		assert.NotZero(t, els.Length())
 		for i := 0; i < els.Length(); i++ {
-			link := els.Eq(i).AttrOr("data-fetch-url", "")
+			link := els.Eq(i).AttrOr("data-expand-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
+
+		t.Run("ExpandAll", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch?file-only=true&expand-all=true&files=README.md")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			// the head file is 15 "a" lines, a changed line, then 15 more, so every line of it must be rendered
+			var rendered, expected []string
+			for i := 1; i <= 31; i++ {
+				expected = append(expected, strconv.Itoa(i))
+			}
+			htmlDoc.Find(`#diff-file-boxes .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
+				if num := el.AttrOr("data-line-num", ""); num != "" {
+					rendered = append(rendered, num)
+				}
+			})
+			assert.Equal(t, expected, rendered)
+			assert.NotZero(t, htmlDoc.Find(`#diff-file-boxes tr[data-expand-gap]`).Length())
+		})
+
+		t.Run("ExpandAllNeedsASingleFile", func(t *testing.T) {
+			// expanding is only offered for one file at a time, so that no request can make the
+			// server read every blob of the diff at once
+			req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch?file-only=true&expand-all=true")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			assert.Zero(t, htmlDoc.Find(`#diff-file-boxes tr[data-expand-gap]`).Length())
+		})
 	})
 }

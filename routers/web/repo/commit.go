@@ -314,7 +314,8 @@ func Diff(ctx *context.Context) {
 	fileOnly := ctx.FormBool("file-only")
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
-	if fileOnly && (len(files) == 2 || len(files) == 1) {
+	singleFile := fileOnly && (len(files) == 2 || len(files) == 1) // a request for one file, which may carry its old name too
+	if singleFile {
 		maxLines, maxFiles = -1, -1
 	}
 
@@ -328,6 +329,7 @@ func Diff(ctx *context.Context) {
 		MaxLines:          maxLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:          maxFiles,
+		ExpandHiddenLines: singleFile && ctx.FormBool("expand-all"),
 	}, files...)
 	if err != nil {
 		ctx.NotFound(err)

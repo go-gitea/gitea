@@ -10,7 +10,7 @@
 </colgroup>
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
-		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
+		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}{{if $line.ExpandedFromGap}} line-expanded{{end}}" data-line-type="{{.GetHTMLDiffLineType}}"{{if $line.ExpandedFromGap}} data-expand-gap="{{$line.ExpandedFromGap}}"{{end}}>
 			{{if eq .GetType 4}}
 				{{if $diffBlobExcerptData}}
 					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>

@@ -82,6 +82,8 @@ type DiffLine struct {
 	SectionInfo *DiffLineSectionInfo
 	IsTruncated bool
 
+	ExpandedFromGap string // set on lines filled by fillHiddenLines, the GapKey of the section row they belong to
+
 	cachedDiffInline *DiffInlineComputed
 }
 
@@ -122,6 +124,22 @@ type DiffLineSectionInfo struct {
 	RightHunkSize int
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
+}
+
+// GapKey identifies a section row among all the section rows of one file, so the frontend can
+// match the lines of an expanded gap back to the row they belong to.
+func (s *DiffLineSectionInfo) GapKey() string {
+	return fmt.Sprintf("%d-%d", s.LastRightIdx, s.RightIdx)
+}
+
+// hiddenLineRange returns the 1-based inclusive line numbers hidden by this section row.
+// "RightIdx" is the next rendered line, except at the end of the file where nothing follows it.
+func (s *DiffLineSectionInfo) hiddenLineRange() (leftStart, rightStart, rightEnd int) {
+	rightEnd = s.RightIdx
+	if s.LeftHunkSize > 0 || s.RightHunkSize > 0 {
+		rightEnd--
+	}
+	return s.LastLeftIdx + 1, s.LastRightIdx + 1, rightEnd
 }
 
 // DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
@@ -221,6 +239,7 @@ type DiffBlobExcerptData struct {
 	PullIssueIndex int64
 	DiffStyle      string
 	AfterCommitID  string
+	GapKey         string // the gap an excerpt was expanded from, empty when rendering the diff itself
 }
 
 const (
@@ -231,15 +250,17 @@ const (
 func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
+	// an excerpt keeps the key of the gap it came from, so every row it adds stays attributable to that gap
+	gapKey := util.IfZero(data.GapKey, d.SectionInfo.GapKey())
 
 	makeButton := func(direction, svgName string) template.HTML {
 		style := util.IfZero(data.DiffStyle, "unified")
-		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
+		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s&gap_key=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor), url.QueryEscape(gapKey)) + "&" + d.getBlobExcerptQuery()
 		if data.PullIssueIndex > 0 {
 			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
 		}
 		return htmlutil.HTMLFormat(
-			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
+			`<button class="code-expander-button" data-global-click="diffExpandHiddenLines" data-expand-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
 			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
 		)
 	}
@@ -260,7 +281,7 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 	if expandDirection == "single" {
 		content += makeButton("single", "octicon-fold")
 	}
-	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s">%s</div>`, expandDirection, content)
+	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s" data-gap-key="%s">%s</div>`, expandDirection, gapKey, content)
 }
 
 // FillHiddenCommentIDsForDiffLine finds comment IDs that are in the hidden range of an expand button
@@ -505,6 +526,27 @@ func (diffFile *DiffFile) CanShowFileViewToggle() bool {
 	return diffFile.IsBlobTypeImage || (diffFile.IsBlobTypeCsv && !diffFile.IsIncomplete && !diffFile.HasTruncatedLines)
 }
 
+// IsRenderedAsDiffLines reports whether the file body shows the diff line table.
+// A file with a rendered view (image, CSV) keeps that table hidden behind the view toggle.
+func (diffFile *DiffFile) IsRenderedAsDiffLines() bool {
+	if diffFile.IsIncomplete || diffFile.IsBin || diffFile.SubmoduleDiffInfo != nil {
+		return false
+	}
+	return len(diffFile.Sections) > 0 && !diffFile.CanShowFileViewToggle()
+}
+
+// HasHiddenLines reports whether any unchanged lines of the file are hidden behind an expander.
+func (diffFile *DiffFile) HasHiddenLines() bool {
+	for _, section := range diffFile.Sections {
+		for _, line := range section.Lines {
+			if line.GetExpandDirection() != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 type DiffRenderDetail struct {
 	needTailSection               bool
 	leftLineCount, rightLineCount int
@@ -573,7 +615,8 @@ func (diffFile *DiffFile) addTailSection(detail DiffRenderDetail) {
 			RightIdx:     detail.rightLineCount,
 		},
 	}
-	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
+	tailSection := newDiffSectionForDiffFile(diffFile)
+	tailSection.FileName, tailSection.Lines = diffFile.Name, []*DiffLine{tailDiffLine}
 	diffFile.Sections = append(diffFile.Sections, tailSection)
 }
 
@@ -1301,6 +1344,7 @@ type DiffOptions struct {
 	MaxLines          int
 	MaxLineCharacters int
 	MaxFiles          int
+	ExpandHiddenLines bool // render the hidden unchanged lines of every file, see DiffFile.fillHiddenLines
 }
 
 // prepareDiffCommits prepares the before and after commits for a diff operation based on the provided options.
@@ -1434,6 +1478,12 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		renderDetail := diffFile.prepareDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
 		if renderDetail.needTailSection {
 			diffFile.addTailSection(renderDetail)
+		}
+
+		if opts.ExpandHiddenLines && diffFile.IsRenderedAsDiffLines() {
+			if err := diffFile.fillHiddenLines(ctx); err != nil {
+				return nil, err
+			}
 		}
 
 		// only do highlight for text files which have no custom diff command
