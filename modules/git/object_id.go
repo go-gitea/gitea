@@ -113,6 +113,12 @@ func IsStringValidObjectID(objFmt ObjectFormat, s string, optMinLen ...int) bool
 		maxLen = objFmt.FullLength()
 		minLen = util.OptionalArg(optMinLen, maxLen)
 	} else {
+		if len(optMinLen) == 0 {
+			// if no "min length" is applied, then the length must exactly match one of the formats
+			if len(s) != Sha1ObjectFormat.FullLength() && len(s) != Sha256ObjectFormat.FullLength() {
+				return false
+			}
+		}
 		maxLen = Sha256ObjectFormat.FullLength()
 		minLen = util.OptionalArg(optMinLen, Sha1ObjectFormat.FullLength())
 	}

@@ -27,12 +27,18 @@ func TestInvalidObjectFormat(t *testing.T) {
 
 func TestIsStringValidObjectID(t *testing.T) {
 	assert.True(t, IsStringValidObjectID(nil, "abc", 3))
+	assert.False(t, IsStringValidObjectID(nil, "abg", 3))
 	assert.False(t, IsStringValidObjectID(nil, "abc", 4))
+
+	assert.False(t, IsStringValidObjectID(nil, strings.Repeat("a", 3), 4))
+	assert.True(t, IsStringValidObjectID(nil, strings.Repeat("a", 4), 4))
+	assert.True(t, IsStringValidObjectID(nil, strings.Repeat("a", 5), 4))
 	assert.True(t, IsStringValidObjectID(nil, strings.Repeat("a", 64), 4))
 	assert.False(t, IsStringValidObjectID(nil, strings.Repeat("a", 65), 4))
 
 	assert.False(t, IsStringValidObjectID(nil, strings.Repeat("a", 39)))
 	assert.True(t, IsStringValidObjectID(nil, strings.Repeat("a", 40)))
+	assert.False(t, IsStringValidObjectID(nil, strings.Repeat("a", 41)))
 	assert.True(t, IsStringValidObjectID(nil, strings.Repeat("a", 64)))
 	assert.False(t, IsStringValidObjectID(nil, strings.Repeat("a", 65)))
 
