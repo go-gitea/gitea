@@ -336,6 +336,26 @@ func TestCompareCodeExpand(t *testing.T) {
 			assert.NotZero(t, htmlDoc.Find(`#diff-file-boxes tr[data-expand-gap]`).Length())
 		})
 
+		t.Run("ExpandAllOnlyNamedGaps", func(t *testing.T) {
+			// the caller names the gaps it still needs, so a partly expanded file does not re-render
+			// the lines it already shows
+			gapKey := htmlDoc.Find(`#diff-file-boxes .code-expander-buttons[data-gap-key]`).Last().AttrOr("data-gap-key", "")
+			assert.NotEmpty(t, gapKey)
+
+			req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch?file-only=true&expand-all=true&files=README.md&gap="+gapKey)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+
+			var gaps []string
+			htmlDoc.Find(`#diff-file-boxes tr[data-expand-gap]`).Each(func(_ int, el *goquery.Selection) {
+				gaps = append(gaps, el.AttrOr("data-expand-gap", ""))
+			})
+			assert.NotEmpty(t, gaps)
+			for _, gap := range gaps {
+				assert.Equal(t, gapKey, gap)
+			}
+		})
+
 		t.Run("ExpandAllNeedsASingleFile", func(t *testing.T) {
 			// expanding is only offered for one file at a time, so that no request can make the
 			// server read every blob of the diff at once

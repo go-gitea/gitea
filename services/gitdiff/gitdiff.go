@@ -1344,7 +1344,8 @@ type DiffOptions struct {
 	MaxLines          int
 	MaxLineCharacters int
 	MaxFiles          int
-	ExpandHiddenLines bool // render the hidden unchanged lines of every file, see DiffFile.fillHiddenLines
+	ExpandHiddenLines bool     // render the hidden unchanged lines of every file, see DiffFile.fillHiddenLines
+	ExpandGapKeys     []string // when set, only these gaps are filled, the others are left hidden
 }
 
 // prepareDiffCommits prepares the before and after commits for a diff operation based on the provided options.
@@ -1481,7 +1482,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		}
 
 		if opts.ExpandHiddenLines && diffFile.IsRenderedAsDiffLines() {
-			if err := diffFile.fillHiddenLines(ctx); err != nil {
+			if err := diffFile.fillHiddenLines(ctx, opts.ExpandGapKeys); err != nil {
 				return nil, err
 			}
 		}

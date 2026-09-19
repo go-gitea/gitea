@@ -206,8 +206,19 @@ async function diffExpandHiddenLines(btn: HTMLElement) {
   onDiffFileBodyChange();
 }
 
-async function diffFetchAllGapRows(btn: HTMLElement): Promise<Map<string, HTMLElement[]> | null> {
-  const resp = await performFetchActionRequest(btn, {method: 'GET', url: btn.getAttribute('data-expand-url')!, loadingIndicator: '$this'});
+// name the gaps that still have something to reveal, so a partly expanded file does not fetch the
+// lines it already shows. The keys come from the backend, the frontend never computes line numbers.
+function diffBuildExpandAllUrl(btn: HTMLElement, elFileBody: Element): string {
+  const url = new URL(btn.getAttribute('data-expand-url')!, window.location.href);
+  if (!elFileBody.querySelector('tr[data-gap-expanded]')) return url.href; // nothing expanded yet, ask for all of them
+  for (const el of elFileBody.querySelectorAll('tr:not([data-gap-expanded]) .code-expander-buttons[data-gap-key]')) {
+    if (el.querySelector('.code-expander-button')) url.searchParams.append('gap', el.getAttribute('data-gap-key')!);
+  }
+  return url.href;
+}
+
+async function diffFetchAllGapRows(btn: HTMLElement, elFileBody: Element): Promise<Map<string, HTMLElement[]> | null> {
+  const resp = await performFetchActionRequest(btn, {method: 'GET', url: diffBuildExpandAllUrl(btn, elFileBody), loadingIndicator: '$this'});
   if (!resp) return null;
   const respDoc = parseDom(await resp.text(), 'text/html'); // the response is a full HTML page with every gap of the file already filled
   const gapRows = new Map<string, HTMLElement[]>();
@@ -236,7 +247,7 @@ async function diffToggleAllHiddenLines(btn: HTMLElement) {
   if (diffFileHasHiddenLines(elFileBody)) {
     // expanding a folded file (vendored, generated, already viewed) would happen out of sight
     setFileFolding(elFileBox, elFileBox.querySelector<HTMLElement>('.fold-file')!, false);
-    const gapRows = await diffFetchAllGapRows(btn); // fetch before touching the DOM, so an already expanded gap does not flicker
+    const gapRows = await diffFetchAllGapRows(btn, elFileBody); // fetch before touching the DOM, so an already expanded gap does not flicker
     if (!gapRows) return;
     for (const [gapKey, rows] of gapRows) diffExpandGapFully(elFileBody, gapKey, rows);
     onDiffFileBodyChange();
