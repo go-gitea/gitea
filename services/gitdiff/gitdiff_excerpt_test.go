@@ -57,3 +57,18 @@ func TestBuildBlobExcerptDiffSections_WholeGaps(t *testing.T) {
 	assert.Len(t, sections[1].Lines, 20) // lines 81-100, nothing follows the gap
 	assert.Equal(t, 100, sections[1].Lines[19].RightIdx)
 }
+
+func TestGapNumbersRoundTrip(t *testing.T) {
+	info := DiffLineSectionInfo{LastLeftIdx: 17, LastRightIdx: 31, LeftIdx: 40, RightIdx: 54, LeftHunkSize: 23, RightHunkSize: 7}
+	assert.Equal(t, "17,31,40,54,23,7", info.GapNumbers())
+
+	opts, err := ParseGapNumbers(info.GapNumbers())
+	require.NoError(t, err)
+	assert.Equal(t, BlobExcerptOptions{LastLeft: 17, LastRight: 31, LeftIndex: 40, RightIndex: 54, LeftHunkSize: 23, RightHunkSize: 7}, opts)
+
+	// the numbers come back from the browser, so they are checked rather than trusted
+	for _, bad := range []string{"", "1,2,3", "a,b,c,d,e,f", "-1,0,17,17,7,7", "1,2,3,4,5,6,7"} {
+		_, err := ParseGapNumbers(bad)
+		require.Error(t, err, bad)
+	}
+}

@@ -7,13 +7,11 @@ import (
 	gocontext "context"
 	"encoding/csv"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -705,37 +703,24 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 // in many places still has far fewer hunks than this.
 const maxExcerptGaps = 1000
 
-// parseExcerptGaps reads the "lastLeft,lastRight,left,right,leftHunk,rightHunk" that the diff put on
-// each section row, which is all a gap is.
+// parseExcerptGaps reads the gaps a request names, in the order they appear in the file
 func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
-	if len(gapSpecs) > maxExcerptGaps {
-		return nil, errors.New("too many gaps requested")
-	}
 	if len(gapSpecs) == 0 {
 		return nil, errors.New("no gap requested")
 	}
+	if len(gapSpecs) > maxExcerptGaps {
+		return nil, errors.New("too many gaps requested")
+	}
 	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapSpecs))
 	for _, spec := range gapSpecs {
-		nums := strings.Split(spec, ",")
-		if len(nums) != 6 {
-			return nil, fmt.Errorf("invalid gap: %q", spec)
+		opts, err := gitdiff.ParseGapNumbers(spec)
+		if err != nil {
+			return nil, err
 		}
-		var parsed [6]int
-		for i, num := range nums {
-			v, err := strconv.Atoi(num)
-			if err != nil || v < 0 {
-				return nil, fmt.Errorf("invalid gap: %q", spec)
-			}
-			parsed[i] = v
-		}
-		opts := gitdiff.BlobExcerptOptions{
-			LastLeft: parsed[0], LastRight: parsed[1],
-			LeftIndex: parsed[2], RightIndex: parsed[3],
-			LeftHunkSize: parsed[4], RightHunkSize: parsed[5],
-			Direction: "all", Language: language,
-		}
+		opts.Language = language
 		gapOpts = append(gapOpts, opts)
 	}
+	// revealed in one pass over the file, so the gaps have to be in the order they appear in it
 	slices.SortFunc(gapOpts, func(a, b gitdiff.BlobExcerptOptions) int { return a.LastRight - b.LastRight })
 	return gapOpts, nil
 }

@@ -215,10 +215,6 @@ const (
 // numbers; the frontend works out from them which arrows apply and what is left to reveal.
 func (d *DiffLine) RenderGapExpander(data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
-	gapNumbers := fmt.Sprintf("%d,%d,%d,%d,%d,%d",
-		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
-		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
-		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize)
 
 	var content template.HTML
 	if len(d.SectionInfo.HiddenCommentIDs) > 0 {
@@ -227,7 +223,7 @@ func (d *DiffLine) RenderGapExpander(data *DiffBlobExcerptData) template.HTML {
 	}
 	return htmlutil.HTMLFormat(
 		`<div class="code-expander-buttons" data-global-init="initDiffGapExpander" data-gap="%s" data-hidden-comment-ids=",%s,">%s</div>`,
-		gapNumbers, dataHiddenCommentIDs, content)
+		d.SectionInfo.GapNumbers(), dataHiddenCommentIDs, content)
 }
 
 // BlobExcerptBaseURL returns the part of an excerpt request that every gap of this file shares.
