@@ -39,6 +39,9 @@ import octiconFileRemoved from '../../public/assets/img/svg/octicon-file-removed
 import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
 import octiconFileSymlinkFile from '../../public/assets/img/svg/octicon-file-symlink-file.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
+import octiconFold from '../../public/assets/img/svg/octicon-fold.svg';
+import octiconFoldDown from '../../public/assets/img/svg/octicon-fold-down.svg';
+import octiconFoldUp from '../../public/assets/img/svg/octicon-fold-up.svg';
 import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
 import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
@@ -132,6 +135,9 @@ const svgs = {
   'octicon-file-submodule': octiconFileSubmodule,
   'octicon-file-symlink-file': octiconFileSymlinkFile,
   'octicon-filter': octiconFilter,
+  'octicon-fold': octiconFold,
+  'octicon-fold-down': octiconFoldDown,
+  'octicon-fold-up': octiconFoldUp,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-commit': octiconGitCommit,
