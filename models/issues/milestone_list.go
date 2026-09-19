@@ -83,6 +83,8 @@ func (opts FindMilestoneOptions) ToOrders() string {
 	case "id":
 		return "id ASC"
 	case "name":
+		return "name ASC"
+	case "namedesc":
 		return "name DESC"
 	default:
 		return "deadline_unix ASC, name ASC"
