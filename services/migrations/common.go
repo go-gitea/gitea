@@ -50,9 +50,8 @@ func CheckAndEnsureSafePR(pr *base.PullRequest, commonCloneBaseURL string, g bas
 		valid = false
 	}
 
-	// SECURITY: SHAs must be valid Git object IDs. Migration sources may use either
-	// SHA-1 or SHA-256 repositories, and the repository object format is not yet
-	// available at this stage.
+	// SECURITY: SHAs must be valid Git object IDs.
+	// The repository object format is not yet available at this stage.
 	if pr.MergeCommitSHA != "" && !git.IsStringValidObjectID(nil, pr.MergeCommitSHA) {
 		WarnAndNotice("PR #%d in %s has invalid MergeCommitSHA: %s", pr.Number, g, pr.MergeCommitSHA)
 		pr.MergeCommitSHA = ""
