@@ -409,11 +409,11 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
-	fileOnly := ctx.FormBool("file-only")
 	if len(files) == 2 || len(files) == 1 {
 		maxLines, maxFiles = -1, -1
 	}
 
+	fileOnly := ctx.FormBool("file-only")
 	diffCommonOptions := gitdiff.DiffCommonOptions{
 		BeforeCommitID:     beforeCommitID,
 		AfterCommitID:      headCommitID,
@@ -729,7 +729,7 @@ func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerpt
 			LeftHunkSize: parsed[4], RightHunkSize: parsed[5],
 			Direction: "all", Language: language,
 		}
-		opts.GapKey = fmt.Sprintf("%d-%d", opts.LastRight, opts.RightIndex)
+		opts.GapKey = gitdiff.GapKeyOf(opts.LastRight, opts.RightIndex)
 		gapOpts = append(gapOpts, opts)
 	}
 	slices.SortFunc(gapOpts, func(a, b gitdiff.BlobExcerptOptions) int { return a.LastRight - b.LastRight })
@@ -751,7 +751,7 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	// the key of the gap this excerpt belongs to, so its rows can be collapsed and re-expanded later;
 	// a request without one is expanding a gap nothing has touched yet
-	opts.GapKey = util.IfZero(ctx.FormString("gap_key"), fmt.Sprintf("%d-%d", opts.LastRight, opts.RightIndex))
+	opts.GapKey = util.IfZero(ctx.FormString("gap_key"), gitdiff.GapKeyOf(opts.LastRight, opts.RightIndex))
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
 
@@ -759,7 +759,6 @@ func ExcerptBlob(ctx *context.Context) {
 		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
-		GapKey:        ctx.FormString("gap_key"),
 	}
 
 	if ctx.Data["PageIsWiki"] == true {
