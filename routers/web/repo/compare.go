@@ -7,6 +7,7 @@ import (
 	gocontext "context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -44,7 +45,7 @@ import (
 
 const (
 	tplCompare     templates.TplName = "repo/diff/compare"
-	tplBlobExcerpt templates.TplName = "repo/diff/blob_excerpt"
+	tplDiffSection templates.TplName = "repo/diff/section"
 	tplDiffBox     templates.TplName = "repo/diff/box"
 )
 
@@ -713,6 +714,9 @@ func ExcerptBlob(ctx *context.Context) {
 		Direction:     ctx.FormString("direction"),
 		Language:      ctx.FormString("filelang"),
 	}
+	// the key of the gap this excerpt belongs to, so its rows can be collapsed and re-expanded later;
+	// a request without one is expanding a gap nothing has touched yet
+	opts.GapKey = util.IfZero(ctx.FormString("gap_key"), fmt.Sprintf("%d-%d", opts.LastRight, opts.RightIndex))
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
 
@@ -788,9 +792,15 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["section"] = section
-	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
+	// render through the same section templates as the diff itself, so an excerpt row and a diff row
+	// are built by one piece of markup
+	ctx.Data["file"] = &gitdiff.DiffFile{
+		Name:     filePath,
+		NameHash: git.HashFilePathForWebUI(filePath),
+		Sections: []*gitdiff.DiffSection{section},
+	}
+	ctx.Data["IsBlobExcerpt"] = true
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
-	ctx.HTML(http.StatusOK, tplBlobExcerpt)
+	ctx.HTML(http.StatusOK, tplDiffSection)
 }
