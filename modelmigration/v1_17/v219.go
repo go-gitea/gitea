@@ -4,13 +4,14 @@
 package v1_17
 
 import (
+	"context"
 	"time"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddSyncOnCommitColForPushMirror(x base.EngineMigration) error {
+func AddSyncOnCommitColForPushMirror(_ context.Context, x base.EngineMigration) error {
 	type PushMirror struct {
 		ID         int64 `xorm:"pk autoincr"`
 		RepoID     int64 `xorm:"INDEX"`

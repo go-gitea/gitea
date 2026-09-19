@@ -3,9 +3,13 @@
 
 package v1_11
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func ExtendTrackedTimes(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func ExtendTrackedTimes(_ context.Context, x base.EngineMigration) error {
 	type TrackedTime struct {
 		Time    int64 `xorm:"NOT NULL"`
 		Deleted bool  `xorm:"NOT NULL DEFAULT false"`

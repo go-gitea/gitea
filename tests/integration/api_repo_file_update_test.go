@@ -62,6 +62,7 @@ func getExpectedFileResponseForUpdate(info apiFileResponseInfo) *api.FileRespons
 			LastCommitterDate: new(info.lastCommitterWhen),
 			LastAuthorDate:    new(info.lastAuthorWhen),
 			Type:              "file",
+			Mode:              "100644",
 			Size:              20,
 			Encoding:          &encoding,
 			Content:           &content,

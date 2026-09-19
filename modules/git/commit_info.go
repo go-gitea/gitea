@@ -60,15 +60,9 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, timeout time.Duration, re
 		entryNames = append(entryNames, entry.Name())
 	}
 
-	var revs map[string]*Commit
-	var remainingEntryNames []string
-	if gitRepo.LastCommitCache != nil {
-		revs, remainingEntryNames, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryNames, gitRepo.LastCommitCache)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		revs, remainingEntryNames = map[string]*Commit{}, entryNames
+	revs, remainingEntryNames, err := getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryNames, gitRepo.LastCommitCache)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if len(remainingEntryNames) > 0 {

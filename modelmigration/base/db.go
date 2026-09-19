@@ -480,13 +480,13 @@ func DropTableColumns(sess Session, tableName string, columnNames ...string) (er
 }
 
 // ModifyColumn will modify column's type or other property. SQLITE is not supported
-func ModifyColumn(x EngineMigration, tableName string, col *schemas.Column) error {
+func ModifyColumn(ctx context.Context, x EngineMigration, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error
 	// MSSQL have to remove index at first, otherwise alter column will fail
 	// ref. https://sqlzealots.com/2018/05/09/error-message-the-index-is-dependent-on-column-alter-table-alter-column-failed-because-one-or-more-objects-access-this-column/
 	if x.Dialect().URI().DBType == schemas.MSSQL {
-		indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), tableName)
+		indexes, err = x.Dialect().GetIndexes(x.DB(), ctx, tableName)
 		if err != nil {
 			return err
 		}

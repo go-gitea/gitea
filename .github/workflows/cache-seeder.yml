@@ -1,9 +1,6 @@
-# Populates main's cache scope so PR runs warm-start from it. Saves the go
-# module, go build (incl. test compile), and golangci-lint caches.
-#
-# Caches are ref-scoped: PR runs read their own scope then fall back to the
-# base branch. Per .github/actions/go-cache/action.yml, PRs are restore-only,
-# so push-to-main is the only opportunity to populate the fallback scope.
+# Populates main's cache scope so PR runs warm-start from it. Caches are ref-scoped:
+# PR runs read their own scope then fall back to the base branch, and only this
+# workflow saves, so push-to-main is the only chance to populate the fallback scope.
 
 name: cache-seeder
 
@@ -16,8 +13,13 @@ on:
       - "go.mod" # a toolchain bump invalidates the build caches
       - "go.sum"
       - ".golangci.yml"
+      - "pnpm-lock.yaml"
+      - "pyproject.toml"
+      - "uv.lock"
       - ".github/actions/go-cache/action.yml"
       - ".github/actions/go-setup/action.yml"
+      - ".github/actions/node-setup/action.yml"
+      - ".github/actions/python-setup/action.yml"
       - ".github/workflows/cache-seeder.yml"
 
 concurrency:
@@ -35,7 +37,7 @@ jobs:
       - uses: ./.github/actions/go-setup
       - run: make deps-backend deps-tools
       - run: TAGS="bindata" make backend
-      - run: TAGS="bindata gogit" GOEXPERIMENT="" make backend
+      - run: TAGS="bindata gogit" make backend
       - name: warm test compile cache (bindata)
         env:
           TAGS: bindata
@@ -44,13 +46,12 @@ jobs:
       - name: warm test compile cache (bindata gogit)
         env:
           TAGS: bindata gogit
-          GOEXPERIMENT:
           GOTEST_FLAGS: -race -list=^$$ -count=1
         run: make test-backend
       - name: warm integration compile cache
         run: |
           TAGS="bindata" make test-integration-compile
-          TAGS="bindata gogit" GOEXPERIMENT="" make test-integration-compile
+          TAGS="bindata gogit" make test-integration-compile
           TAGS="bindata gogit" GOTEST_FLAGS="-race" make test-integration-compile
 
   lint:
@@ -69,13 +70,28 @@ jobs:
       - run: make generate-go
         env:
           TAGS: ${{ matrix.tags }}
-      - run: make ${{ matrix.target }}
+      - run: make "$TARGET"
         env:
           TAGS: ${{ matrix.tags }}
+          TARGET: ${{ matrix.target }}
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/node-setup
+      - run: make deps-frontend
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/python-setup
+      - run: make deps-py
 
   # reclaims the caches this run superseded, so the next save still fits in the allowance
   prune:
-    needs: [gobuild, lint]
+    needs: [gobuild, lint, frontend, python]
     permissions:
       actions: write
     uses: ./.github/workflows/cache-prune.yml

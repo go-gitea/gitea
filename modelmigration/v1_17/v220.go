@@ -4,6 +4,8 @@
 package v1_17
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	packages_model "gitea.dev/models/packages" //nolint:depguard // only consts are used
 	container_module "gitea.dev/modules/packages/container"
@@ -11,7 +13,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-func AddContainerRepositoryProperty(x base.EngineMigration) (err error) {
+func AddContainerRepositoryProperty(_ context.Context, x base.EngineMigration) (err error) {
 	switch x.Dialect().URI().DBType {
 	case schemas.SQLITE:
 		_, err = x.Exec("INSERT INTO package_property (ref_type, ref_id, name, value) SELECT ?, p.id, ?, u.lower_name || '/' || p.lower_name FROM package p JOIN `user` u ON p.owner_id = u.id WHERE p.type = ?",

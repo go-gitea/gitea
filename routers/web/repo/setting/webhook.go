@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
@@ -58,6 +60,8 @@ func Webhooks(ctx *context.Context) {
 }
 
 type ownerRepoCtx struct {
+	Owner           *user_model.User
+	Repo            *repo_model.Repository
 	OwnerID         int64
 	RepoID          int64
 	IsAdmin         bool
@@ -71,6 +75,7 @@ type ownerRepoCtx struct {
 func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &ownerRepoCtx{
+			Repo:        ctx.Repo.Repository,
 			RepoID:      ctx.Repo.Repository.ID,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Repo.RepoLink, "settings/hooks"),
@@ -80,6 +85,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if ctx.Data["PageIsOrgSettings"] == true {
 		return &ownerRepoCtx{
+			Owner:       ctx.ContextUser,
 			OwnerID:     ctx.ContextUser.ID,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Org.OrgLink, "settings/hooks"),
@@ -89,6 +95,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &ownerRepoCtx{
+			Owner:       ctx.Doer,
 			OwnerID:     ctx.Doer.ID,
 			Link:        path.Join(setting.AppSubURL, "/user/settings/hooks"),
 			LinkNew:     path.Join(setting.AppSubURL, "/user/settings/hooks"),
@@ -107,6 +114,14 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	}
 
 	return nil, errors.New("unable to set OwnerRepo context")
+}
+
+// recordWebhookAudit emits a webhook audit event scoped to the repository,
+// organization, user, or instance (admin/system) the webhook belongs to. The
+// shared add/edit handlers run in any of these contexts, so the scope is derived
+// from orCtx rather than assuming a repository.
+func (orCtx *ownerRepoCtx) recordWebhookAudit(ctx *context.Context, actions audit.ScopedActions, url string) {
+	audit.RecordScoped(ctx, orCtx.Owner, orCtx.Repo, actions, "webhook", url)
 }
 
 func checkHookType(ctx *context.Context) string {
@@ -258,6 +273,8 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
+	orCtx.recordWebhookAudit(ctx, audit.WebhookAdd, w.URL)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
 }
@@ -311,6 +328,8 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
+	orCtx.recordWebhookAudit(ctx, audit.WebhookUpdate, w.URL)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
@@ -326,7 +345,7 @@ func GiteaHooksEditPost(ctx *context.Context) {
 }
 
 func giteaHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewWebhookForm)
+	form := web.GetForm[*forms.NewWebhookForm](ctx)
 
 	contentType := webhook.ContentTypeJSON
 	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
@@ -353,7 +372,7 @@ func GogsHooksEditPost(ctx *context.Context) {
 }
 
 func gogsHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewGogshookForm)
+	form := web.GetForm[*forms.NewGogshookForm](ctx)
 
 	contentType := webhook.ContentTypeJSON
 	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
@@ -379,7 +398,7 @@ func DiscordHooksEditPost(ctx *context.Context) {
 }
 
 func discordHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
+	form := web.GetForm[*forms.NewDiscordHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.DISCORD,
@@ -404,7 +423,7 @@ func DingtalkHooksEditPost(ctx *context.Context) {
 }
 
 func dingtalkHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
+	form := web.GetForm[*forms.NewDingtalkHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.DINGTALK,
@@ -425,7 +444,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 }
 
 func telegramHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
+	form := web.GetForm[*forms.NewTelegramHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.TELEGRAM,
@@ -459,7 +478,7 @@ func matrixRoomIDEncode(roomID string) string {
 }
 
 func matrixHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
+	form := web.GetForm[*forms.NewMatrixHookForm](ctx)
 
 	// TODO: need to migrate to the latest (v3) API: https://spec.matrix.org/v1.18/client-server-api/
 	return webhookParams{
@@ -487,7 +506,7 @@ func MSTeamsHooksEditPost(ctx *context.Context) {
 }
 
 func mSTeamsHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
+	form := web.GetForm[*forms.NewMSTeamsHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.MSTEAMS,
@@ -508,7 +527,7 @@ func SlackHooksEditPost(ctx *context.Context) {
 }
 
 func slackHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
+	form := web.GetForm[*forms.NewSlackHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.SLACK,
@@ -535,7 +554,7 @@ func FeishuHooksEditPost(ctx *context.Context) {
 }
 
 func feishuHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
+	form := web.GetForm[*forms.NewFeishuHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.FEISHU,
@@ -556,7 +575,7 @@ func WechatworkHooksEditPost(ctx *context.Context) {
 }
 
 func wechatworkHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
+	form := web.GetForm[*forms.NewWechatWorkHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.WECHATWORK,
@@ -577,7 +596,7 @@ func PackagistHooksEditPost(ctx *context.Context) {
 }
 
 func packagistHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
+	form := web.GetForm[*forms.NewPackagistHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.PACKAGIST,
@@ -679,7 +698,7 @@ func TestWebhook(ctx *context.Context) {
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
 		Message: commit.MessageUTF8(),
-		URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()),
+		URL:     ctx.Repo.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(commit.ID.String()),
 		Author: &api.PayloadUser{
 			Name:  commit.Author.Name,
 			Email: commit.Author.Email,
@@ -736,9 +755,14 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	hook, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
+	} else if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
+		audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.WebhookRemove, "webhook", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 

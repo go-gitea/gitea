@@ -56,10 +56,10 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
-		"ShortSha": base.ShortSha,
-		"FileSize": base.FileSize,
-		"CountFmt": countFmt,
-		"Sec2Hour": util.SecToHours,
+		"ShortSha":       base.ShortSha,
+		"FormatByteSize": util.FormatByteSize,
+		"CountFmt":       countFmt,
+		"Sec2Hour":       util.SecToHours,
 
 		"TimeEstimateString": timeEstimateString,
 
@@ -96,9 +96,6 @@ func newFuncMapWebPage() template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"CustomEmojis": func() map[string]string {
-			return setting.UI.CustomEmojisMap
-		},
 		"MetaAuthor": func() string {
 			return setting.UI.Meta.Author
 		},
@@ -113,16 +110,6 @@ func newFuncMapWebPage() template.FuncMap {
 		},
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
-		},
-		"NotificationSettings": func() map[string]any {
-			return map[string]any{
-				"MinTimeout":  int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
-			}
-		},
-		"MermaidMaxSourceCharacters": func() int {
-			return setting.MermaidMaxSourceCharacters
 		},
 
 		// -----------------------------------------------------------------

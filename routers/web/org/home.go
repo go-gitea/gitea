@@ -5,7 +5,6 @@ package org
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -162,8 +161,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 
-	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(setting.UI.User.RepoPagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
@@ -201,7 +199,7 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
-		CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+		CurrentRefSubURL: git.RefNameFromBranch(profileRepo.DefaultBranch).RefWebLinkPath(),
 	})
 	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
 	if err != nil {

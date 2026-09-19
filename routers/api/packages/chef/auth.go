@@ -78,7 +78,12 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, err
 	}
 
-	if err := verifySignedHeaders(req, version, pub.(*rsa.PublicKey)); err != nil {
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("public key is not a RSA key")
+	}
+
+	if err := verifySignedHeaders(req, version, rsaPub); err != nil {
 		return nil, err
 	}
 

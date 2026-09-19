@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/indexer/code/internal"
 	indexer_internal "gitea.dev/modules/indexer/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/typesniffer"
@@ -31,7 +32,6 @@ import (
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
@@ -68,9 +68,8 @@ func (d *RepoIndexerData) Type() string {
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
-	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 9
+	repoIndexerLatestVersion = 10
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -106,8 +105,8 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     letter.Name,
-		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
+		"tokenizer":     codeTokenizerName,
+		"token_filters": []string{unicodeNormalizeName, codeTokenFilterName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}
@@ -330,6 +329,17 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 
 	searchResults := make([]*internal.SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
+		content, okContent := hit.Fields["Content"].(string)
+		language, okLanguage := hit.Fields["Language"].(string)
+		commitID, okCommitID := hit.Fields["CommitID"].(string)
+		updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
+		repoID, okRepoID := hit.Fields["RepoID"].(float64)
+		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
+			hitFieldsJson, _ := json.Marshal(hit.Fields)
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hitFieldsJson))
+			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+		}
+
 		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
 			location := locations[0]
@@ -343,21 +353,20 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			}
 		}
 		if len(hit.Locations["Filename"]) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(hit.Fields["Content"].(string))
+			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
 		}
 
-		language := hit.Fields["Language"].(string)
 		var updatedUnix timeutil.TimeStamp
-		if t, err := time.Parse(time.RFC3339, hit.Fields["UpdatedAt"].(string)); err == nil {
+		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
 			updatedUnix = timeutil.TimeStamp(t.Unix())
 		}
 		searchResults[i] = &internal.SearchResult{
-			RepoID:      int64(hit.Fields["RepoID"].(float64)),
+			RepoID:      int64(repoID),
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,
 			Filename:    internal.FilenameOfIndexerID(hit.ID),
-			Content:     hit.Fields["Content"].(string),
-			CommitID:    hit.Fields["CommitID"].(string),
+			Content:     content,
+			CommitID:    commitID,
 			UpdatedUnix: updatedUnix,
 			Language:    language,
 			Color:       enry.GetColor(language),

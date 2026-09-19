@@ -4,11 +4,9 @@
 package git_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
@@ -233,17 +231,23 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 	}
 }
 
-func TestCommitStatusesHideActionsURL(t *testing.T) {
+func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	// repo4 is public and has the actions unit, repo2 is private and owned by someone else
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 791, RepoID: repo.ID})
-	assert.NoError(t, run.LoadAttributes(t.Context()))
+	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
+	visibleURL := repo.Link() + "/actions/runs/1/jobs/1"
 	statuses := []*git_model.CommitStatus{
 		{
 			RepoID:    repo.ID,
-			TargetURL: fmt.Sprintf("%s/jobs/%d", run.Link(), run.ID),
+			TargetURL: visibleURL,
+		},
+		{
+			RepoID:    otherRepo.ID,
+			TargetURL: otherRepo.Link() + "/actions/runs/1/jobs/1",
 		},
 		{
 			RepoID:    repo.ID,
@@ -251,9 +255,10 @@ func TestCommitStatusesHideActionsURL(t *testing.T) {
 		},
 	}
 
-	git_model.CommitStatusesHideActionsURL(t.Context(), statuses)
-	assert.Empty(t, statuses[0].TargetURL)
-	assert.Equal(t, "https://mycicd.org/1", statuses[1].TargetURL)
+	git_model.CommitStatusesApplyDoerPermission(t.Context(), doer, statuses)
+	assert.Equal(t, visibleURL, statuses[0].TargetURL)
+	assert.Empty(t, statuses[1].TargetURL)
+	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
 }
 
 func TestGetCountLatestCommitStatus(t *testing.T) {

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
@@ -303,9 +304,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 // Init initializes the render global variables
 func Init(renderHelpFuncs *RenderHelperFuncs) {
 	DefaultRenderHelperFuncs = renderHelpFuncs
-	if len(setting.Markdown.CustomURLSchemes) > 0 {
-		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
-	}
+	common.InitLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	// since setting maybe changed extensions, this will reload all renderer extensions mapping
 	fileNameRenderers = make(map[string]Renderer)

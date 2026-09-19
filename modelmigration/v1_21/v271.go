@@ -4,11 +4,13 @@
 package v1_21
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddArchivedUnixColumInLabelTable(x base.EngineMigration) error {
+func AddArchivedUnixColumInLabelTable(_ context.Context, x base.EngineMigration) error {
 	type Label struct {
 		ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT NULL"`
 	}

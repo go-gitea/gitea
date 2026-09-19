@@ -69,20 +69,23 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 		act.UserID = watcher.UserID
 		act.Repo.Units = nil
 
+		var allowed bool
 		switch act.OpType {
-		case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionPublishRelease, activities_model.ActionDeleteBranch:
-			if !permCode[i] {
-				continue
-			}
+		case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
+			allowed = permCode[i] && watcher.IsWatchingAll()
+		case activities_model.ActionPublishRelease:
+			allowed = permCode[i] && watcher.IncludeReleases
 		case activities_model.ActionCreateIssue, activities_model.ActionCommentIssue, activities_model.ActionCloseIssue, activities_model.ActionReopenIssue:
-			if !permIssue[i] {
-				continue
-			}
-		case activities_model.ActionCreatePullRequest, activities_model.ActionCommentPull, activities_model.ActionMergePullRequest, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest, activities_model.ActionAutoMergePullRequest:
-			if !permPR[i] {
-				continue
-			}
+			allowed = permIssue[i] && watcher.IncludeIssues
+		case activities_model.ActionCreatePullRequest, activities_model.ActionCommentPull, activities_model.ActionMergePullRequest, activities_model.ActionClosePullRequest,
+			activities_model.ActionReopenPullRequest, activities_model.ActionAutoMergePullRequest, activities_model.ActionApprovePullRequest,
+			activities_model.ActionRejectPullRequest, activities_model.ActionPullReviewDismissed, activities_model.ActionPullRequestReadyForReview:
+			allowed = permPR[i] && watcher.IncludePullRequests
 		default:
+			allowed = watcher.IsWatchingAll() // repository events have no watch option of their own
+		}
+		if !allowed {
+			continue
 		}
 
 		if err := db.Insert(ctx, act); err != nil {
@@ -120,7 +123,6 @@ func NotifyWatchers(ctx context.Context, acts ...*activities_model.Action) error
 		if err != nil {
 			return fmt.Errorf("get watchers: %w", err)
 		}
-
 		permCode := make([]bool, len(watchers))
 		permIssue := make([]bool, len(watchers))
 		permPR := make([]bool, len(watchers))

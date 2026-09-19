@@ -4,11 +4,13 @@
 package v1_20
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/log"
 )
 
-func FixIncorrectOwnerTeamUnitAccessMode(x base.EngineMigration) error {
+func FixIncorrectOwnerTeamUnitAccessMode(_ context.Context, x base.EngineMigration) error {
 	type UnitType int
 	type AccessMode int
 

@@ -4,6 +4,7 @@
 package v1_10
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -11,7 +12,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func DeleteOrphanedAttachments(x base.EngineMigration) error {
+func DeleteOrphanedAttachments(_ context.Context, x base.EngineMigration) error {
 	type Attachment struct {
 		ID        int64  `xorm:"pk autoincr"`
 		UUID      string `xorm:"uuid UNIQUE"`

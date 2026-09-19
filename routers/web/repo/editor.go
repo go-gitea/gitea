@@ -67,7 +67,7 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 		return nil
 	}
 
-	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanEnableEditor() {
+	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanContentChange() {
 		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.editor.fork_not_editable")
 		ctx.NotFound(nil)
 	}
@@ -112,7 +112,7 @@ func (f *preparedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage stri
 }
 
 func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *preparedEditorCommitForm[T] {
-	form := web.GetForm(ctx).(T)
+	form := web.GetForm[T](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return nil

@@ -7,9 +7,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 
-	"gitea.com/gitea/runner/act/exprparser"
-	"gitea.com/gitea/runner/act/model"
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
+	"gitea.dev/modules/util"
+
 	"go.yaml.in/yaml/v4"
 )
 
@@ -30,6 +34,11 @@ func (w *SingleWorkflow) Job() (string, *Job) {
 		return ids[0], jobs[0]
 	}
 	return "", nil
+}
+
+// WorkflowDispatchConfig returns the `on: workflow_dispatch` declaration, nil if there is none.
+func (w *SingleWorkflow) WorkflowDispatchConfig() *model.WorkflowDispatch {
+	return (&model.Workflow{RawOn: w.RawOn}).WorkflowDispatchConfig()
 }
 
 func (w *SingleWorkflow) jobs() ([]string, []*Job, error) {
@@ -166,18 +175,41 @@ func (j *Job) RunsOn() []string {
 	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
 }
 
+// BlockSafeString works around https://github.com/yaml/go-yaml/issues/399, quoting a value whose
+// leading newline would cost a literal block scalar its indentation indicator.
+type BlockSafeString string
+
+func (s BlockSafeString) MarshalYAML() (any, error) {
+	if !strings.HasPrefix(string(s), "\n") {
+		return string(s), nil
+	}
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Style: yaml.DoubleQuotedStyle, Value: string(s)}, nil
+}
+
 type Step struct {
-	ID               string            `yaml:"id,omitempty"`
-	If               yaml.Node         `yaml:"if,omitempty"`
-	Name             string            `yaml:"name,omitempty"`
-	Uses             string            `yaml:"uses,omitempty"`
-	Run              string            `yaml:"run,omitempty"`
-	WorkingDirectory string            `yaml:"working-directory,omitempty"`
-	Shell            string            `yaml:"shell,omitempty"`
-	Env              yaml.Node         `yaml:"env,omitempty"`
-	With             map[string]string `yaml:"with,omitempty"`
-	ContinueOnError  bool              `yaml:"continue-on-error,omitempty"`
-	TimeoutMinutes   string            `yaml:"timeout-minutes,omitempty"`
+	ID                 string            `yaml:"id,omitempty"`
+	If                 yaml.Node         `yaml:"if,omitempty"`
+	Name               BlockSafeString   `yaml:"name,omitempty"`
+	Uses               string            `yaml:"uses,omitempty"`
+	Run                BlockSafeString   `yaml:"run,omitempty"`
+	WorkingDirectory   string            `yaml:"working-directory,omitempty"`
+	Shell              string            `yaml:"shell,omitempty"`
+	Env                yaml.Node         `yaml:"env,omitempty"`
+	With               map[string]string `yaml:"with,omitempty"`
+	RawContinueOnError yaml.Node         `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
+	TimeoutMinutes     string            `yaml:"timeout-minutes,omitempty"`
+}
+
+// UnmarshalYAML canonicalizes booleans like continue-on-error
+func (s *Step) UnmarshalYAML(node *yaml.Node) error {
+	type rawStep Step
+	if err := node.Decode((*rawStep)(s)); err != nil {
+		return err
+	}
+	if raw := &s.RawContinueOnError; raw.Tag == "!!bool" {
+		raw.Value = strings.ToLower(raw.Value)
+	}
+	return nil
 }
 
 // String gets the name of step
@@ -187,9 +219,9 @@ func (s *Step) String() string {
 	}
 	return (&model.Step{
 		ID:   s.ID,
-		Name: s.Name,
+		Name: string(s.Name),
 		Uses: s.Uses,
-		Run:  s.Run,
+		Run:  string(s.Run),
 	}).String()
 }
 
@@ -251,9 +283,11 @@ func (evt *Event) Inputs() []WorkflowDispatchInput {
 }
 
 func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
-	w := new(model.Workflow)
-	err := yaml.NewDecoder(bytes.NewReader(content)).Decode(w)
-	return w.RawConcurrency, err
+	w, err := ReadWorkflow(content)
+	if err != nil {
+		return nil, err
+	}
+	return w.RawConcurrency, nil
 }
 
 func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (string, bool, error) {
@@ -264,8 +298,6 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 			MaxParallelString: job.Strategy.MaxParallelString,
 			RawMatrix:         job.Strategy.RawMatrix,
 		}
-		actJob.Strategy.FailFast = actJob.Strategy.GetFailFast()
-		actJob.Strategy.MaxParallel = actJob.Strategy.GetMaxParallel()
 	}
 
 	matrix := make(map[string]any)
@@ -277,7 +309,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 		matrix = matrixes[0]
 	}
 
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 	var node yaml.Node
 	if err := node.Encode(rc); err != nil {
 		return "", false, fmt.Errorf("failed to encode concurrency: %w", err)
@@ -292,7 +324,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 	if evaluated.RawExpression != "" {
 		return evaluated.RawExpression, false, nil
 	}
-	return evaluated.Group, evaluated.CancelInProgress == "true", nil
+	return evaluated.Group, util.ParseYamlBool(evaluated.CancelInProgress), nil
 }
 
 func toGitContext(input map[string]any) *model.GithubContext {
@@ -525,16 +557,8 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 			matrix = matrixes[0]
 		}
 	}
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
-	expr, err := rewriteSubExpression(job.If.Value, false)
-	if err != nil {
-		return false, err
-	}
-	result, err := evaluator.evaluate(expr, exprparser.DefaultStatusCheckSuccess)
-	if err != nil {
-		return false, err
-	}
-	return exprparser.IsTruthy(result), nil
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
+	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)
 }
 
 // parseMappingNode parse a mapping node and preserve order.

@@ -4,6 +4,7 @@
 package v1_6
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -11,7 +12,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func AddScratchHash(x base.EngineMigration) error {
+func AddScratchHash(_ context.Context, x base.EngineMigration) error {
 	// TwoFactor see models/twofactor.go
 	type TwoFactor struct {
 		ID               int64 `xorm:"pk autoincr"`

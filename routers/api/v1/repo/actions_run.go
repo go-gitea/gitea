@@ -88,6 +88,51 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/conflict"
 
+	cancelWorkflowRun(ctx, false)
+}
+
+func ForceCancelWorkflowRun(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/actions/runs/{run}/force-cancel repository forceCancelWorkflowRun
+	// ---
+	// summary: Force-cancel a workflow run
+	// description: |
+	//   Cancels a workflow run without waiting for its runners to acknowledge the cancellation.
+	//   The jobs are marked cancelled at once and anything a runner reports for them afterwards is discarded.
+	//   Only use this endpoint when the workflow run does not respond to `POST /repos/{owner}/{repo}/actions/runs/{run}/cancel`.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repository
+	//   type: string
+	//   required: true
+	// - name: run
+	//   in: path
+	//   description: run ID
+	//   type: integer
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRun"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+
+	cancelWorkflowRun(ctx, true)
+}
+
+func cancelWorkflowRun(ctx *context.APIContext, force bool) {
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
 		return
@@ -99,7 +144,12 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	run, err := actions_service.CancelRun(ctx, run, jobs)
+	var err error
+	if force {
+		run, err = actions_service.ForceCancelRun(ctx, run, jobs)
+	} else {
+		run, err = actions_service.CancelRun(ctx, run, jobs)
+	}
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return

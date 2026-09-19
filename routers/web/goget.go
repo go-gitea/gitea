@@ -127,12 +127,9 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 // always may; a token request may only when its scope grants repository read, so a PAT that was never
 // scoped for repositories cannot disclose the branch even if its owner can read the repo.
 func goGetTokenCanReadRepo(ctx *context.Context) bool {
-	if ctx.Data["IsApiToken"] != true {
+	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if !hasApiTokenScope {
 		return true
-	}
-	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if !ok {
-		return false
 	}
 	has, err := scope.HasScope(auth_model.AccessTokenScopeReadRepository)
 	return err == nil && has

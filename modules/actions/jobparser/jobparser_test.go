@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.com/gitea/runner/act/model"
+	"gitea.dev/actionslib/pkg/model"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
@@ -160,6 +161,49 @@ jobs:
 	}
 }
 
+func TestParseInterpolatesRunName(t *testing.T) {
+	workflow := func(runName string) []byte {
+		return []byte("name: t\nrun-name: \"" + runName + "\"\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]\n")
+	}
+
+	for _, tt := range []struct{ name, runName, want string }{
+		{"bool", "${{ true }}", "true"},
+		{"int", "${{ 1 }}", "1"},
+		{"float", "${{ 1.0 }}", "1"},
+		{"null", "${{ null }}", ""},
+		{"object", `${{ fromJSON('{\"a\":1}') }}`, "Object"},
+		{"array", "${{ fromJSON('[1,2]') }}", "Array"},
+		{"context", "${{ github }}", "Object"},
+		{"surrounding literals", "run ${{ 1 }} now", "run 1 now"},
+		{"two expressions", "${{ 1 }}-${{ true }}", "1-true"},
+		{"closing brace inside a string", "${{ 'a}}b' }}", "a}}b"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Parse(workflow(tt.runName), WithGitContext(&model.GithubContext{EventName: "push"}))
+			require.NoError(t, err)
+			require.Len(t, result, 1)
+			assert.Equal(t, tt.want, result[0].RunName)
+		})
+	}
+
+	t.Run("unclosed expression errors", func(t *testing.T) {
+		_, err := Parse(workflow("${{ 1"), WithGitContext(&model.GithubContext{EventName: "push"}))
+		require.ErrorContains(t, err, "unclosed expression")
+	})
+
+	// a malformed part must not restructure the surrounding expression
+	for _, runName := range []string{"${{ 1) && (2 }}", "run ${{ 1) && (2 }} now", "${{ 'a' }} ${{ b", "${{ 'a }}"} {
+		_, err := Parse(workflow(runName), WithGitContext(&model.GithubContext{EventName: "push"}))
+		assert.ErrorContains(t, err, "interpolate run-name")
+	}
+
+	// callers such as commit status parse without a git context, leaving `github` a nil pointer
+	result, err := Parse(workflow("${{ github }}"))
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Empty(t, result[0].RunName)
+}
+
 func TestExpandMatrixWithNeeds(t *testing.T) {
 	// matrixYAML is the YAML value of the `matrix:` key, so a case can replace the whole node.
 	expandMax := func(t *testing.T, matrixYAML string, maxCombinations int) ([]*Job, error) {
@@ -212,14 +256,14 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 	})
 
 	// GitHub rejects a matrix that yields no combinations instead of running the job unparameterized.
-	for _, tt := range []struct{ name, matrix string }{
-		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n"},
-		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n"},
-		{"whole matrix not a mapping", " ${{ fromJson(needs.setup.outputs.empty) }}\n"},
+	for _, tt := range []struct{ name, matrix, errHas string }{
+		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix vector "version" does not contain any values`},
+		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n", "Matrix must define at least one vector"},
+		{"whole matrix not a mapping", " ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix "" is not a map of matrix keys to values`},
 	} {
 		t.Run(tt.name+" errors", func(t *testing.T) {
 			_, err := expand(t, tt.matrix)
-			require.ErrorContains(t, err, "matrix must define at least one vector")
+			require.ErrorContains(t, err, tt.errHas)
 		})
 	}
 
@@ -247,8 +291,8 @@ func evaluateJobIf(t *testing.T, matrixYAML, ifExpr string, deferred bool) (bool
 }
 
 func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
-	// act dereferences include/exclude entries as mappings without checking, so an unevaluated
-	// expression panics there. Every entry point into act's matrix expansion must reject it. The
+	// An unevaluated expression is still a scalar, which is not a filter act can apply.
+	// Every entry point into act's matrix expansion must reject it. The
 	// expression here reads `vars`, which is available while planning, so the job is not deferred and
 	// nothing will ever resolve the filter: the error is the right answer at both entry points.
 	// A deferred placeholder is the other case, covered by TestEvaluateJobIfExpressionLeavesRawMatrixUnavailable.
@@ -289,13 +333,12 @@ jobs:
 		parseCount  int    // what Parse makes of the stored payload
 		parseErrHas string // ... or the error it fails with
 	}{
-		// The canonical GitHub dynamic-matrix idiom. act dereferences include entries as mappings, so
-		// validateMatrixFilters rejects the still-scalar expression outright.
+		// The canonical GitHub dynamic-matrix idiom. validateMatrixFilters rejects the still-scalar expression outright.
 		{name: "include expression", matrix: "include: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: "must be a list of mappings"},
-		// A static vector crossed with the unevaluated expression: one workflow per static value.
-		{name: "static vector and expression", matrix: "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}", parseCount: 2},
-		// The single-key case the feature shipped with happens to survive Parse, so it must keep working.
-		{name: "single expression vector", matrix: "version: ${{ fromJson(needs.setup.outputs.m) }}", parseCount: 1},
+		// An unevaluated expression is a scalar where a vector is required, rather than one
+		// combination holding the literal `${{ }}` text.
+		{name: "static vector and expression", matrix: "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: `Matrix vector "version" is not a list of values`},
+		{name: "single expression vector", matrix: "version: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: `Matrix vector "version" is not a list of values`},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			planned, err := Parse(fmt.Appendf(nil, workflow, tt.matrix))

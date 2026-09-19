@@ -111,25 +111,8 @@ func runACME(listenAddr string, m http.Handler) error {
 		}
 	}
 
-	tlsConfig := magic.TLSConfig()
-	tlsConfig.NextProtos = append(tlsConfig.NextProtos, "h2")
-
-	if version := toTLSVersion(setting.SSLMinimumVersion); version != 0 {
-		tlsConfig.MinVersion = version
-	}
-	if version := toTLSVersion(setting.SSLMaximumVersion); version != 0 {
-		tlsConfig.MaxVersion = version
-	}
-
-	// Set curve preferences
-	if curves := toCurvePreferences(setting.SSLCurvePreferences); len(curves) > 0 {
-		tlsConfig.CurvePreferences = curves
-	}
-
-	// Set cipher suites
-	if ciphers := toTLSCiphers(setting.SSLCipherSuites); len(ciphers) > 0 {
-		tlsConfig.CipherSuites = ciphers
-	}
+	// certmagic only advertises its own ACME challenge protocol, applyTLSSettings appends ours
+	tlsConfig := applyTLSSettings(magic.TLSConfig())
 
 	if enableHTTPChallenge {
 		go func() {

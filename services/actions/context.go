@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"strconv"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
@@ -19,9 +21,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 type GiteaContext map[string]any
@@ -55,6 +54,11 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	}
 
 	refName := git.RefName(ref)
+	refProtected, err := git_model.IsRefProtected(ctx, run.RepoID, refName)
+	if err != nil {
+		log.Error("GenerateGiteaContext: check protection for ref %q: %v", refName, err)
+		refProtected = false
+	}
 
 	gitContext := GiteaContext{
 		// standard contexts, see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -75,7 +79,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"job":               "",                                       // string, The job_id of the current job.
 		"ref":               ref,                                      // string, The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
 		"ref_name":          refName.ShortName(),                      // string, The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
-		"ref_protected":     false,                                    // boolean, true if branch protections are configured for the ref that triggered the workflow run.
+		"ref_protected":     refProtected,                             // boolean, true if protection rules are configured for the ref that triggered the workflow run.
 		"ref_type":          string(refName.RefType()),                // string, The type of ref that triggered the workflow run. Valid values are branch or tag.
 		"path":              "",                                       // string, Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
 		"repository":        run.Repo.OwnerName + "/" + run.Repo.Name, // string, The owner and repository name. For example, Codertocat/Hello-World.
@@ -319,36 +323,45 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 	return ret
 }
 
+func contextMapValueOrDefault[T any](m map[string]any, key string, defaultValue T) T {
+	if value, ok := m[key]; ok {
+		if v, ok := value.(T); ok {
+			return v
+		}
+	}
+	return defaultValue
+}
+
 func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
 	return &model.GithubContext{
-		Event:            util.GetMapValueOrDefault(*g, "event", map[string]any(nil)),
-		EventPath:        util.GetMapValueOrDefault(*g, "event_path", ""),
-		Workflow:         util.GetMapValueOrDefault(*g, "workflow", ""),
-		RunID:            util.GetMapValueOrDefault(*g, "run_id", ""),
-		RunNumber:        util.GetMapValueOrDefault(*g, "run_number", ""),
-		Actor:            util.GetMapValueOrDefault(*g, "actor", ""),
-		Repository:       util.GetMapValueOrDefault(*g, "repository", ""),
-		EventName:        util.GetMapValueOrDefault(*g, "event_name", ""),
-		Sha:              util.GetMapValueOrDefault(*g, "sha", ""),
-		Ref:              util.GetMapValueOrDefault(*g, "ref", ""),
-		RefName:          util.GetMapValueOrDefault(*g, "ref_name", ""),
-		RefType:          util.GetMapValueOrDefault(*g, "ref_type", ""),
-		HeadRef:          util.GetMapValueOrDefault(*g, "head_ref", ""),
-		BaseRef:          util.GetMapValueOrDefault(*g, "base_ref", ""),
+		Event:            contextMapValueOrDefault(*g, "event", map[string]any(nil)),
+		EventPath:        contextMapValueOrDefault(*g, "event_path", ""),
+		Workflow:         contextMapValueOrDefault(*g, "workflow", ""),
+		RunID:            contextMapValueOrDefault(*g, "run_id", ""),
+		RunNumber:        contextMapValueOrDefault(*g, "run_number", ""),
+		Actor:            contextMapValueOrDefault(*g, "actor", ""),
+		Repository:       contextMapValueOrDefault(*g, "repository", ""),
+		EventName:        contextMapValueOrDefault(*g, "event_name", ""),
+		Sha:              contextMapValueOrDefault(*g, "sha", ""),
+		Ref:              contextMapValueOrDefault(*g, "ref", ""),
+		RefName:          contextMapValueOrDefault(*g, "ref_name", ""),
+		RefType:          contextMapValueOrDefault(*g, "ref_type", ""),
+		HeadRef:          contextMapValueOrDefault(*g, "head_ref", ""),
+		BaseRef:          contextMapValueOrDefault(*g, "base_ref", ""),
 		Token:            "", // deliberately omitted for security
-		Workspace:        util.GetMapValueOrDefault(*g, "workspace", ""),
-		Action:           util.GetMapValueOrDefault(*g, "action", ""),
-		ActionPath:       util.GetMapValueOrDefault(*g, "action_path", ""),
-		ActionRef:        util.GetMapValueOrDefault(*g, "action_ref", ""),
-		ActionRepository: util.GetMapValueOrDefault(*g, "action_repository", ""),
-		Job:              util.GetMapValueOrDefault(*g, "job", ""),
+		Workspace:        contextMapValueOrDefault(*g, "workspace", ""),
+		Action:           contextMapValueOrDefault(*g, "action", ""),
+		ActionPath:       contextMapValueOrDefault(*g, "action_path", ""),
+		ActionRef:        contextMapValueOrDefault(*g, "action_ref", ""),
+		ActionRepository: contextMapValueOrDefault(*g, "action_repository", ""),
+		Job:              contextMapValueOrDefault(*g, "job", ""),
 		JobName:          "", // not present in GiteaContext
-		RepositoryOwner:  util.GetMapValueOrDefault(*g, "repository_owner", ""),
-		RetentionDays:    util.GetMapValueOrDefault(*g, "retention_days", ""),
+		RepositoryOwner:  contextMapValueOrDefault(*g, "repository_owner", ""),
+		RetentionDays:    contextMapValueOrDefault(*g, "retention_days", ""),
 		RunnerPerflog:    "", // not present in GiteaContext
 		RunnerTrackingID: "", // not present in GiteaContext
-		ServerURL:        util.GetMapValueOrDefault(*g, "server_url", ""),
-		APIURL:           util.GetMapValueOrDefault(*g, "api_url", ""),
-		GraphQLURL:       util.GetMapValueOrDefault(*g, "graphql_url", ""),
+		ServerURL:        contextMapValueOrDefault(*g, "server_url", ""),
+		APIURL:           contextMapValueOrDefault(*g, "api_url", ""),
+		GraphQLURL:       contextMapValueOrDefault(*g, "graphql_url", ""),
 	}
 }

@@ -165,12 +165,14 @@ func TestRelease_Update(t *testing.T) {
 	release, err := repo_model.GetRelease(t.Context(), repo.ID, "v1.1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
+	releasePublishedUnix := release.PublishedUnix
 	advance()
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
+	assert.Equal(t, releasePublishedUnix, release.PublishedUnix, "editing does not republish")
 
 	// Test a changed draft
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
@@ -195,6 +197,19 @@ func TestRelease_Update(t *testing.T) {
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
+	assert.Zero(t, release.PublishedUnix, "a draft is unpublished")
+
+	// Test publishing and withdrawing that draft
+	release.IsDraft = false
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
+	assert.NoError(t, err)
+	assert.NotZero(t, release.PublishedUnix, "publishing stamps the publication time")
+	release.IsDraft = true
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
+	assert.NoError(t, err)
+	assert.Zero(t, release.PublishedUnix, "withdrawing unpublishes it again")
 
 	// Test a changed pre-release
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
@@ -228,7 +243,7 @@ func TestRelease_Update(t *testing.T) {
 		PublisherID:  user.ID,
 		Publisher:    user,
 		TagName:      "v1.1.2",
-		Target:       "master",
+		Target:       "",
 		Title:        "v1.1.2 is released",
 		Note:         "v1.1.2 is released",
 		IsDraft:      true,
@@ -386,4 +401,35 @@ func TestCreateNewTag(t *testing.T) {
 
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
+}
+
+func TestRelease_DatedByTargetCommit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	newRelease := func(tagName, target string) *repo_model.Release {
+		rel := &repo_model.Release{
+			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
+			TagName: tagName, Target: target, Title: tagName,
+		}
+		assert.NoError(t, CreateRelease(t.Context(), gitRepo, rel, nil, ""))
+		return rel
+	}
+
+	recent := newRelease("v9.9-recent", "DefaultBranch")
+	// released afterwards, but from an older commit, so it must not take over as the latest release
+	old := newRelease("v9.9-old", "master")
+
+	oldCommit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+	assert.NoError(t, err)
+	assert.Equal(t, oldCommit.Committer.When.Unix(), int64(old.CreatedUnix), "a release is dated by the commit it points at")
+	assert.Greater(t, int64(old.PublishedUnix), int64(old.CreatedUnix), "but its publication time is now")
+
+	latest, err := repo_model.GetLatestReleaseByRepoID(t.Context(), repo.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, recent.ID, latest.ID)
 }

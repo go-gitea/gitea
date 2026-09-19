@@ -9,20 +9,18 @@
 {{else if $canNotForkOwn}}
 	{{$forkHref = "#"}}
 {{end}}
-<div class="ui labeled button"
+<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}" href="{{$forkHref}}"
+	{{if and $.IsSigned $.ShowForkModal}}data-modal="#fork-repo-modal"{{end}}
 	{{if not $.IsSigned}}
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_guest_user"}}"
 	{{else if $canNotForkOwn}}
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 	{{end}}
 >
-	<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}" href="{{$forkHref}}"{{if and $.IsSigned $.ShowForkModal}} data-modal="#fork-repo-modal"{{end}}>
-		{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
-	</a>
-	<a class="ui basic label" href="{{$.Repository.Link}}/forks">
-		{{CountFmt $.Repository.NumForks}}
-	</a>
-</div>
+	{{svg "octicon-repo-forked"}}
+	<span class="not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
+	<span class="ui small label">{{CountFmt $.Repository.NumForks}}</span>
+</a>
 {{if $.ShowForkModal}}
 <div class="ui small modal" id="fork-repo-modal">
 	<div class="header">

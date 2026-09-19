@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
 	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	org_service "gitea.dev/services/org"
@@ -58,7 +59,7 @@ func Settings(ctx *context.Context) {
 
 // SettingsPost response for settings change submitted
 func SettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateOrgSettingForm)
+	form := web.GetForm[*forms.UpdateOrgSettingForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
@@ -103,7 +104,7 @@ func SettingsPost(ctx *context.Context) {
 
 // SettingsAvatar response for change avatar on settings page
 func SettingsAvatar(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form := web.GetForm[*forms.AvatarForm](ctx)
 	form.Source = forms.AvatarLocal
 	if err := user_setting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -172,9 +173,14 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	hook, err := webhook.GetWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+	} else if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
+		audit.RecordScoped(ctx, ctx.Org.Organization.AsUser(), nil, audit.WebhookRemove, "webhook", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
@@ -198,7 +204,7 @@ func Labels(ctx *context.Context) {
 
 // SettingsRenamePost response for renaming organization
 func SettingsRenamePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RenameOrgForm)
+	form := web.GetForm[*forms.RenameOrgForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return

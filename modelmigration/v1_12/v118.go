@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddReviewCommitAndStale(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddReviewCommitAndStale(_ context.Context, x base.EngineMigration) error {
 	type Review struct {
 		CommitID string `xorm:"VARCHAR(40)"`
 		Stale    bool   `xorm:"NOT NULL DEFAULT false"`

@@ -4,6 +4,8 @@
 package v1_22
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -28,7 +30,7 @@ func (ProjectBoardV293) TableName() string {
 }
 
 // CheckProjectColumnsConsistency ensures there is exactly one default board per project present
-func CheckProjectColumnsConsistency(x base.EngineMigration) error {
+func CheckProjectColumnsConsistency(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -55,12 +56,16 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 
 	switch ref.Kind {
 	case jobparser.UsesKindLocalSameRepo:
-		// `./` is resolved against the workflow file containing the `uses:` - i.e. the caller's own source repo + commit.
+		// `./` and `$/` are resolved against the workflow file containing the `uses:` - i.e. the caller's own source repo + commit.
 		callerRepo, err := repo_model.GetRepositoryByID(ctx, caller.WorkflowSourceRepoID)
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("look up caller source repo %d: %w", caller.WorkflowSourceRepoID, err)
 		}
-		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, callerRepo, caller.WorkflowSourceCommitSHA, ref.Path)
+		sourceCommitSHA := resolveSameRepoWorkflowSourceCommit(run, caller)
+		if sourceCommitSHA != caller.WorkflowSourceCommitSHA {
+			log.Warn("run %d (pull_request_target) records workflow source commit %s, resolving %q at base commit %s instead", run.ID, caller.WorkflowSourceCommitSHA, ref.Path, sourceCommitSHA)
+		}
+		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, callerRepo, sourceCommitSHA, ref.Path)
 		if err != nil {
 			return nil, 0, "", err
 		}
@@ -92,6 +97,19 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 	return nil, 0, "", fmt.Errorf("unsupported uses kind %d", ref.Kind)
 }
 
+// resolveSameRepoWorkflowSourceCommit returns the commit to read a same-repo reusable workflow from.
+// pull_request_target runs must resolve local `uses:` at the PR base commit, not a stored head SHA.
+func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, caller *actions_model.ActionRunJob) string {
+	// only a SHA copied from the run row can be the polluted head one; a SHA resolved from a `uses:` ref is right by construction
+	if run.IsScopedRun || caller.WorkflowSourceRepoID != run.RepoID || caller.WorkflowSourceCommitSHA != run.WorkflowCommitSHA {
+		return caller.WorkflowSourceCommitSHA
+	}
+	if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != caller.WorkflowSourceCommitSHA {
+		return baseSHA
+	}
+	return caller.WorkflowSourceCommitSHA
+}
+
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.
 func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, string, error) {
 	gitRepo, err := git.OpenRepository(ctx, repo)
@@ -115,7 +133,7 @@ func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refO
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
 //   - enforces MaxReusableCallLevels on the number of ancestors above `caller`
 //
-// Cycle detection is intentionally *syntactic* (string equality on CallUses), not semantic.
+// Cycle detection is intentionally *syntactic* (string equality on canonicalCallUses), not semantic.
 // So `owner/repo/lib.yml@v1` and `owner/repo/lib.yml@refs/heads/v1` resolving to the same commit are NOT treated as the same node.
 // Going semantic (Owner, Repo, Path, ResolvedSHA tuples) would require extra git reads.
 func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) error {
@@ -123,8 +141,7 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 		return nil // top-level caller: depth 0, no ancestors to walk
 	}
 
-	visited := make(container.Set[string])
-	visited.Add(caller.CallUses)
+	visited := container.SetOf(canonicalCallUses(caller.CallUses))
 
 	depth := 0
 	current := caller
@@ -138,14 +155,19 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 		if depth > MaxReusableCallLevels {
 			return fmt.Errorf("reusable workflow call exceeds the maximum nesting level of %d at %q", MaxReusableCallLevels, caller.CallUses)
 		}
-		if current.IsReusableCaller && current.CallUses != "" {
-			if visited.Contains(current.CallUses) {
-				return fmt.Errorf("reusable workflow call cycle detected: %q", current.CallUses)
-			}
-			visited.Add(current.CallUses)
+		if current.IsReusableCaller && current.CallUses != "" && !visited.Add(canonicalCallUses(current.CallUses)) {
+			return fmt.Errorf("reusable workflow call cycle detected: %q", current.CallUses)
 		}
 	}
 	return nil
+}
+
+// canonicalCallUses folds the two same-repo prefixes into one key, because `$/x.yml` and `./x.yml` name the same file.
+func canonicalCallUses(uses string) string {
+	if ref, err := jobparser.ParseUses(uses); err == nil && ref.Kind == jobparser.UsesKindLocalSameRepo {
+		return "./" + ref.Path
+	}
+	return uses
 }
 
 // expandReusableWorkflowCaller loads and parses the target reusable workflow and inserts the caller's direct child jobs.

@@ -11,7 +11,6 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
@@ -266,7 +265,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	for _, branch := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch, true))
+		git.RemoveCommitsCountCache(m.Repo, git.RefNameFromBranch(branch))
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()

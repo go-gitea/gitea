@@ -82,7 +82,7 @@ func getLastCommitForPathsByCommitNode(ctx context.Context, gitRepo *Repository,
 
 	// We do a tree traversal with nodes sorted by commit time
 	heap := binaryheap.NewWith(func(a, b any) int {
-		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
+		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) { //nolint:forcetypeassert // this heap only ever holds *commitAndPaths
 			return 1
 		}
 		return -1
@@ -110,7 +110,7 @@ heaploop:
 		if !ok {
 			break
 		}
-		current := cIn.(*commitAndPaths)
+		current := cIn.(*commitAndPaths) //nolint:forcetypeassert // this heap only ever holds *commitAndPaths
 
 		// Load the parent commits for the one we are currently examining
 		numParents := current.commit.NumParents()

@@ -56,12 +56,12 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			}
 		}()
 
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(lang)
 		lexer := highlight.DetectChromaLexerByFileName("", lang) // don't use content to detect, it is too slow
 		lexer = chroma.Coalesce(lexer)
 
 		sb := &strings.Builder{}
-		// include language-x class as part of commonmark spec
-		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre><code class="chroma language-%s">`, strings.ToLower(lexer.Config().Name))
+		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre %s><code %s>`, preAttrs, codeAttrs)
 		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = sb.WriteString("</code></pre>")
 		return sb.String()

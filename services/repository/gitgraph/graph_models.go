@@ -130,7 +130,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, repository, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, repository, user.ID)
 		}, &keyMap)
 
 		statuses, err := git_model.GetLatestCommitStatus(ctx, repository.ID, c.Commit.ID.String(), db.ListOptionsAll)

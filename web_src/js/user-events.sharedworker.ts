@@ -1,10 +1,10 @@
 import {
   serverUserEventTypes,
   type SharedWorkerControlMessage,
+  type UserEventMessage,
   type WorkerEventMessage,
   type WorkerInboundMessage,
 } from './types.ts';
-import type {UserEventMessage} from './types.ts';
 
 // chrome://inspect/#workers
 let showDebugLog = false;

@@ -4,13 +4,14 @@
 package v1_11
 
 import (
+	"context"
 	"fmt"
 	"slices"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddBranchProtectionCanPushAndEnableWhitelist(x base.EngineMigration) error {
+func AddBranchProtectionCanPushAndEnableWhitelist(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		CanPush                   bool    `xorm:"NOT NULL DEFAULT false"`
 		EnableApprovalsWhitelist  bool    `xorm:"NOT NULL DEFAULT false"`

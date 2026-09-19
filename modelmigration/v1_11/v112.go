@@ -4,6 +4,7 @@
 package v1_11
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -14,7 +15,7 @@ import (
 	"xorm.io/builder"
 )
 
-func RemoveAttachmentMissedRepo(x base.EngineMigration) error {
+func RemoveAttachmentMissedRepo(_ context.Context, x base.EngineMigration) error {
 	type Attachment struct {
 		UUID string `xorm:"uuid"`
 	}

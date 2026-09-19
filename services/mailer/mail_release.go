@@ -22,7 +22,7 @@ import (
 	sender_service "gitea.dev/services/mailer/sender"
 )
 
-const tplNewReleaseMail templates.TplName = "repo/release"
+const tplNewReleaseMail templates.TplName = "mail/repo/release"
 
 func generateMessageIDForRelease(release *repo_model.Release) string {
 	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
@@ -35,7 +35,7 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
+	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID, repo_model.WatchReleases)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return

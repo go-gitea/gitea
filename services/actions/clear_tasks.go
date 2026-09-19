@@ -182,7 +182,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		return err
 	}
 
-	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs)
+	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs, false)
 	if err != nil {
 		log.Warn("cancel abandoned jobs: %v", err)
 	}

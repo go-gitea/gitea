@@ -3,9 +3,13 @@
 
 package v1_11
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddTeamIncludesAllRepositories(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddTeamIncludesAllRepositories(_ context.Context, x base.EngineMigration) error {
 	type Team struct {
 		ID                      int64 `xorm:"pk autoincr"`
 		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`

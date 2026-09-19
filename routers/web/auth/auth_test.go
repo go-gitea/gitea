@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
@@ -181,4 +182,20 @@ func TestWebAuthOAuth2(t *testing.T) {
 			assert.Equal(t, "/", test.RedirectURL(resp))
 		})
 	})
+}
+
+func TestOpenIDRequireTwoFactor(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-openid")}
+
+	user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32}) // has a webauthn credential
+	ctx, resp := contexttest.MockContext(t, "/user/openid/connect", mockOpt)
+	openIDRequireTwoFactor(ctx, user32, false, "https://example.com/id")
+	assert.Equal(t, "/user/webauthn", test.RedirectURL(resp))
+	unittest.AssertNotExistsBean(t, &user_model.UserOpenID{UID: user32.ID}) // not attached before the key answered
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	ctx, _ = contexttest.MockContext(t, "/user/openid/connect", mockOpt)
+	openIDRequireTwoFactor(ctx, user2, false, "https://example.com/id")
+	assert.False(t, ctx.Written())
 }

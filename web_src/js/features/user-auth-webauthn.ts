@@ -251,10 +251,8 @@ async function webAuthnRegisterRequest() {
 
   options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
   options.publicKey.user.id = decodeURLEncodedBase64(options.publicKey.user.id);
-  if (options.publicKey.excludeCredentials) {
-    for (const cred of options.publicKey.excludeCredentials) {
-      cred.id = decodeURLEncodedBase64(cred.id);
-    }
+  for (const cred of options.publicKey.excludeCredentials || []) {
+    cred.id = decodeURLEncodedBase64(cred.id);
   }
 
   try {
@@ -263,6 +261,11 @@ async function webAuthnRegisterRequest() {
     });
     await webauthnRegistered(credential);
   } catch (err) {
+    // an already registered authenticator raises this
+    if (err instanceof DOMException && err.name === 'InvalidStateError') {
+      webAuthnError('duplicated');
+      return;
+    }
     webAuthnError('unknown', errorMessage(err));
   }
 }

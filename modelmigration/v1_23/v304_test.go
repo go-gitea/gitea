@@ -36,5 +36,5 @@ func Test_AddIndexForReleaseSha1(t *testing.T) {
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Release))
 	defer deferable()
 
-	assert.NoError(t, AddIndexForReleaseSha1(x))
+	assert.NoError(t, AddIndexForReleaseSha1(t.Context(), x))
 }

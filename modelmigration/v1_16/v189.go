@@ -4,6 +4,7 @@
 package v1_16
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 
@@ -11,7 +12,7 @@ import (
 	"gitea.dev/modules/json"
 )
 
-func UnwrapLDAPSourceCfg(x base.EngineMigration) error {
+func UnwrapLDAPSourceCfg(_ context.Context, x base.EngineMigration) error {
 	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v any) error {
 		err := json.Unmarshal(bs, v)
 		if err != nil {

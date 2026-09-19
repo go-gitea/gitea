@@ -12,14 +12,14 @@ import (
 	"gitea.dev/modules/timeutil"
 )
 
-func RenameCredentialIDBytes(x base.EngineMigration) error {
+func RenameCredentialIDBytes(ctx context.Context, x base.EngineMigration) error {
 	// This migration maybe rerun so that we should check if it has been run
-	credentialIDExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webauthn_credential", "credential_id")
+	credentialIDExist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "webauthn_credential", "credential_id")
 	if err != nil {
 		return err
 	}
 	if credentialIDExist {
-		credentialIDBytesExists, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webauthn_credential", "credential_id_bytes")
+		credentialIDBytesExists, err := x.Dialect().IsColumnExist(x.DB(), ctx, "webauthn_credential", "credential_id_bytes")
 		if err != nil {
 			return err
 		}

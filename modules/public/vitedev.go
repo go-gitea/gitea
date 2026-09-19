@@ -89,7 +89,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 func ViteDevMiddleware(next http.Handler) http.Handler {
 	markLongPolling := routing.MarkLongPolling()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if !isViteDevRequest(req) {
+		if !IsViteDevRequest(req) {
 			next.ServeHTTP(resp, req)
 			return
 		}
@@ -115,7 +115,7 @@ func IsViteDevMode() bool {
 
 	now := time.Now()
 	lastCheck := viteDevModeCheck.Load()
-	if lastCheck != nil && time.Now().Sub(lastCheck.time) < time.Second {
+	if lastCheck != nil && now.Sub(lastCheck.time) < time.Second {
 		return lastCheck.isDev
 	}
 
@@ -124,7 +124,7 @@ func IsViteDevMode() bool {
 		return false
 	}
 
-	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
+	req := httplib.NewClientRequest(http.MethodGet, viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check")
 	resp, _ := req.Response()
 	if resp != nil {
 		_ = resp.Body.Close()
@@ -142,16 +142,19 @@ func IsViteDevMode() bool {
 
 // viteDevSourceURL returns the dev server URL for a source file, or "" if it doesn't exist.
 func viteDevSourceURL(srcPath string) string {
-	localPath := util.FilePathJoinAbs(setting.StaticRootPath, srcPath)
-	if _, err := os.Stat(localPath); err != nil {
+	if _, err := os.Stat(viteDevModuleID(srcPath)); err != nil {
 		return ""
 	}
 	return setting.AppSubURL + "/" + srcPath
 }
 
-// isViteDevRequest returns true if the request should be proxied to the Vite dev server.
+func viteDevModuleID(srcPath string) string {
+	return filepath.ToSlash(util.FilePathJoinAbs(setting.StaticRootPath, srcPath))
+}
+
+// IsViteDevRequest returns true if the request should be proxied to the Vite dev server.
 // Ref: Vite source packages/vite/src/node/constants.ts and packages/vite/src/shared/constants.ts
-func isViteDevRequest(req *http.Request) bool {
+func IsViteDevRequest(req *http.Request) bool {
 	if req.Header.Get("Upgrade") == "websocket" {
 		wsProtocol := req.Header.Get("Sec-WebSocket-Protocol")
 		return wsProtocol == "vite-hmr" || wsProtocol == "vite-ping"

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -17,7 +18,6 @@ import (
 	"gitea.dev/modules/test"
 	web_context "gitea.dev/services/context"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -212,7 +212,7 @@ func newWorkflowBadgeTestContext(t *testing.T) *web_context.Context {
 
 	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/user1/repo1/actions", nil)
 	resp := httptest.NewRecorder()
-	ctx := web_context.NewWebContext(web_context.NewBaseContextForTest(resp, req), nil, nil)
+	ctx := web_context.NewWebContext(web_context.NewBaseContextForTest(t, resp, req), nil, nil)
 	ctx.Repo.Repository = &repo_model.Repository{
 		OwnerName:     "user1",
 		Name:          "repo1",

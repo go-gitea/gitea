@@ -4,10 +4,12 @@
 package v1_21
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 )
 
-func DropCustomLabelsColumnOfActionRunner(x base.EngineMigration) error {
+func DropCustomLabelsColumnOfActionRunner(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

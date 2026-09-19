@@ -4,11 +4,13 @@
 package v1_17
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddPackageTables(x base.EngineMigration) error {
+func AddPackageTables(_ context.Context, x base.EngineMigration) error {
 	type Package struct {
 		ID               int64  `xorm:"pk autoincr"`
 		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`

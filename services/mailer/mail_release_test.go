@@ -40,8 +40,8 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	unauthorized := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	assert.NoError(t, repo_model.WatchRepo(t.Context(), admin, repo, true))
-	assert.NoError(t, repo_model.WatchRepo(t.Context(), unauthorized, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), admin, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), unauthorized, repo, true))
 
 	rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 11})
 	rel.Repo = nil

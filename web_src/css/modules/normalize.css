@@ -5,9 +5,12 @@
   - Remove html tab-size, we set our own
   - Remove b,strong font-weight, we set our own
   - Remove b,code,samp,pre font-size, we set our own
+  - Keep the browser's default line-height on html, it is font-dependent and roughly 1.2
+  - Keep the hr color that v3 dropped, it keeps the separator colored like the surrounding text
+  - Keep the :-moz-focusring outline that v3 dropped, checkboxes and radios have no other focus style
 */
 
-/*! modern-normalize v2.0.0 | MIT License | https://github.com/sindresorhus/modern-normalize */
+/*! modern-normalize v3.0.1 | MIT License | https://github.com/sindresorhus/modern-normalize */
 
 /*
 Document
@@ -25,7 +28,8 @@ Use a better box model (opinionated).
 }
 
 html {
-  line-height: normal; /* 1. (not following the "modern-normalize") Do not change the browser's default line-height, the default value is font-dependent and roughly 1.2 */
+  line-height: normal;
+  /* stylelint-disable-next-line property-no-vendor-prefix -- no unprefixed support in Safari or Firefox */
   -webkit-text-size-adjust: 100%; /* 2. Prevent adjustments of font size after orientation changes in iOS. */
 }
 
@@ -43,28 +47,14 @@ Grouping content
 ================
 */
 
-/**
-1. Add the correct height in Firefox.
-2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
-*/
-
 hr {
-  height: 0; /* 1 */
-  color: inherit; /* 2 */
+  color: inherit;
 }
 
 /*
 Text-level semantics
 ====================
 */
-
-/**
-Add the correct text decoration in Chrome, Edge, and Safari.
-*/
-
-abbr[title] {
-  text-decoration: underline dotted;
-}
 
 /**
 Add the correct font size in all browsers.
@@ -100,13 +90,11 @@ Tabular data
 */
 
 /**
-1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
-2. Correct table border color inheritance in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+Correct table border color inheritance in Chrome and Safari. (https://issues.chromium.org/issues/40615503, https://bugs.webkit.org/show_bug.cgi?id=195016)
 */
 
 table {
-  text-indent: 0; /* 1 */
-  border-color: inherit; /* 2 */
+  border-color: currentcolor;
 }
 
 /*
@@ -131,15 +119,6 @@ textarea {
 }
 
 /**
-Remove the inheritance of text transform in Edge and Firefox.
-*/
-
-button,
-select {
-  text-transform: none;
-}
-
-/**
 Correct the inability to style clickable types in iOS and Safari.
 */
 
@@ -147,33 +126,12 @@ button,
 [type="button"],
 [type="reset"],
 [type="submit"] {
+  /* stylelint-disable-next-line property-no-vendor-prefix -- upstream v3.0.1 still ships the prefix */
   -webkit-appearance: button;
 }
 
-/**
-Remove the inner border and padding in Firefox.
-*/
-
-::-moz-focus-inner {
-  border-style: none;
-  padding: 0;
-}
-
-/**
-Restore the focus styles unset by the previous rule.
-*/
-
 :-moz-focusring {
   outline: 1px dotted ButtonText;
-}
-
-/**
-Remove the additional ':invalid' styles in Firefox.
-See: https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737
-*/
-
-:-moz-ui-invalid {
-  box-shadow: none;
 }
 
 /**
@@ -207,6 +165,7 @@ Correct the cursor style of increment and decrement buttons in Safari.
 */
 
 [type="search"] {
+  /* stylelint-disable-next-line property-no-vendor-prefix -- upstream v3.0.1 still ships the prefix */
   -webkit-appearance: textfield; /* 1 */
   outline-offset: -2px; /* 2 */
 }
@@ -216,6 +175,7 @@ Remove the inner padding in Chrome and Safari on macOS.
 */
 
 ::-webkit-search-decoration {
+  /* stylelint-disable-next-line property-no-vendor-prefix -- upstream v3.0.1 still ships the prefix */
   -webkit-appearance: none;
 }
 
@@ -225,6 +185,7 @@ Remove the inner padding in Chrome and Safari on macOS.
 */
 
 ::-webkit-file-upload-button {
+  /* stylelint-disable-next-line property-no-vendor-prefix -- upstream v3.0.1 still ships the prefix */
   -webkit-appearance: button; /* 1 */
   font: inherit; /* 2 */
 }

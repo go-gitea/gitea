@@ -1,6 +1,7 @@
 import {diffTreeStore, diffTreeStoreSetViewed} from '../modules/diff-file.ts';
 import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
+import {trString} from '../modules/i18n.ts';
 
 const {pageData} = window.config;
 // it is undefined on most pages, fortunately, when it is accessed by the related functions, it exists
@@ -15,9 +16,8 @@ function refreshViewedFilesSummary() {
   const viewedFilesProgress = document.querySelector('#viewed-files-summary')!;
   viewedFilesProgress.setAttribute('value', String(prReview.numberOfViewedFiles));
   const summaryLabel = document.querySelector<HTMLElement>('#viewed-files-summary-label')!;
-  summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
-    .replace('%[1]d', String(prReview.numberOfViewedFiles))
-    .replace('%[2]d', String(prReview.numberOfFiles));
+  const trText = summaryLabel.getAttribute('data-text-changed-template')!;
+  summaryLabel.textContent = trString(trText, prReview.numberOfViewedFiles, prReview.numberOfFiles);
 }
 
 // Initializes a listener for viewed-file checkboxes
@@ -50,7 +50,7 @@ export function initDiffFileViewedForm(el: Element) {
     // Unfortunately, actual forms cause too many problems, hence another approach is needed
     const files: Record<string, boolean> = {};
     files[fileName] = this.checked;
-    const data: Record<string, any> = {files};
+    const data: {files: Record<string, boolean>, headCommitSHA?: string} = {files};
     const headCommitSHA = el.getAttribute('data-headcommit');
     if (headCommitSHA) data.headCommitSHA = headCommitSHA;
     POST(el.getAttribute('data-link')!, {data});

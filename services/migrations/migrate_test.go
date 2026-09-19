@@ -4,16 +4,43 @@
 package migrations
 
 import (
+	"errors"
+	"fmt"
 	"net"
+	"net/http"
 	"path/filepath"
 	"testing"
 
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
+	"github.com/google/go-github/v91/github"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestIsAuthenticationError(t *testing.T) {
+	errDummy := errors.New("dummy")
+	cases := []struct {
+		name string
+		want bool
+		err  error
+	}{
+		{"git authentication failed", true, gitcmd.NewRunStdError(errDummy, "fatal: Authentication failed for 'https://host/repo.git/'")},
+		{"git could not read username", true, fmt.Errorf("%w", gitcmd.NewRunStdError(errDummy, "fatal: could not read Username for 'https://host'"))},
+		{"github unauthorized", true, util.SanitizeErrorCredentialURLs(&github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusUnauthorized}})},
+		{"github other", false, &github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusNotFound}}},
+		{"github nil response", false, &github.ErrorResponse{}},
+		{"unrelated error", false, errDummy},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.want, IsAuthenticationError(c.err))
+		})
+	}
+}
 
 func TestMigrateWhiteBlocklist(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

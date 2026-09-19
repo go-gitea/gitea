@@ -4,7 +4,7 @@ import {generateElemId} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {throttle} from '../utils/func.ts';
 
 const props = defineProps({

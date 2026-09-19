@@ -431,7 +431,12 @@ $.fn.dropdown = function(parameters) {
             module.refresh();
           },
           menu: function(values) {
-            $menu.html( templates.menu(values, fields,settings.preserveHTML,settings.className));
+            const $menuItems = $(templates.menu(values, fields,settings.preserveHTML,settings.className));
+            $menuItems.attr('data-item-dynamic', '');
+            $menu.find('[data-item-dynamic]').remove();
+            $menu.append(...$menuItems);
+            settings.onMenuUpdated();
+
             $item    = $menu.find(selector.item);
             $divider = settings.hideDividers ? $item.parent().children(selector.divider) : $();
           },
@@ -515,8 +520,10 @@ $.fn.dropdown = function(parameters) {
             ? callback
             : function(){}
           ;
-          if(!module.can.show() && module.is.remote()) {
+          const dataKeyRemoteQueried = 'remote-queried';
+          if(module.is.remote() && !$module.data(dataKeyRemoteQueried)) {
             module.debug('No API results retrieved, searching before show');
+            $module.data(dataKeyRemoteQueried, true)
             module.queryRemote(module.get.query(), module.show);
           }
           if( module.can.show() && !module.is.active() ) {
@@ -793,6 +800,9 @@ $.fn.dropdown = function(parameters) {
         },
 
         queryRemote: function(query, callback) {
+          const dataKeyRemoteQuerying = 'remote-querying';
+          if ($module.data(dataKeyRemoteQuerying) === query) return;
+          $module.data(dataKeyRemoteQuerying, query);
           var
             apiSettings = {
               errorDuration : false,
@@ -800,6 +810,11 @@ $.fn.dropdown = function(parameters) {
               throttle      : settings.throttle,
               urlData       : {
                 query: query
+              },
+              onComplete: function() {
+                if ($module.data(dataKeyRemoteQuerying) === query) {
+                  $module.removeData(dataKeyRemoteQuerying);
+                }
               },
               onError: function() {
                 module.add.message(message.serverError);
@@ -3930,7 +3945,8 @@ $.fn.dropdown.settings = {
   minCharacters          : 0,          // Minimum characters required to trigger API call
 
   filterRemoteData       : false,      // Whether API results should be filtered after being returned for query term
-  saveRemoteData         : true,       // Whether remote name/value pairs should be stored in sessionStorage to allow remote data to be restored on page refresh
+  saveRemoteData         : false,      // Whether remote name/value pairs should be stored in sessionStorage to allow remote data to be restored on page refresh
+                                       // saveRemoteData is a wrong design and buggy, don't use it.
 
   throttle               : 200,        // How long to wait after last user input to search remotely
 
@@ -3996,6 +4012,7 @@ $.fn.dropdown.settings = {
   onLabelCreate : function(value, text) { return $(this); },
   onLabelRemove : function(value) { return true; },
   onNoResults   : function(searchTerm) { return true; },
+  onMenuUpdated : function(){},
   onShow        : function(){},
   onHide        : function(){},
 
@@ -4222,6 +4239,8 @@ $.fn.dropdown.settings.templates = {
         if(option[fields.divider]){
           html += '<div class="'+className.divider+'"></div>';
         }
+      } else if( itemType === 'html' ) {
+        html += option.html;
       }
     });
     return html;

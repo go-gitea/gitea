@@ -4,7 +4,6 @@
 package vagrant
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -130,7 +129,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, &packageMetadata{
 		Name:        pds[0].Package.Name,
-		Description: pds[len(pds)-1].Metadata.(*vagrant_module.Metadata).Description,
+		Description: packages_model.DescriptorMetadata[*vagrant_module.Metadata](pds[len(pds)-1]).Description,
 		Versions:    versions,
 	})
 }
@@ -231,11 +230,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		ctx.Req.Method,
 	)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 

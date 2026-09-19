@@ -30,6 +30,8 @@ import (
 	packages_service "gitea.dev/services/packages"
 )
 
+const maxChecksumSize = sha512.Size*2 + 1
+
 const (
 	mavenMetadataFile = "maven-metadata.xml"
 	extensionMD5      = ".md5"
@@ -260,12 +262,21 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 	defer releaser()
 
-	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body)
+	ext := path.Ext(params.Filename)
+	reader := io.Reader(ctx.Req.Body)
+	if isChecksumExtension(ext) {
+		reader = io.LimitReader(reader, maxChecksumSize+1)
+	}
+	buf, err := packages_module.CreateHashedBufferFromReader(reader)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
+	if isChecksumExtension(ext) && !isChecksumSizeAllowed(buf.Size()) {
+		apiError(ctx, http.StatusRequestEntityTooLarge, "checksum is too large")
+		return
+	}
 
 	pvci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
@@ -290,8 +301,6 @@ func UploadPackageFile(ctx *context.Context) {
 			return
 		}
 	}
-
-	ext := path.Ext(params.Filename)
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
@@ -402,6 +411,10 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	ctx.Status(http.StatusCreated)
+}
+
+func isChecksumSizeAllowed(size int64) bool {
+	return size <= maxChecksumSize
 }
 
 func isChecksumExtension(ext string) bool {

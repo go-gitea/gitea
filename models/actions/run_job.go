@@ -524,56 +524,72 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, RefreshReusableCallerStatus(ctx, parent)
 	}
 
-	{
-		// Other goroutines may aggregate the status of the attempt/run and update it too.
-		// So we need to load the current jobs before updating the aggregate state.
-		if job.RunAttemptID > 0 {
-			attempt, err := GetRunAttemptByRepoAndID(ctx, job.RepoID, job.RunAttemptID)
-			if err != nil {
-				return 0, err
-			}
-			jobs, err := GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
-			if err != nil {
-				return 0, err
-			}
-			attempt.Status = AggregateJobStatus(jobs)
-			if attempt.Started.IsZero() && attempt.Status.IsRunning() {
-				attempt.Started = timeutil.TimeStampNow()
-			}
-			if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
-				attempt.Stopped = timeutil.TimeStampNow()
-			}
-			if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
-				return 0, fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
-			}
-		} else {
-			// TODO: Remove this fallback in the future.
-			// Legacy fallback: jobs created before migration v331 have RunAttemptID=0 and are NOT backfilled.
-			// This path keeps those runs' status consistent when their jobs finish, including:
-			//   - jobs created before migration v331 and complete on the new version starts
-			//   - zombie/abandoned cleanup cron tasks that call UpdateRunJob on legacy jobs
-			run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
-			if err != nil {
-				return 0, err
-			}
-			jobs, err := GetLatestAttemptJobsByRepoAndRunID(ctx, job.RepoID, job.RunID)
-			if err != nil {
-				return 0, err
-			}
-			run.Status = AggregateJobStatus(jobs)
-			if run.Started.IsZero() && run.Status.IsRunning() {
-				run.Started = timeutil.TimeStampNow()
-			}
-			if run.Stopped.IsZero() && run.Status.IsDone() {
-				run.Stopped = timeutil.TimeStampNow()
-			}
-			if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
-				return 0, fmt.Errorf("update run %d: %w", run.ID, err)
-			}
-		}
+	if err := refreshRunStatus(ctx, job.RepoID, job.RunID, job.RunAttemptID, StatusUnknown); err != nil {
+		return 0, err
 	}
 
 	return affected, nil
+}
+
+// refreshRunStatus recomputes the status of an attempt from the jobs currently stored and persists it.
+// The latest attempt propagates its status to its run, an older one only updates itself.
+// noJobsStatus settles an attempt without any job, which AggregateJobStatus cannot conclude on its own.
+func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64, noJobsStatus Status) error {
+	// Other goroutines may aggregate the status of the attempt/run and update it too.
+	// So we need to load the current jobs before updating the aggregate state.
+	if runAttemptID > 0 {
+		attempt, err := GetRunAttemptByRepoAndID(ctx, repoID, runAttemptID)
+		if err != nil {
+			return err
+		}
+		jobs, err := GetRunJobsByRunAndAttemptID(ctx, runID, runAttemptID)
+		if err != nil {
+			return err
+		}
+		attempt.Status = AggregateJobStatus(jobs)
+		if len(jobs) == 0 {
+			attempt.Status = noJobsStatus
+		}
+		if attempt.Started.IsZero() && attempt.Status.IsRunning() {
+			attempt.Started = timeutil.TimeStampNow()
+		}
+		if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
+			attempt.Stopped = timeutil.TimeStampNow()
+		}
+		if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
+			return fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
+		}
+		return nil
+	}
+
+	// TODO: Remove this fallback in the future.
+	// Legacy fallback: jobs created before migration v331 have RunAttemptID=0 and are NOT backfilled.
+	// This path keeps those runs' status consistent when their jobs finish, including:
+	//   - jobs created before migration v331 and complete on the new version starts
+	//   - zombie/abandoned cleanup cron tasks that call UpdateRunJob on legacy jobs
+	//   - cancelling a legacy run whose jobs are all already done
+	run, err := GetRunByRepoAndID(ctx, repoID, runID)
+	if err != nil {
+		return err
+	}
+	jobs, err := GetLatestAttemptJobsByRun(ctx, run)
+	if err != nil {
+		return err
+	}
+	run.Status = AggregateJobStatus(jobs)
+	if len(jobs) == 0 {
+		run.Status = noJobsStatus
+	}
+	if run.Started.IsZero() && run.Status.IsRunning() {
+		run.Started = timeutil.TimeStampNow()
+	}
+	if run.Stopped.IsZero() && run.Status.IsDone() {
+		run.Stopped = timeutil.TimeStampNow()
+	}
+	if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+		return fmt.Errorf("update run %d: %w", run.ID, err)
+	}
+	return nil
 }
 
 // RefreshReusableCallerStatus recomputes a reusable workflow caller's Status, Started and Stopped from its current direct children and persists the change.
@@ -687,7 +703,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			return cancelledJobs, err
 		}
 
-		cjs, err := CancelJobs(ctx, jobs)
+		cjs, err := CancelJobs(ctx, jobs, false)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -733,15 +749,18 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return CancelJobs(ctx, jobsToCancel)
+	return CancelJobs(ctx, jobsToCancel, false)
 }
 
-func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
+// CancelJobs cancels every cancellable job it is given, force skipping the graceful cancelling
+// handshake so a running task is marked cancelled without waiting for its runner. It leaves the
+// status of a run it cancelled nothing in untouched, SettleRunAfterCancel gives such a run a final one.
+func CancelJobs(ctx context.Context, jobs []*ActionRunJob, force bool) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
 
 	for _, job := range jobs {
 		if job.IsReusableCaller {
-			sub, err := cancelReusableCaller(ctx, job)
+			sub, err := cancelReusableCaller(ctx, job, force)
 			if err != nil {
 				return cancelledJobs, err
 			}
@@ -749,7 +768,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 			continue
 		}
 
-		c, err := cancelOneJob(ctx, job)
+		c, err := cancelOneJob(ctx, job, force)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -760,8 +779,18 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 	return cancelledJobs, nil
 }
 
+// SettleRunAfterCancel gives a run a final status when cancelling it updated no job at all.
+// A run's status is otherwise only ever written as a side effect of a job update, so a run whose
+// jobs are all done already, or that has no job at all, would stay unfinished forever.
+func SettleRunAfterCancel(ctx context.Context, run *ActionRun) error {
+	if run.Status.IsDone() {
+		return nil
+	}
+	return refreshRunStatus(ctx, run.RepoID, run.ID, run.LatestAttemptID, StatusCancelled)
+}
+
 // cancelOneJob cancels a single job and returns the post-cancel row
-func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error) {
+func cancelOneJob(ctx context.Context, job *ActionRunJob, force bool) (*ActionRunJob, error) {
 	if job.Status.IsDone() {
 		return nil, nil //nolint:nilnil // signal "nothing to cancel; not an error"
 	}
@@ -780,7 +809,8 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 		return job, nil
 	}
 	// Has a task: stop the task and re-read the row.
-	if err := StopTask(ctx, job.TaskID, StatusCancelling); err != nil {
+	stopStatus := util.Iif(force, StatusCancelled, StatusCancelling)
+	if err := StopTask(ctx, job.TaskID, stopStatus); err != nil {
 		return nil, err
 	}
 	updated, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
@@ -791,7 +821,7 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 }
 
 // cancelReusableCaller cancels `caller` and all its child jobs
-func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionRunJob, error) {
+func cancelReusableCaller(ctx context.Context, caller *ActionRunJob, force bool) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0)
 
 	attemptJobs, err := GetRunJobsByRunAndAttemptID(ctx, caller.RunID, caller.RunAttemptID)
@@ -806,7 +836,7 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 	slices.SortFunc(descendants, func(a, b *ActionRunJob) int { return cmp.Compare(b.ID, a.ID) })
 
 	for _, c := range descendants {
-		cancelled, err := cancelOneJob(ctx, c)
+		cancelled, err := cancelOneJob(ctx, c, force)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -815,7 +845,7 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 		}
 	}
 
-	if c, err := cancelOneJob(ctx, caller); err != nil {
+	if c, err := cancelOneJob(ctx, caller, force); err != nil {
 		return cancelledJobs, err
 	} else if c != nil {
 		cancelledJobs = append(cancelledJobs, c)

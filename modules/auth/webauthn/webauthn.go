@@ -28,13 +28,10 @@ func Init() {
 
 	WebAuthn = &webauthn.WebAuthn{
 		Config: &webauthn.Config{
-			RPDisplayName: setting.AppName,
-			RPID:          setting.Domain,
-			RPOrigins:     []string{appURL},
-			AuthenticatorSelection: protocol.AuthenticatorSelection{
-				UserVerification: protocol.VerificationDiscouraged,
-			},
-			AttestationPreference: protocol.PreferDirectAttestation,
+			RPDisplayName:         setting.AppName,
+			RPID:                  setting.Domain,
+			RPOrigins:             []string{appURL},
+			AttestationPreference: protocol.PreferNoAttestation, // Gitea never verifies attestation
 		},
 	}
 }

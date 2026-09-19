@@ -8,13 +8,16 @@ import (
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 )
 
-func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]any, error) {
+// dispatchInputsForJob types a top-level job's `inputs.*` from EventPayload, empty for other events.
+func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if run.Event != "workflow_dispatch" {
 		return map[string]any{}, nil
 	}
@@ -22,7 +25,29 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
 	}
+	if payload.Inputs == nil {
+		payload.Inputs = map[string]any{} // nil reads as "unresolved" in EvaluateRunConcurrencyFillModel
+	}
+	swf, _, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return nil, util.NewInvalidArgumentErrorf("parse job %d workflow payload: %v", job.ID, err)
+	}
+	dispatch := swf.WorkflowDispatchConfig()
+	if dispatch == nil { // without it the values would silently stay untyped
+		return nil, util.NewInvalidArgumentErrorf("job %d payload declares no workflow_dispatch", job.ID)
+	}
+	coerceDispatchInputTypes(dispatch, payload.Inputs)
 	return payload.Inputs, nil
+}
+
+// dispatchInputsForRunJobs answers for the whole run, off any top-level job's workflow header.
+func dispatchInputsForRunJobs(run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (map[string]any, error) {
+	for _, job := range jobs {
+		if job.ParentJobID == 0 {
+			return dispatchInputsForJob(run, job)
+		}
+	}
+	return nil, fmt.Errorf("run %d: no top-level job to read the workflow_dispatch declaration from", run.ID)
 }
 
 // getInputsForJob returns the `inputs.*` top-level expression context for a job's evaluation.
@@ -30,7 +55,7 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]
 //   - For reusable workflow children (and nested callers), this is the direct parent caller's CallPayload.Inputs
 func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if job.ParentJobID == 0 {
-		return getWorkflowDispatchInputsFromRun(run)
+		return dispatchInputsForJob(run, job)
 	}
 
 	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
@@ -49,6 +74,22 @@ func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *act
 		return map[string]any{}, nil
 	}
 	return p.Inputs, nil
+}
+
+// pullRequestTargetBaseSHA returns the base branch commit of a pull_request_target run, and whether the run is one.
+func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
+	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+		return "", false
+	}
+	payload, err := run.GetPullRequestEventPayload()
+	if err != nil {
+		log.Error("run %d: get pull request event payload: %v", run.ID, err)
+		return "", false
+	}
+	if payload.PullRequest == nil || payload.PullRequest.Base == nil || payload.PullRequest.Base.Sha == "" {
+		return "", false
+	}
+	return payload.PullRequest.Base.Sha, true
 }
 
 // evaluateJobIf evaluates a job's `if:`

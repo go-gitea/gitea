@@ -1,23 +1,49 @@
 <script setup lang="ts">
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
 import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
-import ActionRunSummaryView from './ActionRunSummaryView.vue';
-import ActionRunJobView from './ActionRunJobView.vue';
+import ActionRunSummaryView, {type ActionRunSummaryViewLocale} from './ActionRunSummaryView.vue';
+import ActionRunJobView, {type ActionRunJobViewLocale} from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
+import {trString} from '../modules/i18n.ts';
 
 defineOptions({
   name: 'RepoActionView',
 });
 
+type RepoActionViewLocale = ActionRunSummaryViewLocale & ActionRunJobViewLocale & {
+  approve: string,
+  cancel: string,
+  rerun: string,
+  rerun_all: string,
+  rerun_failed: string,
+  latest: string,
+  latestAttempt: string,
+  attempt: string,
+  summary: string,
+  allJobs: string,
+  jobSummaries: string,
+  expandCallerJobs: string,
+  collapseCallerJobs: string,
+  backToPullRequest: string,
+  backToWorkflow: string,
+  artifactExpired: string,
+  artifactExpiresAt: string,
+  artifactExpiredAt: string,
+  confirmDeleteArtifact: string,
+  workflowFile: string,
+  workflowFileNoPermission: string,
+  runDetails: string,
+};
+
 const props = defineProps<{
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: RepoActionViewLocale;
 }>();
 
 const locale = props.locale;
@@ -115,7 +141,7 @@ function approveRun() {
 }
 
 async function deleteArtifact(name: string) {
-  if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
+  if (!window.confirm(trString(locale.confirmDeleteArtifact, name))) return;
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }

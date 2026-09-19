@@ -78,10 +78,12 @@ func TestExternalMarkupRenderer(t *testing.T) {
 	})
 
 	// above tested in-page rendering (no iframe), then we test iframe mode below
-	r := markup.DetectRendererTypeByFilename("any-file.html").(*external.Renderer)
+	r, ok := markup.DetectRendererTypeByFilename("any-file.html").(*external.Renderer)
+	require.True(t, ok)
 	defer test.MockVariableValue(&r.RenderContentMode, setting.RenderContentModeIframe)()
 	assert.True(t, r.NeedPostProcess())
-	r = markup.DetectRendererTypeByFilename("any-file.no-sanitizer").(*external.Renderer)
+	r, ok = markup.DetectRendererTypeByFilename("any-file.no-sanitizer").(*external.Renderer)
+	require.True(t, ok)
 	defer test.MockVariableValue(&r.RenderContentMode, setting.RenderContentModeIframe)()
 	assert.False(t, r.NeedPostProcess())
 
@@ -127,7 +129,8 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				req = NewRequest(t, "GET", "/user2/repo1/render/branch/master/bin.no-sanitizer")
 				respSub := MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, binaryContent, respSub.Body.String()) // raw content should keep the raw bytes (including invalid UTF-8 bytes), and no "external-render-iframe" helpers
-				assert.Empty(t, respSub.Header().Get("Content-Security-Policy"), "sandbox is disabled by RENDER_CONTENT_SANDBOX")
+				assert.NotContains(t, respSub.Header().Get("Content-Security-Policy"), "sandbox", "sandbox is disabled by RENDER_CONTENT_SANDBOX")
+				assert.Contains(t, respSub.Header().Get("Content-Security-Policy"), "nonce-", "it should have the general policies as a normal web page")
 			})
 
 			t.Run("HTMLContentWithExternalRenderIframeHelper", func(t *testing.T) {
@@ -139,7 +142,8 @@ func TestExternalMarkupRenderer(t *testing.T) {
 						`<script>foo("raw")</script>`,
 					respSub.Body.String(),
 				)
-				assert.Empty(t, respSub.Header().Get("Content-Security-Policy"))
+				assert.NotContains(t, respSub.Header().Get("Content-Security-Policy"), "sandbox")
+				assert.Contains(t, respSub.Header().Get("Content-Security-Policy"), "nonce-")
 			})
 		})
 	})

@@ -48,9 +48,7 @@
   font-size: 1em;
 }
 
-.ui.cards > .card > .content > .meta + .description,
 .ui.cards > .card > .content > .header + .description,
-.ui.card > .content > .meta + .description,
 .ui.card > .content > .header + .description {
   margin-top: .5em;
 }
@@ -63,7 +61,6 @@
   line-height: 1.28571429;
 }
 
-.ui.cards > .card > .content:first-child,
 .ui.card > .content:first-child {
   border-top: none;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
@@ -74,19 +71,16 @@
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.ui.cards > .card > :only-child,
 .ui.card > :only-child {
   border-radius: var(--border-radius) !important;
 }
 
-.ui.cards > .card > .extra,
 .ui.card > .extra,
 .ui.cards > .card > .extra a:not(.ui),
 .ui.card > .extra a:not(.ui) {
   color: var(--color-text);
 }
 
-.ui.cards > .card > .extra a:not(.ui):hover,
 .ui.card > .extra a:not(.ui):hover {
   color: var(--color-primary);
 }
@@ -101,23 +95,12 @@
   color: var(--color-text);
 }
 
-.ui.cards > .card .meta > a:not(.ui),
-.ui.card .meta > a:not(.ui) {
-  color: var(--color-text-light-2);
-}
-
-.ui.cards > .card .meta > a:not(.ui):hover,
-.ui.card .meta > a:not(.ui):hover {
-  color: var(--color-text);
-}
-
 .ui.cards a.card:hover,
 a.ui.card:hover {
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
 }
 
-.ui.cards > .card > .extra,
 .ui.card > .extra {
   color: var(--color-text);
   border-top-color: var(--color-secondary-light-1) !important;

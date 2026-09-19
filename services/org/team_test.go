@@ -72,7 +72,7 @@ func TestRemoveTeamMemberRemovesSubscriptionsAndStopwatches(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
 
-	assert.NoError(t, repo_model.WatchRepo(ctx, user, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(ctx, user, repo, true))
 	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(ctx, user.ID, issue.ID, true))
 	ok, err := issues_model.CreateIssueStopwatch(ctx, user, issue)
 	assert.NoError(t, err)
@@ -82,7 +82,7 @@ func TestRemoveTeamMemberRemovesSubscriptionsAndStopwatches(t *testing.T) {
 
 	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
 	assert.NoError(t, err)
-	assert.False(t, repo_model.IsWatchMode(watch.Mode))
+	assert.False(t, repo_model.IsWatchModeWatching(watch.Mode))
 
 	_, exists, err := issues_model.GetIssueWatch(ctx, user.ID, issue.ID)
 	assert.NoError(t, err)

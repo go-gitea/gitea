@@ -40,7 +40,7 @@ func Test_UpdateOpenMilestoneCounts(t *testing.T) {
 		return
 	}
 
-	if err := UpdateOpenMilestoneCounts(x); err != nil {
+	if err := UpdateOpenMilestoneCounts(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

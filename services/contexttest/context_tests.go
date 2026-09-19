@@ -42,7 +42,7 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
 	req := &http.Request{Method: method, Host: requestURL.Host, URL: requestURL, Form: maps.Clone(requestURL.Query()), Header: http.Header{}}
-	req = req.WithContext(reqctx.NewRequestContextForTest(req.Context()))
+	req = req.WithContext(reqctx.NewRequestContextForTest(t))
 	return req
 }
 
@@ -102,6 +102,12 @@ func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, 
 	chiCtx := chi.NewRouteContext()
 	ctx.SetContextValue(chi.RouteCtxKey, chiCtx)
 	return ctx, resp
+}
+
+func MockRequestPostForm(req *http.Request, formData url.Values) {
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.PostForm = formData
+	maps.Copy(req.Form, formData)
 }
 
 // LoadRepo load a repo into a test context.

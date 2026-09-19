@@ -11,9 +11,6 @@ import (
 
 // CacheCommit will cache the commit from the gitRepository
 func (c *Commit) CacheCommit(ctx context.Context, gitRepo *Repository) error {
-	if gitRepo.LastCommitCache == nil {
-		return nil
-	}
 	return c.recursiveCache(ctx, gitRepo, c.Tree(), "", 1)
 }
 

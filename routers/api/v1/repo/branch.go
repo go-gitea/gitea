@@ -212,7 +212,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	opt := web.GetForm(ctx).(*api.CreateBranchRepoOption)
+	opt := web.GetForm[*api.CreateBranchRepoOption](ctx)
 
 	var oldCommit *git.Commit
 	var err error
@@ -426,7 +426,7 @@ func UpdateBranch(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+	opt := web.GetForm[*api.UpdateBranchRepoOption](ctx)
 
 	branchName := ctx.PathParam("*")
 	repo := ctx.Repo.Repository
@@ -443,14 +443,14 @@ func UpdateBranch(ctx *context.APIContext) {
 
 	// permission check has been done in api.go
 	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
+		var errPushRejected *git.ErrPushRejected
 		switch {
 		case git_model.IsErrBranchNotExist(err):
 			ctx.APIErrorNotFound()
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		case git.IsErrPushRejected(err):
-			rej := err.(*git.ErrPushRejected)
-			ctx.APIError(http.StatusForbidden, rej.Message)
+		case errors.As(err, &errPushRejected):
+			ctx.APIError(http.StatusForbidden, errPushRejected.Message)
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -499,7 +499,7 @@ func RenameBranch(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opt := web.GetForm(ctx).(*api.RenameBranchRepoOption)
+	opt := web.GetForm[*api.RenameBranchRepoOption](ctx)
 
 	oldName := ctx.PathParam("*")
 	repo := ctx.Repo.Repository
@@ -654,7 +654,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
+	form := web.GetForm[*api.CreateBranchProtectionOption](ctx)
 	repo := ctx.Repo.Repository
 
 	ruleName := form.RuleName
@@ -875,7 +875,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
+	form := web.GetForm[*api.EditBranchProtectionOption](ctx)
 	repo := ctx.Repo.Repository
 	bpName := ctx.PathParam("*")
 	protectBranch, err := git_model.GetProtectedBranchRuleByName(ctx, repo.ID, bpName)
@@ -1292,7 +1292,7 @@ func UpdateBranchProtectionPriories(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	form := web.GetForm(ctx).(*api.UpdateBranchProtectionPriories)
+	form := web.GetForm[*api.UpdateBranchProtectionPriories](ctx)
 	repo := ctx.Repo.Repository
 
 	if err := git_model.UpdateProtectBranchPriorities(ctx, repo, form.IDs); err != nil {
@@ -1331,7 +1331,9 @@ func MergeUpstream(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.MergeUpstreamRequest)
+	//   "409":
+	//     "$ref": "#/responses/error"
+	form := web.GetForm[*api.MergeUpstreamRequest](ctx)
 	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -1342,6 +1344,9 @@ func MergeUpstream(ctx *context.APIContext) {
 			return
 		} else if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.APIError(http.StatusForbidden, err.Error())
+			return
+		} else if pull_service.IsErrMergeConflicts(err) || pull_service.IsErrMergeUnrelatedHistories(err) {
+			ctx.APIError(http.StatusConflict, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)

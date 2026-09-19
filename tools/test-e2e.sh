@@ -44,13 +44,6 @@ wait_for_container() {
   echo "Container is ready."
 }
 
-CMD="${1:-run}"
-if [ "$CMD" = "install" ] || [ "$CMD" = "run" ]; then
-  [ $# -gt 0 ] && shift
-else
-  CMD="run"
-fi
-
 detect_playwright_mode
 
 if [ "$PLAYWRIGHT_MODE" = "container" ]; then
@@ -65,25 +58,10 @@ if [ "$PLAYWRIGHT_MODE" = "container" ]; then
     exit 1
   fi
   PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble"
-fi
-
-if [ "$CMD" = "install" ]; then
-  if [ "$PLAYWRIGHT_MODE" = "local" ]; then
-    # on GitHub Actions VMs, playwright's system deps are pre-installed
-    if [ -z "${GITHUB_ACTIONS:-}" ]; then
-      # shellcheck disable=SC2086 # flag string
-      pnpm exec playwright install --with-deps chromium firefox ${PLAYWRIGHT_FLAGS:-}
-    else
-      # shellcheck disable=SC2086 # flag string
-      pnpm exec playwright install chromium firefox ${PLAYWRIGHT_FLAGS:-}
-    fi
-  else
-    echo "Running playwright in container as host distro is not supported by playwright directly"
-    if ! "$CONTAINER_RUNTIME" image inspect "$PLAYWRIGHT_IMAGE" >/dev/null 2>&1; then
-      "$CONTAINER_RUNTIME" pull "$PLAYWRIGHT_IMAGE"
-    fi
+  echo "Running playwright in container"
+  if ! "$CONTAINER_RUNTIME" image inspect "$PLAYWRIGHT_IMAGE" >/dev/null 2>&1; then
+    "$CONTAINER_RUNTIME" pull "$PLAYWRIGHT_IMAGE"
   fi
-  exit 0
 fi
 
 # Create isolated work directory

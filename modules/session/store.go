@@ -28,8 +28,8 @@ func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, erro
 		f(resp, req)
 	}
 	if setting.IsInTesting {
-		if store := req.Context().Value(MockStoreContextKey); store != nil {
-			return store.(Store), nil
+		if store, ok := req.Context().Value(MockStoreContextKey).(Store); ok {
+			return store, nil
 		}
 	}
 	return session.RegenerateSession(resp, req)
@@ -37,8 +37,8 @@ func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, erro
 
 func GetContextSession(req *http.Request) Store {
 	if setting.IsInTesting {
-		if store := req.Context().Value(MockStoreContextKey); store != nil {
-			return store.(Store)
+		if store, ok := req.Context().Value(MockStoreContextKey).(Store); ok {
+			return store
 		}
 	}
 	return session.GetSession(req)

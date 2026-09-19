@@ -4,11 +4,13 @@
 package v1_21
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddActionScheduleTable(x base.EngineMigration) error {
+func AddActionScheduleTable(_ context.Context, x base.EngineMigration) error {
 	type ActionSchedule struct {
 		ID            int64
 		Title         string

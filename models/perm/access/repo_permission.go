@@ -13,6 +13,7 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/organization"
 	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -33,6 +34,8 @@ type Permission struct {
 
 	everyoneAccessMode  map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for every signed-in user
 	anonymousAccessMode map[unit.Type]perm_model.AccessMode // the unit's minimal access mode for anonymous (non-signed-in) user
+
+	orgRepoTeams []*organization.Team
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -381,11 +384,38 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	return perm, nil
 }
 
+// getDeployKeyRepoPermission returns the permissions that a deploy key grants on a repository.
+// A key only ever reaches the git data of the one repository it was added to, at its own access mode.
+func getDeployKeyRepoPermission(ctx context.Context, repo *repo_model.Repository, keyID int64) (perm Permission, err error) {
+	key, err := deploykey_model.GetDeployKeyByID(ctx, repo.ID, keyID)
+	if err != nil {
+		if deploykey_model.IsErrDeployKeyNotExist(err) {
+			return perm, nil // the key belongs to another repository, so it grants nothing here
+		}
+		return perm, err
+	}
+	if err = repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+
+	perm.units = repo.Units
+	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+	for _, u := range repo.Units {
+		if u.Type == unit.TypeCode || u.Type == unit.TypeWiki { // a deploy-key only ever reaches git data
+			perm.unitsMode[u.Type] = key.Mode
+		}
+	}
+	return perm, nil
+}
+
 // GetDoerRepoPermission returns the repository permission for the current actor,
-// dispatching to GetActionsUserRepoPermission when the actor is an Actions token user.
+// dispatching to the credential-scoped permissions when the actor is a token or key user.
 func GetDoerRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (Permission, error) {
 	if taskID, ok := user_model.GetActionsUserTaskID(user); ok {
 		return GetActionsUserRepoPermission(ctx, repo, user, taskID)
+	}
+	if keyID, ok := user_model.GetDeployKeyUserDeployKeyID(user); ok {
+		return getDeployKeyRepoPermission(ctx, repo, keyID)
 	}
 	return GetIndividualUserRepoPermission(ctx, repo, user)
 }
@@ -445,7 +475,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	// plain user TODO: this check should be replaced, only need to check collaborator access mode
-	perm.AccessMode, err = accessLevel(ctx, user, repo)
+	perm.AccessMode, err = modeByOwnerAndAccess(ctx, user, repo)
 	if err != nil {
 		return perm, err
 	}
@@ -459,11 +489,11 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	perm.AccessMode = max(perm.AccessMode, minAccessMode)
 
 	// get units mode from teams
-	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
+	perm.orgRepoTeams, err = organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return perm, err
 	}
-	if len(teams) == 0 {
+	if len(perm.orgRepoTeams) == 0 {
 		return perm, nil
 	}
 
@@ -477,8 +507,8 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	// if user in an owner team
-	for _, team := range teams {
-		if team.HasAdminAccess() {
+	for _, team := range perm.orgRepoTeams {
+		if team.IsOwnerTeam() || team.AccessMode == perm_model.AccessModeOwner {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.unitsMode = nil
 			return perm, nil
@@ -486,7 +516,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	}
 
 	for _, u := range repo.Units {
-		for _, team := range teams {
+		for _, team := range perm.orgRepoTeams {
 			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
 			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
 			perm.unitsMode[u.Type] = unitAccessMode
@@ -496,52 +526,35 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 	return perm, err
 }
 
-// IsUserRealRepoAdmin check if this user is real repo admin
-func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	if repo.OwnerID == user.ID {
-		return true, nil
-	}
-
-	if err := repo.LoadOwner(ctx); err != nil {
-		return false, err
-	}
-
-	accessMode, err := accessLevel(ctx, user, repo)
-	if err != nil {
-		return false, err
-	}
-
-	return accessMode >= perm_model.AccessModeAdmin, nil
+func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
+	return (user != nil && user.IsAdmin) || IsUserRealRepoAdmin(ctx, repo, user)
 }
 
-// IsUserRepoAdmin return true if user has admin right of a repo
-func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+// IsUserRealRepoAdmin check if this user is real repo admin (but not a site admin who also has repo admin access)
+func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) bool {
 	if user == nil || repo == nil {
-		return false, nil
-	}
-	if user.IsAdmin {
-		return true, nil
+		return false
 	}
 
-	mode, err := accessLevel(ctx, user, repo)
+	mode, err := modeByOwnerAndAccess(ctx, user, repo)
 	if err != nil {
-		return false, err
+		return false
 	}
 	if mode >= perm_model.AccessModeAdmin {
-		return true, nil
+		return true
 	}
 
 	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
-		return false, err
+		return false
 	}
 
 	for _, team := range teams {
-		if team.HasAdminAccess() {
-			return true, nil
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
@@ -658,6 +671,16 @@ func PermissionNoAccess() Permission {
 	return Permission{AccessMode: perm_model.AccessModeNone}
 }
 
+// RepoUserPermissionCacheKey is the cachegroup.RepoUserPermission key of a doer's
+// permission on a repository. Producers and consumers must agree on it, so it lives here.
+func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+	return fmt.Sprintf("%d-%d", repoID, doerID)
+}
+
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
 func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Repository, run *actions_model.ActionRun) (bool, error) {
 	if err := run.LoadRepo(ctx); err != nil {
@@ -675,7 +698,7 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 	// logs in a publicly visible run; requiring a private caller keeps private content flowing private -> private.
 	// This is intentionally stricter than GitHub, which gates on the target repo's access setting (introduced in #32562):
 	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
-	if run.Repo.IsPrivate {
+	if run.Repo.IsPrivate && !run.IsForkPullRequest {
 		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
 			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
 				return true, nil
@@ -690,4 +713,40 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 		return false, err
 	}
 	return botPerm.AccessMode >= perm_model.AccessModeRead, nil
+}
+
+func CanDoerManageRepoDangerZone(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, perm *Permission) bool {
+	if perm.IsOwner() {
+		return true
+	}
+
+	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: this is the legacy logic, "org repo admin" can delete a repo
+	// Ideally we need a new field in like "AdminManageDangerZone" to control this permission, but for now we keep the legacy logic
+	for _, team := range perm.orgRepoTeams {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			return true
+		}
+	}
+
+	// A special case: if the team allows to create repo, then the doer will be added as a collaborator with admin access.
+	// For this case, we also allow the doer to manage the danger zone as well, because the doer is effectively a repo admin.
+	// Since the admin permission from team is already allowed above (legacy logic), here nothing worse.
+	// Keep in mind: the newly created repo isn't in any org team, it only has the doer as a collaborator with admin access.
+	// So we need to get all the teams of the doer to check.
+	allowCreateRepo := false
+	doerOrgTeams, _ := organization.GetUserOrgTeams(ctx, repo.OwnerID, doer.ID)
+	for _, team := range doerOrgTeams {
+		if allowCreateRepo = team.CanCreateOrgRepo; allowCreateRepo {
+			break
+		}
+	}
+	return allowCreateRepo && perm.IsAdmin()
+}
+
+func CanDoerManageOrgRepoCollaboratorTeam(ctx context.Context, repo *repo_model.Repository, perm *Permission) bool {
+	_ = repo.LoadOwner(ctx)
+	if repo.Owner == nil || !repo.Owner.IsOrganization() {
+		return false
+	}
+	return perm.IsOwner() || perm.IsAdmin() && repo.Owner.RepoAdminChangeTeamAccess
 }

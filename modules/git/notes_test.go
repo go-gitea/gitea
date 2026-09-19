@@ -7,45 +7,40 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitea.dev/modules/git/gitrepo"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetNotes(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
-	assert.NoError(t, err)
-	defer bareRepo1.Close()
-
-	note := Note{}
-	err = GetNote(t.Context(), bareRepo1, "95bb4d39648ee7e325106df01a621c530863a653", &note)
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note contents\n"), note.Message)
-	assert.Equal(t, "Vladimir Panteleev", note.Commit.Author.Name)
-}
-
-func TestGetNestedNotes(t *testing.T) {
-	repoPath := filepath.Join(testReposDir, "repo3_notes")
-	repo, err := OpenRepositoryLocal(t.Context(), repoPath)
+func TestGetNote(t *testing.T) {
+	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	defer repo.Close()
 
-	note := Note{}
-	err = GetNote(t.Context(), repo, "3e668dbfac39cbc80a9ff9c61eb565d944453ba4", &note)
+	note, err := GetNote(t.Context(), repo, "95bb4d39648ee7e325106df01a621c530863a653")
 	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note 2"), note.Message)
-	err = GetNote(t.Context(), repo, "ba0a96fa63532d6c5087ecef070b0250ed72fa47", &note)
-	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note 1"), note.Message)
+	assert.Equal(t, "Note contents\n", note.BlobMessage.MessageUTF8())
+	assert.EqualValues(t, len(note.BlobMessage.MessageRaw), note.BlobSize)
+
+	_, err = GetNote(t.Context(), repo, "non_existent_sha")
+	assert.ErrorAs(t, err, &ErrNotExist{})
 }
 
-func TestGetNonExistentNotes(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
+func TestGetNoteNestedWithCache(t *testing.T) {
+	repoPath, _ := filepath.Abs(filepath.Join(testReposDir, "repo3_notes"))
+	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo3_notes", repoPath))
 	assert.NoError(t, err)
-	defer bareRepo1.Close()
+	defer repo.Close()
 
-	note := Note{}
-	err = GetNote(t.Context(), bareRepo1, "non_existent_sha", &note)
-	assert.Error(t, err)
-	assert.ErrorAs(t, err, &ErrNotExist{})
+	note, lastCommit, err := GetNoteWithLastCommit(t.Context(), repo, "ba0a96fa63532d6c5087ecef070b0250ed72fa47")
+	assert.NoError(t, err)
+	assert.Equal(t, "Note 1", note.BlobMessage.MessageUTF8())
+	assert.Equal(t, "ba0a96fa63532d6c5087ecef070b0250ed72fa47", note.TreePath)
+	assert.Equal(t, "Filip Navara", lastCommit.Author.Name)
+
+	note, lastCommit, err = GetNoteWithLastCommit(t.Context(), repo, "3e668dbfac39cbc80a9ff9c61eb565d944453ba4")
+	assert.NoError(t, err)
+	assert.Equal(t, "Note 2", note.BlobMessage.MessageUTF8())
+	assert.Equal(t, "3e/66/8dbfac39cbc80a9ff9c61eb565d944453ba4", note.TreePath)
+	assert.Equal(t, "Filip Navara", lastCommit.Author.Name)
 }

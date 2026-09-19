@@ -165,7 +165,7 @@ function getRelativeTimeUnit(duration: Duration, opts?: {relativeTo?: Date | num
   const rounded = roundToSingleUnit(duration, opts);
   if (rounded.blank) return [0, 'second'];
   for (const unit of unitNames) {
-    const val = (rounded as any)[`${unit}s`];
+    const val = rounded[`${unit}s`];
     if (val) return [val, unit];
   }
   return [0, 'second'];
@@ -420,10 +420,10 @@ class RelativeTime extends HTMLElement {
       duration = emptyDuration;
     }
     const d = duration.blank ? emptyDuration : duration.abs();
-    if (typeof Intl !== 'undefined' && (Intl as any).DurationFormat) {
-      const opts: Record<string, string> = {style};
+    if (typeof Intl !== 'undefined' && Intl.DurationFormat) {
+      const opts: Intl.DurationFormatOptions = {style};
       if (duration.blank) opts.secondsDisplay = 'always';
-      return new (Intl as any).DurationFormat(locale, opts).format({
+      return new Intl.DurationFormat(locale, opts).format({
         years: d.years, months: d.months, weeks: d.weeks, days: d.days,
         hours: d.hours, minutes: d.minutes, seconds: d.seconds,
       });

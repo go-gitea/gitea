@@ -22,7 +22,7 @@ import (
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
 
-	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 )
 
 var (
@@ -105,7 +105,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, token string) (
 	var resp *gitlab.Response
 	u, _ := url.Parse(baseURL)
 	for len(pathParts) >= 2 {
-		_, resp, err = gitlabClient.Version.GetVersion()
+		_, resp, err = gitlabClient.Version.GetVersion(gitlab.WithContext(ctx))
 		if err == nil || resp != nil && resp.StatusCode == http.StatusUnauthorized {
 			err = nil // if no authentication given, this still should work
 			break

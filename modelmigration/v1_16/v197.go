@@ -3,9 +3,13 @@
 
 package v1_16
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddRenamedBranchTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddRenamedBranchTable(_ context.Context, x base.EngineMigration) error {
 	type RenamedBranch struct {
 		ID          int64 `xorm:"pk autoincr"`
 		RepoID      int64 `xorm:"INDEX NOT NULL"`

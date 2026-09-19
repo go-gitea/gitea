@@ -21,6 +21,7 @@ import (
 var (
 	ErrMissingManifestFile    = util.NewInvalidArgumentErrorf("Package.swift file is missing")
 	ErrManifestFileTooLarge   = util.NewInvalidArgumentErrorf("Package.swift file is too large")
+	ErrManifestFilesTooLarge  = util.NewInvalidArgumentErrorf("Package.swift files are too large")
 	ErrInvalidManifestVersion = util.NewInvalidArgumentErrorf("manifest version is invalid")
 
 	manifestPattern     = regexp.MustCompile(`\APackage(?:@swift-(\d+(?:\.\d+)?(?:\.\d+)?))?\.swift\z`)
@@ -29,6 +30,8 @@ var (
 
 const (
 	maxManifestFileSize = 128 * 1024
+	maxManifestFiles    = 64
+	maxManifestSize     = maxManifestFiles * maxManifestFileSize
 
 	PropertyScope         = "swift.scope"
 	PropertyName          = "swift.name"
@@ -123,11 +126,36 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		},
 	}
 
+	// Nested packages (test fixtures, examples, benchmarks) ship their own manifests, which must not
+	// replace the package manifest. The package sits at the archive root or in a single top level
+	// directory, so keep only the shallowest manifest directory, breaking ties by name for stability.
+	var manifestFiles []*zip.File
+	manifestDir, manifestDepth := "", 0
 	for _, file := range zr.File {
-		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
-		if len(manifestMatch) == 0 {
+		if strings.HasSuffix(file.Name, "/") || !manifestPattern.MatchString(path.Base(file.Name)) {
 			continue
 		}
+		dir, depth := path.Dir(file.Name), strings.Count(file.Name, "/")
+		switch {
+		case manifestFiles == nil || depth < manifestDepth || (depth == manifestDepth && dir < manifestDir):
+			manifestDir, manifestDepth, manifestFiles = dir, depth, []*zip.File{file}
+		case dir == manifestDir:
+			manifestFiles = append(manifestFiles, file)
+		}
+	}
+	if len(manifestFiles) > maxManifestFiles {
+		return nil, ErrManifestFilesTooLarge
+	}
+	var manifestSize uint64
+	for _, file := range manifestFiles {
+		manifestSize += file.UncompressedSize64
+	}
+	if manifestSize > maxManifestSize {
+		return nil, ErrManifestFilesTooLarge
+	}
+
+	for _, file := range manifestFiles {
+		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
 
 		if file.UncompressedSize64 > maxManifestFileSize {
 			return nil, ErrManifestFileTooLarge

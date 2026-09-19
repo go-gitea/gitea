@@ -25,35 +25,36 @@ import (
 
 var _ Method = &OAuth2{}
 
-// GetOAuthAccessTokenScopeAndUserID returns access token scope and user id
-func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) (auth_model.AccessTokenScope, int64) {
+// GetOAuthAccessTokenScopeAndUserID returns access token scope, user id and the
+// grant the token was issued for.
+func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) (_ auth_model.AccessTokenScope, userID, grantID int64) {
 	var accessTokenScope auth_model.AccessTokenScope
 	if !setting.OAuth2.Enabled {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 
 	// JWT tokens require a ".", if the token isn't like that, return early
 	if !strings.Contains(accessToken, ".") {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 
 	token, err := oauth2_provider.ParseToken(accessToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
 		log.Trace("oauth2.ParseToken: %v", err)
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	var grant *auth_model.OAuth2Grant
 	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	if token.Kind != oauth2_provider.KindAccessToken {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
-		return accessTokenScope, 0
+		return accessTokenScope, 0, 0
 	}
 	accessTokenScope = oauth2_provider.GrantAdditionalScopes(grant.Scope)
-	return accessTokenScope, grant.UserID
+	return accessTokenScope, grant.UserID, grant.ID
 }
 
 // CheckTaskIsRunning verifies that the TaskID corresponds to a running task
@@ -106,8 +107,7 @@ func parseToken(req *http.Request) (string, bool) {
 }
 
 // userFromToken returns the user corresponding to the OAuth token.
-// It will set 'IsApiToken' to true if the token is an API token and
-// set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
+// It will set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
 func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataStore) (*user_model.User, error) {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
@@ -119,12 +119,14 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 		}
 
 		// Otherwise, check if this is an OAuth access token
-		accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
-		if uid != 0 {
-			store.GetData()["IsApiToken"] = true
-			store.GetData()["ApiTokenScope"] = accessTokenScope
+		accessTokenScope, uid, grantID := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
+		user, err := user_model.GetUserByID(ctx, uid)
+		if err != nil || !user.IsIndividual() {
+			return nil, err
 		}
-		return user_model.GetUserByID(ctx, uid)
+		store.GetData()["ApiTokenScope"] = accessTokenScope
+		setAuthCredential(store, credentialOAuth2Grant, grantID)
+		return user, nil
 	}
 	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
@@ -142,8 +144,8 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
-	store.GetData()["IsApiToken"] = true
 	store.GetData()["ApiTokenScope"] = t.Scope
+	setAuthCredential(store, credentialAccessToken, t.ID)
 	return user_model.GetUserByID(ctx, t.UID)
 }
 

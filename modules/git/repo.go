@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/proxy"
@@ -70,6 +71,11 @@ func OpenRepository(catFileBatchCtx context.Context, repo RepositoryFacade) (*Re
 	}
 	gitRepo := &Repository{
 		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo, catFileBatchCtx: catFileBatchCtx},
+	}
+	gitRepo.RepositoryBase.LastCommitCache = &LastCommitCache{
+		repo:  gitRepo,
+		ttlFn: setting.LastCommitCacheTTLSeconds,
+		cache: cache.GetCache(),
 	}
 	if err = openRepositoryInternal(gitRepo); err != nil {
 		return nil, err
@@ -273,8 +279,6 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(stderr, "matches more than one") {
-			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
 		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}

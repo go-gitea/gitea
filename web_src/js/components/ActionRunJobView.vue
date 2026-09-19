@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
@@ -10,6 +10,7 @@ import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
+import {AnsiLineRenderer} from '../render/ansi.ts';
 import {
   type ActionRunViewStore,
   createLogLineMessage,
@@ -24,6 +25,17 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
   return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
 
+export type ActionRunJobViewLocale = {
+  status: Record<ActionsStatus, string>,
+  showTimeStamps: string,
+  showLogSeconds: string,
+  showFullScreen: string,
+  logsAlwaysAutoScroll: string,
+  logsAlwaysExpandRunning: string,
+  downloadLogs: string,
+  copyOutput: string,
+};
+
 type Step = {
   summary: string,
   duration: string,
@@ -34,7 +46,11 @@ type JobStepState = {
   cursor: string|null,
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
+  firstLogTime?: number, // the step's first log line time, what "Show seconds" counts from
 }
+
+// one ANSI renderer per step, so an unterminated color carries between that step's lines only
+const stepAnsiRenderers: AnsiLineRenderer[] = [];
 
 type StepContainerElement = HTMLElement & {
   // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
@@ -66,7 +82,6 @@ type JobData = {
     stepsLog?: Array<{
       step: number;
       cursor: string | null;
-      started: number;
       lines: LogLine[];
     }>;
   },
@@ -80,7 +95,7 @@ const props = defineProps<{
   store: ActionRunViewStore,
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: ActionRunJobViewLocale;
 }>();
 const store = props.store;
 const {currentRun: run} = toRefs(store.viewData);
@@ -213,10 +228,11 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
     const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
     const lines: string[] = [];
+    const ansi = new AnsiLineRenderer();
     for (const line of stepLog?.lines ?? []) {
       const cmd = parseLogLineCommand(line);
       if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
-      const msg = createLogLineMessage(line, cmd).textContent ?? '';
+      const msg = createLogLineMessage(ansi, line, cmd).textContent ?? '';
       lines.push(timeVisible.value['log-time-stamp'] ? `${formatDatetimeISO(line.timestamp)} ${msg}` : msg);
     }
     return lines.join('\n');
@@ -240,7 +256,7 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
     formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
-  const logMsg = createLogLineMessage(line, cmd);
+  const logMsg = createLogLineMessage(stepAnsiRenderers[stepIndex] ??= new AnsiLineRenderer(), line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
   const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
     `${seconds}s`, // for "Show seconds"
@@ -339,9 +355,12 @@ async function loadJob() {
 
     // append logs to the UI
     for (const stepLogs of jobLogs) {
+      const stepState = currentJobStepsStates.value[stepLogs.step];
       // save the cursor, it will be passed to backend next time
-      currentJobStepsStates.value[stepLogs.step].cursor = stepLogs.cursor;
-      appendLogs(stepLogs.step, stepLogs.started, stepLogs.lines);
+      stepState.cursor = stepLogs.cursor;
+      if (!stepLogs.lines.length) continue;
+      stepState.firstLogTime ??= stepLogs.lines[0].timestamp;
+      appendLogs(stepLogs.step, stepState.firstLogTime, stepLogs.lines);
     }
 
     // auto-scroll to the last log line of the last step
@@ -598,7 +617,6 @@ async function hashChangeListener() {
 .job-step-container {
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-  z-index: 0;
 }
 
 .job-step-container .job-step-summary {
@@ -651,9 +669,6 @@ async function hashChangeListener() {
   background-color: var(--color-console-active-bg);
   position: sticky;
   top: 60px;
-  /* workaround ansi_up issue related to faintStyle generating a CSS stacking context via `opacity`
-     inline style which caused such elements to render above the .job-step-summary header. */
-  z-index: 1;
 }
 </style>
 

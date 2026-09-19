@@ -54,10 +54,10 @@ func (manager *loggerRequestManager) startSlowQueryDetector(threshold time.Durat
 
 				// print logs for slow requests
 				manager.reqRecords.Range(func(key, value any) bool {
-					index, record := key.(uint64), value.(*requestRecord)
+					record := value.(*requestRecord) //nolint:forcetypeassert // reqRecords only ever holds *requestRecord
 					if now.Sub(record.startTime) >= threshold {
 						manager.logPrint(StillExecutingEvent, record)
-						manager.reqRecords.Delete(index)
+						manager.reqRecords.Delete(key)
 					}
 					return true
 				})

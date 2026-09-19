@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 

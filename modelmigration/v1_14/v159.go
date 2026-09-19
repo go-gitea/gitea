@@ -4,11 +4,13 @@
 package v1_14
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func UpdateReactionConstraint(x base.EngineMigration) error {
+func UpdateReactionConstraint(_ context.Context, x base.EngineMigration) error {
 	// Reaction represents a reactions on issues and comments.
 	type Reaction struct {
 		ID               int64              `xorm:"pk autoincr"`

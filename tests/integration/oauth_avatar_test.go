@@ -39,7 +39,9 @@ func TestOAuth2AvatarFromPicture(t *testing.T) {
 	})
 	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "test-oidc-avatar")
 	require.NoError(t, err)
-	providerName := authSource.Cfg.(*oauth2.Source).Provider
+	oauth2Source, ok := authSource.Cfg.(*oauth2.Source)
+	require.True(t, ok)
+	providerName := oauth2Source.Provider
 
 	t.Run("AutoRegister", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2Client.Username, "")()

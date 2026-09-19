@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,6 +32,7 @@ jobs:
 func Test_jobStatusResolver_Resolve(t *testing.T) {
 	tests := []struct {
 		name string
+		run  *actions_model.ActionRun // defaults to stubRun
 		jobs actions_model.ActionJobList
 		want map[int64]actions_model.Status
 	}{
@@ -101,7 +103,7 @@ jobs:
     needs: job1
     if: ${{ always() && needs.job1.result == 'success' }}
     steps:
-      - run: echo "will be checked by act_runner"
+      - run: echo "will be checked by runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
@@ -120,7 +122,7 @@ jobs:
     needs: job1
     if: ${{ always() && needs.job1.result == 'failure' }}
     steps:
-      - run: echo "will be checked by act_runner"
+      - run: echo "will be checked by runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
@@ -223,6 +225,34 @@ jobs:
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
+		{
+			// a needs-gated job is evaluated server-side, so a mistyped input silently leaves it blocked
+			name: "`if` compares a workflow_dispatch boolean input",
+			run: &actions_model.ActionRun{
+				TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{},
+				Event:        "workflow_dispatch",
+				EventPayload: `{"inputs":{"deploy":"true"}}`,
+			},
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        type: boolean
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: ${{ inputs.deploy == true && github.event.inputs.deploy == 'true' }}
+    steps:
+      - run: echo
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
+		},
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
@@ -232,6 +262,7 @@ jobs:
 			// Each subtest gets a unique RunID / RunAttemptID so jobs from different subtests don't bleed into each other's FindTaskNeeds queries
 			runID := int64(9001 + i)
 			attemptID := int64(9001 + i)
+			run := util.IfZero(tt.run, stubRun)
 
 			// Insert each test job (letting the DB assign IDs) and remember the testID -> dbID mapping so we can translate the expected map.
 			idMap := make(map[int64]int64, len(tt.jobs))
@@ -240,7 +271,7 @@ jobs:
 				j.ID = 0
 				j.RunID = runID
 				j.RunAttemptID = attemptID
-				j.Run = stubRun
+				j.Run = run
 
 				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
 				// supply a minimal one when the case didn't.
@@ -465,6 +496,35 @@ jobs:
 	assert.Equal(t, actions_model.StatusBlocked, refreshed.Status)
 }
 
+func Test_checkJobsOfCurrentRunAttempt_NeedApprovalKeepsJobsBlocked(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
+		WorkflowID: "test.yml", Index: 9913, Ref: "refs/heads/main",
+		Status: actions_model.StatusBlocked, NeedApproval: true,
+	}
+	assert.NoError(t, db.Insert(ctx, run))
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID: 4, RunID: run.ID, Attempt: 1, Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, attempt))
+	_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+	assert.NoError(t, err)
+	run.LatestAttemptID = attempt.ID
+	job := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1,
+		RepoID: 4, OwnerID: 1, JobID: "job1", Name: "job1", Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, job))
+
+	result, err := checkJobsOfCurrentRunAttempt(ctx, run)
+	assert.NoError(t, err)
+	assert.Empty(t, result.UpdatedJobs)
+	assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+}
+
 // Test_checkRunConcurrency_HeldGroupDoesNotWake verifies that only an unoccupied concurrency group can wake up a blocked run/job.
 func Test_checkRunConcurrency_HeldGroupDoesNotWake(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -624,4 +684,12 @@ func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
 		assert.Equal(t, map[int64]actions_model.Status{2: actions_model.StatusSkipped}, got,
 			"report must wait for the re-emit, which sees the sibling combinations too")
 	})
+}
+
+// https://github.com/go-gitea/gitea/issues/39034
+func Test_jobEmitterQueueHandler_DeletedRunIsNotRequeued(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	assert.Empty(t, jobEmitterQueueHandler(&jobUpdate{RunID: unittest.NonexistentID}),
+		"an update for a deleted run must be dropped, not returned as unhandled")
 }

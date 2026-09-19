@@ -22,6 +22,8 @@ import (
 	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
+
+	"xorm.io/builder"
 )
 
 // StartScheduleTasks start the task
@@ -29,84 +31,85 @@ func StartScheduleTasks(ctx context.Context) error {
 	return startTasks(ctx)
 }
 
-// startTasks retrieves specifications in pages, creates a schedule task for each specification,
-// and updates the specification's next run time and previous run time.
-// The function returns an error if there's an issue with finding or updating the specifications.
+// startTasks starts every due spec and returns an error if any of them failed.
 func startTasks(ctx context.Context) error {
-	// Set the page size
-	pageSize := 50
-
-	// Retrieve specs in pages until all specs have been retrieved
+	var failed int
 	now := time.Now()
-	for page := 1; ; page++ {
-		// Retrieve the specs for the current page
-		specs, _, err := actions_model.FindSpecs(ctx, actions_model.FindSpecOptions{
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: pageSize,
-			},
-			Next: now.Unix(),
+	err := db.Iterate(ctx,
+		builder.And(builder.Gt{"next": 0}, builder.Lte{"next": now.Unix()}),
+		func(ctx context.Context, row *actions_model.ActionScheduleSpec) error {
+			// one failing spec must not abort the pass, or a single broken workflow stops every other schedule
+			if err := startTask(ctx, row, now); err != nil {
+				failed++
+				log.Error("start schedule spec %d (repo %d, schedule %d): %v", row.ID, row.RepoID, row.ScheduleID, err)
+			}
+			return nil
 		})
-		if err != nil {
-			return fmt.Errorf("find specs: %w", err)
-		}
-
-		if err := specs.LoadRepos(ctx); err != nil {
-			return fmt.Errorf("LoadRepos: %w", err)
-		}
-
-		// Loop through each spec and create a schedule task for it
-		for _, row := range specs {
-			if row.Repo.IsArchived {
-				// Skip if the repo is archived
-				continue
-			}
-
-			cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
-			if err != nil {
-				if repo_model.IsErrUnitTypeNotExist(err) {
-					// Skip the actions unit of this repo is disabled.
-					continue
-				}
-				return fmt.Errorf("GetUnit: %w", err)
-			}
-			if cfg.ActionsConfig().IsWorkflowDisabled(row.Schedule.WorkflowID) {
-				continue
-			}
-
-			if err := CreateScheduleTask(ctx, row); err != nil {
-				log.Error("CreateScheduleTask: %v", err)
-				return err
-			}
-
-			// Parse the spec
-			schedule, err := row.Parse()
-			if err != nil {
-				log.Error("Parse: %v", err)
-				return err
-			}
-
-			// Update the spec's next run time and previous run time
-			row.Prev = row.Next
-			row.Next = timeutil.TimeStamp(schedule.Next(now.Add(1 * time.Minute)).Unix())
-			if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
-				log.Error("UpdateScheduleSpec: %v", err)
-				return err
-			}
-		}
-
-		// Stop if all specs have been retrieved
-		if len(specs) < pageSize {
-			break
-		}
+	if err != nil {
+		return fmt.Errorf("iterate specs: %w", err)
 	}
 
+	// surfaces as an admin notice through the cron task, once per occurrence rather than once per pass
+	if failed > 0 {
+		return fmt.Errorf("%d schedule(s) could not be started", failed)
+	}
 	return nil
 }
 
-// CreateScheduleTask creates a scheduled task from a cron action schedule spec.
+// startTask advances the spec to its next occurrence before creating the run, so a failing workflow
+// retries on its own schedule instead of on every pass, and a failed update cannot duplicate the run.
+func startTask(ctx context.Context, row *actions_model.ActionScheduleSpec, now time.Time) error {
+	cronSchedule, err := row.Parse()
+	if err != nil {
+		return fmt.Errorf("parse %q: %w", row.Spec, err)
+	}
+	row.Prev = row.Next
+	row.Next = timeutil.TimeStamp(cronSchedule.Next(now.Add(time.Minute)).Unix())
+	if err := actions_model.UpdateScheduleSpec(ctx, row, "prev", "next"); err != nil {
+		return fmt.Errorf("update spec: %w", err)
+	}
+
+	// a spec whose schedule or repo row is gone is skipped, not reported on every occurrence
+	schedule, exist, err := db.GetByID[actions_model.ActionSchedule](ctx, row.ScheduleID)
+	if err != nil {
+		return fmt.Errorf("get schedule %d: %w", row.ScheduleID, err)
+	} else if !exist {
+		return nil
+	}
+	repo, exist, err := db.GetByID[repo_model.Repository](ctx, row.RepoID)
+	if err != nil {
+		return fmt.Errorf("get repo %d: %w", row.RepoID, err)
+	} else if !exist {
+		return nil
+	}
+	row.Schedule, row.Repo = schedule, repo
+
+	// only archived repos are skipped; mirrors keep their schedules because a mirror is a normal repo
+	// for Actions, and nightly builds or scans of the mirrored code are a common reason to run one
+	if row.Repo.IsArchived {
+		return nil
+	}
+
+	cfg, err := row.Repo.GetUnit(ctx, unit.TypeActions)
+	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetUnit: %w", err)
+	}
+	if cfg.ActionsConfig().IsWorkflowDisabled(row.Schedule.WorkflowID) {
+		return nil
+	}
+
+	if err := CreateScheduleTaskBySpec(ctx, row); err != nil {
+		return fmt.Errorf("create run for %s workflow %q: %w", row.Repo.FullName(), row.Schedule.WorkflowID, err)
+	}
+	return nil
+}
+
+// CreateScheduleTaskBySpec creates a scheduled task from a cron action schedule spec.
 // It creates an action run based on the schedule, inserts it into the database, and creates commit statuses for each job.
-func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleSpec) error {
+func CreateScheduleTaskBySpec(ctx context.Context, spec *actions_model.ActionScheduleSpec) error {
 	cron := spec.Schedule
 
 	// Scheduled runs carry no webhook payload; synthesize what github.event.* expects.

@@ -4,12 +4,14 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddBranchProtectionBypassAllowlist(x base.EngineMigration) error {
+func AddBranchProtectionBypassAllowlist(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		EnableBypassAllowlist  bool    `xorm:"NOT NULL DEFAULT false"`
 		BypassAllowlistUserIDs []int64 `xorm:"JSON TEXT"`

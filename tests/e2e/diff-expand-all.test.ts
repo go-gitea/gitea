@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {apiCreateFile, apiUpdateFile, apiCreateBranch, apiCreatePR, apiCreateRepo, apiCreateReview, apiCreateUser, apiUserHeaders, loginUser, randomString} from './utils.ts';
+import {apiCreateFiles, apiUpdateFile, apiCreatePR, apiCreateRepo, apiCreateReview, apiCreateUser, apiUserHeaders, loginUser, randomString} from './utils.ts';
 
 test('expand and collapse all hidden lines of a diff file', async ({page, request}) => {
   const poster = `diffexp-${randomString(8)}`;
@@ -11,12 +11,11 @@ test('expand and collapse all hidden lines of a diff file', async ({page, reques
   // a file with only its first and last lines changed leaves a large untouched block in the middle,
   // which the diff viewer hides behind a single "gap" row with an expander button
   const lines = Array.from({length: 40}, (_, i) => `line${String(i + 1).padStart(2, '0')}`);
-  await apiCreateFile(request, poster, repoName, 'big.txt', `${lines.join('\n')}\n`, {branch: 'main'});
-  await apiCreateBranch(request, poster, repoName, 'feat');
   const changedLines = [...lines];
   changedLines[0] = 'line01-updated';
   changedLines[39] = 'line40-updated';
-  await apiUpdateFile(request, poster, repoName, 'big.txt', `${changedLines.join('\n')}\n`, {branch: 'feat'});
+  await apiCreateFiles(request, poster, repoName, [{path: 'big.txt', content: `${lines.join('\n')}\n`}], {branch: 'main', headers});
+  await apiUpdateFile(request, poster, repoName, 'big.txt', `${changedLines.join('\n')}\n`, {branch: 'main', newBranch: 'feat', headers});
   const prIndex = await apiCreatePR(request, poster, repoName, 'feat', 'main', 'expand all lines test', {headers});
   // a comment on a visible line gives us a reply form to exercise the "unsaved draft" confirm below;
   // COMMENT reviews (unlike APPROVE/REQUEST_CHANGES) are allowed on one's own PR

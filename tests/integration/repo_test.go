@@ -132,14 +132,8 @@ func testViewRepoWithCache(t *testing.T) {
 	}
 
 	// FIXME: these test don't seem quite right, no enough assert
-	// no last commit cache
-	testView(t)
-	// enable last commit cache for all repositories
-	defer test.MockVariableValue(&setting.CacheService.LastCommit.CommitsCount, 0)()
-	// first view will not hit the cache
-	testView(t)
-	// second view will hit the cache
-	testView(t)
+	testView(t) // first view will not hit the cache, need execute git operations
+	testView(t) // second view will hit the cache
 }
 
 func testViewRepoPrivate(t *testing.T) {

@@ -183,7 +183,7 @@ func unwatchRepos(ctx context.Context, watcher, repoOwner *user_model.User) erro
 		}
 
 		for _, repo := range repos {
-			if err := repo_model.WatchRepo(ctx, watcher, repo, false); err != nil {
+			if err := repo_model.WatchRepoAuto(ctx, watcher, repo, false); err != nil {
 				return err
 			}
 		}
