@@ -116,7 +116,7 @@ func (repo *Repository) ConvertToGitID(ctx context.Context, ref string) (ObjectI
 	if err != nil {
 		return nil, err
 	}
-	if len(ref) == objectFormat.FullLength() && objectFormat.IsValid(ref) {
+	if IsStringValidObjectID(objectFormat, ref) {
 		id, err := NewIDFromString(ref)
 		if err == nil {
 			return id, nil
