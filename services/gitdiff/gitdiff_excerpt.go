@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 
@@ -33,6 +34,11 @@ type BlobExcerptOptions struct {
 func (s *DiffLineSectionInfo) GapNumbers() string {
 	return fmt.Sprintf("%d,%d,%d,%d,%d,%d",
 		s.LastLeftIdx, s.LastRightIdx, s.LeftIdx, s.RightIdx, s.LeftHunkSize, s.RightHunkSize)
+}
+
+// HiddenCommentIDsCSV lists the comments a gap hides, for a CSS "attr*=,id," match to find them
+func (s *DiffLineSectionInfo) HiddenCommentIDsCSV() string {
+	return strings.Join(base.Int64sToStrings(s.HiddenCommentIDs), ",")
 }
 
 // ParseGapNumbers reads back what GapNumbers wrote

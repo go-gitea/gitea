@@ -26,7 +26,6 @@ import (
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/analyze"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/attribute"
@@ -210,21 +209,6 @@ const (
 	DiffStyleSplit   = "split"
 	DiffStyleUnified = "unified"
 )
-
-// RenderGapExpander renders the container for a section row's expander. It carries the gap's own
-// numbers; the frontend works out from them which arrows apply and what is left to reveal.
-func (d *DiffLine) RenderGapExpander(data *DiffBlobExcerptData) template.HTML {
-	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
-
-	var content template.HTML
-	if len(d.SectionInfo.HiddenCommentIDs) > 0 {
-		tooltip := fmt.Sprintf("%d hidden comment(s)", len(d.SectionInfo.HiddenCommentIDs))
-		content = htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
-	}
-	return htmlutil.HTMLFormat(
-		`<div class="code-expander-buttons" data-global-init="initDiffGapExpander" data-gap="%s" data-hidden-comment-ids=",%s,">%s</div>`,
-		d.SectionInfo.GapNumbers(), dataHiddenCommentIDs, content)
-}
 
 // BlobExcerptBaseURL returns the part of an excerpt request that every gap of this file shares.
 func (diffFile *DiffFile) BlobExcerptBaseURL(data *DiffBlobExcerptData) string {
