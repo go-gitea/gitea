@@ -7,213 +7,176 @@
 package main
 
 import (
-	"flag"
+	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"go/format"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
-	"sort"
-	"strconv"
+	"slices"
 	"strings"
-	"unicode/utf8"
 
 	"gitea.dev/modules/json"
 )
 
 const (
-	gemojiURL         = "https://raw.githubusercontent.com/rhysd/gemoji/537ff2d7e0496e9964824f7f73ec7ece88c9765a/db/emoji.json"
-	maxUnicodeVersion = 16
+	emojiTestURL = "https://www.unicode.org/Public/17.0.0/emoji/emoji-test.txt"
+	jsonFile     = "assets/emoji.json"
+	goFile       = "modules/emoji/emoji_data.go"
 )
 
-var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
-
-// Gemoji is a set of emoji data.
-type Gemoji []Emoji
-
-// Emoji represents a single emoji and associated data.
-type Emoji struct {
-	Emoji          string   `json:"emoji"`
-	Description    string   `json:"description,omitempty"`
-	Aliases        []string `json:"aliases"`
-	UnicodeVersion string   `json:"unicode_version,omitempty"`
-	SkinTones      bool     `json:"skin_tones,omitempty"`
+type emoji struct {
+	code        string
+	description string
+	aliases     []string
 }
 
-// Don't include some fields in JSON
-func (e Emoji) MarshalJSON() ([]byte, error) {
-	type emoji Emoji
-	x := emoji(e)
-	x.UnicodeVersion = ""
-	x.Description = ""
-	x.SkinTones = false
-	return json.Marshal(x)
-}
+var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 
 func main() {
-	flag.Parse()
-
-	// generate data
-	buf, err := generate()
-	if err != nil {
-		log.Fatalf("generate err: %v", err)
-	}
-
-	// write
-	err = os.WriteFile(*flagOut, buf, 0o644)
-	if err != nil {
-		log.Fatalf("WriteFile err: %v", err)
+	if err := generate(); err != nil {
+		log.Fatal(err)
 	}
 }
 
-var replacer = strings.NewReplacer(
-	"main.Gemoji", "Gemoji",
-	"main.Emoji", "\n",
-	"}}", "},\n}",
-	", Description:", ", ",
-	", Aliases:", ", ",
-	", UnicodeVersion:", ", ",
-	", SkinTones:", ", ",
-)
+func generate() error {
+	// assets/emoji.json is also the alias source, so existing aliases stay stable
+	existing, err := os.ReadFile(jsonFile)
+	if err != nil {
+		return err
+	}
+	var existingAliases map[string][]string
+	if err := json.Unmarshal(existing, &existingAliases); err != nil {
+		return err
+	}
 
-var emojiRE = regexp.MustCompile(`\{Emoji:"([^"]*)"`)
+	emojis, err := fetchEmojis(existingAliases)
+	if err != nil {
+		return err
+	}
 
-func generate() ([]byte, error) {
-	// load gemoji data
-	res, err := http.Get(gemojiURL)
+	jsonData, err := marshalJSON(emojis)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(jsonFile, jsonData, 0o644); err != nil {
+		return err
+	}
+
+	goData, err := marshalGo(emojis)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(goFile, goData, 0o644)
+}
+
+func isSkinTone(r rune) bool {
+	return r >= 0x1f3fb && r <= 0x1f3ff
+}
+
+func fetchEmojis(existingAliases map[string][]string) ([]*emoji, error) {
+	res, err := http.Get(emojiTestURL)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
-
-	// read all
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetching %s: %s", emojiTestURL, res.Status)
 	}
 
-	// unmarshal
-	var data Gemoji
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		return nil, err
-	}
-
-	skinTones := make(map[string]string)
-
-	skinTones["\U0001f3fb"] = "Light Skin Tone"
-	skinTones["\U0001f3fc"] = "Medium-Light Skin Tone"
-	skinTones["\U0001f3fd"] = "Medium Skin Tone"
-	skinTones["\U0001f3fe"] = "Medium-Dark Skin Tone"
-	skinTones["\U0001f3ff"] = "Dark Skin Tone"
-
-	var tmp Gemoji
-
-	// filter out emoji that require greater than max unicode version
-	for i := range data {
-		val, _ := strconv.ParseFloat(data[i].UnicodeVersion, 64)
-		if int(val) <= maxUnicodeVersion {
-			tmp = append(tmp, data[i])
-		}
-	}
-	data = tmp
-
-	sort.Slice(data, func(i, j int) bool {
-		return data[i].Aliases[0] < data[j].Aliases[0]
-	})
-
-	aliasMap := make(map[string]int, len(data))
-
-	for i, e := range data {
-		if e.Emoji == "" || len(e.Aliases) == 0 {
+	var emojis []*emoji
+	scanner := bufio.NewScanner(res.Body)
+	for scanner.Scan() {
+		// e.g. "1F44D ; fully-qualified # 👍 E0.6 thumbs up"
+		_, rest, _ := strings.Cut(scanner.Text(), ";")
+		status, comment, _ := strings.Cut(rest, "#")
+		if strings.TrimSpace(status) != "fully-qualified" {
 			continue
 		}
-		for _, a := range e.Aliases {
-			if a == "" {
-				continue
+		fields := strings.SplitN(strings.TrimSpace(comment), " ", 3)
+		if strings.ContainsFunc(fields[0], isSkinTone) {
+			continue
+		}
+		emojis = append(emojis, &emoji{code: fields[0], description: fields[2]})
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	var errs []error
+	aliasOwners := map[string]string{}
+	for _, e := range emojis {
+		e.aliases = existingAliases[e.code]
+		if e.aliases == nil {
+			e.aliases = []string{strings.Trim(slugRe.ReplaceAllString(strings.ReplaceAll(strings.ToLower(e.description), "’", ""), "_"), "_")}
+		}
+		delete(existingAliases, e.code)
+		for _, alias := range e.aliases {
+			if owner, ok := aliasOwners[alias]; ok {
+				errs = append(errs, fmt.Errorf("alias %q used by both %q and %q", alias, owner, e.code))
 			}
-			aliasMap[a] = i
+			aliasOwners[alias] = e.code
 		}
 	}
-
-	// gitea customizations
-	i, ok := aliasMap["tada"]
-	if ok {
-		data[i].Aliases = append(data[i].Aliases, "hooray")
+	for code, aliases := range existingAliases {
+		errs = append(errs, fmt.Errorf("emoji %q with aliases %v is missing from Unicode data", code, aliases))
 	}
-	i, ok = aliasMap["laughing"]
-	if ok {
-		data[i].Aliases = append(data[i].Aliases, "laugh")
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
 	}
 
-	// write a JSON file to use with tribute (write before adding skin tones since we can't support them there yet)
-	file, _ := json.MarshalIndent(data, "", "  ")
-	_ = os.WriteFile("assets/emoji.json", append(file, '\n'), 0o644)
-
-	// Add skin tones to emoji that support it
-	var (
-		s              []string
-		newEmoji       string
-		newDescription string
-		newData        Emoji
-	)
-
-	for i := range data {
-		if data[i].SkinTones {
-			for k, v := range skinTones {
-				s = strings.Split(data[i].Emoji, "")
-
-				if utf8.RuneCountInString(data[i].Emoji) == 1 {
-					s = append(s, k)
-				} else {
-					// insert into slice after first element because all emoji that support skin tones
-					// have that modifier placed at this spot
-					s = append(s, "")
-					copy(s[2:], s[1:])
-					s[1] = k
-				}
-
-				newEmoji = strings.Join(s, "")
-				newDescription = data[i].Description + ": " + v
-				newAlias := data[i].Aliases[0] + "_" + strings.ReplaceAll(v, " ", "_")
-
-				newData = Emoji{newEmoji, newDescription, []string{newAlias}, "12.0", false}
-				data = append(data, newData)
-			}
-		}
-	}
-
-	sort.Slice(data, func(i, j int) bool {
-		return data[i].Aliases[0] < data[j].Aliases[0]
+	slices.SortFunc(emojis, func(a, b *emoji) int {
+		return strings.Compare(a.aliases[0], b.aliases[0])
 	})
-
-	// add header
-	str := replacer.Replace(fmt.Sprintf(hdr, gemojiURL, data))
-
-	// change the format of the unicode string
-	str = emojiRE.ReplaceAllStringFunc(str, func(s string) string {
-		var err error
-		s, err = strconv.Unquote(s[len("{Emoji:"):])
-		if err != nil {
-			panic(err)
-		}
-		return "{" + strconv.QuoteToASCII(s)
-	})
-
-	// format
-	return format.Source([]byte(str))
+	return emojis, nil
 }
 
-const hdr = `
-// Copyright 2020 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+func marshalJSON(emojis []*emoji) ([]byte, error) {
+	// a Go map would lose the alias ordering the frontend relies on
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for i, e := range emojis {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		key, err := json.Marshal(e.code)
+		if err != nil {
+			return nil, err
+		}
+		value, err := json.Marshal(e.aliases)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(key)
+		buf.WriteByte(':')
+		buf.Write(value)
+	}
+	buf.WriteByte('}')
+	var out bytes.Buffer
+	if err := json.Indent(&out, buf.Bytes(), "", "  "); err != nil {
+		return nil, err
+	}
+	out.WriteByte('\n')
+	return out.Bytes(), nil
+}
 
+func marshalGo(emojis []*emoji) ([]byte, error) {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, `// Copyright 2020 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
 
 package emoji
 
 // Code generated by build/generate-emoji.go. DO NOT EDIT.
 // Sourced from %s
-var GemojiData = %#v
-`
+var GemojiData = Gemoji{
+`, emojiTestURL)
+	for _, e := range emojis {
+		fmt.Fprintf(&buf, "\t{%q, %q, %#v},\n", e.code, e.description, e.aliases)
+	}
+	buf.WriteString("}\n")
+	return format.Source(buf.Bytes())
+}

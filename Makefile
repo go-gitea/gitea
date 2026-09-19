@@ -637,6 +637,10 @@ lockfile-check:
 generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
 
+.PHONY: generate-emoji
+generate-emoji: ## update emoji data from Unicode
+	$(GO) run build/generate-emoji.go
+
 .PHONY: generate-images
 generate-images: | node_modules ## generate images
 	cd tools && node generate-images.ts $(TAGS)
