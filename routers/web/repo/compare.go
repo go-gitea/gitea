@@ -819,7 +819,7 @@ func ExcerptBlob(ctx *context.Context) {
 		NameHash: git.HashFilePathForWebUI(filePath),
 		Sections: sections,
 	}
-	ctx.Data["IsBlobExcerpt"] = true
+	ctx.Data["IsExcerptResponse"] = true
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	ctx.HTML(http.StatusOK, tplDiffSection)
