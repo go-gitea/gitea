@@ -133,9 +133,9 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 	return section, nil
 }
 
-// fillHiddenLines expands every gap of the file in one pass over the blob, so that the whole file
-// content can be shown without one request per gap.
-func (diffFile *DiffFile) fillHiddenLines(ctx context.Context) error {
+// fillHiddenLines expands the file's gaps in one pass over the blob, so that the whole file content
+// can be shown without one request per gap. An empty gapKeys fills every gap.
+func (diffFile *DiffFile) fillHiddenLines(ctx context.Context, gapKeys []string) error {
 	if diffFile.RightBlob == nil || diffFile.RightBlobSize >= setting.UI.MaxDisplayFileSize {
 		return nil
 	}
@@ -153,8 +153,11 @@ func (diffFile *DiffFile) fillHiddenLines(ctx context.Context) error {
 			continue
 		}
 		sectionInfo := section.Lines[sectionIdx].SectionInfo
-		leftStart, rightStart, rightEnd := sectionInfo.hiddenLineRange()
 		gapKey := sectionInfo.GapKey()
+		if len(gapKeys) > 0 && !slices.Contains(gapKeys, gapKey) {
+			continue // the caller already has this gap on screen
+		}
+		leftStart, rightStart, rightEnd := sectionInfo.hiddenLineRange()
 		var lines []*DiffLine
 		for scannedRight < rightEnd {
 			if ok := scanner.Scan(); !ok {

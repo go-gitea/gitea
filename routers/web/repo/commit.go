@@ -330,6 +330,7 @@ func Diff(ctx *context.Context) {
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:          maxFiles,
 		ExpandHiddenLines: singleFile && ctx.FormBool("expand-all"),
+		ExpandGapKeys:     ctx.FormStrings("gap"),
 	}, files...)
 	if err != nil {
 		ctx.NotFound(err)
