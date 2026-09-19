@@ -11,9 +11,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// objectIdMinLen is the min length that can be used to determine if a string is a valid object id
-const objectIdMinLen = 4
-
 type ObjectID interface {
 	String() string
 	RefName() RefName
