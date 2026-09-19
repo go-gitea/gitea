@@ -1030,6 +1030,35 @@ type CommitInfo struct {
 	Time                  string `json:"time"`
 }
 
+func headContainsMergeBase(ctx context.Context, repo git.RepositoryFacade, mergeBase, headCommitID string) bool {
+	return mergeBase != "" && gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(mergeBase, headCommitID).WithRepo(repo).Run(ctx) == nil
+}
+
+func storedCompareBase(ctx context.Context, pr *issues_model.PullRequest, headCommitID string) string {
+	if headContainsMergeBase(ctx, pr.BaseRepo, pr.MergeBase, headCommitID) {
+		return pr.MergeBase
+	}
+	return git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()
+}
+
+// GetCompareInfo falls back to storedCompareBase for unrelated histories
+func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
+	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, git.RefName(pr.GetGitHeadRefName()), git_service.CompareOptions{})
+	if err != nil || compareInfo.CompareBase != "" {
+		return compareInfo, err
+	}
+	compareInfo.CompareBase = storedCompareBase(ctx, pr, compareInfo.HeadCommitID)
+	commitRange := compareInfo.HeadCommitID
+	if compareInfo.CompareBase == pr.MergeBase {
+		commitRange = pr.MergeBase + ".." + commitRange
+	}
+	if compareInfo.Commits, err = baseGitRepo.ShowPrettyFormatLogToList(ctx, commitRange); err != nil {
+		return compareInfo, err
+	}
+	compareInfo.NumFiles, err = baseGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.CompareBase, compareInfo.HeadCommitID)
+	return compareInfo, err
+}
+
 // GetPullCommits returns all commits on given pull request and the last review commit sha
 // Attention: The last review commit sha must be from the latest review whose commit id is not empty.
 // So the type of the latest review cannot be "ReviewTypeRequest".
@@ -1039,11 +1068,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return nil, "", err
 	}
-	baseBranch := pull.BaseBranch
-	if pull.HasMerged {
-		baseBranch = pull.MergeBase
-	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
+	compareInfo, err := GetCompareInfo(ctx, pull, baseGitRepo, pull.GetCompareBaseRef())
 	if err != nil {
 		return nil, "", err
 	}

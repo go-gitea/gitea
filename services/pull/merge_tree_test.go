@@ -10,6 +10,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 
@@ -68,6 +69,19 @@ func TestPullRequestMergeable(t *testing.T) {
 	t.Run("Empty-TmpRepo", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByTmpRepo, pr, issues_model.PullRequestStatusEmpty, nil, nil)
 	})
+
+	pr.BaseBranch, pr.HeadBranch = "test-merge-tree-unrelated-base", "branch2"
+	require.NoError(t, git.ForceFastImport(t.Context(), pr.BaseRepo, []git.FastImportCommit{{Ref: git.BranchPrefix + pr.BaseBranch}}))
+	for name, checkFunc := range map[string]func(context.Context, *issues_model.PullRequest) error{"MergeTree": checkPullRequestMergeableByMergeTree, "TmpRepo": checkPullRequestMergeableByTmpRepo} {
+		t.Run("Unrelated-"+name, func(t *testing.T) {
+			for lastMergeBase, expectedMergeBase := range map[string]string{"65f1bf27bc3bf70f64657658635e66094edbcb4d": "65f1bf27bc3bf70f64657658635e66094edbcb4d", "90c1019714259b24fb81711d4416ac0f18667dfa": ""} {
+				pr.MergeBase = lastMergeBase
+				require.NoError(t, checkFunc(t.Context(), pr))
+				assert.Equal(t, issues_model.PullRequestStatusEmpty, pr.Status)
+				assert.Equal(t, expectedMergeBase, pr.MergeBase)
+			}
+		})
+	}
 }
 
 func createConflictBranches(t *testing.T, repo gitrepo.RepositoryFacade, baseBranch, headBranch string) []string {
