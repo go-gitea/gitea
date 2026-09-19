@@ -17,8 +17,6 @@ import {toggleElem} from '../utils/dom.ts';
 export const blobExcerptChunkSize = 20;
 
 export type DiffGap = {
-  key: string; // identifies the gap for the life of the page, even as it shrinks
-  anchor: string;
   lastLeft: number; lastRight: number; // the last line rendered before the gap
   left: number; right: number; // the next line rendered after it, or the file's last line at its end
   leftHunk: number; rightHunk: number; // zero on both sides means the gap runs to the end of the file
@@ -32,6 +30,11 @@ type DiffGapState = {original: DiffGap; current: DiffGap; rows: HTMLElement[]; r
 
 const diffGaps = reactive(new Map<string, DiffGapState>());
 
+// a gap is its six numbers, and the ones it started with name it for the life of the page
+export function gapNumbers(gap: DiffGap): string {
+  return [gap.lastLeft, gap.lastRight, gap.left, gap.right, gap.leftHunk, gap.rightHunk].join(',');
+}
+
 function gapStoreKey(el: Element, gapKey: string): string {
   return `${el.closest('.diff-file-box')?.id ?? ''}:${gapKey}`;
 }
@@ -39,7 +42,7 @@ function gapStoreKey(el: Element, gapKey: string): string {
 export function parseDiffGap(el: Element): DiffGap {
   const [lastLeft, lastRight, left, right, leftHunk, rightHunk] = el.getAttribute('data-gap')!.split(',').map(Number);
   const hiddenCommentIds = el.getAttribute('data-hidden-comment-ids')!.split(',').filter(Boolean);
-  return {key: el.getAttribute('data-gap-key')!, anchor: el.getAttribute('data-gap-anchor')!, lastLeft, lastRight, left, right, leftHunk, rightHunk, hiddenCommentIds};
+  return {lastLeft, lastRight, left, right, leftHunk, rightHunk, hiddenCommentIds};
 }
 
 export function getDiffGapState(el: Element, gapKey: string): DiffGapState | undefined {
@@ -81,21 +84,16 @@ export function gapAfterExpanding(gap: DiffGap, direction: string): DiffGap {
 
 // one arrow click: reveal a chunk of this gap, from whichever end the arrow points at
 export function excerptChunkUrl(baseUrl: string, gap: DiffGap, direction: string): string {
-  const url = excerptGapsUrl(baseUrl, [gap]);
-  const chunkUrl = new URL(url);
-  chunkUrl.searchParams.set('direction', direction);
-  chunkUrl.searchParams.set('anchor', gap.anchor);
-  chunkUrl.searchParams.set('gap_key', gap.key); // the numbers have moved with what it already revealed
-  return chunkUrl.href;
+  const url = new URL(excerptGapsUrl(baseUrl, [gap]));
+  url.searchParams.set('direction', direction);
+  return url.href;
 }
 
 // one request reveals all of every gap named here, so a partly expanded file does not re-fetch what
 // it already shows
 export function excerptGapsUrl(baseUrl: string, gaps: DiffGap[]): string {
   const url = new URL(baseUrl, window.location.href);
-  for (const gap of gaps) {
-    url.searchParams.append('gap', [gap.lastLeft, gap.lastRight, gap.left, gap.right, gap.leftHunk, gap.rightHunk].join(','));
-  }
+  for (const gap of gaps) url.searchParams.append('gap', gapNumbers(gap));
   return url.href;
 }
 
@@ -111,8 +109,8 @@ export function parseTableRows(respText: string): HTMLElement[] {
 // out any whose rows are already in hand
 export function pendingDiffGaps(elFileBody: Element, unrevealedOnly = false): DiffGap[] {
   const gaps = [];
-  for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap-key]')) {
-    const gapKey = el.getAttribute('data-gap-key')!;
+  for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap]')) {
+    const gapKey = el.getAttribute('data-gap')!;
     const state = getDiffGapState(el, gapKey);
     if (!state || !gapExpandDirection(state.current)) continue;
     if (unrevealedOnly && state.revealed.length) continue;
@@ -125,11 +123,17 @@ export function diffFileHasHiddenLines(elFileBody: Element): boolean {
   return pendingDiffGaps(elFileBody).length > 0;
 }
 
+// the response says nothing about which gap a row came from, so the gap that asked marks them
+function markGapRows(rows: HTMLElement[], gap: DiffGap) {
+  for (const row of rows) row.setAttribute('data-expand-gap', gapNumbers(gap));
+}
+
 // the rows a gap has revealed and what it has left, the only two things an expansion changes.
 // A gap that ends up fully revealed keeps its rows, so opening it again costs no request.
 export function revealGapLines(el: Element, gapKey: string, rows: HTMLElement[], current: DiffGap) {
   const state = getDiffGapState(el, gapKey);
   if (!state) return;
+  markGapRows(rows, state.original);
   const allRows = [...state.rows, ...rows];
   updateDiffGap(el, gapKey, {current, rows: allRows, revealed: gapExpandDirection(current) ? state.revealed : allRows});
 }
@@ -176,7 +180,7 @@ function conversationsOf(elRow: HTMLElement): HTMLElement | null {
 
 function placeGapRows(elSectionRow: HTMLElement, state: DiffGapState) {
   const wanted = new Set(state.rows);
-  for (const el of elSectionRow.parentElement!.querySelectorAll<HTMLElement>(`tr[data-expand-gap="${CSS.escape(state.original.key)}"]`)) {
+  for (const el of elSectionRow.parentElement!.querySelectorAll<HTMLElement>(`tr[data-expand-gap="${CSS.escape(gapNumbers(state.original))}"]`)) {
     if (wanted.has(el)) continue;
     conversationsOf(el)?.remove();
     el.remove();
@@ -195,7 +199,7 @@ function placeGapRows(elSectionRow: HTMLElement, state: DiffGapState) {
 // same state, so they cannot disagree
 export function initDiffGapExpander(el: HTMLElement) {
   const gap = parseDiffGap(el);
-  const key = gapStoreKey(el, gap.key);
+  const key = gapStoreKey(el, el.getAttribute('data-gap')!); // what the gap started as, not what is left of it
   if (!diffGaps.has(key)) diffGaps.set(key, {original: gap, current: gap, rows: [], revealed: []});
   const scope = effectScope();
   scope.run(() => watchEffect(() => {

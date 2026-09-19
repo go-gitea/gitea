@@ -14,7 +14,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
-import {closeGap, diffFileHasHiddenLines, excerptChunkUrl, excerptGapsUrl, gapAfterExpanding, gapExpandDirection, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, revealGapLines} from './repo-diff-gaps.ts';
+import {closeGap, diffFileHasHiddenLines, excerptChunkUrl, excerptGapsUrl, gapAfterExpanding, gapExpandDirection, gapNumbers, gapReachesFileEnd, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, revealGapLines, type DiffGap} from './repo-diff-gaps.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -152,13 +152,20 @@ function onDiffFileBodyChange() {
   initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
-// the response carries each gap's lines in file order, and a line's conversations in the row after it
-function diffGroupRowsByGap(respText: string): Map<string, HTMLElement[]> {
+// the response carries each gap's lines in file order, so walk the gaps that were asked for in the
+// same order and take the rows that fall inside each
+function diffGroupRowsByGap(respText: string, gaps: DiffGap[]): Map<string, HTMLElement[]> {
   const gapRows = new Map<string, HTMLElement[]>();
-  let gapKey = '';
-  for (const elRow of parseTableRows(respText)) {
-    gapKey = elRow.getAttribute('data-expand-gap') ?? gapKey;
-    if (gapKey) gapRows.set(gapKey, [...gapRows.get(gapKey) ?? [], elRow]);
+  const rows = parseTableRows(respText);
+  let at = 0;
+  for (const gap of gaps) {
+    const revealed = [];
+    while (at < rows.length) {
+      const lineNum = Number(rows[at].querySelector('.lines-num-new')?.getAttribute('data-line-num'));
+      if (lineNum > gap.right || (lineNum === gap.right && !gapReachesFileEnd(gap))) break;
+      revealed.push(rows[at++]);
+    }
+    gapRows.set(gapNumbers(gap), revealed);
   }
   return gapRows;
 }
@@ -177,7 +184,7 @@ function diffSyncExpandAllButton(elFileBox: Element) {
 
 async function diffExpandHiddenLines(btn: HTMLElement) {
   const elExpander = btn.closest<HTMLElement>('.code-expander-buttons')!;
-  const gapKey = elExpander.getAttribute('data-gap-key')!;
+  const gapKey = elExpander.getAttribute('data-gap')!;
   const baseUrl = elExpander.closest('table')!.getAttribute('data-excerpt-url')!;
   const direction = btn.getAttribute('data-gap-direction')!;
   const gap = getDiffGapState(elExpander, gapKey)!.current;
@@ -199,7 +206,7 @@ async function diffFetchAllGapRows(btn: HTMLElement, elFileBody: Element): Promi
   if (!gaps.length) return new Map();
   const baseUrl = elFileBody.querySelector('table')!.getAttribute('data-excerpt-url')!;
   const resp = await performFetchActionRequest(btn, {method: 'GET', url: excerptGapsUrl(baseUrl, gaps), loadingIndicator: '$this'});
-  return resp ? diffGroupRowsByGap(await resp.text()) : null;
+  return resp ? diffGroupRowsByGap(await resp.text(), gaps) : null;
 }
 
 async function diffToggleAllHiddenLines(btn: HTMLElement) {
@@ -211,12 +218,12 @@ async function diffToggleAllHiddenLines(btn: HTMLElement) {
     setFileFolding(elFileBox, elFileBox.querySelector<HTMLElement>('.fold-file')!, false);
     const gapRows = await diffFetchAllGapRows(btn, elFileBody); // fetch before touching the store, so an already expanded gap does not flicker
     if (!gapRows) return;
-    for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap-key]')) {
-      const gapKey = el.getAttribute('data-gap-key')!;
+    for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap]')) {
+      const gapKey = el.getAttribute('data-gap')!;
       const state = getDiffGapState(el, gapKey);
       if (!state || !gapExpandDirection(state.current)) continue;
       const rows = gapRows.get(gapKey);
-      if (rows) {
+      if (rows?.length) {
         closeGap(el, gapKey); // drop what it revealed so far, the response carries the whole gap
         revealGapLines(el, gapKey, rows, {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0});
       } else {
@@ -225,8 +232,8 @@ async function diffToggleAllHiddenLines(btn: HTMLElement) {
     }
     onDiffFileBodyChange();
   } else {
-    for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap-key]')) {
-      closeGap(el, el.getAttribute('data-gap-key')!);
+    for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap]')) {
+      closeGap(el, el.getAttribute('data-gap')!);
     }
   }
   diffSyncExpandAllButton(elFileBox);

@@ -40,12 +40,6 @@ func TestBuildBlobExcerptDiffSections_OneChunk(t *testing.T) {
 	assert.Equal(t, `<span class="n">a</span> <span class="o">=</span> <span class="mi">30</span>`+"\n", string(diffInline.Content))
 }
 
-func TestDiffLineSectionInfoGapKey(t *testing.T) {
-	// a gap is identified by the lines it sits between, so the frontend can match its rows back to it
-	info := DiffLineSectionInfo{LastLeftIdx: 17, LastRightIdx: 31, LeftIdx: 40, RightIdx: 54}
-	assert.Equal(t, "31-54", info.GapKey())
-}
-
 func TestBuildBlobExcerptDiffSections_WholeGaps(t *testing.T) {
 	data := &bytes.Buffer{}
 	for i := range 100 {

@@ -704,7 +704,7 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 const maxExcerptGaps = 100
 
 // parseExcerptGaps reads the "lastLeft,lastRight,left,right,leftHunk,rightHunk" that the diff put on
-// each section row. A gap is identified by its own line numbers, so no key has to be sent with it.
+// each section row, which is all a gap is.
 func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
 	if len(gapSpecs) > maxExcerptGaps {
 		return nil, errors.New("too many gaps requested")
@@ -732,7 +732,6 @@ func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerpt
 			LeftHunkSize: parsed[4], RightHunkSize: parsed[5],
 			Direction: "all", Language: language,
 		}
-		opts.GapKey = gitdiff.GapKeyOf(opts.LastRight, opts.RightIndex)
 		gapOpts = append(gapOpts, opts)
 	}
 	slices.SortFunc(gapOpts, func(a, b gitdiff.BlobExcerptOptions) int { return a.LastRight - b.LastRight })
@@ -748,10 +747,8 @@ func ExcerptBlob(ctx *context.Context) {
 		return
 	}
 	if len(gapOpts) == 1 {
-		// one gap may be revealed a chunk at a time, from whichever end its arrow points at. Its
-		// numbers have moved with what it already revealed, so the key it started with is sent too.
+		// one gap may be revealed a chunk at a time, from whichever end its arrow points at
 		gapOpts[0].Direction = ctx.FormString("direction")
-		gapOpts[0].GapKey = util.IfZero(ctx.FormString("gap_key"), gapOpts[0].GapKey)
 	}
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
