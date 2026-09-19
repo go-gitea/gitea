@@ -1,5 +1,5 @@
 {{/* the arrows are rendered by initDiffGapExpander from the gap's numbers, which say what is left of it */}}
-<div class="code-expander-buttons" data-global-init="initDiffGapExpander" data-gap="{{.GapNumbers}}" data-hidden-comment-ids=",{{.HiddenCommentIDsCSV}},">
+<div class="code-expander-buttons" data-global-init="initDiffGapExpander" data-gap="{{.SerializeGapNumbers}}" data-hidden-comment-ids=",{{.HiddenCommentIDsCSV}},">
 	{{- if .HiddenCommentIDs -}}
 		<span class="code-comment-more" data-tooltip-content="{{printf "%d hidden comment(s)" (len .HiddenCommentIDs)}}">{{len .HiddenCommentIDs}}</span>
 	{{- end -}}
