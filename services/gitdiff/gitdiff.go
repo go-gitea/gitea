@@ -210,6 +210,13 @@ const (
 	DiffStyleUnified = "unified"
 )
 
+// What a render has to say about expanding, as "DiffExpandMode" in the template data. A render that
+// says nothing, like the conversation snippet or the editor preview, is neither.
+const (
+	DiffExpandModeExpandable = "expandable" // the diff hides lines here and offers to expand them
+	DiffExpandModeExpanded   = "expanded"   // these rows are lines that were expanded
+)
+
 // BlobExcerptBaseURL returns the part of an excerpt request that every gap of this file shares.
 func (diffFile *DiffFile) BlobExcerptBaseURL(data *DiffBlobExcerptData) string {
 	if data == nil {
