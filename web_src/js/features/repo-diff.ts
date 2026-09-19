@@ -14,7 +14,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
-import {closeGap, diffFileHasHiddenLines, excerptChunkUrl, excerptGapsUrl, gapAfterExpanding, gapExpandDirection, gapNumbers, gapReachesFileEnd, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, revealGapLines, type DiffGap} from './repo-diff-gaps.ts';
+import {closeGap, diffFileHasHiddenLines, excerptChunkUrl, excerptGapsUrl, gapAfterExpanding, gapExpandDirection, gapNumbers, gapReachesFileEnd, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, expandGapLines, type DiffGap} from './repo-diff-gaps.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -159,13 +159,13 @@ function diffGroupRowsByGap(respText: string, gaps: DiffGap[]): Map<string, HTML
   const rows = parseTableRows(respText);
   let at = 0;
   for (const gap of gaps) {
-    const revealed = [];
+    const expanded = [];
     while (at < rows.length) {
       const lineNum = Number(rows[at].querySelector('.lines-num-new')?.getAttribute('data-line-num'));
       if (lineNum > gap.right || (lineNum === gap.right && !gapReachesFileEnd(gap))) break;
-      revealed.push(rows[at++]);
+      expanded.push(rows[at++]);
     }
-    gapRows.set(gapNumbers(gap), revealed);
+    gapRows.set(gapNumbers(gap), expanded);
   }
   return gapRows;
 }
@@ -192,17 +192,17 @@ async function diffExpandHiddenLines(btn: HTMLElement) {
   const resp = await performFetchActionRequest(btn, {method: 'GET', url: excerptChunkUrl(baseUrl, gap, direction), loadingIndicator: '$this'});
   if (!resp) return;
   // the effect puts the rows on screen and re-renders whatever the gap has left
-  revealGapLines(elExpander, gapKey, parseTableRows(await resp.text()), gapAfterExpanding(gap, direction));
+  expandGapLines(elExpander, gapKey, parseTableRows(await resp.text()), gapAfterExpanding(gap, direction));
 
   const elFileBox = btn.closest('.diff-file-box'); // absent on the pull conversation page
   if (elFileBox) diffSyncExpandAllButton(elFileBox);
   onDiffFileBodyChange();
 }
 
-// one request reveals every gap the file still hides, through the same endpoint the arrows use, so
+// one request expands every gap the file still hides, through the same endpoint the arrows use, so
 // the server reads the blob instead of recomputing the diff
 async function diffFetchAllGapRows(btn: HTMLElement, elFileBody: Element): Promise<Map<string, HTMLElement[]> | null> {
-  const gaps = pendingDiffGaps(elFileBody, true); // the rest were revealed before and kept their rows
+  const gaps = pendingDiffGaps(elFileBody, true); // the rest were expanded before and kept their rows
   if (!gaps.length) return new Map();
   const baseUrl = elFileBody.querySelector('table')!.getAttribute('data-excerpt-url')!;
   const resp = await performFetchActionRequest(btn, {method: 'GET', url: excerptGapsUrl(baseUrl, gaps), loadingIndicator: '$this'});
@@ -224,10 +224,10 @@ async function diffToggleAllHiddenLines(btn: HTMLElement) {
       if (!state || !gapExpandDirection(state.current)) continue;
       const rows = gapRows.get(gapKey);
       if (rows?.length) {
-        closeGap(el, gapKey); // drop what it revealed so far, the response carries the whole gap
-        revealGapLines(el, gapKey, rows, {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0});
+        closeGap(el, gapKey); // drop what it expanded so far, the response carries the whole gap
+        expandGapLines(el, gapKey, rows, {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0});
       } else {
-        reopenGap(el, gapKey); // it was fully revealed before, so its rows are still in hand
+        reopenGap(el, gapKey); // it was fully expanded before, so its rows are still in hand
       }
     }
     onDiffFileBodyChange();

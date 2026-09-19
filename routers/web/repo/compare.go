@@ -720,7 +720,7 @@ func deserializeExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobE
 		opts.Language = language
 		gapOpts = append(gapOpts, opts)
 	}
-	// revealed in one pass over the file, so the gaps have to be in the order they appear in it
+	// expanded in one pass over the file, so the gaps have to be in the order they appear in it
 	slices.SortFunc(gapOpts, func(a, b gitdiff.BlobExcerptOptions) int { return a.LastRight - b.LastRight })
 	return gapOpts, nil
 }
@@ -734,7 +734,7 @@ func ExcerptBlob(ctx *context.Context) {
 		return
 	}
 	if len(gapOpts) == 1 {
-		// one gap may be revealed a chunk at a time, from whichever end its arrow points at
+		// one gap may be expanded a chunk at a time, from whichever end its arrow points at
 		gapOpts[0].Direction = ctx.FormString("direction")
 	}
 	filePath := ctx.FormString("path")
@@ -819,7 +819,7 @@ func ExcerptBlob(ctx *context.Context) {
 		NameHash: git.HashFilePathForWebUI(filePath),
 		Sections: sections,
 	}
-	ctx.Data["IsExcerptResponse"] = true
+	ctx.Data["IsExpandedLines"] = true
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	ctx.HTML(http.StatusOK, tplDiffSection)

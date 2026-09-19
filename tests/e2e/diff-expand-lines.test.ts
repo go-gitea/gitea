@@ -32,7 +32,7 @@ test('expand and collapse the hidden lines of a diff file', async ({page, reques
   const collapsedCount = await rows.count();
   await expect(toggle).toHaveAttribute('aria-label', 'Expand all lines');
 
-  // a single arrow reveals one chunk, and expanding all on top of it must not duplicate lines
+  // a single arrow expands one chunk, and expanding all on top of it must not duplicate lines
   await arrows.first().click();
   await expect(rows).toHaveCount(collapsedCount + 16);
 
@@ -46,13 +46,13 @@ test('expand and collapse the hidden lines of a diff file', async ({page, reques
   await expect(page.locator('#diff-file-boxes tr[data-expand-gap]')).toHaveCount(0);
 });
 
-test('expanding all leaves the rows an arrow already revealed in place', async ({page, request}) => {
+test('expanding all leaves the rows an arrow already expanded in place', async ({page, request}) => {
   const {rows, arrows, toggle} = await createDiffPull(page, request);
   const collapsedCount = await rows.count();
 
   await arrows.first().click();
   await expect(rows).toHaveCount(collapsedCount + 16);
-  // mark the rows of the gap the arrow fully revealed: expanding all must not rebuild them
+  // mark the rows of the gap the arrow fully expanded: expanding all must not rebuild them
   await page.locator('#diff-file-boxes tr[data-expand-gap]').evaluateAll((els) => {
     for (const el of els) el.setAttribute('data-marked', '1');
   });
@@ -103,19 +103,19 @@ test('expanding all keeps an already expanded gap on screen while it loads', asy
   await expect(rows).toHaveCount(collapsedCount + hiddenLineCount);
 });
 
-test('a line revealed in split view comments on the right side', async ({page, request}) => {
+test('a line expanded in split view comments on the right side', async ({page, request}) => {
   const {arrows} = await createDiffPull(page, request, 'split');
   await arrows.first().click();
   await expect(page.locator('#diff-file-boxes tr[data-expand-gap]').first()).toBeVisible();
 
   // a line the diff shows takes a comment on whichever side it was clicked
   await expect(page.locator('#diff-file-boxes tr:not([data-expand-gap]) td.lines-code-old .add-code-comment').first()).toHaveAttribute('data-side', 'left');
-  // a revealed line comments on the right from either cell, because FillHiddenCommentIDsForDiffLine
+  // a expanded line comments on the right from either cell, because FillHiddenCommentIDsForDiffLine
   // counts only right side comments and a left side one would be lost once the gap is closed again
   await expect(page.locator('#diff-file-boxes tr[data-expand-gap] td.lines-code-old .add-code-comment').first()).toHaveAttribute('data-side', 'right');
 });
 
-test('reopening a file it already revealed costs no request', async ({page, request}) => {
+test('reopening a file it already expanded costs no request', async ({page, request}) => {
   const {rows, toggle} = await createDiffPull(page, request);
   const collapsedCount = await rows.count();
   let requests = 0;

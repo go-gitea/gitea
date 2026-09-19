@@ -14,7 +14,7 @@ test('gapExpandDirection', () => {
   expect(gapExpandDirection(gap({lastLeft: 23, lastRight: 23, left: 57, right: 57, leftHunk: 7, rightHunk: 7}))).toEqual('updown');
   // zero hunk sizes mean the gap runs to the end of the file
   expect(gapExpandDirection(gap({lastLeft: 103, lastRight: 103, left: 120, right: 120}))).toEqual('down');
-  // a gap that fits in one chunk is revealed in one go
+  // a gap that fits in one chunk is expanded in one go
   expect(gapExpandDirection(gap({lastLeft: 10, lastRight: 10, left: 20, right: 20, leftHunk: 5, rightHunk: 5}))).toEqual('single');
 });
 
@@ -23,7 +23,7 @@ test('gapReachesFileEnd', () => {
   expect(gapReachesFileEnd(gap({leftHunk: 7, rightHunk: 7}))).toBe(false);
 });
 
-test('excerptChunkUrl names the gap and which end to reveal from', () => {
+test('excerptChunkUrl names the gap and which end to expand from', () => {
   const url = new URL(excerptChunkUrl('/user/repo/blob_excerpt/sha?style=split&path=a.txt', gap({left: 17, right: 17, leftHunk: 7, rightHunk: 7}), 'up'));
   expect(url.pathname).toEqual('/user/repo/blob_excerpt/sha');
   expect(Object.fromEntries(url.searchParams)).toEqual({
@@ -35,7 +35,7 @@ test('excerptGapsUrl names every gap and nothing else', () => {
   const gaps = [gap({lastLeft: 0, lastRight: 0, left: 17, right: 17, leftHunk: 7, rightHunk: 7}), gap({lastLeft: 23, lastRight: 23, left: 57, right: 57, leftHunk: 7, rightHunk: 7})];
   const url = new URL(excerptGapsUrl('/user/repo/blob_excerpt/sha?path=a.txt', gaps));
   expect(url.searchParams.getAll('gap')).toEqual(['0,0,17,17,7,7', '23,23,57,57,7,7']);
-  expect(url.searchParams.has('direction')).toBe(false); // whole gaps, so no end to reveal from
+  expect(url.searchParams.has('direction')).toBe(false); // whole gaps, so no end to expand from
 });
 
 test('parseTableRows takes the rows out of a response that starts with a colgroup', () => {
