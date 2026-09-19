@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"strings"
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
@@ -20,7 +21,8 @@ func GetRepositoriesByForkID(ctx context.Context, forkID int64) ([]*Repository, 
 		Find(&repos)
 }
 
-// GetForkedRepo checks if given user has already forked a repository with given ID.
+// GetForkedRepo returns one of the owner's forks of the given repository, if any, otherwise nil.
+// An owner may have multiple forks of the same repository under different names.
 func GetForkedRepo(ctx context.Context, ownerID, repoID int64) *Repository {
 	repo := new(Repository)
 	has, _ := db.GetEngine(ctx).
@@ -41,10 +43,28 @@ func HasForkedRepo(ctx context.Context, ownerID, repoID int64) bool {
 	return has
 }
 
-// GetUserFork return user forked repository from this repository, if not forked return nil
+// GetUserFork returns one of the user's forked repositories from this repository, if not forked return nil.
+// An owner may have multiple forks of the same repository under different names.
 func GetUserFork(ctx context.Context, repoID, userID int64) (*Repository, error) {
 	var forkedRepo Repository
 	has, err := db.GetEngine(ctx).Where("fork_id = ?", repoID).And("owner_id = ?", userID).Get(&forkedRepo)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
+	}
+	return &forkedRepo, nil
+}
+
+// GetUserForkByName returns the user's forked repository of this repository with the given name, if not forked return nil.
+func GetUserForkByName(ctx context.Context, repoID, userID int64, name string) (*Repository, error) {
+	var forkedRepo Repository
+	has, err := db.GetEngine(ctx).
+		Where("fork_id = ?", repoID).
+		And("owner_id = ?", userID).
+		And("lower_name = ?", strings.ToLower(name)).
+		Get(&forkedRepo)
 	if err != nil {
 		return nil, err
 	}
