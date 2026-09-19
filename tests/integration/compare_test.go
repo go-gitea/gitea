@@ -308,14 +308,15 @@ func TestCompareCodeExpand(t *testing.T) {
 		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		els := htmlDoc.Find(`button.code-expander-button[data-expand-url]`)
-
-		// all the links in the comparison should be to the forked repo&branch
+		// the frontend builds its excerpt requests from this, so it must point at the forked repo&branch
+		els := htmlDoc.Find(`table[data-excerpt-url]`)
 		assert.NotZero(t, els.Length())
 		for i := 0; i < els.Length(); i++ {
-			link := els.Eq(i).AttrOr("data-expand-url", "")
+			link := els.Eq(i).AttrOr("data-excerpt-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
+		// and every gap carries the numbers the frontend needs to work out what is left to reveal
+		assert.NotZero(t, htmlDoc.Find(`.code-expander-buttons[data-gap][data-gap-key]`).Length())
 
 		t.Run("ExpandAll", func(t *testing.T) {
 			req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch?file-only=true&expand-all=true&files=README.md")

@@ -37,7 +37,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/svg"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
@@ -203,22 +202,6 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
-func (d *DiffLine) getBlobExcerptQuery() string {
-	language := ""
-	if d.SectionInfo.language != nil { // for normal cases, it can't be nil, this check is only for some tests
-		language = d.SectionInfo.language.value
-	}
-	return fmt.Sprintf(
-		"last_left=%d&last_right=%d&"+
-			"left=%d&right=%d&"+
-			"left_hunk_size=%d&right_hunk_size=%d&"+
-			"path=%s&filelang=%s",
-		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
-		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
-		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
-		url.QueryEscape(d.SectionInfo.Path), url.QueryEscape(language))
-}
-
 func (d *DiffLine) GetExpandDirection() string {
 	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return ""
@@ -247,41 +230,41 @@ const (
 	DiffStyleUnified = "unified"
 )
 
-func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
+// RenderGapExpander renders the container for a section row's expander. It carries the gap's own
+// numbers; the frontend works out from them which arrows apply and what is left to reveal.
+func (d *DiffLine) RenderGapExpander(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
 	// an excerpt keeps the key of the gap it came from, so every row it adds stays attributable to that gap
 	gapKey := util.IfZero(data.GapKey, d.SectionInfo.GapKey())
+	gapNumbers := fmt.Sprintf("%d,%d,%d,%d,%d,%d",
+		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
+		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
+		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize)
 
-	makeButton := func(direction, svgName string) template.HTML {
-		style := util.IfZero(data.DiffStyle, "unified")
-		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s&gap_key=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor), url.QueryEscape(gapKey)) + "&" + d.getBlobExcerptQuery()
-		if data.PullIssueIndex > 0 {
-			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
-		}
-		return htmlutil.HTMLFormat(
-			`<button class="code-expander-button" data-global-click="diffExpandHiddenLines" data-expand-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
-			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
-		)
-	}
 	var content template.HTML
-
 	if len(d.SectionInfo.HiddenCommentIDs) > 0 {
 		tooltip := fmt.Sprintf("%d hidden comment(s)", len(d.SectionInfo.HiddenCommentIDs))
-		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
+		content = htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
 	}
+	return htmlutil.HTMLFormat(
+		`<div class="code-expander-buttons" data-global-init="initDiffGapExpander" data-gap-key="%s" data-gap="%s" data-gap-anchor="%s" data-hidden-comment-ids=",%s,">%s</div>`,
+		gapKey, gapNumbers, anchor, dataHiddenCommentIDs, content)
+}
 
-	expandDirection := d.GetExpandDirection()
-	if expandDirection == "updown" || expandDirection == "down" {
-		content += makeButton("down", "octicon-fold-down")
+// BlobExcerptBaseURL returns the part of an excerpt request that every gap of this file shares.
+func (diffFile *DiffFile) BlobExcerptBaseURL(data *DiffBlobExcerptData) string {
+	if data == nil {
+		return ""
 	}
-	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
+	link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&path=%s&filelang=%s",
+		url.QueryEscape(util.IfZero(data.DiffStyle, DiffStyleUnified)),
+		url.QueryEscape(diffFile.Name),
+		url.QueryEscape(diffFile.language.value))
+	if data.PullIssueIndex > 0 {
+		link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
 	}
-	if expandDirection == "single" {
-		content += makeButton("single", "octicon-fold")
-	}
-	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s" data-gap-key="%s">%s</div>`, expandDirection, gapKey, content)
+	return link
 }
 
 // FillHiddenCommentIDsForDiffLine finds comment IDs that are in the hidden range of an expand button

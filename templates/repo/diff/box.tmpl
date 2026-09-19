@@ -198,7 +198,7 @@
 										{{end}}
 									</div>
 								{{else if $file.Sections}}
-									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
+									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}" data-excerpt-url="{{$file.BlobExcerptBaseURL $.DiffBlobExcerptData}}">
 										{{template "repo/diff/section" dict "file" . "root" $}}
 									</table>
 								{{else if $file.IsRenamed}}

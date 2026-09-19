@@ -968,7 +968,7 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 	}
 }
 
-func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
+func TestDiffLine_RenderGapExpander(t *testing.T) {
 	tests := []struct {
 		name             string
 		line             *DiffLine
@@ -998,8 +998,9 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 				DiffStyle:     "unified",
 			},
 			expectContains: []string{
-				"octicon-fold-up",
-				"direction=up",
+				`data-gap="0,0,26,26,0,0"`,
+				`data-gap-key="0-26"`,
+				`data-gap-anchor="diff-abc123K26"`,
 				"code-comment-more",
 				"1 hidden comment(s)",
 			},
@@ -1026,12 +1027,9 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 				PullIssueIndex: 42,
 			},
 			expectContains: []string{
-				"octicon-fold-down",
-				"octicon-fold-up",
-				"direction=down",
-				"direction=up",
+				`data-gap="5,10,10,50,5,5"`,
+				`data-gap-key="10-50"`,
 				`data-hidden-comment-ids=",200,201,"`, // use leading and trailing commas to ensure exact match by CSS selector `attr*=",id,"`
-				"pull_issue_index=42",
 				"2 hidden comment(s)",
 			},
 		},
@@ -1055,7 +1053,8 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 				AfterCommitID: "commit789",
 			},
 			expectContains: []string{
-				"code-expander-button",
+				`data-gap="5,10,10,20,5,5"`,
+				`data-global-init="initDiffGapExpander"`,
 			},
 			expectNotContain: []string{
 				"code-comment-more",
@@ -1065,7 +1064,7 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data)
+			result := tt.line.RenderGapExpander(tt.fileNameHash, tt.data)
 			resultStr := string(result)
 
 			for _, expected := range tt.expectContains {

@@ -13,7 +13,7 @@
 		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}{{if $line.ExpandedFromGap}} line-expanded{{end}}" data-line-type="{{.GetHTMLDiffLineType}}"{{if $line.ExpandedFromGap}} data-expand-gap="{{$line.ExpandedFromGap}}"{{end}}>
 			{{if eq .GetType 4}}
 				{{if $diffBlobExcerptData}}
-					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
+					<td colspan="2" class="lines-num">{{$line.RenderGapExpander $file.NameHash $diffBlobExcerptData}}</td>
 				{{else}}
 					{{/* when DiffBlobExcerptData is not available (code file preview, pull conversation diff comment), do not show the expansion arrows */}}
 					<td colspan="2" class="lines-num"></td>
