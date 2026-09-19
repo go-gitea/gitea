@@ -125,20 +125,14 @@ type DiffLineSectionInfo struct {
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
 
-// GapKey identifies a section row among all the section rows of one file, so the frontend can
-// match the lines of an expanded gap back to the row they belong to.
-func (s *DiffLineSectionInfo) GapKey() string {
-	return fmt.Sprintf("%d-%d", s.LastRightIdx, s.RightIdx)
+// GapKeyOf identifies a gap by the lines it sits between, so that the rows it reveals can be matched
+// back to it however they were revealed.
+func GapKeyOf(lastRightIdx, rightIdx int) string {
+	return fmt.Sprintf("%d-%d", lastRightIdx, rightIdx)
 }
 
-// hiddenLineRange returns the 1-based inclusive line numbers hidden by this section row.
-// "RightIdx" is the next rendered line, except at the end of the file where nothing follows it.
-func (s *DiffLineSectionInfo) hiddenLineRange() (leftStart, rightStart, rightEnd int) {
-	rightEnd = s.RightIdx
-	if s.LeftHunkSize > 0 || s.RightHunkSize > 0 {
-		rightEnd--
-	}
-	return s.LastLeftIdx + 1, s.LastRightIdx + 1, rightEnd
+func (s *DiffLineSectionInfo) GapKey() string {
+	return GapKeyOf(s.LastRightIdx, s.RightIdx)
 }
 
 // DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
@@ -222,7 +216,6 @@ type DiffBlobExcerptData struct {
 	PullIssueIndex int64
 	DiffStyle      string
 	AfterCommitID  string
-	GapKey         string // the gap an excerpt was expanded from, empty when rendering the diff itself
 }
 
 const (
@@ -235,8 +228,7 @@ const (
 func (d *DiffLine) RenderGapExpander(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
-	// an excerpt keeps the key of the gap it came from, so every row it adds stays attributable to that gap
-	gapKey := util.IfZero(data.GapKey, d.SectionInfo.GapKey())
+	gapKey := d.SectionInfo.GapKey()
 	gapNumbers := fmt.Sprintf("%d,%d,%d,%d,%d,%d",
 		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
 		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
