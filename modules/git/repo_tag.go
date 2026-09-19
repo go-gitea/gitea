@@ -27,8 +27,8 @@ func (repo *Repository) CreateTag(ctx context.Context, name, revision string) er
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(ctx context.Context, name, message, revision string) error {
-	_, _, err := gitcmd.NewCommand("tag", "-a", "-m").
-		AddDynamicArguments(message).
+	_, _, err := gitcmd.NewCommand("tag", "--annotate", "--file=-").
+		WithStdinBytes([]byte(message)).
 		AddDashesAndList(name, revision).
 		WithRepo(repo).
 		RunStdString(ctx)

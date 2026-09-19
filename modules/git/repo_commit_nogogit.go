@@ -69,6 +69,9 @@ func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func()
 	}
 }
 
+// MaxGitObjectSize is used to avoid OOM when reading a large git object (GitHub's default is 100M)
+var MaxGitObjectSize int64 = 100 * 1024 * 1024
+
 func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
 	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
@@ -78,15 +81,11 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		return nil, err
 	}
 
-	// GitHub has a default limit for object size <= 100M
-	// Here we also set a limit to avoid OOM when reading a large git object
-	const maxObjectSize = 100 * 1024 * 1024
-
 	switch info.Type {
 	case "missing":
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
-		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, maxObjectSize)
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
 		data, err := io.ReadAll(limitReader)
 		if err != nil {
 			return nil, err
@@ -104,7 +103,7 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		}
 		return repo.getCommitWithBatch(batch, tag.Object)
 	case "commit":
-		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, maxObjectSize)
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
 		commit, err := CommitFromReader(id, limitReader)
 		if err != nil {
 			return nil, err
