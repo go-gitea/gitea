@@ -13,6 +13,8 @@ type Label struct {
 	Name string `json:"name"`
 	// example: false
 	Exclusive bool `json:"exclusive"`
+	// example: 0
+	ExclusiveOrder int `json:"exclusive_order"`
 	// example: false
 	IsArchived bool `json:"is_archived"`
 	// example: 00aabb

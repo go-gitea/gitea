@@ -258,12 +258,13 @@ func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_mod
 // ToLabel converts Label to API format
 func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_model.User) *api.Label {
 	result := &api.Label{
-		ID:          label.ID,
-		Name:        label.Name,
-		Exclusive:   label.Exclusive,
-		Color:       strings.TrimLeft(label.Color, "#"),
-		Description: label.Description,
-		IsArchived:  label.IsArchived(),
+		ID:             label.ID,
+		Name:           label.Name,
+		Exclusive:      label.Exclusive,
+		ExclusiveOrder: label.ExclusiveOrder,
+		Color:          strings.TrimLeft(label.Color, "#"),
+		Description:    label.Description,
+		IsArchived:     label.IsArchived(),
 	}
 
 	labelBelongsToRepo := label.BelongsToRepo()

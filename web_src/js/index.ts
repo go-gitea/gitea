@@ -65,6 +65,7 @@ import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsForm} from './features/common-actions-permissions.ts';
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
+import {initProjectWorkflow} from './features/projects/workflow.ts';
 import {initDevtest} from './modules/devtest.ts';
 import {initRepoWatch} from './features/repo-watch.ts';
 import {initPackagesView} from './features/packages.ts';
@@ -163,6 +164,7 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoFileView,
   initActionsPermissionsForm,
+  initProjectWorkflow,
 
   initDevtest,
 ]);

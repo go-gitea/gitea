@@ -12,6 +12,7 @@ import (
 	"html/template"
 	"slices"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"gitea.dev/models/db"
@@ -240,7 +241,10 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 
 type SpecialDoerNameType string
 
-const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
+const (
+	SpecialDoerNameCodeOwners      SpecialDoerNameType = "CODEOWNERS"
+	SpecialDoerNameProjectWorkflow SpecialDoerNameType = "ProjectWorkflow"
+)
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
@@ -248,7 +252,70 @@ type CommentMetaData struct {
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
 
+	ProjectWorkflowID    int64                       `json:"project_workflow_id,omitempty"`
+	ProjectWorkflowEvent project_model.WorkflowEvent `json:"project_workflow_event,omitempty"`
+
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+}
+
+const projectWorkflowDoerPrefix = "project-workflow:"
+
+type projectWorkflowDoer struct {
+	ProjectTitle         string                      `json:"project_title"`
+	ProjectWorkflowID    int64                       `json:"project_workflow_id"`
+	ProjectWorkflowEvent project_model.WorkflowEvent `json:"project_workflow_event"`
+}
+
+var _ user_model.ExtDoerData = (*projectWorkflowDoer)(nil)
+
+func (p *projectWorkflowDoer) EncodeToString() string {
+	b, _ := json.Marshal(p)
+	return projectWorkflowDoerPrefix + string(b)
+}
+
+func (p *projectWorkflowDoer) DecodeFromString(s string) error {
+	data, _ := strings.CutPrefix(s, projectWorkflowDoerPrefix)
+	return json.Unmarshal([]byte(data), p)
+}
+
+// NewProjectWorkflowDoer returns triggeringUser (the real user whose action fired
+// the workflow: whoever closed the issue, moved the card, merged the PR, etc.)
+// tagged with ExtDoerData, so poster_id/doer.ID for every comment and notifier
+// call stays a genuine user - exactly how SpecialDoerNameCodeOwners attributes
+// automated review requests to issue.Poster instead of inventing an identity.
+// ExtDoerData/CommentMetaData is what records that the action was automated;
+// see MetaSpecialDoerTr and IsProjectWorkflowDoer.
+//
+// A copy of triggeringUser is returned, not the original pointer: the same
+// *User is frequently ctx.Doer, reused for later, genuinely user-initiated
+// actions in the same request, which must NOT carry this ExtDoerData.
+//
+// Callers must pass a non-nil triggeringUser: every event this can fire for has
+// a real triggering user available (see services/projects/workflow_notifier.go:
+// doer, issue.Poster, or review.Reviewer). There is deliberately no synthetic
+// fallback identity here, mirroring SpecialDoerNameCodeOwners where poster_id is
+// always a genuine user. executeWorkflowActions checks for nil and skips the
+// workflow entirely before ever calling this, so a nil triggeringUser reaching
+// here would be a caller bug.
+func NewProjectWorkflowDoer(triggeringUser *user_model.User, title string, workflowID int64, workflowEvent project_model.WorkflowEvent) *user_model.User {
+	doer := *triggeringUser
+	doer.ExtDoerData = &projectWorkflowDoer{
+		ProjectTitle:         title,
+		ProjectWorkflowID:    workflowID,
+		ProjectWorkflowEvent: workflowEvent,
+	}
+	return &doer
+}
+
+// IsProjectWorkflowDoer reports whether doer is a real user tagged with
+// ExtDoerData because their action triggered a project workflow (see
+// NewProjectWorkflowDoer) - it is NOT a virtual/synthetic actor.
+func IsProjectWorkflowDoer(doer *user_model.User) bool {
+	if doer == nil {
+		return false
+	}
+	_, ok := doer.ExtDoerData.(*projectWorkflowDoer)
+	return ok
 }
 
 // Comment represents a comment in commit and issue page.
@@ -781,10 +848,19 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	if c.CommentMetaData == nil {
 		return ""
 	}
-	if c.CommentMetaData.SpecialDoerName == SpecialDoerNameCodeOwners {
+	switch c.CommentMetaData.SpecialDoerName {
+	case SpecialDoerNameCodeOwners:
 		return locale.Tr("repo.issues.review.codeowners_rules")
+	case SpecialDoerNameProjectWorkflow:
+		res := locale.Tr("repo.issues.project_workflow")
+		if c.CommentMetaData.ProjectWorkflowID > 0 {
+			res += ` <span class="text black tw-font-semibold">` + locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey()) + "</span>"
+		}
+		return res
+	default:
+		// don't trust the content of SpecialDoerName, it might not be fully controlled by us
+		return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
 	}
-	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
 }
 
 func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
@@ -813,26 +889,38 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 	return locale.Tr("repo.issues.review.add_review_request", assigneePrompt, createdStr)
 }
 
+func buildCreateCommentMetaData(opts *CreateCommentOptions) (commentMetaData *CommentMetaData) {
+	makeCommentMetaData := func() {
+		if commentMetaData == nil {
+			commentMetaData = &CommentMetaData{}
+		}
+	}
+	if opts.ProjectColumnTitle != "" {
+		makeCommentMetaData()
+		commentMetaData.ProjectColumnID = opts.ProjectColumnID
+		commentMetaData.ProjectColumnTitle = opts.ProjectColumnTitle
+		commentMetaData.ProjectTitle = opts.ProjectTitle
+	}
+	if opts.SpecialDoerName != "" {
+		makeCommentMetaData()
+		commentMetaData.SpecialDoerName = opts.SpecialDoerName
+	}
+	if extDoer, ok := opts.Doer.ExtDoerData.(*projectWorkflowDoer); ok {
+		makeCommentMetaData()
+		commentMetaData.SpecialDoerName = SpecialDoerNameProjectWorkflow
+		commentMetaData.ProjectWorkflowID = extDoer.ProjectWorkflowID
+		commentMetaData.ProjectWorkflowEvent = extDoer.ProjectWorkflowEvent
+		commentMetaData.ProjectTitle = extDoer.ProjectTitle
+	}
+	return commentMetaData
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		var LabelID int64
 		if opts.Label != nil {
 			LabelID = opts.Label.ID
-		}
-
-		var commentMetaData *CommentMetaData
-		if opts.ProjectColumnTitle != "" {
-			commentMetaData = &CommentMetaData{
-				ProjectColumnID:    opts.ProjectColumnID,
-				ProjectColumnTitle: opts.ProjectColumnTitle,
-				ProjectTitle:       opts.ProjectTitle,
-			}
-		}
-		if opts.SpecialDoerName != "" {
-			commentMetaData = &CommentMetaData{
-				SpecialDoerName: opts.SpecialDoerName,
-			}
 		}
 
 		comment := &Comment{
@@ -868,7 +956,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			RefIsPull:        opts.RefIsPull,
 			IsForcePush:      opts.IsForcePush,
 			Invalidated:      opts.Invalidated,
-			CommentMetaData:  commentMetaData,
+			CommentMetaData:  buildCreateCommentMetaData(opts),
 		}
 		if err = db.Insert(ctx, comment); err != nil {
 			return nil, err
