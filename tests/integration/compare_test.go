@@ -348,6 +348,9 @@ func TestCompareCodeExpand(t *testing.T) {
 				req := NewRequest(t, "GET", excerptURL+"&gap="+gap)
 				session.MakeRequest(t, req, http.StatusBadRequest)
 			}
+			// and one request may only ask for so many, however many it claims the file has
+			req := NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 101))
+			session.MakeRequest(t, req, http.StatusBadRequest)
 		})
 	})
 }
