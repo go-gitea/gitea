@@ -703,8 +703,8 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 // in many places still has far fewer hunks than this.
 const maxExcerptGaps = 1000
 
-// parseExcerptGaps reads the gaps a request names, in the order they appear in the file
-func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
+// deserializeExcerptGaps reads the gaps a request names, in the order they appear in the file
+func deserializeExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
 	if len(gapSpecs) == 0 {
 		return nil, errors.New("no gap requested")
 	}
@@ -713,7 +713,7 @@ func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerpt
 	}
 	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapSpecs))
 	for _, spec := range gapSpecs {
-		opts, err := gitdiff.ParseGapNumbers(spec)
+		opts, err := gitdiff.DeserializeGapNumbers(spec)
 		if err != nil {
 			return nil, err
 		}
@@ -728,7 +728,7 @@ func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerpt
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
-	gapOpts, err := parseExcerptGaps(ctx.FormStrings("gap"), ctx.FormString("filelang"))
+	gapOpts, err := deserializeExcerptGaps(ctx.FormStrings("gap"), ctx.FormString("filelang"))
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return

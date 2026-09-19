@@ -30,8 +30,9 @@ type BlobExcerptOptions struct {
 	Language      string
 }
 
-// GapNumbers writes the six numbers a gap is, for the browser to hand back to ParseGapNumbers
-func (s *DiffLineSectionInfo) GapNumbers() string {
+// SerializeGapNumbers writes the six numbers a gap is, for the browser to hand back to
+// DeserializeGapNumbers
+func (s *DiffLineSectionInfo) SerializeGapNumbers() string {
 	return fmt.Sprintf("%d,%d,%d,%d,%d,%d",
 		s.LastLeftIdx, s.LastRightIdx, s.LeftIdx, s.RightIdx, s.LeftHunkSize, s.RightHunkSize)
 }
@@ -41,8 +42,8 @@ func (s *DiffLineSectionInfo) HiddenCommentIDsCSV() string {
 	return strings.Join(base.Int64sToStrings(s.HiddenCommentIDs), ",")
 }
 
-// ParseGapNumbers reads back what GapNumbers wrote
-func ParseGapNumbers(gapNumbers string) (BlobExcerptOptions, error) {
+// DeserializeGapNumbers reads back what SerializeGapNumbers wrote
+func DeserializeGapNumbers(gapNumbers string) (BlobExcerptOptions, error) {
 	invalid := fmt.Errorf("invalid gap: %q", gapNumbers)
 	nums := strings.Split(gapNumbers, ",")
 	if len(nums) != 6 {
