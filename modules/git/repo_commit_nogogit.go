@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // ResolveReference resolves a name to a reference
@@ -60,6 +60,15 @@ func (repo *Repository) getCommit(ctx context.Context, id ObjectID) (*Commit, er
 	return repo.getCommitWithBatch(batch, id)
 }
 
+func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func() error) {
+	return io.LimitReader(rd, min(full, limit)), func() error {
+		if full > limit {
+			return DiscardFull(rd, full-limit)
+		}
+		return nil
+	}
+}
+
 func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
 	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
@@ -69,14 +78,20 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		return nil, err
 	}
 
+	// GitHub has a default limit for object size <= 100M
+	// Here we also set a limit to avoid OOM when reading a large git object
+	const maxObjectSize = 100 * 1024 * 1024
+
 	switch info.Type {
 	case "missing":
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
-		// then we need to parse the tag
-		// and load the commit
-		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, maxObjectSize)
+		data, err := io.ReadAll(limitReader)
 		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
@@ -89,8 +104,12 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		}
 		return repo.getCommitWithBatch(batch, tag.Object)
 	case "commit":
-		commit, err := CommitFromReader(id, io.LimitReader(rd, info.Size))
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, maxObjectSize)
+		commit, err := CommitFromReader(id, limitReader)
 		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
@@ -100,7 +119,7 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 
 		return commit, nil
 	default:
-		log.Debug("Unknown cat-file object type: %s", info.Type)
+		setting.PanicInDevOrTesting("Unknown cat-file object type: %s", info.Type)
 		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
