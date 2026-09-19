@@ -7,8 +7,8 @@ cmd = "make --no-print-directory backend"
 entrypoint = ["./gitea"]
 delay = 2000
 include_ext = ["go", "tmpl"]
-include_file = ["main.go"]
-include_dir = ["cmd", "models", "modules", "options", "routers", "services"]
+include_file = ["main.go", "assets/emoji.json"]
+include_dir = ["assets", "cmd", "models", "modules", "options", "routers", "services"]
 exclude_dir = [
   "models/fixtures",
   "modelmigration/fixtures",

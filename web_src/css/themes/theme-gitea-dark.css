@@ -313,25 +313,25 @@ gitea-theme-meta-info {
 }
 
 /* invert emojis that are hard to read otherwise */
-.emoji[aria-label="check mark"],
-.emoji[aria-label="currency exchange"],
-.emoji[aria-label="TOP arrow"],
-.emoji[aria-label="END arrow"],
-.emoji[aria-label="ON! arrow"],
-.emoji[aria-label="SOON arrow"],
-.emoji[aria-label="heavy dollar sign"],
+.emoji[aria-label="heavy_check_mark"],
+.emoji[aria-label="currency_exchange"],
+.emoji[aria-label="top"],
+.emoji[aria-label="end"],
+.emoji[aria-label="on"],
+.emoji[aria-label="soon"],
+.emoji[aria-label="heavy_dollar_sign"],
 .emoji[aria-label="copyright"],
 .emoji[aria-label="registered"],
-.emoji[aria-label="trade mark"],
-.emoji[aria-label="multiply"],
-.emoji[aria-label="plus"],
-.emoji[aria-label="minus"],
-.emoji[aria-label="divide"],
-.emoji[aria-label="curly loop"],
-.emoji[aria-label="double curly loop"],
-.emoji[aria-label="wavy dash"],
-.emoji[aria-label="paw prints"],
-.emoji[aria-label="musical note"],
-.emoji[aria-label="musical notes"] {
+.emoji[aria-label="tm"],
+.emoji[aria-label="heavy_multiplication_x"],
+.emoji[aria-label="heavy_plus_sign"],
+.emoji[aria-label="heavy_minus_sign"],
+.emoji[aria-label="heavy_division_sign"],
+.emoji[aria-label="curly_loop"],
+.emoji[aria-label="loop"],
+.emoji[aria-label="wavy_dash"],
+.emoji[aria-label="feet"],
+.emoji[aria-label="musical_note"],
+.emoji[aria-label="notes"] {
   filter: invert(100%) hue-rotate(180deg);
 }
