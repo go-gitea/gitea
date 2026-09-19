@@ -192,28 +192,10 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 
 // ParseJob parses the job structure from the ActionRunJob.WorkflowPayload
 func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
-	if job.IsMatrixDeferred {
-		// The needs were erased before the placeholder was persisted, so jobparser.Parse no longer
-		// recognises the raw matrix it still carries and would re-expand it: see ParseRawSingleWorkflow.
-		_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
-		if err != nil {
-			return nil, fmt.Errorf("job %d deferred matrix placeholder: unable to parse: %w", job.ID, err)
-		}
-		return workflowJob, nil
-	}
-
-	// job.WorkflowPayload is a SingleWorkflow created from an ActionRun's workflow, which exactly contains this job's YAML definition.
-	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
-	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	// read as stored, jobparser.Parse would evaluate the payload again and reset its strategy.job-index
+	_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
 		return nil, fmt.Errorf("job %d single workflow: unable to parse: %w", job.ID, err)
-	} else if len(parsedWorkflows) != 1 {
-		return nil, fmt.Errorf("job %d single workflow: not single workflow", job.ID)
-	}
-	_, workflowJob := parsedWorkflows[0].Job()
-	if workflowJob == nil {
-		// it shouldn't happen, and since the callers don't check nil, so return an error instead of nil
-		return nil, util.ErrorWrap(util.ErrNotExist, "job %d single workflow: payload doesn't contain a job", job.ID)
 	}
 	return workflowJob, nil
 }

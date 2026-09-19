@@ -228,28 +228,6 @@ func TestParseRawOn(t *testing.T) {
 			result: []*Event{
 				{
 					Name: "workflow_dispatch",
-					inputs: []WorkflowDispatchInput{
-						{
-							Name:        "logLevel",
-							Description: "Log level",
-							Required:    true,
-							Default:     "warning",
-							Type:        "choice",
-							Options:     []string{"info", "warning", "debug"},
-						},
-						{
-							Name:        "tags",
-							Description: "Test scenario tags",
-							Required:    false,
-							Type:        "boolean",
-						},
-						{
-							Name:        "environment",
-							Description: "Environment to run tests against",
-							Type:        "environment",
-							Required:    true,
-						},
-					},
 				},
 				{
 					Name: "push",
@@ -471,6 +449,7 @@ func TestEvaluateJobIfExpressionMatrix(t *testing.T) {
 	ifExprs := []string{
 		`${{ contains(fromJSON('["linux","windows"]'), matrix.target) }}`,
 		`${{ contains('["linux","windows"]', matrix.target) }}`,
+		`${{ strategy.job-index < 2 && strategy.job-total == strategy.max-parallel && !strategy.fail-fast }}`,
 	}
 
 	want := map[string]bool{

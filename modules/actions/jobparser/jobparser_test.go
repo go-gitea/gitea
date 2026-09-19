@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
 
 	"github.com/stretchr/testify/assert"
@@ -122,6 +124,7 @@ jobs:
   build:
     %s
     strategy:
+      %s
       matrix:
         os: [a, b]
         version: %s
@@ -130,23 +133,26 @@ jobs:
 	for _, tt := range []struct {
 		name     string
 		needs    string
+		strategy string
 		version  string
 		deferred bool
 		want     int
 	}{
-		{"needs outputs", "needs: setup", "${{ fromJson(needs.setup.outputs.v) }}", true, 1},
-		{"static", "needs: setup", "[1, 2]", false, 4},
+		{"needs outputs", "needs: setup", "", "${{ fromJson(needs.setup.outputs.v) }}", true, 1},
+		{"static", "needs: setup", "", "[1, 2]", false, 4},
+		{"max-parallel over needs outputs", "needs: setup", "max-parallel: ${{ needs.setup.outputs.limit }}", "[1, 2]", true, 1},
 		// Without needs there is nothing to resolve the expression from later, so deferring would
 		// strand the job as a single combination that never expands.
-		{"expression without needs", "", `["${{ github.sha }}"]`, false, 2},
+		{"expression without needs", "", "", `["${{ github.sha }}"]`, false, 2},
 		// A context that is already available while planning must keep expanding there, otherwise
 		// such a workflow would silently lose the per-combination commit statuses it used to create.
-		{"expression over another context", "needs: setup", `["${{ github.sha }}"]`, false, 2},
+		{"expression over another context", "needs: setup", "", `["${{ github.sha }}"]`, false, 2},
 		// The needs context is looked up in the parsed expression, not in the raw text.
-		{"needs inside a string literal", "needs: setup", `["${{ format('needs.setup.outputs.v {0}', github.sha) }}"]`, false, 2},
+		{"needs inside a string literal", "needs: setup", "", `["${{ format('needs.setup.outputs.v {0}', github.sha) }}"]`, false, 2},
+		{"vars", "needs: setup", "", "${{ fromJSON(vars.VERSIONS) }}", false, 4},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := Parse(fmt.Appendf(nil, workflow, tt.needs, tt.version))
+			result, err := Parse(fmt.Appendf(nil, workflow, tt.needs, tt.strategy, tt.version), WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"VERSIONS": "[1, 2]"}))
 			require.NoError(t, err)
 
 			var builds []*Job
@@ -159,6 +165,93 @@ jobs:
 			assert.Equal(t, tt.deferred, HasDeferredMatrix(builds[0]))
 		})
 	}
+}
+
+func TestParseWholeValueExpressions(t *testing.T) {
+	const workflow = `
+on: push
+env: ${{ fromJSON(vars.ENV) }}
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps: [{run: echo}]
+  build:
+    %s
+    runs-on: ${{ matrix.os }}
+    strategy: ${{ fromJSON(%s) }}
+    services: ${{ fromJSON(vars.SERVICES) }}
+    defaults:
+      run: ${{ fromJSON(vars.DEFAULTS) }}
+    steps:
+      - uses: actions/checkout@v4
+        with: ${{ fromJSON(vars.WITH) }}
+`
+	const strategy = `{"max-parallel": 1, "matrix": {"os": ["a", "b-${{ secrets.X }}"]}}`
+	runnerView := func(t *testing.T, job *model.Job) []any {
+		t.Helper()
+		runner := expreval.New(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Secrets: map[string]string{"X": "leaked"}}, exprparser.Config{}).Evaluate)
+		require.NoError(t, runner.EvaluateYamlNode(&job.Strategy.RawMatrix))
+		require.NoError(t, runner.EvaluateYamlNode(&job.RawRunsOn))
+		matrixes, err := job.GetMatrixes()
+		require.NoError(t, err)
+		name, err := runner.Interpolate(job.Name)
+		require.NoError(t, err)
+		return []any{matrixes[0]["os"], name, job.RunsOn()}
+	}
+	payloads := func(t *testing.T, needs, source string, options ...ParseOption) []string {
+		t.Helper()
+		workflows, err := Parse(fmt.Appendf(nil, workflow, needs, source), options...)
+		require.NoError(t, err)
+		var payloads []string
+		for _, w := range workflows {
+			if id, _ := w.Job(); id == "build" {
+				payload, err := w.Marshal()
+				require.NoError(t, err)
+				payloads = append(payloads, string(payload))
+			}
+		}
+		return payloads
+	}
+	planning := []ParseOption{WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"STRATEGY": strategy})}
+
+	planned := payloads(t, "", "vars.STRATEGY", planning...)
+	require.Len(t, planned, 2)
+	for _, raw := range []string{`max-parallel: "1"`, "env: ${{ fromJSON(vars.ENV) }}", "services: ${{ fromJSON(vars.SERVICES) }}", "run: ${{ fromJSON(vars.DEFAULTS) }}", "with: ${{ fromJSON(vars.WITH) }}"} {
+		assert.Contains(t, planned[0], raw)
+	}
+	for index, payload := range planned {
+		os := []string{"a", "b-${{ secrets.X }}"}[index]
+		read, err := model.ReadWorkflow(strings.NewReader(payload))
+		require.NoError(t, err)
+		assert.Equal(t, []any{os, "build (" + os + ")", []string{os}}, runnerView(t, read.Jobs["build"]))
+		_, job, err := ParseRawSingleWorkflow([]byte(payload))
+		require.NoError(t, err)
+		group, _, err := EvaluateConcurrency(&model.RawConcurrency{Group: "${{ matrix.os }}"}, "build", job, map[string]any{}, nil, nil, nil)
+		require.NoError(t, err)
+		assert.Equal(t, []any{"build (" + os + ")", []string{os}, os}, []any{job.DisplayName(), job.RunsOn(), group})
+		_, err = Parse([]byte(payload))
+		require.NoError(t, err)
+	}
+
+	assert.Len(t, payloads(t, "", "vars.STRATEGY"), 1)
+
+	deferred := payloads(t, "needs: setup", "needs.setup.outputs.strategy", planning...)
+	require.Len(t, deferred, 1)
+	_, placeholder, err := ParseRawSingleWorkflow([]byte(deferred[0]))
+	require.NoError(t, err)
+	expanded, err := ExpandMatrixWithNeeds("build", placeholder, &model.GithubContext{}, map[string]*JobResult{
+		"build": {Needs: []string{"setup"}},
+		"setup": {Result: "success", Outputs: map[string]string{"strategy": strategy}},
+	}, nil, nil, 256)
+	require.NoError(t, err)
+	require.Len(t, expanded, 2)
+	assert.Equal(t, "1", expanded[0].Strategy.MaxParallelString)
+	assert.Equal(t, []any{"build (b-${{ secrets.X }})", []string{"b-${{ secrets.X }}"}}, []any{expanded[1].DisplayName(), expanded[1].RunsOn()})
+	assert.Equal(t, []any{"b-${{ secrets.X }}", "build (b-${{ secrets.X }})", []string{"b-${{ secrets.X }}"}},
+		runnerView(t, &model.Job{Name: expanded[1].Name, RawRunsOn: expanded[1].RawRunsOn, Strategy: expanded[1].Strategy.actStrategy()}))
+
+	_, err = Parse(fmt.Appendf(nil, workflow, "", "vars.STRATEGY"), planning[0], WithVars(map[string]string{"STRATEGY": `"a"`}))
+	require.ErrorContains(t, err, "is not a map of strategy keys to values")
 }
 
 func TestParseInterpolatesRunName(t *testing.T) {
@@ -221,6 +314,7 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 				"os":       `["linux", "darwin"]`,
 				"include":  `[{"os":"linux","fast":true},{"os":"windows","fast":false}]`,
 				"empty":    "[]",
+				"limit":    "3",
 			}},
 		}, nil, nil, maxCombinations)
 	}
@@ -230,17 +324,19 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 	}
 
 	t.Run("expands the product and interpolates runs-on", func(t *testing.T) {
-		got, err := expand(t, "\n  os: ${{ fromJson(needs.setup.outputs.os) }}\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n")
+		got, err := expand(t, "\n  os: ${{ fromJson(needs.setup.outputs.os) }}\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\nmax-parallel: ${{ needs.setup.outputs.limit }}\n")
 		require.NoError(t, err)
-		names := make([]string, 0, len(got))
+		indexes := make(map[string]int, len(got))
 		for _, combo := range got {
-			names = append(names, combo.Name)
+			indexes[combo.Name] = combo.Strategy.JobIndex
 			assert.Contains(t, []string{"linux", "darwin"}, combo.RunsOn()[0])
+			assert.Equal(t, "3", combo.Strategy.MaxParallelString)
+			assert.Equal(t, 4, combo.Strategy.JobTotal)
 		}
 		// Dimensions are appended in key order, as GitHub names multi-dimension combinations.
-		assert.ElementsMatch(t, []string{
-			"build (linux, 1.20)", "build (linux, 1.21)", "build (darwin, 1.20)", "build (darwin, 1.21)",
-		}, names)
+		assert.Equal(t, map[string]int{
+			"build (linux, 1.20)": 0, "build (linux, 1.21)": 1, "build (darwin, 1.20)": 2, "build (darwin, 1.21)": 3,
+		}, indexes)
 	})
 
 	t.Run("static and dynamic dimensions expand together, once", func(t *testing.T) {
@@ -291,29 +387,20 @@ func evaluateJobIf(t *testing.T, matrixYAML, ifExpr string, deferred bool) (bool
 }
 
 func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
-	// An unevaluated expression is still a scalar, which is not a filter act can apply.
-	// Every entry point into act's matrix expansion must reject it. The
-	// expression here reads `vars`, which is available while planning, so the job is not deferred and
-	// nothing will ever resolve the filter: the error is the right answer at both entry points.
-	// A deferred placeholder is the other case, covered by TestEvaluateJobIfExpressionLeavesRawMatrixUnavailable.
 	for _, filter := range []string{"include", "exclude"} {
 		t.Run(filter, func(t *testing.T) {
 			_, err := Parse(fmt.Appendf(nil,
-				"name: t\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        os: [a]\n        %s: ${{ fromJson(vars.MATRIX) }}\n    steps: [{run: echo}]\n", filter))
-			require.ErrorContains(t, err, "must be a list of mappings")
+				"name: t\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        os: [a]\n        %s: ${{ fromJson(vars.MATRIX) }}\n    steps: [{run: echo}]\n", filter),
+				WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"MATRIX": `"a"`}))
+			require.ErrorContains(t, err, "is not a list of maps")
 
 			_, err = evaluateJobIf(t, fmt.Sprintf("os: [a]\n  %s: ${{ fromJson(vars.MATRIX) }}", filter), "${{ true }}", false)
-			require.ErrorContains(t, err, "must be a list of mappings")
+			require.ErrorContains(t, err, "is not a list of maps")
 		})
 	}
 }
 
 func TestParseRawSingleWorkflowRoundTripsDeferredPlaceholder(t *testing.T) {
-	// The server persists a placeholder the way insertRunJob does: erase the needs, then marshal.
-	// Reading it back must yield that one job again. Parse cannot do it: it only keeps a matrix raw
-	// while the job still declares needs, so on the stored payload it falls through to expanding the
-	// raw matrix instead - which either fails or splits the placeholder into several workflows, and
-	// in both cases leaves the job unexpandable for good.
 	const workflow = `
 on: push
 jobs:
@@ -327,21 +414,13 @@ jobs:
         %s
     steps: [{run: echo}]
 `
-	for _, tt := range []struct {
-		name        string
-		matrix      string
-		parseCount  int    // what Parse makes of the stored payload
-		parseErrHas string // ... or the error it fails with
-	}{
-		// The canonical GitHub dynamic-matrix idiom. validateMatrixFilters rejects the still-scalar expression outright.
-		{name: "include expression", matrix: "include: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: "must be a list of mappings"},
-		// An unevaluated expression is a scalar where a vector is required, rather than one
-		// combination holding the literal `${{ }}` text.
-		{name: "static vector and expression", matrix: "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: `Matrix vector "version" is not a list of values`},
-		{name: "single expression vector", matrix: "version: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: `Matrix vector "version" is not a list of values`},
+	for name, matrix := range map[string]string{
+		"include expression":           "include: ${{ fromJson(needs.setup.outputs.m) }}",
+		"static vector and expression": "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}",
+		"single expression vector":     "version: ${{ fromJson(needs.setup.outputs.m) }}",
 	} {
-		t.Run(tt.name, func(t *testing.T) {
-			planned, err := Parse(fmt.Appendf(nil, workflow, tt.matrix))
+		t.Run(name, func(t *testing.T) {
+			planned, err := Parse(fmt.Appendf(nil, workflow, matrix))
 			require.NoError(t, err)
 
 			var payload []byte
@@ -357,23 +436,15 @@ jobs:
 			}
 			require.NotEmpty(t, payload, "no placeholder was planned for build")
 
-			// The stored payload keeps the raw matrix, but no longer the needs that made Parse defer it.
 			_, job, err := ParseRawSingleWorkflow(payload)
 			require.NoError(t, err)
 			assert.Equal(t, "build", job.Name)
-			// The needs are gone, which is exactly why Parse no longer defers this payload.
 			assert.Empty(t, job.Needs())
 			assert.False(t, HasDeferredMatrix(job))
 
-			// Guard the reason ParseRawSingleWorkflow exists, so a future Parse change cannot quietly
-			// make the placeholder re-expandable again without this being noticed.
 			reparsed, err := Parse(payload)
-			if tt.parseErrHas != "" {
-				require.ErrorContains(t, err, tt.parseErrHas)
-			} else {
-				require.NoError(t, err)
-				assert.Len(t, reparsed, tt.parseCount)
-			}
+			require.NoError(t, err)
+			assert.Len(t, reparsed, 1)
 		})
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -240,7 +242,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	if err := caller.LoadRun(ctx); err != nil {
 		return nil, err
 	}
-	wcSpec, err := jobparser.ParseWorkflowCallSpec(caller.ReusableWorkflowContent)
+	wcSpec, err := jobparser.ParseWorkflowCallConfig(caller.ReusableWorkflowContent)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +251,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	}
 
 	// Per-job outputs over the children of this caller.
-	jobOutputs := make(jobparser.JobOutputs, len(directChildren))
+	jobOutputs := make(map[string]*model.WorkflowCallResult, len(directChildren))
 	for _, child := range directChildren {
 		var outs map[string]string
 		switch {
@@ -262,10 +264,9 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 			return nil, err
 		}
 		if existing, ok := jobOutputs[child.JobID]; ok {
-			jobOutputs[child.JobID] = mergeTwoOutputs(outs, existing)
-		} else {
-			jobOutputs[child.JobID] = outs
+			outs = mergeTwoOutputs(outs, existing.Outputs)
 		}
+		jobOutputs[child.JobID] = &model.WorkflowCallResult{Outputs: outs}
 	}
 
 	// build contexts for evaluating outputs
@@ -288,7 +289,13 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 		}
 	}
 
-	return jobparser.EvaluateWorkflowCallOutputs(wcSpec, gitCtx.ToGitHubContext(), vars, inputs, jobOutputs)
+	// See `on.workflow_call.outputs.<output_id>.value` in https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability
+	return expreval.New(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{
+		Github: gitCtx.ToGitHubContext(),
+		Jobs:   &jobOutputs,
+		Vars:   vars,
+		Inputs: inputs,
+	}, exprparser.Config{}).Evaluate).EvaluateWorkflowCallOutputs(wcSpec)
 }
 
 // loadJobTaskOutputs returns the task-output map of `job`.
@@ -323,45 +330,8 @@ func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
 	return ret
 }
 
-func contextMapValueOrDefault[T any](m map[string]any, key string, defaultValue T) T {
-	if value, ok := m[key]; ok {
-		if v, ok := value.(T); ok {
-			return v
-		}
-	}
-	return defaultValue
-}
-
 func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
-	return &model.GithubContext{
-		Event:            contextMapValueOrDefault(*g, "event", map[string]any(nil)),
-		EventPath:        contextMapValueOrDefault(*g, "event_path", ""),
-		Workflow:         contextMapValueOrDefault(*g, "workflow", ""),
-		RunID:            contextMapValueOrDefault(*g, "run_id", ""),
-		RunNumber:        contextMapValueOrDefault(*g, "run_number", ""),
-		Actor:            contextMapValueOrDefault(*g, "actor", ""),
-		Repository:       contextMapValueOrDefault(*g, "repository", ""),
-		EventName:        contextMapValueOrDefault(*g, "event_name", ""),
-		Sha:              contextMapValueOrDefault(*g, "sha", ""),
-		Ref:              contextMapValueOrDefault(*g, "ref", ""),
-		RefName:          contextMapValueOrDefault(*g, "ref_name", ""),
-		RefType:          contextMapValueOrDefault(*g, "ref_type", ""),
-		HeadRef:          contextMapValueOrDefault(*g, "head_ref", ""),
-		BaseRef:          contextMapValueOrDefault(*g, "base_ref", ""),
-		Token:            "", // deliberately omitted for security
-		Workspace:        contextMapValueOrDefault(*g, "workspace", ""),
-		Action:           contextMapValueOrDefault(*g, "action", ""),
-		ActionPath:       contextMapValueOrDefault(*g, "action_path", ""),
-		ActionRef:        contextMapValueOrDefault(*g, "action_ref", ""),
-		ActionRepository: contextMapValueOrDefault(*g, "action_repository", ""),
-		Job:              contextMapValueOrDefault(*g, "job", ""),
-		JobName:          "", // not present in GiteaContext
-		RepositoryOwner:  contextMapValueOrDefault(*g, "repository_owner", ""),
-		RetentionDays:    contextMapValueOrDefault(*g, "retention_days", ""),
-		RunnerPerflog:    "", // not present in GiteaContext
-		RunnerTrackingID: "", // not present in GiteaContext
-		ServerURL:        contextMapValueOrDefault(*g, "server_url", ""),
-		APIURL:           contextMapValueOrDefault(*g, "api_url", ""),
-		GraphQLURL:       contextMapValueOrDefault(*g, "graphql_url", ""),
-	}
+	githubCtx := model.GithubContextFromMap(*g)
+	githubCtx.Token = "" // deliberately omitted for security
+	return githubCtx
 }

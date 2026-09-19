@@ -19,13 +19,13 @@ import (
 
 // SingleWorkflow is a workflow with single job and single matrix
 type SingleWorkflow struct {
-	Name           string            `yaml:"name,omitempty"`
-	RawOn          yaml.Node         `yaml:"on,omitempty"`
-	Env            map[string]string `yaml:"env,omitempty"`
-	RawJobs        yaml.Node         `yaml:"jobs,omitempty"`
-	Defaults       Defaults          `yaml:"defaults,omitempty"`
-	RawPermissions yaml.Node         `yaml:"permissions,omitempty"`
-	RunName        string            `yaml:"run-name,omitempty"`
+	Name           string    `yaml:"name,omitempty"`
+	RawOn          yaml.Node `yaml:"on,omitempty"`
+	Env            yaml.Node `yaml:"env,omitempty"`
+	RawJobs        yaml.Node `yaml:"jobs,omitempty"`
+	Defaults       Defaults  `yaml:"defaults,omitempty"`
+	RawPermissions yaml.Node `yaml:"permissions,omitempty"`
+	RunName        string    `yaml:"run-name,omitempty"`
 }
 
 func (w *SingleWorkflow) Job() (string, *Job) {
@@ -103,24 +103,24 @@ func (w *SingleWorkflow) Marshal() ([]byte, error) {
 }
 
 type Job struct {
-	Name               string                    `yaml:"name,omitempty"`
-	RawNeeds           yaml.Node                 `yaml:"needs,omitempty"`
-	RawRunsOn          yaml.Node                 `yaml:"runs-on,omitempty"`
-	Env                yaml.Node                 `yaml:"env,omitempty"`
-	If                 yaml.Node                 `yaml:"if,omitempty"`
-	Steps              []*Step                   `yaml:"steps,omitempty"`
-	TimeoutMinutes     string                    `yaml:"timeout-minutes,omitempty"`
-	RawContinueOnError yaml.Node                 `yaml:"continue-on-error,omitempty"`
-	Services           map[string]*ContainerSpec `yaml:"services,omitempty"`
-	Strategy           Strategy                  `yaml:"strategy,omitempty"`
-	RawContainer       yaml.Node                 `yaml:"container,omitempty"`
-	Defaults           Defaults                  `yaml:"defaults,omitempty"`
-	Outputs            map[string]string         `yaml:"outputs,omitempty"`
-	Uses               string                    `yaml:"uses,omitempty"`
-	With               map[string]any            `yaml:"with,omitempty"`
-	RawSecrets         yaml.Node                 `yaml:"secrets,omitempty"`
-	RawConcurrency     *model.RawConcurrency     `yaml:"concurrency,omitempty"`
-	RawPermissions     yaml.Node                 `yaml:"permissions,omitempty"`
+	Name               string                `yaml:"name,omitempty"`
+	RawNeeds           yaml.Node             `yaml:"needs,omitempty"`
+	RawRunsOn          yaml.Node             `yaml:"runs-on,omitempty"`
+	Env                yaml.Node             `yaml:"env,omitempty"`
+	If                 yaml.Node             `yaml:"if,omitempty"`
+	Steps              []*Step               `yaml:"steps,omitempty"`
+	TimeoutMinutes     string                `yaml:"timeout-minutes,omitempty"`
+	RawContinueOnError yaml.Node             `yaml:"continue-on-error,omitempty"`
+	Services           yaml.Node             `yaml:"services,omitempty"`
+	Strategy           Strategy              `yaml:"strategy,omitempty"`
+	RawContainer       yaml.Node             `yaml:"container,omitempty"`
+	Defaults           yaml.Node             `yaml:"defaults,omitempty"`
+	Outputs            map[string]string     `yaml:"outputs,omitempty"`
+	Uses               string                `yaml:"uses,omitempty"`
+	With               yaml.Node             `yaml:"with,omitempty"`
+	RawSecrets         yaml.Node             `yaml:"secrets,omitempty"`
+	RawConcurrency     *model.RawConcurrency `yaml:"concurrency,omitempty"`
+	RawPermissions     yaml.Node             `yaml:"permissions,omitempty"`
 }
 
 // GetContinueOnError decodes the continue-on-error field to a bool.
@@ -171,8 +171,18 @@ func (j *Job) EraseNeeds() *Job {
 	return j
 }
 
+// RunsOn returns the labels Gitea matches runners against, unescaped like DisplayName.
 func (j *Job) RunsOn() []string {
-	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
+	runsOn := model.RunsOnFromNode(j.RawRunsOn)
+	for i, label := range runsOn {
+		runsOn[i] = unescapeExpressions(label)
+	}
+	return runsOn
+}
+
+// DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.
+func (j *Job) DisplayName() string {
+	return util.EllipsisDisplayString(unescapeExpressions(j.Name), 255)
 }
 
 // BlockSafeString works around https://github.com/yaml/go-yaml/issues/399, quoting a value whose
@@ -187,17 +197,17 @@ func (s BlockSafeString) MarshalYAML() (any, error) {
 }
 
 type Step struct {
-	ID                 string            `yaml:"id,omitempty"`
-	If                 yaml.Node         `yaml:"if,omitempty"`
-	Name               BlockSafeString   `yaml:"name,omitempty"`
-	Uses               string            `yaml:"uses,omitempty"`
-	Run                BlockSafeString   `yaml:"run,omitempty"`
-	WorkingDirectory   string            `yaml:"working-directory,omitempty"`
-	Shell              string            `yaml:"shell,omitempty"`
-	Env                yaml.Node         `yaml:"env,omitempty"`
-	With               map[string]string `yaml:"with,omitempty"`
-	RawContinueOnError yaml.Node         `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
-	TimeoutMinutes     string            `yaml:"timeout-minutes,omitempty"`
+	ID                 string          `yaml:"id,omitempty"`
+	If                 yaml.Node       `yaml:"if,omitempty"`
+	Name               BlockSafeString `yaml:"name,omitempty"`
+	Uses               string          `yaml:"uses,omitempty"`
+	Run                BlockSafeString `yaml:"run,omitempty"`
+	WorkingDirectory   string          `yaml:"working-directory,omitempty"`
+	Shell              string          `yaml:"shell,omitempty"`
+	Env                yaml.Node       `yaml:"env,omitempty"`
+	With               yaml.Node       `yaml:"with,omitempty"`
+	RawContinueOnError yaml.Node       `yaml:"continue-on-error,omitempty"` // raw: the runner evaluates it with the steps context
+	TimeoutMinutes     string          `yaml:"timeout-minutes,omitempty"`
 }
 
 // UnmarshalYAML canonicalizes booleans like continue-on-error
@@ -225,20 +235,45 @@ func (s *Step) String() string {
 	}).String()
 }
 
-type ContainerSpec struct {
-	Image       string            `yaml:"image,omitempty"`
-	Env         map[string]string `yaml:"env,omitempty"`
-	Ports       []string          `yaml:"ports,omitempty"`
-	Volumes     []string          `yaml:"volumes,omitempty"`
-	Options     string            `yaml:"options,omitempty"`
-	Credentials map[string]string `yaml:"credentials,omitempty"`
-	Cmd         []string          `yaml:"cmd,omitempty"`
-}
-
 type Strategy struct {
 	FailFastString    string    `yaml:"fail-fast,omitempty"`
 	MaxParallelString string    `yaml:"max-parallel,omitempty"`
 	RawMatrix         yaml.Node `yaml:"matrix,omitempty"`
+	JobIndex          int       `yaml:"job-index,omitempty"` // set by buildMatrixCombos, read back from its payload
+	JobTotal          int       `yaml:"job-total,omitempty"`
+	RawExpression     yaml.Node `yaml:"-"` // a whole-value `strategy: ${{ }}`, see Strategy.resolve
+}
+
+type rawStrategy Strategy
+
+func (s *Strategy) UnmarshalYAML(node *yaml.Node) error {
+	if node.Kind == yaml.ScalarNode {
+		*s = Strategy{RawExpression: *node}
+		return nil
+	}
+	return node.Decode((*rawStrategy)(s))
+}
+
+func (s Strategy) MarshalYAML() (any, error) {
+	if s.RawExpression.Kind != 0 {
+		return &s.RawExpression, nil
+	}
+	return rawStrategy(s), nil
+}
+
+func (s Strategy) actStrategy() *model.Strategy {
+	return &model.Strategy{FailFastString: s.FailFastString, MaxParallelString: s.MaxParallelString, RawMatrix: s.RawMatrix}
+}
+
+// context is the strategy context, combination 0 of 1 without a matrix as on GitHub, and without job-index for an unexpanded matrix.
+func (s *Strategy) context() map[string]any {
+	switch {
+	case s == nil:
+		return exprparser.StrategyContext(nil, 0, 0)
+	case s.RawMatrix.Kind == 0 && s.RawExpression.Kind == 0:
+		return exprparser.StrategyContext(s.actStrategy(), 0, 1)
+	}
+	return exprparser.StrategyContext(s.actStrategy(), s.JobIndex, s.JobTotal)
 }
 
 type Defaults struct {
@@ -250,20 +285,10 @@ type RunDefaults struct {
 	WorkingDirectory string `yaml:"working-directory,omitempty"`
 }
 
-type WorkflowDispatchInput struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Required    bool     `yaml:"required"`
-	Default     string   `yaml:"default"`
-	Type        string   `yaml:"type"`
-	Options     []string `yaml:"options"`
-}
-
 type Event struct {
 	Name      string
 	acts      map[string][]string
 	schedules []map[string]string
-	inputs    []WorkflowDispatchInput
 }
 
 func (evt *Event) IsSchedule() bool {
@@ -278,10 +303,6 @@ func (evt *Event) Schedules() []map[string]string {
 	return evt.schedules
 }
 
-func (evt *Event) Inputs() []WorkflowDispatchInput {
-	return evt.inputs
-}
-
 func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
 	w, err := ReadWorkflow(content)
 	if err != nil {
@@ -290,26 +311,32 @@ func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
 	return w.RawConcurrency, nil
 }
 
-func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (string, bool, error) {
-	actJob := &model.Job{}
+// newJobEvaluator evaluates against a stored job's contexts, with its single matrix combination unless withMatrix is false for a deferred placeholder.
+func newJobEvaluator(jobID string, job *Job, withMatrix bool, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (expreval.Evaluator, error) {
+	var strategy *Strategy
+	var matrix map[string]any
 	if job != nil {
-		actJob.Strategy = &model.Strategy{
-			FailFastString:    job.Strategy.FailFastString,
-			MaxParallelString: job.Strategy.MaxParallelString,
-			RawMatrix:         job.Strategy.RawMatrix,
+		strategy = &job.Strategy
+		if withMatrix {
+			rawMatrix := model.CloneYamlNode(job.Strategy.RawMatrix)
+			replaceScalars(&rawMatrix, unescapeExpressions)
+			matrixes, err := (&model.Job{Strategy: &model.Strategy{RawMatrix: rawMatrix}}).GetMatrixes()
+			if err != nil {
+				return expreval.Evaluator{}, err
+			}
+			if len(matrixes[0]) > 0 {
+				matrix = matrixes[0]
+			}
 		}
 	}
+	return expreval.New(NewInterpeter(jobID, strategy, matrix, model.GithubContextFromMap(gitCtx), results, vars, inputs).Evaluate), nil
+}
 
-	matrix := make(map[string]any)
-	matrixes, err := matrixesOf(actJob)
+func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (string, bool, error) {
+	evaluator, err := newJobEvaluator(jobID, job, true, gitCtx, results, vars, inputs)
 	if err != nil {
 		return "", false, err
 	}
-	if len(matrixes) > 0 {
-		matrix = matrixes[0]
-	}
-
-	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 	var node yaml.Node
 	if err := node.Encode(rc); err != nil {
 		return "", false, fmt.Errorf("failed to encode concurrency: %w", err)
@@ -325,40 +352,6 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 		return evaluated.RawExpression, false, nil
 	}
 	return evaluated.Group, util.ParseYamlBool(evaluated.CancelInProgress), nil
-}
-
-func toGitContext(input map[string]any) *model.GithubContext {
-	gitContext := &model.GithubContext{
-		EventPath:        asString(input["event_path"]),
-		Workflow:         asString(input["workflow"]),
-		RunID:            asString(input["run_id"]),
-		RunNumber:        asString(input["run_number"]),
-		Actor:            asString(input["actor"]),
-		Repository:       asString(input["repository"]),
-		EventName:        asString(input["event_name"]),
-		Sha:              asString(input["sha"]),
-		Ref:              asString(input["ref"]),
-		RefName:          asString(input["ref_name"]),
-		RefType:          asString(input["ref_type"]),
-		HeadRef:          asString(input["head_ref"]),
-		BaseRef:          asString(input["base_ref"]),
-		Token:            asString(input["token"]),
-		Workspace:        asString(input["workspace"]),
-		Action:           asString(input["action"]),
-		ActionPath:       asString(input["action_path"]),
-		ActionRef:        asString(input["action_ref"]),
-		ActionRepository: asString(input["action_repository"]),
-		Job:              asString(input["job"]),
-		RepositoryOwner:  asString(input["repository_owner"]),
-		RetentionDays:    asString(input["retention_days"]),
-	}
-
-	event, ok := input["event"].(map[string]any)
-	if ok {
-		gitContext.Event = event
-	}
-
-	return gitContext
 }
 
 // workflowCallEvent is only fired by another workflow's `uses:`, so it is excluded from trigger detection.
@@ -445,7 +438,6 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 				})
 			case yaml.MappingNode:
 				acts := make(map[string][]string, len(v.Content)/2)
-				var inputs []WorkflowDispatchInput
 				expectedKey := true
 				var act string
 				for _, content := range v.Content {
@@ -478,29 +470,8 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 							if k != "workflow_dispatch" || act != "inputs" {
 								return nil, fmt.Errorf("map should only for workflow_dispatch but %s: %#v", act, content)
 							}
-
-							var key string
-							for i, vv := range content.Content {
-								if i%2 == 0 {
-									if vv.Kind != yaml.ScalarNode {
-										return nil, fmt.Errorf("key type not string: %#v", vv)
-									}
-									key = ""
-									if err := vv.Decode(&key); err != nil {
-										return nil, err
-									}
-								} else {
-									if vv.Kind != yaml.MappingNode {
-										return nil, fmt.Errorf("key type not map(%s): %#v", key, vv)
-									}
-
-									input := WorkflowDispatchInput{}
-									if err := vv.Decode(&input); err != nil {
-										return nil, err
-									}
-									input.Name = key
-									inputs = append(inputs, input)
-								}
+							if err := content.Decode(new(map[string]model.WorkflowDispatchInput)); err != nil {
+								return nil, err
 							}
 						default:
 							return nil, fmt.Errorf("unknown on type: %#v", content)
@@ -508,16 +479,12 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 					}
 					expectedKey = !expectedKey
 				}
-				if len(inputs) == 0 {
-					inputs = nil
-				}
 				if len(acts) == 0 {
 					acts = nil
 				}
 				res = append(res, &Event{
-					Name:   k,
-					acts:   acts,
-					inputs: inputs,
+					Name: k,
+					acts: acts,
 				})
 			default:
 				return nil, fmt.Errorf("unknown on type: %v", v.Kind)
@@ -531,33 +498,10 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 
 // EvaluateJobIfExpression evaluates a job's `if:`.
 func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any, matrixDeferred bool) (bool, error) {
-	actJob := &model.Job{
-		Strategy: &model.Strategy{
-			FailFastString:    job.Strategy.FailFastString,
-			MaxParallelString: job.Strategy.MaxParallelString,
-			RawMatrix:         job.Strategy.RawMatrix,
-		},
+	evaluator, err := newJobEvaluator(jobID, job, !matrixDeferred, gitCtx, results, vars, inputs)
+	if err != nil {
+		return false, err
 	}
-	// Each per-matrix job carries its single matrix combination in RawMatrix so resolve it and pass it in;
-	// otherwise `matrix.*` references in `if:` evaluate to null.
-	// GetMatrixes always returns at least one element (an empty map for a job without a matrix),
-	// so only a non-empty combination should populate `matrix.*`, leaving it nil otherwise.
-	//
-	// A deferred-matrix placeholder is the exception: its combinations do not exist yet, and reading the
-	// raw matrix here would either fail outright (an `include` that is still a scalar expression) or bind
-	// `matrix.*` to the expression's own source text. Leaving it nil is safe: the caller checks
-	// ExpressionReadsMatrix first, so an `if:` that reads `matrix.*` is deferred to the post-expansion pass.
-	var matrix map[string]any
-	if !matrixDeferred {
-		matrixes, err := matrixesOf(actJob)
-		if err != nil {
-			return false, err
-		}
-		if len(matrixes) > 0 && len(matrixes[0]) > 0 {
-			matrix = matrixes[0]
-		}
-	}
-	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)
 }
 
@@ -592,13 +536,4 @@ func parseMappingNode[T any](node *yaml.Node) ([]string, []T, error) {
 	}
 
 	return scalars, datas, nil
-}
-
-func asString(v any) string {
-	if v == nil {
-		return ""
-	} else if s, ok := v.(string); ok {
-		return s
-	}
-	return ""
 }
