@@ -1,4 +1,3 @@
-import emojis from '../../../assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {parseIssuePageInfo} from '../utils.ts';
@@ -10,26 +9,6 @@ const maxMatches = 6;
 function sortAndReduce<T>(map: Map<T, number>): T[] {
   const sortedMap = new Map(Array.from(map).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
-}
-
-export function matchEmoji(queryText: string): string[] {
-  const query = queryText.toLowerCase().replaceAll('_', ' ');
-  if (!query) return emojis.slice(0, maxMatches).map((e) => e.aliases[0]);
-
-  // results is a map of weights, lower is better
-  const results = new Map<string, number>();
-  for (const {aliases} of emojis) {
-    const mainAlias = aliases[0];
-    for (const [aliasIndex, alias] of aliases.entries()) {
-      const index = alias.replaceAll('_', ' ').indexOf(query);
-      if (index === -1) continue;
-      const existing = results.get(mainAlias);
-      const rankedIndex = index + aliasIndex;
-      results.set(mainAlias, existing ? existing - rankedIndex : rankedIndex);
-    }
-  }
-
-  return sortAndReduce(results);
 }
 
 let cachedMentionsPromise: Promise<Mention[]> | undefined;

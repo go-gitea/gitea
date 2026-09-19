@@ -142,6 +142,7 @@ EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.js
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
 GO_SOURCES += $(GENERATED_GO_DEST)
+GO_SOURCES += assets/emoji.go assets/emoji.json
 
 ESLINT_CONCURRENCY ?= 2
 ESLINT_ARGS := --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
@@ -636,6 +637,10 @@ lockfile-check:
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
+
+.PHONY: generate-emoji
+generate-emoji: ## update emoji data from Unicode
+	$(GO) run build/generate-emoji.go
 
 .PHONY: generate-images
 generate-images: | node_modules ## generate images

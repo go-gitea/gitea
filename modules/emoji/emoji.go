@@ -9,23 +9,20 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"gitea.dev/assets"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-// Gemoji is a set of emoji data.
-type Gemoji []Emoji
-
 // Emoji represents a single emoji and associated data.
 type Emoji struct {
-	Emoji          string
-	Description    string
-	Aliases        []string
-	UnicodeVersion string
-	SkinTones      bool
+	Emoji   string   `json:"emoji"`
+	Aliases []string `json:"aliases"`
 }
 
 type globalVarsStruct struct {
+	emojis         []Emoji
 	codeMap        map[string]int    // emoji Unicode code to its emoji data.
 	aliasMap       map[string]int    // the alias to its emoji data.
 	trie           *util.TrieNode    // trie for finding emoji positions.
@@ -43,8 +40,11 @@ func globalVars() *globalVarsStruct {
 	}
 	// although there can be concurrent calls, the result should be the same, and there is no performance problem
 	vars = &globalVarsStruct{}
-	vars.codeMap = make(map[string]int, len(GemojiData))
-	vars.aliasMap = make(map[string]int, len(GemojiData))
+	if err := json.Unmarshal(assets.EmojiJSON, &vars.emojis); err != nil {
+		panic(err)
+	}
+	vars.codeMap = make(map[string]int, len(vars.emojis))
+	vars.aliasMap = make(map[string]int, len(vars.emojis))
 	vars.trie = &util.TrieNode{}
 
 	// process emoji codes and aliases
@@ -52,11 +52,11 @@ func globalVars() *globalVarsStruct {
 	aliasPairs := make([]string, 0)
 
 	// sort from largest to small so we match combined emoji first
-	sort.Slice(GemojiData, func(i, j int) bool {
-		return len(GemojiData[i].Emoji) > len(GemojiData[j].Emoji)
+	sort.Slice(vars.emojis, func(i, j int) bool {
+		return len(vars.emojis[i].Emoji) > len(vars.emojis[j].Emoji)
 	})
 
-	for idx, emoji := range GemojiData {
+	for idx, emoji := range vars.emojis {
 		if emoji.Emoji == "" || len(emoji.Aliases) == 0 {
 			continue
 		}
@@ -95,29 +95,31 @@ func globalVars() *globalVarsStruct {
 }
 
 // FromCode retrieves the emoji data based on the provided Unicode code
-// e.g.: "\u2618" will return the Gemoji data for "shamrock".
+// e.g.: "\u2618" will return the emoji data for "shamrock".
 func FromCode(code string) *Emoji {
-	i, ok := globalVars().codeMap[code]
+	vars := globalVars()
+	i, ok := vars.codeMap[code]
 	if !ok {
 		return nil
 	}
 
-	return &GemojiData[i]
+	return &vars.emojis[i]
 }
 
 // FromAlias retrieves the emoji data based on the provided alias in the form "alias" or ":alias:"
-// e.g.: "shamrock" or ":shamrock:" will return the Gemoji data for "shamrock".
+// e.g.: "shamrock" or ":shamrock:" will return the emoji data for "shamrock".
 func FromAlias(alias string) *Emoji {
 	if strings.HasPrefix(alias, ":") && strings.HasSuffix(alias, ":") {
 		alias = alias[1 : len(alias)-1]
 	}
 
-	i, ok := globalVars().aliasMap[alias]
+	vars := globalVars()
+	i, ok := vars.aliasMap[alias]
 	if !ok {
 		return nil
 	}
 
-	return &GemojiData[i]
+	return &vars.emojis[i]
 }
 
 // ReplaceCodes replaces all emoji codes with the first corresponding emoji alias in the form of ":alias:"

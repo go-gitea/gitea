@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/assets"
 	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/markup/markdown"
@@ -17,6 +19,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -334,15 +337,12 @@ func TestRender_emoji(t *testing.T) {
 	}
 
 	// Make sure we can successfully match every emoji in our dataset with regex
-	for i := range emoji.GemojiData {
-		test(
-			emoji.GemojiData[i].Emoji,
-			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
-	}
-	for i := range emoji.GemojiData {
-		test(
-			":"+emoji.GemojiData[i].Aliases[0]+":",
-			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	var emojis []emoji.Emoji
+	require.NoError(t, json.Unmarshal(assets.EmojiJSON, &emojis))
+	for _, e := range emojis {
+		expected := `<p><span class="emoji" aria-label="` + e.Aliases[0] + `">` + e.Emoji + `</span></p>`
+		test(e.Emoji, expected)
+		test(":"+e.Aliases[0]+":", expected)
 	}
 
 	// Text that should be turned into or recognized as emoji
@@ -358,21 +358,21 @@ func TestRender_emoji(t *testing.T) {
 		`<p><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span></p>`)
 	test(
 		"这是字符:1::+1: some🐊 \U0001f44d:custom-emoji: :gitea:",
-		`<p>这是字符:1:<span class="emoji" aria-label="thumbs up">👍</span> some<span class="emoji" aria-label="crocodile">🐊</span> `+
-			`<span class="emoji" aria-label="thumbs up">👍</span><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span> `+
+		`<p>这是字符:1:<span class="emoji" aria-label="+1">👍</span> some<span class="emoji" aria-label="crocodile">🐊</span> `+
+			`<span class="emoji" aria-label="+1">👍</span><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span> `+
 			`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
 	test(
 		"Some text with 😄 in the middle",
-		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+		`<p>Some text with <span class="emoji" aria-label="smile">😄</span> in the middle</p>`)
 	test(
 		"Some text with :smile: in the middle",
-		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+		`<p>Some text with <span class="emoji" aria-label="smile">😄</span> in the middle</p>`)
 	test(
 		"Some text with 😄😄 2 emoji next to each other",
-		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
+		`<p>Some text with <span class="emoji" aria-label="smile">😄</span><span class="emoji" aria-label="smile">😄</span> 2 emoji next to each other</p>`)
 	test(
 		"😎🤪🔐🤑❓",
-		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="red question mark">❓</span></p>`)
+		`<p><span class="emoji" aria-label="sunglasses">😎</span><span class="emoji" aria-label="zany_face">🤪</span><span class="emoji" aria-label="closed_lock_with_key">🔐</span><span class="emoji" aria-label="money_mouth_face">🤑</span><span class="emoji" aria-label="question">❓</span></p>`)
 
 	// should match nothing
 	test(":100:200", `<p>:100:200</p>`)
@@ -380,7 +380,7 @@ func TestRender_emoji(t *testing.T) {
 	test(":not exist:", `<p>:not exist:</p>`)
 	test("foo `:smile:", "<p>foo `:smile:</p>")
 	test("foo `:smile:`", `<p>foo <code>:smile:</code></p>`)
-	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" aria-label=\"grinning face with smiling eyes\">😄</span></p>")
+	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" aria-label=\"smile\">😄</span></p>")
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -535,7 +535,7 @@ func TestPostProcess(t *testing.T) {
 		`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
 	test(
 		"Some text with 😄 in the middle",
-		`Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle`)
+		`Some text with <span class="emoji" aria-label="smile">😄</span> in the middle`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
 

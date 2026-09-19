@@ -88,7 +88,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		converted := emoji.FromAlias(alias)
 		if converted != nil {
 			// standard emoji
-			replaceContent(node, m[0], m[1], createEmoji(ctx, converted.Emoji, converted.Description))
+			replaceContent(node, m[0], m[1], createEmoji(ctx, converted.Emoji, converted.Aliases[0]))
 			node = node.NextSibling.NextSibling
 			start = 0 // restart searching start since node has changed
 		} else if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
@@ -116,7 +116,7 @@ func emojiProcessor(ctx *RenderContext, node *html.Node) {
 		start = m[1]
 		val := emoji.FromCode(codepoint)
 		if val != nil {
-			replaceContent(node, m[0], m[1], createEmoji(ctx, codepoint, val.Description))
+			replaceContent(node, m[0], m[1], createEmoji(ctx, codepoint, val.Aliases[0]))
 			node = node.NextSibling.NextSibling
 			start = 0
 		}
