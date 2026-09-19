@@ -700,8 +700,10 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 	}
 }
 
-// maxExcerptGaps bounds how much one request can ask for; a file has far fewer gaps than this
-const maxExcerptGaps = 100
+// maxExcerptGaps rejects absurd input rather than bounding the work: the gaps of a file are read in
+// one pass over it and cannot overlap, so naming more of them costs little. A file heavily rewritten
+// in many places still has far fewer hunks than this.
+const maxExcerptGaps = 1000
 
 // parseExcerptGaps reads the "lastLeft,lastRight,left,right,leftHunk,rightHunk" that the diff put on
 // each section row, which is all a gap is.
