@@ -38,6 +38,7 @@ import (
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 	user_service "gitea.dev/services/user"
 )
 
@@ -872,14 +873,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 				return
 			}
 			if perm.CanWrite(unit.TypeCode) {
-				// Check if branch is not protected
-				if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-					if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
-						log.Error("IsProtectedBranch: %v", err)
-					} else if !protected {
-						canDelete = true
-						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+				if err := repo_service.CanDeleteBranchWithPermission(ctx, pull.HeadRepo, pull.HeadBranch, ctx.Doer, perm); err != nil {
+					if errors.Is(err, util.ErrPermissionDenied) {
+						log.Trace("CanDeleteBranch: %v", err)
+					} else {
+						log.Error("CanDeleteBranch: %v", err)
 					}
+				} else {
+					canDelete = true
+					ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 				}
 				canWriteToHeadRepo = true
 			}

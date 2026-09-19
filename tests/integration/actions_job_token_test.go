@@ -15,12 +15,15 @@ import (
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -29,6 +32,44 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestActionsProtectedBranchDeletion(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: task.RepoID})
+		require.NoError(t, git.CreateDelegateHooks(t.Context(), repo))
+		task.GenerateAndFillToken()
+		require.NoError(t, actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight"))
+
+		u.Path = "/" + repo.FullName() + ".git"
+		u.User = url.UserPassword("gitea-actions", task.Token)
+		dstPath := t.TempDir()
+		require.NoError(t, git.Clone(t.Context(), u.String(), dstPath, git.CloneRepoOptions{}))
+		for _, branch := range []string{"actions-delete-protected-git", "actions-delete-protected-api", "actions-delete-unprotected"} {
+			_, stderr, err := gitcmd.NewCommand("push").AddDynamicArguments(u.String(), "HEAD:refs/heads/"+branch).
+				WithDir(dstPath).RunStdString(t.Context())
+			require.NoError(t, err, "%s", stderr)
+		}
+		require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
+			RepoID: repo.ID, RuleName: "actions-delete-protected-*", CanPush: true, CanDelete: true,
+		}))
+
+		_, stderr, err := gitcmd.NewCommand("push", "--delete").AddDynamicArguments(u.String(), "actions-delete-protected-git").
+			WithDir(dstPath).RunStdString(t.Context())
+		require.Error(t, err)
+		assert.Contains(t, stderr, "protected from deletion")
+		assert.True(t, git.IsBranchExist(t.Context(), repo, "actions-delete-protected-git"))
+
+		req := NewRequest(t, http.MethodDelete, "/api/v1/repos/"+repo.FullName()+"/branches/actions-delete-protected-api").AddTokenAuth(task.Token)
+		resp := MakeRequest(t, req, http.StatusForbidden)
+		assert.Contains(t, resp.Body.String(), "branch protected")
+		assert.True(t, git.IsBranchExist(t.Context(), repo, "actions-delete-protected-api"))
+
+		req = NewRequest(t, http.MethodDelete, "/api/v1/repos/"+repo.FullName()+"/branches/actions-delete-unprotected").AddTokenAuth(task.Token)
+		MakeRequest(t, req, http.StatusNoContent)
+		assert.False(t, git.IsBranchExist(t.Context(), repo, "actions-delete-unprotected"))
+	})
+}
 
 func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 	cases := []struct {
