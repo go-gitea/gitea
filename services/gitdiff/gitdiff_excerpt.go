@@ -25,7 +25,6 @@ type BlobExcerptOptions struct {
 	RightHunkSize int
 	Direction     string // an arrow reveals one chunk from the end it points at, otherwise the whole gap
 	Language      string
-	GapKey        string // the gap being revealed, so its lines stay attributable to it
 }
 
 // a gap with no hunk on either side runs to the end of the file, so nothing follows it
@@ -97,7 +96,7 @@ func BuildBlobExcerptDiffSections(filePath string, reader io.Reader, optsList []
 			return nil, fmt.Errorf("BuildBlobExcerptDiffSections scan: %w", err)
 		}
 		section := newExcerptSection(filePath, opts.Language)
-		section.Lines, section.ExpandedFromGap = lines, opts.GapKey
+		section.Lines = lines
 		sections = append(sections, section)
 	}
 	if len(sections) > 0 {

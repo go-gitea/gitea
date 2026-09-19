@@ -317,7 +317,7 @@ func TestCompareCodeExpand(t *testing.T) {
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
 		// and every gap carries the numbers the frontend needs to work out what is left to reveal
-		assert.NotZero(t, htmlDoc.Find(`.code-expander-buttons[data-gap][data-gap-key]`).Length())
+		assert.NotZero(t, htmlDoc.Find(`.code-expander-buttons[data-gap]`).Length())
 
 		// the numbers the frontend reads off a gap and sends back to reveal it
 		gapNumbers := htmlDoc.Find(`.code-expander-buttons[data-gap]`).First().AttrOr("data-gap", "")
@@ -332,7 +332,7 @@ func TestCompareCodeExpand(t *testing.T) {
 
 			// the leading gap of the head file runs from line 1 up to the first line the diff shows
 			var rendered []string
-			htmlDoc.Find(`tr[data-expand-gap] .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
+			htmlDoc.Find(`tr.line-expanded .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
 				rendered = append(rendered, el.AttrOr("data-line-num", ""))
 			})
 			assert.NotEmpty(t, rendered)

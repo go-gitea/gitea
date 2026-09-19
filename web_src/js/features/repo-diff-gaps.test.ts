@@ -1,7 +1,7 @@
 import {excerptChunkUrl, excerptGapsUrl, gapExpandDirection, gapReachesFileEnd, parseTableRows, type DiffGap} from './repo-diff-gaps.ts';
 
 function gap(partial: Partial<DiffGap>): DiffGap {
-  return {key: 'k', anchor: 'a', lastLeft: 0, lastRight: 0, left: 0, right: 0, leftHunk: 0, rightHunk: 0, hiddenCommentIds: [], ...partial};
+  return {lastLeft: 0, lastRight: 0, left: 0, right: 0, leftHunk: 0, rightHunk: 0, hiddenCommentIds: [], ...partial};
 }
 
 // these mirror gitdiff.GetExpandDirection, which decided the arrows before the frontend did
@@ -24,11 +24,10 @@ test('gapReachesFileEnd', () => {
 });
 
 test('excerptChunkUrl names the gap and which end to reveal from', () => {
-  const url = new URL(excerptChunkUrl('/user/repo/blob_excerpt/sha?style=split&path=a.txt', gap({key: '0-17', anchor: 'diff-abcK17', left: 17, right: 17, leftHunk: 7, rightHunk: 7}), 'up'));
+  const url = new URL(excerptChunkUrl('/user/repo/blob_excerpt/sha?style=split&path=a.txt', gap({left: 17, right: 17, leftHunk: 7, rightHunk: 7}), 'up'));
   expect(url.pathname).toEqual('/user/repo/blob_excerpt/sha');
-  expect(Object.fromEntries(url.searchParams)).toMatchObject({
-    style: 'split', path: 'a.txt', gap: '0,0,17,17,7,7', direction: 'up', anchor: 'diff-abcK17',
-    gap_key: '0-17', // the numbers have moved with what the gap already revealed, the key has not
+  expect(Object.fromEntries(url.searchParams)).toEqual({
+    style: 'split', path: 'a.txt', gap: '0,0,17,17,7,7', direction: 'up',
   });
 });
 

@@ -123,16 +123,6 @@ type DiffLineSectionInfo struct {
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
 
-// GapKeyOf identifies a gap by the lines it sits between, so that the rows it reveals can be matched
-// back to it however they were revealed.
-func GapKeyOf(lastRightIdx, rightIdx int) string {
-	return fmt.Sprintf("%d-%d", lastRightIdx, rightIdx)
-}
-
-func (s *DiffLineSectionInfo) GapKey() string {
-	return GapKeyOf(s.LastRightIdx, s.RightIdx)
-}
-
 // DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
 type DiffHTMLOperation struct {
 	Type diffmatchpatch.Operation
@@ -223,10 +213,8 @@ const (
 
 // RenderGapExpander renders the container for a section row's expander. It carries the gap's own
 // numbers; the frontend works out from them which arrows apply and what is left to reveal.
-func (d *DiffLine) RenderGapExpander(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
+func (d *DiffLine) RenderGapExpander(data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
-	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
-	gapKey := d.SectionInfo.GapKey()
 	gapNumbers := fmt.Sprintf("%d,%d,%d,%d,%d,%d",
 		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
 		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
@@ -238,8 +226,8 @@ func (d *DiffLine) RenderGapExpander(fileNameHash string, data *DiffBlobExcerptD
 		content = htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
 	}
 	return htmlutil.HTMLFormat(
-		`<div class="code-expander-buttons" data-global-init="initDiffGapExpander" data-gap-key="%s" data-gap="%s" data-gap-anchor="%s" data-hidden-comment-ids=",%s,">%s</div>`,
-		gapKey, gapNumbers, anchor, dataHiddenCommentIDs, content)
+		`<div class="code-expander-buttons" data-global-init="initDiffGapExpander" data-gap="%s" data-hidden-comment-ids=",%s,">%s</div>`,
+		gapNumbers, dataHiddenCommentIDs, content)
 }
 
 // BlobExcerptBaseURL returns the part of an excerpt request that every gap of this file shares.
@@ -308,9 +296,6 @@ type DiffSection struct {
 
 	FileName string
 	Lines    []*DiffLine
-
-	// set when the section holds lines revealed from a gap, naming the gap they came from
-	ExpandedFromGap string
 }
 
 func (diffSection *DiffSection) GetLine(idx int) *DiffLine {
