@@ -1,6 +1,4 @@
 import {effectScope, reactive, watchEffect} from 'vue';
-import {svg, type SvgName} from '../svg.ts';
-import {html, htmlRaw} from '../utils/html.ts';
 import {toggleElem} from '../utils/dom.ts';
 
 // The reactivity below is Vue's, but the rendering is not. Diff rows are built by the Go templates,
@@ -155,21 +153,28 @@ export function closeGap(el: Element, gapKey: string) {
   if (state) updateDiffGap(el, gapKey, {current: state.original, rows: []});
 }
 
-const arrowSvgs: Record<string, SvgName> = {up: 'octicon-fold-up', down: 'octicon-fold-down', single: 'octicon-fold'};
+// the markup lives in a template on the page, so the arrows are the ones the diff itself renders
+function cloneGapMarkup(selector: string): HTMLElement {
+  const elTemplate = document.querySelector<HTMLTemplateElement>('#diff-gap-markup')!;
+  return elTemplate.content.querySelector<HTMLElement>(selector)!.cloneNode(true) as HTMLElement;
+}
 
 function renderGapExpander(elExpander: Element, gap: DiffGap) {
   const direction = gapExpandDirection(gap);
   elExpander.setAttribute('data-expand-direction', direction);
   const stillHidden = gap.hiddenCommentIds.filter((id) => !document.querySelector(`#issuecomment-${CSS.escape(id)}`));
-  const parts = [];
+  elExpander.setAttribute('data-hidden-comment-ids', `,${stillHidden.join(',')},`);
+
+  elExpander.replaceChildren();
   if (stillHidden.length) {
-    parts.push(html`<span class="code-comment-more" data-tooltip-content="${`${stillHidden.length} hidden comment(s)`}">${stillHidden.length}</span>`);
+    const elMore = cloneGapMarkup('.code-comment-more');
+    elMore.textContent = String(stillHidden.length);
+    elMore.setAttribute('data-tooltip-content', `${stillHidden.length} hidden comment(s)`);
+    elExpander.append(elMore);
   }
   for (const d of direction === 'updown' ? ['down', 'up'] : (direction ? [direction] : [])) {
-    parts.push(html`<button class="code-expander-button" data-global-click="diffExpandHiddenLines" data-gap-direction="${d}">${htmlRaw(svg(arrowSvgs[d]))}</button>`);
+    elExpander.append(cloneGapMarkup(`[data-gap-direction="${d}"]`));
   }
-  elExpander.setAttribute('data-hidden-comment-ids', `,${stillHidden.join(',')},`);
-  elExpander.innerHTML = parts.join('');
 }
 
 // a revealed line keeps its conversations in the row that follows it, so they travel together
