@@ -436,6 +436,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
+	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpandable
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
@@ -812,7 +813,7 @@ func ExcerptBlob(ctx *context.Context) {
 		NameHash: git.HashFilePathForWebUI(filePath),
 		Sections: sections,
 	}
-	ctx.Data["IsExpandedLines"] = true
+	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpanded
 
 	ctx.HTML(http.StatusOK, tplDiffSection)
 }
