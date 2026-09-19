@@ -249,28 +249,6 @@ func GetFullCommitID(ctx context.Context, repo RepositoryFacade, shortID string)
 	return strings.TrimSpace(commitID), nil
 }
 
-func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {
-	maxLen := 64 // sha256
-	if objFmt != nil {
-		maxLen = objFmt.FullLength()
-	}
-	minLen := util.OptionalArg(minLength, maxLen)
-	if len(s) < minLen || len(s) > maxLen {
-		return false
-	}
-	return isStringLowerHex(s)
-}
-
-func isStringLowerHex(s string) bool {
-	for _, c := range s {
-		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
-		if !isHex {
-			return false
-		}
-	}
-	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
-}
-
 func AddObjectMessageArgument(cmd *gitcmd.Command, typ ObjectType, message string) error {
 	if len(message) > 512*1024 {
 		// It doesn't make sense to store very large messages in git objects,
