@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -206,6 +207,50 @@ func (c *Command) AddConfig(key, value string) *Command {
 		c.configArgs = append(c.configArgs, "-c", kv)
 	}
 	return c
+}
+
+// proxyEnvNames are the environment variables libcurl reads to pick or suppress a proxy.
+var proxyEnvNames = []string{
+	"http_proxy", "HTTP_PROXY",
+	"https_proxy", "HTTPS_PROXY",
+	"all_proxy", "ALL_PROXY",
+	"no_proxy", "NO_PROXY",
+}
+
+// removeProxyEnvsIfConfigured strips the proxy environment variables when the command already
+// carries an explicit `-c http.proxy=...`.
+//
+// This matters for security, not just precedence: git has no `http.noProxy` config key, so a
+// `no_proxy` value inherited from Gitea's own environment still applies and makes libcurl ignore
+// the configured proxy for matching hosts. Where that proxy is the SSRF guard from
+// git.HandleGitCmdHTTPRedirection, `no_proxy=*`, common in container images, or a corporate
+// `no_proxy` naming the internal ranges, would silently disable it for exactly the targets it is
+// meant to protect.
+func removeProxyEnvsIfConfigured(env, configArgs []string) []string {
+	configured := false
+	for _, arg := range configArgs {
+		if strings.HasPrefix(arg, "http.proxy=") {
+			configured = true
+			break
+		}
+	}
+	if !configured {
+		return env
+	}
+	kept := make([]string, 0, len(env))
+	for _, kv := range env {
+		name, _, _ := strings.Cut(kv, "=")
+		if !slices.Contains(proxyEnvNames, name) {
+			kept = append(kept, kv)
+		}
+	}
+	return kept
+}
+
+// ConfigArgs returns the `-c key=value` arguments accumulated by AddConfig, as a copy. It exists so
+// callers that configure a command (and their tests) can inspect what was set.
+func (c *Command) ConfigArgs() []string {
+	return slices.Clone(c.configArgs)
 }
 
 // ToTrustedCmdArgs converts a list of strings (trusted as argument) to TrustedCmdArgs
@@ -439,6 +484,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	}
 
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
+	c.cmd.Env = removeProxyEnvsIfConfigured(c.cmd.Env, c.configArgs)
 	c.cmd.Dir = c.gitDir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin
