@@ -81,7 +81,7 @@ type DiffLine struct {
 	SectionInfo *DiffLineSectionInfo
 	IsTruncated bool
 
-	ExpandedFromGap string // set on lines filled by fillHiddenLines, the GapKey of the section row they belong to
+	ExpandedFromGap string // set on lines revealed from a gap, the GapKey of the section row they belong to
 
 	cachedDiffInline *DiffInlineComputed
 }
@@ -1327,8 +1327,6 @@ type DiffOptions struct {
 	MaxLines          int
 	MaxLineCharacters int
 	MaxFiles          int
-	ExpandHiddenLines bool     // render the hidden unchanged lines of every file, see DiffFile.fillHiddenLines
-	ExpandGapKeys     []string // when set, only these gaps are filled, the others are left hidden
 }
 
 // prepareDiffCommits prepares the before and after commits for a diff operation based on the provided options.
@@ -1462,12 +1460,6 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		renderDetail := diffFile.prepareDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
 		if renderDetail.needTailSection {
 			diffFile.addTailSection(renderDetail)
-		}
-
-		if opts.ExpandHiddenLines && diffFile.IsRenderedAsDiffLines() {
-			if err := diffFile.fillHiddenLines(ctx, opts.ExpandGapKeys); err != nil {
-				return nil, err
-			}
 		}
 
 		// only do highlight for text files which have no custom diff command

@@ -34,7 +34,7 @@ func TestBuildBlobExcerptDiffSection(t *testing.T) {
 	assert.NotEmpty(t, diffSection.highlightedRightLines.value[lineMiddle-BlobExcerptChunkSize-1])
 	assert.NotEmpty(t, diffSection.highlightedRightLines.value[lineMiddle-2]) // 0-based
 
-	diffInline := diffSection.GetComputedInlineDiffFor(diffSection.Lines[1], locale)
+	diffInline := diffSection.GetComputedInlineDiffFor(diffSection.Lines[0], locale)
 	assert.Equal(t, `<span class="n">a</span> <span class="o">=</span> <span class="mi">30</span>`+"\n", string(diffInline.Content))
 }
 
@@ -55,4 +55,22 @@ func TestDiffLineSectionInfoHiddenLineRange(t *testing.T) {
 			assert.Equal(t, strconv.Itoa(c.info.LastRightIdx)+"-"+strconv.Itoa(c.info.RightIdx), c.info.GapKey())
 		})
 	}
+}
+
+func TestBuildBlobExcerptDiffSectionsForGaps(t *testing.T) {
+	data := &bytes.Buffer{}
+	for i := range 100 {
+		data.WriteString("a = " + strconv.Itoa(i+1) + "\n")
+	}
+	// a leading gap that stops before the first rendered line, and one that runs to the end of the file
+	sections, err := BuildBlobExcerptDiffSectionsForGaps("a.py", bytes.NewReader(data.Bytes()), []BlobExcerptOptions{
+		{LastLeft: 0, LastRight: 0, LeftIndex: 13, RightIndex: 13, LeftHunkSize: 6, RightHunkSize: 7},
+		{LastLeft: 80, LastRight: 80, LeftIndex: 100, RightIndex: 100},
+	})
+	require.NoError(t, err)
+	require.Len(t, sections, 2)
+	assert.Len(t, sections[0].Lines, 12) // lines 1-12, the line at 13 is already rendered
+	assert.Equal(t, 1, sections[0].Lines[0].RightIdx)
+	assert.Len(t, sections[1].Lines, 20) // lines 81-100, nothing follows the gap
+	assert.Equal(t, 100, sections[1].Lines[19].RightIdx)
 }
