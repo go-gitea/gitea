@@ -81,17 +81,12 @@ export function gapAfterExpanding(gap: DiffGap, direction: string): DiffGap {
 
 // one arrow click: reveal a chunk of this gap, from whichever end the arrow points at
 export function excerptChunkUrl(baseUrl: string, gap: DiffGap, direction: string): string {
-  const url = new URL(baseUrl, window.location.href);
-  url.searchParams.set('direction', direction);
-  url.searchParams.set('anchor', gap.anchor);
-  url.searchParams.set('gap_key', gap.key);
-  url.searchParams.set('last_left', String(gap.lastLeft));
-  url.searchParams.set('last_right', String(gap.lastRight));
-  url.searchParams.set('left', String(gap.left));
-  url.searchParams.set('right', String(gap.right));
-  url.searchParams.set('left_hunk_size', String(gap.leftHunk));
-  url.searchParams.set('right_hunk_size', String(gap.rightHunk));
-  return url.href;
+  const url = excerptGapsUrl(baseUrl, [gap]);
+  const chunkUrl = new URL(url);
+  chunkUrl.searchParams.set('direction', direction);
+  chunkUrl.searchParams.set('anchor', gap.anchor);
+  chunkUrl.searchParams.set('gap_key', gap.key); // the numbers have moved with what it already revealed
+  return chunkUrl.href;
 }
 
 // one request reveals all of every gap named here, so a partly expanded file does not re-fetch what
