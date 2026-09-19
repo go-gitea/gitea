@@ -67,6 +67,7 @@
   "loading": "Betöltés…",
   "error404": "Az elérni kívánt oldal vagy <strong>nem létezik</strong>, vagy <strong>nincs jogosultsága</strong> a megtekintéséhez.",
   "archived": "Archivált",
+  "concept_user_user": "Felhasználó",
   "concept_code_repository": "Tároló",
   "concept_user_organization": "Szervezet",
   "name": "Név",

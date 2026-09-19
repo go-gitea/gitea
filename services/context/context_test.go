@@ -4,6 +4,7 @@
 package context
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -27,8 +28,18 @@ func TestRemoveSessionCookieHeader(t *testing.T) {
 	assert.Contains(t, "other=bar", w.Header().Get("Set-Cookie"))
 }
 
+func TestServerErrorFetchActionRespondsJSON(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Add("X-Gitea-Fetch-Action", "1")
+	resp := httptest.NewRecorder()
+	ctx := NewWebContext(NewBaseContextForTest(t, resp, req), nil, nil)
+	ctx.ServerError("test", errors.New("boom"))
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, resp.Header().Get("Content-Type"), "application/json")
+	assert.JSONEq(t, `{"errorMessage":"test, error: boom","renderFormat":"text"}`, resp.Body.String())
+}
+
 func TestRedirectToCurrentSite(t *testing.T) {
-	setting.IsInTesting = true
 	defer test.MockVariableValue(&setting.AppURL, "http://localhost:3000/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	cases := []struct {
@@ -53,7 +64,6 @@ func TestRedirectToCurrentSite(t *testing.T) {
 }
 
 func TestAppFullLink(t *testing.T) {
-	setting.IsInTesting = true
 	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
