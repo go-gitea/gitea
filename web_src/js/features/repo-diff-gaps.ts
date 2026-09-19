@@ -79,7 +79,8 @@ export function gapAfterExpanding(gap: DiffGap, direction: string): DiffGap {
   return {...gap, left: 0, right: 0, leftHunk: 0, rightHunk: 0}; // fully revealed
 }
 
-export function gapExcerptUrl(baseUrl: string, gap: DiffGap, direction: string): string {
+// one arrow click: reveal a chunk of this gap, from whichever end the arrow points at
+export function excerptChunkUrl(baseUrl: string, gap: DiffGap, direction: string): string {
   const url = new URL(baseUrl, window.location.href);
   url.searchParams.set('direction', direction);
   url.searchParams.set('anchor', gap.anchor);
@@ -93,8 +94,9 @@ export function gapExcerptUrl(baseUrl: string, gap: DiffGap, direction: string):
   return url.href;
 }
 
-// one request reveals every gap named here, so a partly expanded file does not re-fetch what it shows
-export function gapsExcerptUrl(baseUrl: string, gaps: DiffGap[]): string {
+// one request reveals all of every gap named here, so a partly expanded file does not re-fetch what
+// it already shows
+export function excerptGapsUrl(baseUrl: string, gaps: DiffGap[]): string {
   const url = new URL(baseUrl, window.location.href);
   for (const gap of gaps) {
     url.searchParams.append('gap', [gap.lastLeft, gap.lastRight, gap.left, gap.right, gap.leftHunk, gap.rightHunk].join(','));

@@ -14,7 +14,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
-import {closeGap, diffFileHasHiddenLines, gapAfterExpanding, gapExcerptUrl, gapExpandDirection, gapsExcerptUrl, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, revealGapLines} from './repo-diff-gaps.ts';
+import {closeGap, diffFileHasHiddenLines, excerptChunkUrl, excerptGapsUrl, gapAfterExpanding, gapExpandDirection, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, revealGapLines} from './repo-diff-gaps.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -182,7 +182,7 @@ async function diffExpandHiddenLines(btn: HTMLElement) {
   const direction = btn.getAttribute('data-gap-direction')!;
   const gap = getDiffGapState(elExpander, gapKey)!.current;
 
-  const resp = await performFetchActionRequest(btn, {method: 'GET', url: gapExcerptUrl(baseUrl, gap, direction), loadingIndicator: '$this'});
+  const resp = await performFetchActionRequest(btn, {method: 'GET', url: excerptChunkUrl(baseUrl, gap, direction), loadingIndicator: '$this'});
   if (!resp) return;
   // the effect puts the rows on screen and re-renders whatever the gap has left
   revealGapLines(elExpander, gapKey, parseTableRows(await resp.text()), gapAfterExpanding(gap, direction));
@@ -198,7 +198,7 @@ async function diffFetchAllGapRows(btn: HTMLElement, elFileBody: Element): Promi
   const gaps = pendingDiffGaps(elFileBody, true); // the rest were revealed before and kept their rows
   if (!gaps.length) return new Map();
   const baseUrl = elFileBody.querySelector('table')!.getAttribute('data-excerpt-url')!;
-  const resp = await performFetchActionRequest(btn, {method: 'GET', url: gapsExcerptUrl(baseUrl, gaps), loadingIndicator: '$this'});
+  const resp = await performFetchActionRequest(btn, {method: 'GET', url: excerptGapsUrl(baseUrl, gaps), loadingIndicator: '$this'});
   return resp ? diffGroupRowsByGap(await resp.text()) : null;
 }
 
