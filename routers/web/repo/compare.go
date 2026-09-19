@@ -406,11 +406,12 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
+	fileOnly := ctx.FormBool("file-only")
+	singleFile := fileOnly && (len(files) == 2 || len(files) == 1) // a request for one file, which may carry its old name too
 	if len(files) == 2 || len(files) == 1 {
 		maxLines, maxFiles = -1, -1
 	}
 
-	fileOnly := ctx.FormBool("file-only")
 	diffCommonOptions := gitdiff.DiffCommonOptions{
 		BeforeCommitID:     beforeCommitID,
 		AfterCommitID:      headCommitID,
@@ -423,6 +424,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 			MaxLines:          maxLines,
 			MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:          maxFiles,
+			ExpandHiddenLines: singleFile && ctx.FormBool("expand-all"),
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiff", err)
@@ -717,6 +719,7 @@ func ExcerptBlob(ctx *context.Context) {
 		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
+		GapKey:        ctx.FormString("gap_key"),
 	}
 
 	if ctx.Data["PageIsWiki"] == true {

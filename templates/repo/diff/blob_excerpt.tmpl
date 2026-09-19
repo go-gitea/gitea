@@ -2,7 +2,7 @@
 {{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
-	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
+	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}"{{if $diffBlobExcerptData.GapKey}} data-expand-gap="{{$diffBlobExcerptData.GapKey}}"{{end}}>
 		{{if eq .GetType 4}}
 			<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 			<td colspan="7" class="lines-code lines-code-old">
@@ -61,7 +61,7 @@
 	{{end}}
 {{else}}
 	{{range $k, $line := $.section.Lines}}
-	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
+	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}"{{if $diffBlobExcerptData.GapKey}} data-expand-gap="{{$diffBlobExcerptData.GapKey}}"{{end}}>
 		{{if eq .GetType 4}}
 			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 		{{else}}

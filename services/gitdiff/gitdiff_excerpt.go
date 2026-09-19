@@ -5,9 +5,11 @@ package gitdiff
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"io"
+	"slices"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
@@ -129,4 +131,51 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 		}
 	}
 	return section, nil
+}
+
+// fillHiddenLines expands every gap of the file in one pass over the blob, so that the whole file
+// content can be shown without one request per gap.
+func (diffFile *DiffFile) fillHiddenLines(ctx context.Context) error {
+	if diffFile.RightBlob == nil || diffFile.RightBlobSize >= setting.UI.MaxDisplayFileSize {
+		return nil
+	}
+	reader, err := diffFile.RightBlob.DataAsync(ctx)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+
+	scanner := git.NewGitDiffScanner(reader)
+	scannedRight := 0 // the last line number read from the blob, the gaps are visited in increasing line order
+	for _, section := range diffFile.Sections {
+		sectionIdx := slices.IndexFunc(section.Lines, func(line *DiffLine) bool { return line.GetExpandDirection() != "" })
+		if sectionIdx == -1 {
+			continue
+		}
+		sectionInfo := section.Lines[sectionIdx].SectionInfo
+		leftStart, rightStart, rightEnd := sectionInfo.hiddenLineRange()
+		gapKey := sectionInfo.GapKey()
+		var lines []*DiffLine
+		for scannedRight < rightEnd {
+			if ok := scanner.Scan(); !ok {
+				break
+			}
+			scannedRight++
+			if scannedRight < rightStart {
+				continue
+			}
+			lines = append(lines, &DiffLine{
+				LeftIdx:         leftStart + (scannedRight - rightStart),
+				RightIdx:        scannedRight,
+				Type:            DiffLinePlain,
+				Content:         " " + scanner.Text(),
+				ExpandedFromGap: gapKey,
+			})
+		}
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("fillHiddenLines scan: %w", err)
+		}
+		section.Lines = slices.Insert(section.Lines, sectionIdx+1, lines...)
+	}
+	return nil
 }
