@@ -270,3 +270,14 @@ func isStringLowerHex(s string) bool {
 	}
 	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
 }
+
+func AddObjectMessageArgument(cmd *gitcmd.Command, typ ObjectType, message string) error {
+	if len(message) > 512*1024 {
+		// It doesn't make sense to store a very large message in git object,
+		// and it never succeeded in the past due to the command line argument limit (e.g.: 128K on POSIX).
+		// If any real world user would complain the limit, let them explain why they need it, then make it configurable.
+		return util.NewInvalidArgumentErrorf("git %s message is too long", typ)
+	}
+	cmd.AddArguments("--file=-").WithStdinBytes([]byte(message))
+	return nil
+}
