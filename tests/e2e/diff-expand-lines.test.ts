@@ -5,7 +5,7 @@ const fileLineCount = 120;
 const hiddenLineCount = 99; // the lines the diff does not show around its three hunks
 
 // a PR whose file has a gap before, between and after the hunks
-async function createDiffPull(page: Page, request: APIRequestContext) {
+async function createDiffPull(page: Page, request: APIRequestContext, style = 'unified') {
   const user = `de-${randomString(8)}`;
   await apiCreateUser(request, user);
   const headers = apiUserHeaders(user);
@@ -19,7 +19,7 @@ async function createDiffPull(page: Page, request: APIRequestContext) {
   const prIndex = await apiCreatePR(request, user, repo, 'edit', 'main', 'diff expand test', {headers});
 
   await loginUser(page, user);
-  await page.goto(`/${user}/${repo}/pulls/${prIndex}/files`);
+  await page.goto(`/${user}/${repo}/pulls/${prIndex}/files?style=${style}`);
   return {
     rows: page.locator('#diff-file-boxes table.chroma tr'),
     arrows: page.locator('#diff-file-boxes .code-expander-button'),
@@ -101,4 +101,16 @@ test('expanding all keeps an already expanded gap on screen while it loads', asy
 
   held.resolve();
   await expect(rows).toHaveCount(collapsedCount + hiddenLineCount);
+});
+
+test('a line revealed in split view comments on the right side', async ({page, request}) => {
+  const {arrows} = await createDiffPull(page, request, 'split');
+  await arrows.first().click();
+  await expect(page.locator('#diff-file-boxes tr[data-expand-gap]').first()).toBeVisible();
+
+  // a line the diff shows takes a comment on whichever side it was clicked
+  await expect(page.locator('#diff-file-boxes tr:not([data-expand-gap]) td.lines-code-old .add-code-comment').first()).toHaveAttribute('data-side', 'left');
+  // a revealed line comments on the right from either cell, because FillHiddenCommentIDsForDiffLine
+  // counts only right side comments and a left side one would be lost once the gap is closed again
+  await expect(page.locator('#diff-file-boxes tr[data-expand-gap] td.lines-code-old .add-code-comment').first()).toHaveAttribute('data-side', 'right');
 });

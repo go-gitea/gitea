@@ -1,4 +1,4 @@
-import {gapExcerptUrl, gapExpandDirection, gapReachesFileEnd, type DiffGap} from './repo-diff-gaps.ts';
+import {gapExcerptUrl, gapExpandDirection, gapReachesFileEnd, parseTableRows, type DiffGap} from './repo-diff-gaps.ts';
 
 function gap(partial: Partial<DiffGap>): DiffGap {
   return {key: 'k', anchor: 'a', lastLeft: 0, lastRight: 0, left: 0, right: 0, leftHunk: 0, rightHunk: 0, hiddenCommentIds: [], ...partial};
@@ -30,4 +30,11 @@ test('gapExcerptUrl carries the gap the backend needs', () => {
     style: 'split', path: 'a.txt', direction: 'up', anchor: 'diff-abcK17', gap_key: '0-17',
     last_left: '0', last_right: '0', left: '17', right: '17', left_hunk_size: '7', right_hunk_size: '7',
   });
+});
+
+test('parseTableRows takes the rows out of a response that starts with a colgroup', () => {
+  // the parser tucks rows after a colgroup into a tbody, which used to hide them from the caller
+  const rows = parseTableRows('<colgroup><col width="50"></colgroup>\n<tr data-expand-gap="0-17"><td>a</td></tr>\n<tr data-expand-gap="0-17"><td>b</td></tr>');
+  expect(rows.map((el) => el.tagName)).toEqual(['TR', 'TR']);
+  expect(rows.map((el) => el.getAttribute('data-expand-gap'))).toEqual(['0-17', '0-17']);
 });

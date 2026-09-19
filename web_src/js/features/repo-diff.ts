@@ -14,7 +14,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
-import {closeGap, diffFileHasHiddenLines, gapAfterExpanding, gapExcerptUrl, gapsExcerptUrl, getDiffGapState, initDiffGapExpander, pendingDiffGaps, revealGapLines} from './repo-diff-gaps.ts';
+import {closeGap, diffFileHasHiddenLines, gapAfterExpanding, gapExcerptUrl, gapsExcerptUrl, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, revealGapLines} from './repo-diff-gaps.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -150,14 +150,6 @@ function initDiffHeaderPopupMenu(btn: HTMLElement) {
 
 function onDiffFileBodyChange() {
   initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
-}
-
-function parseTableRows(respText: string): HTMLElement[] {
-  const elTemplate = document.createElement('template'); // a template can hold "tr" elements without a table around them
-  elTemplate.innerHTML = respText;
-  // the response opens with the table's "colgroup", which makes the parser tuck the rows into a
-  // "tbody", so take the rows themselves rather than whatever wrapped them
-  return Array.from(elTemplate.content.querySelectorAll('tr'));
 }
 
 // the response carries each gap's lines in file order, and a line's conversations in the row after it

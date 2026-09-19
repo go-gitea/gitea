@@ -1414,3 +1414,16 @@ func TestGetDiffShortStatWithOptions(t *testing.T) {
 		assert.Equal(t, &DiffShortStat{NumFiles: 1, TotalAddition: 3, TotalDeletion: 2}, stat)
 	})
 }
+
+func TestDiffFile_addTailSectionSharesHighlightState(t *testing.T) {
+	// every section of a file shares the file's highlight state, so that lines added to one later
+	// can be rendered like any other
+	diffFile := &DiffFile{Name: "a.py", Sections: []*DiffSection{{Lines: []*DiffLine{{LeftIdx: 1, RightIdx: 1}}}}}
+	diffFile.addTailSection(DiffRenderDetail{leftLineCount: 10, rightLineCount: 10})
+
+	tailSection := diffFile.Sections[len(diffFile.Sections)-1]
+	assert.Same(t, &diffFile.language, tailSection.language)
+	assert.Same(t, &diffFile.highlightRender, tailSection.highlightLexer)
+	assert.Same(t, &diffFile.highlightedLeftLines, tailSection.highlightedLeftLines)
+	assert.Same(t, &diffFile.highlightedRightLines, tailSection.highlightedRightLines)
+}

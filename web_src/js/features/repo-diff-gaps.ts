@@ -102,6 +102,14 @@ export function gapsExcerptUrl(baseUrl: string, gaps: DiffGap[]): string {
   return url.href;
 }
 
+// An excerpt response is a fragment of rows that opens with the table's "colgroup", which makes the
+// parser tuck them into a "tbody", so take the rows themselves rather than whatever wrapped them.
+export function parseTableRows(respText: string): HTMLElement[] {
+  const elTemplate = document.createElement('template'); // a template can hold "tr" elements without a table around them
+  elTemplate.innerHTML = respText;
+  return Array.from(elTemplate.content.querySelectorAll('tr'));
+}
+
 // the gaps of a file that still have something to reveal, as the diff first described them
 export function pendingDiffGaps(elFileBody: Element): DiffGap[] {
   const gaps = [];
