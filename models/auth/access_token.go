@@ -152,6 +152,18 @@ func (opts ListAccessTokensOptions) ToOrders() string {
 	return "created_unix DESC"
 }
 
+// AccessTokenUseInterval is how often access_token.updated_unix ("last used") is
+// persisted after a successful token authentication. Must stay well below the
+// 7-day HasRecentActivity window, which is the only thing the column feeds
+// besides its own display.
+const AccessTokenUseInterval = 30 * time.Second
+
+// ShouldPersistTokenUse reports whether a token's updated_unix is stale enough
+// to be worth writing back. Avoids a DB write on every authenticated request.
+func ShouldPersistTokenUse(last timeutil.TimeStamp, now time.Time) bool {
+	return now.Sub(last.AsTime()) >= AccessTokenUseInterval
+}
+
 // UpdateAccessToken updates information of access token.
 func UpdateAccessToken(ctx context.Context, t *AccessToken) error {
 	_, err := db.GetEngine(ctx).ID(t.ID).AllCols().Update(t)
