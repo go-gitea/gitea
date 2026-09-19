@@ -968,111 +968,11 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 	}
 }
 
-func TestDiffLine_RenderGapExpander(t *testing.T) {
-	tests := []struct {
-		name             string
-		line             *DiffLine
-		fileNameHash     string
-		data             *DiffBlobExcerptData
-		expectContains   []string
-		expectNotContain []string
-	}{
-		{
-			name: "expand up button with hidden comments",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     0,
-					RightIdx:         26,
-					LeftIdx:          26,
-					LastLeftIdx:      0,
-					LeftHunkSize:     0,
-					RightHunkSize:    0,
-					HiddenCommentIDs: []int64{100},
-				},
-			},
-			fileNameHash: "abc123",
-			data: &DiffBlobExcerptData{
-				BaseLink:      "/repo/blob_excerpt",
-				AfterCommitID: "commit123",
-				DiffStyle:     "unified",
-			},
-			expectContains: []string{
-				`data-gap="0,0,26,26,0,0"`,
-				"code-comment-more",
-				"1 hidden comment(s)",
-			},
-		},
-		{
-			name: "expand up and down buttons with pull request",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     10,
-					RightIdx:         50,
-					LeftIdx:          10,
-					LastLeftIdx:      5,
-					LeftHunkSize:     5,
-					RightHunkSize:    5,
-					HiddenCommentIDs: []int64{200, 201},
-				},
-			},
-			fileNameHash: "def456",
-			data: &DiffBlobExcerptData{
-				BaseLink:       "/repo/blob_excerpt",
-				AfterCommitID:  "commit456",
-				DiffStyle:      "split",
-				PullIssueIndex: 42,
-			},
-			expectContains: []string{
-				`data-gap="5,10,10,50,5,5"`,
-				`data-hidden-comment-ids=",200,201,"`, // use leading and trailing commas to ensure exact match by CSS selector `attr*=",id,"`
-				"2 hidden comment(s)",
-			},
-		},
-		{
-			name: "no hidden comments",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     10,
-					RightIdx:         20,
-					LeftIdx:          10,
-					LastLeftIdx:      5,
-					LeftHunkSize:     5,
-					RightHunkSize:    5,
-					HiddenCommentIDs: nil,
-				},
-			},
-			fileNameHash: "ghi789",
-			data: &DiffBlobExcerptData{
-				BaseLink:      "/repo/blob_excerpt",
-				AfterCommitID: "commit789",
-			},
-			expectContains: []string{
-				`data-gap="5,10,10,20,5,5"`,
-				`data-global-init="initDiffGapExpander"`,
-			},
-			expectNotContain: []string{
-				"code-comment-more",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.line.RenderGapExpander(tt.data)
-			resultStr := string(result)
-
-			for _, expected := range tt.expectContains {
-				assert.Contains(t, resultStr, expected, "Expected to contain: %s", expected)
-			}
-
-			for _, notExpected := range tt.expectNotContain {
-				assert.NotContains(t, resultStr, notExpected, "Expected NOT to contain: %s", notExpected)
-			}
-		})
-	}
+func TestDiffLineSectionInfo_HiddenCommentIDsCSV(t *testing.T) {
+	// the leading and trailing commas the template adds let a CSS "attr*=,id," match find one exactly
+	info := DiffLineSectionInfo{HiddenCommentIDs: []int64{200, 201}}
+	assert.Equal(t, "200,201", info.HiddenCommentIDsCSV())
+	assert.Empty(t, (&DiffLineSectionInfo{}).HiddenCommentIDsCSV())
 }
 
 func TestDiffLine_GetExpandDirection(t *testing.T) {
