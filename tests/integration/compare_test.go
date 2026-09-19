@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -318,52 +319,35 @@ func TestCompareCodeExpand(t *testing.T) {
 		// and every gap carries the numbers the frontend needs to work out what is left to reveal
 		assert.NotZero(t, htmlDoc.Find(`.code-expander-buttons[data-gap][data-gap-key]`).Length())
 
-		t.Run("ExpandAll", func(t *testing.T) {
-			req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch?file-only=true&expand-all=true&files=README.md")
+		// the numbers the frontend reads off a gap and sends back to reveal it
+		gapNumbers := htmlDoc.Find(`.code-expander-buttons[data-gap]`).First().AttrOr("data-gap", "")
+		excerptURL := els.First().AttrOr("data-excerpt-url", "")
+
+		t.Run("ExpandGaps", func(t *testing.T) {
+			// one request reveals whole gaps, so that showing a file takes one request rather than one per gap
+			req := NewRequest(t, "GET", excerptURL+"&gap="+gapNumbers)
 			resp := session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
+			// the response is a fragment of rows, which only parse inside a table
+			htmlDoc := NewHTMLParser(t, bytes.NewBufferString("<table>"+resp.Body.String()+"</table>"))
 
-			// the head file is 15 "a" lines, a changed line, then 15 more, so every line of it must be rendered
-			var rendered, expected []string
-			for i := 1; i <= 31; i++ {
-				expected = append(expected, strconv.Itoa(i))
-			}
-			htmlDoc.Find(`#diff-file-boxes .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
-				if num := el.AttrOr("data-line-num", ""); num != "" {
-					rendered = append(rendered, num)
-				}
+			// the leading gap of the head file runs from line 1 up to the first line the diff shows
+			var rendered []string
+			htmlDoc.Find(`tr[data-expand-gap] .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
+				rendered = append(rendered, el.AttrOr("data-line-num", ""))
 			})
-			assert.Equal(t, expected, rendered)
-			assert.NotZero(t, htmlDoc.Find(`#diff-file-boxes tr[data-expand-gap]`).Length())
-		})
-
-		t.Run("ExpandAllOnlyNamedGaps", func(t *testing.T) {
-			// the caller names the gaps it still needs, so a partly expanded file does not re-render
-			// the lines it already shows
-			gapKey := htmlDoc.Find(`#diff-file-boxes .code-expander-buttons[data-gap-key]`).Last().AttrOr("data-gap-key", "")
-			assert.NotEmpty(t, gapKey)
-
-			req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch?file-only=true&expand-all=true&files=README.md&gap="+gapKey)
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-
-			var gaps []string
-			htmlDoc.Find(`#diff-file-boxes tr[data-expand-gap]`).Each(func(_ int, el *goquery.Selection) {
-				gaps = append(gaps, el.AttrOr("data-expand-gap", ""))
-			})
-			assert.NotEmpty(t, gaps)
-			for _, gap := range gaps {
-				assert.Equal(t, gapKey, gap)
+			assert.NotEmpty(t, rendered)
+			assert.Equal(t, "1", rendered[0])
+			for i, num := range rendered {
+				assert.Equal(t, strconv.Itoa(i+1), num) // contiguous, from the start of the file
 			}
 		})
 
-		t.Run("ExpandAllNeedsASingleFile", func(t *testing.T) {
-			// expanding is only offered for one file at a time, so that no request can make the
-			// server read every blob of the diff at once
-			req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch?file-only=true&expand-all=true")
-			resp := session.MakeRequest(t, req, http.StatusOK)
-			htmlDoc := NewHTMLParser(t, resp.Body)
-			assert.Zero(t, htmlDoc.Find(`#diff-file-boxes tr[data-expand-gap]`).Length())
+		t.Run("ExpandGapsRejectsNonsense", func(t *testing.T) {
+			// the gap numbers come back from the browser, so they are checked rather than trusted
+			for _, gap := range []string{"1,2,3", "a,b,c,d,e,f", "-1,0,17,17,7,7"} {
+				req := NewRequest(t, "GET", excerptURL+"&gap="+gap)
+				session.MakeRequest(t, req, http.StatusBadRequest)
+			}
 		})
 	})
 }

@@ -22,7 +22,7 @@ async function createDiffPull(page: Page, request: APIRequestContext) {
   await page.goto(`/${user}/${repo}/pulls/${prIndex}/files`);
   return {
     rows: page.locator('#diff-file-boxes table.chroma tr'),
-    arrows: page.locator('#diff-file-boxes tr:not([data-gap-expanded]) .code-expander-button'),
+    arrows: page.locator('#diff-file-boxes .code-expander-button'),
     toggle: page.locator('#diff-file-boxes .diff-expand-lines-button'),
   };
 }
@@ -70,8 +70,7 @@ test('the button collapses a file whose gaps were all expanded by hand', async (
     await arrows.first().click();
     await expect(rows).not.toHaveCount(prev);
   }
-  // a gap wider than one chunk takes several clicks, each leaving its own spent section row behind,
-  // so assert the file is whole rather than counting rows
+  await expect(rows).toHaveCount(collapsedCount + hiddenLineCount);
   await expect(page.locator('#diff-file-boxes .lines-num-new[data-line-num="1"]')).toBeVisible();
   await expect(page.locator(`#diff-file-boxes .lines-num-new[data-line-num="${fileLineCount}"]`)).toBeVisible();
 
@@ -89,14 +88,15 @@ test('expanding all keeps an already expanded gap on screen while it loads', asy
   await expect(rows).toHaveCount(collapsedCount + 16);
 
   const held = Promise.withResolvers<void>();
-  await page.route((url) => url.searchParams.get('expand-all') === 'true', async (route) => {
+  // expanding all names the gaps it wants, which is what distinguishes it from a single arrow
+  await page.route((url) => url.searchParams.has('gap'), async (route) => {
     await held.promise;
     await route.continue();
   });
 
-  const request1 = page.waitForRequest((req) => new URL(req.url()).searchParams.get('expand-all') === 'true');
+  const expandAllRequest = page.waitForRequest((req) => new URL(req.url()).searchParams.has('gap'));
   await toggle.click();
-  await request1;
+  await expandAllRequest;
   await expect(rows).toHaveCount(collapsedCount + 16); // the already expanded gap must not fold away while waiting
 
   held.resolve();

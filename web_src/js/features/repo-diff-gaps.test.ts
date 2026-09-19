@@ -1,7 +1,7 @@
 import {gapExcerptUrl, gapExpandDirection, gapReachesFileEnd, type DiffGap} from './repo-diff-gaps.ts';
 
 function gap(partial: Partial<DiffGap>): DiffGap {
-  return {key: 'k', anchor: 'a', lastLeft: 0, lastRight: 0, left: 0, right: 0, leftHunk: 0, rightHunk: 0, ...partial};
+  return {key: 'k', anchor: 'a', lastLeft: 0, lastRight: 0, left: 0, right: 0, leftHunk: 0, rightHunk: 0, hiddenCommentIds: [], ...partial};
 }
 
 // these mirror gitdiff.GetExpandDirection, which decided the arrows before the frontend did

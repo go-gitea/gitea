@@ -761,8 +761,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
 	fileOnly := ctx.FormBool("file-only")
-	singleFile := fileOnly && (len(files) == 2 || len(files) == 1) // a request for one file, which may carry its old name too
-	if singleFile {
+	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
 	}
 
@@ -777,8 +776,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		MaxLines:          maxLines,
 		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:          maxFiles,
-		ExpandHiddenLines: singleFile && ctx.FormBool("expand-all"),
-		ExpandGapKeys:     ctx.FormStrings("gap"),
 	}
 
 	diff, err := gitdiff.GetDiffForRender(ctx, ctx.Repo.RepoLink, gitRepo, diffOptions, files...)

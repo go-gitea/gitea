@@ -11,7 +11,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -408,7 +410,6 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
 	fileOnly := ctx.FormBool("file-only")
-	singleFile := fileOnly && (len(files) == 2 || len(files) == 1) // a request for one file, which may carry its old name too
 	if len(files) == 2 || len(files) == 1 {
 		maxLines, maxFiles = -1, -1
 	}
@@ -425,8 +426,6 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 			MaxLines:          maxLines,
 			MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:          maxFiles,
-			ExpandHiddenLines: singleFile && ctx.FormBool("expand-all"),
-			ExpandGapKeys:     ctx.FormStrings("gap"),
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiff", err)
@@ -701,6 +700,42 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 	}
 }
 
+// maxExcerptGaps bounds how much one request can ask for; a file has far fewer gaps than this
+const maxExcerptGaps = 100
+
+// parseExcerptGaps reads the "lastLeft,lastRight,left,right,leftHunk,rightHunk" that the diff put on
+// each section row. A gap is identified by its own line numbers, so no key has to be sent with it.
+func parseExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
+	if len(gapSpecs) > maxExcerptGaps {
+		return nil, errors.New("too many gaps requested")
+	}
+	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapSpecs))
+	for _, spec := range gapSpecs {
+		nums := strings.Split(spec, ",")
+		if len(nums) != 6 {
+			return nil, fmt.Errorf("invalid gap: %q", spec)
+		}
+		var parsed [6]int
+		for i, num := range nums {
+			v, err := strconv.Atoi(num)
+			if err != nil || v < 0 {
+				return nil, fmt.Errorf("invalid gap: %q", spec)
+			}
+			parsed[i] = v
+		}
+		opts := gitdiff.BlobExcerptOptions{
+			LastLeft: parsed[0], LastRight: parsed[1],
+			LeftIndex: parsed[2], RightIndex: parsed[3],
+			LeftHunkSize: parsed[4], RightHunkSize: parsed[5],
+			Direction: "all", Language: language,
+		}
+		opts.GapKey = fmt.Sprintf("%d-%d", opts.LastRight, opts.RightIndex)
+		gapOpts = append(gapOpts, opts)
+	}
+	slices.SortFunc(gapOpts, func(a, b gitdiff.BlobExcerptOptions) int { return a.LastRight - b.LastRight })
+	return gapOpts, nil
+}
+
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
@@ -754,11 +789,28 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	defer reader.Close()
 
-	section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
-	if err != nil {
-		ctx.ServerError("BuildBlobExcerptDiffSection", err)
-		return
+	// "gap" names whole gaps to reveal, in file order, so showing a whole file takes one request
+	var sections []*gitdiff.DiffSection
+	if gapSpecs := ctx.FormStrings("gap"); len(gapSpecs) > 0 {
+		gapOpts, err := parseExcerptGaps(gapSpecs, opts.Language)
+		if err != nil {
+			ctx.HTTPError(http.StatusBadRequest, err.Error())
+			return
+		}
+		sections, err = gitdiff.BuildBlobExcerptDiffSectionsForGaps(filePath, reader, gapOpts)
+		if err != nil {
+			ctx.ServerError("BuildBlobExcerptDiffSectionsForGaps", err)
+			return
+		}
+	} else {
+		section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
+		if err != nil {
+			ctx.ServerError("BuildBlobExcerptDiffSection", err)
+			return
+		}
+		sections = []*gitdiff.DiffSection{section}
 	}
+	section := sections[0]
 
 	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
 	if diffBlobExcerptData.PullIssueIndex > 0 {
@@ -797,7 +849,7 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.Data["file"] = &gitdiff.DiffFile{
 		Name:     filePath,
 		NameHash: git.HashFilePathForWebUI(filePath),
-		Sections: []*gitdiff.DiffSection{section},
+		Sections: sections,
 	}
 	ctx.Data["IsBlobExcerpt"] = true
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
