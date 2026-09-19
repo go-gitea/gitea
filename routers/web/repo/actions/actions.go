@@ -541,6 +541,15 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 		ctx.ServerError("FindRunners", err)
 		return false
 	}
+	if err := actions_model.RunnerList(runners).LoadGroups(ctx); err != nil {
+		ctx.ServerError("LoadGroups", err)
+		return false
+	}
+	allowedGroups, err := actions_model.RunnerGroupsAllowingRepo(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("RunnerGroupsAllowingRepo", err)
+		return false
+	}
 
 	data.RunErrors = make(map[int64]string)
 	for _, run := range data.ActionRuns {
@@ -571,7 +580,10 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 			if job.Status.IsWaiting() {
 				hasOnlineRunner := false
 				for _, runner := range runners {
-					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
+					if runner.GroupID != 0 && !allowedGroups.Contains(runner.GroupID) {
+						continue
+					}
+					if !runner.IsDisabled && runner.CanRunJob(job.RunsOnGroup, job.RunsOn) {
 						hasOnlineRunner = true
 						break
 					}

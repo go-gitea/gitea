@@ -171,8 +171,12 @@ func (j *Job) EraseNeeds() *Job {
 	return j
 }
 
-func (j *Job) RunsOn() []string {
-	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
+func (j *Job) RunsOnLabels() []string {
+	return model.RunsOnLabelsFromNode(j.RawRunsOn)
+}
+
+func (j *Job) RunsOnGroup() string {
+	return model.RunsOnGroupFromNode(j.RawRunsOn)
 }
 
 // BlockSafeString works around https://github.com/yaml/go-yaml/issues/399, quoting a value whose

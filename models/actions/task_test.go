@@ -361,6 +361,96 @@ func TestCreateTaskForRunnerPagination(t *testing.T) {
 	assert.Equal(t, task.ID, claimed.TaskID)
 }
 
+func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	run := &ActionRun{RepoID: 1}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	job := &ActionRunJob{
+		RunID:           run.ID,
+		RepoID:          run.RepoID,
+		Status:          StatusWaiting,
+		RunsOn:          []string{"ubuntu-latest"},
+		RunsOnGroup:     "gpu",
+		WorkflowPayload: []byte("on: push\njobs:\n  job:\n    runs-on:\n      labels: ubuntu-latest\n      group: gpu\n    steps:\n      - run: echo hi\n"),
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	ungrouped := &ActionRunner{AgentLabels: []string{"ubuntu-latest", "gpu"}}
+	assert.False(t, ungrouped.CanRunJob(job.RunsOnGroup, job.RunsOn), "a label named like the group must not satisfy runs-on.group")
+
+	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
+	require.NoError(t, err)
+	runner := &ActionRunner{UUID: "grouped", AgentLabels: []string{"ubuntu-latest"}, GroupID: group.ID, TokenHash: "grouped"}
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	_, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.False(t, ok, "a group without granted repositories serves nothing")
+
+	require.NoError(t, SetRunnerAccess(t.Context(), group, false, []int64{2}))
+	_, ok, err = CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.False(t, ok)
+
+	beforeVersion, err := GetTasksVersionByScope(t.Context(), 0, 0)
+	require.NoError(t, err)
+	require.NoError(t, SetRunnerAccess(t.Context(), group, false, []int64{run.RepoID}))
+	unittest.AssertNotExistsBean(t, &ActionRunnerAccess{GroupID: group.ID, RepoID: 2})
+	afterVersion, err := GetTasksVersionByScope(t.Context(), 0, 0)
+	require.NoError(t, err)
+	assert.Greater(t, afterVersion, beforeVersion)
+
+	task, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, job.ID, task.JobID)
+
+	require.NoError(t, ReleaseTaskForRunner(t.Context(), task))
+	require.NoError(t, SetRunnerAccess(t.Context(), group, true, []int64{-1}), "a stale selection is ignored with all repositories")
+	task, ok, err = CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.True(t, ok, "a group including all repositories serves unlisted ones")
+	assert.Equal(t, job.ID, task.JobID)
+	allowed, err := RunnerGroupsAllowingRepo(t.Context(), run.RepoID)
+	require.NoError(t, err)
+	assert.Contains(t, allowed, group.ID)
+}
+
+func TestRunnerGroupMembership(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	orgGroup, err := CreateRunnerGroup(t.Context(), 3, "gpu")
+	require.NoError(t, err)
+	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
+	require.NoError(t, err)
+	assert.NotEqual(t, orgGroup.ID, group.ID)
+	_, err = CreateRunnerGroup(t.Context(), 0, "gpu")
+	require.Error(t, err)
+
+	member := &ActionRunner{UUID: "member", Name: "member", TokenHash: "m"}
+	require.NoError(t, db.Insert(t.Context(), member))
+	orgRunner := &ActionRunner{UUID: "org", Name: "org", OwnerID: 3, TokenHash: "o"}
+	require.NoError(t, db.Insert(t.Context(), orgRunner))
+
+	require.Error(t, SetRunnerGroupMembers(t.Context(), group, []int64{orgRunner.ID}))
+
+	require.NoError(t, SetRunnerGroupMembers(t.Context(), group, []int64{member.ID}))
+	require.NoError(t, SetRunnerGroupMembers(t.Context(), group, []int64{member.ID}), "saving unchanged members succeeds")
+	assert.Equal(t, group.ID, unittest.AssertExistsAndLoadBean(t, &ActionRunner{ID: member.ID}).GroupID)
+	require.Error(t, DeleteRunnerGroup(t.Context(), group))
+
+	require.NoError(t, DeleteRunner(t.Context(), member.ID))
+	unittest.AssertCount(t, &ActionRunner{GroupID: group.ID}, 0)
+	candidates, err := FindRunnerGroupCandidates(t.Context(), 0)
+	require.NoError(t, err)
+	for _, candidate := range candidates {
+		assert.NotEqual(t, member.ID, candidate.ID)
+	}
+	require.NoError(t, DeleteRunnerGroup(t.Context(), group))
+}
+
 type failFirstStepWrite struct{ fired atomic.Bool }
 
 func (h *failFirstStepWrite) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
