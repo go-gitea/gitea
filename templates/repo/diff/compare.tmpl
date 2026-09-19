@@ -168,7 +168,7 @@
 			</div>
 		</div>
 
-		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
+		{{$showDiffBox := and (not .IsNothingToCompare) (or .CommitCount (not .DiffNotAvailable))}}
 		{{if and .IsSigned .PageIsComparePull}}
 			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
@@ -211,7 +211,7 @@
 				</div>
 			{{end}}
 		{{else}}{{/* not signed-in or not for pull-request */}}
-			{{if and (not .CommitCount) $.CompareInfo.CompareBase}}
+			{{if and (not $showDiffBox) $.CompareInfo.CompareBase}}
 				<div class="ui segment">{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}</div>
 			{{end}}
 		{{end}}
