@@ -575,6 +575,97 @@ func TestSearchIssues(t *testing.T) {
 	assert.Len(t, apiIssues, 2)
 }
 
+func TestSearchDependencyByRef(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	t.Run("same repo issue", func(t *testing.T) {
+		query := url.Values{"ref": {"#1"}, "issue_id": {"2"}, "type": {"all"}}
+		req := NewRequest(t, "GET", "/user2/repo1/issues/dependency-search?"+query.Encode())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+		assert.Len(t, apiIssues, 1)
+		assert.EqualValues(t, 1, apiIssues[0].Index)
+		assert.Equal(t, "user2/repo1", apiIssues[0].Repo.FullName)
+	})
+
+	t.Run("same repo pull", func(t *testing.T) {
+		query := url.Values{"ref": {"!3"}, "issue_id": {"2"}, "type": {"pulls"}}
+		req := NewRequest(t, "GET", "/user2/repo1/issues/dependency-search?"+query.Encode())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+		assert.Len(t, apiIssues, 1)
+		assert.EqualValues(t, 3, apiIssues[0].Index)
+		assert.NotNil(t, apiIssues[0].PullRequest)
+	})
+
+	t.Run("cross repo private readable", func(t *testing.T) {
+		query := url.Values{"ref": {"org3/repo3!2"}, "issue_id": {"2"}, "type": {"pulls"}}
+		req := NewRequest(t, "GET", "/user2/repo1/issues/dependency-search?"+query.Encode())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+		assert.Len(t, apiIssues, 1)
+		assert.Equal(t, "org3/repo3", apiIssues[0].Repo.FullName)
+		assert.EqualValues(t, 2, apiIssues[0].Index)
+	})
+
+	t.Run("type filter mismatch", func(t *testing.T) {
+		query := url.Values{"ref": {"!3"}, "issue_id": {"2"}, "type": {"issues"}}
+		req := NewRequest(t, "GET", "/user2/repo1/issues/dependency-search?"+query.Encode())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+		assert.Empty(t, apiIssues)
+	})
+
+	t.Run("self dependency", func(t *testing.T) {
+		query := url.Values{"ref": {"!2"}, "issue_id": {"2"}, "type": {"all"}}
+		req := NewRequest(t, "GET", "/user2/repo1/issues/dependency-search?"+query.Encode())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+		assert.Empty(t, apiIssues)
+	})
+
+	t.Run("cross repo private not readable", func(t *testing.T) {
+		query := url.Values{"ref": {"org3/repo3!2"}, "issue_id": {"2"}, "type": {"pulls"}}
+		req := NewRequest(t, "GET", "/user2/repo1/issues/dependency-search?"+query.Encode())
+		resp := loginUser(t, "user40").MakeRequest(t, req, http.StatusOK)
+		apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+		assert.Empty(t, apiIssues)
+	})
+
+	t.Run("cross repo disabled", func(t *testing.T) {
+		oldAllowCrossRepo := setting.Service.AllowCrossRepositoryDependencies
+		setting.Service.AllowCrossRepositoryDependencies = false
+		defer func() { setting.Service.AllowCrossRepositoryDependencies = oldAllowCrossRepo }()
+
+		query := url.Values{"ref": {"org3/repo3!2"}, "issue_id": {"2"}, "type": {"pulls"}}
+		req := NewRequest(t, "GET", "/user2/repo1/issues/dependency-search?"+query.Encode())
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		apiIssues := DecodeJSON(t, resp, []*api.Issue{})
+		assert.Empty(t, apiIssues)
+	})
+}
+
+func TestAddDependencyByRef(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	targetIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 2})
+	dependencyIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 3, Index: 2})
+	enableRepoDependencies(t, targetIssue.RepoID)
+	enableRepoDependencies(t, dependencyIssue.RepoID)
+
+	session := loginUser(t, "user2")
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/pulls/2/dependency/add", map[string]string{
+		"newDependency": "org3/repo3!2",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{
+		IssueID:      targetIssue.ID,
+		DependencyID: dependencyIssue.ID,
+	})
+}
+
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
