@@ -5,6 +5,8 @@ package httplib
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -243,4 +245,25 @@ func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
 
 func IsGiteaFetchActionRequest(req *http.Request) bool {
 	return req.Header.Get("X-Gitea-Fetch-Action") != ""
+}
+
+func IsClientOrNetworkError(ctx context.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	// client request corrupted (e.g.: Content-Length is sent but body is incomplete)
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+
+	// network error
+	if _, ok := errors.AsType[net.Error](err); ok {
+		return true
+	}
+	return false
 }

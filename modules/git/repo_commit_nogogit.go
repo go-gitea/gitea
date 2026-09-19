@@ -69,9 +69,6 @@ func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func()
 	}
 }
 
-// MaxGitObjectSize is used to avoid OOM when reading a large git object (GitHub's default is 100M)
-var MaxGitObjectSize int64 = 100 * 1024 * 1024
-
 func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
 	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
@@ -118,7 +115,7 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 
 		return commit, nil
 	default:
-		setting.PanicInDevOrTesting("Unknown cat-file object type: %s", info.Type)
+		setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
 		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
