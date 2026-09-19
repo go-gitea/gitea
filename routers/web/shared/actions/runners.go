@@ -153,7 +153,7 @@ func Runners(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = opts.Filter
-	rows, err := runnerListRows(ctx, runners)
+	rows, err := runnerListRows(ctx, runners, opts.OwnerID, opts.RepoID)
 	if err != nil {
 		ctx.ServerError("runnerListRows", err)
 		return
@@ -178,7 +178,7 @@ type runnerListRow struct {
 	RunningTasks []*actions_model.ActionTask
 }
 
-func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner) ([]runnerListRow, error) {
+func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner, ownerID, repoID int64) ([]runnerListRow, error) {
 	rows := make([]runnerListRow, len(runners))
 	if len(runners) == 0 {
 		return rows, nil
@@ -193,8 +193,17 @@ func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner)
 		return nil, err
 	}
 	var running actions_model.TaskList
-	for _, tasks := range byRunner {
-		running = append(running, tasks...)
+	for id, tasks := range byRunner {
+		visible := tasks[:0]
+		for _, task := range tasks {
+			// Repository settings also lists org and global runners. Their current
+			// job may belong to a repository this page's viewer cannot read.
+			if taskInPageScope(task, ownerID, repoID) {
+				visible = append(visible, task)
+			}
+		}
+		byRunner[id] = visible
+		running = append(running, visible...)
 	}
 	if len(running) > 0 {
 		if err := running.LoadAttributes(ctx); err != nil {
@@ -205,6 +214,16 @@ func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner)
 		rows[i].RunningTasks = byRunner[rows[i].ID]
 	}
 	return rows, nil
+}
+
+func taskInPageScope(task *actions_model.ActionTask, ownerID, repoID int64) bool {
+	if repoID > 0 {
+		return task.RepoID == repoID
+	}
+	if ownerID > 0 {
+		return task.OwnerID == ownerID
+	}
+	return true
 }
 
 // RunnersEdit renders runner edit page for repository level
