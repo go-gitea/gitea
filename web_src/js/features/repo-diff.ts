@@ -14,7 +14,7 @@ import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observ
 import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 import {initImageDiff} from './imagediff.ts';
-import {closeGap, diffFileHasHiddenLines, gapAfterExpanding, gapExcerptUrl, gapsExcerptUrl, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, revealGapLines} from './repo-diff-gaps.ts';
+import {closeGap, diffFileHasHiddenLines, gapAfterExpanding, gapExcerptUrl, gapExpandDirection, gapsExcerptUrl, getDiffGapState, initDiffGapExpander, parseTableRows, pendingDiffGaps, reopenGap, revealGapLines} from './repo-diff-gaps.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -163,10 +163,6 @@ function diffGroupRowsByGap(respText: string): Map<string, HTMLElement[]> {
   return gapRows;
 }
 
-function diffExpanderOf(elFileBody: Element, gapKey: string): Element | null {
-  return elFileBody.querySelector(`.code-expander-buttons[data-gap-key="${CSS.escape(gapKey)}"]`);
-}
-
 function diffSyncExpandAllButton(elFileBox: Element) {
   const btn = elFileBox.querySelector<HTMLElement>('.diff-expand-lines-button');
   if (!btn) return;
@@ -199,8 +195,10 @@ async function diffExpandHiddenLines(btn: HTMLElement) {
 // one request reveals every gap the file still hides, through the same endpoint the arrows use, so
 // the server reads the blob instead of recomputing the diff
 async function diffFetchAllGapRows(btn: HTMLElement, elFileBody: Element): Promise<Map<string, HTMLElement[]> | null> {
+  const gaps = pendingDiffGaps(elFileBody, true); // the rest were revealed before and kept their rows
+  if (!gaps.length) return new Map();
   const baseUrl = elFileBody.querySelector('table')!.getAttribute('data-excerpt-url')!;
-  const resp = await performFetchActionRequest(btn, {method: 'GET', url: gapsExcerptUrl(baseUrl, pendingDiffGaps(elFileBody)), loadingIndicator: '$this'});
+  const resp = await performFetchActionRequest(btn, {method: 'GET', url: gapsExcerptUrl(baseUrl, gaps), loadingIndicator: '$this'});
   return resp ? diffGroupRowsByGap(await resp.text()) : null;
 }
 
@@ -213,12 +211,17 @@ async function diffToggleAllHiddenLines(btn: HTMLElement) {
     setFileFolding(elFileBox, elFileBox.querySelector<HTMLElement>('.fold-file')!, false);
     const gapRows = await diffFetchAllGapRows(btn, elFileBody); // fetch before touching the store, so an already expanded gap does not flicker
     if (!gapRows) return;
-    for (const [gapKey, rows] of gapRows) {
-      const elExpander = diffExpanderOf(elFileBody, gapKey);
-      const state = elExpander && getDiffGapState(elExpander, gapKey);
-      if (!state) continue;
-      closeGap(elExpander, gapKey); // drop what it revealed so far, the response carries the whole gap
-      revealGapLines(elExpander, gapKey, rows, {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0});
+    for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap-key]')) {
+      const gapKey = el.getAttribute('data-gap-key')!;
+      const state = getDiffGapState(el, gapKey);
+      if (!state || !gapExpandDirection(state.current)) continue;
+      const rows = gapRows.get(gapKey);
+      if (rows) {
+        closeGap(el, gapKey); // drop what it revealed so far, the response carries the whole gap
+        revealGapLines(el, gapKey, rows, {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0});
+      } else {
+        reopenGap(el, gapKey); // it was fully revealed before, so its rows are still in hand
+      }
     }
     onDiffFileBodyChange();
   } else {

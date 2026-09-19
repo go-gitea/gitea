@@ -114,3 +114,21 @@ test('a line revealed in split view comments on the right side', async ({page, r
   // counts only right side comments and a left side one would be lost once the gap is closed again
   await expect(page.locator('#diff-file-boxes tr[data-expand-gap] td.lines-code-old .add-code-comment').first()).toHaveAttribute('data-side', 'right');
 });
+
+test('reopening a file it already revealed costs no request', async ({page, request}) => {
+  const {rows, toggle} = await createDiffPull(page, request);
+  const collapsedCount = await rows.count();
+  let requests = 0;
+  await page.route((url) => url.searchParams.has('gap'), async (route) => { requests++; await route.continue() });
+
+  await toggle.click();
+  await expect(rows).toHaveCount(collapsedCount + hiddenLineCount);
+  await toggle.click();
+  await expect(rows).toHaveCount(collapsedCount);
+  expect(requests).toEqual(1);
+
+  // the rows are kept, so opening it again puts them back without asking for them
+  await toggle.click();
+  await expect(rows).toHaveCount(collapsedCount + hiddenLineCount);
+  expect(requests).toEqual(1);
+});

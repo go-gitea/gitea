@@ -28,7 +28,7 @@ export type DiffGap = {
 // "original" is the gap as the diff first described it, "current" what is left of it, and "rows"
 // what it has put on screen. One effect per gap renders all three, so the arrows, the hidden comment
 // count and the revealed lines cannot disagree about how much of the gap is open.
-type DiffGapState = {original: DiffGap; current: DiffGap; rows: HTMLElement[]};
+type DiffGapState = {original: DiffGap; current: DiffGap; rows: HTMLElement[]; revealed: HTMLElement[]};
 
 const diffGaps = reactive(new Map<string, DiffGapState>());
 
@@ -110,12 +110,16 @@ export function parseTableRows(respText: string): HTMLElement[] {
   return Array.from(elTemplate.content.querySelectorAll('tr'));
 }
 
-// the gaps of a file that still have something to reveal, as the diff first described them
-export function pendingDiffGaps(elFileBody: Element): DiffGap[] {
+// the gaps of a file that still have something to reveal, as the diff first described them, leaving
+// out any whose rows are already in hand
+export function pendingDiffGaps(elFileBody: Element, unrevealedOnly = false): DiffGap[] {
   const gaps = [];
   for (const el of elFileBody.querySelectorAll('.code-expander-buttons[data-gap-key]')) {
-    const state = getDiffGapState(el, el.getAttribute('data-gap-key')!);
-    if (state && gapExpandDirection(state.current)) gaps.push(state.original);
+    const gapKey = el.getAttribute('data-gap-key')!;
+    const state = getDiffGapState(el, gapKey);
+    if (!state || !gapExpandDirection(state.current)) continue;
+    if (unrevealedOnly && state.revealed.length) continue;
+    gaps.push(state.original);
   }
   return gaps;
 }
@@ -124,12 +128,27 @@ export function diffFileHasHiddenLines(elFileBody: Element): boolean {
   return pendingDiffGaps(elFileBody).length > 0;
 }
 
-// the rows a gap has revealed and what it has left, the only two things an expansion changes
+// the rows a gap has revealed and what it has left, the only two things an expansion changes.
+// A gap that ends up fully revealed keeps its rows, so opening it again costs no request.
 export function revealGapLines(el: Element, gapKey: string, rows: HTMLElement[], current: DiffGap) {
   const state = getDiffGapState(el, gapKey);
-  if (state) updateDiffGap(el, gapKey, {current, rows: [...state.rows, ...rows]});
+  if (!state) return;
+  const allRows = [...state.rows, ...rows];
+  updateDiffGap(el, gapKey, {current, rows: allRows, revealed: gapExpandDirection(current) ? state.revealed : allRows});
 }
 
+// the rows of a gap that was fully revealed before, if it still has them
+export function revealedGapRows(el: Element, gapKey: string): HTMLElement[] | null {
+  const revealed = getDiffGapState(el, gapKey)?.revealed;
+  return revealed?.length ? revealed : null;
+}
+
+export function reopenGap(el: Element, gapKey: string) {
+  const state = getDiffGapState(el, gapKey);
+  if (state?.revealed.length) updateDiffGap(el, gapKey, {current: {...state.original, left: 0, right: 0, leftHunk: 0, rightHunk: 0}, rows: state.revealed});
+}
+
+// the rows come off the screen but are kept, so closing and opening a gap again is free
 export function closeGap(el: Element, gapKey: string) {
   const state = getDiffGapState(el, gapKey);
   if (state) updateDiffGap(el, gapKey, {current: state.original, rows: []});
@@ -180,7 +199,7 @@ function placeGapRows(elSectionRow: HTMLElement, state: DiffGapState) {
 export function initDiffGapExpander(el: HTMLElement) {
   const gap = parseDiffGap(el);
   const key = gapStoreKey(el, gap.key);
-  if (!diffGaps.has(key)) diffGaps.set(key, {original: gap, current: gap, rows: []});
+  if (!diffGaps.has(key)) diffGaps.set(key, {original: gap, current: gap, rows: [], revealed: []});
   const scope = effectScope();
   scope.run(() => watchEffect(() => {
     if (!el.isConnected) return scope.stop(); // the file box was replaced, nothing left to render into
