@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/private"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
@@ -111,13 +110,6 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 	hookPostReceiveSyncRepoDefaultBranch(ctx, opts, repo)
-
-	// handle pull request merging, a pull request action should push at least 1 commit
-	if opts.PushTrigger == repo_module.PushTriggerPRMergeToBase {
-		if !hookPostReceiveHandlePullRequestMerging(ctx, opts, updates) {
-			return
-		}
-	}
 
 	if !hookPostReceiveUpdateRepoByOptions(ctx, opts, repo) {
 		return
@@ -227,29 +219,6 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 		}
 	}
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{Results: results})
-}
-
-// hookPostReceiveHandlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit
-func hookPostReceiveHandlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, updates []*repo_module.PushUpdateOptions) bool {
-	if len(updates) == 0 {
-		ctx.PrivateInternalErrorf("Pushing a merged PR (pr:%d) no commits pushed ", opts.PullRequestID)
-		return false
-	}
-
-	pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
-	if err != nil {
-		ctx.PrivateInternalErrorf("failed to get pull request %d: %v", opts.PullRequestID, err)
-		return false
-	}
-
-	// FIXME: Maybe we need a `PullRequestStatusMerged` status for PRs that are merged, currently we use the previous status
-	// here to keep it as before, that maybe PullRequestStatusMergeable
-	_, err = pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), ctx.Doer, pr.Status)
-	if err != nil {
-		ctx.PrivateInternalErrorf("failed to set pr %d to merged: %v", pr.ID, err)
-		return false
-	}
-	return true
 }
 
 func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opts *private.HookOptions, repo *repo_model.Repository) {

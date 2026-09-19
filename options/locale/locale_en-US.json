@@ -1883,6 +1883,7 @@
   "repo.pulls.merge_out_of_date": "Merge Failed: While generating the merge, the base was updated. Hint: Try again.",
   "repo.pulls.head_out_of_date": "Merge Failed: While generating the merge, the head was updated. Hint: Try again.",
   "repo.pulls.has_merged": "Failed: The pull request has been merged. You cannot merge again or change the target branch.",
+  "repo.pulls.is_merging": "Failed: This pull request is already being merged. Hint: Wait for it to finish, then reload the page.",
   "repo.pulls.push_rejected": "Push Failed: The push was rejected. Review the Git Hooks for this repository.",
   "repo.pulls.push_rejected_summary": "Full Rejection Message",
   "repo.pulls.push_rejected_no_message": "Push Failed: The push was rejected but there was no remote message. Review the Git Hooks for this repository.",

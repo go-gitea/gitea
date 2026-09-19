@@ -363,9 +363,7 @@ Gitea or set your environment appropriately.`, "")
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
 
-		PullRequestID: prID,
-		PushTrigger:   repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
-
+		PullRequestID:   prID,
 		UserID:          pusherID,
 		UserName:        os.Getenv(repo_module.EnvPusherName),
 		UserExtDoerData: os.Getenv(repo_module.EnvPusherExtDoerData),

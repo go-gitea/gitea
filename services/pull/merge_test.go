@@ -6,6 +6,12 @@ package pull
 import (
 	"testing"
 
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
@@ -136,4 +142,125 @@ func TestResolveMergeMessageTemplate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "rebase template", tmpl)
 	})
+}
+
+func TestSyncMergedState(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.False(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+
+	// an auto merge schedule must not survive the merge it asked for
+	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), doer, pr.ID, repo_model.MergeStyleSquash, "squash merge a pr", false))
+
+	mergeCommitID := "0123456789abcdef0123456789abcdef01234567"
+	require.NoError(t, markPullRequestMerging(t.Context(), pr, doer.ID, mergeCommitID, false))
+	require.NoError(t, syncMergedState(t.Context(), pr.ID, doer, mergeCommitID))
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.True(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.Equal(t, mergeCommitID, pr.MergedCommitID)
+	assert.NotZero(t, pr.MergedUnix)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+	assert.True(t, issue.IsClosed)
+	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+}
+
+func TestMarkAndClearPullRequestMerging(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+
+	mergeCommitID := "0123456789abcdef0123456789abcdef01234567"
+	require.NoError(t, markPullRequestMerging(t.Context(), pr, 2, mergeCommitID, true))
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Equal(t, issues_model.PullRequestMergeStateAutoMerging, pr.MergeState)
+	assert.EqualValues(t, 2, pr.MergerID)
+	// the claim always names the commit to look for, and it is not a merge yet
+	assert.Equal(t, mergeCommitID, pr.MergedCommitID)
+	assert.False(t, pr.HasMerged)
+	assert.Zero(t, pr.MergedUnix, "an unmerged pull request must not get a merge timestamp")
+
+	// a second merger must not be able to take over a merge that is already in flight
+	assert.ErrorIs(t, markPullRequestMerging(t.Context(), pr, 3, "other", false), ErrIsMerging)
+
+	mergingIDs, err := issues_model.GetPullRequestIDsByMerging(t.Context())
+	require.NoError(t, err)
+	assert.Contains(t, mergingIDs, pr.ID)
+
+	require.NoError(t, clearPullRequestMerging(t.Context(), pr))
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.EqualValues(t, 0, pr.MergerID)
+	assert.Empty(t, pr.MergedCommitID)
+	assert.Zero(t, pr.MergedUnix)
+
+	mergingIDs, err = issues_model.GetPullRequestIDsByMerging(t.Context())
+	require.NoError(t, err)
+	assert.NotContains(t, mergingIDs, pr.ID)
+}
+
+func TestRecoverMergingPullRequestNotMerged(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	// a claim naming no commit cannot be produced any more, so write one directly: recovery has nothing to look for
+	// and must release it rather than fail
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	_, err := db.GetEngine(t.Context()).ID(pr.ID).Cols("merge_state, merger_id").NoAutoTime().
+		Update(&issues_model.PullRequest{MergeState: issues_model.PullRequestMergeStateMerging, MergerID: 2})
+	require.NoError(t, err)
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+
+	merged, err := recoverMergingPullRequest(t.Context(), pr)
+	require.NoError(t, err)
+	assert.False(t, merged)
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.False(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.EqualValues(t, 0, pr.MergerID)
+}
+
+func TestRecoverMergingPullRequestMergeLanded(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	// the merge reached the base branch but the result was never recorded, which is what recovery has to notice
+	baseBranchCommitID := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	require.NoError(t, markPullRequestMerging(t.Context(), pr, 2, baseBranchCommitID, true))
+
+	merged, err := recoverMergingPullRequest(t.Context(), pr)
+	require.NoError(t, err)
+	assert.True(t, merged)
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.True(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.Equal(t, baseBranchCommitID, pr.MergedCommitID)
+	assert.NotZero(t, pr.MergedUnix)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+	assert.True(t, issue.IsClosed)
+}
+
+func TestRecoverMergingPullRequestCommitNotPushed(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	// a merge commit that was claimed but never made it into the base branch
+	require.NoError(t, markPullRequestMerging(t.Context(), pr, 2, "0123456789abcdef0123456789abcdef01234567", false))
+
+	merged, err := recoverMergingPullRequest(t.Context(), pr)
+	require.NoError(t, err)
+	assert.False(t, merged)
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.False(t, pr.HasMerged)
+	assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+	assert.Empty(t, pr.MergedCommitID)
 }

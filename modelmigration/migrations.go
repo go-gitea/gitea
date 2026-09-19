@@ -427,6 +427,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
 		newMigration(352, "Add token columns to deploy_key", v28.AddTokenToDeployKey),
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
+		newMigration(354, "Add merge_state to pull_request", v28.AddMergeStateToPullRequest),
 	}
 	return preparedMigrations
 }

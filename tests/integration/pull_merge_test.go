@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,6 +30,7 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
@@ -136,6 +138,57 @@ func TestPullMerge(t *testing.T) {
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
 		assertPullMergeWebhookTask(t, 1)
+	})
+}
+
+// TestPullMergeWithPostReceiveFailure covers a merge whose post-receive hook fails: git ignores the hook's exit code,
+// so the merge commit does reach the base branch and the pull request must end up merged all the same.
+func TestPullMergeWithPostReceiveFailure(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+
+		// squash rewrites the commits, so the merge can only be identified by the commit id recorded before the push
+		for i, style := range []repo_model.MergeStyle{repo_model.MergeStyleMerge, repo_model.MergeStyleSquash} {
+			t.Run(string(style), func(t *testing.T) {
+				testEditFile(t, session, "user1", "repo1", "master", "README.md", fmt.Sprintf("Hello, World (Edited %d)\n", i))
+
+				resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+				elem := strings.Split(test.RedirectURL(resp), "/")
+				assert.Equal(t, "pulls", elem[3])
+				user, repoName, pullNum := elem[1], elem[2], elem[4]
+
+				repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user, Name: repoName})
+				hookPath := filepath.Join(gitrepo.RepoLocalPath(repo), "hooks", "post-receive.d", "gitea")
+				require.FileExists(t, hookPath)
+				require.NoError(t, os.WriteFile(hookPath, []byte("#!/bin/sh\nexit 1\n"), 0o755))
+				defer func() {
+					_ = git.CreateDelegateHooks(t.Context(), repo)
+				}()
+
+				testPullMerge(t, session, user, repoName, pullNum, MergeOptions{
+					Style:        style,
+					DeleteBranch: false,
+				})
+
+				pullNumInt, err := strconv.ParseInt(pullNum, 10, 64)
+				require.NoError(t, err)
+				pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+					BaseRepoID: repo.ID,
+					Index:      pullNumInt,
+				})
+				assert.True(t, pr.HasMerged)
+				assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
+
+				gitRepo, err := git.OpenRepository(t.Context(), repo)
+				require.NoError(t, err)
+				defer gitRepo.Close()
+
+				baseCommit, err := gitRepo.GetBranchCommit(t.Context(), pr.BaseBranch)
+				require.NoError(t, err)
+				assert.Equal(t, pr.MergedCommitID, baseCommit.ID.String())
+			})
+		}
 	})
 }
 
