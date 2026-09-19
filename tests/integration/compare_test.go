@@ -316,15 +316,15 @@ func TestCompareCodeExpand(t *testing.T) {
 			link := els.Eq(i).AttrOr("data-excerpt-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
-		// and every gap carries the numbers the frontend needs to work out what is left to reveal
+		// and every gap carries the numbers the frontend needs to work out what is left to expand
 		assert.NotZero(t, htmlDoc.Find(`.code-expander-buttons[data-gap]`).Length())
 
-		// the numbers the frontend reads off a gap and sends back to reveal it
+		// the numbers the frontend reads off a gap and sends back to expand it
 		gapNumbers := htmlDoc.Find(`.code-expander-buttons[data-gap]`).First().AttrOr("data-gap", "")
 		excerptURL := els.First().AttrOr("data-excerpt-url", "")
 
 		t.Run("ExpandGaps", func(t *testing.T) {
-			// one request reveals whole gaps, so that showing a file takes one request rather than one per gap
+			// one request expands whole gaps, so that showing a file takes one request rather than one per gap
 			req := NewRequest(t, "GET", excerptURL+"&gap="+gapNumbers)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			// the response is a fragment of rows, which only parse inside a table

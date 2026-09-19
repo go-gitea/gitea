@@ -26,7 +26,7 @@ type BlobExcerptOptions struct {
 	RightIndex    int
 	LeftHunkSize  int
 	RightHunkSize int
-	Direction     string // an arrow reveals one chunk from the end it points at, otherwise the whole gap
+	Direction     string // an arrow expands one chunk from the end it points at, otherwise the whole gap
 	Language      string
 }
 
@@ -69,8 +69,8 @@ func gapReachesFileEnd(leftHunkSize, rightHunkSize int) bool {
 	return leftHunkSize <= 0 && rightHunkSize <= 0
 }
 
-// revealRange returns the 1-based inclusive lines a request reveals from a gap
-func (opts BlobExcerptOptions) revealRange() (leftStart, rightStart, rightEnd int) {
+// expandRange returns the 1-based inclusive lines a request expands from a gap
+func (opts BlobExcerptOptions) expandRange() (leftStart, rightStart, rightEnd int) {
 	if opts.RightIndex-opts.LastRight > BlobExcerptChunkSize {
 		switch opts.Direction {
 		case "up": // the chunk nearest the hunk below the gap
@@ -98,7 +98,7 @@ func newExcerptSection(filePath, language string) *DiffSection {
 	}
 }
 
-// BuildBlobExcerptDiffSections reveals the requested part of each gap in a single pass over the
+// BuildBlobExcerptDiffSections expands the requested part of each gap in a single pass over the
 // blob, so that showing a whole file takes one request rather than one per gap. The caller passes
 // the gaps in the order they appear in the file.
 func BuildBlobExcerptDiffSections(filePath string, reader io.Reader, optsList []BlobExcerptOptions) ([]*DiffSection, error) {
@@ -107,7 +107,7 @@ func BuildBlobExcerptDiffSections(filePath string, reader io.Reader, optsList []
 	scanned := 0 // the last line number read from the blob
 	sections := make([]*DiffSection, 0, len(optsList))
 	for _, opts := range optsList {
-		leftStart, rightStart, rightEnd := opts.revealRange()
+		leftStart, rightStart, rightEnd := opts.expandRange()
 		var lines []*DiffLine
 		for scanned < rightEnd {
 			if ok := scanner.Scan(); !ok {
