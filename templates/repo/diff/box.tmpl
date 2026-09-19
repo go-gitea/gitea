@@ -109,6 +109,12 @@
 									</a>
 								</div>
 								<button type="button" class="btn interact-fg tw-p-2 tw-shrink-0" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
+								{{if and $file.IsRenderedAsDiffLines $file.HasHiddenLines}}
+									<button type="button" class="btn interact-fg tw-p-2 tw-shrink-0 diff-expand-lines-button" data-global-click="diffToggleAllHiddenLines"
+										data-text-expand="{{ctx.Locale.Tr "repo.diff.expand_all"}}" data-text-collapse="{{ctx.Locale.Tr "repo.diff.collapse_expanded"}}"
+										data-tooltip-content="{{ctx.Locale.Tr "repo.diff.expand_all"}}" aria-label="{{ctx.Locale.Tr "repo.diff.expand_all"}}"
+									>{{svg "octicon-unfold" 14}}{{svg "octicon-fold" 14 "tw-hidden"}}</button>
+								{{end}}
 								{{if $file.IsLFSFile}}
 									<span class="ui label">LFS</span>
 								{{end}}
@@ -191,12 +197,8 @@
 										{{end}}
 									</div>
 								{{else if $file.Sections}}
-									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}">
-										{{if $.IsSplitStyle}}
-											{{template "repo/diff/section_split" dict "file" . "root" $}}
-										{{else}}
-											{{template "repo/diff/section_unified" dict "file" . "root" $}}
-										{{end}}
+									<table class="chroma" data-new-comment-url="{{$.Issue.Link}}/files/reviews/new_comment" data-path="{{$file.Name}}" data-excerpt-url="{{$file.BlobExcerptBaseURL $.DiffBlobExcerptData}}">
+										{{template "repo/diff/section" dict "file" . "root" $}}
 									</table>
 								{{else if $file.IsRenamed}}
 									<div class="tw-p-3">{{ctx.Locale.Tr "repo.diff.file_renamed_no_changes"}}</div>
@@ -238,6 +240,15 @@
 		{{end}}
 	</div>
 
+	{{if not .DiffNotAvailable}}
+		{{/* initDiffGapExpander clones these into a section row, picking the arrows the gap still deserves */}}
+		<template id="diff-gap-markup">
+			<span class="code-comment-more"></span>
+			<button type="button" class="code-expander-button" data-global-click="diffExpandHiddenLines" data-gap-direction="down">{{svg "octicon-fold-down"}}</button>
+			<button type="button" class="code-expander-button" data-global-click="diffExpandHiddenLines" data-gap-direction="up">{{svg "octicon-fold-up"}}</button>
+			<button type="button" class="code-expander-button" data-global-click="diffExpandHiddenLines" data-gap-direction="single">{{svg "octicon-fold"}}</button>
+		</template>
+	{{end}}
 	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
 		<template id="issue-comment-editor-template">
 			<form class="ui form comment">
