@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"strconv"
+	"strings"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
@@ -25,6 +27,34 @@ type BlobExcerptOptions struct {
 	RightHunkSize int
 	Direction     string // an arrow reveals one chunk from the end it points at, otherwise the whole gap
 	Language      string
+}
+
+// GapNumbers writes the six numbers a gap is, for the browser to hand back to ParseGapNumbers
+func (s *DiffLineSectionInfo) GapNumbers() string {
+	return fmt.Sprintf("%d,%d,%d,%d,%d,%d",
+		s.LastLeftIdx, s.LastRightIdx, s.LeftIdx, s.RightIdx, s.LeftHunkSize, s.RightHunkSize)
+}
+
+// ParseGapNumbers reads back what GapNumbers wrote
+func ParseGapNumbers(gapNumbers string) (BlobExcerptOptions, error) {
+	invalid := fmt.Errorf("invalid gap: %q", gapNumbers)
+	nums := strings.Split(gapNumbers, ",")
+	if len(nums) != 6 {
+		return BlobExcerptOptions{}, invalid
+	}
+	var parsed [6]int
+	for i, num := range nums {
+		v, err := strconv.Atoi(num)
+		if err != nil || v < 0 {
+			return BlobExcerptOptions{}, invalid
+		}
+		parsed[i] = v
+	}
+	return BlobExcerptOptions{
+		LastLeft: parsed[0], LastRight: parsed[1],
+		LeftIndex: parsed[2], RightIndex: parsed[3],
+		LeftHunkSize: parsed[4], RightHunkSize: parsed[5],
+	}, nil
 }
 
 // a gap with no hunk on either side runs to the end of the file, so nothing follows it
