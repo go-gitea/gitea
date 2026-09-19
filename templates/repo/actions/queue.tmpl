@@ -1,0 +1,14 @@
+{{template "base/head" .}}
+<div class="page-content repository actions">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="flex-container">
+			{{template "repo/actions/sidebar" .}}
+			<div class="flex-container-main">
+				{{template "shared/actions/queue_list" .}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

@@ -38,6 +38,24 @@ func TestActionTask_GetRunJobLink(t *testing.T) {
 	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42, Run: &ActionRun{ID: 10}}}).GetRunJobLink())
 }
 
+func TestGetTaskRunnerNames(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	runner := &ActionRunner{Name: "queue-runner"}
+	require.NoError(t, db.Insert(ctx, runner))
+	task := &ActionTask{RunnerID: runner.ID, TokenHash: "queue-test-task"}
+	require.NoError(t, db.Insert(ctx, task))
+	// Invalid log indexes must not be read by a runner-name lookup.
+	_, err := db.GetEngine(ctx).Table(new(ActionTask)).ID(task.ID).Update(map[string]any{"log_indexes": []byte{0x80}})
+	require.NoError(t, err)
+	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, 987654321})
+	require.NoError(t, err)
+	assert.Equal(t, map[int64]string{task.ID: runner.Name}, names)
+	names, err = GetTaskRunnerNames(ctx, nil)
+	require.NoError(t, err)
+	assert.Empty(t, names)
+}
+
 func TestMakeTaskStepDisplayName(t *testing.T) {
 	tests := []struct {
 		name     string
