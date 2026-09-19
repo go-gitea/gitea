@@ -26,8 +26,6 @@ export function initNotificationCount() {
 
   let pollerStarted = false;
   onUserEvent('notification-count', (msg) => { receiveUpdateCount(msg.eventData.count) }); // no await
-  // On each (re)connect, reconcile the count from the server to recover any push dropped during the connect gap.
-  onUserEvent('worker-connected', () => { updateNotificationCount(); updateNotificationTable() }); // no await
   onUserEvent('worker-unavailable', () => {
     if (pollerStarted) return;
     pollerStarted = true;
