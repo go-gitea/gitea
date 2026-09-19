@@ -241,6 +241,15 @@
 		{{end}}
 	</div>
 
+	{{if not .DiffNotAvailable}}
+		{{/* initDiffGapExpander clones these into a section row, picking the arrows the gap still deserves */}}
+		<template id="diff-gap-markup">
+			<span class="code-comment-more"></span>
+			<button type="button" class="code-expander-button" data-global-click="diffExpandHiddenLines" data-gap-direction="down">{{svg "octicon-fold-down"}}</button>
+			<button type="button" class="code-expander-button" data-global-click="diffExpandHiddenLines" data-gap-direction="up">{{svg "octicon-fold-up"}}</button>
+			<button type="button" class="code-expander-button" data-global-click="diffExpandHiddenLines" data-gap-direction="single">{{svg "octicon-fold"}}</button>
+		</template>
+	{{end}}
 	{{if and (not $.Repository.IsArchived) (not .DiffNotAvailable)}}
 		<template id="issue-comment-editor-template">
 			<form class="ui form comment">
