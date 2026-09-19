@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -213,6 +214,52 @@ func TestIssues(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestIssuesScopeSortExclusiveOrder(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	high := &issues_model.Label{RepoID: repo.ID, Name: "priority/high", Color: "#112233", Exclusive: true, ExclusiveOrder: 1}
+	low := &issues_model.Label{RepoID: repo.ID, Name: "priority/low", Color: "#112233", Exclusive: true, ExclusiveOrder: 2}
+	assert.NoError(t, issues_model.NewLabels(t.Context(), high, low))
+
+	// issue 2 already carries two labels in the fixtures, issue 1 carries one
+	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	assert.NoError(t, issues_model.NewIssueLabel(t.Context(), issue1, low, doer))
+	assert.NoError(t, issues_model.NewIssueLabel(t.Context(), issue2, high, doer))
+
+	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+		RepoIDs:  []int64{repo.ID},
+		SortType: issues_model.ScopeSortPrefix + "priority",
+	})
+	assert.NoError(t, err)
+
+	ids := make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		ids = append(ids, issue.ID)
+	}
+	assert.Len(t, ids, len(container.SetOf(ids...)), "an issue must appear once regardless of how many labels it carries, got %v", ids)
+	assert.Equal(t, issue2.ID, ids[0], "the issue labelled priority/high must sort first, got %v", ids)
+	assert.Equal(t, issue1.ID, ids[1], "the issue labelled priority/low must sort second, got %v", ids)
+
+	// paging over the same sort must return every issue exactly once
+	var paged []int64
+	for page := 1; page <= len(ids); page++ {
+		issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:   []int64{repo.ID},
+			SortType:  issues_model.ScopeSortPrefix + "priority",
+			Paginator: &db.ListOptions{Page: page, PageSize: 1},
+		})
+		assert.NoError(t, err)
+		for _, issue := range issues {
+			paged = append(paged, issue.ID)
+		}
+	}
+	assert.Equal(t, ids, paged)
 }
 
 func TestIssue_loadTotalTimes(t *testing.T) {
