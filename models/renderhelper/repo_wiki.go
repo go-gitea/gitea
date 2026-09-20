@@ -36,9 +36,9 @@ func (r *RepoWiki) ResolveLink(link, preferLinkType string) (finalLink string) {
 	case markup.LinkTypeRoot:
 		finalLink = r.ctx.ResolveLinkRoot(link)
 	case markup.LinkTypeMedia, markup.LinkTypeRaw:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki/raw", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.currentTreePath), link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki/raw", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.CurrentTreePath), link)
 	default:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.currentTreePath), link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "wiki", r.opts.currentRefSubURL), util.PathEscapeSegments(r.opts.CurrentTreePath), link)
 	}
 	return finalLink
 }
@@ -49,9 +49,12 @@ type RepoWikiOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 
-	// these options are not used at the moment because Wiki doesn't support sub-path, nor branch
+	// CurrentTreePath is the directory of the page being rendered (relative to the wiki root),
+	// relative links in the page are resolved against it. Empty for pages in the wiki root.
+	CurrentTreePath string // eg: "path/to/dir" in the wiki repo
+
+	// not used at the moment because Wiki doesn't support branch
 	currentRefSubURL string // eg: "branch/main"
-	currentTreePath  string // eg: "path/to/file" in the repo
 }
 
 func NewRenderContextRepoWiki(ctx context.Context, repo *repo_model.Repository, opts ...RepoWikiOptions) *markup.RenderContext {

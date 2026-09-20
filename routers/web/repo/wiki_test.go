@@ -97,6 +97,29 @@ func TestWiki(t *testing.T) {
 		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 		assert.Equal(t, "/user2/repo1/wiki/raw/jpeg.jpg", ctx.Resp.Header().Get("Location"))
 	})
+	t.Run("SubdirectoryEntry", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		wikiRepo, err := git.OpenRepository(t.Context(), repo.WikiStorageRepo())
+		require.NoError(t, err)
+		defer wikiRepo.Close()
+		commit, err := wikiRepo.GetBranchCommit(t.Context(), "master")
+		require.NoError(t, err)
+
+		// a legacy "%2F" name is tried first, then the real subdirectory path
+		entry, resolved, err := findEntryForFile(t.Context(), wikiRepo, commit, "images%2Fjpeg.jpg")
+		require.NoError(t, err)
+		assert.NotNil(t, entry)
+		assert.Equal(t, "images/jpeg.jpg", resolved)
+
+		entry, resolved, err = findEntryForFile(t.Context(), wikiRepo, commit, "images/jpeg.jpg")
+		require.NoError(t, err)
+		assert.NotNil(t, entry)
+		assert.Equal(t, "images/jpeg.jpg", resolved)
+
+		entry, _, err = findEntryForFile(t.Context(), wikiRepo, commit, "images/missing.jpg")
+		assert.True(t, git.IsErrNotExist(err))
+		assert.Nil(t, entry)
+	})
 	t.Run("Pages", testWikiPages)
 	t.Run("NewWiki", testNewWiki)
 	t.Run("NewWikiPost", testNewWikiPost)
