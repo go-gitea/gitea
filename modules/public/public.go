@@ -39,12 +39,18 @@ func AssetsCors() func(next http.Handler) http.Handler {
 	})
 }
 
+var unservedFiles = container.SetOf("assets/emoji.json")
+
 // FileHandlerFunc implements the static handler for serving files in "public" assets
 func FileHandlerFunc() http.HandlerFunc {
 	assetFS := AssetFS()
 	return func(resp http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodGet && req.Method != http.MethodHead {
 			resp.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if unservedFiles.Contains(strings.ToLower(util.PathJoinRelX(req.URL.Path))) {
+			resp.WriteHeader(http.StatusNotFound)
 			return
 		}
 		handleRequest(resp, req, http.FS(assetFS), req.URL.Path)
