@@ -3,7 +3,7 @@ import {hideToastsAll, showErrorToast} from './toast.ts';
 import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage, errorName} from './errors.ts';
 import {confirmModal, createConfirmModal} from '../features/comp/ConfirmModal.ts';
-import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {ignoreAreYouSure} from './are-you-sure.ts';
 import {registerGlobalSelectorFunc} from './observer.ts';
 import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
@@ -443,4 +443,11 @@ export function initGlobalFetchAction() {
   });
 
   registerGlobalSelectorFunc('[data-fetch-url]', initFetchActionTrigger);
+
+  // when the page is reloaded after a fetch action, scroll to the flash message if any
+  const elFlashMessage = document.querySelector('.ui.message.flash-message');
+  if (elFlashMessage) {
+    window.history.scrollRestoration = 'manual';
+    elFlashMessage?.scrollIntoView({block: 'center'});
+  }
 }

@@ -22,7 +22,7 @@ import (
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
 
-	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 )
 
 var (

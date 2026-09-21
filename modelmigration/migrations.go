@@ -426,7 +426,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(350, "Add published_unix column to release", v28.AddPublishedUnixToRelease),
 		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
 		newMigration(352, "Add token columns to deploy_key", v28.AddTokenToDeployKey),
-		newMigration(353, "Add index on issue_dependency.dependency_id", v28.AddIndexIssueDependencyDependencyID),
+		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
+		newMigration(354, "Add index on issue_dependency.dependency_id", v28.AddIndexIssueDependencyDependencyID),
 	}
 	return preparedMigrations
 }
