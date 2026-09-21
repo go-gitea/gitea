@@ -21,10 +21,7 @@ export function initCitationFileCopyContent() {
     });
   }
 
-  inputContent.addEventListener('click', () => {
-    inputContent.select();
-  });
+  inputContent.addEventListener('focus', () => inputContent.select(), {once: true});
 
   updateUi();
-  inputContent.select(); // kept until the modal autofocuses the input
 }
