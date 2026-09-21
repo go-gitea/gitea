@@ -21,7 +21,5 @@ export function initCitationFileCopyContent() {
     });
   }
 
-  inputContent.addEventListener('focus', () => inputContent.select(), {once: true});
-
   updateUi();
 }
