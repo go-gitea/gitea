@@ -5,23 +5,23 @@ import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;
 
-export async function formatCitations(citationFileContent: string, lang: string) {
-  const [{Cite}] = await Promise.all([
+async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
+  const [{Cite, plugins}] = await Promise.all([
     import('@citation-js/core'),
     import('@citation-js/plugin-software-formats'),
     import('@citation-js/plugin-bibtex'),
     import('@citation-js/plugin-csl'),
   ]);
+  const citationFileContent = pageData.citationFileContent!;
+  const config = plugins.config.get('@bibtex');
+  config.constants.fieldTypes.doi = ['field', 'literal'];
+  config.constants.fieldTypes.version = ['field', 'literal'];
   const citationFormatter = new Cite(citationFileContent);
-  for (const item of citationFormatter.data) { // citeproc-js crashes on numeric variables like CFF's "volume: 5"
-    for (const [key, value] of Object.entries(item)) {
-      if (typeof value === 'number') Object.assign(item, {[key]: String(value)});
-    }
-  }
-  return {
-    apa: citationFormatter.format('bibliography', {style: 'apa', lang}),
-    bibtex: citationFormatter.format('bibtex'),
-  };
+  const lang = getCurrentLocale() || 'en-US';
+  const apaOutput = citationFormatter.format('bibliography', {template: 'apa', lang});
+  const bibtexOutput = citationFormatter.format('bibtex', {lang});
+  citationCopyBibtex.setAttribute('data-text', bibtexOutput);
+  citationCopyApa.setAttribute('data-text', apaOutput);
 }
 
 export async function initCitationFileCopyContent() {
@@ -29,12 +29,11 @@ export async function initCitationFileCopyContent() {
 
   if (!pageData.citationFileContent) return;
 
-  const citeRepoButton = document.querySelector('#cite-repo-button');
-  if (!citeRepoButton) return; // sidebar is hidden
-
   const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa')!;
   const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex')!;
-  const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content')!;
+  const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content');
+
+  if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
   const updateUi = () => {
     const isBibtex = localUserSettings.getString('citation-copy-format', defaultCitationFormat) === 'bibtex';
@@ -44,30 +43,29 @@ export async function initCitationFileCopyContent() {
     citationCopyApa.classList.toggle('primary', !isBibtex);
   };
 
-  citationCopyApa.addEventListener('click', () => {
-    localUserSettings.setString('citation-copy-format', 'apa');
-    updateUi();
-  });
-
-  citationCopyBibtex.addEventListener('click', () => {
-    localUserSettings.setString('citation-copy-format', 'bibtex');
-    updateUi();
-  });
-
-  inputContent.addEventListener('click', () => {
-    inputContent.select();
-  });
-
-  citeRepoButton.addEventListener('click', async () => {
+  document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
     try {
-      const {apa, bibtex} = await formatCitations(pageData.citationFileContent!, getCurrentLocale() || 'en-US');
-      citationCopyApa.setAttribute('data-text', apa);
-      citationCopyBibtex.setAttribute('data-text', bibtex);
+      await initInputCitationValue(citationCopyApa, citationCopyBibtex);
     } catch (e) {
       console.error(`initCitationFileCopyContent error: ${errorMessage(e)}`, e);
       return;
     }
     updateUi();
+
+    citationCopyApa.addEventListener('click', () => {
+      localUserSettings.setString('citation-copy-format', 'apa');
+      updateUi();
+    });
+
+    citationCopyBibtex.addEventListener('click', () => {
+      localUserSettings.setString('citation-copy-format', 'bibtex');
+      updateUi();
+    });
+
+    inputContent.addEventListener('click', () => {
+      inputContent.select();
+    });
+
     showFomanticModal(document.querySelector('#cite-repo-modal'));
   });
 }
