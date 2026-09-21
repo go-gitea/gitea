@@ -40,7 +40,7 @@ func (l *LockInfo) IsLocked() bool {
 
 func ParseLockInfo(r io.Reader) (*LockInfo, error) {
 	var lock LockInfo
-	err := json.NewDecoder(io.LimitReader(r, maxLockInfoSize)).Decode(&lock)
+	err := json.NewDecoder(packages.NewLimitedDecompressor(r, maxLockInfoSize)).Decode(&lock)
 	if err != nil {
 		return nil, err
 	}
