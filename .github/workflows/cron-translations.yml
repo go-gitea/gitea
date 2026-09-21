@@ -15,9 +15,26 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: crowdin/github-action@0d5670f539973aea2f01abce61a8989934df0025 # v3.0.2
+      - name: Upload source to Crowdin and cleanup obsolete strings
+        uses: crowdin/github-action@0d5670f539973aea2f01abce61a8989934df0025 # v3.0.2
         with:
-          upload_sources: true
+          command: file upload
+          command_args: >-
+            options/locale/locale_en-US.json
+            --dest options/locale/locale_en-US.json
+            --type json
+            --branch main
+            --cleanup-mode
+            --update-strings
+            --config crowdin.yml
+        env:
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
+
+      - name: Download translations from Crowdin
+        uses: crowdin/github-action@0d5670f539973aea2f01abce61a8989934df0025 # v3.0.2
+        with:
+          upload_sources: false
           upload_translations: false
           download_sources: false
           download_translations: true
@@ -28,6 +45,7 @@ jobs:
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
+
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
