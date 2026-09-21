@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 
