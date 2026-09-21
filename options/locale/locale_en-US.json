@@ -3812,6 +3812,7 @@
   "actions.runners.last_online": "Last Online Time",
   "actions.runners.running_now": "Running now",
   "actions.runners.running_now.none": "Idle",
+  "actions.runners.waiting_queues": "Waiting",
   "actions.runners.repo_queue": "Repositories",
   "actions.runners.repo_queue.waiting": "Waiting",
   "actions.runners.repo_queue.hint": "Waiting jobs this runner's labels can pick. They are not reserved for this runner.",
