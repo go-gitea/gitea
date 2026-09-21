@@ -306,7 +306,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			if err != nil {
 				return nil, err
 			}
-			// ponytail: invalidate historical appends per file; use line mapping if finer tracking is needed.
+			// TODO: invalidate historical appends per file; use line mapping if finer tracking is needed.
 			invalidated = slices.Contains(changedFiles, treePath)
 		}
 	}

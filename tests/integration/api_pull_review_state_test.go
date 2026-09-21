@@ -134,7 +134,7 @@ func TestAPIPullReviewViewedFiles(t *testing.T) {
 	assertState(t, 2, pr.ID, want)
 
 	t.Run("InvalidPaths", func(t *testing.T) {
-		for _, path := range []string{"", ".", "../modified.txt", "/modified.txt", "./modified.txt", "dir/../modified.txt", "dir//new name.txt", "modified.txt\x00", "missing.txt", "unchanged.txt", "base-only.txt", "dir"} {
+		for _, path := range []string{"", ".", "../modified.txt", "/modified.txt", "./modified.txt", "dir/../modified.txt", "dir//new name.txt", "modified.txt\x00", "missing.txt", "unchanged.txt", "base-only.txt", "dir", "old-name.txt"} {
 			t.Run(fmt.Sprintf("%q", path), func(t *testing.T) {
 				for _, operation := range []string{"viewed", "unviewed"} {
 					update(t, pr.Index, operation, api.MarkPullReviewFileOptions{Path: path}, token, http.StatusUnprocessableEntity)

@@ -211,7 +211,7 @@ func EditPullReview(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/{index}/reviews/{id} repository repoEditPullReview
 	// ---
 	// summary: Edit a pull request review's body
-	// description: The reviewer or a user with write access to pull requests may edit the body. Review requests cannot be edited. Omitting body leaves it unchanged; an empty body clears it. The review state is not changed. Archived repositories return HTTP 404.
+	// description: The reviewer or a user with write access to pull requests may edit the body. Pending reviews are only visible to the reviewer and admins. Review requests cannot be edited. Omitting body leaves it unchanged; an empty body clears it. The review state is not changed. Archived repositories return HTTP 404.
 	// consumes:
 	// - application/json
 	// produces:
@@ -297,7 +297,7 @@ func EditPullReviewComment(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/comments/{id} repository repoEditPullReviewComment
 	// ---
 	// summary: Edit a pull request review comment
-	// description: The comment author or a user with write access to pull requests may edit the body. Omitting body leaves it unchanged; an empty body clears it. Archived repositories return HTTP 404.
+	// description: The comment author or a user with write access to pull requests may edit the body. Comments on pending reviews are only visible to the reviewer and admins. Omitting body leaves it unchanged; an empty body clears it. Archived repositories return HTTP 404.
 	// consumes:
 	// - application/json
 	// produces:
@@ -380,7 +380,7 @@ func DeletePullReviewComment(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/comments/{id} repository repoDeletePullReviewComment
 	// ---
 	// summary: Delete a pull request review comment
-	// description: The comment author or a user with write access to pull requests may delete the comment. The review itself is retained. Archived repositories return HTTP 404.
+	// description: The comment author or a user with write access to pull requests may delete the comment. Comments on pending reviews are only visible to the reviewer and admins. The review itself is retained. Archived repositories return HTTP 404.
 	// produces:
 	// - application/json
 	// parameters:

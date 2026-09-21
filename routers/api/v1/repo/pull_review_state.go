@@ -162,10 +162,14 @@ func updatePullReviewFileState(ctx *context.APIContext, state pull_model.ViewedS
 		ctx.APIError(http.StatusUnprocessableEntity, "pull request has no common ancestor")
 		return
 	}
-	changedFiles, err := gitRepo.GetFilesChangedBetween(ctx, mergeBase, headCommitID)
+	diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, mergeBase, headCommitID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
+	}
+	changedFiles := make([]string, 0, len(diffTree.Files))
+	for _, file := range diffTree.Files {
+		changedFiles = append(changedFiles, file.HeadPath)
 	}
 	if !slices.Contains(changedFiles, opts.Path) {
 		ctx.APIError(http.StatusUnprocessableEntity, "path is not a changed file in the pull request")
