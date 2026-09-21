@@ -710,7 +710,7 @@ func EditWikiPost(ctx *context.Context) {
 	}
 
 	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
-	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
+	newWikiName := wiki_service.WebPathForEdit(oldWikiName, form.Title)
 	if form.Message == "" {
 		form.Message = ctx.Locale.TrString("repo.editor.update", form.Title)
 	}

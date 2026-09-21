@@ -49,6 +49,15 @@ func TestUserTitleToWebPath(t *testing.T) {
 	}
 }
 
+func TestWebPathForEdit(t *testing.T) {
+	old := WebPath("Existing-Page")
+	assert.Equal(t, old, WebPathForEdit(old, ""))
+	assert.Equal(t, old, WebPathForEdit(old, " "))
+	assert.Equal(t, old, WebPathForEdit(old, "\t\n"))
+	assert.Equal(t, WebPath("renamed"), WebPathForEdit(old, "renamed"))
+	assert.Equal(t, WebPath("unnamed"), UserTitleToWebPath("", " "))
+}
+
 func TestWebPathToDisplayName(t *testing.T) {
 	type test struct {
 		Expected string

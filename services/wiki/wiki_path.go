@@ -159,6 +159,16 @@ func UserTitleToWebPath(base, title string) WebPath {
 	return WebPath(title)
 }
 
+// WebPathForEdit resolves the wiki web path for an edit.
+// A blank or whitespace-only title means "keep the existing page name";
+// UserTitleToWebPath would otherwise coerce it to "unnamed".
+func WebPathForEdit(old WebPath, title string) WebPath {
+	if strings.TrimSpace(title) == "" {
+		return old
+	}
+	return UserTitleToWebPath("", title)
+}
+
 // ToWikiPageMetaData converts meta information to a WikiPageMetaData
 func ToWikiPageMetaData(wikiName WebPath, lastCommit *git.Commit, repo *repo_model.Repository) *api.WikiPageMetaData {
 	subURL := string(wikiName)

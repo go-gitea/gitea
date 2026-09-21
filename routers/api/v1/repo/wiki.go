@@ -129,11 +129,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
 	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
-	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
-
-	if len(newWikiName) == 0 {
-		newWikiName = oldWikiName
-	}
+	newWikiName := wiki_service.WebPathForEdit(oldWikiName, form.Title)
 
 	if len(form.Message) == 0 {
 		form.Message = fmt.Sprintf("Update %q", newWikiName)
