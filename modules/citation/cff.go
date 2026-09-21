@@ -2,7 +2,7 @@
 // Copyright 2018 https://github.com/citation-file-format/ruby-cff. Licensed under the Apache License, Version 2.0
 // SPDX-License-Identifier: Apache-2.0
 
-// Package citation formats CITATION.cff files like GitHub, ported from the formatters of ruby-cff 1.3.0
+// Package citation formats CITATION.cff files, ported from the formatters of ruby-cff 1.3.0
 package citation
 
 import (
