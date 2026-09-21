@@ -24,7 +24,7 @@ const maxStateSize = 256 << 20
 // ParseState parses the required parts of Terraform state file
 func ParseState(r io.Reader) (*State, error) {
 	var state State
-	err := json.NewDecoder(packages.NewLimitedDecompressor(r, maxLockInfoSize)).Decode(&lock)
+	err := json.NewDecoder(packages.NewLimitedDecompressor(r, maxStateSize)).Decode(&state)
 	if err != nil {
 		return nil, err
 	}
