@@ -18,8 +18,8 @@ async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citati
   config.constants.fieldTypes.version = ['field', 'literal'];
   const citationFormatter = new Cite(citationFileContent);
   const lang = getCurrentLocale() || 'en-US';
-  const apaOutput = citationFormatter.format('bibliography', {template: 'apa', lang});
-  const bibtexOutput = citationFormatter.format('bibtex', {lang});
+  const apaOutput = citationFormatter.format('bibliography', {style: 'apa', lang});
+  const bibtexOutput = citationFormatter.format('bibtex');
   citationCopyBibtex.setAttribute('data-text', bibtexOutput);
   citationCopyApa.setAttribute('data-text', apaOutput);
 }
