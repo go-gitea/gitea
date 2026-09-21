@@ -24,6 +24,7 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		IsPull:     opts.IsPull,
 		IsClosed:   opts.IsClosed,
 		IsArchived: opts.IsArchived,
+		IsWIP:      opts.IsWIP,
 	}
 
 	if len(opts.LabelIDs) == 1 && opts.LabelIDs[0] == 0 {
