@@ -42,9 +42,9 @@ func globalVars() *globalVarsStruct {
 	// although there can be concurrent calls, the result should be the same, and there is no performance problem
 	vars = &globalVarsStruct{}
 	if data, err := public.AssetFS().ReadFile("assets", "emoji.json"); err != nil {
-		log.Error("Unable to read emoji data: %v", err)
+		log.Error("Unable to read assets/emoji.json: %v", err)
 	} else if err = json.Unmarshal(data, &vars.emojis); err != nil {
-		log.Error("Unable to parse emoji data: %v", err)
+		log.Error("Unable to parse assets/emoji.json: %v", err)
 	}
 	vars.codeMap = make(map[string]int, len(vars.emojis))
 	vars.aliasMap = make(map[string]int, len(vars.emojis))

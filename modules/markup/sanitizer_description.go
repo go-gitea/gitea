@@ -26,7 +26,7 @@ func (st *Sanitizer) createRepoDescriptionPolicy() *bluemonday.Policy {
 
 	// Allow classes for emojis
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^emoji$`)).OnElements("img", "span")
-	policy.AllowAttrs("data-alias").OnElements("span")
+	policy.AllowAttrs("aria-label").OnElements("span")
 
 	return policy
 }

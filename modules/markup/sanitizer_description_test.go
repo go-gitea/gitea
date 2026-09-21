@@ -13,7 +13,7 @@ func TestDescriptionSanitizer(t *testing.T) {
 	testCases := []string{
 		`<h1>Title</h1>`, `Title`,
 		`<img src='img.png' alt='image'>`, ``,
-		`<span class="emoji" data-alias="+1">THUMBS UP</span>`, `<span class="emoji" data-alias="+1">THUMBS UP</span>`,
+		`<span class="emoji" aria-label="thumbs up">THUMBS UP</span>`, `<span class="emoji" aria-label="thumbs up">THUMBS UP</span>`,
 		`<span style="color: red">Hello World</span>`, `<span>Hello World</span>`,
 		`<br>`, ``,
 		`<a href="https://example.com" target="_blank">https://example.com</a>`, `<a href="https://example.com" target="_blank" rel="nofollow noopener">https://example.com</a>`,
