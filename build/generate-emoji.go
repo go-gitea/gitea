@@ -71,7 +71,7 @@ func generate() error {
 }
 
 func isSkinTone(r rune) bool {
-	return r >= 0x1f3fb && r <= 0x1f3ff // U+1F3FB to U+1F3FF are the five skin tone modifiers
+	return r >= 0x1f3fb && r <= 0x1f3ff
 }
 
 func fetchEmojis(existingAliases map[string][]string) ([]*emoji, error) {
