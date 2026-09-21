@@ -175,7 +175,8 @@ func Runners(ctx *context.Context) {
 
 type runnerListRow struct {
 	*actions_model.ActionRunner
-	RunningTasks []*actions_model.ActionTask
+	RunningTasks  []*actions_model.ActionTask
+	WaitingQueues []actions_model.RunnerRepoQueue // only repositories with Waiting > 0
 }
 
 func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner, ownerID, repoID int64) ([]runnerListRow, error) {
@@ -212,6 +213,15 @@ func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner,
 	}
 	for i := range rows {
 		rows[i].RunningTasks = byRunner[rows[i].ID]
+		queues, err := actions_model.ListRunnerRepoQueues(ctx, rows[i].ActionRunner)
+		if err != nil {
+			return nil, err
+		}
+		for _, q := range queues {
+			if q.Waiting > 0 {
+				rows[i].WaitingQueues = append(rows[i].WaitingQueues, q)
+			}
+		}
 	}
 	return rows, nil
 }
