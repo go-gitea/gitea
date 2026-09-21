@@ -58,9 +58,9 @@
 			</a>
 		{{end}}
 
-		{{if .CitiationExist}}
+		{{if .CitationBibTeX}}
 			{{template "repo/cite/cite_modal" .}}
-			<a class="flex-text-block muted" id="cite-repo-button">
+			<a class="flex-text-block muted show-modal" data-modal="#cite-repo-modal">
 				{{svg "octicon-cross-reference"}} {{ctx.Locale.Tr "repo.cite_this_repo"}}
 			</a>
 		{{end}}

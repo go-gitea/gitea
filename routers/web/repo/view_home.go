@@ -17,6 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/citation"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
@@ -114,8 +115,13 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
 					log.Error("checkCitationFile: GetBlobContent: %v", err)
 				} else {
-					ctx.Data["CitiationExist"] = true
-					ctx.PageData["citationFileContent"] = content
+					apa, bibtex := "", content
+					if entry.Name() == "CITATION.cff" {
+						apa, bibtex = citation.FormatCFF(content)
+					}
+					ctx.Data["CitationFileName"] = entry.Name()
+					ctx.Data["CitationAPA"] = apa
+					ctx.Data["CitationBibTeX"] = bibtex
 					break
 				}
 			}

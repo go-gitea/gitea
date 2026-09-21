@@ -1,71 +1,30 @@
-import {getCurrentLocale} from '../utils.ts';
-import {errorMessage} from '../modules/errors.ts';
-import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
-const {pageData} = window.config;
+export function initCitationFileCopyContent() {
+  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex');
+  if (!citationCopyBibtex) return;
 
-async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
-  const [{Cite, plugins}] = await Promise.all([
-    import('@citation-js/core'),
-    import('@citation-js/plugin-software-formats'),
-    import('@citation-js/plugin-bibtex'),
-    import('@citation-js/plugin-csl'),
-  ]);
-  const citationFileContent = pageData.citationFileContent!;
-  const config = plugins.config.get('@bibtex');
-  config.constants.fieldTypes.doi = ['field', 'literal'];
-  config.constants.fieldTypes.version = ['field', 'literal'];
-  const citationFormatter = new Cite(citationFileContent);
-  const lang = getCurrentLocale() || 'en-US';
-  const apaOutput = citationFormatter.format('bibliography', {template: 'apa', lang});
-  const bibtexOutput = citationFormatter.format('bibtex', {lang});
-  citationCopyBibtex.setAttribute('data-text', bibtexOutput);
-  citationCopyApa.setAttribute('data-text', apaOutput);
-}
-
-export async function initCitationFileCopyContent() {
-  const defaultCitationFormat = 'apa'; // apa or bibtex
-
-  if (!pageData.citationFileContent) return;
-
-  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa')!;
-  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex')!;
-  const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content');
-
-  if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
+  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
+  const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content')!;
 
   const updateUi = () => {
-    const isBibtex = localUserSettings.getString('citation-copy-format', defaultCitationFormat) === 'bibtex';
-    const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
-    inputContent.value = copyContent;
+    const isBibtex = !citationCopyApa || localUserSettings.getString('citation-copy-format', 'apa') === 'bibtex';
+    inputContent.value = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
     citationCopyBibtex.classList.toggle('primary', isBibtex);
-    citationCopyApa.classList.toggle('primary', !isBibtex);
+    citationCopyApa?.classList.toggle('primary', !isBibtex);
   };
 
-  document.querySelector('#cite-repo-button')?.addEventListener('click', async () => {
-    try {
-      await initInputCitationValue(citationCopyApa, citationCopyBibtex);
-    } catch (e) {
-      console.error(`initCitationFileCopyContent error: ${errorMessage(e)}`, e);
-      return;
-    }
-    updateUi();
-
-    citationCopyApa.addEventListener('click', () => {
-      localUserSettings.setString('citation-copy-format', 'apa');
+  for (const [format, button] of Object.entries({apa: citationCopyApa, bibtex: citationCopyBibtex})) {
+    button?.addEventListener('click', () => {
+      localUserSettings.setString('citation-copy-format', format);
       updateUi();
     });
+  }
 
-    citationCopyBibtex.addEventListener('click', () => {
-      localUserSettings.setString('citation-copy-format', 'bibtex');
-      updateUi();
-    });
-
-    inputContent.addEventListener('click', () => {
-      inputContent.select();
-    });
-
-    showFomanticModal(document.querySelector('#cite-repo-modal'));
+  inputContent.addEventListener('click', () => {
+    inputContent.select();
   });
+
+  updateUi();
+  inputContent.select(); // kept until the modal autofocuses the input
 }
