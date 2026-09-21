@@ -9,8 +9,9 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"gitea.dev/assets"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -40,8 +41,10 @@ func globalVars() *globalVarsStruct {
 	}
 	// although there can be concurrent calls, the result should be the same, and there is no performance problem
 	vars = &globalVarsStruct{}
-	if err := json.Unmarshal(assets.EmojiJSON, &vars.emojis); err != nil {
-		panic(err)
+	if data, err := public.AssetFS().ReadFile("assets", "emoji.json"); err != nil {
+		log.Error("Unable to read emoji data: %v", err)
+	} else if err = json.Unmarshal(data, &vars.emojis); err != nil {
+		log.Error("Unable to parse emoji data: %v", err)
 	}
 	vars.codeMap = make(map[string]int, len(vars.emojis))
 	vars.aliasMap = make(map[string]int, len(vars.emojis))

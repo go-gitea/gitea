@@ -13,6 +13,7 @@ import (
 
 func TestMain(m *testing.M) {
 	setting.IsInTesting = true
+	setting.StaticRootPath = "../../"
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	markup.RefreshFileNamePatterns()
 	os.Exit(m.Run())

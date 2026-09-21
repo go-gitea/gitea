@@ -61,6 +61,11 @@ func TestReplacers(t *testing.T) {
 	}
 }
 
+func TestMain(m *testing.M) {
+	setting.StaticRootPath = "../../"
+	m.Run()
+}
+
 const (
 	testInputWithEmojis = "This is a test string containing some emojis like \U0001f44d and \U0001f37a and some text in between."
 	testInputNoEmojis   = "This is a test string containing no emojis at all, just plain old ASCII text, which should ideally be scanned very quickly by our trie implementation."

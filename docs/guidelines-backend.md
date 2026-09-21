@@ -17,7 +17,6 @@ essential before contributing backend code.
 
 The backend is split into top-level packages, each with a focused responsibility:
 
-- `assets`: data shared by the backend and frontend, like `emoji.json`
 - `build`: helper scripts used at compile time
 - `cmd`: subcommands such as `web`, `serv`, `hooks`, `doctor`, and admin utilities
 - `models`: data structures and database operations (XORM); keeps external

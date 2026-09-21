@@ -14,16 +14,14 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-func createEmoji(ctx *RenderContext, content, name string) *html.Node {
+func createEmoji(ctx *RenderContext, content, alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
 	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
-	if name != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: name})
-	}
+	span.Attr = append(span.Attr, html.Attribute{Key: "data-alias", Val: alias})
 
 	text := &html.Node{
 		Type: html.TextNode,
@@ -41,7 +39,6 @@ func createCustomEmoji(ctx *RenderContext, alias string) *html.Node {
 		Attr: []html.Attribute{},
 	}
 	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
-	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
 		Type:     html.ElementNode,

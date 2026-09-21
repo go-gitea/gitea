@@ -323,8 +323,8 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 }
 
 func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
-	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
-	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="moon">🌔</span> in text</a></p>
+	testcase := `[Link with emoji :moon: in text](https://gitea.com)`
+	expected := `<p><a href="https://gitea.com" rel="nofollow">Link with emoji <span class="emoji" data-alias="moon">🌔</span> in text</a></p>
 `
 	res, err := markdown.RenderString(markup.NewTestRenderContext(), testcase)
 	assert.NoError(t, err)
@@ -542,7 +542,7 @@ mail@domain.com
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
 <a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
-<span class="emoji" aria-label="+1">👍</span>
+<span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
 @mention-user test
 #123

@@ -34,6 +34,8 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Line numbers on codepreview
 	policy.AllowAttrs("data-line-number").OnElements("span")
 
+	policy.AllowAttrs("data-alias").OnElements("span")
+
 	// HINT: CUSTOM-URL-SCHEMES-ALLOW: setting custom means also allow them besides http/https, no custom means "allow all"
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)

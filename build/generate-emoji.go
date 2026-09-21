@@ -22,7 +22,7 @@ import (
 
 const (
 	emojiTestURL = "https://www.unicode.org/Public/17.0.0/emoji/emoji-test.txt"
-	jsonFile     = "assets/emoji.json"
+	jsonFile     = "public/assets/emoji.json"
 )
 
 type emoji struct {
@@ -40,7 +40,7 @@ func main() {
 }
 
 func generate() error {
-	// assets/emoji.json is also the alias source, so existing aliases stay stable
+	// the existing file is also the alias source, so existing aliases stay stable
 	existing, err := os.ReadFile(jsonFile)
 	if err != nil {
 		return err
@@ -71,7 +71,7 @@ func generate() error {
 }
 
 func isSkinTone(r rune) bool {
-	return r >= 0x1f3fb && r <= 0x1f3ff
+	return r >= 0x1f3fb && r <= 0x1f3ff // U+1F3FB to U+1F3FF are the five skin tone modifiers
 }
 
 func fetchEmojis(existingAliases map[string][]string) ([]*emoji, error) {
