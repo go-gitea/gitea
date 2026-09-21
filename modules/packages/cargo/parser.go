@@ -10,6 +10,7 @@ import (
 	"regexp"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -112,7 +113,12 @@ func parsePackage(r io.Reader) (*Package, error) {
 		Repository    string              `json:"repository"`
 		Links         string              `json:"links"`
 	}
-	if err := json.NewDecoder(r).Decode(&meta); err != nil {
+
+	data, err := io.ReadAll(packages.NewLimitedDecompressor(r, packages.MaxMetadataScanSize))
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, &meta); err != nil {
 		return nil, err
 	}
 
