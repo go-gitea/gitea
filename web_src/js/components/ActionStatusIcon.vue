@@ -1,5 +1,5 @@
 <!-- Keep in sync with templates/repo/icons/action_status.tmpl.
-    action status accepted: success, skipped, waiting, blocked, running, failure, cancelled, cancelling, unknown.
+    action status accepted: success, skipped, waiting, pending, blocked, running, failure, cancelled, cancelling, unknown.
 -->
 <script lang="ts" setup>
 import {computed} from 'vue';
@@ -7,7 +7,7 @@ import SvgIcon from './SvgIcon.vue';
 import {getActionStatusIcon, type ActionStatusIconVariant} from '../modules/action-status-icon.ts';
 
 const props = withDefaults(defineProps<{
-  status: 'success' | 'skipped' | 'waiting' | 'blocked' | 'running' | 'failure' | 'cancelled' | 'cancelling' | 'unknown',
+  status: 'success' | 'skipped' | 'waiting' | 'pending' | 'blocked' | 'running' | 'failure' | 'cancelled' | 'cancelling' | 'unknown',
   size?: number,
   className?: string,
   localeStatus?: string,

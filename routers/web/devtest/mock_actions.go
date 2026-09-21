@@ -502,7 +502,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 
 			{
 				ID: finalID, Link: jobLink(finalID), JobID: "final", Name: "final",
-				Status: actions_model.StatusBlocked.String(), Duration: "0s",
+				Status: "pending", Duration: "0s",
 				Needs: []string{"local_caller", "cross_caller"},
 			},
 		}

@@ -3798,6 +3798,7 @@
   "actions.status.cancelling": "Canceling",
   "actions.status.skipped": "Skipped",
   "actions.status.blocked": "Blocked",
+  "actions.status.pending": "Pending",
   "actions.runners": "Runners",
   "actions.runners.runner_manage_panel": "Runners Management",
   "actions.runners.new": "Create new Runner",

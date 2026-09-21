@@ -19,6 +19,8 @@ export function getActionStatusIcon(status: ActionsStatus, iconVariant: ActionSt
     case 'cancelled':
       return {name: 'octicon-stop', colorClass: 'tw-text-text-light'};
     case 'waiting':
+      return {name: 'octicon-dot-fill', colorClass: 'tw-text-yellow'};
+    case 'pending':
       return {name: 'octicon-circle', colorClass: 'tw-text-text-light'};
     case 'blocked':
       return {name: 'octicon-blocked', colorClass: 'tw-text-yellow'};

@@ -621,7 +621,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Link:     fmt.Sprintf("%s/jobs/%d", run.Link(), v.ID),
 			JobID:    v.JobID,
 			Name:     v.Name,
-			Status:   v.Status.String(),
+			Status:   util.Iif(v.Status.IsBlocked() && len(pendingNeeds(v, jobs)) > 0, "pending", v.Status.String()),
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 			Needs:    v.Needs,
@@ -848,7 +848,7 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
-			Status:   status.String(),
+			Status:   util.Iif(status.IsWaiting(), "pending", status.String()),
 		})
 	}
 

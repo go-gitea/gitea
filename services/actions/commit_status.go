@@ -17,6 +17,7 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
@@ -53,6 +54,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		scopedPrefix = actions_model.ScopedStatusContextPrefix(ctx, run.WorkflowRepoID)
 	}
 
+	var waiting *waitingJobFilter
 	for _, job := range jobs {
 		// A deferred-matrix placeholder's name changes when it expands, so a status created while it
 		// waits would be orphaned. The emitter reloads the jobs after expanding and creates them
@@ -61,7 +63,10 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		if job.IsMatrixDeferred && !job.Status.IsDone() {
 			continue
 		}
-		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {
+		if waiting == nil && job.Status.IsBlocked() && len(job.Needs) > 0 {
+			waiting = newWaitingJobFilter(ctx, run, job.RunAttemptID)
+		}
+		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job, waiting); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
@@ -151,7 +156,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	return event, commitID, nil
 }
 
-func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob) error {
+func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, waiting *waitingJobFilter) error {
 	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
 	ctxName := actions_module.WorkflowStatusContextName(displayName, job.Name, event) // git_model.NewCommitStatus also trims spaces
 	if run.IsScopedRun {
@@ -160,7 +165,50 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
-	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job))
+	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), waiting.hides(job, ctxName))
+}
+
+// waitingJobFilter hides jobs waiting on needs that no required check covers.
+type waitingJobFilter struct {
+	jobIDs        container.Set[int64]
+	requiredGlobs []glob.Glob
+}
+
+func newWaitingJobFilter(ctx context.Context, run *actions_model.ActionRun, attemptID int64) *waitingJobFilter {
+	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, attemptID)
+	if err != nil {
+		log.Error("GetRunJobsByRunAndAttemptID: %v", err)
+		return &waitingJobFilter{}
+	}
+	resolver := newJobStatusResolver(jobs, nil)
+	filter := &waitingJobFilter{jobIDs: make(container.Set[int64])}
+	for _, job := range jobs {
+		if allDone, _ := resolver.resolveCheckNeeds(job.ID); job.Status.IsBlocked() && !allDone {
+			filter.jobIDs.Add(job.ID)
+		}
+	}
+	if len(filter.jobIDs) == 0 {
+		return filter
+	}
+	rules, err := git_model.FindRepoProtectedBranchRules(ctx, run.RepoID)
+	if err != nil {
+		log.Error("FindRepoProtectedBranchRules: %v", err)
+		return &waitingJobFilter{}
+	}
+	if slices.ContainsFunc(rules, func(rule *git_model.ProtectedBranch) bool {
+		return rule.EnableStatusCheck && len(rule.StatusCheckContexts) == 0
+	}) {
+		return &waitingJobFilter{}
+	}
+	if filter.requiredGlobs, err = requiredStatusContextGlobs(ctx, run.Repo, rules); err != nil {
+		log.Error("requiredStatusContextGlobs: %v", err)
+		return &waitingJobFilter{}
+	}
+	return filter
+}
+
+func (f *waitingJobFilter) hides(job *actions_model.ActionRunJob, ctxName string) bool {
+	return f != nil && f.jobIDs.Contains(job.ID) && !slices.ContainsFunc(f.requiredGlobs, func(gp glob.Glob) bool { return gp.Match(ctxName) })
 }
 
 // getAllRequiredStatusContextGlobs returns the compiled globs of every status-check context required in the repo:
@@ -170,6 +218,10 @@ func getAllRequiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repo
 	if err != nil {
 		return nil, fmt.Errorf("FindRepoProtectedBranchRules: %w", err)
 	}
+	return requiredStatusContextGlobs(ctx, repo, rules)
+}
+
+func requiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository, rules git_model.ProtectedBranchRules) ([]glob.Glob, error) {
 	required, err := pull_service.EffectiveRequiredContexts(ctx, repo, rules...)
 	if err != nil {
 		return nil, fmt.Errorf("EffectiveRequiredContexts: %w", err)
@@ -246,7 +298,7 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 			continue
 		}
 		// "Skipped" mirrors toCommitStatusDescription for StatusSkipped.
-		if err := createWorkflowCommitStatus(ctx, repo, commitID, ctxName, workflowID, commitstatus.CommitStatusSkipped, "", "Skipped"); err != nil {
+		if err := createWorkflowCommitStatus(ctx, repo, commitID, ctxName, workflowID, commitstatus.CommitStatusSkipped, "", "Skipped", false); err != nil {
 			return err
 		}
 	}
@@ -254,7 +306,7 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 }
 
 // createWorkflowCommitStatus posts the commit status for one workflow-job context.
-func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository, commitID, ctxName, workflowID string, state commitstatus.CommitStatusState, targetURL, description string) error {
+func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository, commitID, ctxName, workflowID string, state commitstatus.CommitStatusState, targetURL, description string, onlyReplace bool) error {
 	// Mix the workflow file path into the hash so two workflow files that
 	// share the same `name:` and job name produce distinct commit statuses
 	// even though they render identically — matching GitHub's behavior
@@ -280,13 +332,18 @@ func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository
 			break
 		}
 	}
+	hasPrevious := false
 	for _, v := range statuses {
 		if v.ContextHash == ctxHash {
 			if v.State == state && v.TargetURL == targetURL && v.Description == description {
 				return nil
 			}
+			hasPrevious = true
 			break
 		}
+	}
+	if onlyReplace && !hasPrevious {
+		return nil
 	}
 
 	creator := user_model.NewActionsUser()
