@@ -96,9 +96,15 @@
 						</td>
 						<td>
 							{{if .RunningTasks}}
-							<span class="flex-text-inline tw-flex tw-flex-wrap tw-gap-2">
+							<span class="flex-text-inline tw-flex tw-flex-wrap tw-gap-1">
 								{{range .RunningTasks}}
-									{{if .GetRunJobLink}}<a href="{{.GetRunJobLink}}">{{if .Job}}{{.Job.Name}}{{else}}#{{.JobID}}{{end}}</a>{{else}}#{{.JobID}}{{end}}
+									{{$name := printf "#%d" .JobID}}{{if .Job}}{{$name = .Job.Name}}{{end}}
+									{{$label := $name}}{{if .GetRepoName}}{{$label = printf "%s · %s" .GetRepoName $name}}{{end}}
+									{{if .GetRunJobLink}}
+										<a class="ui label" href="{{.GetRunJobLink}}">{{$label}}</a>
+									{{else}}
+										<span class="ui label">{{$label}}</span>
+									{{end}}
 								{{end}}
 							</span>
 							{{else}}-{{end}}
