@@ -114,7 +114,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
 					log.Error("checkCitationFile: GetBlobContent: %v", err)
 				} else {
-					ctx.Data["CitiationExist"] = true
+					ctx.Data["CitationFileName"] = entry.Name()
 					ctx.PageData["citationFileContent"] = content
 					break
 				}

@@ -58,7 +58,7 @@
 			</a>
 		{{end}}
 
-		{{if .CitiationExist}}
+		{{if .CitationFileName}}
 			{{template "repo/cite/cite_modal" .}}
 			<a class="flex-text-block muted" id="cite-repo-button">
 				{{svg "octicon-cross-reference"}} {{ctx.Locale.Tr "repo.cite_this_repo"}}
