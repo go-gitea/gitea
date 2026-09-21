@@ -27,8 +27,9 @@ type HashedBuffer struct {
 }
 
 const (
-	DefaultMemorySize		= 32 * 1024 * 1024
-	maxHashedBufferSize	= 64 << 30
+	DefaultMemorySize = 32 * 1024 * 1024
+
+	maxHashedBufferSize = 64 << 30
 )
 
 // NewHashedBuffer creates a hashed buffer with the default memory size
