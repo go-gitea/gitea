@@ -11839,7 +11839,7 @@
           {
             "description": "pattern of repositories to search for",
             "in": "query",
-            "name": "pattern",
+            "name": "query",
             "schema": {
               "type": "string"
             }

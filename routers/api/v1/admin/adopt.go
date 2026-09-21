@@ -31,7 +31,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
-	// - name: pattern
+	// - name: query
 	//   in: query
 	//   description: pattern of repositories to search for
 	//   type: string

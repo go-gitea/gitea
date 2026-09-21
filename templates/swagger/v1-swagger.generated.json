@@ -724,7 +724,7 @@
           {
             "type": "string",
             "description": "pattern of repositories to search for",
-            "name": "pattern",
+            "name": "query",
             "in": "query"
           }
         ],
