@@ -26,9 +26,10 @@ type HashedBuffer struct {
 	combinedWriter io.Writer
 }
 
-const DefaultMemorySize = 32 * 1024 * 1024
-
-var maxHashedBufferSize int64 = 64 << 30
+const (
+	DefaultMemorySize		= 32 * 1024 * 1024
+	maxHashedBufferSize	= 64 << 30
+)
 
 // NewHashedBuffer creates a hashed buffer with the default memory size
 func NewHashedBuffer() (*HashedBuffer, error) {
