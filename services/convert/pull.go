@@ -12,8 +12,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -54,11 +52,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	repoUserPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(pr.BaseRepoID, doer),
-		func(ctx context.Context, _ string) (access_model.Permission, error) {
-			return access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
-		},
-	)
+	repoUserPerm, err := access_model.GetDoerRepoPermissionCached(ctx, pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetDoerRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		repoUserPerm.AccessMode = perm.AccessModeNone
@@ -175,7 +169,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == issues_model.PullRequestFlowGithub {
-		p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
+		p, err := access_model.GetDoerRepoPermissionCached(ctx, pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			p.AccessMode = perm.AccessModeNone
@@ -430,7 +424,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				apiPullRequest.Head.Ref = pr.HeadBranch
 			}
 			if pr.HeadRepoID != pr.BaseRepoID {
-				p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
+				p, err := access_model.GetDoerRepoPermissionCached(ctx, pr.HeadRepo, doer)
 				if err != nil {
 					log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
 					p.AccessMode = perm.AccessModeNone

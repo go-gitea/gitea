@@ -660,3 +660,34 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		})(t)
 	})
 }
+
+func TestAPIPullHeadRepoHiddenWhenInaccessible(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, user2, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: pr.HeadRepoID, IsPrivate: true}, "is_private"))
+		prURL := fmt.Sprintf("/api/v1/repos/%s/pulls/%d", pr.BaseRepo.FullName(), pr.Index)
+
+		fullToken := getUserToken(t, user2.Name, auth_model.AccessTokenScopeReadRepository)
+		visible := DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", prURL).AddTokenAuth(fullToken), http.StatusOK), &api.PullRequest{})
+		require.NotNil(t, visible.Head.Repository)
+		assert.Equal(t, pr.HeadRepoID, visible.Head.RepoID)
+		require.NotEmpty(t, visible.Head.Sha)
+
+		publicOnlyToken := getUserToken(t, user2.Name, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+		var listed []*api.PullRequest
+		DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/pulls?state=all", pr.BaseRepo.FullName())), http.StatusOK), &listed)
+		require.Len(t, listed, 1)
+		for _, hidden := range []*api.PullRequest{
+			DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", prURL).AddTokenAuth(publicOnlyToken), http.StatusOK), &api.PullRequest{}),
+			DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", prURL), http.StatusOK), &api.PullRequest{}),
+			listed[0],
+		} {
+			assert.Nil(t, hidden.Head.Repository)
+			assert.EqualValues(t, -1, hidden.Head.RepoID)
+			assert.Equal(t, visible.Head.Sha, hidden.Head.Sha)
+		}
+	})
+}
