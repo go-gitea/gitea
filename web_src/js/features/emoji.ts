@@ -1,8 +1,7 @@
-import emojis from '../../../public/assets/emoji.json' with {type: 'json'};
+import emojis from '../../../assets/emoji.json' with {type: 'json'};
 import {html} from '../utils/html.ts';
 
 const {assetUrlPrefix, customEmojis} = window.config;
-const maxMatches = 6;
 
 const tempMap = {...customEmojis};
 for (const {emoji, aliases} of emojis) {
@@ -36,24 +35,4 @@ export function emojiHTML(name: string) {
 // retrieve string for given emoji name
 export function emojiString(name: string) {
   return emojiMap[name] || `:${name}:`;
-}
-
-export function matchEmoji(queryText: string): string[] {
-  const query = queryText.toLowerCase().replaceAll('_', ' ');
-  if (!query) return emojis.slice(0, maxMatches).map((e) => e.aliases[0]);
-
-  // results is a map of weights, lower is better
-  const results = new Map<string, number>();
-  for (const {aliases} of emojis) {
-    const mainAlias = aliases[0];
-    for (const [aliasIndex, alias] of aliases.entries()) {
-      const index = alias.replaceAll('_', ' ').indexOf(query);
-      if (index === -1) continue;
-      const existing = results.get(mainAlias);
-      const rankedIndex = index + aliasIndex;
-      results.set(mainAlias, existing ? existing - rankedIndex : rankedIndex);
-    }
-  }
-
-  return Array.from(results).sort((a, b) => a[1] - b[1]).slice(0, maxMatches).map(([alias]) => alias);
 }

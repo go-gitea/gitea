@@ -1,4 +1,5 @@
-import {matchMention, matchIssue} from '../../utils/match.ts';
+import {matchEmoji, matchMention, matchIssue} from '../../utils/match.ts';
+import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
@@ -6,7 +7,6 @@ import {getIssueColorClass, getIssueIcon} from '../issue.ts';
 import {errorName} from '../../modules/errors.ts';
 import {debounce} from '../../utils/func.ts';
 import type TextExpanderElement from '@github/text-expander-element';
-import type * as EmojiModule from '../emoji.ts';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
 
 async function fetchIssueSuggestions(key: string, text: string, signal: AbortSignal): Promise<TextExpanderResult> {
@@ -30,8 +30,6 @@ async function fetchIssueSuggestions(key: string, text: string, signal: AbortSig
   }
   return {matched: true, fragment: ul};
 }
-
-let emojiModule: Promise<typeof EmojiModule> | undefined;
 
 export function initTextExpander(expander: TextExpanderElement) {
   if (!expander) return;
@@ -75,24 +73,21 @@ export function initTextExpander(expander: TextExpanderElement) {
     if (!e.detail) return;
     const {key, text, provide} = e.detail;
     if (key === ':') {
-      provide((async (): Promise<TextExpanderResult> => {
-        emojiModule ??= import('../emoji.ts'); // a shared promise resolves in keystroke order, so no stale menu wins
-        const {matchEmoji, emojiString} = await emojiModule;
-        const matches = matchEmoji(text);
-        if (!matches.length) return {matched: false};
+      const matches = matchEmoji(text);
+      if (!matches.length) return provide({matched: false});
 
-        const ul = document.createElement('ul');
-        ul.classList.add('suggestions');
-        for (const name of matches) {
-          const emoji = emojiString(name);
-          const li = document.createElement('li');
-          li.setAttribute('role', 'option');
-          li.setAttribute('data-value', emoji);
-          li.textContent = `${emoji} ${name}`;
-          ul.append(li);
-        }
-        return {matched: true, fragment: ul};
-      })());
+      const ul = document.createElement('ul');
+      ul.classList.add('suggestions');
+      for (const name of matches) {
+        const emoji = emojiString(name);
+        const li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.setAttribute('data-value', emoji);
+        li.textContent = `${emoji} ${name}`;
+        ul.append(li);
+      }
+
+      provide({matched: true, fragment: ul});
     } else if (key === '@') {
       provide((async (): Promise<TextExpanderResult> => {
         if (!mentionsUrl) return {matched: false};

@@ -39,19 +39,12 @@ func AssetsCors() func(next http.Handler) http.Handler {
 	})
 }
 
-// paths that should not be exposed
-var unservedPaths = container.SetOf("assets/emoji.json")
-
 // FileHandlerFunc implements the static handler for serving files in "public" assets
 func FileHandlerFunc() http.HandlerFunc {
 	assetFS := AssetFS()
 	return func(resp http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodGet && req.Method != http.MethodHead {
 			resp.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		if unservedPaths.Contains(strings.ToLower(util.PathJoinRelX(req.URL.Path))) {
-			resp.WriteHeader(http.StatusNotFound)
 			return
 		}
 		handleRequest(resp, req, http.FS(assetFS), req.URL.Path)

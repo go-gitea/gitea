@@ -1,10 +1,11 @@
+import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {fetchMentions} from '../utils/match.ts';
 import type {TributeCollection} from 'tributejs';
 import type {Mention} from '../types.ts';
 
 export async function attachTribute(element: HTMLElement) {
-  const [{default: Tribute}, {emojiKeys, emojiHTML, emojiString}] = await Promise.all([import('tributejs'), import('./emoji.ts')]);
+  const {default: Tribute} = await import('tributejs');
   const mentionsUrl = element.closest('[data-mentions-url]')?.getAttribute('data-mentions-url');
 
   const emojiCollection: TributeCollection<string> = { // emojis

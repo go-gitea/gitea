@@ -1,5 +1,5 @@
 import {GET} from '../modules/fetch.ts';
-import {matchMention} from './match.ts';
+import {matchEmoji, matchMention} from './match.ts';
 
 vi.mock('../modules/fetch.ts', () => ({GET: vi.fn()}));
 
@@ -12,6 +12,62 @@ const testMentions = [
   {key: 'org6 User 6', value: 'org6', name: 'org6', fullname: 'User 6', avatar: 'https://avatar6.com'},
   {key: 'org7 User 7', value: 'org7', name: 'org7', fullname: 'User 7', avatar: 'https://avatar7.com'},
 ];
+
+test('matchEmoji', () => {
+  expect(matchEmoji('')).toMatchInlineSnapshot(`
+    [
+      "+1",
+      "-1",
+      "100",
+      "1234",
+      "1st_place_medal",
+      "2nd_place_medal",
+    ]
+  `);
+
+  expect(matchEmoji('hea')).toMatchInlineSnapshot(`
+    [
+      "head_shaking_horizontally",
+      "head_shaking_vertically",
+      "headphones",
+      "headstone",
+      "health_worker",
+      "hear_no_evil",
+    ]
+  `);
+
+  expect(matchEmoji('hear')).toMatchInlineSnapshot(`
+    [
+      "hear_no_evil",
+      "heard_mcdonald_islands",
+      "heart",
+      "heart_decoration",
+      "heart_eyes",
+      "heart_eyes_cat",
+    ]
+  `);
+
+  expect(matchEmoji('poo')).toMatchInlineSnapshot(`
+    [
+      "poodle",
+      "hankey",
+      "spoon",
+      "bowl_with_spoon",
+    ]
+  `);
+
+  expect(matchEmoji('1st_')).toMatchInlineSnapshot(`
+    [
+      "1st_place_medal",
+    ]
+  `);
+
+  expect(matchEmoji('jellyfis')).toMatchInlineSnapshot(`
+    [
+      "jellyfish",
+    ]
+  `);
+});
 
 test('matchMention', async () => {
   vi.mocked(GET).mockResolvedValue({ok: true, json: () => Promise.resolve(testMentions)} as Response);
