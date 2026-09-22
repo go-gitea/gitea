@@ -296,7 +296,7 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 			assert.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
 		}
 		if expectedStatus != http.StatusInternalServerError {
-			assert.False(t, strings.Contains(recorder.Body.String(), common.PageInternalServerErrorMark), "Request: %s %s, response contains internal server error", req.Method, req.URL.String())
+			assert.NotContains(t, recorder.Body.String(), common.PageInternalServerErrorMark, "Request: %s %s, response should not contain internal server error", req.Method, req.URL.String())
 		}
 	}
 	return recorder
