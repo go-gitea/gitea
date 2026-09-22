@@ -908,7 +908,6 @@
 		</div>
 		{{end}}
 	</div>
-{{template "repo/settings/layout_footer" .}}
 
 {{if $.CanManagerDangerZone}}
 	{{if .Repository.IsMirror}}
@@ -1084,3 +1083,5 @@
 {{end}}
 
 {{template "repo/settings/push_mirror_sync_modal" .}}
+
+{{template "repo/settings/layout_footer" .}}
