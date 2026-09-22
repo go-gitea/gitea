@@ -4,7 +4,7 @@ import {fetchMentions} from '../utils/match.ts';
 import Tribute, {type TributeCollection} from 'tributejs';
 import type {Mention} from '../types.ts';
 
-export async function attachTribute(element: HTMLElement) {
+export function attachTribute(element: HTMLElement) {
   const mentionsUrl = element.closest('[data-mentions-url]')?.getAttribute('data-mentions-url');
 
   const emojiCollection: TributeCollection<string> = { // emojis

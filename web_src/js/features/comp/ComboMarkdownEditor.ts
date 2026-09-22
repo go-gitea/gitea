@@ -102,9 +102,11 @@ export class ComboMarkdownEditor {
   async init() {
     this.prepareEasyMDEToolbarActions();
     this.setupContainer();
-    this.setupTextExpander(); // no await, suggestions load in parallel with the rest
     this.setupTab();
-    await this.setupDropzone(); // textarea depends on dropzone
+    await Promise.all([
+      this.setupDropzone(), // textarea depends on dropzone
+      this.setupTextExpander(),
+    ]);
     this.setupTextarea();
 
     await this.switchToUserPreference();
@@ -390,7 +392,7 @@ export class ComboMarkdownEditor {
       },
     });
     this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll')!, this.options.editorHeights);
-    await attachTribute(this.easyMDE.codemirror.getInputField());
+    attachTribute(this.easyMDE.codemirror.getInputField());
     if (this.dropzone) {
       initEasyMDEPaste(this.easyMDE, this.dropzone);
     }
