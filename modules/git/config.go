@@ -42,6 +42,13 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
+	// A tree with two entries sharing the same name is an fsck "duplicateEntries" error: readers that
+	// look up a single blob (e.g. the web UI) and readers that materialize the whole tree (e.g. checkout,
+	// archive) disagree on which entry wins, so such objects must never be accepted from a push.
+	if err := configSet(ctx, "receive.fsckObjects", "true"); err != nil {
+		return err
+	}
+
 	if err := configSet(ctx, "core.commitGraph", "true"); err != nil {
 		return err
 	}
