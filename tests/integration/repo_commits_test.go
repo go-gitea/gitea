@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"sync"
@@ -14,10 +15,14 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	files_service "gitea.dev/services/repository/files"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -242,4 +247,25 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	// Check that the data-global-init="initCommitStatuses" (for trigger) and commit-status (svg) are present
 	sel := doc.doc.Find(`#commits-table .message [data-global-init="initCommitStatuses"] .commit-status`)
 	assert.Equal(t, 1, sel.Length())
+}
+
+// an unsigned commit whose committer is not its author has no verification, the page header must still render
+func TestRepoCommitPageDifferentCommitter(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) { // the git hooks need the running server
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		resp, err := files_service.ChangeRepoFiles(t.Context(), repo1, user2, &files_service.ChangeRepoFilesOptions{
+			OldBranch: "master", NewBranch: "master", Message: "committed by someone else",
+			Author:    &files_service.IdentityOptions{GitUserName: "Anne Doe", GitUserEmail: "anne.doe@example.com"},
+			Committer: &files_service.IdentityOptions{GitUserName: "Someone Else", GitUserEmail: "someone.else@example.com"},
+			Files:     []*files_service.ChangeRepoFile{{Operation: "create", TreePath: "different-committer.txt", ContentReader: strings.NewReader("x")}},
+		})
+		require.NoError(t, err)
+		require.NotEqual(t, resp.Commit.Author.Email, resp.Commit.Committer.Email)
+
+		req := NewRequest(t, "GET", "/user2/repo1/commit/"+resp.Commit.SHA)
+		body := loginUser(t, "user2").MakeRequest(t, req, http.StatusOK).Body.String() // a render error mid-page still answers 200
+		assert.Contains(t, body, "Someone Else")
+		assert.Contains(t, body, "</html>")
+	})
 }
