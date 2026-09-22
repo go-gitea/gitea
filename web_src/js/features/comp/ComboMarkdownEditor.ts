@@ -1,6 +1,5 @@
 import '@github/markdown-toolbar-element';
 import '@github/text-expander-element';
-import {attachTribute} from '../tribute.ts';
 import {hideElem, showElem, autosize, isElemVisible, generateElemId} from '../../utils/dom.ts';
 import {
   EventUploadStateChanged,
@@ -12,7 +11,6 @@ import {handleGlobalEnterQuickSubmit} from './QuickSubmit.ts';
 import {renderPreviewPanelContent} from '../repo-editor.ts';
 import {toggleTasklistCheckbox} from '../../markup/tasklist.ts';
 import {easyMDEToolbarActions, type EasyMdeToolbarAction} from './EasyMDEToolbarActions.ts';
-import {initTextExpander} from './TextExpander.ts';
 import {showErrorToast} from '../../modules/toast.ts';
 import {POST} from '../../modules/fetch.ts';
 import {
@@ -104,6 +102,7 @@ export class ComboMarkdownEditor {
   async init() {
     this.prepareEasyMDEToolbarActions();
     this.setupContainer();
+    this.setupTextExpander(); // no await, suggestions load in parallel with the rest
     this.setupTab();
     await this.setupDropzone(); // textarea depends on dropzone
     this.setupTextarea();
@@ -129,6 +128,10 @@ export class ComboMarkdownEditor {
     this.previewUrl = this.container.getAttribute('data-preview-url')!;
     this.previewContext = this.container.getAttribute('data-preview-context')!;
     this.updateEditorContainerTabPage('writer');
+  }
+
+  async setupTextExpander() {
+    const {initTextExpander} = await import('./TextExpander.ts');
     initTextExpander(this.container.querySelector('text-expander')!);
   }
 
@@ -343,8 +346,9 @@ export class ComboMarkdownEditor {
 
   async switchToEasyMDE() {
     if (this.easyMDE) return;
-    const [{default: EasyMDE}] = await Promise.all([
+    const [{default: EasyMDE}, {attachTribute}] = await Promise.all([
       import('easymde'),
+      import('../tribute.ts'),
       import('../../../css/easymde.css'),
     ]);
     const easyMDEOpt: EasyMDE.Options = {

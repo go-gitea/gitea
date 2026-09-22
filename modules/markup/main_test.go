@@ -13,7 +13,7 @@ import (
 
 func TestMain(m *testing.M) {
 	setting.IsInTesting = true
-	setting.StaticRootPath = "../../"
+	setting.StaticRootPath = "../../" // AssetFS reads the emoji data from public/
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	markup.RefreshFileNamePatterns()
 	os.Exit(m.Run())

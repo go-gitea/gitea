@@ -52,7 +52,7 @@ mail@domain.com
 }
 
 func TestMain(m *testing.M) {
-	setting.StaticRootPath = "../../"
+	setting.StaticRootPath = "../../" // AssetFS reads the emoji data from public/
 	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
