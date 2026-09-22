@@ -25,6 +25,7 @@ import (
 // ToIssueOptions controls optional data included in issue API responses
 type ToIssueOptions struct {
 	IncludeDependencies bool
+	PublicOnly          bool
 	// dependencies is filled by prepareIssueListOpts so a list converts with one batch load
 	dependencies map[int64]*issue_service.VisibleDependencies
 }
@@ -155,7 +156,8 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	if opts.IncludeDependencies {
 		deps := opts.dependencies[issue.ID]
 		if deps == nil { // single-issue path: no list batch was prepared
-			loaded, err := issue_service.LoadVisibleDependencies(ctx, doer, issues_model.IssueList{issue})
+			loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: doer, PublicOnly: opts.PublicOnly}
+			loaded, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, issues_model.IssueList{issue})
 			if err != nil {
 				log.Error("LoadVisibleDependencies: %v", err)
 				return apiIssue
@@ -194,7 +196,8 @@ func prepareIssueListOpts(ctx context.Context, doer *user_model.User, il issues_
 	if !o.IncludeDependencies {
 		return o
 	}
-	deps, err := issue_service.LoadVisibleDependencies(ctx, doer, il)
+	loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: doer, PublicOnly: o.PublicOnly}
+	deps, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, il)
 	if err != nil {
 		log.Error("LoadVisibleDependencies: %v", err)
 		o.IncludeDependencies = false // do not retry per issue after the batch failed

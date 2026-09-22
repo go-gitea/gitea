@@ -62,7 +62,7 @@ func TestLoadVisibleDependencies(t *testing.T) {
 	require.NoError(t, issues_model.CreateIssueDependency(t.Context(), admin, issue1, privateIssue))
 
 	t.Run("BothDirectionsForWholeList", func(t *testing.T) {
-		deps, err := LoadVisibleDependencies(t.Context(), owner, issues_model.IssueList{issue1, issue2, issue3})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner}, issues_model.IssueList{issue1, issue2, issue3})
 		require.NoError(t, err)
 
 		assert.ElementsMatch(t, []string{ref(issue2), ref(issue3), ref(privateIssue)}, refsOf(deps[issue1.ID].BlockedBy))
@@ -76,7 +76,7 @@ func TestLoadVisibleDependencies(t *testing.T) {
 	})
 
 	t.Run("RepositoriesLoadedOnDependencies", func(t *testing.T) {
-		deps, err := LoadVisibleDependencies(t.Context(), owner, issues_model.IssueList{issue1})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner}, issues_model.IssueList{issue1})
 		require.NoError(t, err)
 		for _, dep := range deps[issue1.ID].BlockedBy {
 			require.NotNil(t, dep.Repo, "dependency %d must have Repo loaded", dep.Index)
@@ -85,13 +85,19 @@ func TestLoadVisibleDependencies(t *testing.T) {
 	})
 
 	t.Run("OutsiderCannotSeePrivateRepo", func(t *testing.T) {
-		deps, err := LoadVisibleDependencies(t.Context(), outsider, issues_model.IssueList{issue1})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: outsider}, issues_model.IssueList{issue1})
 		require.NoError(t, err)
 		assert.ElementsMatch(t, []string{ref(issue2), ref(issue3)}, refsOf(deps[issue1.ID].BlockedBy))
 	})
 
 	t.Run("AnonymousCannotSeePrivateRepo", func(t *testing.T) {
-		deps, err := LoadVisibleDependencies(t.Context(), nil, issues_model.IssueList{issue1})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{}, issues_model.IssueList{issue1})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{ref(issue2), ref(issue3)}, refsOf(deps[issue1.ID].BlockedBy))
+	})
+
+	t.Run("PublicOnlyHidesPrivateRepoFromDoerWhoCouldRead", func(t *testing.T) {
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner, PublicOnly: true}, issues_model.IssueList{issue1})
 		require.NoError(t, err)
 		assert.ElementsMatch(t, []string{ref(issue2), ref(issue3)}, refsOf(deps[issue1.ID].BlockedBy))
 	})
@@ -104,7 +110,7 @@ func TestLoadVisibleDependencies(t *testing.T) {
 		fresh1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue1.ID})
 		fresh2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue2.ID})
 
-		deps, err := LoadVisibleDependencies(t.Context(), owner, issues_model.IssueList{fresh1, fresh2})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner}, issues_model.IssueList{fresh1, fresh2})
 		require.NoError(t, err)
 		assert.Empty(t, deps[fresh1.ID].BlockedBy, "blocked_by follows the repo setting like GET /dependencies")
 		assert.Equal(t, []string{ref(issue1)}, refsOf(deps[fresh2.ID].Blocking), "blocking ignores the repo setting like GET /blocks")
@@ -116,7 +122,7 @@ func TestLoadVisibleDependencies(t *testing.T) {
 		require.NoError(t, issues_model.CreateIssueDependency(t.Context(), admin, pull5, privateIssue))
 		require.NoError(t, issues_model.CreateIssueDependency(t.Context(), admin, pull5, issue3))
 
-		deps, err := LoadVisibleDependencies(t.Context(), owner, issues_model.IssueList{pull5})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner}, issues_model.IssueList{pull5})
 		require.NoError(t, err)
 		assert.Equal(t, []string{ref(issue3), ref(privateIssue)}, refsOf(deps[pull5.ID].BlockedBy))
 	})
@@ -128,18 +134,18 @@ func TestLoadVisibleDependencies(t *testing.T) {
 			DependencyID: 99999,
 		}))
 
-		deps, err := LoadVisibleDependencies(t.Context(), owner, issues_model.IssueList{issue3})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner}, issues_model.IssueList{issue3})
 		require.NoError(t, err)
 		assert.Empty(t, deps[issue3.ID].BlockedBy)
 	})
 
 	t.Run("EmptyListAndNoLinks", func(t *testing.T) {
-		deps, err := LoadVisibleDependencies(t.Context(), owner, issues_model.IssueList{})
+		deps, err := LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner}, issues_model.IssueList{})
 		require.NoError(t, err)
 		assert.Empty(t, deps)
 
 		unlinked := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: publicRepo.ID, Index: 4})
-		deps, err = LoadVisibleDependencies(t.Context(), owner, issues_model.IssueList{unlinked})
+		deps, err = LoadVisibleDependencies(t.Context(), LoadVisibleDependenciesOptions{Doer: owner}, issues_model.IssueList{unlinked})
 		require.NoError(t, err)
 		require.Contains(t, deps, unlinked.ID)
 		assert.Empty(t, deps[unlinked.ID].BlockedBy)

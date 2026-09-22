@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 
@@ -23,6 +24,11 @@ type VisibleDependencies struct {
 	Blocking  []*issues_model.Issue
 }
 
+type LoadVisibleDependenciesOptions struct {
+	Doer       *user_model.User
+	PublicOnly bool // a public-only API token may only reach genuinely public repositories
+}
+
 // LoadVisibleDependencies loads both dependency directions for every issue in the list
 // with a fixed number of queries, then drops dependencies that live in repositories the
 // doer cannot read issues or pulls in. The result always has an entry for every input issue.
@@ -30,7 +36,7 @@ type VisibleDependencies struct {
 // BlockedBy is left empty for issues whose repository has dependencies disabled, matching
 // GET /issues/{index}/dependencies. Blocking ignores that setting, matching GET /issues/{index}/blocks:
 // another repository may still depend on this issue.
-func LoadVisibleDependencies(ctx context.Context, doer *user_model.User, issues issues_model.IssueList) (map[int64]*VisibleDependencies, error) {
+func LoadVisibleDependencies(ctx context.Context, opts LoadVisibleDependenciesOptions, issues issues_model.IssueList) (map[int64]*VisibleDependencies, error) {
 	result := make(map[int64]*VisibleDependencies, len(issues))
 	inputByID := make(map[int64]*issues_model.Issue, len(issues))
 	for _, issue := range issues {
@@ -62,7 +68,7 @@ func LoadVisibleDependencies(ctx context.Context, doer *user_model.User, issues 
 		depsEnabled[issue.ID] = issue.Repo.IsDependenciesEnabled(ctx)
 	}
 
-	canRead := newRepoReadChecker(ctx, doer)
+	canRead := newRepoReadChecker(ctx, opts)
 	for _, link := range links {
 		// link means: issue link.IssueID is blocked by issue link.DependencyID
 		if blocked, isInput := inputByID[link.IssueID]; isInput && depsEnabled[blocked.ID] {
@@ -127,16 +133,19 @@ func loadLinkedIssues(ctx context.Context, links []*issues_model.IssueDependency
 }
 
 // A nil issue (dangling link) is never readable.
-func newRepoReadChecker(ctx context.Context, doer *user_model.User) func(*issues_model.Issue) (bool, error) {
+func newRepoReadChecker(ctx context.Context, opts LoadVisibleDependenciesOptions) func(*issues_model.Issue) (bool, error) {
 	perms := make(map[int64]access_model.Permission)
 	return func(issue *issues_model.Issue) (bool, error) {
 		if issue == nil || issue.Repo == nil {
 			return false, nil
 		}
+		if opts.PublicOnly && repoHiddenFromPublicOnlyToken(ctx, issue.Repo) {
+			return false, nil
+		}
 		perm, ok := perms[issue.RepoID]
 		if !ok {
 			var err error
-			perm, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, doer)
+			perm, err = access_model.GetDoerRepoPermission(ctx, issue.Repo, opts.Doer)
 			if err != nil {
 				return false, err
 			}
@@ -144,6 +153,18 @@ func newRepoReadChecker(ctx context.Context, doer *user_model.User) func(*issues
 		}
 		return perm.CanReadIssuesOrPulls(issue.IsPull), nil
 	}
+}
+
+// repoHiddenFromPublicOnlyToken mirrors services/context.publicOnlyTokenDeniedRepo: a public-only
+// token may not reach a private repository, nor one owned by a limited or private owner.
+func repoHiddenFromPublicOnlyToken(ctx context.Context, repo *repo_model.Repository) bool {
+	if repo.IsPrivate {
+		return true
+	}
+	if err := repo.LoadOwner(ctx); err != nil || repo.Owner == nil {
+		return true // fail closed if the owner visibility can't be determined
+	}
+	return !repo.Owner.Visibility.IsPublic()
 }
 
 // sortLikeDependencyLists orders like Issue.BlockedByDependencies: same repository first,

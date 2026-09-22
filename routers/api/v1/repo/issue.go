@@ -34,7 +34,7 @@ import (
 
 // parseIssueIncludes parses the "includes" query parameter for issue endpoints
 func parseIssueIncludes(ctx *context.APIContext) (convert.ToIssueOptions, bool) {
-	var opts convert.ToIssueOptions
+	opts := convert.ToIssueOptions{PublicOnly: ctx.PublicOnly}
 	for includeOpt := range strings.SplitSeq(ctx.FormString("includes"), ",") {
 		if includeOpt == "" {
 			continue

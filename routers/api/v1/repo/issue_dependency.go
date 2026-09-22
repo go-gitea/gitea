@@ -320,7 +320,8 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		limit = setting.API.DefaultPagingNum
 	}
 
-	deps, err := issue_service.LoadVisibleDependencies(ctx, ctx.Doer, issues_model.IssueList{issue})
+	loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: ctx.Doer, PublicOnly: ctx.PublicOnly}
+	deps, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, issues_model.IssueList{issue})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

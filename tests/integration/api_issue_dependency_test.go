@@ -390,4 +390,19 @@ func TestAPIGetIssueBlocks(t *testing.T) {
 		assert.Equal(t, publicRepo.FullName(), blocked[0].Repo.FullName)
 		assert.Equal(t, publicBlocked.Index, blocked[0].Index)
 	})
+
+	t.Run("PublicOnlyTokenSeesOnlyPublic", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadIssue, auth_model.AccessTokenScopePublicOnly)
+		req := NewRequest(t, "GET", url).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var blocked []*api.Issue
+		DecodeJSON(t, resp, &blocked)
+
+		assert.Len(t, blocked, 1)
+		assert.Equal(t, publicRepo.FullName(), blocked[0].Repo.FullName)
+		assert.Equal(t, publicBlocked.Index, blocked[0].Index)
+	})
 }
