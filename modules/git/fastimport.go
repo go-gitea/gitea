@@ -55,6 +55,7 @@ func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastI
 		_, _ = fmt.Fprintf(buf, "reset %s\n", c.Ref)
 		_, _ = fmt.Fprintf(buf, "commit %s\n", c.Ref)
 		_, _ = fmt.Fprintf(buf, "mark :%d\n", i+1)
+
 		if c.Author != nil {
 			buf.WriteString("author ")
 			_ = c.Author.Encode(buf)
@@ -64,9 +65,14 @@ func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastI
 			buf.WriteString("committer ")
 			_ = c.Committer.Encode(buf)
 			buf.WriteByte('\n')
+		} else {
+			// "committer" is required, so we use a default one if not provided
+			buf.WriteString("committer Gitea <gitea@example.com> 1500000000 +0000\n")
 		}
+
 		msg := util.IfZero(c.Message, fmt.Sprintf("test commit %d", i+1))
 		_, _ = fmt.Fprintf(buf, "data %d\n%s\n", len(msg), msg)
+
 		for _, f := range c.Files {
 			mode := util.IfZero(f.Mode, EntryModeBlob)
 			_, _ = fmt.Fprintf(buf, "M %s inline %s\ndata %d\n%s\n", mode.String(), f.Path, len(f.Content), f.Content)
