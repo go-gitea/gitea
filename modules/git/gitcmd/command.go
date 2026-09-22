@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/modules/egress"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
 	"gitea.dev/modules/gtprof"
@@ -110,10 +111,15 @@ func NewCommand(args ...internal.CmdArg) *Command {
 	for _, arg := range args {
 		cargs = append(cargs, string(arg))
 	}
-	return &Command{
+	c := &Command{
 		prog: GitExecutable,
 		args: cargs,
 	}
+	// git http(s) remotes always use the internal egress proxy when it is running
+	if proxyURL := egress.GitProxyURL(); proxyURL != "" {
+		c.AddConfig("http.proxy", proxyURL)
+	}
+	return c
 }
 
 func (c *Command) handlePreErrorBrokenCommand(arg string) {
@@ -257,7 +263,9 @@ func commonBaseEnvs() []string {
 func CommonGitCmdEnvs() []string {
 	return append(commonBaseEnvs(), []string{
 		"LC_ALL=C",              // ensure git output is in English, error messages are parsed in English
-		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
+		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git 2.3
+		"no_proxy=",             // disable proxy for git to ensure git always asks proxy
+		"NO_PROXY=",             // git-lfs uses Go's net/http, which prefers the upper spelling
 	}...)
 }
 

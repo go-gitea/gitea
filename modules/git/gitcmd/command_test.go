@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/egress"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/tempdir"
 	"gitea.dev/modules/testlogger"
@@ -156,4 +157,23 @@ func TestRunWithContextTimeout(t *testing.T) {
 		err := cmd.WithTimeout(1 * time.Millisecond).Run(t.Context())
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 	})
+}
+
+func TestCommonGitCmdEnvs(t *testing.T) {
+	envs := CommonGitCmdEnvs()
+	assert.Contains(t, envs, "LC_ALL=C")
+	// the proxy envs stay empty, git is forced to the egress proxy via "http.proxy" config
+	assert.Contains(t, envs, "no_proxy=")
+	assert.Contains(t, envs, "NO_PROXY=")
+	assert.NotContains(t, envs, "http_proxy=")
+	assert.NotContains(t, envs, "https_proxy=")
+}
+
+func TestNewCommandEgressProxyConfig(t *testing.T) {
+	t.Cleanup(func() { egress.SetGitProxyURL("") })
+
+	assert.Empty(t, NewCommand("--version").configArgs)
+
+	egress.SetGitProxyURL("http://127.0.0.1:37891")
+	assert.Equal(t, []string{"-c", "http.proxy=http://127.0.0.1:37891"}, NewCommand("--version").configArgs)
 }

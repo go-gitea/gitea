@@ -7,7 +7,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,7 +18,6 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -220,20 +218,11 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 		opts.Timeout = -1
 	}
 
-	envs := os.Environ()
 	if opts.Env != nil {
-		envs = opts.Env
-	} else {
-		u, err := url.Parse(from)
-		if err == nil {
-			envs = proxy.EnvWithProxy(u)
-		}
+		cmd = cmd.WithEnv(opts.Env)
 	}
 
-	return cmd.
-		WithTimeout(opts.Timeout).
-		WithEnv(envs).
-		RunWithStderr(ctx)
+	return cmd.WithTimeout(opts.Timeout).RunWithStderr(ctx)
 }
 
 // PushOptions options when push to remote
