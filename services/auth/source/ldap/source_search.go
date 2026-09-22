@@ -250,28 +250,30 @@ func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
 }
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
-func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
+func (source *Source) SearchEntry(name, passwd string, directBind bool) (*SearchResult, bool) {
 	if MockedSearchEntry != nil {
 		return MockedSearchEntry(source, name, passwd, directBind)
 	}
 	return realSearchEntry(source, name, passwd, directBind)
 }
 
-var MockedSearchEntry func(source *Source, name, passwd string, directBind bool) *SearchResult
+var MockedSearchEntry func(source *Source, name, passwd string, directBind bool) (*SearchResult, bool)
 
-func realSearchEntry(source *Source, name, passwd string, directBind bool) *SearchResult {
+func realSearchEntry(source *Source, name, passwd string, directBind bool) (*SearchResult, bool) {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
 	if passwd == "" {
 		log.Debug("Auth. failed for %s, password cannot be empty", name)
-		return nil
+		return nil, false
 	}
 	l, err := dial(source)
 	if err != nil {
 		log.Error("LDAP Connect error, %s:%v", source.Host, err)
 		source.Enabled = false
-		return nil
+		return nil, false
 	}
 	defer l.Close()
+
+	userExists := false
 
 	var userDN string
 	if directBind {
@@ -281,12 +283,12 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		userDN, ok = source.sanitizedUserDN(name)
 
 		if !ok {
-			return nil
+			return nil, false
 		}
 
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
-			return nil
+			return nil, false
 		}
 
 		if source.UserBase != "" {
@@ -295,7 +297,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 
 			userDN, ok = source.findUserDN(l, name)
 			if !ok {
-				return nil
+				return nil, false
 			}
 		}
 	} else {
@@ -307,7 +309,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 			err := l.Bind(source.BindDN, source.BindPassword)
 			if err != nil {
 				log.Debug("Failed to bind as BindDN[%s]: %v", source.BindDN, err)
-				return nil
+				return nil, false
 			}
 			log.Trace("Bound as BindDN %s", source.BindDN)
 		} else {
@@ -316,21 +318,22 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 
 		userDN, found = source.findUserDN(l, name)
 		if !found {
-			return nil
+			return nil, false
 		}
+		userExists = true
 	}
 
 	if !source.AttributesInBind {
 		// binds user (checking password) before looking-up attributes in user context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
-			return nil
+			return nil, userExists
 		}
 	}
 
 	userFilter, ok := source.sanitizedUserQuery(name)
 	if !ok {
-		return nil
+		return nil, false
 	}
 
 	isAttributeSSHPublicKeySet := strings.TrimSpace(source.AttributeSSHPublicKey) != ""
@@ -355,7 +358,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 	sr, err := l.Search(search)
 	if err != nil {
 		log.Error("LDAP Search failed unexpectedly! (%v)", err)
-		return nil
+		return nil, false
 	} else if len(sr.Entries) < 1 {
 		if directBind {
 			log.Trace("User filter inhibited user login.")
@@ -363,7 +366,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 			log.Trace("LDAP Search found no matching entries.")
 		}
 
-		return nil
+		return nil, false
 	}
 
 	var sshPublicKey []string
@@ -396,7 +399,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		usersLdapGroups = source.listLdapGroupMemberships(l, userAttributeListedInGroup, true)
 
 		if source.GroupFilter != "" && len(usersLdapGroups) == 0 {
-			return nil
+			return nil, false
 		}
 	}
 
@@ -404,7 +407,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		// binds user (checking password) after looking-up attributes in BindDN context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
-			return nil
+			return nil, userExists
 		}
 	}
 
@@ -419,7 +422,7 @@ func realSearchEntry(source *Source, name, passwd string, directBind bool) *Sear
 		IsRestricted: isRestricted,
 		Avatar:       Avatar,
 		Groups:       usersLdapGroups,
-	}
+	}, userExists
 }
 
 // UsePagedSearch returns if need to use paged search

@@ -27,21 +27,6 @@ func (err ErrUserPasswordNotSet) Unwrap() error {
 	return util.ErrInvalidArgument
 }
 
-// ErrUserPasswordInvalid represents a "ErrUserPasswordInvalid" kind of error.
-type ErrUserPasswordInvalid struct {
-	UID  int64
-	Name string
-}
-
-func (err ErrUserPasswordInvalid) Error() string {
-	return fmt.Sprintf("user's password is invalid [uid: %d, name: %s]", err.UID, err.Name)
-}
-
-// Unwrap unwraps this error as a ErrInvalidArgument error
-func (err ErrUserPasswordInvalid) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
 // Authenticate authenticates the provided user against the DB
 func Authenticate(ctx context.Context, user *user_model.User, login, password string) (*user_model.User, error) {
 	if user == nil {
@@ -51,7 +36,7 @@ func Authenticate(ctx context.Context, user *user_model.User, login, password st
 	if !user.IsPasswordSet() {
 		return nil, ErrUserPasswordNotSet{UID: user.ID, Name: user.Name}
 	} else if !user.ValidatePassword(password) {
-		return nil, ErrUserPasswordInvalid{UID: user.ID, Name: user.Name}
+		return nil, user_model.ErrUserPasswordInvalid{UID: user.ID, Name: user.Name}
 	}
 
 	// Update password hash if server password hash algorithm have changed

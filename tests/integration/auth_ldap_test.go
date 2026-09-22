@@ -202,6 +202,10 @@ func testLDAPUserSignin(t *testing.T) {
 		u := te.otherLDAPUsers[0]
 		testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
 	})
+	t.Run("WrongPassword", func(t *testing.T) {
+		u := te.gitLDAPUsers[0]
+		testLoginFailed(t, u.UserName, u.Password+"-wrong", translation.NewLocale("en-US").TrString("form.username_password_incorrect"))
+	})
 }
 
 func testLDAPAuthChange(t *testing.T) {
@@ -510,16 +514,19 @@ func testLDAPEmailSignin(t *testing.T) {
 		},
 		serverHost: "mock-host",
 	}
-	defer test.MockVariableValue(&ldap.MockedSearchEntry, func(source *ldap.Source, name, passwd string, directBind bool) *ldap.SearchResult {
+	defer test.MockVariableValue(&ldap.MockedSearchEntry, func(source *ldap.Source, name, passwd string, directBind bool) (*ldap.SearchResult, bool) {
 		var u *ldapUser
 		for _, user := range te.gitLDAPUsers {
-			if user.Email == name && user.Password == passwd {
+			if user.Email == name {
 				u = &user
 				break
 			}
 		}
 		if u == nil {
-			return nil
+			return nil, false
+		}
+		if u.Password != passwd {
+			return nil, true
 		}
 		result := &ldap.SearchResult{
 			Username:  u.UserName,
@@ -531,7 +538,7 @@ func testLDAPEmailSignin(t *testing.T) {
 		if len(nameFields) > 1 {
 			result.Surname = nameFields[1]
 		}
-		return result
+		return result, true
 	})()
 	defer tests.PrepareTestEnv(t)()
 	te.setupAuthSource(t, te.buildAuthSourcePayload(nil))

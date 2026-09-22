@@ -50,6 +50,27 @@ func (err ErrUserNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrUserPasswordInvalid represents a "ErrUserPasswordInvalid" kind of error.
+type ErrUserPasswordInvalid struct {
+	UID  int64
+	Name string
+}
+
+// IsErrUserPasswordInvalid checks if an error is a ErrUserPasswordInvalid.
+func IsErrUserPasswordInvalid(err error) bool {
+	_, ok := err.(ErrUserPasswordInvalid)
+	return ok
+}
+
+func (err ErrUserPasswordInvalid) Error() string {
+	return fmt.Sprintf("user's password is invalid [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrInvalidArgument error
+func (err ErrUserPasswordInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
 type ErrUserProhibitLogin struct {
 	UID  int64

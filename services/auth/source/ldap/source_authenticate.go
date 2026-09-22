@@ -29,8 +29,16 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if user != nil {
 		loginName = user.LoginName
 	}
-	sr := source.SearchEntry(loginName, password, source.AuthSource.Type == auth.DLDAP)
+	sr, userExists := source.SearchEntry(loginName, password, source.AuthSource.Type == auth.DLDAP)
 	if sr == nil {
+		if userExists {
+			// User exists in LDAP, but the supplied password did not match
+			uid := int64(0)
+			if user != nil {
+				uid = user.ID
+			}
+			return nil, user_model.ErrUserPasswordInvalid{UID: uid, Name: loginName}
+		}
 		// User not in LDAP, do nothing
 		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}

@@ -251,7 +251,7 @@ func DeleteAccount(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("form.unsupported_login_type"))
 		case errors.As(err, &db.ErrUserPasswordNotSet{}):
 			ctx.JSONError(ctx.Tr("form.unset_password"))
-		case errors.As(err, &db.ErrUserPasswordInvalid{}):
+		case errors.As(err, &user_model.ErrUserPasswordInvalid{}):
 			ctx.JSONError(ctx.Tr("form.enterred_invalid_password"))
 		default:
 			ctx.ServerError("UserSignIn", err)
