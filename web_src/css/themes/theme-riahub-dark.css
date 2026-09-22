@@ -1,0 +1,92 @@
+/*
+ * RIA Hub, dark.
+ *
+ * This Gitea sits behind the RIA Hub application, and a Doer reaches it by
+ * following a link out of it -- to an organization, a code search, an issue,
+ * a release. Stock Gitea's green-and-grey made those pages read as a
+ * different product, which is what they looked like: a different product.
+ *
+ * Layered on gitea-dark rather than replacing it. The palette this is ported
+ * from was written for an older Gitea and declares eighty fewer variables
+ * than this one does; copying it wholesale would leave those unstyled. So the
+ * base defines every token this version needs, and only the ones that carry
+ * the brand are overridden here.
+ *
+ * Values are taken unchanged from the product's own palette
+ * (ria-hub/web_src/css/themes/theme-qoherent-theme.css and new-riahub's
+ * design tokens), so the three surfaces a Doer moves between sit at one
+ * colour rather than three.
+ */
+@import "./theme-gitea-dark.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "RIA Hub";
+  --theme-color-scheme: "dark";
+}
+
+:root {
+  /* Qoherent blue, in place of Gitea green. */
+  --ria-blue: #03a9f4;
+  --color-primary: var(--ria-blue);
+  --color-primary-contrast: #ffffff;
+  --color-primary-dark-1: #0288d1;
+  --color-primary-dark-2: #0277bd;
+  --color-primary-dark-3: #026aa7;
+  --color-primary-dark-4: #015a8e;
+  --color-primary-dark-5: #014a74;
+  --color-primary-light-1: #35baf6;
+  --color-primary-light-2: #6fcbf8;
+  --color-primary-light-3: #b3e5fc;
+  --color-primary-light-4: #4dc3f7;
+  --color-primary-light-5: #81d4fa;
+  --color-primary-light-6: #11212b;
+  --color-primary-light-7: #0c181f;
+  --color-primary-alpha-10: #03a9f41a;
+  --color-primary-alpha-20: #03a9f433;
+  --color-primary-alpha-30: #03a9f44d;
+  --color-primary-alpha-40: #03a9f466;
+  --color-primary-alpha-50: #03a9f480;
+  --color-primary-alpha-60: #03a9f499;
+  --color-primary-alpha-70: #03a9f4b3;
+  --color-primary-alpha-80: #03a9f4cc;
+  --color-primary-alpha-90: #03a9f4e6;
+  --color-logo: var(--ria-blue);
+
+  /* The same three surfaces the application uses: page, card, raised. */
+  --color-body: #1c1c1c;
+  --color-box-body: #262626;
+  --color-box-body-highlight: #2e2e2e;
+  --color-box-header: #2e2e2e;
+  --color-header-wrapper: #262626;
+  --color-nav-bg: #262626;
+  --color-secondary-nav-bg: #262626;
+  --color-footer: #262626;
+  --color-menu: #262626;
+  --color-card: #262626;
+  --color-button: #262626;
+  --color-secondary-bg: #2e2e2e;
+  --color-expand-button: #2e2e2e;
+
+  /* Body text one step dimmer than pure white, as the application draws it. */
+  --color-text-dark: #ffffff;
+  --color-text: #b4afb6;
+  --color-text-light: #b4afb6;
+  --color-text-light-1: #b4afb6;
+  --color-text-light-2: #948f96;
+  --color-text-light-3: #767077;
+
+  --color-input-text: #ffffff;
+  --color-input-background: #262626;
+  --color-input-toggle-background: #2e2e2e;
+  --color-input-border: #3e3e3e;
+  --color-input-border-hover: #525252;
+
+  /* Hover and active tint from the accent, not from grey. */
+  --color-hover: rgba(3, 169, 244, 0.07);
+  --color-active: rgba(3, 169, 244, 0.13);
+  --color-light-border: rgba(255, 255, 255, 0.12);
+  --color-timeline: #3e3e3e;
+  --color-shadow: #00000080;
+  --color-code-bg: #171717;
+  --color-code-sidebar-bg: #1e1e1e;
+}
