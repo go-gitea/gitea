@@ -22,15 +22,15 @@ import (
 	"gitea.dev/services/gitdiff"
 )
 
+// ToAPIPullRequestForEvent keeps the head repo in webhook and Actions payloads, like GitHub's events
+func ToAPIPullRequestForEvent(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
+	return ToAPIPullRequest(ctx, pr, doer, nil)
+}
+
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
-	return ToAPIPullRequestForViewer(ctx, pr, doer, nil)
-}
-
-// ToAPIPullRequestForViewer hides a head repo the viewer can't read, event payloads keep it like GitHub's
-func ToAPIPullRequestForViewer(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, canAccessRepo func(*repo_model.Repository) bool) *api.PullRequest {
+func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, canAccessRepo func(*repo_model.Repository) bool) *api.PullRequest {
 	var (
 		baseBranch string
 		headBranch string

@@ -169,7 +169,7 @@ func TestAPIViewPulls(t *testing.T) {
 		}
 
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Index: visible.Index})
-		assert.NotNil(t, convert.ToAPIPullRequest(t.Context(), pr, nil).Head.Repository)
+		assert.NotNil(t, convert.ToAPIPullRequestForEvent(t.Context(), pr, nil).Head.Repository)
 	})
 }
 
@@ -659,7 +659,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
-		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
+		pr := convert.ToAPIPullRequestForEvent(t.Context(), pullRequest, user1)
 
 		ctx = NewAPITestContext(t, "user2", baseRepo.Name, auth_model.AccessTokenScopeAll)
 		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
