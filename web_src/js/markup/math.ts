@@ -21,7 +21,7 @@ export async function initMarkupCodeMath(elMarkup: HTMLElement): Promise<void> {
       import('katex/dist/katex.css'),
     ]);
 
-    const MAX_CHARS = 50000;
+    const MAX_CHARS = 10000;
     const MAX_SIZE = 25;
     const MAX_EXPAND = 1000;
 
