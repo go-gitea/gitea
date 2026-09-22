@@ -5,6 +5,8 @@ package httplib
 
 import (
 	"context"
+	"errors"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -38,6 +40,19 @@ func RequestWithContext(req *http.Request, ctx reqctx.RequestContext) *http.Requ
 // MarkRequestSupportPublicURL marks the request context to support public URL detection from request headers.
 func MarkRequestSupportPublicURL(ctx reqctx.RequestContext) {
 	ctx.SetContextValue(contextKeySupportPublicURL, true)
+}
+
+// RemoteHost returns the host part of req.RemoteAddr, or the full address when
+// it is not host:port form.
+func RemoteHost(req *http.Request) string {
+	if req == nil {
+		return ""
+	}
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return req.RemoteAddr
+	}
+	return host
 }
 
 func urlIsRelative(s string, u *url.URL) bool {
@@ -226,4 +241,29 @@ func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
 		ret.RepoSubPath = "/" + fields[2]
 	}
 	return ret
+}
+
+func IsGiteaFetchActionRequest(req *http.Request) bool {
+	return req.Header.Get("X-Gitea-Fetch-Action") != ""
+}
+
+func IsClientOrNetworkError(ctx context.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	// client request corrupted (e.g.: Content-Length is sent but body is incomplete)
+	if errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+
+	// network error
+	if _, ok := errors.AsType[net.Error](err); ok {
+		return true
+	}
+	return false
 }

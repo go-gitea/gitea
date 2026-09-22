@@ -7,38 +7,31 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
-	}
+type AuditEvent struct {
+	ID               int64  `xorm:"pk autoincr"`
+	Action           string `xorm:"INDEX NOT NULL"`
+	ActorID          int64  `xorm:"INDEX NOT NULL"`
+	ActorName        string
+	ActorCredential  string
+	ImpersonatorID   int64 `xorm:"INDEX"`
+	ImpersonatorName string
+	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`
+	ScopeType        string `xorm:"INDEX INDEX(scope) NOT NULL"`
+	ScopeName        string
+	Origin           string `xorm:"INDEX NOT NULL"`
+	Message          string
+	Metadata         string `xorm:"LONGTEXT JSON"`
+	IPAddress        string
+	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+}
 
-	type ImmutableTag struct {
-		ID             int64  `xorm:"pk autoincr"`
-		LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
-		TagName        string `xorm:"UNIQUE(s) NOT NULL"`
-	}
+func (*AuditEvent) TableName() string {
+	return "audit_event"
+}
 
-	if err := x.Sync(new(ImmutableTag)); err != nil {
-		return err
-	}
-
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Release)); err != nil {
-		return err
-	}
-
-	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "release", "lower_tag_name")
-	if err != nil || !exist { // dropping an absent column fails outside sqlite
-		return err
-	}
-	sess := x.NewSession()
-	defer sess.Close()
-	return base.DropTableColumns(sess, "release", "lower_tag_name")
+func AddAuditEventTable(_ context.Context, x base.EngineMigration) error {
+	return x.Sync(new(AuditEvent))
 }

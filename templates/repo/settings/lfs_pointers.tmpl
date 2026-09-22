@@ -31,12 +31,13 @@
 					{{range .Pointers}}
 						<tr>
 							<td>
-								<a href="{{$.RepoLink}}/raw/blob/{{.SHA}}" rel="nofollow" target="_blank" title="{{.SHA}}" class="ui button tw-font-mono">
+								<a href="{{$.RepoLink}}/raw/blob/{{.SHA}}" rel="nofollow" target="_blank" title="{{.SHA}}" class="ui label commit-id-short">
 									{{ShortSha .SHA}}
 								</a>
 							</td>
 							<td>
-								<a {{if and .Exists .InRepo}}href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank"{{end}} title="{{.Oid}}" class="ui button tw-font-mono">
+								{{$lfsObjectViewable := and .Exists .InRepo}}
+								<a href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank" title="{{.Oid}}" class="ui label commit-id-short {{if not $lfsObjectViewable}}disabled{{end}}">
 									{{ShortSha .Oid}}
 								</a>
 							</td>
