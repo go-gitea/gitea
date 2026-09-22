@@ -119,6 +119,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 					if entry.Name() == "CITATION.cff" {
 						apa, bibtex = citation.FormatCFF(content)
 					}
+					ctx.Data["CitationExist"] = bibtex != ""
 					ctx.Data["CitationFileName"] = entry.Name()
 					ctx.Data["CitationAPA"] = apa
 					ctx.Data["CitationBibTeX"] = bibtex
