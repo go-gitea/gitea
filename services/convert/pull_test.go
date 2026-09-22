@@ -45,7 +45,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	assert.Nil(t, apiPullRequest.Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequest.Head.RepoID)
 
-	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
+	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil, nil)
 	assert.NoError(t, err)
 	assert.Len(t, apiPullRequests, 1)
 	assert.NotNil(t, apiPullRequests[0])

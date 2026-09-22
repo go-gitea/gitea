@@ -147,13 +147,10 @@ func ListPullRequests(ctx *context.APIContext) {
 		return
 	}
 
-	apiPrs, err := convert.ToAPIPullRequests(ctx, ctx.Repo.Repository, prs, ctx.Doer)
+	apiPrs, err := convert.ToAPIPullRequests(ctx, ctx.Repo.Repository, prs, ctx.Doer, ctx.TokenCanAccessRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
-	}
-	for i, pr := range prs {
-		hideInaccessibleHeadRepo(ctx, pr, apiPrs[i])
 	}
 
 	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
@@ -213,9 +210,7 @@ func GetPullRequest(ctx *context.APIContext) {
 	// Consider API access a view for delayed checking.
 	pull_service.StartPullRequestCheckOnView(ctx, pr)
 
-	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
-	hideInaccessibleHeadRepo(ctx, pr, apiPR)
-	ctx.JSON(http.StatusOK, apiPR)
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequestForViewer(ctx, pr, ctx.Doer, ctx.TokenCanAccessRepo))
 }
 
 // GetPullRequest returns a single PR based on index
@@ -304,9 +299,7 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 	// Consider API access a view for delayed checking.
 	pull_service.StartPullRequestCheckOnView(ctx, pr)
 
-	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
-	hideInaccessibleHeadRepo(ctx, pr, apiPR)
-	ctx.JSON(http.StatusOK, apiPR)
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequestForViewer(ctx, pr, ctx.Doer, ctx.TokenCanAccessRepo))
 }
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
@@ -587,7 +580,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
-	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequestForViewer(ctx, pr, ctx.Doer, ctx.TokenCanAccessRepo))
 }
 
 // EditPullRequest does what it says
@@ -836,11 +829,8 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
-	hideInaccessibleHeadRepo(ctx, pr, apiPR)
-
 	// TODO this should be 200, not 201
-	ctx.JSON(http.StatusCreated, apiPR)
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequestForViewer(ctx, pr, ctx.Doer, ctx.TokenCanAccessRepo))
 }
 
 // IsPullRequestMerged checks if a PR exists given an index
@@ -1084,21 +1074,6 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusOK)
-}
-
-// hideInaccessibleHeadRepo mirrors repoAssignment's 404 rules, the head SHA stays since the base repo serves it too
-func hideInaccessibleHeadRepo(ctx *context.APIContext, pr *issues_model.PullRequest, apiPR *api.PullRequest) {
-	if apiPR == nil || pr.HeadRepo == nil || pr.HeadRepoID == pr.BaseRepoID {
-		return
-	}
-	headPerm, err := access_model.GetDoerRepoPermissionCached(ctx, pr.HeadRepo, ctx.Doer)
-	if err != nil {
-		log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
-	} else if headPerm.HasAnyUnitAccessOrPublicAccess() && ctx.TokenCanAccessRepo(pr.HeadRepo) {
-		return
-	}
-	apiPR.Head.Repository = nil
-	apiPR.Head.RepoID = -1
 }
 
 // parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails

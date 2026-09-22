@@ -416,7 +416,5 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	apiPR := convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
-	hideInaccessibleHeadRepo(ctx, pr, apiPR)
-	ctx.JSON(http.StatusOK, apiPR)
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequestForViewer(ctx, pr, ctx.Doer, ctx.TokenCanAccessRepo))
 }

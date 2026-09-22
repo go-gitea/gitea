@@ -19,8 +19,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -681,14 +679,6 @@ func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
 		doerID = doer.ID
 	}
 	return fmt.Sprintf("%d-%d", repoID, doerID)
-}
-
-func GetDoerRepoPermissionCached(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) (Permission, error) {
-	return cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, RepoUserPermissionCacheKey(repo.ID, doer),
-		func(ctx context.Context, _ string) (Permission, error) {
-			return GetDoerRepoPermission(ctx, repo, doer)
-		},
-	)
 }
 
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.

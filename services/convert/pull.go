@@ -12,6 +12,8 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -24,6 +26,11 @@ import (
 // Required - Issue
 // Optional - Merger
 func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
+	return ToAPIPullRequestForViewer(ctx, pr, doer, nil)
+}
+
+// ToAPIPullRequestForViewer hides a head repo the viewer can't read, event payloads keep it like GitHub's
+func ToAPIPullRequestForViewer(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, canAccessRepo func(*repo_model.Repository) bool) *api.PullRequest {
 	var (
 		baseBranch string
 		headBranch string
@@ -52,7 +59,11 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	repoUserPerm, err := access_model.GetDoerRepoPermissionCached(ctx, pr.BaseRepo, doer)
+	repoUserPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(pr.BaseRepoID, doer),
+		func(ctx context.Context, _ string) (access_model.Permission, error) {
+			return access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
+		},
+	)
 	if err != nil {
 		log.Error("GetDoerRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		repoUserPerm.AccessMode = perm.AccessModeNone
@@ -169,21 +180,17 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == issues_model.PullRequestFlowGithub {
-		p, err := access_model.GetDoerRepoPermissionCached(ctx, pr.HeadRepo, doer)
+		p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			p.AccessMode = perm.AccessModeNone
 		}
 
-		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
-
-		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
-		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
-			return nil
+		headVisible := canAccessRepo == nil || pr.HeadRepoID == pr.BaseRepoID || p.HasAnyUnitAccessOrPublicAccess() && canAccessRepo(pr.HeadRepo)
+		if headVisible {
+			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
+			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 		}
-		defer headGitRepo.Close()
 
 		exist, err = git_model.IsBranchExist(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
@@ -197,17 +204,14 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			endCommitID   string
 		)
 
-		if !exist {
-			headCommitID, err := headGitRepo.GetRefCommitID(ctx, apiPullRequest.Head.Ref)
-			if err != nil && !git.IsErrNotExist(err) {
-				log.Error("GetCommit[%s]: %v", pr.HeadBranch, err)
+		if exist && headVisible {
+			headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
+			if err != nil {
+				log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
 				return nil
 			}
-			if err == nil {
-				apiPullRequest.Head.Sha = headCommitID
-				endCommitID = headCommitID
-			}
-		} else {
+			defer headGitRepo.Close()
+
 			commit, err := headGitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 			if err != nil && !git.IsErrNotExist(err) {
 				log.Error("GetCommit[%s]: %v", headBranch, err)
@@ -217,6 +221,19 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 				apiPullRequest.Head.Ref = pr.HeadBranch
 				apiPullRequest.Head.Sha = commit.ID.String()
 				endCommitID = commit.ID.String()
+			}
+		} else {
+			if exist {
+				apiPullRequest.Head.Ref = pr.HeadBranch
+			}
+			headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+			if err != nil && !git.IsErrNotExist(err) {
+				log.Error("GetCommit[%s]: %v", pr.HeadBranch, err)
+				return nil
+			}
+			if err == nil {
+				apiPullRequest.Head.Sha = headCommitID
+				endCommitID = headCommitID
 			}
 		}
 
@@ -260,7 +277,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	return apiPullRequest
 }
 
-func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs issues_model.PullRequestList, doer *user_model.User) ([]*api.PullRequest, error) {
+func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs issues_model.PullRequestList, doer *user_model.User, canAccessRepo func(*repo_model.Repository) bool) ([]*api.PullRequest, error) {
 	for _, pr := range prs {
 		pr.BaseRepo = baseRepo
 		if pr.BaseRepoID == pr.HeadRepoID {
@@ -409,12 +426,12 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			apiPullRequest.Base.Sha = baseBranch.CommitID
 		}
 		if pr.HeadRepoID == pr.BaseRepoID {
+			apiPullRequest.Head.RepoID = pr.BaseRepoID
 			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
 		}
 
 		// pull request head branch, both repository and branch could not exist
 		if pr.HeadRepo != nil {
-			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 			exist, err := git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch)
 			if err != nil {
 				log.Error("IsBranchExist[%d]: %v", pr.HeadRepo.ID, err)
@@ -424,12 +441,15 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 				apiPullRequest.Head.Ref = pr.HeadBranch
 			}
 			if pr.HeadRepoID != pr.BaseRepoID {
-				p, err := access_model.GetDoerRepoPermissionCached(ctx, pr.HeadRepo, doer)
+				p, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
 				if err != nil {
 					log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
 					p.AccessMode = perm.AccessModeNone
 				}
-				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+				if p.HasAnyUnitAccessOrPublicAccess() && canAccessRepo(pr.HeadRepo) {
+					apiPullRequest.Head.RepoID = pr.HeadRepoID
+					apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+				}
 			}
 		}
 		if apiPullRequest.Head.Ref == "" {

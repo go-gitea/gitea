@@ -261,8 +261,7 @@ func ListPinnedPullRequests(ctx *context.APIContext) {
 			return
 		}
 
-		apiPrs[i] = convert.ToAPIPullRequest(ctx, pr, ctx.Doer)
-		hideInaccessibleHeadRepo(ctx, pr, apiPrs[i])
+		apiPrs[i] = convert.ToAPIPullRequestForViewer(ctx, pr, ctx.Doer, ctx.TokenCanAccessRepo)
 	}
 
 	ctx.JSON(http.StatusOK, &apiPrs)
