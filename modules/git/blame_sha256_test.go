@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -14,8 +13,7 @@ import (
 
 func TestReadingBlameOutputSha256(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	ctx := t.Context()
 
 	if DefaultFeatures().UsingGogit {
 		t.Skip("Skipping test since gogit does not support sha256")

@@ -105,12 +105,12 @@ type RepoSettingForm struct {
 	DefaultWikiBranch  string
 	ExternalWikiURL    string
 
-	EnableIssues                          bool
+	EnableInternalTracker                 bool
 	EnableExternalTracker                 bool
-	ExternalTrackerURL                    string
-	TrackerURLFormat                      string
+	ExternalTrackerURL                    string `binding:"TrimSpace"`
+	TrackerURLFormat                      string `binding:"TrimSpace"`
 	TrackerIssueStyle                     string
-	ExternalTrackerRegexpPattern          string
+	ExternalTrackerRegexpPattern          string `binding:"TrimSpace"`
 	EnableCloseIssuesViaCommitInAnyBranch bool
 
 	EnableProjects bool

@@ -190,13 +190,8 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
 	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	flashes := session.GetCookieFlashMessage()
-	assert.NotNil(t, flashes)
-	if flashes != nil {
-		return flashes.InfoMsg
-	}
-	return ""
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	return NewHTMLParser(t, resp.Body).Find("#new-access-token-value").Text()
 }
 
 type RequestWrapper struct {
