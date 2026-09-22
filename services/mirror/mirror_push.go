@@ -162,11 +162,12 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
 
-		sshAuth, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
+		sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
 		if err != nil {
 			return fmt.Errorf("SetupManagedSSHAgent failed: %w", err)
 		}
 		defer cleanup()
+		envs = append(envs, sshEnvs...)
 
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
@@ -174,7 +175,6 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Mirror:  true,
 			Timeout: timeout,
 			Env:     envs,
-			SSHAuth: sshAuth,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}

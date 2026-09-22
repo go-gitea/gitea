@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"gitea.dev/models/db"
@@ -28,13 +29,15 @@ import (
 )
 
 func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo git.RepositoryFacade, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
-	sshAuth, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
+	sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
-	cloneOpts.SSHAuth = sshAuth
+	if len(sshEnvs) > 0 {
+		cloneOpts.Env = append(os.Environ(), sshEnvs...) // ssh remotes never get proxy env, so Clone's default is just os.Environ()
+	}
 	return git.CloneExternalRepo(ctx, remoteURL, storageRepo, cloneOpts)
 }
 
