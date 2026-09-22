@@ -24,6 +24,10 @@ func (s *Signature) String() string {
 	return fmt.Sprintf("%s <%s>", s.Name, s.Email)
 }
 
+func (s *Signature) ToGitCommitLine() string {
+	return fmt.Sprintf("%s <%s> %d %s", s.Name, s.Email, s.When.Unix(), s.When.Format("-0700"))
+}
+
 // Decode decodes a byte array representing a signature to signature
 func (s *Signature) Decode(b []byte) {
 	*s = *parseSignatureFromCommitLine(util.UnsafeBytesToString(b))
