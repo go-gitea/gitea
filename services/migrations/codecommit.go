@@ -68,6 +68,7 @@ func NewCodeCommitDownloader(_ context.Context, repoName, baseURL, accessKeyID, 
 		codeCommitClient: codecommit.New(codecommit.Options{
 			Credentials: credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, ""),
 			Region:      region,
+			HTTPClient:  newMigrationHTTPClient(),
 		}),
 	}
 
