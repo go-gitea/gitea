@@ -50,22 +50,26 @@ func ForceFastImportWithInit(ctx context.Context, repoLocalPath string, commits 
 
 // ForceFastImport is for mainly for testing purpose
 func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastImportCommit) error {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	for i, c := range commits {
-		_, _ = fmt.Fprintf(&buf, "reset %s\n", c.Ref)
-		_, _ = fmt.Fprintf(&buf, "commit %s\n", c.Ref)
-		_, _ = fmt.Fprintf(&buf, "mark :%d\n", i+1)
+		_, _ = fmt.Fprintf(buf, "reset %s\n", c.Ref)
+		_, _ = fmt.Fprintf(buf, "commit %s\n", c.Ref)
+		_, _ = fmt.Fprintf(buf, "mark :%d\n", i+1)
 		if c.Author != nil {
-			_, _ = fmt.Fprintf(&buf, "author %s\n", c.Author.ToGitCommitLine())
+			buf.WriteString("author ")
+			_ = c.Author.Encode(buf)
+			buf.WriteByte('\n')
 		}
 		if c.Committer != nil {
-			_, _ = fmt.Fprintf(&buf, "committer %s\n", c.Committer.ToGitCommitLine())
+			buf.WriteString("committer ")
+			_ = c.Committer.Encode(buf)
+			buf.WriteByte('\n')
 		}
 		msg := util.IfZero(c.Message, fmt.Sprintf("test commit %d", i+1))
-		_, _ = fmt.Fprintf(&buf, "data %d\n%s\n", len(msg), msg)
+		_, _ = fmt.Fprintf(buf, "data %d\n%s\n", len(msg), msg)
 		for _, f := range c.Files {
 			mode := util.IfZero(f.Mode, EntryModeBlob)
-			_, _ = fmt.Fprintf(&buf, "M %s inline %s\ndata %d\n%s\n", mode.String(), f.Path, len(f.Content), f.Content)
+			_, _ = fmt.Fprintf(buf, "M %s inline %s\ndata %d\n%s\n", mode.String(), f.Path, len(f.Content), f.Content)
 		}
 	}
 	buf.WriteString("done\n")

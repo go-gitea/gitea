@@ -8,6 +8,7 @@ package git
 
 import (
 	"fmt"
+	"io"
 	"time"
 
 	"gitea.dev/modules/util"
@@ -24,11 +25,13 @@ func (s *Signature) String() string {
 	return fmt.Sprintf("%s <%s>", s.Name, s.Email)
 }
 
-func (s *Signature) ToGitCommitLine() string {
-	return fmt.Sprintf("%s <%s> %d %s", s.Name, s.Email, s.When.Unix(), s.When.Format("-0700"))
+// Encode writes the signature for git commit object (same as gogit's object.Signature Encode method)
+func (s *Signature) Encode(w io.Writer) error {
+	_, err := fmt.Fprintf(w, "%s <%s> %d %s", s.Name, s.Email, max(0, s.When.Unix()), s.When.Format("-0700"))
+	return err
 }
 
-// Decode decodes a byte array representing a signature to signature
+// Decode parses the signature for git commit object (same as gogit's object.Signature Decode method)
 func (s *Signature) Decode(b []byte) {
 	*s = *parseSignatureFromCommitLine(util.UnsafeBytesToString(b))
 }
