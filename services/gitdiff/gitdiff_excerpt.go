@@ -4,12 +4,12 @@
 package gitdiff
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"html/template"
 	"io"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 
 	"github.com/alecthomas/chroma/v2"
@@ -29,7 +29,7 @@ type BlobExcerptOptions struct {
 
 func (diffSection *DiffSection) fillExcerptLines(reader io.Reader, leftStart, rightStart, chunkSize int) error {
 	buf := &bytes.Buffer{}
-	scanner := bufio.NewScanner(reader)
+	scanner := git.NewGitDiffScanner(reader)
 	var diffLines []*DiffLine
 	for rightLineIdx := 1; rightLineIdx < rightStart+chunkSize; rightLineIdx++ {
 		if ok := scanner.Scan(); !ok {

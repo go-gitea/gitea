@@ -67,7 +67,7 @@ func (err *ErrInvalidCloneAddr) Unwrap() error {
 
 // IsRemoteNotExistError checks the prefix of the error message to see whether a remote does not exist.
 func IsRemoteNotExistError(err error) bool {
-	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchRemote1) || gitcmd.IsStderr(err, gitcmd.StderrNoSuchRemote2)
+	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchRemote1, gitcmd.StderrNoSuchRemote2)
 }
 
 // normalizeSSHURL converts SSH-SCP format URLs to standard ssh:// format for security

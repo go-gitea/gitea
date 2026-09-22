@@ -1,7 +1,7 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
-import {html} from '../utils/html.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
@@ -128,6 +128,13 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
   content = content ?? target.getAttribute('data-tooltip-content');
   if (!content) return null;
 
+  let allowHTML = target.getAttribute('data-tooltip-render') === 'html';
+  if (!allowHTML && typeof content === 'string') {
+    content = htmlEscape(content);
+    content = content.replace(/\n/g, '<br>');
+    allowHTML = true;
+  }
+
   // when element has a clipboard target, we update the tooltip after copy
   // in which case it is undesirable to automatically hide it on click as
   // it would momentarily flash the tooltip out and in.
@@ -140,7 +147,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     role: 'tooltip',
     theme: 'tooltip',
     hideOnClick,
-    allowHTML: target.getAttribute('data-tooltip-render') === 'html',
+    allowHTML,
     placement: target.getAttribute('data-tooltip-placement') as Placement || 'top',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...((target.getAttribute('data-tooltip-interactive') === 'true') && {interactive: true, aria: {content: 'describedby', expanded: false}}),

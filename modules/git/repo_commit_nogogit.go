@@ -9,31 +9,9 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
-
-// ResolveReference resolves a name to a reference
-func (repo *Repository) ResolveReference(ctx context.Context, name string) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").
-		AddDynamicArguments(name).
-		WithRepo(repo).
-		RunStdString(ctx)
-	if err != nil {
-		if strings.Contains(err.Error(), "not a valid ref") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-	stdout = strings.TrimSpace(stdout)
-	if stdout == "" {
-		return "", ErrNotExist{name, ""}
-	}
-
-	return stdout, nil
-}
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(ctx context.Context, name string) (string, error) {
@@ -60,6 +38,15 @@ func (repo *Repository) getCommit(ctx context.Context, id ObjectID) (*Commit, er
 	return repo.getCommitWithBatch(batch, id)
 }
 
+func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func() error) {
+	return io.LimitReader(rd, min(full, limit)), func() error {
+		if full > limit {
+			return DiscardFull(rd, full-limit)
+		}
+		return nil
+	}
+}
+
 func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
 	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
@@ -73,10 +60,12 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 	case "missing":
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
-		// then we need to parse the tag
-		// and load the commit
-		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		data, err := io.ReadAll(limitReader)
 		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
@@ -89,8 +78,12 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		}
 		return repo.getCommitWithBatch(batch, tag.Object)
 	case "commit":
-		commit, err := CommitFromReader(id, io.LimitReader(rd, info.Size))
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		commit, err := CommitFromReader(id, limitReader)
 		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
@@ -100,7 +93,9 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 
 		return commit, nil
 	default:
-		log.Debug("Unknown cat-file object type: %s", info.Type)
+		if info.Type != "blob" && info.Type != "tree" {
+			setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
+		}
 		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
@@ -116,7 +111,7 @@ func (repo *Repository) ConvertToGitID(ctx context.Context, ref string) (ObjectI
 	if err != nil {
 		return nil, err
 	}
-	if len(ref) == objectFormat.FullLength() && objectFormat.IsValid(ref) {
+	if IsStringValidObjectID(objectFormat, ref) {
 		id, err := NewIDFromString(ref)
 		if err == nil {
 			return id, nil

@@ -282,8 +282,6 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 			err := &ErrPushRejected{StdOut: stdout, StdErr: stderr, Err: err}
 			err.GenerateMessage()
 			return err
-		} else if strings.Contains(stderr, "matches more than one") {
-			return &ErrMoreThanOne{StdOut: stdout, StdErr: stderr, Err: err}
 		}
 		return fmt.Errorf("push failed: %w - %s\n%s", err, stderr, stdout)
 	}

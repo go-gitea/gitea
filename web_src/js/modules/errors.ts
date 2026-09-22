@@ -3,6 +3,12 @@ import {html} from '../utils/html.ts';
 import isNetworkError from 'is-network-error';
 import type {Intent} from '../types.ts';
 
+// The code in this module might be executed before window.config is initialized,
+// Don't access window.config directly.
+function windowConfig(): typeof window.config | undefined {
+  return window.config;
+}
+
 /** Extract a message string from an unknown caught value. */
 export function errorMessage(err: unknown): string {
   return (err as Error)?.message || String(err);
@@ -50,7 +56,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
 const extensionRe = /(chrome|moz|safari(-web)?)-extension:\/\//;
 export function isGiteaError(filename: string, stack: string): boolean {
   if (extensionRe.test(filename) || extensionRe.test(stack)) return false;
-  const assetBaseUrl = new URL(`${window.config.assetUrlPrefix}/`, window.location.origin).href;
+  const assetBaseUrl = new URL(`${windowConfig()?.assetUrlPrefix}/`, window.location.origin).href;
   if (filename && !filename.startsWith(assetBaseUrl) && !filename.startsWith(window.location.origin)) return false;
   return !stack || stack.includes(assetBaseUrl);
 }
@@ -64,7 +70,7 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
   // - https://github.com/go-gitea/gitea/issues/20240
   if (!err) {
     if (message) console.error(new Error(message));
-    if (window.config.runModeIsProd) return;
+    if (windowConfig()?.runModeIsProd) return;
   }
 
   // Don't show network errors, happens on ref-issue when clicking on the
