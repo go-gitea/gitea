@@ -266,6 +266,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 func handleRemoteAddrError(ctx *context.APIContext, err error) {
 	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
+		case addrErr.IsAuthNotSupported:
+			ctx.APIError(http.StatusUnprocessableEntity, "Username and password are not supported for SSH addresses, authentication uses the managed SSH key.")
 		case addrErr.IsURLError:
 			ctx.APIError(http.StatusUnprocessableEntity, "The provided URL is invalid.")
 		case addrErr.IsPermissionDenied:

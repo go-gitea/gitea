@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseRemoteAddr(t *testing.T) {
@@ -56,6 +57,12 @@ func TestParseRemoteAddr(t *testing.T) {
 			shouldError: true,
 		},
 		{
+			name:        "SSH URL rejects password without username",
+			remoteAddr:  "ssh://git@github.com/user/repo.git",
+			authPass:    "pass",
+			shouldError: true,
+		},
+		{
 			name:       "HTTPS URL with auth gets credentials injected",
 			remoteAddr: "https://github.com/user/repo.git",
 			authUser:   "user",
@@ -93,7 +100,11 @@ func TestParseRemoteAddr(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := ParseRemoteAddr(tt.remoteAddr, tt.authUser, tt.authPass)
 			if tt.shouldError {
-				assert.Error(t, err)
+				var addrErr *ErrInvalidCloneAddr
+				require.ErrorAs(t, err, &addrErr)
+				// the address itself is valid, so it must not be reported as a bad URL
+				assert.True(t, addrErr.IsAuthNotSupported)
+				assert.False(t, addrErr.IsURLError)
 				return
 			}
 			assert.NoError(t, err)

@@ -35,6 +35,7 @@ type ErrInvalidCloneAddr struct {
 	IsInvalidPath      bool
 	IsProtocolInvalid  bool
 	IsPermissionDenied bool
+	IsAuthNotSupported bool
 	LocalPath          bool
 }
 
@@ -54,6 +55,9 @@ func (err *ErrInvalidCloneAddr) Error() string {
 	if err.IsPermissionDenied {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed.", err.Host)
 	}
+	if err.IsAuthNotSupported {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: username and password are not supported for SSH addresses", err.Host)
+	}
 	if err.IsURLError {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided url is invalid", err.Host)
 	}
@@ -70,7 +74,6 @@ func IsRemoteNotExistError(err error) bool {
 	return gitcmd.IsStderr(err, gitcmd.StderrNoSuchRemote1, gitcmd.StderrNoSuchRemote2)
 }
 
-// normalizeSSHURL converts SSH-SCP format URLs to standard ssh:// format for security
 // ParseRemoteAddr checks if given remote address is valid,
 // and returns composed URL with needed username and password.
 func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
@@ -88,9 +91,9 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		}
 		return u.URL.String(), nil
 	case "ssh":
-		// SSH uses key-based auth only; username/password is not supported
+		// SSH uses key-based auth only; the address itself is valid, the credentials are not usable
 		if len(authUsername)+len(authPassword) > 0 {
-			return "", &ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
+			return "", &ErrInvalidCloneAddr{IsAuthNotSupported: true, Host: remoteAddr}
 		}
 		// Normalize SCP short syntax (git@host:path) into an ssh:// URL so
 		// downstream SSH handling can detect and use it consistently

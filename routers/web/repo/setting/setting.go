@@ -1099,6 +1099,8 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
+		case addrErr.IsAuthNotSupported:
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_auth_not_supported"), tplSettingsOptions, form)
 		case addrErr.IsURLError:
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", addrErr.Host), tplSettingsOptions, form)
 		case addrErr.IsPermissionDenied:

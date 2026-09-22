@@ -170,6 +170,8 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl templates
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
+		case addrErr.IsAuthNotSupported:
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.ssh_auth_not_supported"), tpl, form)
 		case addrErr.IsURLError:
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.url_error", addrErr.Host), tpl, form)
 		case addrErr.IsPermissionDenied:
