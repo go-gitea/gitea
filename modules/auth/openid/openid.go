@@ -8,9 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"gitea.dev/modules/hostmatcher"
-	"gitea.dev/modules/proxy"
-	"gitea.dev/modules/setting"
+	"gitea.dev/modules/egress"
 
 	"github.com/yohcop/openid-go"
 )
@@ -31,10 +29,10 @@ var (
 	// [security] ALLOWED_HOST_LIST (empty defaults to "external"), matching the avatar/webhook/migration
 	// clients, and validates the proxy path too. Lazy: reads proxy/settings once.
 	openIDInstance = sync.OnceValue(func() *openid.OpenID {
-		allowList := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
+		policy := egress.GetOpenIDPolicy()
 		return openid.NewOpenID(&http.Client{
 			Timeout:   30 * time.Second,
-			Transport: hostmatcher.NewHTTPTransport("openid", allowList, nil, proxy.Proxy(), setting.Proxy.ProxyURLFixed, nil),
+			Transport: policy.NewHTTPTransport(),
 		})
 	})
 )
