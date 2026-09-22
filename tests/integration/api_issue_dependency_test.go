@@ -391,6 +391,18 @@ func TestAPIGetIssueBlocks(t *testing.T) {
 		assert.Equal(t, publicBlocked.Index, blocked[0].Index)
 	})
 
+	t.Run("HugePageNumberIsEmptyNotPanic", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadIssue)
+		req := NewRequest(t, "GET", url+"?page=9223372036854775807&limit=50").AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var blocked []*api.Issue
+		DecodeJSON(t, resp, &blocked)
+		assert.Empty(t, blocked)
+	})
+
 	t.Run("PublicOnlyTokenSeesOnlyPublic", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 

@@ -314,11 +314,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	page := max(ctx.FormInt("page"), 1)
-	limit := ctx.FormInt("limit")
-	if limit <= 1 {
-		limit = setting.API.DefaultPagingNum
-	}
+	listOptions := utils.GetListOptions(ctx)
 
 	loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: ctx.Doer, PublicOnly: ctx.PublicOnly}
 	deps, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, issues_model.IssueList{issue})
@@ -329,8 +325,12 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	blocking := deps[issue.ID].Blocking
 
 	// paginate after filtering so hidden issues never leave gaps in a page
-	start := min((page-1)*limit, len(blocking))
-	end := min(page*limit, len(blocking))
+	skip, take := listOptions.GetSkipTake()
+	start, end := len(blocking), len(blocking) // a negative skip means page*limit overflowed, so it is past the end
+	if skip >= 0 {
+		start = min(skip, len(blocking))
+		end = min(start+take, len(blocking))
+	}
 
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blocking[start:end]))
 }
