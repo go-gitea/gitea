@@ -14,7 +14,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.StaticRootPath = "../../" // AssetFS reads the emoji data from public/
+	setting.SetupGiteaTestEnv()
 	m.Run()
 }
 
