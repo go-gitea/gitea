@@ -115,7 +115,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
 					log.Error("checkCitationFile: GetBlobContent: %v", err)
 				} else {
-					apa, bibtex := "", content
+					apa, bibtex := "", content // a .bib file is offered as-is, a .cff is formatted into both or neither
 					if entry.Name() == "CITATION.cff" {
 						apa, bibtex = citation.FormatCFF(content)
 					}
