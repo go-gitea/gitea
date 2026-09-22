@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/proxy"
 )
 
 const prettyLogFormat = `--pretty=format:%H`

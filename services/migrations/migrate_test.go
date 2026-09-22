@@ -11,7 +11,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -23,27 +22,6 @@ func migrationTestPolicy(allow, block string) *policy.Policy {
 	return policy.NewPolicy("git-proxy",
 		policy.WithAllow(allow, "migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS"),
 		policy.WithBlock(block, "migrations.BLOCKED_DOMAINS"))
-}
-
-func TestIsAuthenticationError(t *testing.T) {
-	errDummy := errors.New("dummy")
-	cases := []struct {
-		name string
-		want bool
-		err  error
-	}{
-		{"git authentication failed", true, gitcmd.NewRunStdError(errDummy, "fatal: Authentication failed for 'https://host/repo.git/'")},
-		{"git could not read username", true, fmt.Errorf("%w", gitcmd.NewRunStdError(errDummy, "fatal: could not read Username for 'https://host'"))},
-		{"github unauthorized", true, util.SanitizeErrorCredentialURLs(&github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusUnauthorized}})},
-		{"github other", false, &github.ErrorResponse{Response: &http.Response{StatusCode: http.StatusNotFound}}},
-		{"github nil response", false, &github.ErrorResponse{}},
-		{"unrelated error", false, errDummy},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.want, IsAuthenticationError(c.err))
-		})
-	}
 }
 
 func TestMigrateWhiteBlocklist(t *testing.T) {

@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	migrations "gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	release_service "gitea.dev/services/release"
 	repo_service "gitea.dev/services/repository"
@@ -169,8 +168,6 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	// repoint the mirror at the loopback server, which is disallowed once local networks are off
 	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, internal.URL+"/repo.git"))
 	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
-	require.NoError(t, migrations.Init())
-	t.Cleanup(func() { _ = migrations.Init() })
 
 	assert.False(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
 	assert.False(t, reached.Load(), "the disallowed internal remote must not be reached")

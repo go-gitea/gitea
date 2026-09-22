@@ -159,7 +159,6 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
-			Env:     envs,
 		}); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
 

@@ -17,7 +17,7 @@ import (
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
 
-	"github.com/google/go-github/v91/github"
+	"github.com/google/go-github/v88/github"
 )
 
 var (
