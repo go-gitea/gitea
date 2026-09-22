@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -328,13 +329,29 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
 						return err
 					}
+				case actions_model.StatusFailure:
+					// A caller whose `if:` fails to evaluate never expands; fail it like an unexpandable caller.
+					job.Status = actions_model.StatusFailure
+					job.Stopped = timeutil.TimeStampNow()
+					if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status", "stopped"); err != nil {
+						return fmt.Errorf("mark if-failed caller %d failed: %w", job.ID, err)
+					} else if n != 1 {
+						return fmt.Errorf("no affected for updating blocked job %v", job.ID)
+					}
+					result.UpdatedJobs = append(result.UpdatedJobs, job)
 				}
 				continue
 			}
 
 			// Non-caller: standard status update.
 			job.Status = status
-			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+			cols := []string{"status"}
+			if status == actions_model.StatusFailure {
+				// A job failed by its own `if:` never runs; stamp its end like a failed caller does.
+				job.Stopped = timeutil.TimeStampNow()
+				cols = append(cols, "stopped")
+			}
+			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, cols...); err != nil {
 				return err
 			} else if n != 1 {
 				return fmt.Errorf("no affected for updating blocked job %v", job.ID)
@@ -493,7 +510,14 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 		// evaluateJobIf reduces it to that needs gate and the pass below decides it per combination.
 		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
 		if err != nil {
-			// TODO: surface deterministic expression errors to users by failing the job with a message.
+			if errors.Is(err, util.ErrInvalidArgument) {
+				// A deterministic `if:` error can never resolve itself, so fail the job
+				// instead of leaving it blocked to be re-evaluated on every pass.
+				// TODO: also surface the error message to users.
+				log.Error("evaluateJobIf failed, marking job %d as failed: %v", id, err)
+				ret[id] = actions_model.StatusFailure
+				continue
+			}
 			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
@@ -530,6 +554,11 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			// Gate it on its own combination here, as the siblings will be on the next pass.
 			shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
 			if err != nil {
+				if errors.Is(err, util.ErrInvalidArgument) {
+					log.Error("evaluateJobIf failed after matrix expansion, marking job %d as failed: %v", id, err)
+					ret[id] = actions_model.StatusFailure
+					continue
+				}
 				log.Error("evaluateJobIf failed after matrix expansion, job will stay blocked: job: %d, err: %v", id, err)
 				continue
 			}

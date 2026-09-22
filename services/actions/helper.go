@@ -92,11 +92,12 @@ func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
 	return payload.PullRequest.Base.Sha, true
 }
 
-// evaluateJobIf evaluates a job's `if:`
+// evaluateJobIf evaluates a job's `if:`. Errors unwrapping to util.ErrInvalidArgument are
+// deterministic (a malformed payload or expression), while the rest may be transient DB failures.
 func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
 	parsedJob, err := job.ParseJob()
 	if err != nil {
-		return false, err
+		return false, util.NewInvalidArgumentErrorf("parse job %d workflow payload: %v", job.ID, err)
 	}
 	// Empty `if:` reduces to implicit `success()` - true iff every need finished as Success.
 	if len(parsedJob.If.Value) == 0 {
@@ -125,7 +126,11 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 		return false, err
 	}
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
-	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs, job.IsMatrixDeferred)
+	ok, err := jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs, job.IsMatrixDeferred)
+	if err != nil {
+		return false, util.NewInvalidArgumentErrorf("evaluate `if:` of job %d: %v", job.ID, err)
+	}
+	return ok, nil
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

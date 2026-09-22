@@ -253,6 +253,48 @@ jobs:
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
+		{
+			name: "`if` referencing an unavailable context fails the job instead of staying blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: ${{ no_such_context.value }}
+    steps:
+      - run: echo "never runs"
+`)},
+				{ID: 3, JobID: "job3", Status: actions_model.StatusBlocked, Needs: []string{"job2"}},
+			},
+			want: map[int64]actions_model.Status{
+				2: actions_model.StatusFailure,
+				3: actions_model.StatusSkipped,
+			},
+		},
+		{
+			name: "bare `if: False` fails the job instead of staying blocked",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on: push
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: False
+    steps:
+      - run: echo "never runs"
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusFailure},
+		},
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
