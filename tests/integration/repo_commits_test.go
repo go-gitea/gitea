@@ -113,7 +113,8 @@ func TestRepoCommits(t *testing.T) {
 			{
 				Ref:       "refs/heads/test-branch-committer",
 				Files:     []git.FastImportFile{{Path: "dummy-file.txt", Content: "dummy-content"}},
-				Committer: &git.Signature{Name: "non-author-committer", Email: "dummy-email@example.com"},
+				Author:    &git.Signature{Name: "real-commit-author", Email: "dummy-email1@example.com"},
+				Committer: &git.Signature{Name: "non-author-committer", Email: "dummy-email2@example.com"},
 			},
 		})
 		require.NoError(t, err)
