@@ -333,12 +333,16 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					// A caller whose `if:` fails to evaluate never expands; fail it like an unexpandable caller.
 					job.Status = actions_model.StatusFailure
 					job.Stopped = timeutil.TimeStampNow()
-					if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status", "stopped"); err != nil {
+					if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); err != nil {
 						return fmt.Errorf("mark if-failed caller %d failed: %w", job.ID, err)
-					} else if n != 1 {
-						return fmt.Errorf("no affected for updating blocked job %v", job.ID)
+					} else if n == 1 {
+						result.UpdatedJobs = append(result.UpdatedJobs, job)
+					} else {
+						// A concurrent writer advanced the caller; restore the in-memory state.
+						log.Warn("if-failed caller %d has been advanced by a concurrent writer, not marking it failed", job.ID)
+						job.Status = actions_model.StatusBlocked
+						job.Stopped = 0
 					}
-					result.UpdatedJobs = append(result.UpdatedJobs, job)
 				}
 				continue
 			}

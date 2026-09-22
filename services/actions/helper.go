@@ -23,7 +23,7 @@ func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.Actio
 	}
 	var payload api.WorkflowDispatchPayload
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
-		return nil, err
+		return nil, util.NewInvalidArgumentErrorf("decode run %d dispatch payload: %v", run.ID, err)
 	}
 	if payload.Inputs == nil {
 		payload.Inputs = map[string]any{} // nil reads as "unresolved" in EvaluateRunConcurrencyFillModel

@@ -11,6 +11,7 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -78,6 +79,14 @@ func TestDispatchInputsForRunJobs(t *testing.T) {
 	inputs, err := dispatchInputsForRunJobs(run, []*actions_model.ActionRunJob{child, job})
 	require.NoError(t, err)
 	assert.Equal(t, true, inputs["deploy"])
+}
+
+func TestDispatchInputsForJob_MalformedPayloadIsTerminal(t *testing.T) {
+	// An undecodable EventPayload is deterministic: it must classify as invalid-argument
+	// so the emitter fails the job instead of retrying it forever.
+	run := &actions_model.ActionRun{ID: 1, Event: "workflow_dispatch", EventPayload: "{"}
+	_, err := dispatchInputsForJob(run, &actions_model.ActionRunJob{})
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }
 
 func TestPullRequestTargetBaseSHA(t *testing.T) {

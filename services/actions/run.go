@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	act_model "gitea.dev/actionslib/pkg/model"
@@ -12,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
@@ -287,12 +289,22 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 }
 
 // processInlineReusableCaller evaluates a no-needs reusable caller's own `if:` and
-// either inline-expands it into child jobs or marks it skipped.
+// either inline-expands it into child jobs, or marks it skipped/failed.
 // (A caller with needs is Blocked and gets its `if:` evaluated by the job emitter instead.)
 func processInlineReusableCaller(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
 	shouldStart, err := evaluateJobIf(ctx, run, runAttempt, caller, vars, true)
 	if err != nil {
-		return fmt.Errorf("evaluate caller %d if: %w", caller.ID, err)
+		if !errors.Is(err, util.ErrInvalidArgument) {
+			return fmt.Errorf("evaluate caller %d if: %w", caller.ID, err)
+		}
+		// A deterministic `if:` error can never resolve itself, so fail the caller like the emitter does.
+		log.Error("evaluateJobIf failed for caller %d, marking it as failed: %v", caller.ID, err)
+		caller.Status = actions_model.StatusFailure
+		caller.Stopped = timeutil.TimeStampNow()
+		if _, uerr := actions_model.UpdateRunJob(ctx, caller, nil, "status", "stopped"); uerr != nil {
+			return fmt.Errorf("fail caller %d: %w", caller.ID, uerr)
+		}
+		return nil
 	}
 	if shouldStart {
 		if err := expandReusableWorkflowCaller(ctx, run, runAttempt, caller, vars); err != nil {

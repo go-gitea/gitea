@@ -364,3 +364,57 @@ func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
 		assert.Equal(t, "tag-v1-sha", got)
 	})
 }
+
+func TestPrepareRunAndInsert_IfErrorFailsNoNeedsCaller(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	// The emitter queue is not running in tests; the caller's dependents are resolved on that pass.
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(runID int64) error { return nil })()
+	ctx := t.Context()
+
+	content := []byte(`name: if-fail-caller
+on: push
+jobs:
+  caller:
+    if: ${{ no_such_context.value }}
+    uses: ./.gitea/workflows/reusable.yml
+  dependent:
+    needs: caller
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`)
+
+	run := &actions_model.ActionRun{
+		Title:             "if-fail-caller",
+		RepoID:            4,
+		OwnerID:           1,
+		WorkflowID:        "if-fail-caller.yaml",
+		TriggerUserID:     1,
+		Ref:               "refs/heads/master",
+		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:             "push",
+		TriggerEvent:      "push",
+		EventPayload:      "{}",
+		WorkflowRepoID:    4,
+		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+	}
+	// A deterministic `if:` error on a no-needs caller must fail the caller, not abort the whole insert.
+	require.NoError(t, PrepareRunAndInsert(ctx, content, run, nil))
+	require.Positive(t, run.ID)
+
+	jobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	require.NoError(t, err)
+	require.Len(t, jobs, 2)
+	for _, job := range jobs {
+		switch job.JobID {
+		case "caller":
+			assert.True(t, job.IsReusableCaller)
+			assert.Equal(t, actions_model.StatusFailure, job.Status)
+			assert.NotZero(t, job.Stopped)
+		case "dependent":
+			assert.Equal(t, actions_model.StatusBlocked, job.Status)
+		default:
+			t.Fatalf("unexpected job %q", job.JobID)
+		}
+	}
+}
