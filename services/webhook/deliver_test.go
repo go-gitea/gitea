@@ -14,7 +14,8 @@ import (
 
 	"gitea.dev/models/unittest"
 	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/egress/policy"
+	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -33,7 +34,13 @@ func TestWebhookProxy(t *testing.T) {
 	setting.Webhook.ProxyURLFixed, _ = url.Parse(setting.Webhook.ProxyURL)
 	setting.Webhook.ProxyHosts = []string{"*.discordapp.com", "discordapp.com"}
 
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", "discordapp.com,s.discordapp.com")
+	// mirrors what egress.GetWebhookPolicy builds, with the webhook allow list pinned
+	pol := policy.NewPolicy("webhook",
+		policy.WithAllow("discordapp.com,s.discordapp.com", "webhook.ALLOWED_HOST_LIST"),
+		policy.WithProxy(setting.Webhook.ProxyURLFixed, proxy.WebHookProxy()),
+		policy.WithProxyPreScreen(true))
+	proxyFunc := pol.NewHTTPTransport().Proxy
+	require.NotNil(t, proxyFunc)
 
 	tests := []struct {
 		req     string
@@ -41,23 +48,21 @@ func TestWebhookProxy(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			req:     "https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx",
-			want:    "http://localhost:8080",
-			wantErr: false,
+			req:  "https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx",
+			want: "http://localhost:8080",
 		},
 		{
-			req:     "http://s.discordapp.com/assets/xxxxxx",
-			want:    "http://localhost:8080",
-			wantErr: false,
+			req:  "http://s.discordapp.com/assets/xxxxxx",
+			want: "http://localhost:8080",
 		},
 		{
+			// not proxied (outside ProxyHosts), but the pre-screening still denies it: it is not
+			// on the allow list, so the delivery would fail on dial anyway
 			req:     "http://github.com/a/b",
-			want:    "",
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			req:     "http://www.discordapp.com/assets/xxxxxx",
-			want:    "",
 			wantErr: true,
 		},
 	}
@@ -66,7 +71,7 @@ func TestWebhookProxy(t *testing.T) {
 			req, err := http.NewRequest(http.MethodPost, tt.req, nil)
 			require.NoError(t, err)
 
-			u, err := webhookProxy(allowedHostMatcher)(req)
+			u, err := proxyFunc(req)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"sync"
 
 	"gitea.dev/modules/glob"
@@ -16,8 +15,9 @@ import (
 )
 
 var (
-	once         sync.Once
-	hostMatchers []glob.Glob
+	once            sync.Once
+	hostMatchers    []glob.Glob
+	webhookMatchers []glob.Glob
 )
 
 // GetProxyURL returns proxy url
@@ -55,9 +55,7 @@ func Match(u string) bool {
 // Proxy returns the system proxy
 func Proxy() func(req *http.Request) (*url.URL, error) {
 	if !setting.Proxy.Enabled {
-		return func(req *http.Request) (*url.URL, error) {
-			return nil, nil
-		}
+		return nil
 	}
 	if setting.Proxy.ProxyURL == "" {
 		return http.ProxyFromEnvironment
@@ -83,15 +81,26 @@ func Proxy() func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-// EnvWithProxy returns os.Environ(), with a https_proxy env, if the given url
-// needs to be proxied.
-func EnvWithProxy(u *url.URL) []string {
-	envs := os.Environ()
-	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
-		if Match(u.Host) {
-			envs = append(envs, "https_proxy="+GetProxyURL())
-		}
+// WebHookProxy returns the webhook proxy, falling back to the system proxy if no webhook proxy is set
+func WebHookProxy() func(req *http.Request) (*url.URL, error) {
+	if setting.Webhook.ProxyURL == "" {
+		return Proxy()
 	}
-
-	return envs
+	once.Do(func() {
+		for _, h := range setting.Webhook.ProxyHosts {
+			if g, err := glob.Compile(h); err == nil {
+				webhookMatchers = append(webhookMatchers, g)
+			} else {
+				log.Error("glob.Compile %s failed: %v", h, err)
+			}
+		}
+	})
+	return func(req *http.Request) (*url.URL, error) {
+		for _, v := range webhookMatchers {
+			if v.Match(req.URL.Host) {
+				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
+			}
+		}
+		return http.ProxyFromEnvironment(req)
+	}
 }
