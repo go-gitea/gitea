@@ -31,7 +31,6 @@ func TestDumpRestore(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
 		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
-		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 
 		reponame := "repo1"
 
