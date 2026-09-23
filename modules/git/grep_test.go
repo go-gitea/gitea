@@ -79,6 +79,14 @@ func TestGrepSearch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
+	res, err = GrepSearch(t.Context(), repo, "-vendored", GrepOptions{GrepMode: GrepModeExact})
+	assert.NoError(t, err)
+	assert.Equal(t, []*GrepResult{{Filename: ".gitattributes", LineNumbers: []int{1}, LineCodes: []string{"*.vendor.java linguist-vendored"}}}, res)
+
+	res, err = GrepSearch(t.Context(), repo, "-java", GrepOptions{}) // only ".java" exists
+	assert.NoError(t, err)
+	assert.Empty(t, res)
+
 	nonExistingRepo := &Repository{RepositoryBase: RepositoryBase{repoFacade: gitrepo.RepositoryUnmanaged("no-such-git-repo")}}
 	res, err = GrepSearch(t.Context(), nonExistingRepo, "no-such-content", GrepOptions{})
 	assert.Error(t, err)
