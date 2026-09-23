@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	audit_model "gitea.dev/models/audit"
@@ -27,7 +28,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
@@ -229,7 +229,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	// Prepare AppDataPath, it is very important for Gitea
 	// old code replaced "\\" to "/", it's questionable whether it's worth to do so
-	form.AppDataPath = util.PathJoinRelX(form.AppDataPath)
+	form.AppDataPath = strings.ReplaceAll(form.AppDataPath, "\\", "/")
 	setting.AppDataPath = form.AppDataPath
 	if err := setting.PrepareAppDataPath(); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_app_data_path", err), tplInstall, form)
