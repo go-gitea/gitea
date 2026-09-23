@@ -82,6 +82,7 @@ type IssueReference struct {
 	Index   int64
 	Owner   string
 	Name    string
+	IsPull  bool // "!N" was used instead of "#N"
 	Action  XRefAction
 	TimeLog string
 }
@@ -120,6 +121,7 @@ func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 			Index:   r.index,
 			Owner:   r.owner,
 			Name:    r.name,
+			IsPull:  r.isPull,
 			Action:  r.action,
 			TimeLog: r.timeLog,
 		}

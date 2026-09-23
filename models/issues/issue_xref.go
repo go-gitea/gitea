@@ -208,8 +208,8 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 		refAction = references.XRefActionNone
 	}
 
-	// With an external tracker, "#N" means an external issue rather than pull request N
-	if refAction != references.XRefActionNone && refIssue.IsPull && refIssue.Repo.UnitEnabled(stdCtx, unit.TypeExternalTracker) {
+	// With an external tracker, pull requests are referenced as "!N"
+	if refAction != references.XRefActionNone && !ref.IsPull && refIssue.IsPull && refIssue.Repo.UnitEnabled(stdCtx, unit.TypeExternalTracker) {
 		refAction = references.XRefActionNone
 	}
 

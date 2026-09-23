@@ -76,10 +76,15 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	i = testCreateIssue(t, 4, 5, "title6", content, false)
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 
+	assert.NoError(t, db.DeleteBeans(t.Context(), &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeIssues}))
 	assert.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeExternalTracker, Config: &repo_model.ExternalTrackerConfig{}}))
 	pr3 := testCreateIssue(t, 1, 2, "title7", fmt.Sprintf("fixes #%d", pr.Index), true)
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.ID, RefIssueID: pr3.ID, RefCommentID: 0})
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
+
+	pr4 := testCreateIssue(t, 1, 2, "title8", fmt.Sprintf("fixes !%d", pr.Index), true)
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.ID, RefIssueID: pr4.ID, RefCommentID: 0})
+	assert.Equal(t, references.XRefActionCloses, ref.RefAction)
 }
 
 func TestXRef_NeuterCrossReferences(t *testing.T) {

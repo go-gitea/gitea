@@ -199,8 +199,8 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 				continue
 			}
 
-			// With an external tracker, "#N" means an external issue rather than pull request N
-			if refIssue.IsPull && refRepo.UnitEnabled(ctx, unit.TypeExternalTracker) {
+			// With an external tracker, pull requests are referenced as "!N"
+			if !ref.IsPull && refIssue.IsPull && refRepo.UnitEnabled(ctx, unit.TypeExternalTracker) {
 				continue
 			}
 

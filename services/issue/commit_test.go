@@ -124,6 +124,8 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.NoError(t, UpdateIssuesCommit(t.Context(), admin, repo, []*repository.PushCommit{{Sha1: "abcdef4", Message: "close #1"}}, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=0")
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), admin, repo, []*repository.PushCommit{{Sha1: "abcdef5", Message: "close !1"}}, repo.DefaultBranch))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
 }
 
 func TestUpdateIssuesCommit_Colon(t *testing.T) {
