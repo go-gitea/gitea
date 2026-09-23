@@ -5,6 +5,7 @@ package jobparser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -109,6 +110,38 @@ func TestParse(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestParseRejectsTooManyJobs(t *testing.T) {
+	var content strings.Builder
+	content.WriteString("on: push\njobs:\n")
+	for i := range MaxJobsPerWorkflow + 1 {
+		fmt.Fprintf(&content, "  job-%d:\n    runs-on: ubuntu-latest\n    steps:\n      - run: true\n", i)
+	}
+
+	_, err := Parse([]byte(content.String()))
+	require.ErrorContains(t, err, "workflow expands to more than 256 jobs")
+}
+
+func TestParseRejectsTooManyMatrixCombinations(t *testing.T) {
+	values := make([]string, 0, 17)
+	for i := range 17 {
+		values = append(values, strconv.Itoa(i))
+	}
+	content := fmt.Sprintf(`on: push
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        a: [%s]
+        b: [%s]
+    steps:
+      - run: true
+`, strings.Join(values, ", "), strings.Join(values, ", "))
+
+	_, err := Parse([]byte(content))
+	require.ErrorContains(t, err, "Matrix expands to 289 combinations, exceeding the limit of 256")
 }
 
 func TestParseDefersDynamicMatrix(t *testing.T) {

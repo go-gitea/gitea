@@ -11,6 +11,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
@@ -101,6 +102,19 @@ func TestIfNeedApproval(t *testing.T) {
 		assert.True(t, need)
 		assert.False(t, called, "permission check must not run for restricted user")
 	})
+}
+
+func TestGetApprovalUserUsesForkPullRequestAuthor(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	require.NoError(t, pr.Issue.LoadPoster(t.Context()))
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	approvalUser, err := getApprovalUser(t.Context(), &notifyInput{Doer: doer, PullRequest: pr}, true)
+	require.NoError(t, err)
+	assert.Equal(t, pr.Issue.PosterID, approvalUser.ID)
 }
 
 func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {

@@ -105,6 +105,7 @@ func TestCloneRunJobForAttempt(t *testing.T) {
 
 func TestRerunValidation(t *testing.T) {
 	runningRun := &actions_model.ActionRun{Status: actions_model.StatusRunning}
+	pendingApprovalRun := &actions_model.ActionRun{Status: actions_model.StatusCancelled, NeedApproval: true}
 
 	t.Run("RerunWorkflowRunJobs rejects a non-done run", func(t *testing.T) {
 		jobs := []*actions_model.ActionRunJob{
@@ -120,6 +121,12 @@ func TestRerunValidation(t *testing.T) {
 			{ID: 1, JobID: "job1", Status: actions_model.StatusFailure},
 		}
 		_, err := RerunWorkflowRunJobs(t.Context(), nil, runningRun, &user_model.User{ID: 1}, GetFailedJobsForRerun(jobs))
+		require.Error(t, err)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	})
+
+	t.Run("RerunWorkflowRunJobs rejects a run pending approval", func(t *testing.T) {
+		_, err := RerunWorkflowRunJobs(t.Context(), nil, pendingApprovalRun, &user_model.User{ID: 1}, nil)
 		require.Error(t, err)
 		assert.ErrorIs(t, err, util.ErrInvalidArgument)
 	})

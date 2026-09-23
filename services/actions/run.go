@@ -99,13 +99,17 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			if err := EvaluateRunConcurrencyFillModel(ctx, run, runAttempt, wfRawConcurrency, vars, inputs); err != nil {
 				return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
 			}
-			// check run (workflow-level) concurrency
-			var jobsToCancel []*actions_model.ActionRunJob
-			runAttempt.Status, jobsToCancel, err = PrepareToStartRunWithConcurrency(ctx, runAttempt)
-			if err != nil {
-				return err
+			if run.NeedApproval {
+				runAttempt.Status = actions_model.StatusBlocked
+			} else {
+				// check run (workflow-level) concurrency
+				var jobsToCancel []*actions_model.ActionRunJob
+				runAttempt.Status, jobsToCancel, err = PrepareToStartRunWithConcurrency(ctx, runAttempt)
+				if err != nil {
+					return err
+				}
+				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 			}
-			cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 		}
 
 		if err := db.Insert(ctx, runAttempt); err != nil {

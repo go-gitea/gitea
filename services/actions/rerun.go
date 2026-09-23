@@ -72,6 +72,9 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 	if !run.Status.IsDone() {
 		return util.NewInvalidArgumentErrorf("this workflow run is not done")
 	}
+	if run.NeedApproval {
+		return util.NewInvalidArgumentErrorf("this workflow run requires approval")
+	}
 	if repo == nil {
 		return util.NewInvalidArgumentErrorf("repo is required")
 	}

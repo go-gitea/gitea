@@ -46,6 +46,24 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err != nil {
 				return err
 			}
+			attempt, hasAttempt, err := run.GetLatestAttempt(ctx)
+			if err != nil {
+				return fmt.Errorf("get latest attempt of run %d: %w", run.ID, err)
+			}
+			if hasAttempt && attempt.ConcurrencyGroup != "" {
+				var jobsToCancel []*actions_model.ActionRunJob
+				attempt.Status, jobsToCancel, err = PrepareToStartRunWithConcurrency(ctx, attempt)
+				if err != nil {
+					return err
+				}
+				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+				if err := actions_model.UpdateRunAttempt(ctx, attempt, "status"); err != nil {
+					return err
+				}
+				if attempt.Status == actions_model.StatusBlocked {
+					continue
+				}
+			}
 
 			// approval unblocks every job at once, so max-parallel has to cap them here too
 			slots := maxParallelSlots{}

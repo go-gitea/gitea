@@ -390,9 +390,13 @@ func buildApproveAndInsertRun(
 		IsScopedRun:       isScopedRun,
 	}
 
-	need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+	approvalUser, err := getApprovalUser(ctx, input, isForkPullRequest)
 	if err != nil {
-		return fmt.Errorf("check if need approval for user %d: %w", input.Doer.ID, err)
+		return err
+	}
+	need, err := ifNeedApproval(ctx, run, input.Repo, approvalUser)
+	if err != nil {
+		return fmt.Errorf("check if need approval for user %d: %w", approvalUser.ID, err)
 	}
 	run.NeedApproval = need
 
@@ -475,6 +479,19 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 			Sender:  convert.ToUser(ctx, sender, nil),
 		}).
 		Notify(ctx)
+}
+
+func getApprovalUser(ctx context.Context, input *notifyInput, isForkPullRequest bool) (*user_model.User, error) {
+	if !isForkPullRequest || input.PullRequest == nil {
+		return input.Doer, nil
+	}
+	if err := input.PullRequest.LoadIssue(ctx); err != nil {
+		return nil, fmt.Errorf("load pull request issue: %w", err)
+	}
+	if err := input.PullRequest.Issue.LoadPoster(ctx); err != nil {
+		return nil, fmt.Errorf("load pull request author: %w", err)
+	}
+	return input.PullRequest.Issue.Poster, nil
 }
 
 func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
