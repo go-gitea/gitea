@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/hash"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -48,7 +47,7 @@ func (repo *Repository) ConvertToGitID(ctx context.Context, commitID string) (Ob
 	if err != nil {
 		return nil, err
 	}
-	if len(commitID) == hash.HexSize && objectFormat.IsValid(commitID) {
+	if IsStringValidObjectID(objectFormat, commitID) {
 		ID, err := NewIDFromString(commitID)
 		if err == nil {
 			return ID, nil

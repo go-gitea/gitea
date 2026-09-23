@@ -106,9 +106,8 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))
 		logStr = strings.ReplaceAll(logStr, "{cursor}", strconv.FormatInt(cur, 10))
 		stepsLog = append(stepsLog, &actions.ViewStepLog{
-			Step:    logCur.Step,
-			Cursor:  cur,
-			Started: time.Now().Unix() - 1,
+			Step:   logCur.Step,
+			Cursor: cur,
 			Lines: []*actions.ViewStepLogLine{
 				{Index: cur, Message: logStr, Timestamp: float64(time.Now().UnixNano()) / float64(time.Second)},
 			},
