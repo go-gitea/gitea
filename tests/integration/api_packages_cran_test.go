@@ -8,7 +8,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"gitea.dev/models/packages"
@@ -19,6 +21,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageCran(t *testing.T) {
@@ -226,4 +229,72 @@ func TestPackageCran(t *testing.T) {
 			assert.Contains(t, resp.Header().Get("Content-Type"), "application/x-gzip")
 		})
 	})
+}
+
+func TestPackageCranLatestVersion(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	baseURL := fmt.Sprintf("/api/packages/%s/cran", user.Name)
+	name := "ordered.package"
+	upload := func(version, platform, rversion string) {
+		t.Helper()
+		description := fmt.Sprintf("Package: %s\nVersion: %s\nLicense: MIT\n", name, version)
+		var archive io.Reader
+		uploadURL := baseURL + "/src"
+		if platform == "" {
+			var buf bytes.Buffer
+			gw := gzip.NewWriter(&buf)
+			tw := tar.NewWriter(gw)
+			require.NoError(t, tw.WriteHeader(&tar.Header{Name: "package/DESCRIPTION", Mode: 0o600, Size: int64(len(description))}))
+			_, err := tw.Write([]byte(description))
+			require.NoError(t, err)
+			require.NoError(t, tw.Close())
+			require.NoError(t, gw.Close())
+			archive = &buf
+		} else {
+			archive = test.WriteZipArchive(map[string]string{"package/DESCRIPTION": description})
+			uploadURL = fmt.Sprintf("%s/bin?platform=%s&rversion=%s", baseURL, platform, rversion)
+		}
+		MakeRequest(t, NewRequestWithBody(t, "PUT", uploadURL, archive).AddBasicAuth(user.Name), http.StatusCreated)
+	}
+	checkIndex := func(path, version string) {
+		t.Helper()
+		for _, suffix := range []string{"", ".gz"} {
+			resp := MakeRequest(t, NewRequest(t, "GET", baseURL+path+"/PACKAGES"+suffix), http.StatusOK)
+			var reader io.Reader = resp.Body
+			if suffix != "" {
+				gz, err := gzip.NewReader(resp.Body)
+				require.NoError(t, err)
+				defer gz.Close()
+				reader = gz
+			}
+			body, err := io.ReadAll(reader)
+			require.NoError(t, err)
+			assert.Contains(t, string(body), "Package: "+name+"\nVersion: "+version+"\n")
+			assert.Equal(t, 1, strings.Count(string(body), "Package: "+name+"\n"))
+		}
+	}
+
+	for _, tc := range []struct{ upload, want string }{
+		{"3.0.2", "3.0.2"},
+		{"2.5.2", "3.0.2"},
+		{"3.0.10", "3.0.10"},
+		{"3.0.9", "3.0.10"},
+		{"3.0-11", "3.0-11"},
+		{"3.0.10.1", "3.0-11"},
+	} {
+		upload(tc.upload, "", "")
+		checkIndex("/src/contrib", tc.want)
+	}
+
+	upload("2.5.2", "windows", "4.2")
+	upload("3.0.2", "windows", "4.3")
+	upload("4.0", "osx", "4.3")
+	checkIndex("/src/contrib", "3.0-11")
+	checkIndex("/bin/windows/contrib/4.2", "2.5.2")
+	checkIndex("/bin/windows/contrib/4.3", "3.0.2")
+	checkIndex("/bin/osx/contrib/4.3", "4.0")
+	MakeRequest(t, NewRequest(t, "GET", baseURL+"/bin/windows/contrib/4.1/PACKAGES"), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", baseURL+"/src/contrib/Archive/"+name+"/"+name+"_2.5.2.tar.gz"), http.StatusOK)
 }

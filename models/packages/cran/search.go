@@ -62,14 +62,33 @@ func SearchLatestVersions(ctx context.Context, opts *SearchOptions) ([]*packages
 	sess := db.GetEngine(ctx).
 		Table("package_version").
 		Select("package_version.*").
-		Join("LEFT", "package_version pv2", builder.Expr("package_version.package_id = pv2.package_id AND pv2.is_internal = ? AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))", false)).
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Join("INNER", "package_file", "package_file.version_id = package_version.id").
-		Where(opts.toConds().And(builder.Expr("pv2.id IS NULL"))).
-		Asc("package.name")
+		Where(opts.toConds()).
+		Asc("package.name").
+		Desc("package_version.created_unix", "package_version.id")
 
 	pvs := make([]*packages.PackageVersion, 0, 10)
-	return pvs, sess.Find(&pvs)
+	rows, err := sess.Rows(new(packages.PackageVersion))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	indices := make(map[int64]int)
+	for rows.Next() {
+		pv := new(packages.PackageVersion)
+		if err := rows.Scan(pv); err != nil {
+			return nil, err
+		}
+		if i, ok := indices[pv.PackageID]; !ok {
+			indices[pv.PackageID] = len(pvs)
+			pvs = append(pvs, pv)
+		} else if cran_module.CompareVersions(pv.Version, pvs[i].Version) > 0 {
+			pvs[i] = pv
+		}
+	}
+	return pvs, rows.Err()
 }
 
 func SearchFile(ctx context.Context, opts *SearchOptions) (*packages.PackageFile, error) {
