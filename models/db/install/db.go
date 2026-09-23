@@ -44,9 +44,5 @@ func HasPostInstallationUsers(ctx context.Context) (bool, error) {
 		return false, nil
 	}
 
-	res, err := x.Table("user").Cols("id").Limit(1).Query()
-	if err != nil {
-		return false, err
-	}
-	return len(res) >= 1, nil
+	return x.Table("user").Exist()
 }
