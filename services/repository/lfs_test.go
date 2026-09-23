@@ -62,6 +62,10 @@ func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 	lfsContent := []byte("gitea2")
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
 
+	// simulate a stale LFSSize left over from a previous, out-of-sync GC run
+	err = repo_model.UpdateRepoSize(t.Context(), repo.ID, repo.Size, repo.LFSSize+int64(len(lfsContent)))
+	assert.NoError(t, err)
+
 	err = repo_service.GarbageCollectLFSMetaObjectsForRepo(t.Context(), repo, repo_service.GarbageCollectLFSMetaObjectsOptions{
 		LogDetail:               func(string, ...any) {},
 		AutoFix:                 true,
@@ -72,6 +76,10 @@ func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 
 	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
 	assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+
+	// LFSSize is recalculated to reflect the removed orphaned object
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.EqualValues(t, 0, repo.LFSSize)
 }
 
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
