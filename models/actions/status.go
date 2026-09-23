@@ -23,7 +23,7 @@ const (
 	StatusRunning                  // 6, isn't a runnerv1.Result
 	StatusBlocked                  // 7, isn't a runnerv1.Result
 	StatusCancelling               // 8, isn't a runnerv1.Result
-	StatusPending                  // 9, isn't a runnerv1.Result, waits on unfinished needs
+	StatusPending                  // 9, isn't a runnerv1.Result
 )
 
 var statusNames = map[Status]string{

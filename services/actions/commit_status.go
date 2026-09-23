@@ -167,7 +167,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), pending.onlyReplace(job, ctxName))
 }
 
-// pendingJobFilter keeps Pending jobs that no required check covers from posting a new status, a nil filter restricts nothing.
+// pendingJobFilter keeps optional Pending jobs from posting new statuses
 type pendingJobFilter struct {
 	requiredGlobs []glob.Glob
 }
