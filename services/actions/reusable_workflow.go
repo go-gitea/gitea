@@ -161,7 +161,7 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 	return nil
 }
 
-// canonicalCallUses keys a call by its parsed form, so the `$/` and `self://` spellings match the plain ones.
+// canonicalCallUses keys a call by its parsed form, so the `$/` and `self:` spellings match the plain ones.
 func canonicalCallUses(uses string) string {
 	ref, err := model.ParseReusableWorkflowUses(uses)
 	if err != nil {

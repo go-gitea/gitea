@@ -55,7 +55,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		)
 		err := checkCallerChain(t.Context(), chain[len(chain)-1])
 		assert.ErrorContains(t, err, "cycle detected")
-		assert.Equal(t, canonicalCallUses("owner/repo/.gitea/workflows/a.yml@v1"), canonicalCallUses("self://owner/repo/.gitea/workflows/a.yml@v1"))
+		assert.Equal(t, canonicalCallUses("owner/repo/.gitea/workflows/a.yml@v1"), canonicalCallUses("self:owner/repo/.gitea/workflows/a.yml@v1"))
 	})
 
 	t.Run("NoCycle", func(t *testing.T) {
@@ -180,7 +180,7 @@ func TestResolveUses(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
 
-		ref, err = ResolveUses(ctx, "self://owner/repo/.gitea/scoped_workflows/lib.yml@v1")
+		ref, err = ResolveUses(ctx, "self:owner/repo/.gitea/scoped_workflows/lib.yml@v1")
 		require.NoError(t, err)
 		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
 
@@ -189,7 +189,7 @@ func TestResolveUses(t *testing.T) {
 		require.Error(t, err)
 		_, err = ResolveUses(ctx, "owner/repo/lib/build.yml@v1")
 		require.Error(t, err)
-		_, err = ResolveUses(ctx, "self://owner/repo/lib/build.yml@v1")
+		_, err = ResolveUses(ctx, "self:owner/repo/lib/build.yml@v1")
 		require.Error(t, err)
 	})
 
