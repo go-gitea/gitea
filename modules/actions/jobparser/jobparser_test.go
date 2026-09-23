@@ -477,7 +477,7 @@ func TestEvaluateJobIfExpressionLeavesRawMatrixUnavailable(t *testing.T) {
 	})
 }
 
-func TestExpressionReadsMatrix(t *testing.T) {
+func TestExpressionReadsCombination(t *testing.T) {
 	// Erring toward true only postpones the `if:` to the pass that has the combination, which decides it correctly anyway.
 	for value, want := range map[string]bool{
 		"":                                  false,
@@ -492,11 +492,12 @@ func TestExpressionReadsMatrix(t *testing.T) {
 		"${{ toJSON(matrix) }}":             true, // the whole context, not a property of it
 		"${{ vars.A }}${{ matrix.os }}":     true, // only the second of two expressions reads it
 		"${{ matrix.os == }}":               true, // unparseable, postpone rather than decide it here
+		"${{ strategy.job-total > 1 }}":     true,
 		// An `if:` may omit the `${{ }}`, and is evaluated as one expression either way.
 		"matrix.os == 'a'":           true,
 		"needs.setup.result == 'ok'": false,
 	} {
-		assert.Equal(t, want, ExpressionReadsMatrix(value), "value %q", value)
+		assert.Equal(t, want, ExpressionReadsCombination(value), "value %q", value)
 	}
 }
 

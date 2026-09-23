@@ -61,10 +61,10 @@ func expressionReadsNeeds(value string) bool {
 	return expreval.ReadsContext(value, "needs")
 }
 
-// ExpressionReadsMatrix reports whether a job's `if:` reads the matrix context.
-// A deferred-matrix placeholder has no combination yet, so such an expression cannot be decided.
-func ExpressionReadsMatrix(ifValue string) bool {
-	return expreval.ReadsContext(asIfExpression(ifValue), "matrix")
+// ExpressionReadsCombination reports whether an `if:` reads `matrix` or `strategy`, which a deferred placeholder lacks.
+func ExpressionReadsCombination(ifValue string) bool {
+	expression := asIfExpression(ifValue)
+	return expreval.ReadsContext(expression, "matrix") || expreval.ReadsContext(expression, "strategy")
 }
 
 // ExpressionIgnoresNeedResults reports whether a job's `if:` calls always(), failure() or cancelled(),

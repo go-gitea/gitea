@@ -487,10 +487,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			continue
 		}
 
-		// Decide whether the job runs at all before expanding a deferred matrix: a job whose needs
-		// failed or were skipped has to be skipped too, not failed for a matrix those needs never
-		// produced the outputs for. An `if:` that reads `matrix.*` cannot be decided this early, so
-		// evaluateJobIf reduces it to that needs gate and the pass below decides it per combination.
+		// decide before expanding, so failed needs skip the job instead of failing its matrix
 		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
 		if err != nil {
 			// TODO: surface deterministic expression errors to users by failing the job with a message.
