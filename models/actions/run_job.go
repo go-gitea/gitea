@@ -645,7 +645,7 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		hasCancelling = hasCancelling || job.Status == StatusCancelling
 		hasWaiting = hasWaiting || job.Status == StatusWaiting
 		hasRunning = hasRunning || job.Status == StatusRunning
-		hasBlocked = hasBlocked || job.Status == StatusBlocked
+		hasBlocked = hasBlocked || job.Status.In(StatusBlocked, StatusPending)
 	}
 	switch {
 	case allSkipped:

@@ -621,7 +621,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Link:     fmt.Sprintf("%s/jobs/%d", run.Link(), v.ID),
 			JobID:    v.JobID,
 			Name:     v.Name,
-			Status:   util.Iif(v.Status.IsBlocked() && len(pendingNeeds(v, jobs)) > 0, "pending", v.Status.String()),
+			Status:   v.Status.String(),
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
 			Needs:    v.Needs,
@@ -762,14 +762,13 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	}
 }
 
-// describePendingJobDetail explains why a blocked or waiting job has not started
+// describePendingJobDetail explains why a pending, blocked or waiting job has not started
 // yet, so the user can tell whether it is waiting on its dependencies or on an
 // available runner. It returns an empty string when the job is not pending or the
 // cause can't be determined (the caller keeps the generic status label then).
 func describePendingJobDetail(ctx *context_module.Context, current *actions_model.ActionRunJob, jobs []*actions_model.ActionRunJob) string {
 	switch {
-	case current.Status.IsBlocked():
-		// A blocked job is held back by the jobs listed in its `needs`.
+	case current.Status.In(actions_model.StatusPending, actions_model.StatusBlocked):
 		if pending := pendingNeeds(current, jobs); len(pending) > 0 {
 			return ctx.Locale.TrString("actions.runs.waiting_for_dependent_jobs", strings.Join(pending, ", "))
 		}
@@ -848,7 +847,7 @@ func convertToViewModel(ctx context.Context, locale translation.Locale, cursors 
 		viewJobs = append(viewJobs, &ViewJobStep{
 			Summary:  v.Name,
 			Duration: v.Duration().String(),
-			Status:   util.Iif(status.IsWaiting(), "pending", status.String()),
+			Status:   util.Iif(status.IsWaiting(), actions_model.StatusPending, status).String(),
 		})
 	}
 

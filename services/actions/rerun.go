@@ -284,9 +284,10 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
 				// A deferred-matrix placeholder must go through the emitter, which is the only place
 				// that expands it: dispatching it directly would hand the runner the raw payload.
-				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob) || newJob.IsMatrixDeferred
-
-				newJob.Status = util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting)
+				newJob.Status = util.Iif(shouldBlock || newJob.IsMatrixDeferred, actions_model.StatusBlocked, actions_model.StatusWaiting)
+				if plan.hasRerunDependency(templateJob) {
+					newJob.Status = actions_model.StatusPending
+				}
 				newJob.TaskID = 0
 				newJob.SourceTaskID = 0
 				newJob.Started = 0
@@ -301,7 +302,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				}
 
 				// A slot-starved job must not cancel its group peers.
-				if newJob.RawConcurrency != "" && !shouldBlockJob && slots.available(newJob) {
+				if newJob.RawConcurrency != "" && newJob.Status.IsWaiting() && slots.available(newJob) {
 					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
@@ -487,7 +488,7 @@ func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob)
 
 // hasRerunDependency reports whether `job` has a needs-reference that points to a job which is itself being rerun (in rerunAttemptJobIDs)
 // or is an ancestor caller whose subtree is being rerun (in ancestorAttemptJobIDs).
-// Either case means `job` should start in Blocked status.
+// Either case means `job` should start in Pending status.
 func (p *rerunPlan) hasRerunDependency(job *actions_model.ActionRunJob) bool {
 	if len(job.Needs) == 0 {
 		return false

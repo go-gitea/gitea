@@ -46,7 +46,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			want: map[int64]actions_model.Status{},
 		},
 		{
-			name: "single blocked",
+			name: "legacy blocked job with needs",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusSuccess, Needs: []string{}},
 				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
@@ -57,11 +57,11 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 		},
 		{
-			name: "multiple blocked",
+			name: "multiple pending",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusSuccess, Needs: []string{}},
-				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
-				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
+				{ID: 2, JobID: "2", Status: actions_model.StatusPending, Needs: []string{"1"}},
+				{ID: 3, JobID: "3", Status: actions_model.StatusPending, Needs: []string{"1"}},
 			},
 			want: map[int64]actions_model.Status{
 				2: actions_model.StatusWaiting,
@@ -69,11 +69,11 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 		},
 		{
-			name: "chain blocked",
+			name: "chain pending",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusFailure, Needs: []string{}},
-				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
-				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"2"}},
+				{ID: 2, JobID: "2", Status: actions_model.StatusPending, Needs: []string{"1"}},
+				{ID: 3, JobID: "3", Status: actions_model.StatusPending, Needs: []string{"2"}},
 			},
 			want: map[int64]actions_model.Status{
 				2: actions_model.StatusSkipped,
@@ -83,9 +83,9 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 		{
 			name: "loop need",
 			jobs: actions_model.ActionJobList{
-				{ID: 1, JobID: "1", Status: actions_model.StatusBlocked, Needs: []string{"3"}},
-				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
-				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"2"}},
+				{ID: 1, JobID: "1", Status: actions_model.StatusPending, Needs: []string{"3"}},
+				{ID: 2, JobID: "2", Status: actions_model.StatusPending, Needs: []string{"1"}},
+				{ID: 3, JobID: "3", Status: actions_model.StatusPending, Needs: []string{"2"}},
 			},
 			want: map[int64]actions_model.Status{},
 		},
@@ -93,7 +93,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			name: "`if` is not empty and all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -112,7 +112,7 @@ jobs:
 			name: "`if` is not empty and not all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -131,7 +131,7 @@ jobs:
 			name: "`if` is empty and not all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -211,7 +211,7 @@ jobs:
 			name: "`if` is empty and a failed need has continue-on-error",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, ContinueOnError: true, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -235,7 +235,7 @@ jobs:
 			},
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 on:
   workflow_dispatch:
@@ -273,9 +273,7 @@ jobs:
 				j.RunAttemptID = attemptID
 				j.Run = run
 
-				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
-				// supply a minimal one when the case didn't.
-				if j.Status == actions_model.StatusBlocked && len(j.WorkflowPayload) == 0 {
+				if j.Status.In(actions_model.StatusPending, actions_model.StatusBlocked) && len(j.WorkflowPayload) == 0 {
 					j.WorkflowPayload = minimalWorkflowPayload(j.JobID)
 				}
 

@@ -17,7 +17,6 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
@@ -54,7 +53,10 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		scopedPrefix = actions_model.ScopedStatusContextPrefix(ctx, run.WorkflowRepoID)
 	}
 
-	var waiting *waitingJobFilter
+	var pending *pendingJobFilter
+	if slices.ContainsFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.Status.IsPending() }) {
+		pending = newPendingJobFilter(ctx, run)
+	}
 	for _, job := range jobs {
 		// A deferred-matrix placeholder's name changes when it expands, so a status created while it
 		// waits would be orphaned. The emitter reloads the jobs after expanding and creates them
@@ -63,10 +65,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		if job.IsMatrixDeferred && !job.Status.IsDone() {
 			continue
 		}
-		if waiting == nil && job.Status.IsBlocked() && len(job.Needs) > 0 {
-			waiting = newWaitingJobFilter(ctx, run, job.RunAttemptID)
-		}
-		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job, waiting); err != nil {
+		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job, pending); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
@@ -156,7 +155,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	return event, commitID, nil
 }
 
-func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, waiting *waitingJobFilter) error {
+func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, pending *pendingJobFilter) error {
 	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
 	ctxName := actions_module.WorkflowStatusContextName(displayName, job.Name, event) // git_model.NewCommitStatus also trims spaces
 	if run.IsScopedRun {
@@ -165,50 +164,35 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
-	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), waiting.hides(job, ctxName))
+	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), pending.hides(job, ctxName))
 }
 
-// waitingJobFilter hides jobs waiting on needs that no required check covers.
-type waitingJobFilter struct {
-	jobIDs        container.Set[int64]
+// pendingJobFilter hides Pending jobs that no required check covers, a nil filter hides nothing.
+type pendingJobFilter struct {
 	requiredGlobs []glob.Glob
 }
 
-func newWaitingJobFilter(ctx context.Context, run *actions_model.ActionRun, attemptID int64) *waitingJobFilter {
-	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, attemptID)
-	if err != nil {
-		log.Error("GetRunJobsByRunAndAttemptID: %v", err)
-		return &waitingJobFilter{}
-	}
-	resolver := newJobStatusResolver(jobs, nil)
-	filter := &waitingJobFilter{jobIDs: make(container.Set[int64])}
-	for _, job := range jobs {
-		if allDone, _ := resolver.resolveCheckNeeds(job.ID); job.Status.IsBlocked() && !allDone {
-			filter.jobIDs.Add(job.ID)
-		}
-	}
-	if len(filter.jobIDs) == 0 {
-		return filter
-	}
+func newPendingJobFilter(ctx context.Context, run *actions_model.ActionRun) *pendingJobFilter {
 	rules, err := git_model.FindRepoProtectedBranchRules(ctx, run.RepoID)
 	if err != nil {
 		log.Error("FindRepoProtectedBranchRules: %v", err)
-		return &waitingJobFilter{}
+		return nil
 	}
 	if slices.ContainsFunc(rules, func(rule *git_model.ProtectedBranch) bool {
 		return rule.EnableStatusCheck && len(rule.StatusCheckContexts) == 0
 	}) {
-		return &waitingJobFilter{}
+		return nil
 	}
-	if filter.requiredGlobs, err = requiredStatusContextGlobs(ctx, run.Repo, rules); err != nil {
+	requiredGlobs, err := requiredStatusContextGlobs(ctx, run.Repo, rules)
+	if err != nil {
 		log.Error("requiredStatusContextGlobs: %v", err)
-		return &waitingJobFilter{}
+		return nil
 	}
-	return filter
+	return &pendingJobFilter{requiredGlobs: requiredGlobs}
 }
 
-func (f *waitingJobFilter) hides(job *actions_model.ActionRunJob, ctxName string) bool {
-	return f != nil && f.jobIDs.Contains(job.ID) && !slices.ContainsFunc(f.requiredGlobs, func(gp glob.Glob) bool { return gp.Match(ctxName) })
+func (f *pendingJobFilter) hides(job *actions_model.ActionRunJob, ctxName string) bool {
+	return f != nil && job.Status.IsPending() && !slices.ContainsFunc(f.requiredGlobs, func(gp glob.Glob) bool { return gp.Match(ctxName) })
 }
 
 // getAllRequiredStatusContextGlobs returns the compiled globs of every status-check context required in the repo:
@@ -377,7 +361,7 @@ func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
 		return "Canceling"
 	case actions_model.StatusWaiting:
 		return "Waiting to run"
-	case actions_model.StatusBlocked:
+	case actions_model.StatusBlocked, actions_model.StatusPending:
 		return "Blocked by required conditions"
 	default:
 		return fmt.Sprintf("Unknown status: %d", job.Status)
@@ -390,7 +374,7 @@ func toCommitStatus(status actions_model.Status) commitstatus.CommitStatusState 
 		return commitstatus.CommitStatusSuccess
 	case actions_model.StatusFailure, actions_model.StatusCancelled:
 		return commitstatus.CommitStatusFailure
-	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusRunning, actions_model.StatusCancelling:
+	case actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending, actions_model.StatusRunning, actions_model.StatusCancelling:
 		return commitstatus.CommitStatusPending
 	case actions_model.StatusSkipped:
 		return commitstatus.CommitStatusSkipped

@@ -998,6 +998,9 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 }
 
 func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
+	if job.Status.IsPending() {
+		return // announce a job only once its needs finish
+	}
 	source := EventSource{
 		Repository: repo,
 		Owner:      repo.Owner,

@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"slices"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -100,6 +101,45 @@ func TestPrepareRunAndInsert_MaxParallel(t *testing.T) {
 	for _, job := range jobs {
 		assert.Equal(t, 2, job.MaxParallel, "every matrix sibling carries the limit")
 	}
+}
+
+func TestCheckJobs_PendingMatrixReleasedIntoMaxParallel(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	run := insertMaxParallelRun(t, `name: max-parallel
+on: push
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 2
+      matrix:
+        version: [1, 2, 3]
+    steps:
+      - run: echo hi
+`, false)
+	jobs := runJobs(t, run.ID, run.LatestAttemptID)
+	assert.Equal(t, map[actions_model.Status]int{
+		actions_model.StatusWaiting: 1,
+		actions_model.StatusPending: 3,
+	}, statusCounts(jobs))
+
+	setup := jobs[slices.IndexFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.JobID == "setup" })]
+	setup.Status = actions_model.StatusSuccess
+	_, err := actions_model.UpdateRunJob(t.Context(), setup, nil, "status")
+	require.NoError(t, err)
+
+	result, err := checkJobsOfCurrentRunAttempt(t.Context(), unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID}))
+	require.NoError(t, err)
+	wantBuild := map[actions_model.Status]int{actions_model.StatusWaiting: 2, actions_model.StatusBlocked: 1}
+	assert.Equal(t, wantBuild, statusCounts(result.UpdatedJobs))
+	wantBuild[actions_model.StatusSuccess] = 1
+	assert.Equal(t, wantBuild, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
 }
 
 // A reusable workflow declares its own strategy, so the limit must reach the child jobs.

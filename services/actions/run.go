@@ -193,7 +193,10 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	payload, _ := workflowJob.Marshal()
 
 	isReusableWorkflowCaller := job.Uses != ""
-	shouldBlockJob := runAttempt.Status == actions_model.StatusBlocked || len(needs) > 0 || run.NeedApproval
+	status := util.Iif(runAttempt.Status == actions_model.StatusBlocked || run.NeedApproval, actions_model.StatusBlocked, actions_model.StatusWaiting)
+	if len(needs) > 0 {
+		status = actions_model.StatusPending
+	}
 
 	attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, run.ID)
 	if err != nil {
@@ -215,7 +218,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		AttemptJobID:            attemptJobID,
 		Needs:                   needs,
 		RunsOn:                  job.RunsOn(),
-		Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
+		Status:                  status,
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
@@ -252,9 +255,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 			}
 		}
 
-		// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
-		// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
-		// A slot-starved job skips the check too: it will not start, so it must not cancel its group peers.
+		// A slot-starved job skips the check: it will not start, so it must not cancel its group peers.
 		if runJob.Status == actions_model.StatusWaiting && slots.available(runJob) {
 			var jobsToCancel []*actions_model.ActionRunJob
 			runJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, runJob)
@@ -288,7 +289,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 
 // processInlineReusableCaller evaluates a no-needs reusable caller's own `if:` and
 // either inline-expands it into child jobs or marks it skipped.
-// (A caller with needs is Blocked and gets its `if:` evaluated by the job emitter instead.)
+// (A caller with needs is Pending and gets its `if:` evaluated by the job emitter instead.)
 func processInlineReusableCaller(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
 	shouldStart, err := evaluateJobIf(ctx, run, runAttempt, caller, vars, true)
 	if err != nil {

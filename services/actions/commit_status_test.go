@@ -35,6 +35,7 @@ func TestCommitStatusDescription(t *testing.T) {
 		{actions_model.StatusRunning, 0, 0, "In progress"},
 		{actions_model.StatusWaiting, 0, 0, "Waiting to run"},
 		{actions_model.StatusBlocked, 0, 0, "Blocked by required conditions"},
+		{actions_model.StatusPending, 0, 0, "Blocked by required conditions"},
 		{actions_model.StatusUnknown, 0, 0, "Unknown status: 0"},
 	}
 	for _, tc := range cases {
@@ -100,35 +101,33 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
 }
 
-func TestCreateCommitStatus_HidesJobsWaitingForNeeds(t *testing.T) {
+func TestCreateCommitStatus_HidesPendingJobs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
 	run := &actions_model.ActionRun{ID: 99101, RepoID: repo.ID, Repo: repo, WorkflowID: "ci.yaml"}
-	build := &actions_model.ActionRunJob{RunID: run.ID, RepoID: repo.ID, RunAttemptID: 99102, JobID: "build", Status: actions_model.StatusRunning}
-	deploy := &actions_model.ActionRunJob{RunID: run.ID, RepoID: repo.ID, RunAttemptID: 99102, JobID: "deploy", Name: "deploy", Needs: []string{"build"}, Status: actions_model.StatusBlocked}
-	require.NoError(t, db.Insert(t.Context(), build, deploy))
-	postDeploy := func(waiting *waitingJobFilter) []*git_model.CommitStatus {
-		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, deploy, waiting))
+	deploy := &actions_model.ActionRunJob{ID: 99102, RunID: run.ID, RepoID: repo.ID, Name: "deploy", Status: actions_model.StatusPending}
+	postDeploy := func(pending *pendingJobFilter) []*git_model.CommitStatus {
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, deploy, pending))
 		return findCommitStatusesForContext(t, repo.ID, branch.CommitID, "ci.yaml / deploy (push)")
 	}
 
-	waiting := newWaitingJobFilter(t.Context(), run, 99102)
-	assert.Empty(t, postDeploy(waiting))
+	pending := newPendingJobFilter(t.Context(), run)
+	assert.Empty(t, postDeploy(pending))
 
 	deploy.Status = actions_model.StatusSuccess
 	assert.Len(t, postDeploy(nil), 1)
-	deploy.Status = actions_model.StatusBlocked
-	assert.Len(t, postDeploy(waiting), 2)
+	deploy.Status = actions_model.StatusPending
+	assert.Len(t, postDeploy(pending), 2)
 
 	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "main", EnableStatusCheck: true, StatusCheckContexts: []string{"ci.yaml / deploy*"}}))
-	waiting = newWaitingJobFilter(t.Context(), run, 99102)
-	assert.False(t, waiting.hides(deploy, "ci.yaml / deploy (push)"))
-	assert.True(t, waiting.hides(deploy, "other / deploy (push)"))
+	pending = newPendingJobFilter(t.Context(), run)
+	assert.False(t, pending.hides(deploy, "ci.yaml / deploy (push)"))
+	assert.True(t, pending.hides(deploy, "other / deploy (push)"))
 
 	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "release", EnableStatusCheck: true}))
-	assert.False(t, newWaitingJobFilter(t.Context(), run, 99102).hides(deploy, "other / deploy (push)"))
+	assert.Nil(t, newPendingJobFilter(t.Context(), run))
 }
 
 func TestGetCommitActionsStatusMap(t *testing.T) {
