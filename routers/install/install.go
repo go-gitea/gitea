@@ -488,7 +488,7 @@ func initAdminUser(ctx *context.Context, form *forms.InstallForm) bool {
 		return false
 	}
 
-	// Auto-login for admin
+	// Auto-login for admin, even if any "session" error happens, it should still continue
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 	_ = ctx.Session.Set(session.KeyUID, adminUser.ID)
 	_ = ctx.Session.Release()
