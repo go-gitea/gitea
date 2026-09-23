@@ -67,6 +67,19 @@ func TestApproveRuns(t *testing.T) {
 		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
 	})
 
+	t.Run("a cancelled run stays cancelled", func(t *testing.T) {
+		run := insertRun(1006, actions_model.StatusCancelled, true, 0)
+		job := insertJob(run, actions_model.StatusCancelled)
+
+		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+		require.NoError(t, err)
+		require.Len(t, approved, 1)
+		assert.True(t, approved[0].NeedApproval)
+		assert.Zero(t, approved[0].ApprovedBy)
+
+		assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+	})
+
 	t.Run("re-approving an approved run is a no-op", func(t *testing.T) {
 		run := insertRun(1005, actions_model.StatusRunning, false, 4)
 		job := insertJob(run, actions_model.StatusRunning)

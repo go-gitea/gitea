@@ -593,7 +593,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 	// Hide the Cancel button once a cancel is already in cancelling progress
 	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
-	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanApprove = isLatestAttempt && !resp.State.Run.Done && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
@@ -1316,7 +1316,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 
 	runIDs := make([]int64, 0, len(runs))
 	for _, run := range runs {
-		if run.NeedApproval {
+		if run.NeedApproval && !run.Status.IsDone() {
 			runIDs = append(runIDs, run.ID)
 		}
 	}

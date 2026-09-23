@@ -15,6 +15,8 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ApproveRuns returns the approved runs in the same order as runIDs.
@@ -30,7 +32,9 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err != nil {
 				return err
 			}
-			if !run.NeedApproval {
+			// Approval only releases a pending run. A terminal run must be rerun
+			// explicitly rather than reviving its cancelled jobs.
+			if !run.NeedApproval || run.Status.IsDone() {
 				continue
 			}
 			run.NeedApproval = false
@@ -50,16 +54,13 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			}
 
 			for _, job := range jobs {
-				// Skip jobs with `needs`: they stay blocked until their dependencies finish,
-				// at which point job_emitter will evaluate and start them.
-				if len(job.Needs) > 0 {
+				// Only approval-blocked jobs can be released. Jobs with `needs` stay blocked
+				// until their dependencies finish, when job_emitter evaluates and starts them.
+				if job.Status != actions_model.StatusBlocked || len(job.Needs) > 0 {
 					continue
 				}
-				// Only a job this approval unblocks competes for a slot, one that is already
-				// active was counted by the seeding loop above and must not take a second.
-				isUnblocking := job.Status == actions_model.StatusBlocked
 				// A slot-starved job cannot start, skip the following checks.
-				if isUnblocking && !slots.available(job) {
+				if !slots.available(job) {
 					continue
 				}
 				var jobsToCancel []*actions_model.ActionRunJob
@@ -68,13 +69,11 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					return err
 				}
 				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
-				if isUnblocking {
-					applyMaxParallel(job, slots)
-				}
+				applyMaxParallel(job, slots)
 				if job.Status != actions_model.StatusWaiting {
 					continue
 				}
-				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+				n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status")
 				if err != nil {
 					return err
 				}
