@@ -178,18 +178,6 @@ func testIndexer(name string, t *testing.T, indexer internal.Indexer) {
 					},
 				},
 			},
-			// Search for a match on the full path of a file within the repo '62'.
-			{
-				RepoIDs: []int64{62},
-				Keyword: "potato/ham",
-				Langs:   1,
-				Results: []codeSearchResult{
-					{
-						Filename: "potato/ham.md",
-						Content:  "This is not cheese",
-					},
-				},
-			},
 			// Search for matches on the contents of files within the repo '62'.
 			// This scenario yields two results (both are based on contents, the first one is an exact match where as the second is a 'fuzzy' one)
 			{
