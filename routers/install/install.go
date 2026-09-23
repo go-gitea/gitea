@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -178,6 +179,17 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	}
 
 	return true
+}
+
+func fillInstallConfigCleanUp(cfg setting.ConfigProvider) {
+	re := regexp.MustCompile(`[\x00-\x1F\x7F]`)
+	for _, sec := range cfg.Sections() {
+		for _, key := range sec.Keys() {
+			s := key.String()
+			s = re.ReplaceAllString(s, " ")
+			key.SetValue(s)
+		}
+	}
 }
 
 // SubmitInstall response for submit install items
@@ -452,6 +464,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	setting.EnvironmentToConfig(cfg, os.Environ())
 
+	fillInstallConfigCleanUp(cfg)
 	if err = cfg.SaveTo(setting.CustomConf); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
