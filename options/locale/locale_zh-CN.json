@@ -129,7 +129,7 @@
   "confirm_delete_artifact": "您确定要删除产物「%s」吗？",
   "archived": "已归档",
   "concept_system_global": "全局",
-  "concept_user_user": "发送者帐号",
+  "concept_user_user": "用户",
   "concept_code_repository": "仓库",
   "concept_user_organization": "组织",
   "concept_user_bot": "机器人",

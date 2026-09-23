@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // Scheme describes protocol types
@@ -274,9 +275,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	if len(StaticRootPath) == 0 {
-		StaticRootPath = AppWorkPath
-	}
+	StaticRootPath = util.IfZero(StaticRootPath, AppWorkPath)
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
