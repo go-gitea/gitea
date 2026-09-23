@@ -163,10 +163,10 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
-			"xreſolveſ: #1 reſolveſ: #2",
+			"After a long investigation into the root cause, this resolves #1, unlike the still unresolved #2",
 			[]testResult{
-				{1, "", "", "1", false, XRefActionNone, &RefSpan{Start: 13, End: 15}, nil, ""},
-				{2, "", "", "2", false, XRefActionCloses, &RefSpan{Start: 28, End: 30}, &RefSpan{Start: 16, End: 26}, ""},
+				{1, "", "", "1", false, XRefActionCloses, &RefSpan{Start: 62, End: 64}, &RefSpan{Start: 53, End: 61}, ""},
+				{2, "", "", "2", false, XRefActionNone, &RefSpan{Start: 94, End: 96}, nil, ""},
 			},
 		},
 		{
