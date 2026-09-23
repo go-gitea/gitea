@@ -7,6 +7,7 @@ package setting
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -71,22 +72,24 @@ func PrepareAppDataPath() error {
 	// The correct behavior should be: creating parent directories is end users' duty. We only create sub-directories in existing parent directories.
 	// For quickstart, the parent directories should be created automatically for first startup (eg: a flag or a check of INSTALL_LOCK).
 	// Now we can take the first step to do correctly (using Mkdir) in other packages, and prepare the AppDataPath here, then make a refactor in future.
-
+	if !filepath.IsAbs(AppDataPath) {
+		return fmt.Errorf("app data path %q must be not an absolute path", AppDataPath)
+	}
 	st, err := os.Stat(AppDataPath)
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(AppDataPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("unable to create the APP_DATA_PATH directory: %q, Error: %w", AppDataPath, err)
+			return fmt.Errorf("unable to create the app data path directory: %q, Error: %w", AppDataPath, err)
 		}
 		return nil
 	}
 
 	if err != nil {
-		return fmt.Errorf("unable to use APP_DATA_PATH %q. Error: %w", AppDataPath, err)
+		return fmt.Errorf("unable to use app data path %q. Error: %w", AppDataPath, err)
 	}
 
 	if !st.IsDir() /* also works for symlink */ {
-		return fmt.Errorf("the APP_DATA_PATH %q is not a directory (or symlink to a directory) and can't be used", AppDataPath)
+		return fmt.Errorf("the app data path %q is not a directory (or symlink to a directory) and can't be used", AppDataPath)
 	}
 
 	return nil
