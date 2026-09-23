@@ -23,6 +23,14 @@ type Result struct {
 	Language    string
 	Color       string
 	Lines       []*ResultLine
+
+	RawContent     string       // unhighlighted content of Lines
+	ContentMatches []MatchRange // byte ranges into RawContent
+}
+
+// MatchRange is the byte range [Start, End) of a match
+type MatchRange struct {
+	Start, End int
 }
 
 type ResultLine struct {

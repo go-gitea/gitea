@@ -60,7 +60,14 @@ func Search(ctx *context.Context) {
 		var err error
 		// ref should be default branch or the first existing branch
 		searchRef := git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
-		searchResults, total, err = gitgrep.PerformSearch(ctx, page, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, searchRef, prepareSearch.Keyword, prepareSearch.SearchMode)
+		searchResults, total, _, err = gitgrep.PerformSearch(ctx, ctx.Repo.GitRepo, &gitgrep.SearchOptions{
+			RepoID:     ctx.Repo.Repository.ID,
+			Ref:        searchRef,
+			Keyword:    prepareSearch.Keyword,
+			SearchMode: prepareSearch.SearchMode,
+			Page:       page,
+			PageSize:   setting.UI.RepoSearchPagingNum,
+		})
 		if err != nil {
 			ctx.ServerError("gitgrep.PerformSearch", err)
 			return

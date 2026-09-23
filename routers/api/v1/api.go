@@ -1380,6 +1380,7 @@ func Routes() *web.Router {
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/code/search", context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode), repo.SearchCode)
 				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Methods("HEAD,GET", "/archive/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
