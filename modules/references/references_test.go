@@ -4,12 +4,15 @@
 package references
 
 import (
+	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testFixture struct {
@@ -578,6 +581,41 @@ func TestCustomizeCloseKeywords(t *testing.T) {
 
 	// Restore default settings
 	doNewKeywords(setting.Repository.PullRequest.CloseKeywords, setting.Repository.PullRequest.ReopenKeywords)
+}
+
+func BenchmarkFindAllIssueReferences(b *testing.B) {
+	for _, refs := range []int{100, 1000, 4000} {
+		content := strings.Repeat("#1 ", refs)
+		b.Run(fmt.Sprintf("refs=%d", refs), func(b *testing.B) {
+			for b.Loop() {
+				FindAllIssueReferences(content)
+			}
+		})
+	}
+}
+
+func TestCloseKeywordsAfterLongContent(t *testing.T) {
+	defer doNewKeywords(setting.Repository.PullRequest.CloseKeywords, setting.Repository.PullRequest.ReopenKeywords)
+	doNewKeywords([]string{"closes"}, []string{"reopens"})
+
+	filler := strings.Repeat("filler text ", 500)
+	for _, test := range []struct {
+		name     string
+		content  string
+		expected XRefAction
+	}{
+		{"keyword after long content", filler + "closes #1", XRefActionCloses},
+		{"reopen keyword after long content", filler + "reopens #1", XRefActionReopens},
+		{"keyword glued to preceding letters", strings.Repeat("a", 5000) + "closes #1", XRefActionNone},
+		{"word ending with a keyword", filler + "precloses #1", XRefActionNone},
+		{"no keyword after long content", filler + "#1", XRefActionNone},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			refs := FindAllIssueReferences(test.content)
+			require.Len(t, refs, 1)
+			assert.Equal(t, test.expected, refs[0].Action)
+		})
+	}
 }
 
 func TestParseCloseKeywords(t *testing.T) {
