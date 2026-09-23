@@ -9,7 +9,9 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/typesniffer"
@@ -144,6 +146,24 @@ func TestInsertArtifactPreviewPath(t *testing.T) {
 	assert.Equal(t, []string{"a.txt", "c.txt", "dir/a.txt", "z.txt"}, insertArtifactPreviewPath(paths, "z.txt"))
 }
 
+func TestBuildArtifactPreviewFiles(t *testing.T) {
+	files := BuildArtifactPreviewFiles([]string{
+		"README.md",
+		"report/assets/chart.svg",
+		"report/index.html",
+		"report/style.css",
+	}, "report/index.html")
+
+	assert.Equal(t, []ArtifactPreviewFile{
+		{Path: "README.md", Name: "README.md"},
+		{Path: "report", Name: "report", IsDir: true},
+		{Path: "report/assets", Name: "assets", IndentClass: "artifact-preview-depth-1", IsDir: true},
+		{Path: "report/assets/chart.svg", Name: "chart.svg", IndentClass: "artifact-preview-depth-2"},
+		{Path: "report/index.html", Name: "index.html", IndentClass: "artifact-preview-depth-1", Selected: true},
+		{Path: "report/style.css", Name: "style.css", IndentClass: "artifact-preview-depth-1"},
+	}, files)
+}
+
 func TestNormalizeArtifactPreviewPath(t *testing.T) {
 	assert.Empty(t, normalizeArtifactPreviewPath("."))
 	assert.Empty(t, normalizeArtifactPreviewPath("./"))
@@ -157,6 +177,24 @@ func TestArtifactPreviewContentTypeUsesPreviewableExtensions(t *testing.T) {
 	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.htm", sniffedText))
 	assert.Equal(t, "text/css; charset=utf-8", artifactPreviewContentType("style.css", sniffedText))
 	assert.Equal(t, "text/plain", artifactPreviewContentType("output.txt", sniffedText))
+}
+
+func TestArtifactPreviewMaxSize(t *testing.T) {
+	for _, testCase := range []struct {
+		maxSize int64
+		size    int64
+		allowed bool
+	}{
+		{maxSize: -1, size: 1 << 30, allowed: true},
+		{maxSize: 0, size: 0, allowed: false},
+		{maxSize: 10, size: 10, allowed: true},
+		{maxSize: 10, size: 11, allowed: false},
+	} {
+		t.Run(strconv.FormatInt(testCase.maxSize, 10), func(t *testing.T) {
+			defer test.MockVariableValue(&setting.Actions.ArtifactPreviewMaxSize, testCase.maxSize)()
+			assert.Equal(t, testCase.allowed, isArtifactPreviewSizeValueAllowed(testCase.size))
+		})
+	}
 }
 
 func TestIsPDFArtifactPreviewPath(t *testing.T) {

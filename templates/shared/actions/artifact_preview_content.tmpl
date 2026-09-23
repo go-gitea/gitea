@@ -36,7 +36,7 @@
 						<span class="gt-ellipsis">{{.Name}}</span>
 					</div>
 				{{else}}
-					<a class="artifact-preview-file-row artifact-preview-file-row-file {{.IndentClass}} {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}{{if $.RunAttempt}}&attempt={{$.RunAttempt}}{{end}}" title="{{.Path}}">
+					<a class="artifact-preview-file-row artifact-preview-file-row-file {{.IndentClass}} {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}{{if $.RunAttempt}}&amp;attempt={{$.RunAttempt}}{{end}}" title="{{.Path}}">
 						{{svg "octicon-file" 16}}
 						<span class="gt-ellipsis">{{.Name}}</span>
 					</a>

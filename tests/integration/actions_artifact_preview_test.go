@@ -127,7 +127,7 @@ func TestActionsArtifactPreview(t *testing.T) {
 		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/multi-file-download/preview?path=%s&attempt=2", repo.FullName(), url.QueryEscape("xyz/def.txt"))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		body := resp.Body.String()
-		assert.Contains(t, body, `/preview?path=abc.txt&attempt=2" title="abc.txt"`)
+		assert.Contains(t, body, `/preview?path=abc.txt&amp;attempt=2" title="abc.txt"`)
 		assert.Contains(t, body, `/runs/791/artifacts/multi-file-download/preview/raw/xyz/def.txt?attempt=2`)
 		assert.Contains(t, body, `href="/user5/repo4/actions/runs/791/attempts/2"`)
 

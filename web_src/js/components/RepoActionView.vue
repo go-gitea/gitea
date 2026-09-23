@@ -303,7 +303,7 @@ onBeforeUnmount(() => {
               <template v-if="artifact.status !== 'expired'">
                 <a
                   v-if="artifact.previewable"
-                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
+                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced"
                   :href="artifactPreviewURL(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"

@@ -43,15 +43,11 @@ var mockActionsArtifactFiles = map[string][]mockArtifactFile{
 	"artifact-html-report": {
 		{
 			Path:    "report/index.html",
-			Content: `<html><body>Next line is from JS. <script>document.write('window origin: ' + window.origin)</script></body></html>`,
+			Content: `<html><head><link rel="stylesheet" href="style.css"></head><body>Next line is from JS. <script>document.write('window origin: ' + window.origin)</script></body></html>`,
 		},
 		{
 			Path:    "report/style.css",
 			Content: "body { color: red; }\n",
-		},
-		{
-			Path:    "report/summary.txt",
-			Content: "mock coverage summary\n",
 		},
 	},
 	"artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong": {
@@ -658,7 +654,7 @@ func MockActionsArtifactDownload(ctx *context.Context) {
 	}
 }
 
-func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, artifactName, requested, previewURL string, runAttempt int64) bool {
+func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, artifactName, requested string, runAttempt int64) bool {
 	files, ok := mockActionsArtifactFiles[artifactName]
 	if !ok {
 		return false
@@ -670,9 +666,6 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 	runURL := fmt.Sprintf("%s/devtest/repo-action-view/runs/%d", setting.AppSubURL, runID)
 	backToRunURL := runURL
 	runPreviewURL := runURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
-	if previewURL == "" {
-		previewURL = runPreviewURL
-	}
 	attemptQuery := ""
 	if runAttempt > 0 {
 		backToRunURL += fmt.Sprintf("/attempts/%d", runAttempt)
@@ -680,11 +673,13 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 	}
 
 	ctx.Data["ArtifactName"] = artifactName
+	ctx.Data["Title"] = ctx.Tr("preview")
+	ctx.Data["PageIsActions"] = true
 	ctx.Data["PreviewFiles"] = previewFiles
 	ctx.Data["RunURL"] = backToRunURL
 	ctx.Data["RunIndex"] = runID
 	ctx.Data["RunAttempt"] = runAttempt
-	ctx.Data["PreviewURL"] = previewURL
+	ctx.Data["PreviewURL"] = runPreviewURL
 	ctx.Data["PreviewRawURL"] = runPreviewURL + "/raw"
 	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName) + attemptQuery
 	ctx.Data["SelectedPath"] = selectedPath
@@ -694,33 +689,18 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 	return true
 }
 
-func prepareMockDataRepoActionArtifactPreview(ctx *context.Context) {
-	const (
-		runID        = int64(10)
-		artifactName = "artifact-html-report"
-		runAttempt   = int64(3)
-	)
-	requested := actions.GetRequestedPreviewPath(ctx)
-	if requested == "" {
-		requested = "report/index.html"
-	}
-	previewURL := setting.AppSubURL + "/devtest/repo-action-artifact-preview"
-	prepareMockActionsArtifactPreviewData(ctx, runID, artifactName, requested, previewURL, runAttempt)
-}
-
 func MockActionsArtifactPreview(ctx *context.Context) {
 	if !prepareMockActionsArtifactPreviewData(
 		ctx,
 		ctx.PathParamInt64("run"),
 		ctx.PathParam("artifact_name"),
 		actions.GetRequestedPreviewPath(ctx),
-		"",
 		ctx.FormInt64("attempt"),
 	) {
 		ctx.NotFound(nil)
 		return
 	}
-	ctx.HTML(http.StatusOK, "devtest/repo-action-artifact-preview")
+	ctx.HTML(http.StatusOK, "repo/actions/artifact_preview")
 }
 
 func MockActionsArtifactPreviewRaw(ctx *context.Context) {

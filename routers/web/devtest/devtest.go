@@ -252,8 +252,6 @@ func prepareMockData(ctx *context.Context) {
 		prepareMockDataUnicodeEscape(ctx)
 	case "/devtest/avatar-stack":
 		prepareMockDataAvatarStack(ctx)
-	case "/devtest/repo-action-artifact-preview":
-		prepareMockDataRepoActionArtifactPreview(ctx)
 	}
 }
 

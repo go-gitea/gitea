@@ -259,8 +259,7 @@ func isArtifactPreviewSizeValueAllowed(size int64) bool {
 	return size <= maxSize
 }
 
-// ArtifactPreviewHTMLContentSecurityPolicy returns the sandboxed CSP for rendered artifact HTML.
-func ArtifactPreviewHTMLContentSecurityPolicy() string {
+func artifactPreviewHTMLContentSecurityPolicy() string {
 	return "sandbox allow-scripts"
 }
 
@@ -413,7 +412,7 @@ func artifactPreviewServeHeaderOptions(path string, st typesniffer.SniffedType) 
 		ContentType:        contentType,
 	}
 	if strings.HasPrefix(contentType, "text/html") {
-		opts.ContentSecurityPolicy = ArtifactPreviewHTMLContentSecurityPolicy()
+		opts.ContentSecurityPolicy = artifactPreviewHTMLContentSecurityPolicy()
 	}
 	return opts
 }
