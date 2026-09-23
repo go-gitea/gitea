@@ -134,7 +134,7 @@
 					</div>
 					<div class="inline field">
 						<div class="ui checkbox" id="disable-registration">
-							<label data-tooltip-content="{{ctx.Locale.Tr "install.disable_registration_popup"}}">{{ctx.Locale.Tr "install.disable_registration"}}</label>
+							<label>{{ctx.Locale.Tr "install.disable_registration"}}</label>
 							<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
 						</div>
 					</div>
@@ -269,6 +269,9 @@
 							{{$copyBtn := svg "octicon-copy" 14}}
 							{{$filePath := HTMLFormat `<span class="ui label">%s</span> <button type="button" class="btn interact-fg" data-clipboard-text="%s">%s</button>` .CustomConfFile .CustomConfFile $copyBtn}}
 							{{ctx.Locale.Tr "install.config_write_file_prompt" $filePath}}
+						</div>
+						<div class="right-content tw-mt-2">
+							{{ctx.Locale.Tr "install.config_edit_helper" "https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini"}}
 						</div>
 						<div class="tw-mt-4 tw-mb-2 tw-text-center">
 							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "install.install_btn_confirm"}}</button>
