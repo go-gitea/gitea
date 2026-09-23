@@ -174,7 +174,10 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated)
+	if run.LatestAttemptID == 0 {
+		d += run.PreviousDuration
+	}
 	if d < 0 {
 		return 0
 	}

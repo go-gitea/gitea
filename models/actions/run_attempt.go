@@ -163,6 +163,10 @@ func UpdateRunAttempt(ctx context.Context, attempt *ActionRunAttempt, cols ...st
 		attempt.Started = timeutil.TimeStampNow()
 		cols = append(cols, "started")
 	}
+	if slices.Contains(cols, "status") && !attempt.Stopped.IsZero() && !attempt.Status.IsDone() {
+		attempt.Stopped = 0
+		cols = append(cols, "stopped")
+	}
 
 	sess := db.GetEngine(ctx).ID(attempt.ID)
 	if len(cols) > 0 {
