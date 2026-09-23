@@ -701,7 +701,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Size:        art.FileSize,
 			Status:      util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
 			ExpiresUnix: int64(art.ExpiredUnix),
-			Previewable: isArtifactPreviewSizeValueAllowed(art.FileSize),
+			Previewable: ctx.IsSigned && isArtifactPreviewSizeAllowed(art.FileSize),
 		})
 	}
 }

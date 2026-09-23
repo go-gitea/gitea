@@ -8,7 +8,6 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"mime"
 	"net/http"
@@ -42,17 +41,74 @@ type ArtifactsViewItem struct {
 }
 
 type ArtifactPreviewFile struct {
-	Path        string
-	Name        string
-	IndentClass string
-	IsDir       bool
-	Selected    bool
+	Path     string
+	Name     string
+	Link     string
+	Depth    int
+	IsDir    bool
+	Selected bool
+}
+
+// ArtifactPreviewTemplateData contains the artifact preview page state.
+type ArtifactPreviewTemplateData struct {
+	RunURL                string
+	RunIndex              int64
+	RunAttempt            int64
+	ArtifactName          string
+	PreviewURL            string
+	PreviewContentURL     string
+	DownloadURL           string
+	SelectedPath          string
+	PreviewIsPDF          bool
+	ShowPreviewContent    bool
+	RequestedPathMissing  bool
+	PreviewTooLarge       bool
+	PreviewFilesTruncated bool
+	PreviewFiles          []ArtifactPreviewFile
+}
+
+// PrepareArtifactPreviewTemplateData prepares the shared preview page data for production and devtest routes.
+func PrepareArtifactPreviewTemplateData(ctx *context_module.Context, runURL string, runIndex, runAttempt int64, artifactName, requestedPath, selectedPath string, previewPaths []string, previewTooLarge, previewFilesTruncated bool) {
+	artifactPath := url.PathEscape(artifactName)
+	previewURL := runURL + "/artifacts/" + artifactPath + "/preview"
+	backToRunURL := runURL
+	attemptQuery := ""
+	previewAttemptQuery := ""
+	if runAttempt > 0 {
+		attempt := strconv.FormatInt(runAttempt, 10)
+		backToRunURL += "/attempts/" + attempt
+		attemptQuery = "?attempt=" + attempt
+		previewAttemptQuery = "&attempt=" + attempt
+	}
+	if selectedPath != "" && !slices.Contains(previewPaths, selectedPath) {
+		previewPaths = insertArtifactPreviewPath(previewPaths, selectedPath)
+	}
+	previewFiles := BuildArtifactPreviewFiles(previewPaths, selectedPath)
+	for i := range previewFiles {
+		if !previewFiles[i].IsDir {
+			previewFiles[i].Link = previewURL + "?path=" + url.QueryEscape(previewFiles[i].Path) + previewAttemptQuery
+		}
+	}
+	previewContentURL := ""
+	if selectedPath != "" {
+		previewContentURL = previewURL + "/raw/" + escapeArtifactPreviewPath(selectedPath) + attemptQuery
+	}
+	ctx.Data["Title"] = ctx.Tr("preview")
+	ctx.Data["PageIsActions"] = true
+	ctx.Data["ArtifactPreviewData"] = ArtifactPreviewTemplateData{
+		RunURL: backToRunURL, RunIndex: runIndex, RunAttempt: runAttempt, ArtifactName: artifactName,
+		PreviewURL: previewURL, PreviewContentURL: previewContentURL, DownloadURL: runURL + "/artifacts/" + artifactPath + attemptQuery,
+		SelectedPath: selectedPath, PreviewIsPDF: strings.EqualFold(pathpkg.Ext(selectedPath), ".pdf"),
+		ShowPreviewContent: requestedPath != "" && selectedPath != "", RequestedPathMissing: requestedPath != "" && selectedPath == "" && !previewTooLarge,
+		PreviewTooLarge: previewTooLarge, PreviewFilesTruncated: previewFilesTruncated, PreviewFiles: previewFiles,
+	}
 }
 
 const (
-	artifactPreviewV4ZipListCacheTTL        = 10 * time.Minute
-	artifactPreviewV4ZipListCacheMaxEntries = 128
-	artifactPreviewMaxFiles                 = 2000
+	artifactPreviewV4ZipListCacheTTL         = 10 * time.Minute
+	artifactPreviewV4ZipListCacheMaxEntries  = 128
+	artifactPreviewMaxFiles                  = 2000
+	artifactPreviewHTMLContentSecurityPolicy = "sandbox allow-scripts"
 )
 
 // artifactPreviewList is one artifact's file listing for the preview browser.
@@ -66,7 +122,6 @@ type artifactPreviewList struct {
 // Cached listings are capped, so an artifact with a huge number of entries cannot pin unbounded memory here.
 var artifactPreviewV4ZipListCache = expirable.NewLRU[string, artifactPreviewList](artifactPreviewV4ZipListCacheMaxEntries, nil, artifactPreviewV4ZipListCacheTTL)
 
-// readAtBySeeker adapts a storage object to io.ReaderAt for archive/zip, it is only used by a single request goroutine
 type readAtBySeeker struct {
 	rs io.ReadSeeker
 }
@@ -82,10 +137,10 @@ func (r *readAtBySeeker) ReadAt(p []byte, off int64) (int, error) {
 	return n, err
 }
 
-// resolveArtifactAttemptIDFromRequest resolves the run_attempt_id used to scope artifact lookups.
+// resolveArtifactAttemptIDFromQuery resolves the run_attempt_id used to scope artifact lookups.
 // If an `attempt` query parameter is present and valid, it returns the matching attempt's ID.
 // Otherwise it falls back to run.LatestAttemptID, which is 0 only for legacy runs created before ActionRunAttempt existed.
-func resolveArtifactAttemptIDFromRequest(ctx *context_module.Context, run *actions_model.ActionRun) (int64, error) {
+func resolveArtifactAttemptIDFromQuery(ctx *context_module.Context, run *actions_model.ActionRun) (int64, error) {
 	if ctx.FormString("attempt") == "" {
 		return run.LatestAttemptID, nil
 	}
@@ -106,9 +161,9 @@ func getCurrentRunAndUploadedArtifacts(ctx *context_module.Context, artifactName
 		return nil, nil, false
 	}
 
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromRequest(ctx, run)
+	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromRequest", func(err error) bool {
+		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return nil, nil, false
@@ -144,15 +199,12 @@ func normalizeArtifactPreviewPath(path string) string {
 	return path
 }
 
-// GetRequestedPreviewPath reads the requested artifact preview path from a
-// request, accepting either the trailing `/preview/raw/*` path segment or a
-// `?path=` query parameter, and normalizes it to a safe relative path.
-func GetRequestedPreviewPath(ctx *context_module.Context) string {
-	path := strings.TrimPrefix(ctx.PathParam("*"), "/")
-	if path == "" {
-		path = ctx.Req.URL.Query().Get("path")
+func escapeArtifactPreviewPath(path string) string {
+	segments := strings.Split(path, "/")
+	for i := range segments {
+		segments[i] = url.PathEscape(segments[i])
 	}
-	return normalizeArtifactPreviewPath(path)
+	return strings.Join(segments, "/")
 }
 
 func artifactPreviewFallbackPath(artifact *actions_model.ActionArtifact) string {
@@ -163,27 +215,11 @@ func artifactPreviewFallbackPath(artifact *actions_model.ActionArtifact) string 
 	return artifact.ArtifactName
 }
 
-// ChoosePreviewPath resolves the preview path to render.
-// An empty `requested` means no path was specified, so the first file is selected as a default.
-// A non-empty `requested` that is not present in `paths` returns "" so callers can 404 instead of silently swapping to a different file.
 func ChoosePreviewPath(paths []string, requested string) string {
-	if len(paths) == 0 {
-		return ""
-	}
-	if requested == "" {
-		return paths[0]
-	}
-	if util.SliceContainsString(paths, requested) {
+	if requested != "" && slices.Contains(paths, requested) {
 		return requested
 	}
 	return ""
-}
-
-func artifactPreviewIndentClass(depth int) string {
-	if depth <= 0 {
-		return ""
-	}
-	return fmt.Sprintf("artifact-preview-depth-%d", min(depth, 10))
 }
 
 // BuildArtifactPreviewFiles builds a directory-grouped file tree for the artifact browser.
@@ -199,17 +235,17 @@ func BuildArtifactPreviewFiles(paths []string, selectedPath string) []ArtifactPr
 			}
 			seenDirs[dirPath] = struct{}{}
 			previewFiles = append(previewFiles, ArtifactPreviewFile{
-				Path:        dirPath,
-				Name:        parts[i],
-				IndentClass: artifactPreviewIndentClass(i),
-				IsDir:       true,
+				Path:  dirPath,
+				Name:  parts[i],
+				Depth: i,
+				IsDir: true,
 			})
 		}
 		previewFiles = append(previewFiles, ArtifactPreviewFile{
-			Path:        filePath,
-			Name:        pathpkg.Base(filePath),
-			IndentClass: artifactPreviewIndentClass(len(parts) - 1),
-			Selected:    filePath == selectedPath,
+			Path:     filePath,
+			Name:     pathpkg.Base(filePath),
+			Depth:    len(parts) - 1,
+			Selected: filePath == selectedPath,
 		})
 	}
 	return previewFiles
@@ -231,36 +267,12 @@ func insertArtifactPreviewPath(paths []string, path string) []string {
 	return slices.Insert(slices.Clone(paths), i, path)
 }
 
-func artifactPreviewTotalSize(artifacts []*actions_model.ActionArtifact) int64 {
-	var size int64
-	for _, artifact := range artifacts {
-		size += artifact.FileSize
-	}
-	return size
-}
-
-// isArtifactPreviewEnabled reports whether the preview feature is enabled at all, ARTIFACT_PREVIEW_MAX_SIZE=0 turns it off.
-func isArtifactPreviewEnabled() bool {
-	return setting.Actions.ArtifactPreviewMaxSize != 0
-}
-
-func isArtifactPreviewSizeAllowed(artifacts []*actions_model.ActionArtifact) bool {
-	return isArtifactPreviewSizeValueAllowed(artifactPreviewTotalSize(artifacts))
-}
-
-func isArtifactPreviewSizeValueAllowed(size int64) bool {
+func isArtifactPreviewSizeAllowed(size int64) bool {
 	maxSize := setting.Actions.ArtifactPreviewMaxSize
 	if maxSize < 0 {
 		return true
 	}
-	if maxSize == 0 {
-		return false
-	}
-	return size <= maxSize
-}
-
-func artifactPreviewHTMLContentSecurityPolicy() string {
-	return "sandbox allow-scripts"
+	return maxSize > 0 && size <= maxSize
 }
 
 func listPreviewPathsForLegacyArtifacts(artifacts []*actions_model.ActionArtifact) []string {
@@ -306,11 +318,8 @@ func listArtifactV4ZipPaths(reader *zip.Reader) artifactPreviewList {
 	paths := make([]string, 0, len(reader.File))
 	seen := make(map[string]struct{}, len(reader.File))
 	for _, file := range reader.File {
-		if file.FileInfo().IsDir() {
-			continue
-		}
-		path := normalizeArtifactPreviewPath(file.Name)
-		if path == "" {
+		path, ok := artifactV4ZipFilePath(file)
+		if !ok {
 			continue
 		}
 		if _, ok := seen[path]; ok {
@@ -324,33 +333,25 @@ func listArtifactV4ZipPaths(reader *zip.Reader) artifactPreviewList {
 	return artifactPreviewList{paths: capped, truncated: truncated}
 }
 
-// findArtifactV4ZipFile locates a single entry without materializing the whole listing.
-// An empty `requested` selects the first file in sorted order, matching what the preview browser selects by default.
-func findArtifactV4ZipFile(reader *zip.Reader, requested string) (string, *zip.File) {
-	var foundPath string
-	var found *zip.File
+func findArtifactV4ZipFile(reader *zip.Reader, requested string) *zip.File {
 	for _, file := range reader.File {
-		if file.FileInfo().IsDir() {
+		path, ok := artifactV4ZipFilePath(file)
+		if !ok {
 			continue
 		}
-		path := normalizeArtifactPreviewPath(file.Name)
-		if path == "" {
-			continue
-		}
-		if requested != "" {
-			if path == requested {
-				return path, file
-			}
-			continue
-		}
-		if found == nil || path < foundPath {
-			foundPath, found = path, file
+		if path == requested {
+			return file
 		}
 	}
-	if requested != "" {
-		return "", nil
+	return nil
+}
+
+func artifactV4ZipFilePath(file *zip.File) (string, bool) {
+	if file.FileInfo().IsDir() {
+		return "", false
 	}
-	return foundPath, found
+	path := normalizeArtifactPreviewPath(file.Name)
+	return path, path != ""
 }
 
 func listPreviewForV4Artifact(artifact *actions_model.ActionArtifact) (artifactPreviewList, error) {
@@ -400,10 +401,6 @@ func artifactPreviewContentType(filename string, st typesniffer.SniffedType) str
 	return st.GetMimeType()
 }
 
-func isPDFArtifactPreviewPath(path string) bool {
-	return strings.EqualFold(pathpkg.Ext(path), ".pdf")
-}
-
 func artifactPreviewServeHeaderOptions(path string, st typesniffer.SniffedType) context_module.ServeHeaderOptions {
 	contentType := artifactPreviewContentType(path, st)
 	opts := context_module.ServeHeaderOptions{
@@ -412,21 +409,13 @@ func artifactPreviewServeHeaderOptions(path string, st typesniffer.SniffedType) 
 		ContentType:        contentType,
 	}
 	if strings.HasPrefix(contentType, "text/html") {
-		opts.ContentSecurityPolicy = artifactPreviewHTMLContentSecurityPolicy()
+		opts.ContentSecurityPolicy = artifactPreviewHTMLContentSecurityPolicy
 	}
 	return opts
 }
 
-// WritePreviewRawError writes a minimal self-contained HTML error page directly to the response,
-// bypassing Gitea's template system so the full Gitea UI is never rendered inside the preview iframe.
 func WritePreviewRawError(ctx *context_module.Context, status int, msg string) {
-	ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
-	ctx.Resp.WriteHeader(status)
-	_, _ = fmt.Fprintf(ctx.Resp, `<!DOCTYPE html><html><head><meta charset="utf-8">
-<style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#888}p{font-size:1.1em}</style>
-</head><body><p>%s</p></body></html>`, html.EscapeString(msg))
+	http.Error(ctx.Resp, msg, status)
 }
 
 func previewArtifactByReader(ctx *context_module.Context, path string, reader io.Reader) {
@@ -450,15 +439,10 @@ func previewArtifactByReader(ctx *context_module.Context, path string, reader io
 		WritePreviewRawError(ctx, http.StatusInternalServerError, "failed to read artifact")
 		return
 	}
-	previewArtifactByReadSeeker(ctx, path, buf)
+	PreviewArtifactContent(ctx, path, buf)
 }
 
-// PreviewArtifactContent serves one artifact file with the preview's sniffing, size limit and sandbox headers, exported for the devtest mock page.
 func PreviewArtifactContent(ctx *context_module.Context, path string, reader io.ReadSeeker) {
-	previewArtifactByReadSeeker(ctx, path, reader)
-}
-
-func previewArtifactByReadSeeker(ctx *context_module.Context, path string, reader io.ReadSeeker) {
 	// seekable sources are served straight from storage, so the size limit has to be enforced here too
 	size, err := reader.Seek(0, io.SeekEnd)
 	if err != nil {
@@ -502,7 +486,7 @@ func previewArtifactByReadSeeker(ctx *context_module.Context, path string, reade
 }
 
 func ArtifactsPreviewView(ctx *context_module.Context) {
-	if !isArtifactPreviewEnabled() {
+	if setting.Actions.ArtifactPreviewMaxSize == 0 {
 		ctx.NotFound(nil)
 		return
 	}
@@ -513,7 +497,11 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 		return
 	}
 
-	previewTooLarge := !isArtifactPreviewSizeAllowed(artifacts)
+	var artifactSize int64
+	for _, artifact := range artifacts {
+		artifactSize += artifact.FileSize
+	}
+	previewTooLarge := !isArtifactPreviewSizeAllowed(artifactSize)
 	var list artifactPreviewList
 	if !previewTooLarge {
 		var err error
@@ -523,49 +511,13 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 			return
 		}
 	}
-	requested := GetRequestedPreviewPath(ctx)
+	requested := normalizeArtifactPreviewPath(ctx.FormString("path"))
 	selectedPath := ChoosePreviewPath(list.paths, requested)
 	if selectedPath == "" && requested != "" && list.truncated {
 		// the listing was capped, so absence from it does not prove the file is missing: select it and let the raw view report the real result
 		selectedPath = requested
 	}
-	previewPaths := list.paths
-	if selectedPath != "" && !util.SliceContainsString(previewPaths, selectedPath) {
-		previewPaths = insertArtifactPreviewPath(previewPaths, selectedPath)
-	}
-	previewFiles := BuildArtifactPreviewFiles(previewPaths, selectedPath)
-
-	runURL := run.Link()
-	backToRunURL := runURL
-	artifactPath := url.PathEscape(artifactName)
-	previewURL := runURL + "/artifacts/" + artifactPath + "/preview"
-	previewRawURL := previewURL + "/raw"
-	downloadURL := runURL + "/artifacts/" + artifactPath
-	attemptQuery := ""
-	runAttempt := int64(0)
-	if attempt := ctx.FormString("attempt"); attempt != "" {
-		attemptQuery = "?attempt=" + url.QueryEscape(attempt)
-		backToRunURL += "/attempts/" + url.PathEscape(attempt)
-		runAttempt = ctx.FormInt64("attempt")
-	}
-
-	ctx.Data["Title"] = ctx.Tr("preview")
-	ctx.Data["PageIsActions"] = true
-	ctx.Data["RunURL"] = backToRunURL
-	ctx.Data["RunIndex"] = run.Index
-	ctx.Data["RunAttempt"] = runAttempt
-	ctx.Data["ArtifactName"] = artifactName
-	ctx.Data["PreviewURL"] = previewURL
-	ctx.Data["PreviewRawURL"] = previewRawURL
-	ctx.Data["DownloadURL"] = downloadURL + attemptQuery
-	ctx.Data["SelectedPath"] = selectedPath
-	ctx.Data["PreviewIsPDF"] = isPDFArtifactPreviewPath(selectedPath)
-	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
-	// only claim the file is missing when a listing was actually computed, otherwise an over-sized artifact reports both warnings
-	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == "" && !previewTooLarge
-	ctx.Data["PreviewTooLarge"] = previewTooLarge
-	ctx.Data["PreviewFilesTruncated"] = list.truncated
-	ctx.Data["PreviewFiles"] = previewFiles
+	PrepareArtifactPreviewTemplateData(ctx, run.Link(), run.Index, ctx.FormInt64("attempt"), artifactName, requested, selectedPath, list.paths, previewTooLarge, list.truncated)
 
 	ctx.HTML(http.StatusOK, tplArtifactPreviewAction)
 }
@@ -593,12 +545,12 @@ func serveArtifactV4PreviewRaw(ctx *context_module.Context, artifact *actions_mo
 			return
 		}
 		defer f.Close()
-		previewArtifactByReadSeeker(ctx, selectedPath, f)
+		PreviewArtifactContent(ctx, selectedPath, f)
 		return
 	}
 	defer obj.Close()
 
-	selectedPath, zf := findArtifactV4ZipFile(reader, requested)
+	zf := findArtifactV4ZipFile(reader, requested)
 	if zf == nil {
 		WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")
 		return
@@ -610,11 +562,11 @@ func serveArtifactV4PreviewRaw(ctx *context_module.Context, artifact *actions_mo
 		return
 	}
 	defer r.Close()
-	previewArtifactByReader(ctx, selectedPath, r)
+	previewArtifactByReader(ctx, requested, r)
 }
 
 func ArtifactsPreviewRawView(ctx *context_module.Context) {
-	if !isArtifactPreviewEnabled() {
+	if setting.Actions.ArtifactPreviewMaxSize == 0 {
 		ctx.NotFound(nil)
 		return
 	}
@@ -624,11 +576,15 @@ func ArtifactsPreviewRawView(ctx *context_module.Context) {
 	if !ok {
 		return
 	}
-	if !isArtifactPreviewSizeAllowed(artifacts) {
+	var artifactSize int64
+	for _, artifact := range artifacts {
+		artifactSize += artifact.FileSize
+	}
+	if !isArtifactPreviewSizeAllowed(artifactSize) {
 		WritePreviewRawError(ctx, http.StatusRequestEntityTooLarge, "artifact is too large to preview, please download it instead")
 		return
 	}
-	requested := GetRequestedPreviewPath(ctx)
+	requested := normalizeArtifactPreviewPath(strings.TrimPrefix(ctx.PathParam("*"), "/"))
 
 	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
 		serveArtifactV4PreviewRaw(ctx, artifacts[0], requested)
@@ -678,7 +634,7 @@ func ArtifactsPreviewRawView(ctx *context_module.Context) {
 		return
 	}
 
-	previewArtifactByReadSeeker(ctx, selectedPath, f)
+	PreviewArtifactContent(ctx, selectedPath, f)
 }
 
 func ArtifactsDeleteView(ctx *context_module.Context) {
@@ -686,9 +642,9 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromRequest(ctx, run)
+	resolvedAttemptID, err := resolveArtifactAttemptIDFromQuery(ctx, run)
 	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromRequest", func(err error) bool {
+		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromQuery", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
 		return
@@ -702,41 +658,16 @@ func ArtifactsDeleteView(ctx *context_module.Context) {
 }
 
 func ArtifactsDownloadView(ctx *context_module.Context) {
-	run := getCurrentRunByPathParam(ctx)
-	if ctx.Written() {
-		return
-	}
-	resolvedAttemptID, err := resolveArtifactAttemptIDFromRequest(ctx, run)
-	if err != nil {
-		ctx.NotFoundOrServerError("resolveArtifactAttemptIDFromRequest", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
-		return
-	}
 	artifactName := ctx.PathParam("artifact_name")
-	artifacts, err := actions_model.GetArtifactsByRunAttemptAndName(ctx, run.ID, resolvedAttemptID, artifactName)
-	if err != nil {
-		ctx.ServerError("GetArtifactsByRunAttemptAndName", err)
+	_, artifacts, ok := getCurrentRunAndUploadedArtifacts(ctx, artifactName)
+	if !ok {
 		return
-	}
-	if len(artifacts) == 0 {
-		ctx.HTTPError(http.StatusNotFound, "artifact not found")
-		return
-	}
-
-	// if artifacts status is not uploaded-confirmed, treat it as not found
-	for _, art := range artifacts {
-		if art.Status != actions_model.ArtifactStatusUploadConfirmed {
-			ctx.HTTPError(http.StatusNotFound, "artifact not found")
-			return
-		}
 	}
 
 	// A v4 Artifact may only contain a single file
 	// Multiple files are uploaded as a single file archive
 	// All other cases fall back to the legacy v1–v3 zip handling below
 	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
-		// DownloadArtifactV4 sets its own headers; setting them here would make an error page download as a .zip
 		err := actions_service.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)

@@ -9,8 +9,6 @@ import (
 	"io"
 	mathRand "math/rand/v2"
 	"net/http"
-	"net/url"
-	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -273,6 +271,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
+		Previewable: true,
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
@@ -285,12 +284,14 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Size:        256 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
+		Previewable: true,
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: 0,
+		Previewable: true,
 	})
 
 	jobLink := func(jobID int64) string {
@@ -661,31 +662,8 @@ func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, ar
 	}
 
 	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), requested)
-	previewFiles := actions.BuildArtifactPreviewFiles(mockArtifactFilePaths(files), selectedPath)
-
 	runURL := fmt.Sprintf("%s/devtest/repo-action-view/runs/%d", setting.AppSubURL, runID)
-	backToRunURL := runURL
-	runPreviewURL := runURL + "/artifacts/" + url.PathEscape(artifactName) + "/preview"
-	attemptQuery := ""
-	if runAttempt > 0 {
-		backToRunURL += fmt.Sprintf("/attempts/%d", runAttempt)
-		attemptQuery = fmt.Sprintf("?attempt=%d", runAttempt)
-	}
-
-	ctx.Data["ArtifactName"] = artifactName
-	ctx.Data["Title"] = ctx.Tr("preview")
-	ctx.Data["PageIsActions"] = true
-	ctx.Data["PreviewFiles"] = previewFiles
-	ctx.Data["RunURL"] = backToRunURL
-	ctx.Data["RunIndex"] = runID
-	ctx.Data["RunAttempt"] = runAttempt
-	ctx.Data["PreviewURL"] = runPreviewURL
-	ctx.Data["PreviewRawURL"] = runPreviewURL + "/raw"
-	ctx.Data["DownloadURL"] = runURL + "/artifacts/" + url.PathEscape(artifactName) + attemptQuery
-	ctx.Data["SelectedPath"] = selectedPath
-	ctx.Data["PreviewIsPDF"] = strings.EqualFold(path.Ext(selectedPath), ".pdf")
-	ctx.Data["ShowPreviewContent"] = requested != "" && selectedPath != ""
-	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
+	actions.PrepareArtifactPreviewTemplateData(ctx, runURL, runID, runAttempt, artifactName, requested, selectedPath, mockArtifactFilePaths(files), false, false)
 	return true
 }
 
@@ -694,7 +672,7 @@ func MockActionsArtifactPreview(ctx *context.Context) {
 		ctx,
 		ctx.PathParamInt64("run"),
 		ctx.PathParam("artifact_name"),
-		actions.GetRequestedPreviewPath(ctx),
+		ctx.FormString("path"),
 		ctx.FormInt64("attempt"),
 	) {
 		ctx.NotFound(nil)
@@ -710,7 +688,7 @@ func MockActionsArtifactPreviewRaw(ctx *context.Context) {
 		return
 	}
 
-	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), actions.GetRequestedPreviewPath(ctx))
+	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), strings.TrimPrefix(ctx.PathParam("*"), "/"))
 	idx := slices.IndexFunc(files, func(file mockArtifactFile) bool { return file.Path == selectedPath })
 	if idx < 0 {
 		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")

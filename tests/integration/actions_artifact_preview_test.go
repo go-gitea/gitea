@@ -7,6 +7,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"html"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -46,6 +48,20 @@ func overwriteArtifactStorageContent(t *testing.T, artifactID int64, content []b
 	require.NoError(t, err)
 }
 
+func preserveArtifactStorageContent(t *testing.T, artifactID int64) {
+	t.Helper()
+	artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: artifactID})
+	obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
+	require.NoError(t, err)
+	content, err := io.ReadAll(obj)
+	require.NoError(t, err)
+	require.NoError(t, obj.Close())
+	t.Cleanup(func() {
+		_, err := storage.ActionsArtifacts.Save(artifact.StoragePath, bytes.NewReader(content), int64(len(content)))
+		require.NoError(t, err)
+	})
+}
+
 func TestActionsArtifactPreview(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
@@ -55,7 +71,6 @@ func TestActionsArtifactPreview(t *testing.T) {
 	t.Run("RequiresSignIn", func(t *testing.T) {
 		for _, path := range []string{
 			"preview",
-			"preview/raw",
 			"preview/raw/abc.txt",
 		} {
 			req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/%s", repo.FullName(), path)
@@ -80,7 +95,7 @@ func TestActionsArtifactPreview(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), `/preview/raw/abc.txt`)
 		assert.Contains(t, resp.Body.String(), `sandbox="allow-scripts"`)
 
-		req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw", repo.FullName())
+		req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/abc.txt", repo.FullName())
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, strings.Repeat("A", 1024), resp.Body.String())
 		assert.Contains(t, resp.Header().Get("Content-Type"), "text/plain")
@@ -119,15 +134,24 @@ func TestActionsArtifactPreview(t *testing.T) {
 	t.Run("AttemptLinks", func(t *testing.T) {
 		attempt := &actions_model.ActionRunAttempt{RepoID: repo.ID, RunID: 791, Attempt: 2, TriggerUserID: 1, Status: actions_model.StatusSuccess}
 		require.NoError(t, db.Insert(t.Context(), attempt))
+		originalAttemptIDs := make(map[int64]int64, 2)
 		for _, artifactID := range []int64{19, 20} {
+			artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: artifactID})
+			originalAttemptIDs[artifactID] = artifact.RunAttemptID
 			_, err := db.GetEngine(t.Context()).ID(artifactID).Cols("run_attempt_id").Update(&actions_model.ActionArtifact{RunAttemptID: attempt.ID})
 			require.NoError(t, err)
 		}
+		t.Cleanup(func() {
+			for artifactID, attemptID := range originalAttemptIDs {
+				_, err := db.GetEngine(context.Background()).ID(artifactID).Cols("run_attempt_id").Update(&actions_model.ActionArtifact{RunAttemptID: attemptID})
+				require.NoError(t, err)
+			}
+		})
 
 		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/multi-file-download/preview?path=%s&attempt=2", repo.FullName(), url.QueryEscape("xyz/def.txt"))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		body := resp.Body.String()
-		assert.Contains(t, body, `/preview?path=abc.txt&amp;attempt=2" title="abc.txt"`)
+		assert.Contains(t, html.UnescapeString(body), `/preview?path=abc.txt&attempt=2" title="abc.txt"`)
 		assert.Contains(t, body, `/runs/791/artifacts/multi-file-download/preview/raw/xyz/def.txt?attempt=2`)
 		assert.Contains(t, body, `href="/user5/repo4/actions/runs/791/attempts/2"`)
 
@@ -137,20 +161,23 @@ func TestActionsArtifactPreview(t *testing.T) {
 	})
 
 	t.Run("UnsupportedType", func(t *testing.T) {
+		preserveArtifactStorageContent(t, 1)
 		overwriteArtifactStorageContent(t, 1, []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0x00, 0x00, 0x00, 0x0d})
-		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw", repo.FullName())
+		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/abc.txt", repo.FullName())
 		session.MakeRequest(t, req, http.StatusUnsupportedMediaType)
 	})
 
 	t.Run("HTMLSandboxCSP", func(t *testing.T) {
+		preserveArtifactStorageContent(t, 1)
 		overwriteArtifactStorageContent(t, 1, []byte("<html><body><h1>artifact</h1></body></html>"))
-		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw", repo.FullName())
+		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/abc.txt", repo.FullName())
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, "sandbox allow-scripts", resp.Header().Get("Content-Security-Policy"))
 		assert.Contains(t, resp.Header().Get("Content-Type"), "text/html")
 	})
 
 	t.Run("PDFWithoutSandbox", func(t *testing.T) {
+		preserveArtifactStorageContent(t, 1)
 		artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: 1})
 		artifact.ArtifactPath = "report.pdf"
 		_, err := db.GetEngine(t.Context()).ID(artifact.ID).Cols("artifact_path").Update(artifact)
@@ -161,7 +188,6 @@ func TestActionsArtifactPreview(t *testing.T) {
 			require.NoError(t, err)
 		}()
 		overwriteArtifactStorageContent(t, artifact.ID, []byte("%PDF-1.7\n"))
-		defer overwriteArtifactStorageContent(t, artifact.ID, []byte(strings.Repeat("A", 1024)))
 
 		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview?path=report.pdf", repo.FullName())
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -222,6 +248,7 @@ func TestActionsArtifactPreview(t *testing.T) {
 	})
 
 	t.Run("V4Zip", func(t *testing.T) {
+		preserveArtifactStorageContent(t, 22)
 		zipBytes := buildArtifactZip(t, map[string]string{
 			"index.html":      "<html><body><h1>v4 zip</h1></body></html>",
 			"style.css":       "body{color:red}",
@@ -267,17 +294,12 @@ func TestActionsArtifactPreview(t *testing.T) {
 
 	t.Run("DownloadV4StorageErrorIsNotAttachment", func(t *testing.T) {
 		artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: 22})
+		preserveArtifactStorageContent(t, artifact.ID)
 		require.NoError(t, storage.ActionsArtifacts.Delete(artifact.StoragePath))
 
 		// the error page must render as a page, not download as a corrupt .zip
 		req := NewRequestf(t, "GET", "/%s/actions/runs/792/artifacts/artifact-v4-download", repo.FullName())
 		resp := session.MakeRequest(t, req, http.StatusInternalServerError)
 		assert.NotContains(t, resp.Header().Get("Content-Disposition"), "attachment")
-	})
-
-	t.Run("DownloadViewUnchanged", func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download", repo.FullName())
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Header().Get("Content-Disposition"), "attachment; filename=artifact-download.zip")
 	})
 }

@@ -322,7 +322,7 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </span>
-                <span class="job-artifact-actions">
+                <span class="tw-flex tw-items-center tw-gap-2 tw-shrink-0">
                   <a download class="silenced" :href="artifactDownloadURL(artifact.name)" :data-tooltip-content="locale.downloadFile">
                     <SvgIcon name="octicon-download"/>
                   </a>
@@ -489,13 +489,6 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-light-2);
-}
-
-.job-artifact-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-shrink: 0;
 }
 
 .action-view-sidebar-list {
