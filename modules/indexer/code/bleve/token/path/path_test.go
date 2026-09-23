@@ -32,7 +32,7 @@ func TestTokenFilter(t *testing.T) {
 		},
 		{
 			Input: "a/b/c/Dockerfile.rootless",
-			Terms: []string{"a", "a/b", "a/b/c", "a/b/c/Dockerfile.rootless", "Dockerfile.rootless", "Dockerfile.rootless/c", "Dockerfile.rootless/c/b", "Dockerfile.rootless/c/b/a"},
+			Terms: []string{"a", "a/b", "a/b/c", "a/b/c/Dockerfile.rootless", "Dockerfile.rootless"},
 		},
 		{
 			Input: "",
@@ -42,15 +42,18 @@ func TestTokenFilter(t *testing.T) {
 
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("ensure terms of '%s'", scenario.Input), func(t *testing.T) {
-			terms := extractTerms(scenario.Input)
-
-			assert.Len(t, terms, len(scenario.Terms))
-
-			for _, term := range terms {
-				assert.Contains(t, scenario.Terms, term)
-			}
+			assert.Equal(t, scenario.Terms, extractTerms(scenario.Input))
 		})
 	}
+}
+
+func TestTokenFilterOffsets(t *testing.T) {
+	const input = "potato/ham.md"
+	var spans []string
+	for _, token := range filter(tokenize(input)) {
+		spans = append(spans, string(token.Term)+"="+input[token.Start:token.End])
+	}
+	assert.Equal(t, []string{"potato=potato", "potato/ham.md=potato/ham.md", "ham.md=ham.md"}, spans)
 }
 
 func extractTerms(input string) []string {

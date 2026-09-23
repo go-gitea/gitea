@@ -69,7 +69,7 @@ const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 10
+	repoIndexerLatestVersion = 11
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer

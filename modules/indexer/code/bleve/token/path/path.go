@@ -4,7 +4,6 @@
 package path
 
 import (
-	"slices"
 	"strings"
 
 	"gitea.dev/modules/util"
@@ -25,74 +24,29 @@ func TokenFilterConstructor(config map[string]any, cache *registry.Cache) (analy
 	return NewTokenFilter(), nil
 }
 
+// Filter generates a term for each leading part of the path, like the path hierarchy tokenizer in ES
+// (e.g., foo/bar/baz.md generates foo, foo/bar and foo/bar/baz.md), and one for the base name (baz.md)
+// to search for filenames without supplying the full path.
 func (s *TokenFilter) Filter(input analysis.TokenStream) analysis.TokenStream {
-	if len(input) == 1 {
-		// if there is only one token, we don't need to generate the reversed chain
-		return generatePathTokens(input, false)
-	}
-
-	normal := generatePathTokens(input, false)
-	reversed := generatePathTokens(input, true)
-
-	return append(normal, reversed...)
-}
-
-// Generates path tokens from the input tokens.
-// This mimics the behavior of the path hierarchy tokenizer in ES. It takes the input tokens and combine them, generating a term for each component
-// in tree (e.g., foo/bar/baz.md will generate foo, foo/bar, and foo/bar/baz.md).
-//
-// If the reverse flag is set, the order of the tokens is reversed (the same input will generate baz.md, baz.md/bar, baz.md/bar/foo). This is useful
-// to efficiently search for filenames without supplying the fullpath.
-func generatePathTokens(input analysis.TokenStream, reversed bool) analysis.TokenStream {
-	terms := make([]string, 0, len(input))
-	longestTerm := 0
-
-	if reversed {
-		slices.Reverse(input)
-	}
-
-	for i := range input {
-		var sb strings.Builder
-		sb.Write(input[0].Term)
-
-		for j := 1; j < i; j++ {
+	output := make(analysis.TokenStream, 0, len(input)+1)
+	var sb strings.Builder
+	for i, token := range input {
+		if i > 0 {
 			sb.WriteString("/")
-			sb.Write(input[j].Term)
 		}
-
-		term := sb.String()
-
-		if longestTerm < len(term) {
-			longestTerm = len(term)
-		}
-
-		terms = append(terms, term)
-	}
-
-	output := make(analysis.TokenStream, 0, len(terms))
-
-	for _, term := range terms {
-		var start, end int
-
-		if reversed {
-			start = 0
-			end = len(term)
-		} else {
-			start = longestTerm - len(term)
-			end = longestTerm
-		}
-
-		token := analysis.Token{
+		sb.Write(token.Term)
+		output = append(output, &analysis.Token{
 			Position: 1,
-			Start:    start,
-			End:      end,
+			Start:    input[0].Start,
+			End:      token.End,
 			Type:     analysis.AlphaNumeric,
-			Term:     []byte(term),
-		}
-
-		output = append(output, &token)
+			Term:     []byte(sb.String()),
+		})
 	}
-
+	if len(input) > 1 {
+		baseName := input[len(input)-1]
+		output = append(output, &analysis.Token{Position: 1, Start: baseName.Start, End: baseName.End, Type: analysis.AlphaNumeric, Term: baseName.Term})
+	}
 	return output
 }
 
