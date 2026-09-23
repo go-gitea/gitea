@@ -124,9 +124,6 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid jobs: %w", err)
 	}
-	if len(ids) > MaxJobsPerWorkflow {
-		return nil, fmt.Errorf("workflow expands to more than %d jobs", MaxJobsPerWorkflow)
-	}
 
 	evaluator := expreval.New(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}).Evaluate)
 	if workflow.RunName, err = evaluator.Interpolate(workflow.RunName); err != nil {
@@ -155,9 +152,6 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			matricxes, err := getMatrixes(originJob)
 			if err != nil {
 				return nil, fmt.Errorf("getMatrixes: %w", err)
-			}
-			if len(ret)+len(matricxes) > MaxJobsPerWorkflow {
-				return nil, fmt.Errorf("workflow expands to more than %d jobs", MaxJobsPerWorkflow)
 			}
 			if combos, err = buildMatrixCombos(id, job, matricxes, originJob, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
 				return nil, err
@@ -316,9 +310,6 @@ type parseContext struct {
 }
 
 type ParseOption func(c *parseContext)
-
-// MaxJobsPerWorkflow caps static job expansion before it can allocate one workflow per job.
-const MaxJobsPerWorkflow = 256
 
 func getMatrixes(job *model.Job) ([]map[string]any, error) {
 	ret, err := matrixesOf(job)

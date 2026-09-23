@@ -124,19 +124,34 @@ jobs:
 			dataURL,
 		)
 
+		req = NewRequest(t, "POST", fmt.Sprintf("%s/actions/runs/%d/cancel", baseRepo.Link(), run1.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
+
 		// user2 approves all runs
 		req = NewRequest(t, "POST", dataURL)
 		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// check runs
 		run1 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run1.ID})
-		assert.False(t, run1.NeedApproval)
-		assert.Equal(t, user2.ID, run1.ApprovedBy)
-		assert.Equal(t, actions_model.StatusWaiting, run1.Status)
+		assert.True(t, run1.NeedApproval)
+		assert.Equal(t, actions_model.StatusCancelled, run1.Status)
 		run2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.False(t, run2.NeedApproval)
 		assert.Equal(t, user2.ID, run2.ApprovedBy)
 		assert.Equal(t, actions_model.StatusWaiting, run2.Status)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", baseRepo.OwnerName, baseRepo.Name, apiPull.Index))
+		resp = user2Session.MakeRequest(t, req, http.StatusOK)
+		assert.Zero(t, NewHTMLParser(t, resp.Body).doc.Find("#approve-status-checks").Length())
+
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, run1.ID)).AddTokenAuth(user2Token)
+		MakeRequest(t, req, http.StatusConflict)
+
+		req = NewRequest(t, "POST", fmt.Sprintf("%s/actions/runs/%d/rerun", baseRepo.Link(), run1.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
+		run1 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run1.ID})
+		assert.False(t, run1.NeedApproval)
+		assert.Equal(t, user2.ID, run1.ApprovedBy)
 	})
 }
 

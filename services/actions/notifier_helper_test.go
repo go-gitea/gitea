@@ -104,17 +104,17 @@ func TestIfNeedApproval(t *testing.T) {
 	})
 }
 
-func TestGetApprovalUserUsesForkPullRequestAuthor(t *testing.T) {
+func TestGetApprovalUsersReturnsActorAndForkPullRequestAuthor(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	require.NoError(t, pr.LoadIssue(t.Context()))
-	require.NoError(t, pr.Issue.LoadPoster(t.Context()))
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	approvalUser, err := getApprovalUser(t.Context(), &notifyInput{Doer: doer, PullRequest: pr}, true)
+	approvalUsers, err := getApprovalUsers(t.Context(), &notifyInput{Doer: doer, PullRequest: pr}, true)
 	require.NoError(t, err)
-	assert.Equal(t, pr.Issue.PosterID, approvalUser.ID)
+	require.Len(t, approvalUsers, 2)
+	assert.Equal(t, []int64{doer.ID, pr.Issue.PosterID}, []int64{approvalUsers[0].ID, approvalUsers[1].ID})
 }
 
 func TestFilteredWorkflowCommitStatusForForkPullRequest(t *testing.T) {

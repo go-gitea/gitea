@@ -99,10 +99,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			if err := EvaluateRunConcurrencyFillModel(ctx, run, runAttempt, wfRawConcurrency, vars, inputs); err != nil {
 				return fmt.Errorf("EvaluateRunConcurrencyFillModel: %w", err)
 			}
-			if run.NeedApproval {
-				runAttempt.Status = actions_model.StatusBlocked
-			} else {
-				// check run (workflow-level) concurrency
+			// check run (workflow-level) concurrency
+			if !run.NeedApproval { // deferred to ApproveRuns
 				var jobsToCancel []*actions_model.ActionRunJob
 				runAttempt.Status, jobsToCancel, err = PrepareToStartRunWithConcurrency(ctx, runAttempt)
 				if err != nil {

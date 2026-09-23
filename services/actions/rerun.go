@@ -72,9 +72,6 @@ func validateRerun(ctx context.Context, run *actions_model.ActionRun, repo *repo
 	if !run.Status.IsDone() {
 		return util.NewInvalidArgumentErrorf("this workflow run is not done")
 	}
-	if run.NeedApproval {
-		return util.NewInvalidArgumentErrorf("this workflow run requires approval")
-	}
 	if repo == nil {
 		return util.NewInvalidArgumentErrorf("repo is required")
 	}
@@ -244,7 +241,12 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		}
 
 		plan.run.LatestAttemptID = newAttempt.ID
-		if err := actions_model.UpdateRun(ctx, plan.run, "latest_attempt_id"); err != nil {
+		cols := []string{"latest_attempt_id"}
+		if plan.run.NeedApproval { // rerunning is an explicit approval
+			plan.run.NeedApproval, plan.run.ApprovedBy = false, plan.triggerUser.ID
+			cols = append(cols, "need_approval", "approved_by")
+		}
+		if err := actions_model.UpdateRun(ctx, plan.run, cols...); err != nil {
 			return err
 		}
 

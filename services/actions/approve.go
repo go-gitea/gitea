@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -23,8 +24,7 @@ import (
 func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
-	// Track runs whose reusable callers were just expanded so we can re-emit after the tx commits.
-	expandedCallerRunIDs := make(container.Set[int64])
+	approvedRunIDs := make(container.Set[int64])
 
 	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
 		for _, runID := range runIDs {
@@ -32,9 +32,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err != nil {
 				return err
 			}
-			// Approval only releases a pending run. A terminal run must be rerun
-			// explicitly rather than reviving its cancelled jobs.
-			if !run.NeedApproval || run.Status.IsDone() {
+			if !run.IsAwaitingApproval() {
 				continue
 			}
 			run.NeedApproval = false
@@ -42,6 +40,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 				return err
 			}
+			approvedRunIDs.Add(run.ID)
 			jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 			if err != nil {
 				return err
@@ -77,6 +76,9 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				if job.Status != actions_model.StatusBlocked || len(job.Needs) > 0 {
 					continue
 				}
+				if slices.ContainsFunc(cancelledConcurrencyJobs, func(cancelled *actions_model.ActionRunJob) bool { return cancelled.ID == job.ID }) {
+					continue // cancelled by a sibling's concurrency in this loop
+				}
 				// A slot-starved job cannot start, skip the following checks.
 				if !slots.available(job) {
 					continue
@@ -102,11 +104,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 				// A top-level reusable caller was just unblocked by approval, expand it
 				if job.IsReusableCaller && !job.IsExpanded {
-					attempt, has, err := run.GetLatestAttempt(ctx)
-					if err != nil {
-						return fmt.Errorf("get latest attempt of run %d: %w", run.ID, err)
-					}
-					if !has {
+					if !hasAttempt {
 						return errors.New("run has no attempt")
 					}
 					vars, err := actions_model.GetVariablesOfRun(ctx, run)
@@ -119,7 +117,6 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					if err := actions_model.RefreshReusableCallerStatus(ctx, job); err != nil {
 						return fmt.Errorf("refresh caller %d status after approval-time expansion: %w", job.ID, err)
 					}
-					expandedCallerRunIDs.Add(run.ID)
 				}
 			}
 		}
@@ -129,10 +126,10 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		return nil, err
 	}
 
-	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting.
-	for runID := range expandedCallerRunIDs {
+	// The emitter skipped these runs while they awaited approval
+	for runID := range approvedRunIDs {
 		if err := EmitJobsIfReadyByRun(runID); err != nil {
-			log.Error("emit run %d after approval-time caller expansion: %v", runID, err)
+			log.Error("emit run %d after approval: %v", runID, err)
 		}
 	}
 

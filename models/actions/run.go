@@ -79,6 +79,11 @@ func init() {
 	db.RegisterModel(new(ActionRunIndex))
 }
 
+// IsAwaitingApproval reports whether approval can still release the run
+func (run *ActionRun) IsAwaitingApproval() bool {
+	return run.NeedApproval && !run.Status.IsDone()
+}
+
 func (run *ActionRun) HTMLURL(ctxOpt ...context.Context) string {
 	if run.Repo == nil {
 		return ""

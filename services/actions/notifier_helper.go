@@ -390,15 +390,20 @@ func buildApproveAndInsertRun(
 		IsScopedRun:       isScopedRun,
 	}
 
-	approvalUser, err := getApprovalUser(ctx, input, isForkPullRequest)
+	approvalUsers, err := getApprovalUsers(ctx, input, isForkPullRequest)
 	if err != nil {
 		return err
 	}
-	need, err := ifNeedApproval(ctx, run, input.Repo, approvalUser)
-	if err != nil {
-		return fmt.Errorf("check if need approval for user %d: %w", approvalUser.ID, err)
+	for _, user := range approvalUsers {
+		need, err := ifNeedApproval(ctx, run, input.Repo, user)
+		if err != nil {
+			return fmt.Errorf("check if need approval for user %d: %w", user.ID, err)
+		}
+		if need {
+			run.NeedApproval = true
+			break
+		}
 	}
-	run.NeedApproval = need
 
 	if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
 		return fmt.Errorf("PrepareRunAndInsert: %w", err)
@@ -481,9 +486,10 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		Notify(ctx)
 }
 
-func getApprovalUser(ctx context.Context, input *notifyInput, isForkPullRequest bool) (*user_model.User, error) {
+// getApprovalUsers returns the event actor and the fork PR author, both must be trusted
+func getApprovalUsers(ctx context.Context, input *notifyInput, isForkPullRequest bool) ([]*user_model.User, error) {
 	if !isForkPullRequest || input.PullRequest == nil {
-		return input.Doer, nil
+		return []*user_model.User{input.Doer}, nil
 	}
 	if err := input.PullRequest.LoadIssue(ctx); err != nil {
 		return nil, fmt.Errorf("load pull request issue: %w", err)
@@ -491,7 +497,10 @@ func getApprovalUser(ctx context.Context, input *notifyInput, isForkPullRequest 
 	if err := input.PullRequest.Issue.LoadPoster(ctx); err != nil {
 		return nil, fmt.Errorf("load pull request author: %w", err)
 	}
-	return input.PullRequest.Issue.Poster, nil
+	if input.PullRequest.Issue.PosterID == input.Doer.ID {
+		return []*user_model.User{input.Doer}, nil
+	}
+	return []*user_model.User{input.Doer, input.PullRequest.Issue.Poster}, nil
 }
 
 func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {
