@@ -19,7 +19,6 @@ import (
 	"gitea.dev/models/db"
 	db_install "gitea.dev/models/db/install"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/auth/password/hash"
 	"gitea.dev/modules/generate"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -40,7 +39,6 @@ import (
 )
 
 const (
-	// tplInstall template for installation page
 	tplInstall     templates.TplName = "install"
 	tplPostInstall templates.TplName = "post-install"
 )
@@ -55,10 +53,9 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 
 func installContexter() func(next http.Handler) http.Handler {
 	return context.ContexterInstallPage(map[string]any{
-		"DbTypeNames":            getSupportedDbTypeNames(),
-		"EnvConfigKeys":          setting.CollectEnvConfigKeys(),
-		"CustomConfFile":         setting.CustomConf,
-		"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
+		"DbTypeNames":    getSupportedDbTypeNames(),
+		"EnvConfigKeys":  setting.CollectEnvConfigKeys(),
+		"CustomConfFile": setting.CustomConf,
 	})
 }
 
@@ -118,10 +115,7 @@ func Install(ctx *context.Context) {
 }
 
 func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
-	var err error
-
-	if (setting.Database.Type == setting.DatabaseTypeSQLite3) &&
-		len(setting.Database.Path) == 0 {
+	if setting.Database.Type.IsSQLite3() && setting.Database.Path == "" {
 		ctx.Data["Err_DbPath"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
 		return false
@@ -131,13 +125,13 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 	db.UnsetDefaultEngine()
 	defer db.UnsetDefaultEngine()
 
-	if err = db.InitEngine(ctx); err != nil {
+	if err := db.InitEngine(ctx); err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 
-	err = db_install.CheckDatabaseConnection(ctx)
+	err := db_install.CheckDatabaseConnection(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
@@ -199,8 +193,6 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	var err error
-
 	form := web.GetForm[*forms.InstallForm](ctx)
 
 	// fix form values
@@ -217,7 +209,7 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	if _, err = exec.LookPath("git"); err != nil {
+	if _, err := exec.LookPath("git"); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.test_git_failed", err), tplInstall, form)
 		return
 	}
@@ -236,9 +228,10 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.LogSQL = !setting.IsProd
 
 	// Prepare AppDataPath, it is very important for Gitea
+	// old code replaced "\\" to "/", it's questionable whether it's worth to do so
 	form.AppDataPath = util.PathJoinRelX(form.AppDataPath)
 	setting.AppDataPath = form.AppDataPath
-	if err = setting.PrepareAppDataPath(); err != nil {
+	if err := setting.PrepareAppDataPath(); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_app_data_path", err), tplInstall, form)
 		return
 	}
@@ -286,7 +279,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Init the engine with migration
-	if err = db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
 		db.UnsetDefaultEngine()
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
@@ -435,8 +428,6 @@ func saveConfigReinitDB(ctx *context.Context, cfg setting.ConfigProvider, form *
 
 	// unset default engine before reload database setting
 	db.UnsetDefaultEngine()
-
-	// ---- All checks are passed
 
 	// Reload settings (and re-initialize database connection)
 	setting.InitCfgProvider(setting.CustomConf)
