@@ -124,7 +124,7 @@ func IsViteDevMode() bool {
 		return false
 	}
 
-	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
+	req := httplib.NewClientRequest(http.MethodGet, viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check")
 	resp, _ := req.Response()
 	if resp != nil {
 		_ = resp.Body.Close()
@@ -142,11 +142,14 @@ func IsViteDevMode() bool {
 
 // viteDevSourceURL returns the dev server URL for a source file, or "" if it doesn't exist.
 func viteDevSourceURL(srcPath string) string {
-	localPath := util.FilePathJoinAbs(setting.StaticRootPath, srcPath)
-	if _, err := os.Stat(localPath); err != nil {
+	if _, err := os.Stat(viteDevModuleID(srcPath)); err != nil {
 		return ""
 	}
 	return setting.AppSubURL + "/" + srcPath
+}
+
+func viteDevModuleID(srcPath string) string {
+	return filepath.ToSlash(util.FilePathJoinAbs(setting.StaticRootPath, srcPath))
 }
 
 // IsViteDevRequest returns true if the request should be proxied to the Vite dev server.

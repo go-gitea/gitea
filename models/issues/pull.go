@@ -202,15 +202,10 @@ func (pr *PullRequest) String() string {
 	return s.String()
 }
 
-// MustHeadUserName returns the HeadRepo's username if failed return blank
-func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
-	if err := pr.LoadHeadRepo(ctx); err != nil {
-		if !repo_model.IsErrRepoNotExist(err) {
-			log.Error("LoadHeadRepo: %v", err)
-		} else {
-			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
-		}
-		return ""
+// OptionalHeadUserName returns the HeadRepo's username if failed return blank
+func (pr *PullRequest) OptionalHeadUserName(ctx context.Context) string {
+	if err := pr.LoadHeadRepo(ctx); err != nil && !errors.Is(err, util.ErrNotExist) {
+		log.Error("LoadHeadRepo: %v", err)
 	}
 	if pr.HeadRepo == nil {
 		return ""
@@ -415,7 +410,7 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 
 // GetGitHeadRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
-	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
+	return git.RefNameFromPullIndex(pr.Index).String()
 }
 
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)

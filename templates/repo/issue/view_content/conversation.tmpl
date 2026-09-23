@@ -22,7 +22,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 			</div>
 			<div class="tw-flex tw-items-center">
 				{{if or $invalid $resolved}}
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
+					<button type="button" id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
@@ -30,7 +30,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 							{{ctx.Locale.Tr "repo.issues.review.show_outdated"}}
 						{{end}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}} btn tiny hide-outdated">
+					<button type="button" id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $resolved}}tw-hidden {{end}} btn tiny hide-outdated">
 						{{svg "octicon-fold" 16 "tw-mr-2"}}
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
@@ -125,7 +125,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 				</div>
 				<div class="flex-text-block">
 					{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
-						<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+						<button type="button" class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 							{{if $resolved}}
 								{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 							{{else}}
@@ -134,7 +134,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 						</button>
 					{{end}}
 					{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-						<button class="comment-form-reply ui primary icon tiny button">
+						<button type="button" class="comment-form-reply ui primary icon tiny button">
 							{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 						</button>
 					{{end}}

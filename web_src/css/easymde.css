@@ -21,11 +21,6 @@
   direction: ltr;
 }
 
-.EasyMDEContainer .CodeMirror.cm-s-default {
-  border-radius: var(--border-radius);
-  padding: 0;
-}
-
 .EasyMDEContainer .CodeMirror-lines {
   padding: 4px 0;
   cursor: text;
@@ -349,17 +344,6 @@
   display: none;
 }
 
-/* hide revert button in fullscreen, it breaks the page */
-.EasyMDEContainer .editor-toolbar.fullscreen .revert-to-textarea {
-  display: none;
-}
-
-@media only screen and (max-width: 700px) {
-  .EasyMDEContainer .editor-toolbar i.no-mobile {
-    display: none;
-  }
-}
-
 /* Statusbar */
 .EasyMDEContainer .editor-statusbar {
   padding: 8px 10px;
@@ -380,10 +364,6 @@
 
 .EasyMDEContainer .editor-statusbar .words::before {
   content: "words: ";
-}
-
-.EasyMDEContainer .editor-statusbar .characters::before {
-  content: "characters: ";
 }
 
 /* Preview */

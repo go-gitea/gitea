@@ -21,7 +21,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"golang.org/x/oauth2"
 )
 

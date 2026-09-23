@@ -91,8 +91,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		}
 	}
 
-	// By default, partial clones are disabled, enable them from git v2.22
-	if !setting.Git.DisablePartialClone && DefaultFeatures().CheckVersionAtLeast("2.22") {
+	if !setting.Git.DisablePartialClone {
 		if err = configSet(ctx, "uploadpack.allowfilter", "true"); err != nil {
 			return err
 		}

@@ -90,11 +90,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 
 	remoteRepoName := "head_repo"
 
-	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags"}
-	if git.DefaultFeatures().CheckVersionAtLeast("2.25.0") {
-		// Writing the commit graph can be slow and is not needed here
-		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
-	}
+	// writing the commit graph can be slow and is not needed here
+	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags", "--no-write-commit-graph"}
 
 	// addCacheRepo adds git alternatives for the cacheRepoPath in the repoPath
 	addCacheRepo := func(repoPath, cacheRepoPath string) error {
