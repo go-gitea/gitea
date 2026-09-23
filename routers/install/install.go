@@ -329,6 +329,11 @@ func fillInstallConfig(ctx *context.Context, envs []string, form *forms.InstallF
 	cfg.Section("server").Key("HTTP_PORT").SetValue(form.HTTPPort)
 	cfg.Section("server").Key("ROOT_URL").SetValue(form.AppURL)
 	cfg.Section("server").Key("APP_DATA_PATH").SetValue(form.AppDataPath)
+	cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
+	if !cfg.Section("server").HasKey("LFS_JWT_SECRET_URI") {
+		_, lfsJwtSecret := generate.NewJwtSecretWithBase64()
+		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
+	}
 
 	if form.SSHPort == 0 {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("true")
