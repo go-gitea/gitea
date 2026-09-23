@@ -68,7 +68,7 @@ func renderPanicErrorPage(w http.ResponseWriter, req *http.Request, recovered an
 	// This recovery handler could be called without Gitea's web context, so we shouldn't touch that context too much.
 	// Otherwise, the 500-page may cause new panics, eg: cache.GetContextWithData, it makes the developer&users couldn't find the original panic.
 	user, _ := ctxData[middleware.ContextDataKeySignedUser].(*user_model.User)
-	if !setting.IsProd || (user != nil && user.IsAdmin) {
+	if !setting.IsProd || setting.IsInTesting || (user != nil && user.IsAdmin) {
 		plainMsg = "PANIC: " + combinedErr.Error()
 		ctxData["ErrorMsg"] = plainMsg
 	}
