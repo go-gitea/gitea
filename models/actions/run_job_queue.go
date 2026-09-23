@@ -47,8 +47,9 @@ func (opts QueueJobsOptions) session(ctx context.Context) *xorm.Session {
 var (
 	// queuedJobsCond matches the jobs a runner may still pick up: waiting and not yet claimed by a task.
 	// Keep it in sync with CreateTaskForRunner, which claims jobs oldest-ready-first.
-	queuedJobsCond  = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}
-	runningJobsCond = builder.Eq{"`action_run_job`.status": StatusRunning}
+	queuedJobsCond = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}
+	// A cancelling job still occupies its runner until cancellation cleanup completes.
+	runningJobsCond = builder.In("`action_run_job`.status", StatusRunning, StatusCancelling)
 )
 
 func (opts QueueJobsOptions) statusCond() builder.Cond {
@@ -62,11 +63,11 @@ func (opts QueueJobsOptions) statusCond() builder.Cond {
 	}
 }
 
-// queueJobsOrderBy puts the running jobs first (StatusRunning sorts above StatusWaiting), then orders each
-// group by the very timestamp the row displays: a running job by its start, a queued one by its pickup order.
+// queueJobsOrderBy puts active jobs first, then orders each group by the very timestamp the row displays:
+// an active job by its start, a queued one by its pickup order.
 var queueJobsOrderBy = fmt.Sprintf(
-	"`action_run_job`.status DESC, CASE WHEN `action_run_job`.status = %d THEN `action_run_job`.started ELSE `action_run_job`.updated END ASC, `action_run_job`.id ASC",
-	StatusRunning)
+	"CASE WHEN `action_run_job`.status IN (%d, %d) THEN 0 ELSE 1 END ASC, CASE WHEN `action_run_job`.status IN (%d, %d) THEN `action_run_job`.started ELSE `action_run_job`.updated END ASC, `action_run_job`.id ASC",
+	StatusRunning, StatusCancelling, StatusRunning, StatusCancelling)
 
 // FindQueueJobs returns one page of the build queue and its total count.
 func FindQueueJobs(ctx context.Context, opts QueueJobsOptions, page, pageSize int) ([]*ActionRunJob, int64, error) {

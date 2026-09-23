@@ -92,6 +92,7 @@ func TestFindQueueJobs(t *testing.T) {
 	jB := insert("b", StatusWaiting, 0, false)
 	jC := insert("c", StatusWaiting, 0, false)
 	jRunning := insert("running", StatusRunning, 998, false)
+	jCancelling := insert("cancelling", StatusCancelling, 999, false)
 	// Rows that must be excluded from the queue.
 	insert("claimed", StatusWaiting, 999, false) // already has a task
 	insert("reusable", StatusWaiting, 0, true)   // reusable caller never runs on a runner
@@ -115,8 +116,8 @@ func TestFindQueueJobs(t *testing.T) {
 
 	jobs, total, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID}, 1, 50)
 	require.NoError(t, err)
-	assert.EqualValues(t, 4, total, "one running job plus the waiting, unclaimed, non-reusable ones")
-	assert.Equal(t, []int64{jRunning.ID, jC.ID, jA.ID, jB.ID}, ids(jobs), "running jobs head the list, the queued ones follow in pickup order")
+	assert.EqualValues(t, 5, total, "the active jobs plus the waiting, unclaimed, non-reusable ones")
+	assert.Equal(t, []int64{jRunning.ID, jCancelling.ID, jC.ID, jA.ID, jB.ID}, ids(jobs), "active jobs head the list, the queued ones follow in pickup order")
 
 	waiting, total, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID, Status: StatusWaiting}, 1, 50)
 	require.NoError(t, err)
@@ -125,18 +126,18 @@ func TestFindQueueJobs(t *testing.T) {
 
 	running, total, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID, Status: StatusRunning}, 1, 50)
 	require.NoError(t, err)
-	assert.EqualValues(t, 1, total)
-	assert.Equal(t, []int64{jRunning.ID}, ids(running))
+	assert.EqualValues(t, 2, total)
+	assert.Equal(t, []int64{jRunning.ID, jCancelling.ID}, ids(running))
 
 	// One pager covers the whole list, so a page boundary can fall inside it.
 	page2, _, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID}, 2, 3)
 	require.NoError(t, err)
-	assert.Equal(t, []int64{jB.ID}, ids(page2))
+	assert.Equal(t, []int64{jA.ID, jB.ID}, ids(page2))
 
 	pastEnd, pastTotal, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID}, 99, 3)
 	require.NoError(t, err)
-	assert.EqualValues(t, 4, pastTotal)
-	assert.Equal(t, []int64{jB.ID}, ids(pastEnd), "a page past the end returns the last page")
+	assert.EqualValues(t, 5, pastTotal)
+	assert.Equal(t, []int64{jA.ID, jB.ID}, ids(pastEnd), "a page past the end returns the last page")
 
 	filterRepoIDs, err := QueueFilterRepoIDs(ctx, QueueJobsOptions{RepoID: repoID}, 10)
 	require.NoError(t, err)

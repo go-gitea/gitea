@@ -52,6 +52,11 @@ func prepareActionsSidebar(ctx *context.Context) {
 	ctx.Data["workflows"] = workflows
 	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
 	ctx.Data["ActionsConfig"] = ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+	ctx.Data["CurWorkflow"] = ""
+	ctx.Data["CurWorkflowScopedRepoID"] = int64(0)
+	ctx.Data["CurActor"] = int64(0)
+	ctx.Data["CurStatus"] = 0
+	ctx.Data["CurBranch"] = ""
 
 	scopedNames := prepareScopedWorkflows(ctx, "", 0)
 	if ctx.Written() {
