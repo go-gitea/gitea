@@ -401,9 +401,7 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
-	jobs = slices.DeleteFunc(jobs, func(job *ActionRunJob) bool {
-		return job.RunID == attempt.RunID
-	})
+	jobs = slices.DeleteFunc(jobs, func(job *ActionRunJob) bool { return job.RunID == attempt.RunID })
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group

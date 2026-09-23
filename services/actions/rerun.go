@@ -241,12 +241,10 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		}
 
 		plan.run.LatestAttemptID = newAttempt.ID
-		cols := []string{"latest_attempt_id"}
 		if plan.run.NeedApproval { // rerunning is an explicit approval
 			plan.run.NeedApproval, plan.run.ApprovedBy = false, plan.triggerUser.ID
-			cols = append(cols, "need_approval", "approved_by")
 		}
-		if err := actions_model.UpdateRun(ctx, plan.run, cols...); err != nil {
+		if err := actions_model.UpdateRun(ctx, plan.run, "latest_attempt_id", "need_approval", "approved_by"); err != nil {
 			return err
 		}
 
