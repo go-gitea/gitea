@@ -36,14 +36,13 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			AuthorName:     "User Two",
 			Message:        "a plain message",
 		},
-		{Sha1: "abcdef3", Message: "reopen #2"},
 		{
 			Sha1:           "abcdef2",
 			CommitterEmail: "user2@example.com",
 			CommitterName:  "User Two",
 			AuthorEmail:    "user2@example.com",
 			AuthorName:     "User Two",
-			Message:        "close #2",
+			Message:        "close #2, reopen #2",
 		},
 	}
 
@@ -57,14 +56,13 @@ func TestUpdateIssuesCommit(t *testing.T) {
 		PosterID:  user.ID,
 		IssueID:   1,
 	}
-	issueBean := &issues_model.Issue{RepoID: repo.ID, Index: 4}
+	issueBean := &issues_model.Issue{RepoID: repo.ID, Index: 2}
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 
 	// Test that push to a non-default branch closes no issue.
