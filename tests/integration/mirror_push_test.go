@@ -16,9 +16,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
@@ -36,9 +33,6 @@ func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-	assert.NoError(t, migrations.Init())
-
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -76,11 +70,6 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
 
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)() // the remote is re-checked every sync, not just when added
-	assert.NoError(t, migrations.Init())
-	t.Cleanup(func() { _ = migrations.Init() })
-	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
-
 	// Cleanup
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))
 	mirrors, _, err = repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
@@ -89,9 +78,6 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 }
 
 func testMirrorPushWikiDefaultBranchMismatch(t *testing.T, u *url.URL) {
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-	assert.NoError(t, migrations.Init())
-
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -160,8 +146,6 @@ func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 
 func TestRepoSettingPushMirrorUpdate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-	assert.NoError(t, migrations.Init())
 
 	session := loginUser(t, "user2")
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})

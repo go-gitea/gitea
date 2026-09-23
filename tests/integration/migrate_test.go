@@ -24,7 +24,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -61,9 +61,7 @@ func TestMigrateLocalPath(t *testing.T) {
 func TestMigrateGiteaForm(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
-		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
-		assert.NoError(t, migrations.Init())
 
 		ownerName := "user2"
 		repoName := "repo1"
@@ -222,8 +220,6 @@ done
 
 func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-	assert.NoError(t, migrations.Init())
 
 	mockServer := setupGiteaMockServer(t)
 
@@ -336,11 +332,11 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	assert.False(t, pr13.HasMerged)
 	assert.True(t, pr13.Issue.IsLocked)
 
-	gitRepo, err := git.OpenRepository(t.Context(), migratedRepo)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), migratedRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	branches, _, err := gitRepo.GetBranchNames(t.Context(), 0, 0)
+	branches, _, err := gitRepo.GetBranchNames(0, 0)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"6543-patch-1", "master", "6543-forks/add-xkcd-2199"}, branches) // last branch comes from the pull request
 
@@ -350,7 +346,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"6543-patch-1", "master", "6543-forks/add-xkcd-2199"}, branchNames)
 
-	tags, _, err := gitRepo.GetTagInfos(t.Context(), 0, 0)
+	tags, _, err := gitRepo.GetTagInfos(0, 0)
 	require.NoError(t, err)
 	tagNames := make([]string, 0, len(tags))
 	for _, tag := range tags {

@@ -51,6 +51,12 @@ ENABLED = true
 PROTOCOL = dummy
 FROM = pgsql-integration-test@gitea.io
 
+[migrations]
+; the test server runs on loopback, so the egress policy must allow local networks;
+; BLOCKED_DOMAINS gives tests a host that is denied without runtime setting changes
+ALLOW_LOCALNETWORKS = true
+BLOCKED_DOMAINS = blocked.example.com
+
 [service]
 REGISTER_EMAIL_CONFIRM            = false
 REGISTER_MANUAL_CONFIRM           = false
