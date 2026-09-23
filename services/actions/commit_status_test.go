@@ -35,7 +35,7 @@ func TestCommitStatusDescription(t *testing.T) {
 		{actions_model.StatusRunning, 0, 0, "In progress"},
 		{actions_model.StatusWaiting, 0, 0, "Waiting to run"},
 		{actions_model.StatusBlocked, 0, 0, "Blocked by required conditions"},
-		{actions_model.StatusPending, 0, 0, "Blocked by required conditions"},
+		{actions_model.StatusPending, 0, 0, "Waiting for needed jobs"},
 		{actions_model.StatusUnknown, 0, 0, "Unknown status: 0"},
 	}
 	for _, tc := range cases {
@@ -123,8 +123,8 @@ func TestCreateCommitStatus_HidesPendingJobs(t *testing.T) {
 
 	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "main", EnableStatusCheck: true, StatusCheckContexts: []string{"ci.yaml / deploy*"}}))
 	pending = newPendingJobFilter(t.Context(), run)
-	assert.False(t, pending.hides(deploy, "ci.yaml / deploy (push)"))
-	assert.True(t, pending.hides(deploy, "other / deploy (push)"))
+	assert.False(t, pending.onlyReplace(deploy, "ci.yaml / deploy (push)"))
+	assert.True(t, pending.onlyReplace(deploy, "other / deploy (push)"))
 
 	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "release", EnableStatusCheck: true}))
 	assert.Nil(t, newPendingJobFilter(t.Context(), run))

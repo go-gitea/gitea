@@ -260,8 +260,11 @@ jobs:
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Each subtest gets a unique RunID / RunAttemptID so jobs from different subtests don't bleed into each other's FindTaskNeeds queries
-			runID := int64(9001 + i)
-			attemptID := int64(9001 + i)
+			dbRun := &actions_model.ActionRun{Index: int64(9001 + i)}
+			require.NoError(t, db.Insert(ctx, dbRun))
+			attempt := &actions_model.ActionRunAttempt{RunID: dbRun.ID, Attempt: 1}
+			require.NoError(t, db.Insert(ctx, attempt))
+			runID, attemptID := dbRun.ID, attempt.ID
 			run := util.IfZero(tt.run, stubRun)
 
 			// Insert each test job (letting the DB assign IDs) and remember the testID -> dbID mapping so we can translate the expected map.

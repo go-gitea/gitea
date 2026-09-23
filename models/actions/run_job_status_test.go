@@ -77,7 +77,8 @@ func TestAggregateJobStatus(t *testing.T) {
 		{[]Status{StatusFailure, StatusWaiting}, StatusWaiting},
 		{[]Status{StatusFailure, StatusRunning}, StatusRunning},
 		{[]Status{StatusFailure, StatusBlocked}, StatusBlocked},
-		{[]Status{StatusFailure, StatusPending}, StatusBlocked},
+		{[]Status{StatusFailure, StatusPending}, StatusRunning},
+		{[]Status{StatusBlocked, StatusPending}, StatusBlocked},
 
 		// skipped with other status
 		// "all skipped" is also considered as "mergeable" by "services/actions.toCommitStatus", the same as GitHub

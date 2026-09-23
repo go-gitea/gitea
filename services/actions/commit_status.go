@@ -164,10 +164,10 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
-	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), pending.hides(job, ctxName))
+	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), pending.onlyReplace(job, ctxName))
 }
 
-// pendingJobFilter hides Pending jobs that no required check covers, a nil filter hides nothing.
+// pendingJobFilter keeps Pending jobs that no required check covers from posting a new status, a nil filter restricts nothing.
 type pendingJobFilter struct {
 	requiredGlobs []glob.Glob
 }
@@ -191,7 +191,7 @@ func newPendingJobFilter(ctx context.Context, run *actions_model.ActionRun) *pen
 	return &pendingJobFilter{requiredGlobs: requiredGlobs}
 }
 
-func (f *pendingJobFilter) hides(job *actions_model.ActionRunJob, ctxName string) bool {
+func (f *pendingJobFilter) onlyReplace(job *actions_model.ActionRunJob, ctxName string) bool {
 	return f != nil && job.Status.IsPending() && !slices.ContainsFunc(f.requiredGlobs, func(gp glob.Glob) bool { return gp.Match(ctxName) })
 }
 
@@ -361,8 +361,10 @@ func toCommitStatusDescription(job *actions_model.ActionRunJob) string {
 		return "Canceling"
 	case actions_model.StatusWaiting:
 		return "Waiting to run"
-	case actions_model.StatusBlocked, actions_model.StatusPending:
+	case actions_model.StatusBlocked:
 		return "Blocked by required conditions"
+	case actions_model.StatusPending:
+		return "Waiting for needed jobs"
 	default:
 		return fmt.Sprintf("Unknown status: %d", job.Status)
 	}

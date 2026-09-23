@@ -466,7 +466,7 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 
 func (r *jobStatusResolver) markNeedsFinished(ctx context.Context, job *actions_model.ActionRunJob) error {
 	job.Status = actions_model.StatusBlocked
-	affected, err := db.GetEngine(ctx).ID(job.ID).Where(builder.Eq{"status": actions_model.StatusPending}).Cols("status").Update(job) // not UpdateRunJob, Pending and Blocked aggregate alike
+	affected, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusPending}, "status")
 	if err != nil {
 		return err
 	}
