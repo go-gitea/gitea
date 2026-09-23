@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	audit_model "gitea.dev/models/audit"
@@ -29,6 +28,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
@@ -236,7 +236,7 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.LogSQL = !setting.IsProd
 
 	// Prepare AppDataPath, it is very important for Gitea
-	form.AppDataPath = strings.ReplaceAll(form.AppDataPath, "\\", "/")
+	form.AppDataPath = util.PathJoinRelX(form.AppDataPath)
 	setting.AppDataPath = form.AppDataPath
 	if err = setting.PrepareAppDataPath(); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_app_data_path", err), tplInstall, form)
@@ -407,6 +407,8 @@ func fillInstallConfig(ctx *context.Context, envs []string, form *forms.InstallF
 }
 
 func fillInstallConfigCleanUp(cfg setting.ConfigProvider) {
+	// this is just a quick patch to avoid generating a corrupted ini file,
+	// if there would be no bug for ini handling (e.g.: we write our package), this patch is not needed.
 	re := regexp.MustCompile(`[\x00-\x1F\x7F]`)
 	for _, sec := range cfg.Sections() {
 		for _, key := range sec.Keys() {
@@ -468,15 +470,14 @@ func initAdminUser(ctx *context.Context, form *forms.InstallForm) bool {
 	}
 
 	if err := user_model.CreateUser(ctx, adminUser, &user_model.Meta{}, overwriteDefault); err != nil {
-		if !user_model.IsErrUserAlreadyExist(err) {
-			setting.InstallLock = false
-			ctx.Data["Err_AdminName"] = true
-			ctx.Data["Err_AdminEmail"] = true
+		ctx.Data["Err_AdminName"] = true
+		ctx.Data["Err_AdminEmail"] = true
+		if user_model.IsErrUserAlreadyExist(err) {
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.admin_user_recreation_disallowed"), tplInstall, form)
+		} else {
 			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_admin_setting", err), tplInstall, form)
-			return false
 		}
-		log.Info("Admin account already exist")
-		adminUser, _ = user_model.GetUserByName(ctx, adminUser.Name)
+		return false
 	}
 
 	audit.RecordAs(ctx, adminUser, audit_model.UserCreate, adminUser)
