@@ -35,7 +35,14 @@ type packageAssignmentCtx struct {
 
 // privatablePackages is the single point-of-truth list of package types that support being
 // attached to a repository for private access checks, and how to fetch each one.
-var privatablePackages = map[string]func(ctx *packageAssignmentCtx) (*packages_model.Package, error){}
+var privatablePackages = map[string]func(ctx *packageAssignmentCtx) (*packages_model.Package, error){
+	"container": func(ctx *packageAssignmentCtx) (*packages_model.Package, error) {
+		return packages_model.GetPackageByName(ctx, ctx.ContextUser.ID, packages_model.TypeContainer, ctx.PathParam("image"))
+	},
+	"terraform": func(ctx *packageAssignmentCtx) (*packages_model.Package, error) {
+		return packages_model.GetPackageByName(ctx, ctx.ContextUser.ID, packages_model.TypeTerraformState, ctx.PathParam("name"))
+	},
+}
 
 // PackageAssignment returns a middleware to handle Context.Package assignment
 func PackageAssignment(pType string) func(ctx *Context) {
