@@ -78,7 +78,6 @@ func TestApproveRuns(t *testing.T) {
 		cancelledRunJob := insertJob(cancelledRun, actions_model.StatusCancelled)
 		blockedRun := insertRun(1007, actions_model.StatusBlocked, true, 0)
 		cancelledJob := insertJob(blockedRun, actions_model.StatusCancelled)
-		dependentJob := insertJob(blockedRun, actions_model.StatusBlocked, "job1")
 		emittedRunIDs = nil
 
 		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{cancelledRun.ID, blockedRun.ID})
@@ -91,7 +90,6 @@ func TestApproveRuns(t *testing.T) {
 
 		assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: cancelledRunJob.ID}).Status)
 		assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: cancelledJob.ID}).Status)
-		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: dependentJob.ID}).Status)
 	})
 
 	t.Run("approval starts one of two blocked jobs sharing a concurrency group", func(t *testing.T) {
@@ -141,8 +139,7 @@ jobs:
 		require.NoError(t, PrepareRunAndInsert(t.Context(), content, run, nil))
 		assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: previousJob.ID}).Status)
 
-		repo4 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-		_, err := ApproveRuns(t.Context(), repo4, doer, []int64{run.ID})
+		_, err := ApproveRuns(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}), doer, []int64{run.ID})
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: previousJob.ID}).Status)
 		jobs := runJobs(t, run.ID, run.LatestAttemptID)

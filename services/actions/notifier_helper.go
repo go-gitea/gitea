@@ -486,9 +486,9 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 		Notify(ctx)
 }
 
-// getApprovalUsers returns the event actor and the fork PR author, both must be trusted
+// getApprovalUsers returns the event actor, plus the fork PR author when the workflow comes from the PR
 func getApprovalUsers(ctx context.Context, input *notifyInput, isForkPullRequest bool) ([]*user_model.User, error) {
-	if !isForkPullRequest || input.PullRequest == nil {
+	if !isForkPullRequest || input.PullRequest == nil || actions_module.IsDefaultBranchWorkflow(input.Event) {
 		return []*user_model.User{input.Doer}, nil
 	}
 	if err := input.PullRequest.LoadIssue(ctx); err != nil {

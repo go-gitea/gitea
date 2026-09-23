@@ -50,16 +50,12 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				return fmt.Errorf("get latest attempt of run %d: %w", run.ID, err)
 			}
 			if hasAttempt && attempt.ConcurrencyGroup != "" {
-				var jobsToCancel []*actions_model.ActionRunJob
-				attempt.Status, jobsToCancel, err = PrepareToStartRunWithConcurrency(ctx, attempt)
+				status, jobsToCancel, err := PrepareToStartRunWithConcurrency(ctx, attempt)
 				if err != nil {
 					return err
 				}
 				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
-				if err := actions_model.UpdateRunAttempt(ctx, attempt, "status"); err != nil {
-					return err
-				}
-				if attempt.Status == actions_model.StatusBlocked {
+				if status == actions_model.StatusBlocked {
 					continue
 				}
 			}
@@ -71,8 +67,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			}
 
 			for _, job := range jobs {
-				// Only approval-blocked jobs can be released. Jobs with `needs` stay blocked
-				// until their dependencies finish, when job_emitter evaluates and starts them.
+				// Only approval-blocked jobs are released here, job_emitter starts those with `needs`
 				if job.Status != actions_model.StatusBlocked || len(job.Needs) > 0 {
 					continue
 				}
