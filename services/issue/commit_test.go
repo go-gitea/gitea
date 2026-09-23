@@ -36,6 +36,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			AuthorName:     "User Two",
 			Message:        "a plain message",
 		},
+		{Sha1: "abcdef3", Message: "reopen #2"},
 		{
 			Sha1:           "abcdef2",
 			CommitterEmail: "user2@example.com",
@@ -63,6 +64,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 
 	// Test that push to a non-default branch closes no issue.
@@ -117,6 +119,11 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 48})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), admin, repo, []*repository.PushCommit{{Sha1: "abcdef4", Message: "close #1"}}, repo.DefaultBranch))
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=0")
 }
 
 func TestUpdateIssuesCommit_Colon(t *testing.T) {

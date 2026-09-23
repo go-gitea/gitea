@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/references"
@@ -41,6 +42,14 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	assert.True(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionReopens, ref.RefAction)
 
+	pr2 := testCreateIssue(t, 1, 2, "title2b", fmt.Sprintf("fixes #%d", pr.Index), true)
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.ID, RefIssueID: pr2.ID, RefCommentID: 0})
+	assert.Equal(t, references.XRefActionCloses, ref.RefAction)
+
+	c = testCreateComment(t, 2, pr2.ID, fmt.Sprintf("reopens #%d", pr.Index))
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.ID, RefIssueID: pr2.ID, RefCommentID: c.ID})
+	assert.Equal(t, references.XRefActionNone, ref.RefAction)
+
 	// Issue mentioning issue #1
 	content = fmt.Sprintf("content3, mentions #%d", itarget.Index)
 	i := testCreateIssue(t, 1, 2, "title3", content, false)
@@ -66,6 +75,11 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	content = fmt.Sprintf("content6, mentions org3/repo3#%d", itarget.Index)
 	i = testCreateIssue(t, 4, 5, "title6", content, false)
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
+
+	assert.NoError(t, db.Insert(t.Context(), &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeExternalTracker, Config: &repo_model.ExternalTrackerConfig{}}))
+	pr3 := testCreateIssue(t, 1, 2, "title7", fmt.Sprintf("fixes #%d", pr.Index), true)
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.ID, RefIssueID: pr3.ID, RefCommentID: 0})
+	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 }
 
 func TestXRef_NeuterCrossReferences(t *testing.T) {
