@@ -71,6 +71,7 @@ func TestIsAutomaticReply(t *testing.T) {
 }
 
 func TestSearchTokenInHeadersCaseInsensitive(t *testing.T) {
+	setting.AppDomain = "DoMain.com"
 	setting.IncomingEmail.ReplyToAddress = "InComing+%{token}@ExAmPle.com"
 	mkEnv := func(s string) *enmime.Envelope {
 		env, _ := enmime.ReadEnvelope(strings.NewReader(s + "\r\n\r\n"))

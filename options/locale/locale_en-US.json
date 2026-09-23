@@ -283,7 +283,7 @@
   "install.http_port": "HTTP Server Port",
   "install.http_port_helper": "Port number the Gitea web server will listen on.",
   "install.app_url": "Gitea Website URL",
-  "install.app_url_helper": "Gitea web applicatin's public URL for HTTP(S) access, clone URLs and email notifications.",
+  "install.app_url_helper": "Gitea web application's public URL for HTTP(S) access, clone URLs and email notifications.",
   "install.optional_title": "Optional Settings",
   "install.email_title": "Email Settings",
   "install.smtp_addr": "SMTP Host",

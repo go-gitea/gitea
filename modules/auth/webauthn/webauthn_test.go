@@ -12,6 +12,7 @@ import (
 )
 
 func TestInit(t *testing.T) {
+	setting.AppDomain = "domain"
 	setting.AppName = "AppName"
 	setting.AppURL = "https://domain/"
 	rpOrigin := []string{"https://domain"}

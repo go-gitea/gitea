@@ -237,6 +237,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	// Prepare AppDataPath, it is very important for Gitea
 	form.AppDataPath = strings.ReplaceAll(form.AppDataPath, "\\", "/")
+	setting.AppDataPath = form.AppDataPath
 	if err = setting.PrepareAppDataPath(); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_app_data_path", err), tplInstall, form)
 		return
