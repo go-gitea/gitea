@@ -82,7 +82,7 @@ type IssueReference struct {
 	Index   int64
 	Owner   string
 	Name    string
-	IsPull  bool // "!N" was used instead of "#N"
+	IsPull  bool
 	Action  XRefAction
 	TimeLog string
 }
