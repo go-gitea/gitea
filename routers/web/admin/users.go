@@ -22,13 +22,16 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
 	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
 	org_service "gitea.dev/services/org"
@@ -59,6 +62,15 @@ func Users(ctx *context.Context) {
 	}
 
 	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
+
+	// unfiltered, an administrator needs to list every account kind
+	types := []user_model.UserType{user_model.UserTypeIndividual, user_model.UserTypeUserReserved, user_model.UserTypeBot, user_model.UserTypeRemoteUser}
+	userTypeFilter := api.UserTypeString(ctx.FormString("user_type"))
+	ctx.Data["UserTypeFilter"] = ""
+	if t, err := convert.UserTypeFromString(userTypeFilter); err == nil {
+		types, ctx.Data["UserTypeFilter"] = []user_model.UserType{t}, userTypeFilter
+	}
+
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
 		"SortType":        sortType,
@@ -66,7 +78,7 @@ func Users(ctx *context.Context) {
 
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
-		Types: []user_model.UserType{user_model.UserTypeIndividual},
+		Types: types,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
@@ -76,7 +88,6 @@ func Users(ctx *context.Context) {
 		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
-		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
 		OrderBy:            db.SearchOrderBy(sortType),
 	}, tplUsers)
 }
@@ -89,6 +100,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.Data["login_type"] = "0-0"
+	ctx.Data["user_type"] = api.UserTypeStringUser
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: optional.Some(true),
@@ -139,7 +151,10 @@ func NewUserPost(ctx *context.Context) {
 		Visibility: &form.Visibility,
 	}
 
-	if len(form.LoginType) > 0 {
+	if form.UserType == api.UserTypeStringBot {
+		u.Type = user_model.UserTypeBot
+		u.Passwd = ""
+	} else if len(form.LoginType) > 0 {
 		fields := strings.Split(form.LoginType, "-")
 		if len(fields) == 2 {
 			lType, _ := strconv.ParseInt(fields[0], 10, 0)
@@ -148,7 +163,7 @@ func NewUserPost(ctx *context.Context) {
 			u.LoginName = form.LoginName
 		}
 	}
-	if u.LoginType == auth.NoType || u.LoginType == auth.Plain {
+	if !u.IsTypeBot() && (u.LoginType == auth.NoType || u.LoginType == auth.Plain) {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
@@ -176,6 +191,7 @@ func NewUserPost(ctx *context.Context) {
 		var errNameReserved db.ErrNameReserved
 		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
+		var errEmailInvalid user_model.ErrEmailInvalid
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -183,7 +199,7 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, &form)
-		case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
+		case errors.As(err, &errEmailInvalid):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case errors.As(err, &errNameReserved):
@@ -258,6 +274,7 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		return nil
 	}
 	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
+	ctx.Data["CanConvertUserType"] = user_service.CheckConvertUserType(u) == nil
 
 	return u
 }
@@ -303,7 +320,40 @@ func ViewUser(ctx *context.Context) {
 		return
 	}
 
+	if u.IsTypeBot() {
+		ctx.Data["BotAccessTokens"] = user_setting.NewAccessTokensPanel(ctx, u, ctx.Link+"/access_tokens")
+		if ctx.Written() {
+			return
+		}
+	}
+
 	ctx.HTML(http.StatusOK, tplUserView)
+}
+
+// getTargetBot loads the bot whose tokens an admin manages, other accounts manage their own
+func getTargetBot(ctx *context.Context) *user_model.User {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
+		return nil
+	}
+	if !u.IsTypeBot() {
+		ctx.JSONError(ctx.Tr("admin.users.bot_token_only"))
+		return nil
+	}
+	return u
+}
+
+func NewBotTokenPost(ctx *context.Context) {
+	if u := getTargetBot(ctx); u != nil {
+		user_setting.CreateAccessToken(ctx, u)
+	}
+}
+
+func DeleteBotToken(ctx *context.Context) {
+	if u := getTargetBot(ctx); u != nil {
+		user_setting.DeleteAccessToken(ctx, u)
+	}
 }
 
 func editUserCommon(ctx *context.Context) {
@@ -342,6 +392,8 @@ func EditUserPost(ctx *context.Context) {
 		return
 	}
 
+	userLink := setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid"))
+
 	if form.UserName != "" {
 		if err := user_service.RenameUser(ctx, u, form.UserName, ctx.Doer); err != nil {
 			switch {
@@ -367,9 +419,19 @@ func EditUserPost(ctx *context.Context) {
 		}
 	}
 
-	authOpts := &user_service.UpdateAuthOptions{
-		Password:  optional.FromNonDefault(form.Password),
-		LoginName: optional.Some(form.LoginName),
+	userType := u.Type
+	if formUserType, err := convert.UserTypeFromString(form.UserType); err == nil {
+		userType = formUserType
+	}
+
+	authOpts := &user_service.UpdateAuthOptions{}
+	if !u.IsTypeBot() && userType != user_model.UserTypeBot { // the auth fields hidden for bots still submit their values
+		authOpts.Password = optional.FromNonDefault(form.Password)
+		authOpts.LoginName = optional.Some(form.LoginName)
+		if fields := strings.Split(form.LoginType, "-"); len(fields) == 2 {
+			authSource, _ := strconv.ParseInt(fields[1], 10, 64)
+			authOpts.LoginSource = optional.Some(authSource)
+		}
 	}
 
 	// skip self Prohibit Login
@@ -377,13 +439,6 @@ func EditUserPost(ctx *context.Context) {
 		authOpts.ProhibitLogin = optional.Some(false)
 	} else {
 		authOpts.ProhibitLogin = optional.Some(form.ProhibitLogin)
-	}
-
-	fields := strings.Split(form.LoginType, "-")
-	if len(fields) == 2 {
-		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
-
-		authOpts.LoginSource = optional.Some(authSource)
 	}
 
 	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
@@ -400,6 +455,9 @@ func EditUserPost(ctx *context.Context) {
 		case password.IsErrIsPwnedRequest(err):
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.Flash.Error(err.Error())
+			ctx.Redirect(userLink)
 		default:
 			ctx.ServerError("UpdateUser", err)
 		}
@@ -409,12 +467,12 @@ func EditUserPost(ctx *context.Context) {
 	if form.Email != "" {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, u, form.Email); err != nil {
 			switch {
-			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
-				ctx.Data["Err_Email"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 			case user_model.IsErrEmailAlreadyUsed(err):
 				ctx.Data["Err_Email"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
+			case errors.Is(err, util.ErrInvalidArgument):
+				ctx.Data["Err_Email"] = true
+				ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 			default:
 				ctx.ServerError("AddOrSetPrimaryEmailAddress", err)
 			}
@@ -438,16 +496,25 @@ func EditUserPost(ctx *context.Context) {
 		IsRestricted:            optional.Some(form.Restricted),
 		Visibility:              optional.Some(form.Visibility),
 		Language:                optional.Some(form.Language),
+		UserType:                optional.Some(userType),
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-		if user_model.IsErrDeleteLastAdminUser(err) {
+		switch {
+		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
-		} else {
+		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
+			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
+			ctx.Redirect(userLink)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.Flash.Error(err.Error())
+			ctx.Redirect(userLink)
+		default:
 			ctx.ServerError("UpdateUser", err)
 		}
 		return
 	}
+
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	if form.Reset2FA {
@@ -458,7 +525,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+	ctx.Redirect(userLink)
 }
 
 func ImpersonateUser(ctx *context.Context) {
@@ -467,6 +534,12 @@ func ImpersonateUser(ctx *context.Context) {
 		ctx.JSONError("unable to get user")
 		return
 	}
+
+	if u.IsTypeBot() {
+		ctx.JSONError(ctx.Tr("admin.users.impersonate_bot_not_allowed"))
+		return
+	}
+
 	err = auth_service.ImpersonateUser(ctx.Session, u)
 	if err != nil {
 		ctx.ServerError("unable to impersonate user", err)

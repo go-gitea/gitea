@@ -106,6 +106,7 @@ func Install(ctx *context.Context) {
 	}
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
+	form.EnableUpdateChecker = setting.CfgProvider.Section("cron.update_checker").Key("ENABLED").MustBool(true)
 
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp

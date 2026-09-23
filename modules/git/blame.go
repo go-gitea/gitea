@@ -72,12 +72,14 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 		}
 
 		var objectID string
-		objectFormatLength := r.objectFormat.FullLength()
-
-		if len(lineBytes) > objectFormatLength && lineBytes[objectFormatLength] == ' ' && r.objectFormat.IsValid(string(lineBytes[0:objectFormatLength])) {
-			objectID = string(lineBytes[0:objectFormatLength])
+		if lineField1, _, ok := bytes.Cut(lineBytes, []byte(" ")); ok {
+			lineFieldStr := string(lineField1)
+			if IsStringValidObjectID(r.objectFormat, lineFieldStr) {
+				objectID = lineFieldStr
+			}
 		}
-		if len(objectID) > 0 {
+
+		if objectID != "" {
 			if blamePart == nil {
 				blamePart = &BlamePart{
 					Sha:   objectID,
@@ -99,6 +101,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 		} else if lineBytes[0] == '\t' {
 			blamePart.Lines = append(blamePart.Lines, string(lineBytes[1:]))
 		} else if bytes.HasPrefix(lineBytes, []byte(previousHeader)) {
+			objectFormatLength := r.objectFormat.FullLength()
 			offset := len(previousHeader) // already includes a space
 			blamePart.PreviousSha = string(lineBytes[offset : offset+objectFormatLength])
 			offset += objectFormatLength + 1 // +1 for space

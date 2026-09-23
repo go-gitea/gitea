@@ -443,4 +443,11 @@ export function initGlobalFetchAction() {
   });
 
   registerGlobalSelectorFunc('[data-fetch-url]', initFetchActionTrigger);
+
+  // when the page is reloaded after a fetch action, scroll to the flash message if any
+  const elFlashMessage = document.querySelector('.ui.message.flash-message');
+  if (elFlashMessage) {
+    window.history.scrollRestoration = 'manual';
+    elFlashMessage?.scrollIntoView({block: 'center'});
+  }
 }
