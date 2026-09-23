@@ -82,14 +82,14 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 		{
 			name: "very long name truncated",
 			jobStep: &jobparser.Step{
-				Name: strings.Repeat("a", 300),
+				Name: jobparser.BlockSafeString(strings.Repeat("a", 300)),
 			},
 			expected: strings.Repeat("a", 252) + "…",
 		},
 		{
 			name: "very long run truncated",
 			jobStep: &jobparser.Step{
-				Run: strings.Repeat("a", 300),
+				Run: jobparser.BlockSafeString(strings.Repeat("a", 300)),
 			},
 			expected: "Run " + strings.Repeat("a", 248) + "…",
 		},
@@ -380,14 +380,19 @@ func TestUpdateTaskByStateIsAtomic(t *testing.T) {
 	task, job := newRunningTaskForCancelling(t, "atomic-report-job", true)
 	require.NoError(t, db.Insert(t.Context(), &ActionTaskStep{TaskID: task.ID, RepoID: task.RepoID, Status: StatusRunning}))
 	unittest.GetXORMEngine().AddHook(&failFirstStepWrite{})
-	finalState := &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_SUCCESS, StoppedAt: timestamppb.Now()}
+	skewed := &timestamppb.Timestamp{Seconds: 1}
+	finalState := &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_SUCCESS, StoppedAt: skewed, Steps: []*runnerv1.StepState{{StartedAt: skewed}}}
+	before := timeutil.TimeStampNow()
 	_, err := UpdateTaskByState(t.Context(), task.RunnerID, finalState)
 	require.Error(t, err)
 	assert.Equal(t, StatusRunning, unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID}).Status)
 	assert.Equal(t, StatusRunning, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status)
 	_, err = UpdateTaskByState(t.Context(), task.RunnerID, finalState)
 	require.NoError(t, err)
-	assert.Equal(t, StatusSuccess, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status)
+	gotJob := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+	assert.Equal(t, StatusSuccess, gotJob.Status)
+	assert.GreaterOrEqual(t, gotJob.Stopped, before)
+	assert.GreaterOrEqual(t, unittest.AssertExistsAndLoadBean(t, &ActionTaskStep{TaskID: task.ID}).Started, before)
 }
 
 // newRunningTaskForCancelling inserts a running run/job/task assigned to a fresh runner,

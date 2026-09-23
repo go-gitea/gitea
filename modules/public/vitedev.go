@@ -124,7 +124,7 @@ func IsViteDevMode() bool {
 		return false
 	}
 
-	req := httplib.NewRequest(viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check", "GET")
+	req := httplib.NewClientRequest(http.MethodGet, viteDevServerBaseURL+"/web_src/js/__vite_dev_server_check")
 	resp, _ := req.Response()
 	if resp != nil {
 		_ = resp.Body.Close()

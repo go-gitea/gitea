@@ -6,6 +6,8 @@ package user
 import (
 	"testing"
 
+	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
@@ -13,6 +15,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -152,4 +155,41 @@ func TestUpdateUserVisibility(t *testing.T) {
 	assert.Error(t, UpdateUser(t.Context(), user, &UpdateOptions{
 		Visibility: optional.Some(structs.VisibleTypePublic),
 	}))
+}
+
+func TestConvertUserType(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	before := *user
+	tokensBefore := unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID})
+	assert.NotEmpty(t, before.Passwd)
+	assert.Positive(t, tokensBefore)
+
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{UserType: optional.Some(user_model.UserTypeBot)}))
+	assert.True(t, user.IsTypeBot())
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{Action: audit_model.UserType, ScopeType: audit_model.ScopeUser, ScopeID: user.ID})
+
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	before.Type, before.UpdatedUnix = user_model.UserTypeBot, user.UpdatedUnix
+	assert.Equal(t, before, *user)
+	assert.Equal(t, tokensBefore, unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID}))
+
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{Password: optional.Some("%$DRZUVB576tfzgu")}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginSource: optional.Some(int64(1))}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginName: optional.Some("cn=bot")}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateUser(t.Context(), user, &UpdateOptions{IsAdmin: UpdateOptionFieldFromValue(true)}), user_model.ErrBotCanNotBeAdmin)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).IsAdmin)
+
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{UserType: optional.Some(user_model.UserTypeIndividual)}))
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).IsIndividual())
+
+	toBot := &UpdateOptions{UserType: optional.Some(user_model.UserTypeBot)}
+	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}), toBot), user_model.ErrUserTypeCanNotConvert)
+	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}), toBot), user_model.ErrBotCanNotBeAdmin)
+	assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).IsIndividual())
+	assert.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 4, LoginType: auth_model.LDAP}, "login_type"))
+	assert.ErrorIs(t, UpdateUser(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}), toBot), user_model.ErrBotMustBeLocal)
 }

@@ -13,11 +13,11 @@ import (
 	"time"
 
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/services/webtheme"
 )
@@ -148,5 +148,41 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	if csp == "" {
 		return ""
 	}
-	return htmlutil.HTMLFormat(`<meta http-equiv="Content-Security-Policy" content="%s">`, csp)
+	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` + csp + `">`)
+}
+
+func (c TemplateContext) WindowConfig() map[string]any {
+	locale := c["Locale"].(translation.Locale) //nolint:forcetypeassert // must exist
+	return map[string]any{
+		"appUrl":                     c.AppFullLink("/"),
+		"appSubUrl":                  setting.AppSubURL,
+		"assetUrlPrefix":             setting.StaticURLPrefix + "/assets",
+		"runModeIsProd":              setting.IsProd,
+		"customEmojis":               setting.UI.CustomEmojisMap,
+		"pageData":                   c.parentContext().GetData()["PageData"],
+		"enableTimeTracking":         setting.Service.EnableTimetracking,
+		"mermaidMaxSourceCharacters": setting.MermaidMaxSourceCharacters,
+		"sharedWorkerUri":            public.AssetURI("web_src/js/user-events.sharedworker.ts"),
+		"notificationSettings": map[string]any{
+			"MinTimeout":  int(setting.UI.Notification.MinTimeout / time.Millisecond),
+			"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+			"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
+		},
+		// This global i18n object should only contain general texts.
+		// for specialized texts, it should be provided inside the related modules by:
+		// (1) API response (2) HTML data-attribute (3) PageData
+		//
+		// Maybe (if really needed) in the future we can introduce versioned frontend i18n data,
+		// make frontend cache i18n data in local storage and only update when the version is changed,
+		// then we can fill more keys here.
+		"i18n": map[string]any{
+			"error_occurred":   locale.Tr("error.occurred"),
+			"remove_label_str": locale.Tr("remove_label_str"),
+			"modal_confirm":    locale.Tr("modal.confirm"),
+			"modal_cancel":     locale.Tr("modal.cancel"),
+			"more_items":       locale.Tr("more_items"),
+			"copy_success":     locale.Tr("copy_success"),
+			"copy_error":       locale.Tr("copy_error"),
+		},
+	}
 }

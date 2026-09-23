@@ -31,7 +31,7 @@
 							{{else}}
 								{{$sum}}
 								<form action="{{$.Link}}/remove-all-items" method="post" class="tw-inline-block tw-ml-4">
-									<button class="ui tiny basic red button">{{ctx.Locale.Tr "admin.monitor.queue.settings.remove_all_items"}}</button>
+									<button type="submit" class="ui tiny basic red button">{{ctx.Locale.Tr "admin.monitor.queue.settings.remove_all_items"}}</button>
 								</form>
 							{{end}}
 						</td>
@@ -51,7 +51,7 @@
 						<label for="max-number">{{ctx.Locale.Tr "admin.monitor.queue.settings.maxnumberworkers"}}</label>
 						<input name="max-number" type="text" placeholder="{{ctx.Locale.Tr "admin.monitor.queue.settings.maxnumberworkers.placeholder" .Queue.GetWorkerMaxNumber}}">
 					</div>
-					<button class="ui submit button">{{ctx.Locale.Tr "admin.monitor.queue.settings.submit"}}</button>
+					<button type="submit" class="ui submit button">{{ctx.Locale.Tr "admin.monitor.queue.settings.submit"}}</button>
 				</div>
 			</form>
 		</div>

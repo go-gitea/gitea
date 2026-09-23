@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
@@ -33,6 +34,7 @@ import (
 	"gitea.dev/routers/web/healthcheck"
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/routers/web/org"
+	org_setting "gitea.dev/routers/web/org/setting"
 	"gitea.dev/routers/web/repo"
 	"gitea.dev/routers/web/repo/actions"
 	repo_setting "gitea.dev/routers/web/repo/setting"
@@ -305,7 +307,7 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	mid = append(mid, common.MustInitSessioner(), context.Contexter())
+	mid = append(mid, common.MustInitSessioner(), context.Contexter(), common.AuditOrigin(audit_model.OriginUI))
 
 	// Get user from session if logged in.
 	webAuth := newWebAuthMiddleware()
@@ -693,7 +695,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 			// access token applications
 			m.Combo("").Get(user_setting.Applications).
-				Post(web.Bind[*forms.NewAccessTokenForm](), user_setting.ApplicationsPost)
+				Post(user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
 			m.Post("/regenerate", user_setting.RegenerateAccessToken)
 		})
@@ -748,6 +750,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
 
+		m.Get("/audit_logs", user_setting.ViewAuditLogs)
+
 		m.Group("/blocked_users", func() {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind[*forms.BlockUserForm](), user_setting.BlockedUsersPost)
@@ -795,6 +799,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 
 		m.Group("/monitor", func() {
+			m.Get("/audit_logs", admin.ViewAuditLogs)
+			m.Get("/audit_logs/export", admin.ExportAuditLogs)
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/perftrace", admin.PerfTrace)
@@ -818,6 +824,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind[*forms.AvatarForm](), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
+			m.Post("/{userid}/access_tokens", admin.NewBotTokenPost)
+			m.Post("/{userid}/access_tokens/delete", admin.DeleteBotToken)
 			m.Post("/{userid}/orgs/{org_id}/remove", admin.RemoveUserFromOrg)
 			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
@@ -1056,6 +1064,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsScopedWorkflowsRoutes()
 				}, actions.MustEnableActions)
 
+				m.Get("/audit_logs", org_setting.ViewAuditLogs)
+
 				m.Post("/rename", web.Bind[*forms.RenameOrgForm](), org.SettingsRenamePost)
 				m.Post("/delete", org.SettingsDeleteOrgPost)
 				m.Post("/visibility", org.SettingsChangeVisibilityPost)
@@ -1267,6 +1277,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
+		m.Get("/audit_logs", repo_setting.ViewAuditLogs)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
 			m.Post("/retry", repo.MigrateRetryPost)
@@ -1767,6 +1778,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/watching", user.NotificationWatching)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
+		m.Post("/purge-page", user.NotificationPurgePagePost)
 		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 
@@ -1781,6 +1793,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/fetch-action-test", devtest.FetchActionTest)
 			m.Any("/mail-preview", devtest.MailPreview)
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
+			m.Any("/mail-preview-embed/*", devtest.MailPreviewEmbed)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
