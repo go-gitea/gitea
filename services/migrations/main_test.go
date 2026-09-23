@@ -10,11 +10,14 @@ import (
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
 	unittest.MainTest(m)
 }
 

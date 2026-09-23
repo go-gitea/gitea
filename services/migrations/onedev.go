@@ -90,7 +90,7 @@ func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, passwo
 				func(req *http.Request) (*http.Response, error) {
 					reqCtx := req.Clone(ctx)
 					if username != "" && password != "" {
-						reqCtx.SetBasicAuth(username,password)
+						reqCtx.SetBasicAuth(username, password)
 					}
 					return httpTransport.RoundTrip(reqCtx)
 				}),
