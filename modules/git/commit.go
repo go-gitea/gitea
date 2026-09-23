@@ -249,24 +249,13 @@ func GetFullCommitID(ctx context.Context, repo RepositoryFacade, shortID string)
 	return strings.TrimSpace(commitID), nil
 }
 
-func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {
-	maxLen := 64 // sha256
-	if objFmt != nil {
-		maxLen = objFmt.FullLength()
+func AddObjectMessageArgument(cmd *gitcmd.Command, typ ObjectType, message string) error {
+	if len(message) > 512*1024 {
+		// It doesn't make sense to store very large messages in git objects,
+		// and it never succeeded in the past due to the command line argument limit (e.g.: 128K on Linux).
+		// If any real world user would complain about the limit, let them explain why, then make the limit configurable.
+		return util.NewInvalidArgumentErrorf("git %s message is too long", typ)
 	}
-	minLen := util.OptionalArg(minLength, maxLen)
-	if len(s) < minLen || len(s) > maxLen {
-		return false
-	}
-	return isStringLowerHex(s)
-}
-
-func isStringLowerHex(s string) bool {
-	for _, c := range s {
-		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
-		if !isHex {
-			return false
-		}
-	}
-	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
+	cmd.AddArguments("--file=-").WithStdinBytes([]byte(message))
+	return nil
 }
