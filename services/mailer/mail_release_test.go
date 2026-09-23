@@ -21,7 +21,7 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	defer test.MockVariableValue(&setting.MailService)()
-	defer test.MockVariableValue(&setting.Domain)()
+	defer test.MockVariableValue(&setting.AppDomain)()
 	defer test.MockVariableValue(&setting.AppName)()
 	defer test.MockVariableValue(&setting.AppURL)()
 
