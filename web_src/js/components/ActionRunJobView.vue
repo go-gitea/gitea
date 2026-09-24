@@ -150,6 +150,16 @@ watch(optionAlwaysExpandRunning, () => {
 });
 
 onMounted(async () => {
+  menuTippy = createTippy(menuTriggerEl.value!, {
+    content: menuPanelEl.value!,
+    trigger: 'click',
+    interactive: true,
+    hideOnClick: true,
+    placement: 'bottom-end',
+    theme: 'menu',
+    arrow: false,
+  });
+
   // load job data and then auto-reload periodically
   // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
   await loadJob();
@@ -167,15 +177,6 @@ onMounted(async () => {
   });
 
   intervalID = setInterval(() => void loadJob(), 1000);
-  menuTippy = createTippy(menuTriggerEl.value!, {
-    content: menuPanelEl.value!,
-    trigger: 'click',
-    interactive: true,
-    hideOnClick: true,
-    placement: 'bottom-end',
-    theme: 'menu',
-    arrow: false,
-  });
   void hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
 });

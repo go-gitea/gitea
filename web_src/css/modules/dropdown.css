@@ -72,7 +72,7 @@
   width: calc(100% - 8px); /* button items do not stretch on their own */
   margin: 0 4px;
   padding: 0.78571429rem 0.85714286rem !important; /* 12px, the margin adds the remaining 4px */
-  border-radius: var(--border-radius-medium);
+  border-radius: var(--border-radius);
   text-transform: none;
   font-weight: var(--font-weight-normal);
   box-shadow: none;
@@ -502,14 +502,6 @@ select.ui.dropdown {
   line-height: 1.21428571em;
 }
 
-.ui.dropdown .menu .active.item {
-  background: var(--color-active);
-  font-weight: var(--font-weight-normal);
-  color: var(--color-text);
-  box-shadow: none;
-  z-index: 12;
-}
-
 .ui.dropdown.keyboard-nav .menu .selected.item {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
@@ -587,6 +579,14 @@ select.ui.dropdown {
 .ui.dropdown .menu .selected.item {
   color: var(--color-text);
   background: var(--color-hover);
+}
+
+.ui.dropdown .menu .active.item { /* after ":hover" and ".selected" to keep the current value marked */
+  background: var(--color-active);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text);
+  box-shadow: none;
+  z-index: 12;
 }
 
 .ui.dropdown > .filtered.text {

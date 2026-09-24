@@ -415,7 +415,8 @@
   .ui.stackable.menu {
     flex-direction: column;
   }
-  .ui.stackable.menu .item {
+  .ui.stackable.menu > .item,
+  .ui.stackable.menu > .menu > .item {
     width: 100% !important;
   }
   .ui.stackable.menu .left.menu {

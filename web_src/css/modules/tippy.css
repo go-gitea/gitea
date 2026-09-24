@@ -93,7 +93,7 @@
   align-items: center;
   margin: 0 4px;
   padding: 9px 14px;
-  border-radius: var(--border-radius-medium);
+  border-radius: var(--border-radius);
   color: inherit;
   background: inherit;
   text-decoration: none;

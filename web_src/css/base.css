@@ -539,17 +539,12 @@ overflow-menu .overflow-menu-popup::after {
   border-bottom-color: var(--color-menu);
 }
 
-/* the doubled class outweighs the tab bar item styles of the ".ui.menu" host */
-overflow-menu.ui.menu .overflow-menu-popup > .item.item {
-  display: flex;
-  align-items: center;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item { /* the doubled class outweighs the tab item styles of the host menu */
   margin: 0 4px;
-  padding: 9px 14px !important;
-  border-radius: var(--border-radius-medium);
+  padding-inline: 8px !important; /* the host tab padding sets the height, 8px plus the margin keeps its 12px inset */
+  border: none;
+  border-radius: var(--border-radius);
   color: var(--color-text);
-  background: transparent;
-  text-decoration: none;
-  gap: 10px;
   width: calc(100% - 8px);
 }
 
@@ -560,6 +555,7 @@ overflow-menu.ui.menu .overflow-menu-popup > .item.item:focus {
 
 overflow-menu.ui.menu .overflow-menu-popup > .item.item.active {
   background: var(--color-active);
+  border-radius: var(--border-radius) !important; /* the tabular host rounds only the top */
 }
 
 overflow-menu .overflow-menu-items {

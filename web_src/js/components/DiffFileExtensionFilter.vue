@@ -98,8 +98,6 @@ onUnmounted(() => {
 
 <style scoped>
 .diff-ext-filter-menu {
-  display: flex;
-  flex-direction: column;
   min-width: 192px;
   max-width: 320px;
 }

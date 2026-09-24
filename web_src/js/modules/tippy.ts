@@ -1,5 +1,5 @@
 import tippy, {followCursor} from 'tippy.js';
-import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
+import {isDocumentFragmentOrElementNode, isElemVisible} from '../utils/dom.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
 import {html, htmlEscape} from '../utils/html.ts';
 import {stripTags} from '../utils.ts';
@@ -13,7 +13,6 @@ type TippyOpts = {
 type PopperModifier = NonNullable<NonNullable<Props['popperOptions']>['modifiers']>[number];
 
 const visibleInstances = new Set<Instance>();
-const menuItemSelector = '.item:not(.disabled, .tw-hidden)';
 
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
@@ -61,8 +60,12 @@ function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): Popper
   };
 }
 
+function isMenu(instance: Instance): boolean {
+  return instance.props.role === 'menu' && instance.props.theme === 'menu'; // role defaults to "menu" for every non-tooltip popup
+}
+
 function focusMenuItem(instance: Instance, delta: number) {
-  const items = [...instance.popper.querySelectorAll<HTMLElement>(menuItemSelector)];
+  const items = [...instance.popper.querySelectorAll<HTMLElement>('.item:not(.disabled)')].filter(isElemVisible);
   if (!items.length) return;
   const current = items.indexOf(document.activeElement as HTMLElement);
   const next = current === -1 ? (delta > 0 ? 0 : items.length - 1) : (current + delta + items.length) % items.length;
@@ -71,15 +74,17 @@ function focusMenuItem(instance: Instance, delta: number) {
 
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.isComposing) return;
-  const menuInstance = [...visibleInstances].findLast((instance) => instance.props.role === 'menu');
+  const menuInstance = [...visibleInstances].findLast(isMenu);
   if (!menuInstance) return;
+  const focused = document.activeElement as HTMLElement;
+  const inMenu = menuInstance.popper.contains(focused);
+  if (!inMenu && focused !== menuInstance.reference && focused !== document.body) return; // body: macOS Safari and Firefox do not focus clicked buttons
   if (e.key === 'Escape') {
     menuInstance.hide();
   } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
-  } else if (e.key === 'Enter' || e.key === ' ') {
-    if (!menuInstance.popper.contains(document.activeElement)) return;
-    (document.activeElement as HTMLElement).click();
+  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
+    focused.click();
   } else {
     return;
   }
@@ -104,7 +109,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     maxWidth: 500, // increase over default 350px
     onHide: (instance: Instance) => {
       visibleInstances.delete(instance);
-      if (instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
+      if (isMenu(instance) && instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
       return onHide?.(instance);
     },
     onDestroy: (instance: Instance) => {
@@ -120,8 +125,8 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       }
       visibleInstances.add(instance);
       target.setAttribute('aria-controls', instance.popper.id);
-      if (instance.props.role === 'menu') { // make items focusable for the arrow keys
-        for (const item of instance.popper.querySelectorAll<HTMLElement>(menuItemSelector)) item.tabIndex = -1;
+      if (isMenu(instance)) { // focusable by the arrow keys, out of the Tab order
+        for (const item of instance.popper.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
       }
       return onShow?.(instance);
     },
