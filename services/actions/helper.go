@@ -131,8 +131,12 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 }
 
 func skipJobOnIfError(ctx context.Context, job *actions_model.ActionRunJob, err error) (bool, error) {
-	content := fmt.Sprintf("Error when evaluating `if` for job `%s`.\n\n```\n%v\n```\n", job.JobID, err)
-	return false, actions_model.UpsertActionRunJobSummary(ctx, job.RepoID, job.RunID, job.RunAttemptID, job.ID, 0, actions_model.JobSummaryContentTypeMarkdown, []byte(content))
+	return false, upsertJobErrorSummary(ctx, job, "if", err)
+}
+
+func upsertJobErrorSummary(ctx context.Context, job *actions_model.ActionRunJob, key string, err error) error {
+	content := fmt.Sprintf("Error when evaluating `%s` for job `%s`.\n\n```\n%v\n```\n", key, job.JobID, err)
+	return actions_model.UpsertActionRunJobSummary(ctx, job.RepoID, job.RunID, job.RunAttemptID, job.ID, 0, actions_model.JobSummaryContentTypeMarkdown, []byte(content))
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

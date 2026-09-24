@@ -55,7 +55,7 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		)
 		err := checkCallerChain(t.Context(), chain[len(chain)-1])
 		assert.ErrorContains(t, err, "cycle detected")
-		assert.Equal(t, canonicalCallUses("owner/repo/.gitea/workflows/a.yml@v1"), canonicalCallUses("self:owner/repo/.gitea/workflows/a.yml@v1"))
+		assert.Equal(t, canonicalCallUses(&actions_model.ActionRunJob{CallUses: "owner/repo/.gitea/workflows/a.yml@v1"}), canonicalCallUses(&actions_model.ActionRunJob{CallUses: "self:owner/repo/.gitea/workflows/a.yml@v1"}))
 	})
 
 	t.Run("NoCycle", func(t *testing.T) {
@@ -67,6 +67,18 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 			"./.gitea/workflows/c.yml",
 		)
 		require.NoError(t, checkCallerChain(t.Context(), chain[len(chain)-1]))
+	})
+
+	t.Run("SameLocalPathInOtherRepo", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		chain := buildCallerChain(t,
+			"./.gitea/workflows/a.yml",
+			"owner/lib/.gitea/workflows/lib.yml@v1",
+			"./.gitea/workflows/a.yml",
+		)
+		leaf := chain[len(chain)-1]
+		leaf.WorkflowSourceRepoID = 2
+		require.NoError(t, checkCallerChain(t.Context(), leaf))
 	})
 }
 

@@ -575,7 +575,7 @@ jobs:
 			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 		})
 
-		t.Run("Nested caller with missing callee fails instead of blocking", func(t *testing.T) {
+		t.Run("Nested caller with missing callee fails with the error as summary instead of blocking", func(t *testing.T) {
 			// When the expansion hits a terminal error (e.g. missing callee), the emitter must fail the caller and let the run finish as failed, not retry the expansion forever.
 			apiRepo := createActionsTestRepo(t, user2Token, "nested-caller-missing-callee", false)
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
@@ -616,6 +616,9 @@ jobs:
 			assert.Equal(t, actions_model.StatusFailure, finalRun.Status)
 
 			runner.fetchNoTask(t) // no task scheduled for the failed caller; the run is not stuck
+			summary, err := actions_model.GetActionRunJobSummary(t.Context(), repo.ID, run.ID, badCaller.RunAttemptID, badCaller.ID, 0)
+			require.NoError(t, err)
+			assert.Contains(t, summary.Content, "does-not-exist.yml")
 		})
 
 		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {

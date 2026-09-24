@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -310,6 +311,9 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
 							return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
 						} else if n == 1 {
+							if err := upsertJobErrorSummary(ctx, job, "uses", err); err != nil {
+								return err
+							}
 							log.Warn("unexpandable caller %d has been marked as failed", job.ID)
 							result.UpdatedJobs = append(result.UpdatedJobs, job)
 							// Re-emit so the failed caller's dependents get resolved on the next pass.
@@ -323,8 +327,8 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					} else {
 						expandedAnyCaller = true
 					}
-				case actions_model.StatusSkipped:
-					job.Status = actions_model.StatusSkipped
+				case actions_model.StatusSkipped, actions_model.StatusFailure:
+					job.Status = status
 					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
 						return err
 					}
@@ -541,11 +545,13 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 		}
 
 		// update concurrency and check whether the job can run now
-		err = updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
-		if err != nil {
-			// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed
-			// At the moment there is no way to distinguish them.
-			// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
+		if err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars); errors.Is(err, util.ErrInvalidArgument) {
+			if err := upsertJobErrorSummary(ctx, actionRunJob, "concurrency", err); err != nil {
+				return nil, err
+			}
+			ret[id] = actions_model.StatusFailure
+			continue
+		} else if err != nil {
 			log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
@@ -583,7 +589,7 @@ func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJo
 		}
 	}
 	if err := EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, attempt, actionRunJob, vars, nil); err != nil {
-		return fmt.Errorf("evaluate job concurrency: %w", err)
+		return err
 	}
 
 	if _, err := actions_model.UpdateRunJob(ctx, actionRunJob, nil, "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"); err != nil {

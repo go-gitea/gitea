@@ -140,7 +140,7 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 		return nil // top-level caller: depth 0, no ancestors to walk
 	}
 
-	visited := container.SetOf(canonicalCallUses(caller.CallUses))
+	visited := container.SetOf(canonicalCallUses(caller))
 
 	depth := 0
 	current := caller
@@ -154,7 +154,7 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 		if depth > MaxReusableCallLevels {
 			return fmt.Errorf("reusable workflow call exceeds the maximum nesting level of %d at %q", MaxReusableCallLevels, caller.CallUses)
 		}
-		if current.IsReusableCaller && current.CallUses != "" && !visited.Add(canonicalCallUses(current.CallUses)) {
+		if current.IsReusableCaller && current.CallUses != "" && !visited.Add(canonicalCallUses(current)) {
 			return fmt.Errorf("reusable workflow call cycle detected: %q", current.CallUses)
 		}
 	}
@@ -162,13 +162,13 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 }
 
 // canonicalCallUses keys a call by its parsed form, so the `$/` and `self:` spellings match the plain ones.
-func canonicalCallUses(uses string) string {
-	ref, err := model.ParseReusableWorkflowUses(uses)
+func canonicalCallUses(job *actions_model.ActionRunJob) string {
+	ref, err := model.ParseReusableWorkflowUses(job.CallUses)
 	if err != nil {
-		return uses
+		return job.CallUses
 	}
 	if ref.IsLocal() {
-		return "./" + ref.Path
+		return fmt.Sprintf("./%s@%d:%s", ref.Path, job.WorkflowSourceRepoID, job.WorkflowSourceCommitSHA)
 	}
 	return ref.Owner + "/" + ref.Repo + "/" + ref.Path + "@" + ref.Ref
 }

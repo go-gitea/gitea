@@ -156,6 +156,15 @@ jobs:
 			note: "Error when evaluating `if` for job `job2`.",
 		},
 		{
+			name: "invalid job `concurrency` fails the job with an annotation",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, RepoID: 1, JobID: "job1", Status: actions_model.StatusSuccess},
+				{ID: 2, RepoID: 1, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, RawConcurrency: "group: ${{ fromJSON(needs.job1.outputs.cfg).group }}", WorkflowPayload: []byte("jobs: {job2: {}}")},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusFailure},
+			note: "Error when evaluating `concurrency` for job `job2`.",
+		},
+		{
 			name: "max-parallel: a freed slot promotes the lowest blocked job id",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "build", Status: actions_model.StatusSuccess, Needs: []string{}, MaxParallel: 1},
@@ -266,13 +275,14 @@ jobs:
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
-	stubRun := &actions_model.ActionRun{TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{}}
+	stubRun := &actions_model.ActionRun{TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{Owner: &user_model.User{}}}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Each subtest gets a unique RunID / RunAttemptID so jobs from different subtests don't bleed into each other's FindTaskNeeds queries
 			runID := int64(9001 + i)
 			attemptID := int64(9001 + i)
 			run := util.IfZero(tt.run, stubRun)
+			require.NoError(t, db.Insert(ctx, &actions_model.ActionRunAttempt{ID: attemptID, RepoID: 1, RunID: runID}))
 
 			// Insert each test job (letting the DB assign IDs) and remember the testID -> dbID mapping so we can translate the expected map.
 			idMap := make(map[int64]int64, len(tt.jobs))

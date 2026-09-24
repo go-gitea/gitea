@@ -293,20 +293,22 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		assert.Equal(t, map[string]string{"bubbled": "bubble-value"}, out)
 	})
 
-	t.Run("matrix children with same JobID prefer non-empty values", func(t *testing.T) {
+	t.Run("matrix children with same JobID combine outputs preferring non-empty values", func(t *testing.T) {
 		run := insertRun(t, "matrix-out.yaml")
 		caller := insertCaller(t, run, "caller", 0, `on:
   workflow_call:
     outputs:
       foo:
         value: ${{ jobs.matrix.outputs.foo }}
+      bar:
+        value: ${{ jobs.matrix.outputs.bar }}
 `, "")
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
+		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "", "bar": "kept"})
 		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "filled"})
 
 		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
 		require.NoError(t, err)
-		assert.Equal(t, map[string]string{"foo": "filled"}, out)
+		assert.Equal(t, map[string]string{"foo": "filled", "bar": "kept"}, out)
 	})
 }
 

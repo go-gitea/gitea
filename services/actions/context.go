@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 
 	"gitea.dev/actionslib/pkg/expreval"
@@ -319,12 +320,11 @@ func loadJobTaskOutputs(ctx context.Context, job *actions_model.ActionRunJob) (m
 // Values with the same output name may be overridden. The user should ensure the output names are unique.
 // See https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#using-job-outputs-in-a-matrix-job
 func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
-	ret := make(map[string]string, len(o1))
+	ret := make(map[string]string, len(o1)+len(o2))
+	maps.Copy(ret, o2)
 	for k1, v1 := range o1 {
-		if len(v1) > 0 {
+		if len(v1) > 0 || ret[k1] == "" {
 			ret[k1] = v1
-		} else {
-			ret[k1] = o2[k1]
 		}
 	}
 	return ret
