@@ -315,26 +315,33 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	}, reviews)
 }
 
-func TestGiteaDownloadCommentsIgnoresPagination(t *testing.T) {
-	const maxResponseItems = 2
-	for _, tc := range []struct{ commentCount, requests int }{
-		{commentCount: maxResponseItems, requests: 2},
-		{commentCount: maxResponseItems + 3, requests: 1},
+func TestGiteaDownloadCommentsPaging(t *testing.T) {
+	for _, tc := range []struct {
+		maxResponseItems, commentCount, requests int
+		paginated                                bool
+	}{
+		{maxResponseItems: 2, commentCount: 2, requests: 2},
+		{maxResponseItems: 2, commentCount: 3, requests: 1},
+		{maxResponseItems: 2, commentCount: 4, requests: 3, paginated: true},
+		{maxResponseItems: 0, commentCount: 0, requests: 1},
 	} {
 		t.Run(strconv.Itoa(tc.commentCount), func(t *testing.T) {
 			commentRequests := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
 				switch r.URL.Path {
 				case "/api/v1/version":
 					_, _ = w.Write([]byte(`{"version":"1.27.0"}`))
 				case "/api/v1/settings/api":
-					_, _ = fmt.Fprintf(w, `{"max_response_items":%d}`, maxResponseItems)
+					_, _ = fmt.Fprintf(w, `{"max_response_items":%d}`, tc.maxResponseItems)
 				case "/api/v1/repos/o/r/issues/1/comments":
 					commentRequests++
 					comments := make([]string, tc.commentCount)
 					for i := range comments {
-						comments[i] = fmt.Sprintf(`{"id":%d,"user":{"id":1,"login":"u"}}`, i+1)
+						comments[i] = fmt.Sprintf(`{"id":%d,"user":{}}`, i+1)
+					}
+					if tc.paginated {
+						page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+						comments = comments[(page-1)*tc.maxResponseItems : min(page*tc.maxResponseItems, len(comments))]
 					}
 					_, _ = w.Write([]byte("[" + strings.Join(comments, ",") + "]"))
 				default:
@@ -345,7 +352,6 @@ func TestGiteaDownloadCommentsIgnoresPagination(t *testing.T) {
 
 			downloader, err := NewGiteaDownloader(t.Context(), server.URL, "o/r", "", "", "")
 			require.NoError(t, err)
-			require.Equal(t, maxResponseItems, downloader.maxPerPage)
 
 			comments, _, err := downloader.GetComments(t.Context(), &base.Issue{Number: 1})
 			require.NoError(t, err)
