@@ -332,6 +332,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
 						return err
 					}
+					result.UpdatedJobs = append(result.UpdatedJobs, job)
 				}
 				continue
 			}

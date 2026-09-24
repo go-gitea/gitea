@@ -551,6 +551,37 @@ func Test_checkJobsOfCurrentRunAttempt_NeedApprovalKeepsJobsBlocked(t *testing.T
 	assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
 }
 
+func Test_checkJobsOfCurrentRunAttempt_SkippedCallerIsUpdated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
+		WorkflowID: "test.yml", Index: 9914, Ref: "refs/heads/main",
+		Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, run))
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID: 4, RunID: run.ID, Attempt: 1, Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, attempt))
+	_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+	assert.NoError(t, err)
+	run.LatestAttemptID = attempt.ID
+	caller := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1,
+		RepoID: 4, OwnerID: 1, JobID: "caller", Name: "caller", Status: actions_model.StatusBlocked,
+		IsReusableCaller: true, WorkflowPayload: []byte("jobs: {caller: {if: false, uses: ./.gitea/workflows/called.yml}}"),
+	}
+	assert.NoError(t, db.Insert(ctx, caller))
+
+	result, err := checkJobsOfCurrentRunAttempt(ctx, run)
+	assert.NoError(t, err)
+	require.Len(t, result.UpdatedJobs, 1)
+	assert.Equal(t, caller.ID, result.UpdatedJobs[0].ID)
+	assert.Equal(t, actions_model.StatusSkipped, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: caller.ID}).Status)
+}
+
 // Test_checkRunConcurrency_HeldGroupDoesNotWake verifies that only an unoccupied concurrency group can wake up a blocked run/job.
 func Test_checkRunConcurrency_HeldGroupDoesNotWake(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
