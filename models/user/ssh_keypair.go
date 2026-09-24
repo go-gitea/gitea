@@ -135,7 +135,7 @@ func (k *SSHKeypair) GetPublicKeyWithComment(ctx context.Context) (string, error
 		return k.PublicKey, nil
 	}
 
-	domain := setting.Domain
+	domain := setting.AppDomain
 	if domain == "" {
 		domain = "gitea"
 	}
