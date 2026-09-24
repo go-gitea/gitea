@@ -61,7 +61,6 @@ const bodyTpl = `
 func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.MailService = &setting.Mailer{From: "test@gitea.com"}
-	setting.Domain = "localhost"
 	setting.AppURL = "https://try.gitea.io/"
 
 	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -166,6 +165,28 @@ func TestMailMentionsComment(t *testing.T) {
 	err := MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{})
 	require.NoError(t, err)
 	assert.Equal(t, 3, mails)
+}
+
+func TestMailsSkipBots(t *testing.T) {
+	doer, repo, issue, comment := prepareMailerTest(t)
+	comment.Poster = doer
+	var recipients []string
+	defer test.MockVariableValue(&SendAsync, func(msgs ...*sender_service.Message) {
+		for _, msg := range msgs {
+			recipients = append(recipients, msg.To)
+		}
+	})()
+
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 5, Type: user_model.UserTypeBot}, "type"))
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	require.NoError(t, SendIssueAssignedMail(t.Context(), issue, doer, "", comment, []*user_model.User{user, bot}))
+	require.NoError(t, MailParticipantsComment(t.Context(), comment, activities_model.ActionCommentIssue, issue, []*user_model.User{bot}))
+	require.NoError(t, SendRepoTransferNotifyMail(t.Context(), doer, bot, repo))
+	SendCollaboratorMail(bot, doer, repo)
+	SendRegisterNotifyMail(bot)
+	assert.Contains(t, recipients, user.Email)
+	assert.NotContains(t, strings.Join(recipients, " "), bot.Email)
 }
 
 func TestComposeIssueMessage(t *testing.T) {
@@ -368,7 +389,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				issue:      issue,
 				actionType: activities_model.ActionCreateIssue,
 			},
-			prefix: fmt.Sprintf("<%s/issues/%d@%s>", issue.Repo.FullName(), issue.Index, setting.Domain),
+			prefix: fmt.Sprintf("<%s/issues/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
 		},
 		{
 			name: "Open Pull",
@@ -376,7 +397,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				issue:      pullIssue,
 				actionType: activities_model.ActionCreatePullRequest,
 			},
-			prefix: fmt.Sprintf("<%s/pulls/%d@%s>", issue.Repo.FullName(), issue.Index, setting.Domain),
+			prefix: fmt.Sprintf("<%s/pulls/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
 		},
 		{
 			name: "Comment Issue",
@@ -385,7 +406,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				comment:    comment,
 				actionType: activities_model.ActionCommentIssue,
 			},
-			prefix: fmt.Sprintf("<%s/issues/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+			prefix: fmt.Sprintf("<%s/issues/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
 		},
 		{
 			name: "Comment Pull",
@@ -394,7 +415,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				comment:    comment,
 				actionType: activities_model.ActionCommentPull,
 			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
 		},
 		{
 			name: "Close Issue",
@@ -496,15 +517,8 @@ func TestFromDisplayName(t *testing.T) {
 		tmpl, err = texttmpl.New("mailFrom").Parse("{{ .DisplayName }} (by {{ .AppName }} on [{{ .Domain }}])")
 		assert.NoError(t, err)
 		setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: tmpl}
-		oldAppName := setting.AppName
-		setting.AppName = "Code IT"
-		oldDomain := setting.Domain
-		setting.Domain = "code.it"
-		defer func() {
-			setting.AppName = oldAppName
-			setting.Domain = oldDomain
-		}()
-
+		defer test.MockVariableValue(&setting.AppName, "Code IT")()
+		defer test.MockVariableValue(&setting.AppDomain, "code.it")()
 		assert.Equal(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
 	})
 }

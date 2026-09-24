@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRenderPanicErrorPage(t *testing.T) {
-	t.Run("HTML", func(t *testing.T) {
+func TestRenderErrorPage(t *testing.T) {
+	t.Run("PanicHTML", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req := &http.Request{URL: &url.URL{}, Header: http.Header{"Accept": []string{"text/html"}}}
 		req = req.WithContext(reqctx.NewRequestContextForTest(t))
@@ -33,7 +33,7 @@ func TestRenderPanicErrorPage(t *testing.T) {
 		// the different "footer" is the only way to know whether a page is fully rendered without error.
 		assert.False(t, test.IsNormalPageCompleted(respContent))
 	})
-	t.Run("Plain", func(t *testing.T) {
+	t.Run("ServiceUnavailablePlain", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req := &http.Request{URL: &url.URL{}}
 		req = req.WithContext(reqctx.NewRequestContextForTest(t))
