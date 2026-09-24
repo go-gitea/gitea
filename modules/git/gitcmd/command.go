@@ -172,6 +172,16 @@ func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
 	return c
 }
 
+func (c *Command) AddOptionGrepExpr(s string) *Command {
+	if len(c.args) == 0 || c.args[0] != "grep" {
+		c.handlePreErrorBrokenCommand("(not grep command)")
+		return c
+	}
+	// man git-grep: -e: This option has to be used for patterns starting with "-"
+	c.args = append(c.args, "-e", s)
+	return c
+}
+
 // AddDynamicArguments adds new dynamic argument values to the command.
 // The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options.
 // TODO: in the future, this function can be renamed to AddArgumentValues
