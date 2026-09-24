@@ -6,7 +6,6 @@ package fuzz
 import (
 	"bytes"
 	"io"
-	"os"
 	"testing"
 
 	"gitea.dev/modules/markup"
@@ -16,7 +15,7 @@ import (
 
 func TestMain(m *testing.M) {
 	setting.SetupGiteaTestEnv()
-	os.Exit(m.Run())
+	m.Run()
 }
 
 func newFuzzRenderContext() *markup.RenderContext {
