@@ -139,6 +139,40 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	ctx.JSON(http.StatusCreated, cred)
 }
 
+// WebauthnRename changes the nickname of a security key
+func WebauthnRename(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	form := context.GetFetchActionForm[*forms.WebauthnRenameForm](ctx)
+	if form == nil {
+		return
+	}
+
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, form.ID)
+	if err == nil && cred.UserID != ctx.Doer.ID {
+		err = auth.ErrWebAuthnCredentialNotExist{ID: form.ID}
+	}
+	if err != nil {
+		ctx.NotFoundOrServerError("GetWebAuthnCredentialByID", auth.IsErrWebAuthnCredentialNotExist, err)
+		return
+	}
+
+	if ok, err := auth.RenameCredential(ctx, cred.ID, ctx.Doer.ID, form.Name); err != nil {
+		if auth.IsErrWebAuthnCredentialNameAlreadyUsed(err) {
+			ctx.JSONErrorWithField(ctx.Tr("settings.webauthn_nickname_been_used"), "name")
+		} else {
+			ctx.ServerError("RenameCredential", err)
+		}
+		return
+	} else if ok {
+		audit.Record(ctx, audit_model.UserWebAuthRename, ctx.Doer, "previous_credential", cred.Name, "credential", form.Name)
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
+}
+
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {

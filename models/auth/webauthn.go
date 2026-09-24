@@ -40,6 +40,27 @@ func IsErrWebAuthnCredentialNotExist(err error) bool {
 	return ok
 }
 
+// ErrWebAuthnCredentialNameAlreadyUsed represents a "WebAuthnCredentialNameAlreadyUsed" kind of error.
+type ErrWebAuthnCredentialNameAlreadyUsed struct {
+	UserID int64
+	Name   string
+}
+
+func (err ErrWebAuthnCredentialNameAlreadyUsed) Error() string {
+	return fmt.Sprintf("WebAuthn credential name has been used [uid: %d, name: %s]", err.UserID, err.Name)
+}
+
+// Unwrap unwraps this as a ErrAlreadyExist err
+func (err ErrWebAuthnCredentialNameAlreadyUsed) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
+// IsErrWebAuthnCredentialNameAlreadyUsed checks if an error is a ErrWebAuthnCredentialNameAlreadyUsed.
+func IsErrWebAuthnCredentialNameAlreadyUsed(err error) bool {
+	_, ok := err.(ErrWebAuthnCredentialNameAlreadyUsed)
+	return ok
+}
+
 // WebAuthnCredential represents the WebAuthn credential data for a public-key
 // credential conformant to WebAuthn Level 1
 type WebAuthnCredential struct {
@@ -193,6 +214,21 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 		return nil, err
 	}
 	return c, nil
+}
+
+// RenameCredential changes the name of the user's WebAuthnCredential,
+// the name must not be used by another credential of the user regardless of letter case
+func RenameCredential(ctx context.Context, id, userID int64, name string) (bool, error) {
+	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
+		used, err := db.GetEngine(ctx).Where("user_id = ? AND lower_name = ? AND id != ?", userID, strings.ToLower(name), id).Exist(&WebAuthnCredential{})
+		if err != nil {
+			return false, err
+		} else if used {
+			return false, ErrWebAuthnCredentialNameAlreadyUsed{UserID: userID, Name: name}
+		}
+		updated, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Cols("name", "lower_name").Update(&WebAuthnCredential{Name: name})
+		return updated > 0, err
+	})
 }
 
 // DeleteCredential will delete WebAuthnCredential
