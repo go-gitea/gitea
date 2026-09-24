@@ -81,3 +81,9 @@ func TestShouldPersistLastActive(t *testing.T) {
 		})
 	}
 }
+
+func TestCanMatchLabelsCaseInsensitive(t *testing.T) {
+	runner := &ActionRunner{AgentLabels: []string{"self-hosted", "Linux", "X64"}}
+	assert.True(t, runner.CanMatchLabels([]string{"SELF-HOSTED", "linux"}))
+	assert.False(t, runner.CanMatchLabels([]string{"linux", "arm64"}))
+}

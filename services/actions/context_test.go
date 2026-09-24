@@ -293,20 +293,24 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		assert.Equal(t, map[string]string{"bubbled": "bubble-value"}, out)
 	})
 
-	t.Run("matrix children with same JobID prefer non-empty values", func(t *testing.T) {
+	t.Run("matrix children combine outputs by completion order while ignoring empty values", func(t *testing.T) {
 		run := insertRun(t, "matrix-out.yaml")
 		caller := insertCaller(t, run, "caller", 0, `on:
   workflow_call:
     outputs:
       foo:
         value: ${{ jobs.matrix.outputs.foo }}
+      bar:
+        value: ${{ jobs.matrix.outputs.bar }}
 `, "")
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "filled"})
+		later := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "latest", "bar": "kept"})
+		earlier := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "earlier"})
+		empty := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
+		later.Stopped, earlier.Stopped, empty.Stopped = 200, 100, 300
 
-		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, map[int64][]*actions_model.ActionRunJob{caller.ID: {later, earlier, empty}})
 		require.NoError(t, err)
-		assert.Equal(t, map[string]string{"foo": "filled"}, out)
+		assert.Equal(t, map[string]string{"foo": "latest", "bar": "kept"}, out)
 	})
 }
 
@@ -316,7 +320,7 @@ func TestFindTaskNeeds(t *testing.T) {
 	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 51})
 	job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: task.JobID})
 
-	ret, err := FindTaskNeeds(t.Context(), job)
+	ret, _, err := FindTaskNeeds(t.Context(), job)
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Contains(t, ret, "job1")
