@@ -24,10 +24,13 @@ import (
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
 
 	"golang.org/x/net/proxy"
 )
+
+const connectOK = "HTTP/1.1 200 Connection Established\r\nVia: 1.1 gitea-gitproxy\r\n\r\n"
 
 // gitProxyServer is the in-process loopback HTTP proxy that sits between git
 // subprocesses and their http(s) remotes. Egress enforcement (SSRF protection
@@ -67,9 +70,10 @@ type serverConfig struct {
 
 // newServer builds the git proxy handler from cfg and wraps it in an http.Server. It does
 // not listen, publish an address, or serve; Run does that.
-func newServer(cfg serverConfig) (*http.Server, error) {
+func newServer(cfg serverConfig) (*gitProxyServer, error) {
 	operatorProxy := cfg.policy.ProxyURL()
 	dial := cfg.policy.NewDialContext()
+
 	srv := &gitProxyServer{
 		operatorProxy:    operatorProxy,
 		operatorDialAddr: policy.ProxyDialAddr(operatorProxy),
@@ -77,21 +81,19 @@ func newServer(cfg serverConfig) (*http.Server, error) {
 		dial:             dial,
 		transport:        cfg.policy.NewHTTPTransport(),
 	}
+
 	socksDialer, err := newSocksDialer(operatorProxy, dial)
 	if err != nil {
 		return nil, err
 	}
 	srv.socksDialer = socksDialer
-	return &http.Server{
-		Handler:           srv,
-		ReadHeaderTimeout: 10 * time.Second,
-	}, nil
+
+	return srv, nil
 }
 
-// Run binds the internal git proxy on setting.Egress.GitProxyListenAddr, registers its bound
-// address via egress.SetGitProxyURL (activating git env injection), and starts serving in a
-// graceful goroutine. It is non-blocking: a bind failure is returned, per-connection failures
-// are logged and the goroutine keeps serving.
+// Run binds the internal git proxy on setting.Egress.GitProxyListenAddr and registers its
+// bound address via egress.SetGitProxyURL (activating git env injection). It blocks until
+// the address is published, so git subprocesses spawned after it returns are proxied.
 func Run(ctx context.Context) error {
 	return run(ctx, egress.GetMigrationPolicy())
 }
@@ -105,39 +107,68 @@ func run(ctx context.Context, policy *policy.Policy) error {
 		// certificate checks
 		cfg.operatorTLS = &tls.Config{ServerName: u.Hostname()}
 	}
-	srv, err := newServer(cfg)
+
+	proxyHandler, err := newServer(cfg)
 	if err != nil {
-		return err
+		return fmt.Errorf("egress: init git proxy: %w", err)
 	}
 
-	ln, err := net.Listen("tcp", setting.Egress.GitProxyListenAddr)
-	if err != nil {
-		return fmt.Errorf("egress: bind git proxy on %s: %w", setting.Egress.GitProxyListenAddr, err)
+	httpServer := &http.Server{
+		Handler:           proxyHandler,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+		// WriteTimeout is intentionally 0 (unbounded) for long Git operations
 	}
-	boundAddr := ln.Addr().String()
-	egress.SetGitProxyURL("http://" + boundAddr)
-	log.Info("egress: internal git proxy listening on %s", boundAddr)
-	go graceful.GetManager().RunWithShutdownContext(func(shutdownCtx context.Context) {
-		serve(shutdownCtx, ln, srv)
-	})
-	return nil
+	started := make(chan error, 1)
+
+	go func() {
+		_, _, finished := process.GetManager().AddTypedContext(ctx, "Internal Git Proxy", process.SystemProcessType, true)
+		defer finished()
+		listen(httpServer, started)
+	}()
+	return <-started
 }
 
-// serve runs srv on ln until ctx is done, then shuts down. It blocks until the server stops;
-// errors are logged, never returned. The per-request ReadHeaderTimeout is short (git sends the
-// CONNECT line quickly); there is no WriteTimeout so long tunnels and clones are unbounded.
-func serve(ctx context.Context, ln net.Listener, srv *http.Server) {
-	log.Info("egress: git proxy server started")
-	go func() {
-		<-ctx.Done()
+func listen(server *http.Server, started chan<- error) {
+	// capture the configured address up front: this goroutine outlives Run's
+	// caller and must not re-read mutable global settings
+	listenAddr := setting.Egress.GitProxyListenAddr
+	gracefulServer := graceful.NewServer("tcp", listenAddr, "GitProxy")
+	gracefulServer.OnShutdown = func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = srv.Shutdown(shutdownCtx)
-		_ = ln.Close()
-	}()
-	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) && !errors.Is(err, net.ErrClosed) {
-		log.Error("egress: git proxy server stopped: %v", err)
+		_ = server.Shutdown(shutdownCtx)
 	}
+	serve := func(ln net.Listener) error {
+		// Captures the real port (even if configured with ":0") and injects into egress
+		boundAddr := ln.Addr().String()
+		egress.SetGitProxyURL("http://" + boundAddr)
+		log.Info("egress: internal git proxy listening on %s", boundAddr)
+		// Signal that the server is ready to accept connections
+		started <- nil
+
+		return server.Serve(ln)
+	}
+
+	err := gracefulServer.ListenAndServe(serve, false)
+	if err != nil {
+		select {
+		case started <- err:
+			// Sent successfully
+		default:
+			// Dropped because nobody is listening
+		}
+		select {
+		case <-graceful.GetManager().IsShutdown():
+			log.Error("Failed to start git proxy server: %v", err)
+		default:
+			// If not shutting down, a bind/startup failure is fatal to Gitea
+			log.Fatal("Failed to start git proxy server: %v", err)
+		}
+	}
+
+	log.Info("Git Proxy Listener: %s Closed", listenAddr)
 }
 
 // ServeHTTP dispatches CONNECT (https remotes) and absolute-URI GET/POST (http
@@ -145,18 +176,9 @@ func serve(ctx context.Context, ln net.Listener, srv *http.Server) {
 // or relay panics, the handler returns an error response to git instead of
 // killing the server goroutine.
 func (s *gitProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	hijacked := false
-	defer func() {
-		if rec := recover(); rec != nil {
-			log.Error("egress: git proxy handler recovered from panic: %v", rec)
-			if !hijacked {
-				http.Error(w, "egress: internal proxy error", http.StatusBadGateway)
-			}
-		}
-	}()
 	switch r.Method {
 	case http.MethodConnect:
-		hijacked = s.handleCONNECT(w, r)
+		s.handleCONNECT(w, r)
 	default:
 		s.handleHTTP(w, r)
 	}
@@ -174,38 +196,47 @@ func (s *gitProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 // Returns true if the connection was hijacked (the recover net must not touch
 // the response writer afterwards).
-func (s *gitProxyServer) handleCONNECT(w http.ResponseWriter, r *http.Request) bool {
-	host, port, ok := splitHostPort(r)
-	if !ok {
-		http.Error(w, "egress: malformed CONNECT target", http.StatusBadRequest)
-		return false
+func (s *gitProxyServer) handleCONNECT(w http.ResponseWriter, r *http.Request) {
+	host, port, err := splitHostPort(r)
+	if err != nil {
+		http.Error(w, "egress: "+err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	upstream, err := s.dialUpstream(r.Context(), host, port)
 	if err != nil {
 		writeUpstreamError(w, err)
-		return false
+		return
 	}
 
 	hj, ok := w.(http.Hijacker)
 	if !ok {
 		_ = upstream.Close()
 		http.Error(w, "egress: hijack unsupported", http.StatusInternalServerError)
-		return false
+		return
 	}
 	raw, clientBuf, err := hj.Hijack()
 	if err != nil {
 		_ = upstream.Close()
 		http.Error(w, "egress: hijack failed: "+err.Error(), http.StatusInternalServerError)
-		return false
+		return
 	}
 	// 200 establishes the tunnel; the hijack buffer may already hold bytes read
 	// past the request, so it feeds the relay through the wrapper
-	_, _ = clientBuf.WriteString(connectOKLine(r))
-	_ = clientBuf.Flush()
+	_, err = clientBuf.WriteString(connectOK)
+	if err != nil {
+		upstream.Close()
+		raw.Close()
+		return
+	}
+	err = clientBuf.Flush()
+	if err != nil {
+		upstream.Close()
+		raw.Close()
+		return
+	}
 
 	relay(&bufferedConn{Conn: raw, r: clientBuf}, upstream)
-	return true
 }
 
 // dialUpstream opens the connection to a CONNECT target: through the operator
@@ -213,6 +244,11 @@ func (s *gitProxyServer) handleCONNECT(w http.ResponseWriter, r *http.Request) b
 // to the operator (that would be the operator's own localhost, not the requested
 // one), so it is dialed directly and gated normally.
 func (s *gitProxyServer) dialUpstream(ctx context.Context, host, port string) (net.Conn, error) {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+	}
 	if s.operatorProxy != nil && !IsLoopbackHost(host) {
 		return s.upstreamTunnel(ctx, host, port)
 	}
@@ -229,16 +265,6 @@ func IsLoopbackHost(host string) bool {
 	}
 	ip, err := netip.ParseAddr(host)
 	return err == nil && ip.Unmap().IsLoopback()
-}
-
-// connectOKLine builds the CONNECT success line, echoing the client's HTTP
-// version rather than assuming 1.1.
-func connectOKLine(r *http.Request) string {
-	major, minor := r.ProtoMajor, r.ProtoMinor
-	if major == 0 {
-		major, minor = 1, 1
-	}
-	return fmt.Sprintf("HTTP/%d.%d 200 Connection Established\r\n\r\n", major, minor)
 }
 
 // dialFunc adapts the policy dialer to x/net/proxy's Dialer (and ContextDialer),
@@ -322,6 +348,11 @@ func (s *gitProxyServer) upstreamCONNECT(ctx context.Context, host, port string)
 	if err != nil {
 		return nil, fmt.Errorf("egress: dial operator proxy: %w", err)
 	}
+
+	// ensure the connection is closed if the context is canceled
+	stop := context.AfterFunc(ctx, func() { _ = uc.Close() })
+	defer stop()
+
 	if s.operatorTLS != nil {
 		tlsConn := tls.Client(uc, s.operatorTLS)
 		if err := tlsConn.HandshakeContext(ctx); err != nil {
@@ -353,7 +384,9 @@ func (s *gitProxyServer) upstreamCONNECT(ctx context.Context, host, port string)
 		_ = uc.Close()
 		return nil, fmt.Errorf("egress: read operator CONNECT response: %w", err)
 	}
-	if resp.StatusCode != http.StatusOK {
+
+	// RFC 9110 §9.3.6: Any 2xx code confirms tunnel establishment
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		// a refused CONNECT usually carries the reason in the body (a 407 challenge,
 		// "blocked by policy"); keep a bounded slice so the caller sees why
 		detail, _ := io.ReadAll(io.LimitReader(resp.Body, maxUpstreamErrorBody))
@@ -387,7 +420,10 @@ func (s *gitProxyServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	req := r.Clone(r.Context())
 	req.RequestURI = "" // server-bound request must not carry RequestURI
 	req.Close = false   // the client's close applies to its hop, not the one to the origin
+	req.Host = req.URL.Host
+
 	removeHopHeaders(req.Header)
+	req.Header.Add("Via", "1.1 gitea-gitproxy")
 
 	resp, err := s.transport.RoundTrip(req)
 	if err != nil {
@@ -395,10 +431,15 @@ func (s *gitProxyServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer resp.Body.Close()
+
 	removeHopHeaders(resp.Header)
 	copyHeader(w.Header(), resp.Header)
+	w.Header().Add("Via", "1.1 gitea-gitproxy")
 	w.WriteHeader(resp.StatusCode)
-	_, _ = io.Copy(w, resp.Body)
+
+	flusher, _ := w.(http.Flusher)
+	// Streams and flushes after every chunk to prevent git waiting for replies.
+	_, _ = io.Copy(flushWriter{w: w, f: flusher}, resp.Body)
 }
 
 // writeUpstreamError maps a dial or round-trip failure to a response: a policy
@@ -408,29 +449,40 @@ func writeUpstreamError(w http.ResponseWriter, err error) {
 		http.Error(w, "egress: target denied by policy", http.StatusForbidden)
 		return
 	}
+	var netErr net.Error
+	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout()) {
+		http.Error(w, "egress: upstream timeout: "+err.Error(), http.StatusGatewayTimeout)
+		return
+	}
 	http.Error(w, "egress: upstream failed: "+err.Error(), http.StatusBadGateway)
 }
 
-// splitHostPort extracts host:port from a CONNECT request's authority (r.Host,
-// falling back to r.URL.Host).
-func splitHostPort(r *http.Request) (host, port string, ok bool) {
-	target := r.Host
-	if target == "" {
-		target = r.URL.Host
+// splitHostPort extracts host:port from a CONNECT request
+func splitHostPort(r *http.Request) (host, port string, err error) {
+	if r.URL == nil {
+		return "", "", errors.New("egress: CONNECT request URL is nil")
 	}
-	host, port, err := net.SplitHostPort(target)
+	host, port, err = net.SplitHostPort(r.URL.Host)
 	if err != nil {
-		return "", "", false
+		return host, port, err
 	}
 	if host == "" {
-		return "", "", false
+		return "", "", errors.New("egress: empty host")
 	}
-	// only a dialable numeric port is accepted; an empty or out-of-range port is
-	// rejected here rather than relayed to the operator verbatim
+	// RFC 9112 §9.3.6: userinfo is forbidden
+	if strings.Contains(host, "@") {
+		return "", "", errors.New("userinfo '@' is not permitted in CONNECT target")
+	}
+
+	// Reject unspecified destination addresses (0.0.0.0 / ::) outright
+	if ip, parseErr := netip.ParseAddr(host); parseErr == nil && ip.Unmap().IsUnspecified() {
+		return "", "", errors.New("unspecified destination address is not routable")
+	}
+
 	if p, err := strconv.ParseUint(port, 10, 16); err != nil || p == 0 {
-		return "", "", false
+		return "", "", fmt.Errorf("invalid port %q: must be between 1 and 65535", port)
 	}
-	return host, port, true
+	return host, port, nil
 }
 
 // bufferedConn presents a connection whose reads come from r, so bytes buffered
@@ -443,20 +495,26 @@ type bufferedConn struct {
 }
 
 func (c *bufferedConn) Read(p []byte) (int, error) { return c.r.Read(p) }
+func (c *bufferedConn) Unwrap() net.Conn           { return c.Conn }
 
-// halfCloser is the pair of directional closes a TCP connection offers.
-type halfCloser interface {
+type writeCloser interface {
 	CloseWrite() error
-	CloseRead() error
+}
+
+type unwrapper interface {
+	Unwrap() net.Conn
 }
 
 // socketOf returns the connection beneath a buffered wrapper, so the socket's own
 // capabilities decide how the relay shuts down.
 func socketOf(c net.Conn) net.Conn {
-	if b, ok := c.(*bufferedConn); ok {
-		return b.Conn
+	for {
+		if u, ok := c.(unwrapper); ok {
+			c = u.Unwrap()
+			continue
+		}
+		return c
 	}
-	return c
 }
 
 // relay copies bytes in both directions until both halves close. It half-closes
@@ -466,36 +524,46 @@ func socketOf(c net.Conn) net.Conn {
 // goroutine wrapped in a recover guard so a panic in one half never escapes to
 // the runtime.
 func relay(client, upstream net.Conn) {
-	clientHC, clientOK := socketOf(client).(halfCloser)
-	upstreamHC, upstreamOK := socketOf(upstream).(halfCloser)
-	halfClose := clientOK && upstreamOK
-
+	// sync.OnceFunc guarantees sockets are closed exactly once,
+	// either on an error or after both directions finish cleanly.
 	closeBoth := sync.OnceFunc(func() {
 		_ = client.Close()
 		_ = upstream.Close()
 	})
-	done := make(chan struct{}, 2)
-	copyOne := func(dst net.Conn, dstHC halfCloser, src net.Conn, srcHC halfCloser) {
+
+	done := make(chan struct{}, 1)
+	pipe := func(dst, src net.Conn) {
 		defer func() {
 			if rec := recover(); rec != nil {
 				log.Error("egress: relay recovered: %v", rec)
 			}
-			done <- struct{}{}
 		}()
-		if _, err := io.Copy(dst, src); err != nil || !halfClose {
+
+		// If there is an actual read/write failure, tear down both sockets immediately.
+		if _, err := io.Copy(dst, src); err != nil {
 			closeBoth()
 			return
 		}
-		// clean EOF: stop reading src and let dst finish sending
-		_ = dstHC.CloseWrite()
-		_ = srcHC.CloseRead()
+
+		// Clean EOF: inform dst that no more data is incoming.
+		// If dst supports CloseWrite (e.g. TCPConn or TLS 1.23+), half-close it.
+		// If it doesn't, do not closeBoth; let the other direction continue draining.
+		if hc, ok := socketOf(dst).(writeCloser); ok {
+			_ = hc.CloseWrite()
+		}
 	}
-	go copyOne(upstream, upstreamHC, client, clientHC)
-	go copyOne(client, clientHC, upstream, upstreamHC)
+
+	// 1. Run client -> upstream on a background goroutine
+	go func() {
+		pipe(upstream, client)
+		done <- struct{}{}
+	}()
+
+	// 2. Run upstream -> client directly on the current handler goroutine
+	pipe(client, upstream)
+
+	// Wait for the background direction to finish
 	<-done
-	<-done
-	// half-closed sockets linger until their timeout, so release both once both
-	// directions have finished
 	closeBoth()
 }
 
@@ -516,9 +584,11 @@ var hopHeaders = []string{
 // removeHopHeaders drops connection-scoped headers, including any the Connection
 // header names.
 func removeHopHeaders(header http.Header) {
-	for value := range strings.SplitSeq(header.Get("Connection"), ",") {
-		if name := strings.TrimSpace(value); name != "" {
-			header.Del(name)
+	for _, value := range header.Values("Connection") {
+		for name := range strings.SplitSeq(value, ",") {
+			if trimmed := strings.TrimSpace(name); trimmed != "" {
+				header.Del(trimmed)
+			}
 		}
 	}
 	for _, name := range hopHeaders {
@@ -533,4 +603,17 @@ func copyHeader(dst, src http.Header) {
 			dst.Add(k, v)
 		}
 	}
+}
+
+type flushWriter struct {
+	w io.Writer
+	f http.Flusher
+}
+
+func (fw flushWriter) Write(p []byte) (int, error) {
+	n, err := fw.w.Write(p)
+	if n > 0 && fw.f != nil {
+		fw.f.Flush()
+	}
+	return n, err
 }
