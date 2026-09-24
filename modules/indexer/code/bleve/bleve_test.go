@@ -24,7 +24,7 @@ func TestBleveIndexerTokenFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	batch := inner_bleve.NewFlushingBatch(indexer.inner.Indexer, maxBatchSize)
-	batch.Index("2", &RepoIndexerData{RepoID: 2, Filename: ".husky/.gitignore", Content: "mDNS.port2=12345", UpdatedAt: time.Now()})
+	batch.Index("2", &RepoIndexerData{RepoID: 2, Filename: ".sub-dir/.sub-filename", Content: "mDNS.port2=12345", UpdatedAt: time.Now()})
 	batch.Flush()
 
 	testCases := []struct {
@@ -36,9 +36,10 @@ func TestBleveIndexerTokenFilter(t *testing.T) {
 		{keyword: "mdns", expectedIDs: []int64{2}},
 		{keyword: "port", expectedIDs: []int64{2}},
 		{keyword: "port2", expectedIDs: []int64{2}},
-		{keyword: ".husky", expectedIDs: []int64{2}},
-		{keyword: ".gitignore", expectedIDs: []int64{2}},
-		{keyword: "gitignore", expectedIDs: []int64{2}},
+		{keyword: ".sub-dir", expectedIDs: []int64{2}},
+		{keyword: "sub-file", expectedIDs: []int64{2}}, // prefix matching? not sure whether this behavior is wanted
+		{keyword: "filename", expectedIDs: []int64{2}},
+		{keyword: "name", expectedIDs: []int64{}},
 	}
 
 	for _, testCase := range testCases {
