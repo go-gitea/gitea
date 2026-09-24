@@ -135,7 +135,7 @@ export function initRepoTopicBar() {
     },
     onLabelCreate(value: string) {
       value = value.toLowerCase().trim();
-      this.attr('data-value', value).contents().first().replaceWith(value);
+      this.attr('data-value', value).contents().first().text(value);
       return fomanticQuery(this);
     },
     onAdd(addedValue: string, _addedText: any, $addedChoice: JQueryElem) {

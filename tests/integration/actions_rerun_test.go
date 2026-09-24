@@ -542,7 +542,7 @@ func mustParseSingleWorkflowPayloads(t *testing.T, workflowContent string) map[s
 			name:    job.Name,
 			payload: payload,
 			needs:   needs,
-			runsOn:  job.RunsOn(),
+			runsOn:  job.RunsOnLabels(),
 		}
 	}
 	return payloads

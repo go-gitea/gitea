@@ -47,9 +47,10 @@ type ActionRunJob struct {
 	// it should contain exactly one job with global workflow fields for this model
 	WorkflowPayload []byte
 
-	JobID  string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
-	Needs  []string `xorm:"JSON TEXT"`
-	RunsOn []string `xorm:"JSON TEXT"`
+	JobID       string   `xorm:"VARCHAR(255)"` // job id in workflow, not job's id
+	Needs       []string `xorm:"JSON TEXT"`
+	RunsOn      []string `xorm:"JSON TEXT"`
+	RunsOnGroup string   `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 
 	TaskID       int64 // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
