@@ -61,7 +61,6 @@ const bodyTpl = `
 func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.MailService = &setting.Mailer{From: "test@gitea.com"}
-	setting.Domain = "localhost"
 	setting.AppURL = "https://try.gitea.io/"
 
 	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -390,7 +389,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				issue:      issue,
 				actionType: activities_model.ActionCreateIssue,
 			},
-			prefix: fmt.Sprintf("<%s/issues/%d@%s>", issue.Repo.FullName(), issue.Index, setting.Domain),
+			prefix: fmt.Sprintf("<%s/issues/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
 		},
 		{
 			name: "Open Pull",
@@ -398,7 +397,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				issue:      pullIssue,
 				actionType: activities_model.ActionCreatePullRequest,
 			},
-			prefix: fmt.Sprintf("<%s/pulls/%d@%s>", issue.Repo.FullName(), issue.Index, setting.Domain),
+			prefix: fmt.Sprintf("<%s/pulls/%d@%s>", issue.Repo.FullName(), issue.Index, setting.AppDomain),
 		},
 		{
 			name: "Comment Issue",
@@ -407,7 +406,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				comment:    comment,
 				actionType: activities_model.ActionCommentIssue,
 			},
-			prefix: fmt.Sprintf("<%s/issues/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+			prefix: fmt.Sprintf("<%s/issues/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
 		},
 		{
 			name: "Comment Pull",
@@ -416,7 +415,7 @@ func TestGenerateMessageIDForIssue(t *testing.T) {
 				comment:    comment,
 				actionType: activities_model.ActionCommentPull,
 			},
-			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+			prefix: fmt.Sprintf("<%s/pulls/%d/comment/%d@%s>", issue.Repo.FullName(), issue.Index, comment.ID, setting.AppDomain),
 		},
 		{
 			name: "Close Issue",
@@ -518,15 +517,8 @@ func TestFromDisplayName(t *testing.T) {
 		tmpl, err = texttmpl.New("mailFrom").Parse("{{ .DisplayName }} (by {{ .AppName }} on [{{ .Domain }}])")
 		assert.NoError(t, err)
 		setting.MailService = &setting.Mailer{FromDisplayNameFormatTemplate: tmpl}
-		oldAppName := setting.AppName
-		setting.AppName = "Code IT"
-		oldDomain := setting.Domain
-		setting.Domain = "code.it"
-		defer func() {
-			setting.AppName = oldAppName
-			setting.Domain = oldDomain
-		}()
-
+		defer test.MockVariableValue(&setting.AppName, "Code IT")()
+		defer test.MockVariableValue(&setting.AppDomain, "code.it")()
 		assert.Equal(t, "Mister X (by Code IT on [code.it])", fromDisplayName(&user_model.User{FullName: "Mister X", Name: "tmp"}))
 	})
 }
