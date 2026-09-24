@@ -58,6 +58,24 @@ func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {
 	assert.EqualValues(t, -1, comment.AssigneeTeam.ID)
 }
 
+func TestCommentListLoadAttributesMixedAssignees(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	comments := issues_model.CommentList{
+		{AssigneeID: 1},
+		{AssigneeTeamID: 8},
+		{AssigneeID: 999999},
+	}
+
+	assert.NoError(t, comments.LoadAttributes(t.Context()))
+	assert.EqualValues(t, 1, comments[0].Assignee.ID)
+	assert.Nil(t, comments[1].Assignee)
+	assert.Zero(t, comments[1].AssigneeID)
+	assert.NoError(t, comments[1].LoadAssigneeUserAndTeam(t.Context()))
+	assert.Equal(t, "test_team", comments[1].AssigneeTeam.Name)
+	assert.Equal(t, user_model.GhostUserID, comments[2].AssigneeID)
+	assert.Equal(t, user_model.GhostUserID, comments[2].Assignee.ID)
+}
+
 func Test_UpdateCommentAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
