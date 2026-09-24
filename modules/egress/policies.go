@@ -11,12 +11,21 @@ import (
 
 var (
 	migrationPolicy    = sync.OnceValue(newMigrationPolicy)
+	gitPolicy          = sync.OnceValue(newGitPolicy)
 	oauth2AvatarPolicy = sync.OnceValue(newOauth2AvatarPolicy)
 	openIDPolicy       = sync.OnceValue(newOpenIDPolicy)
 	webhookPolicy      = sync.OnceValue(newWebhookPolicy)
 )
 
 func newMigrationPolicy() *policy.Policy {
+	return commonGitPolicy("migrations")
+}
+
+func newGitPolicy() *policy.Policy {
+	return commonGitPolicy("git-proxy")
+}
+
+func commonGitPolicy(name string) *policy.Policy {
 	allow, block := setting.Migrations.AllowedHostList, setting.Migrations.DeniedHostList
 	if strings.TrimSpace(allow) == "" {
 		// an empty allow list means "any external host", matching the historical default
@@ -28,9 +37,9 @@ func newMigrationPolicy() *policy.Policy {
 		block = joinHostList(block, "private", "loopback")
 	}
 
-	return policy.NewPolicy("git-proxy",
-		policy.WithAllow(allow, "migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS"),
-		policy.WithBlock(block, "migrations.BLOCKED_DOMAINS"),
+	return policy.NewPolicy(name,
+		policy.WithAllow(allow, "migrations.ALLOWED_HOST_LIST"),
+		policy.WithBlock(block, "migrations.BLOCKED_HOST_LIST"),
 		policy.WithProxy(setting.Proxy.ProxyURLFixed, proxy.Proxy()))
 }
 
@@ -50,7 +59,7 @@ func newWebhookPolicy() *policy.Policy {
 	return policy.NewPolicy("webhook",
 		policy.WithAllow(setting.Webhook.AllowedHostList, "security.ALLOWED_HOST_LIST"),
 		policy.WithProxy(setting.Webhook.ProxyURLFixed, proxy.WebHookProxy()),
-		policy.WithProxyPreScreen(true)) // webhook had  prescreening in it's handler so keeping it for now.
+		policy.WithProxyPreScreen(true)) // webhook had  prescreening in its handler so keeping it for now.
 }
 
 func GetOpenIDPolicy() *policy.Policy {
@@ -65,6 +74,10 @@ func GetOauth2AvatarPolicy() *policy.Policy {
 // It must be called after loading settings
 func GetMigrationPolicy() *policy.Policy {
 	return migrationPolicy()
+}
+
+func GetGitPolicy() *policy.Policy {
+	return gitPolicy()
 }
 
 func GetWebhookPolicy() *policy.Policy {
