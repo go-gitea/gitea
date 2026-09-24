@@ -4,7 +4,11 @@
 package integration
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"slices"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -152,8 +156,20 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	mirror, err := repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
 	require.NoError(t, err)
 
-	// repoint the mirror at a host on BLOCKED_DOMAINS, which every sync must re-reject
-	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://blocked.example.com/repo.git"))
+	// an "internal" server that records whether it was reached; the mirror uses
+	// 127.0.0.1.nip.io, which is on BLOCKED_DOMAINS yet resolves to this server, so a
+	// sync failure can only be the policy
+	var reached atomic.Bool
+	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reached.Store(true)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer internal.Close()
+
+	// repoint the mirror at the blocked name serving the live server; every sync must re-reject it
+	blockedURL := strings.Replace(internal.URL, "127.0.0.1", "127.0.0.1.nip.io", 1) + "/repo.git"
+	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, blockedURL))
 
 	assert.False(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+	assert.False(t, reached.Load(), "the disallowed internal remote must not be reached")
 }

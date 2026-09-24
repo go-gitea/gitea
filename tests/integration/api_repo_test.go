@@ -380,7 +380,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		t.Run("DisallowedHost", func(t *testing.T) {
 			token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
 			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
-				CloneAddr:   "https://blocked.example.com/user/test_repo.git",
+				CloneAddr:   "https://example.net/user/test_repo.git",
 				RepoOwnerID: 3,
 				RepoName:    "blocked-host",
 			}).AddTokenAuth(token)
