@@ -66,8 +66,7 @@ type serverConfig struct {
 	operatorTLS *tls.Config
 }
 
-// newServer constructs the git proxy handler from cfg and wraps it in an http.Server.
-// It does not listen or serve; Run handles that.
+// newServer constructs the git proxy handler from cfg and returns it.
 func newServer(cfg serverConfig) (*gitProxyServer, error) {
 	operatorProxy := cfg.policy.ProxyURL()
 	dial := cfg.policy.NewDialContext()
@@ -93,7 +92,7 @@ func newServer(cfg serverConfig) (*gitProxyServer, error) {
 // registers the bound address via egress.SetGitProxyURL, and blocks until ready.
 // Git subprocesses spawned after it returns will be proxied.
 func Run(ctx context.Context) error {
-	return run(ctx, egress.GetMigrationPolicy())
+	return run(ctx, egress.GetGitPolicy())
 }
 
 // run is Run's testable core: it receives the policy as a parameter.
