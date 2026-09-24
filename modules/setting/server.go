@@ -101,6 +101,7 @@ var (
 	AcmeLiveDirectory          string
 	AcmeEmail                  string
 	AcmeURL                    string
+	AcmeProfile                string
 	AcmeCARoot                 string
 	SSLMinimumVersion          string
 	SSLMaximumVersion          string
@@ -171,6 +172,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		Protocol = HTTPS
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
+			AcmeProfile = sec.Key("ACME_PROFILE").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
 
 			if sec.HasKey("ACME_ACCEPTTOS") {
