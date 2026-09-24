@@ -180,7 +180,7 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 }
 
 func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (map[string]*runnerv1.TaskNeed, error) {
-	taskNeeds, err := FindTaskNeeds(ctx, taskJob)
+	taskNeeds, _, err := FindTaskNeeds(ctx, taskJob)
 	if err != nil {
 		return nil, err
 	}
