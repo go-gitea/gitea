@@ -93,6 +93,41 @@ export function initRepoIssueFilterItemLabel() {
   queryElems(document, '.ui.dropdown.label-filter', initRepoIssueLabelFilter);
 }
 
+export function toggleIssueCommentsOnlyFilter(root: ParentNode = document, commentsOnly: boolean) {
+  const commentList = root.querySelector('.repository.issue .comment-list');
+  if (!commentList) return;
+
+  for (const el of commentList.querySelectorAll<HTMLElement>('.timeline-item.event')) {
+    el.classList.toggle('tw-hidden', commentsOnly);
+  }
+}
+
+export function initRepoIssueCommentsFilter() {
+  const elFilterButton = document.querySelector<HTMLButtonElement>('#issue-comments-filter');
+  if (!elFilterButton) return;
+
+  const setFilterState = (commentsOnly: boolean) => {
+    elFilterButton.setAttribute('aria-pressed', String(commentsOnly));
+    const checkbox = elFilterButton.querySelector<HTMLInputElement>(
+      'input[type="checkbox"]'
+    );
+    if (checkbox) {
+      checkbox.checked = commentsOnly;
+    }
+  };
+
+  let commentsOnly = elFilterButton.getAttribute('data-comments-only-state') === 'true';
+  setFilterState(commentsOnly);
+  toggleIssueCommentsOnlyFilter(document, commentsOnly);
+
+  elFilterButton.addEventListener('click', () => {
+    commentsOnly = !commentsOnly;
+    elFilterButton.setAttribute('data-comments-only-state', String(commentsOnly));
+    setFilterState(commentsOnly);
+    toggleIssueCommentsOnlyFilter(document, commentsOnly);
+  });
+}
+
 export function initRepoIssueCommentDelete() {
   // Delete comment
   document.addEventListener('click', async (e) => {
