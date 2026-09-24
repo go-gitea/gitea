@@ -241,7 +241,7 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
     }
   };
 
-  dropdown.addEventListener('mousemove', () => dropdown.classList.remove('keyboard-nav')); // stands in for ":focus-visible", menu items never receive focus
+  dropdown.addEventListener('mousedown', () => dropdown.classList.remove('keyboard-nav')); // stands in for ":focus-visible", menu items never receive focus
 
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.isComposing) return;

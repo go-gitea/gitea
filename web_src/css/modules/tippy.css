@@ -105,10 +105,6 @@
   background: var(--color-hover);
 }
 
-.tippy-box[data-theme="menu"] .item:focus-visible {
-  background: var(--color-hover);
-}
-
 .tippy-box[data-theme="menu"] .item.active {
   background: var(--color-active);
 }

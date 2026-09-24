@@ -1799,10 +1799,6 @@ tbody.commit-list {
   border-top: none !important;
 }
 
-.branch-selector-dropdown .scrolling.menu > .item.selected {
-  font-weight: var(--font-weight-semibold);
-}
-
 .branch-selector-dropdown .menu .item .rss-icon {
   position: absolute;
   right: 4px;

@@ -502,6 +502,14 @@ select.ui.dropdown {
   line-height: 1.21428571em;
 }
 
+.ui.dropdown .menu .active.item {
+  background: var(--color-active);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text);
+  box-shadow: none;
+  z-index: 12;
+}
+
 .ui.dropdown.keyboard-nav .menu .selected.item {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
@@ -578,15 +586,7 @@ select.ui.dropdown {
 
 .ui.dropdown .menu .selected.item {
   color: var(--color-text);
-  background: var(--color-hover);
-}
-
-.ui.dropdown .menu .active.item { /* after ":hover" and ".selected" to keep the current value marked */
   background: var(--color-active);
-  font-weight: var(--font-weight-normal);
-  color: var(--color-text);
-  box-shadow: none;
-  z-index: 12;
 }
 
 .ui.dropdown > .filtered.text {
