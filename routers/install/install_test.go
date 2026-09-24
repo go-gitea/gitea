@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
 
@@ -58,5 +59,15 @@ func TestFillInstallConfig(t *testing.T) {
 		assert.Equal(t, "TestAppName", cfg.Section("").Key("APP_NAME").String())
 		assert.NotEmpty(t, cfg.Section("oauth2").Key("JWT_SECRET").String())
 		assert.Empty(t, cfg.Section("oauth2").Key("JWT_SECRET_URI").String())
+	})
+	t.Run("CleanUp", func(t *testing.T) {
+		tmpFile := t.TempDir() + "/test.ini"
+		f := &forms.InstallForm{AppName: "foo\x00\r\nbar"}
+		cfg := fillInstallConfig(ctx, []string{}, f)
+		err := cfg.SaveTo(tmpFile)
+		assert.NoError(t, err)
+		ini, err := setting.NewConfigProviderFromFile(tmpFile)
+		assert.NoError(t, err)
+		assert.Equal(t, `foo   bar`, ini.Section("").Key("APP_NAME").String())
 	})
 }
