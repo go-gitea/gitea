@@ -9,6 +9,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	repo_model "gitea.dev/models/repo"
@@ -32,6 +33,7 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/registry"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/go-enry/go-enry/v2"
 )
@@ -137,8 +139,15 @@ func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
 	return indexer.SearchModesExactWords()
 }
 
+var initOnce = sync.OnceFunc(func() {
+	util.MustNoError(registry.RegisterTokenizer(codeTokenizerName, codeTokenizerConstructor))
+	util.MustNoError(registry.RegisterTokenFilter(codeTokenFilterName, codeTokenFilterConstructor))
+	util.MustNoError(registry.RegisterTokenizer(pathTokenizerName, pathTokenizerConstructor))
+})
+
 // NewIndexer creates a new bleve local indexer
 func NewIndexer(indexDir string) *Indexer {
+	initOnce()
 	inner := inner_bleve.NewIndexer(indexDir, repoIndexerLatestVersion, generateBleveIndexMapping)
 	return &Indexer{
 		Indexer: inner,
