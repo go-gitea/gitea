@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/lfs"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/test"
@@ -34,6 +35,8 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	// add lfs object
 	lfsContent := []byte("gitea1")
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
+	lfsContentInRepoWithoutGitDir := []byte("gitea3")
+	storeObjectInRepo(t, 6, &lfsContentInRepoWithoutGitDir)
 
 	// gc
 	err = repo_service.GarbageCollectLFSMetaObjects(t.Context(), repo_service.GarbageCollectLFSMetaObjectsOptions{
@@ -62,6 +65,8 @@ func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 	lfsContent := []byte("gitea2")
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
 
+	assert.NoError(t, repo_module.UpdateRepoSize(t.Context(), repo))
+
 	err = repo_service.GarbageCollectLFSMetaObjectsForRepo(t.Context(), repo, repo_service.GarbageCollectLFSMetaObjectsOptions{
 		LogDetail:               func(string, ...any) {},
 		AutoFix:                 true,
@@ -72,6 +77,10 @@ func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 
 	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
 	assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
+
+	// LFSSize is recalculated to reflect the removed orphaned object
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.EqualValues(t, 0, repo.LFSSize)
 }
 
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
