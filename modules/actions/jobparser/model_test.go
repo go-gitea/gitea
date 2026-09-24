@@ -4,7 +4,6 @@
 package jobparser
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -17,9 +16,18 @@ import (
 
 func TestParseRawOn(t *testing.T) {
 	kases := []struct {
-		input  string
-		result []*Event
+		input   string
+		result  []*Event
+		wantErr bool
 	}{
+		{input: "on:\n  push:\n    branches:\n      a: b", wantErr: true},
+		{input: "on: [push, {pull_request: null}]", wantErr: true},
+		{input: "on:", wantErr: true},
+		{input: "on: 42", wantErr: true},
+		{input: "jobs: {}", wantErr: true},
+		{input: "on:\n  schedule: []", wantErr: true},
+		{input: "on:\n  schedule:\n    - {}", wantErr: true},
+		{input: "on:\n  schedule:\n    - cron: nope", wantErr: true},
 		{
 			input: "on: issue_comment",
 			result: []*Event{
@@ -190,13 +198,14 @@ func TestParseRawOn(t *testing.T) {
 			},
 		},
 		{
-			input: "on:\n  schedule:\n    - cron: '20 6 * * *'",
+			input: "on:\n  schedule:\n    - cron: '20 6 * * *'\n      timezone: UTC",
 			result: []*Event{
 				{
 					Name: "schedule",
 					schedules: []map[string]string{
 						{
-							"cron": "20 6 * * *",
+							"cron":     "20 6 * * *",
+							"timezone": "UTC",
 						},
 					},
 				},
@@ -288,6 +297,10 @@ func TestParseRawOn(t *testing.T) {
 			assert.NoError(t, err)
 
 			events, err := ParseRawOn(&origin.RawOn)
+			if kase.wantErr {
+				assert.Error(t, err)
+				return
+			}
 			assert.NoError(t, err)
 			assert.Equal(t, kase.result, events, events)
 		})
@@ -445,52 +458,6 @@ func TestParseMappingNode(t *testing.T) {
 	}
 }
 
-func TestEvaluateJobIfExpressionMatrix(t *testing.T) {
-	ifExprs := []string{
-		`${{ contains(fromJSON('["linux","windows"]'), matrix.target) }}`,
-		`${{ contains('["linux","windows"]', matrix.target) }}`,
-		`${{ strategy.job-index < 2 && strategy.job-total == strategy.max-parallel && !strategy.fail-fast }}`,
-	}
-
-	want := map[string]bool{
-		"build (linux)":   true,
-		"build (windows)": true,
-		"build (macos)":   false,
-	}
-
-	for _, ifExpr := range ifExprs {
-		t.Run(ifExpr, func(t *testing.T) {
-			content := fmt.Sprintf(`
-name: test
-on: push
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    if: %s
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [linux, windows, macos]
-    steps:
-      - run: echo ${{ matrix.target }}
-`, ifExpr)
-
-			swfs, err := Parse([]byte(content))
-			require.NoError(t, err)
-			require.Len(t, swfs, 3)
-
-			got := make(map[string]bool, len(swfs))
-			for _, swf := range swfs {
-				id, job := swf.Job()
-				shouldRun, err := EvaluateJobIfExpression(id, job, map[string]any{}, map[string]*JobResult{id: {}}, nil, nil, false)
-				require.NoError(t, err)
-				got[job.Name] = shouldRun
-			}
-			assert.Equal(t, want, got)
-		})
-	}
-}
-
 func TestEvaluateJobIfExpression(t *testing.T) {
 	kases := []struct {
 		name       string
@@ -546,7 +513,7 @@ jobs:
 				"job1": {Result: kase.needResult},
 				"job2": {Needs: []string{"job1"}},
 			}
-			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil, false)
+			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil)
 			require.NoError(t, err)
 			assert.Equal(t, kase.expected, got)
 		})

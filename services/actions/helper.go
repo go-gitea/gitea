@@ -96,15 +96,11 @@ func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
 func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
 	parsedJob, err := job.ParseJob()
 	if err != nil {
-		return skipJobOnIfError(ctx, job, err)
+		return false, upsertJobErrorSummary(ctx, job, "if", err)
 	}
 	// Empty `if:` reduces to implicit `success()` - true iff every need finished as Success.
 	if len(parsedJob.If.Value) == 0 {
 		return allNeedsSucceed, nil
-	}
-	// gate on needs only, the post-expansion pass decides it per combination
-	if job.IsMatrixDeferred && jobparser.ExpressionReadsCombination(parsedJob.If.Value) {
-		return allNeedsSucceed || jobparser.ExpressionIgnoresNeedResults(parsedJob.If.Value), nil
 	}
 	jobResults, err := findJobNeedsAndFillJobResults(ctx, job)
 	if err != nil {
@@ -123,15 +119,12 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 		return false, err
 	}
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
-	shouldStart, err := jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs, job.IsMatrixDeferred)
+	gitCtx["job"] = "" // github.com decides a job's `if:` before the job exists
+	shouldStart, err := jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
 	if err != nil {
-		return skipJobOnIfError(ctx, job, err)
+		return false, upsertJobErrorSummary(ctx, job, "if", err)
 	}
 	return shouldStart, nil
-}
-
-func skipJobOnIfError(ctx context.Context, job *actions_model.ActionRunJob, err error) (bool, error) {
-	return false, upsertJobErrorSummary(ctx, job, "if", err)
 }
 
 func upsertJobErrorSummary(ctx context.Context, job *actions_model.ActionRunJob, key string, err error) error {
@@ -140,20 +133,39 @@ func upsertJobErrorSummary(ctx context.Context, job *actions_model.ActionRunJob,
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {
-	taskNeeds, err := FindTaskNeeds(ctx, job)
+	taskNeeds, jobsByID, err := FindTaskNeeds(ctx, job)
 	if err != nil {
 		return nil, fmt.Errorf("find task needs: %w", err)
 	}
-	jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
+	jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds)+1)
 	for jobID, taskNeed := range taskNeeds {
-		jobResult := &jobparser.JobResult{
+		jobResults[jobID] = &jobparser.JobResult{
 			Result:  taskNeed.Result.String(),
 			Outputs: taskNeed.Outputs,
 		}
-		jobResults[jobID] = jobResult
 	}
 	jobResults[job.JobID] = &jobparser.JobResult{
 		Needs: job.Needs,
+	}
+	if len(job.Needs) == 0 {
+		return jobResults, nil
+	}
+
+	queue := append([]string(nil), job.Needs...)
+	for len(queue) > 0 {
+		jobID := queue[0]
+		queue = queue[1:]
+		if len(jobsByID[jobID]) == 0 {
+			continue
+		}
+		if jobResults[jobID] == nil {
+			jobResults[jobID] = &jobparser.JobResult{Result: actions_model.AggregateJobStatus(jobsByID[jobID]).String()}
+		}
+		if jobResults[jobID].Needs != nil {
+			continue
+		}
+		jobResults[jobID].Needs = jobsByID[jobID][0].Needs
+		queue = append(queue, jobResults[jobID].Needs...)
 	}
 	return jobResults, nil
 }

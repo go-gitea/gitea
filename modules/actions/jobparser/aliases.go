@@ -28,7 +28,10 @@ func readWorkflowDoc(doc *yaml.Node) (*model.Workflow, error) {
 		return nil, io.EOF // what a yaml decoder reports for an empty file
 	}
 	w := new(model.Workflow)
-	return w, doc.Decode(w)
+	if err := doc.Decode(w); err != nil {
+		return w, err
+	}
+	return w, validateJobConditions(w)
 }
 
 // decodeResolved is yaml.Unmarshal with aliases expanded first.

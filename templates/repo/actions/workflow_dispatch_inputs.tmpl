@@ -24,7 +24,7 @@
 				</label>
 			{{else if eq .Type "number"}}
 				<label>{{or .Description .Name}}:</label>
-				<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
+				<input type="number" step="any" name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>
 			{{else}}
 				<label>{{or .Description .Name}}:</label>
 				<input name="{{.Name}}" value="{{.Default}}" {{if .Required}}required{{end}}>

@@ -213,6 +213,7 @@ func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
 	clone.RunsOn = parsed.RunsOn()
 	clone.ContinueOnError = parsed.GetContinueOnError()
+	clone.MaxParallel = parseMaxParallel(clone.JobID, parsed.Strategy.MaxParallelString)
 	clone.IsMatrixDeferred = true
 	return nil
 }

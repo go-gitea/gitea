@@ -4,9 +4,11 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 
 	"gitea.dev/actionslib/pkg/expreval"
@@ -99,6 +101,11 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"workflow":          run.WorkflowID,                           // string, The name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
 		"workspace":         "",                                       // string, The default working directory on the runner for steps, and the default location of your repository when using the checkout action.
 
+		"actor_id":            strconv.FormatInt(run.TriggerUserID, 10),
+		"repository_id":       strconv.FormatInt(run.RepoID, 10),
+		"repository_owner_id": strconv.FormatInt(run.Repo.OwnerID, 10),
+		"workflow_sha":        run.WorkflowCommitSHA,
+
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
 	}
@@ -167,9 +174,9 @@ type TaskNeed struct {
 
 // FindTaskNeeds finds the `needs` for the task by the task's job.
 // Lookup is scoped to the same ParentJobID.
-func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, error) {
+func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, map[string][]*actions_model.ActionRunJob, error) {
 	if len(job.Needs) == 0 {
-		return nil, nil //nolint:nilnil // return nil when the job has no needs
+		return nil, nil, nil
 	}
 	needs := container.SetOf(job.Needs...)
 
@@ -181,7 +188,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, findOpts)
 	if err != nil {
-		return nil, fmt.Errorf("FindRunJobs: %w", err)
+		return nil, nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
 
 	jobIDJobs := make(map[string][]*actions_model.ActionRunJob)
@@ -202,9 +209,10 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		if !needs.Contains(jobID) {
 			continue
 		}
+		sortJobsByCompletion(jobsWithSameID)
 		var jobOutputs map[string]string
 		for _, candidate := range jobsWithSameID {
-			if !candidate.Status.IsDone() {
+			if !candidate.Status.IsDone() || candidate.IsReusableCaller && candidate.Status != actions_model.StatusSuccess {
 				continue
 			}
 			var outputs map[string]string
@@ -215,7 +223,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 				outputs, err = loadJobTaskOutputs(ctx, candidate)
 			}
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if len(jobOutputs) == 0 {
 				jobOutputs = outputs
@@ -228,7 +236,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 			Result:  actions_model.AggregateJobStatus(jobsWithSameID),
 		}
 	}
-	return ret, nil
+	return ret, jobIDJobs, nil
 }
 
 // computeReusableCallerOutputs returns the workflow_call outputs of a reusable caller by recursing into its child subtree.
@@ -252,6 +260,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	}
 
 	// Per-job outputs over the children of this caller.
+	sortJobsByCompletion(directChildren)
 	jobOutputs := make(map[string]*model.WorkflowCallResult, len(directChildren))
 	for _, child := range directChildren {
 		var outs map[string]string
@@ -297,6 +306,12 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 		Vars:   vars,
 		Inputs: inputs,
 	}, exprparser.Config{}).Evaluate).EvaluateWorkflowCallOutputs(wcSpec)
+}
+
+func sortJobsByCompletion(jobs []*actions_model.ActionRunJob) {
+	slices.SortFunc(jobs, func(left, right *actions_model.ActionRunJob) int {
+		return cmp.Or(cmp.Compare(left.Stopped, right.Stopped), cmp.Compare(left.ID, right.ID))
+	})
 }
 
 // loadJobTaskOutputs returns the task-output map of `job`.

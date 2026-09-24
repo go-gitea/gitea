@@ -24,13 +24,38 @@ func ResolveCallerInputs(
 	vars map[string]string,
 	inputs map[string]any,
 ) (map[string]any, error) {
-	evaluator, err := newJobEvaluator(jobID, job, true, gitCtx, results, vars, inputs)
+	if job.With.Kind != 0 && job.With.Kind != yaml.MappingNode {
+		return nil, errors.New("caller with must be a mapping")
+	}
+	evaluator, err := newJobEvaluator(jobID, job, gitCtx, results, vars, inputs)
 	if err != nil {
 		return nil, fmt.Errorf("get caller %q matrix: %w", jobID, err)
 	}
 	var with map[string]any
 	if err := model.DecodeEvaluated("with", job.With, evaluator.EvaluateYamlNode, &with); err != nil {
 		return nil, err
+	}
+	declared := make(map[string]model.WorkflowCallInput, len(config.Inputs))
+	for name, input := range config.Inputs {
+		declared[strings.ToLower(name)] = input
+	}
+	for name, value := range with {
+		input, ok := declared[strings.ToLower(name)]
+		if !ok {
+			continue // ignored as in released Gitea, github.com rejects an undeclared input
+		}
+		switch input.Type {
+		case "boolean":
+			if _, ok := value.(bool); !ok {
+				return nil, fmt.Errorf("input %s: expected a boolean, got %T", name, value)
+			}
+		case "number":
+			switch value.(type) {
+			case float64, int, int64, uint64:
+			default:
+				return nil, fmt.Errorf("input %s: expected a number, got %T", name, value)
+			}
+		}
 	}
 	return evaluator.ResolveWorkflowCallInputs(config, with)
 }

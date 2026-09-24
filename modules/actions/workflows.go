@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path"
@@ -120,19 +121,19 @@ func GetContentFromEntry(ctx context.Context, gitRepo *git.Repository, entry *gi
 }
 
 func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := jobparser.ReadWorkflow(content)
-	if err != nil {
-		return nil, err
-	}
-	events, err := jobparser.ParseRawOn(&workflow.RawOn)
-	if err != nil {
-		return nil, err
-	}
-	if err := ValidateWorkflowContent(content); err != nil {
-		return nil, err
-	}
+	events, _, err := readWorkflowEvents(content)
+	return events, err
+}
 
-	return events, nil
+// readWorkflowEvents also reports whether its error needs no run-time values to find, as a parse error of a workflow without expressions does.
+func readWorkflowEvents(content []byte) (events []*jobparser.Event, static bool, err error) {
+	if events, err = jobparser.ValidateWorkflowStatic(content); err != nil {
+		return nil, true, err
+	}
+	if err = ValidateWorkflowContent(content); err != nil {
+		return nil, !bytes.Contains(content, []byte("${{")), err
+	}
+	return events, false, nil
 }
 
 // ValidateWorkflowContent catches structural errors (e.g. blank lines in run: | blocks)
@@ -197,10 +198,10 @@ func DetectWorkflows(
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, static, err := readWorkflowEvents(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
-			if _, err := jobparser.ReadWorkflow(content); err != nil { // not an error that needs run-time values, like `run-name` reading inputs
+			if static {
 				invalid[entry.Name()] = err
 			}
 			continue

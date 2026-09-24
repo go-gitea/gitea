@@ -15,6 +15,7 @@ import (
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
@@ -29,9 +30,8 @@ import (
 	"xorm.io/builder"
 )
 
-// MaxReusableCallLevels caps how deep a reusable workflow can nest:
-// a top-level caller may have at most MaxReusableCallLevels nested callers below it.
-const MaxReusableCallLevels = 9
+// MaxReusableCallLevels allows nine calls across ten workflows, including the top-level workflow.
+const MaxReusableCallLevels = 8
 
 // checkRunJobLimit rejects an expansion that would push the attempt over actions_model.MaxJobNumPerRun.
 // checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
@@ -72,7 +72,11 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 		return bytes, callerRepo.ID, resolvedSHA, nil
 
 	default:
+		unavailable := fmt.Errorf("reusable workflow repository %s/%s does not exist or is not readable", ref.Owner, ref.Repo) // the same for both, so a run cannot tell whether a private one exists
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo)
+		if repo_model.IsErrRepoNotExist(err) {
+			return nil, 0, "", unavailable
+		}
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("look up cross-repo workflow source %q: %w", ref.Owner+"/"+ref.Repo, err)
 		}
@@ -81,12 +85,7 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 			return nil, 0, "", err
 		}
 		if !ok {
-			if run.IsScopedRun {
-				// A scoped workflow's cross-repo "uses:" is resolved with the consuming repo's read permission,
-				// so the referenced repo must be readable by every consumer. Make that explicit in the failure.
-				return nil, 0, "", fmt.Errorf("no permission to read reusable workflow %s/%s: a scoped workflow's cross-repo \"uses:\" is resolved with the consuming repository %q read permission", ref.Owner, ref.Repo, run.Repo.FullName())
-			}
-			return nil, 0, "", fmt.Errorf("no permission to read reusable workflow from %s/%s", ref.Owner, ref.Repo)
+			return nil, 0, "", unavailable
 		}
 		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
 		if err != nil {
@@ -131,10 +130,6 @@ func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refO
 // checkCallerChain walks `caller`'s ancestor chain (via ParentJobID) and:
 //   - rejects cycles (caller.CallUses appearing in any ancestor's CallUses)
 //   - enforces MaxReusableCallLevels on the number of ancestors above `caller`
-//
-// Cycle detection is intentionally *syntactic* (string equality on canonicalCallUses), not semantic.
-// So `owner/repo/lib.yml@v1` and `owner/repo/lib.yml@refs/heads/v1` resolving to the same commit are NOT treated as the same node.
-// Going semantic (Owner, Repo, Path, ResolvedSHA tuples) would require extra git reads.
 func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) error {
 	if caller.ParentJobID == 0 {
 		return nil // top-level caller: depth 0, no ancestors to walk
@@ -157,6 +152,24 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 		if current.IsReusableCaller && current.CallUses != "" && !visited.Add(canonicalCallUses(current)) {
 			return fmt.Errorf("reusable workflow call cycle detected: %q", current.CallUses)
 		}
+	}
+	return nil
+}
+
+func checkResolvedCallerCycle(ctx context.Context, caller *actions_model.ActionRunJob, sourceRepoID int64, sourceCommitSHA, path string) error {
+	for current := caller; current.ParentJobID != 0; {
+		parent, err := actions_model.GetRunJobByRunAndID(ctx, current.RunID, current.ParentJobID)
+		if err != nil {
+			return fmt.Errorf("walk caller chain: %w", err)
+		}
+		ref, err := ResolveUses(ctx, parent.CallUses)
+		if err != nil {
+			return fmt.Errorf("resolve ancestor uses %q: %w", parent.CallUses, err)
+		}
+		if current.WorkflowSourceRepoID == sourceRepoID && current.WorkflowSourceCommitSHA == sourceCommitSHA && ref.Path == path {
+			return fmt.Errorf("reusable workflow call cycle detected: %q", caller.CallUses)
+		}
+		current = parent
 	}
 	return nil
 }
@@ -205,6 +218,9 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 	content, contentSourceRepoID, contentSourceCommitSHA, err := loadReusableWorkflowSource(ctx, run, caller, ref)
 	if err != nil {
+		return err
+	}
+	if err := checkResolvedCallerCycle(ctx, caller, contentSourceRepoID, contentSourceCommitSHA, ref.Path); err != nil {
 		return err
 	}
 
@@ -302,6 +318,23 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 
 // insertCallerChildren parses the called workflow with the caller's resolved inputs and inserts each parsed job.
 func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, content []byte, sourceRepoID int64, sourceCommitSHA string, vars map[string]string, inputs map[string]any) error {
+	callerPermissions := caller.TokenPermissions
+	if callerPermissions == nil {
+		actionsUnit, err := run.Repo.GetUnit(ctx, unit.TypeActions)
+		if err != nil {
+			return fmt.Errorf("load caller repository Actions settings: %w", err)
+		}
+		if config := actionsUnit.ActionsConfig(); config.OverrideOwnerConfig {
+			callerPermissions = new(config.GetDefaultTokenPermissions())
+		} else {
+			ownerConfig, err := actions_model.GetOwnerActionsConfig(ctx, run.OwnerID)
+			if err != nil {
+				return fmt.Errorf("load caller owner Actions settings: %w", err)
+			}
+			callerPermissions = new(ownerConfig.GetDefaultTokenPermissions())
+		}
+	}
+
 	// Parse the called workflow with the caller's `inputs`
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	if event, ok := gitCtx["event"].(map[string]any); ok {
@@ -384,7 +417,9 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			child.DeferredMatrixPayload = payload
 		}
 		if perms := ExtractJobPermissionsFromWorkflow(sw, parsedChild); perms != nil {
-			child.TokenPermissions = perms
+			child.TokenPermissions = new(repo_model.ClampActionsTokenPermissions(*perms, *callerPermissions))
+		} else {
+			child.TokenPermissions = callerPermissions
 		}
 		if parsedChild.Uses != "" {
 			child.IsReusableCaller = true

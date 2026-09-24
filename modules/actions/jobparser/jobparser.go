@@ -17,13 +17,11 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// HasDeferredMatrix reports whether the job's matrix can only be expanded once its needs finish:
-// it or another field of the strategy reads the needs context and the job has needs to resolve that context against.
-// Parse emits such a job as a single placeholder rather than one job per combination, so every
-// caller that persists a job must agree with Parse on this condition.
+// HasDeferredMatrix reports whether the job's strategy, name, runs-on or continue-on-error need outputs before they can be resolved.
 func HasDeferredMatrix(job *Job) bool {
 	return len(job.Needs()) > 0 && (nodeMatches(&job.Strategy.RawMatrix, expressionReadsNeeds) || expressionReadsNeeds(job.Strategy.RawExpression.Value) ||
-		job.Strategy.RawMatrix.Kind != 0 && (expressionReadsNeeds(job.Strategy.MaxParallelString) || expressionReadsNeeds(job.Strategy.FailFastString)))
+		expressionReadsNeeds(job.Strategy.MaxParallelString) || expressionReadsNeeds(job.Strategy.FailFastString) ||
+		expressionReadsNeeds(job.Name) || nodeMatches(&job.RawRunsOn, expressionReadsNeeds) || nodeMatches(&job.RawContinueOnError, expressionReadsNeeds))
 }
 
 func nodeMatches(node *yaml.Node, match func(string) bool) bool {
@@ -35,6 +33,14 @@ func nodeMatches(node *yaml.Node, match func(string) bool) bool {
 
 func hasExpression(value string) bool {
 	return strings.Contains(value, "${{")
+}
+
+// IfExpression wraps an `if:` that omits the `${{ }}`, which github.com evaluates as one expression anyway.
+func IfExpression(value string) string {
+	if hasExpression(value) {
+		return value
+	}
+	return "${{ " + value + " }}"
 }
 
 // ParseRawSingleWorkflow decodes a stored SingleWorkflow payload into the workflow and its single job as stored, without expanding or evaluating it again.
@@ -59,29 +65,6 @@ func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, *Job, error) {
 // contexts the run publishes, which a repository's required checks are configured against.
 func expressionReadsNeeds(value string) bool {
 	return expreval.ReadsContext(value, "needs")
-}
-
-// ExpressionReadsCombination reports whether an `if:` reads `matrix` or `strategy`, which a deferred placeholder lacks.
-func ExpressionReadsCombination(ifValue string) bool {
-	expression := asIfExpression(ifValue)
-	return expreval.ReadsContext(expression, "matrix") || expreval.ReadsContext(expression, "strategy")
-}
-
-// ExpressionIgnoresNeedResults reports whether a job's `if:` calls always(), failure() or cancelled(),
-// the status functions that run a job whatever its needs did rather than under the implicit success().
-// Keep in sync with act's exprparser, which owns the same list for the evaluation itself.
-func ExpressionIgnoresNeedResults(ifValue string) bool {
-	return expreval.CallsFunction(asIfExpression(ifValue), "always", "failure", "cancelled")
-}
-
-// asIfExpression wraps an `if:` that omits the `${{ }}`, which GitHub evaluates as one expression anyway.
-// `if:` is the only field with that exception: every other value is interpolated, so a bare matrix or
-// `runs-on` is a literal there and must not be parsed as an expression.
-func asIfExpression(ifValue string) string {
-	if ifValue == "" || strings.Contains(ifValue, "${{") {
-		return ifValue
-	}
-	return "${{ " + ifValue + " }}"
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
@@ -131,17 +114,8 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 
 	for i, id := range ids {
 		job := jobs[i]
-		originJob := origin.GetJob(id)
-
-		if originJob == nil {
-			return nil, fmt.Errorf("job %s not found in origin workflow", id)
-		}
-
 		var combos []*Job
 		if HasDeferredMatrix(job) || pc.gitContext == nil && (job.Strategy.RawExpression.Kind != 0 || nodeMatches(&job.Strategy.RawMatrix, hasExpression)) {
-			// The strategy reads values that do not exist yet (a needs output, or any context without
-			// a git context), so emit a single placeholder keeping it raw. Re-parsing that placeholder's
-			// payload yields it again, and the server expands it once the needs finish.
 			placeholder := job.Clone()
 			if placeholder.Name == "" {
 				placeholder.Name = id
@@ -152,9 +126,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				if err := job.Strategy.resolve(evaluator); err != nil {
 					return nil, fmt.Errorf("job %q: %w", id, err)
 				}
-				originJob.Strategy = job.Strategy.actStrategy()
 			}
-			matrixes, err := originJob.GetMatrixes()
+			// Keep accepting empty exclude mappings for workflow compatibility, although GitHub rejects them.
+			matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).GetMatrixes()
 			if err != nil {
 				return nil, fmt.Errorf("getMatrixes: %w", err)
 			}
@@ -199,19 +173,13 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	if err != nil {
 		return nil, fmt.Errorf("getMatrixes: %w", err)
 	}
-	// act collapses a matrix that yields no combination (an empty vector or include, everything
-	// excluded, a whole-matrix expression that is not a mapping) into one empty combination, which
-	// would run the job once unparameterized. GitHub rejects such a matrix, so reject it too.
-	if len(matrixes) == 1 && len(matrixes[0]) == 0 {
-		return nil, errors.New("matrix must define at least one vector")
-	}
 	if len(matrixes) > maxCombinations {
 		return nil, fmt.Errorf("matrix expands to %d combinations, exceeding the limit of %d", len(matrixes), maxCombinations)
 	}
 	return buildMatrixCombos(jobID, job, matrixes, gitCtx, results, vars, inputs)
 }
 
-// resolve evaluates the strategy and escapes fail-fast and max-parallel for the runner, leaving unevaluable ones to its defaults.
+// resolve evaluates strategy values once and escapes expression-like results for the runner.
 func (s *Strategy) resolve(evaluator expreval.Evaluator) error {
 	if s.RawExpression.Kind != 0 {
 		if err := model.DecodeEvaluated("strategy", s.RawExpression, evaluator.EvaluateYamlNode, s); err != nil {
@@ -222,9 +190,11 @@ func (s *Strategy) resolve(evaluator expreval.Evaluator) error {
 		}
 	} else {
 		for _, value := range []*string{&s.FailFastString, &s.MaxParallelString} {
-			if evaluated, err := evaluator.Interpolate(*value); err == nil {
-				*value = evaluated
+			evaluated, err := evaluator.Interpolate(*value)
+			if err != nil {
+				return fmt.Errorf("evaluate strategy: %w", err)
 			}
+			*value = evaluated
 		}
 		if err := evaluator.EvaluateYamlNode(&s.RawMatrix); err != nil {
 			return fmt.Errorf("evaluate matrix: %w", err)
@@ -271,11 +241,17 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx
 		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
 		replaceScalars(&combo.Strategy.RawMatrix, escapeExpressions)
-		if len(matrix) > 0 {
+		if src.Strategy.RawMatrix.Kind != 0 {
 			combo.Strategy.JobIndex, combo.Strategy.JobTotal = index, len(matrixes)
 		}
 		evaluator := expreval.New(NewInterpeter(jobID, &combo.Strategy, matrix, gitCtx, results, vars, inputs).Evaluate)
-		if combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator); err != nil {
+		if len(matrix) == 0 && gitCtx != nil {
+			combo.Name, err = evaluator.Interpolate(combo.Name)
+			combo.Name = escapeExpressions(combo.Name)
+		} else {
+			combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator)
+		}
+		if err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
 		if gitCtx != nil { // callers without one don't read runs-on
@@ -294,6 +270,14 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx
 		}
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
+		}
+		if combo.RawContinueOnError.Kind != 0 {
+			var continueOnError bool
+			if err := combo.RawContinueOnError.Decode(&continueOnError); err == nil {
+				_ = combo.RawContinueOnError.Encode(continueOnError)
+			} else {
+				replaceScalars(&combo.RawContinueOnError, escapeExpressions)
+			}
 		}
 		combos = append(combos, combo)
 	}

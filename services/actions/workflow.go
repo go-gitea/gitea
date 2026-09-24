@@ -140,6 +140,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, err
 	}
 
+	if _, err := jobparser.ValidateWorkflowStatic(content); err != nil {
+		return 0, util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid workflow %q: %v", workflowID, err), "actions.runs.invalid_workflow_helper", err.Error())
+	}
 	workflow, err := jobparser.ReadWorkflow(content)
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(util.NewInvalidArgumentErrorf("invalid workflow %q: %v", workflowID, err), "actions.runs.invalid_workflow_helper", err.Error())

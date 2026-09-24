@@ -14,7 +14,9 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
@@ -81,6 +83,8 @@ on:
 
 jobs:
   reusable1_job1:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - run: echo 'reusable1_job1'
@@ -135,6 +139,8 @@ jobs:
 
   caller_job2:
     needs: [caller_job1]
+    permissions:
+      contents: read
     uses: './.gitea/workflows/reusable1.yaml'
     with:
       str_input: 'from_caller_job2'
@@ -204,6 +210,8 @@ jobs:
 				_, r1Job1, _ := getTaskAndJobAndRunByTaskID(t, r1Job1Task.Id)
 				assert.Equal(t, "reusable1_job1", r1Job1.JobID)
 				assert.Equal(t, callerJob2ID, r1Job1.ParentJobID)
+				require.NotNil(t, r1Job1.TokenPermissions)
+				assert.Equal(t, perm_model.AccessModeRead, r1Job1.TokenPermissions.UnitAccessModes[unit.TypeCode])
 				payload := getWorkflowCallPayloadFromTask(t, r1Job1Task)
 				if assert.Len(t, payload.Inputs, 5) {
 					assert.Equal(t, "from_caller_job2", payload.Inputs["str_input"])
@@ -253,6 +261,8 @@ jobs:
 				r1Job3AttemptJobID = r1Job3.AttemptJobID
 				r2Job1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable2_job1"})
 				assert.Equal(t, r1Job3ID, r2Job1.ParentJobID)
+				require.NotNil(t, r2Job1.TokenPermissions)
+				assert.Equal(t, perm_model.AccessModeRead, r2Job1.TokenPermissions.UnitAccessModes[unit.TypeCode])
 				r2Job1AttemptJobID = r2Job1.AttemptJobID
 
 				r2Job1Task := defaultRunner.fetchTask(t) // for reusable2_job1

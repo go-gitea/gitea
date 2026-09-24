@@ -82,6 +82,15 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 		},
 		{
+			name: "failure checks transitive needs after a skipped job",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "fail", Status: actions_model.StatusFailure},
+				{ID: 2, JobID: "skipped", Status: actions_model.StatusSkipped, Needs: []string{"fail"}},
+				{ID: 3, JobID: "recover", Status: actions_model.StatusBlocked, Needs: []string{"skipped"}, WorkflowPayload: []byte(`jobs: {recover: {if: "${{ failure() }}"}}`)},
+			},
+			want: map[int64]actions_model.Status{3: actions_model.StatusWaiting},
+		},
+		{
 			name: "loop need",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusBlocked, Needs: []string{"3"}},
@@ -317,6 +326,50 @@ jobs:
 				require.NoError(t, err)
 				require.Len(t, summaries, 1)
 				assert.Contains(t, summaries[0].Content, tt.note)
+			}
+		})
+	}
+}
+
+func Test_cancelFailedMatrixSiblings(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	for index, test := range []struct {
+		name            string
+		failFast        bool
+		continueOnError bool
+		wantCancelled   bool
+	}{
+		{name: "fail fast cancels a queued combination", failFast: true, wantCancelled: true},
+		{name: "disabled fail fast keeps a queued combination", failFast: false},
+		{name: "continued failure keeps a queued combination", failFast: true, continueOnError: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := t.Context()
+			run := &actions_model.ActionRun{RepoID: 1, OwnerID: 1, TriggerUserID: 1, WorkflowID: "matrix.yml", Index: int64(12000 + index), Status: actions_model.StatusRunning}
+			require.NoError(t, db.Insert(ctx, run))
+			attempt := &actions_model.ActionRunAttempt{RepoID: 1, RunID: run.ID, Attempt: 1, Status: actions_model.StatusRunning}
+			require.NoError(t, db.Insert(ctx, attempt))
+			_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+			require.NoError(t, err)
+			jobs := actions_model.ActionJobList{
+				{RunID: run.ID, RunAttemptID: attempt.ID, RepoID: 1, OwnerID: 1, JobID: "matrix", Status: actions_model.StatusFailure, ContinueOnError: test.continueOnError, WorkflowPayload: fmt.Appendf(nil, "jobs: {matrix: {strategy: {fail-fast: %t}}}", test.failFast)},
+				{RunID: run.ID, RunAttemptID: attempt.ID, RepoID: 1, OwnerID: 1, JobID: "matrix", Status: actions_model.StatusWaiting},
+			}
+			for _, job := range jobs {
+				require.NoError(t, db.Insert(ctx, job))
+			}
+			cancelled, err := cancelFailedMatrixSiblings(ctx, jobs)
+			require.NoError(t, err)
+			if test.wantCancelled {
+				require.Len(t, cancelled, 1)
+				assert.Equal(t, jobs[1].ID, cancelled[0].ID)
+				assert.Equal(t, actions_model.StatusCancelled, cancelled[0].Status)
+				run, err = actions_model.GetRunByRepoAndID(ctx, 1, run.ID)
+				require.NoError(t, err)
+				assert.Equal(t, actions_model.StatusFailure, run.Status)
+			} else {
+				assert.Empty(t, cancelled)
+				assert.Equal(t, actions_model.StatusWaiting, jobs[1].Status)
 			}
 		})
 	}

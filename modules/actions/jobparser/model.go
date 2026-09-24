@@ -14,6 +14,7 @@ import (
 	"gitea.dev/actionslib/pkg/model"
 	"gitea.dev/modules/util"
 
+	"github.com/robfig/cron/v3"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -313,29 +314,27 @@ func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
 	return w.RawConcurrency, nil
 }
 
-// newJobEvaluator evaluates against a stored job's contexts, with its single matrix combination unless withMatrix is false for a deferred placeholder.
-func newJobEvaluator(jobID string, job *Job, withMatrix bool, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (expreval.Evaluator, error) {
+// newJobEvaluator evaluates against a stored job's contexts, with its single matrix combination.
+func newJobEvaluator(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (expreval.Evaluator, error) {
 	var strategy *Strategy
 	var matrix map[string]any
 	if job != nil {
 		strategy = &job.Strategy
-		if withMatrix {
-			rawMatrix := model.CloneYamlNode(job.Strategy.RawMatrix)
-			replaceScalars(&rawMatrix, unescapeExpressions)
-			matrixes, err := (&model.Job{Strategy: &model.Strategy{RawMatrix: rawMatrix}}).GetMatrixes()
-			if err != nil {
-				return expreval.Evaluator{}, err
-			}
-			if len(matrixes[0]) > 0 {
-				matrix = matrixes[0]
-			}
+		rawMatrix := model.CloneYamlNode(job.Strategy.RawMatrix)
+		replaceScalars(&rawMatrix, unescapeExpressions)
+		matrixes, err := (&model.Job{Strategy: &model.Strategy{RawMatrix: rawMatrix}}).GetMatrixes()
+		if err != nil {
+			return expreval.Evaluator{}, err
+		}
+		if len(matrixes[0]) > 0 {
+			matrix = matrixes[0]
 		}
 	}
 	return expreval.New(NewInterpeter(jobID, strategy, matrix, model.GithubContextFromMap(gitCtx), results, vars, inputs).Evaluate), nil
 }
 
 func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (string, bool, error) {
-	evaluator, err := newJobEvaluator(jobID, job, true, gitCtx, results, vars, inputs)
+	evaluator, err := newJobEvaluator(jobID, job, gitCtx, results, vars, inputs)
 	if err != nil {
 		return "", false, err
 	}
@@ -366,6 +365,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 		err := rawOn.Decode(&val)
 		if err != nil {
 			return nil, err
+		}
+		if rawOn.ShortTag() != "!!str" || val == "" {
+			return nil, fmt.Errorf("invalid event %q", val)
 		}
 		if val == workflowCallEvent {
 			return []*Event{}, nil
@@ -416,17 +418,23 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 				}
 				schedules := make([]map[string]string, len(t))
 				if k == "schedule" {
+					if len(t) == 0 {
+						return nil, errors.New("schedule must contain at least one cron entry")
+					}
 					for i, tt := range t {
 						vv, ok := tt.(map[string]any)
 						if !ok {
-							return nil, fmt.Errorf("unknown on type(schedule): %#v", v)
+							return nil, errors.New("unknown on type(schedule)")
 						}
 						schedules[i] = make(map[string]string, len(vv))
 						for k, vvv := range vv {
 							var ok bool
 							if schedules[i][k], ok = vvv.(string); !ok {
-								return nil, fmt.Errorf("unknown on type(schedule): %#v", v)
+								return nil, errors.New("unknown on type(schedule)")
 							}
+						}
+						if _, err := cron.ParseStandard(schedules[i]["cron"]); err != nil {
+							return nil, fmt.Errorf("invalid cron %q: %w", schedules[i]["cron"], err)
 						}
 					}
 				}
@@ -439,13 +447,14 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 					schedules: schedules,
 				})
 			case yaml.MappingNode:
+				// Keep combined include and ignore filters for existing Gitea workflows, although GitHub rejects them.
 				acts := make(map[string][]string, len(v.Content)/2)
 				expectedKey := true
 				var act string
 				for _, content := range v.Content {
 					if expectedKey {
 						if content.Kind != yaml.ScalarNode {
-							return nil, fmt.Errorf("key type not string: %#v", content)
+							return nil, errors.New("key type not string")
 						}
 						act = ""
 						err := content.Decode(&act)
@@ -470,13 +479,13 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 							acts[act] = []string{t}
 						case yaml.MappingNode:
 							if k != "workflow_dispatch" || act != "inputs" {
-								return nil, fmt.Errorf("map should only for workflow_dispatch but %s: %#v", act, content)
+								return nil, fmt.Errorf("map should only for workflow_dispatch but %s", act)
 							}
 							if err := content.Decode(new(map[string]model.WorkflowDispatchInput)); err != nil {
 								return nil, err
 							}
 						default:
-							return nil, fmt.Errorf("unknown on type: %#v", content)
+							return nil, fmt.Errorf("unknown on type for %s", act)
 						}
 					}
 					expectedKey = !expectedKey
@@ -498,12 +507,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	}
 }
 
-// EvaluateJobIfExpression evaluates a job's `if:`.
-func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any, matrixDeferred bool) (bool, error) {
-	evaluator, err := newJobEvaluator(jobID, job, !matrixDeferred, gitCtx, results, vars, inputs)
-	if err != nil {
-		return false, err
-	}
+// EvaluateJobIfExpression evaluates a job's `if:`, which github.com decides before the matrix, so without the matrix and strategy contexts.
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+	evaluator := expreval.New(NewInterpeter(jobID, nil, nil, model.GithubContextFromMap(gitCtx), results, vars, inputs).Evaluate)
 	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)
 }
 

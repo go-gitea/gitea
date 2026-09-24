@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions/jobparser"
@@ -198,6 +199,18 @@ func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
 		return nil, fmt.Errorf("job %d single workflow: unable to parse: %w", job.ID, err)
 	}
 	return workflowJob, nil
+}
+
+func (job *ActionRunJob) IsMatrixSiblingOf(other *ActionRunJob) bool {
+	return job.JobID == other.JobID && job.ParentJobID == other.ParentJobID && job.ID != other.ID
+}
+
+func (job *ActionRunJob) GetFailFast() (bool, error) {
+	parsed, err := job.ParseJob()
+	if err != nil {
+		return false, err
+	}
+	return (&act_model.Strategy{FailFastString: parsed.Strategy.FailFastString}).GetFailFast(), nil
 }
 
 func GetRunJobByRepoAndID(ctx context.Context, repoID, jobID int64) (*ActionRunJob, error) {
@@ -645,12 +658,30 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		// statuses like cancelled/failure when no job is waiting or running.
 		return StatusBlocked
 	case hasCancelled:
+		if hasFailure && hasFailFastMatrixFailure(jobs) {
+			return StatusFailure
+		}
 		return StatusCancelled
 	case hasFailure:
 		return StatusFailure
 	default:
 		return StatusUnknown // it shouldn't happen
 	}
+}
+
+func hasFailFastMatrixFailure(jobs []*ActionRunJob) bool {
+	for _, failed := range jobs {
+		if failed.Status != StatusFailure || failed.ContinueOnError || !slices.ContainsFunc(jobs, func(sibling *ActionRunJob) bool {
+			return sibling.IsMatrixSiblingOf(failed) && sibling.Status == StatusCancelled
+		}) {
+			continue
+		}
+		failFast, err := failed.GetFailFast()
+		if err == nil && failFast {
+			return true
+		}
+	}
+	return false
 }
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.

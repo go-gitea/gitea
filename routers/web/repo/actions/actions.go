@@ -224,7 +224,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
-		if err := actions.ValidateWorkflowContent(content); err != nil {
+		if _, err := actions.GetEventsFromContent(content); err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
 			continue

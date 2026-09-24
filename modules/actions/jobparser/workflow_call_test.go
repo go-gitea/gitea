@@ -25,18 +25,38 @@ func TestResolveCallerInputs(t *testing.T) {
 		"caller":   {Needs: []string{"upstream"}},
 		"upstream": {Result: "success", Outputs: map[string]string{"commit": "abc123"}},
 	}
-	for with, want := range map[string]map[string]any{
-		`{env: "${{ matrix.target }}", from_inputs: "${{ inputs.PARENT_VAR }}", from_needs: "${{ needs.upstream.outputs.commit }}", count: 42, index: "${{ strategy.job-index }}"}`: {
-			"env": "staging", "from_inputs": "from-parent", "from_needs": "abc123", "count": 42.0, "index": 1.0,
-		},
-		"${{ fromJSON(vars.WITH) }}": {"env": "prod", "from_inputs": "", "from_needs": "", "count": 7.0, "index": 0.0},
+	var job Job
+	require.NoError(t, yaml.Unmarshal([]byte(`strategy: {matrix: {target: [staging]}, job-index: 1, job-total: 2}
+with: {env: "${{ matrix.target }}", from_inputs: "${{ inputs.PARENT_VAR }}", from_needs: "${{ needs.upstream.outputs.commit }}", count: 42, index: "${{ strategy.job-index }}"}`), &job))
+	out, err := ResolveCallerInputs("caller", &job, config, map[string]any{"event": map[string]any{}}, results,
+		nil, map[string]any{"PARENT_VAR": "from-parent"})
+	require.NoError(t, err)
+	assert.Equal(t, map[string]any{
+		"env": "staging", "from_inputs": "from-parent", "from_needs": "abc123", "count": 42.0, "index": 1.0,
+	}, out)
+
+	for _, tt := range []struct {
+		with    string
+		inputs  map[string]model.WorkflowCallInput
+		want    map[string]any
+		wantErr bool
+	}{
+		{with: "with: {EXTRA: value}", want: map[string]any{}},
+		{with: `with: ${{ fromJSON('{"env":"prod"}') }}`, wantErr: true},
+		{inputs: map[string]model.WorkflowCallInput{"required": {Type: "string", Required: true, Default: "fallback"}}, want: map[string]any{"required": "fallback"}},
+		{inputs: map[string]model.WorkflowCallInput{"derived": {Type: "string", Default: "${{ inputs.PARENT_VAR }}"}}, want: map[string]any{"derived": "from-parent"}},
+		{with: "with: {value: 'false'}", inputs: map[string]model.WorkflowCallInput{"value": {Type: "boolean"}}, wantErr: true},
+		{with: `with: {value: "${{ '5' }}"}`, inputs: map[string]model.WorkflowCallInput{"value": {Type: "number"}}, wantErr: true},
 	} {
-		var job Job
-		require.NoError(t, yaml.Unmarshal([]byte("strategy: {matrix: {target: [staging]}, job-index: 1, job-total: 2}\nwith: "+with), &job))
-		out, err := ResolveCallerInputs("caller", &job, config, map[string]any{"event": map[string]any{}}, results,
-			map[string]string{"WITH": `{"env":"prod","count":"7"}`}, map[string]any{"PARENT_VAR": "from-parent"})
+		job = Job{}
+		require.NoError(t, yaml.Unmarshal([]byte(tt.with), &job))
+		out, err := ResolveCallerInputs("caller", &job, &model.WorkflowCall{Inputs: tt.inputs}, nil, nil, nil, map[string]any{"PARENT_VAR": "from-parent"})
+		if tt.wantErr {
+			require.Error(t, err, tt.with)
+			continue
+		}
 		require.NoError(t, err)
-		assert.Equal(t, want, out)
+		assert.Equal(t, tt.want, out)
 	}
 }
 

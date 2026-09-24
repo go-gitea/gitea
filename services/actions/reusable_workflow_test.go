@@ -80,6 +80,25 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		leaf.WorkflowSourceRepoID = 2
 		require.NoError(t, checkCallerChain(t.Context(), leaf))
 	})
+
+	t.Run("ResolvedIdentityCycle", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		chain := buildCallerChain(t,
+			"./.gitea/workflows/a.yml",
+			"owner/repo/.gitea/workflows/b.yml@v1",
+			"owner/repo/.gitea/workflows/a.yml@v1",
+		)
+		chain[1].WorkflowSourceRepoID = 4
+		chain[1].WorkflowSourceCommitSHA = "first-commit"
+		_, err := actions_model.UpdateRunJob(t.Context(), chain[1], nil, "workflow_source_repo_id", "workflow_source_commit_sha")
+		require.NoError(t, err)
+		chain[2].WorkflowSourceRepoID = 5
+		chain[2].WorkflowSourceCommitSHA = "second-commit"
+
+		require.NoError(t, checkCallerChain(t.Context(), chain[2]))
+		require.ErrorContains(t, checkResolvedCallerCycle(t.Context(), chain[2], 4, "first-commit", ".gitea/workflows/a.yml"), "cycle detected")
+		require.NoError(t, checkResolvedCallerCycle(t.Context(), chain[2], 4, "other-commit", ".gitea/workflows/a.yml"))
+	})
 }
 
 func TestCheckCallerChain_DepthLimit(t *testing.T) {
@@ -239,6 +258,16 @@ func TestResolveUses(t *testing.T) {
 		_, err := ResolveUses(ctx, "https://other.gitea-example.com/owner/repo/.gitea/workflows/ci.yaml@v1")
 		assert.ErrorContains(t, err, "must point to this Gitea instance")
 	})
+}
+
+func TestLoadReusableWorkflowSourceFailsAlikeForMissingAndPrivateRepo(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	run := &actions_model.ActionRun{RepoID: 4, TriggerUserID: 1}
+	for _, repoName := range []string{"missing", "repo3"} {
+		_, _, _, err := loadReusableWorkflowSource(t.Context(), run, nil, &model.ReusableWorkflowUses{Owner: "org3", Repo: repoName, Path: ".gitea/workflows/build.yml", Ref: "main"})
+		assert.EqualError(t, err, "reusable workflow repository org3/"+repoName+" does not exist or is not readable")
+	}
 }
 
 func TestCheckRunJobLimit(t *testing.T) {
