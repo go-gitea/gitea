@@ -35,6 +35,8 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	// add lfs object
 	lfsContent := []byte("gitea1")
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
+	lfsContentInRepoWithoutGitDir := []byte("gitea3")
+	storeObjectInRepo(t, 6, &lfsContentInRepoWithoutGitDir)
 
 	// gc
 	err = repo_service.GarbageCollectLFSMetaObjects(t.Context(), repo_service.GarbageCollectLFSMetaObjectsOptions{
