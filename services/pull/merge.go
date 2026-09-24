@@ -285,12 +285,36 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		if mergePR.HasMerged {
 			return ErrHasMerged
 		}
+		if merged, err := settlePullMergeIntent(ctx, mergePR); err != nil {
+			return err
+		} else if merged {
+			return ErrHasMerged
+		}
 		if err := mergePR.LoadIssue(ctx); err != nil {
 			return err
 		}
 
-		mergeCommitID, err := doMergeAndPush(ctx, mergePR, doer, mergeStyle, expectedHeadCommitID, message)
+		claimed := false
+		beforePush := func(ctx context.Context, mergeCommitID string) error {
+			intent := &issues_model.PullMergeIntent{PullID: mergePR.ID, CommitID: mergeCommitID, MergerID: doer.ID, Auto: wasAutoMerged}
+			if _, err := db.GetEngine(ctx).Insert(intent); err != nil {
+				if exists, lookupErr := db.GetEngine(ctx).ID(mergePR.ID).Exist(new(issues_model.PullMergeIntent)); lookupErr == nil && exists {
+					return ErrIsMerging
+				}
+				return err
+			}
+			claimed = true
+			return nil
+		}
+		mergeCommitID, err := doMergeAndPush(ctx, mergePR, doer, mergeStyle, expectedHeadCommitID, message, beforePush)
 		if err != nil {
+			if claimed {
+				if merged, settleErr := settlePullMergeIntent(ctx, mergePR); settleErr != nil {
+					log.Error("Failed to settle merge for pull request %d: %v", mergePR.ID, settleErr)
+				} else if merged {
+					log.Warn("Pull request %d merged despite push error: %v", mergePR.ID, err)
+				}
+			}
 			return err
 		}
 
@@ -302,12 +326,49 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		return err
 	})
 	defer addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
-	// TODO: A successful push can still leave the PR open if SetMerged fails or the process exits first.
-	// The deferred check cannot identify squash and rebase merges by PR-head ancestry.
 	if err != nil {
 		return err
 	}
 	return handleMergePostProcess(ctx, pr.ID, doer, wasAutoMerged)
+}
+
+func settlePullMergeIntent(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
+	intent := &issues_model.PullMergeIntent{PullID: pr.ID}
+	found, err := db.GetEngine(ctx).Get(intent)
+	if err != nil || !found {
+		return false, err
+	}
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false, err
+	}
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		return false, err
+	}
+	defer gitRepo.Close()
+	if !gitRepo.IsObjectExist(ctx, intent.CommitID) {
+		_, err := db.GetEngine(ctx).ID(pr.ID).Delete(new(issues_model.PullMergeIntent))
+		return false, err
+	}
+	inBranch, err := gitRepo.IsCommitInBranch(ctx, intent.CommitID, pr.BaseBranch)
+	if err != nil {
+		return false, err
+	}
+	if !inBranch {
+		_, err := db.GetEngine(ctx).ID(pr.ID).Delete(new(issues_model.PullMergeIntent))
+		return false, err
+	}
+	merger, err := user_model.GetUserByID(ctx, intent.MergerID)
+	if err != nil {
+		if !user_model.IsErrUserNotExist(err) {
+			return false, err
+		}
+		merger = user_model.NewGhostUser()
+	}
+	if _, err := SetMerged(ctx, pr, intent.CommitID, timeutil.TimeStampNow(), merger, pr.Status); err != nil {
+		return false, err
+	}
+	return true, handleMergePostProcess(ctx, pr.ID, merger, intent.Auto)
 }
 
 func handleMergePostProcess(ctx context.Context, prID int64, doer *user_model.User, wasAutoMerged bool) error {
@@ -370,8 +431,8 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 	return nil
 }
 
-// doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
+// doMergeAndPush creates and pushes a merge commit. beforePush records its intent when merging a pull request.
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, beforePush func(context.Context, string) error) (string, error) {
 	// Clone base repo.
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
 	if err != nil {
@@ -445,10 +506,15 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.ID,
 		pr.Index,
 	)
+	if beforePush != nil {
+		if err := beforePush(ctx, mergeCommitID); err != nil {
+			return "", err
+		}
+	}
 
 	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
-	// Push back to upstream before recording the merge result in the database.
+	// Push back to upstream after recording the merge intent.
 	if err := mergeCtx.PrepareGitCmd(pushCmd).RunWithStderr(ctx); err != nil {
 		if strings.Contains(err.Stderr(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
@@ -770,6 +836,9 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 			return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
 		} else if cnt != 1 {
 			return false, issues_model.ErrIssueAlreadyChanged
+		}
+		if _, err := db.GetEngine(ctx).ID(pr.ID).Delete(new(issues_model.PullMergeIntent)); err != nil {
+			return false, err
 		}
 
 		return true, nil

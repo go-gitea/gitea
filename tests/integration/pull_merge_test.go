@@ -167,6 +167,9 @@ func TestPullMergeWithPostReceiveFailure(t *testing.T) {
 					Index:      pullNumInt,
 				})
 				assert.True(t, pr.HasMerged)
+				found, err := db.GetEngine(t.Context()).Get(&issues_model.PullMergeIntent{PullID: pr.ID})
+				require.NoError(t, err)
+				assert.False(t, found)
 
 				gitRepo, err := git.OpenRepository(t.Context(), repo)
 				require.NoError(t, err)

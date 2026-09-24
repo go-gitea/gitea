@@ -6,6 +6,9 @@ package pull
 import (
 	"testing"
 
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
@@ -65,6 +68,38 @@ func Test_expandDefaultMergeMessage(t *testing.T) {
 			got, got1 := expandDefaultMergeMessage(tt.args.template, tt.args.vars)
 			assert.Equalf(t, tt.want, got, "expandDefaultMergeMessage(%v, %v)", tt.args.template, tt.args.vars)
 			assert.Equalf(t, tt.wantBody, got1, "expandDefaultMergeMessage(%v, %v)", tt.args.template, tt.args.vars)
+		})
+	}
+}
+
+func TestSettlePullMergeIntent(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		commitID string
+		merged   bool
+	}{
+		{"pushed", "65f1bf27bc3bf70f64657658635e66094edbcb4d", true},
+		{"not pushed", "0123456789abcdef0123456789abcdef01234567", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+			_, err := db.GetEngine(t.Context()).Insert(&issues_model.PullMergeIntent{
+				PullID: pr.ID, CommitID: tc.commitID, MergerID: 2,
+			})
+			require.NoError(t, err)
+
+			merged, err := settlePullMergeIntent(t.Context(), pr)
+			require.NoError(t, err)
+			assert.Equal(t, tc.merged, merged)
+			found, err := db.GetEngine(t.Context()).Get(&issues_model.PullMergeIntent{PullID: pr.ID})
+			require.NoError(t, err)
+			assert.False(t, found)
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+			assert.Equal(t, tc.merged, pr.HasMerged)
+			if tc.merged {
+				assert.Equal(t, tc.commitID, pr.MergedCommitID)
+			}
 		})
 	}
 }
