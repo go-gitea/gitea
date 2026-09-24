@@ -104,7 +104,7 @@ func FromCode(code string) *Emoji {
 	vars := globalVars()
 	i, ok := vars.codeMap[code]
 	if !ok {
-		i, ok = vars.codeMap[strings.Map(func(r rune) rune { return util.Iif(isSkinTone(r), -1, r) }, code)]
+		i, ok = vars.codeMap[removeSkinTones(code)]
 	}
 	if !ok {
 		return nil
@@ -147,8 +147,8 @@ func FindEmojiSubmatchIndex(s string) []int {
 		if !vars.isStartingByte[s[i]] {
 			continue
 		}
-		if matchLen := vars.trie.Match(s, i, skinToneLen); matchLen > 0 {
-			return []int{i, i + matchLen}
+		if matchLen := vars.trie.Match(s, i); matchLen > 0 {
+			return []int{i, i + skinTonedLen(vars, s[i:], matchLen)}
 		}
 	}
 	return nil
@@ -158,13 +158,26 @@ func isSkinTone(r rune) bool {
 	return r >= 0x1f3fb && r <= 0x1f3ff
 }
 
-// skinToneLen lets skin-toned text match the toneless emoji data
-func skinToneLen(s string, pos int) int {
-	if s[pos] != 0xf0 {
-		return 0
+func removeSkinTones(s string) string {
+	return strings.Map(func(r rune) rune { return util.Iif(isSkinTone(r), -1, r) }, s)
+}
+
+// skinTonedLen extends a match at the start of s over skin tones, which the emoji data omits
+func skinTonedLen(vars *globalVarsStruct, s string, matchLen int) int {
+	if r, _ := utf8.DecodeRuneInString(s[matchLen:]); !isSkinTone(r) {
+		return matchLen
 	}
-	if r, size := utf8.DecodeRuneInString(s[pos:]); isSkinTone(r) {
-		return size
+	tonelessLen := vars.trie.Match(removeSkinTones(s[:min(len(s), 2*len(vars.emojis[0].Emoji))]), 0)
+	end := 0
+	for end < len(s) {
+		r, size := utf8.DecodeRuneInString(s[end:])
+		if !isSkinTone(r) {
+			if tonelessLen == 0 {
+				break
+			}
+			tonelessLen -= size
+		}
+		end += size
 	}
-	return 0
+	return end
 }

@@ -38,25 +38,14 @@ func (t *TrieNode) Insert(val string) {
 }
 
 // Match returns the length of the longest matching prefix starting at index `start` in string `s`.
-// It returns -1 if no prefix is matched. Where no child matches past the first byte, `skip` may return a byte count to consume without advancing the Trie.
-func (t *TrieNode) Match(s string, start int, skip func(s string, pos int) int) int {
+// It returns -1 if no prefix is matched.
+func (t *TrieNode) Match(s string, start int) int {
 	curr := t
 	matchLen := -1
 	for j := start; j < len(s); j++ {
 		next := curr.child(s[j])
 		if next == nil {
-			if j == start || skip == nil {
-				break
-			}
-			n := skip(s, j)
-			if n == 0 {
-				break
-			}
-			j += n - 1
-			if curr.isEnd {
-				matchLen = j - start + 1
-			}
-			continue
+			break
 		}
 		curr = next
 		if curr.isEnd {
