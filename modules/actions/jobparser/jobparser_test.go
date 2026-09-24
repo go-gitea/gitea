@@ -80,7 +80,7 @@ func TestParse(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			content := ReadTestdata(t, tt.name+".in.yaml")
 			want := ReadTestdata(t, tt.name+".out.yaml")
-			got, err := Parse(content, tt.options...)
+			got, err := Parse(content, append([]ParseOption{WithGitContext(&model.GithubContext{})}, tt.options...)...)
 			if tt.wantErr {
 				require.Error(t, err)
 			}
@@ -298,6 +298,19 @@ func TestParseInterpolatesRunName(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result, 1)
 	assert.Empty(t, result[0].RunName)
+}
+
+func TestParseRunsOnFromJSONArray(t *testing.T) {
+	content := []byte("on: push\njobs:\n  build:\n    runs-on: ${{ fromJSON(vars.RUNNER) }}\n    steps: [{run: echo}]\n")
+	_, err := Parse(content)
+	require.NoError(t, err)
+	for runner, want := range map[string][]string{`["self-hosted", "linux"]`: {"self-hosted", "linux"}, "[]": {""}} {
+		result, err := Parse(content, WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"RUNNER": runner}))
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		_, job := result[0].Job()
+		assert.Equal(t, want, job.RunsOn(), runner)
+	}
 }
 
 func TestExpandMatrixWithNeeds(t *testing.T) {

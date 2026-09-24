@@ -278,14 +278,20 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx
 		if combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator); err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
-		runsOn := slices.Clone(srcRunsOn)
-		for i := range runsOn {
-			if runsOn[i], err = evaluator.Interpolate(runsOn[i]); err != nil {
+		if gitCtx != nil { // callers without one don't read runs-on
+			rawRunsOn := model.CloneYamlNode(src.RawRunsOn)
+			if err := evaluator.EvaluateYamlNode(&rawRunsOn); err != nil {
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
-			runsOn[i] = escapeExpressions(runsOn[i])
+			runsOn := model.RunsOnFromNode(rawRunsOn)
+			if len(runsOn) == 0 && len(srcRunsOn) > 0 { // match no runner rather than every runner
+				runsOn = []string{""}
+			}
+			for i := range runsOn {
+				runsOn[i] = escapeExpressions(runsOn[i])
+			}
+			combo.RawRunsOn = model.RunsOnNode(runsOn, "")
 		}
-		combo.RawRunsOn = model.RunsOnNode(runsOn, "")
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
 		}
