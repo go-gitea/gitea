@@ -90,22 +90,13 @@ func (p *Renderer) GetExternalRendererOptions() (ret markup.ExternalRendererOpti
 	return ret
 }
 
-func (p *Renderer) prepareExternalCommand(vars map[string]string) (string, []string, error) {
+func (p *Renderer) prepareExternalCommand() (string, []string, error) {
 	fields, err := shellquote.Split(strings.TrimSpace(p.Command))
 	if err != nil {
 		return "", nil, err
 	}
 	if len(fields) == 0 {
 		return "", nil, errors.New("no command")
-	}
-	var replacements []string
-	for k, v := range vars {
-		replacements = append(replacements, "$"+k, v)
-		replacements = append(replacements, "%"+k+"%", v) // for legacy Windows-style support
-	}
-	r := strings.NewReplacer(replacements...)
-	for i := range fields {
-		fields[i] = r.Replace(fields[i])
 	}
 	return fields[0], fields[1:], nil
 }
@@ -114,11 +105,7 @@ func (p *Renderer) prepareExternalCommand(vars map[string]string) (string, []str
 func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	baseLinkSrc := ctx.RenderHelper.ResolveLink("", markup.LinkTypeDefault)
 	baseLinkRaw := ctx.RenderHelper.ResolveLink("", markup.LinkTypeRaw)
-	cmdVars := map[string]string{
-		"GITEA_PREFIX_SRC": baseLinkSrc,
-		"GITEA_PREFIX_RAW": baseLinkRaw,
-	}
-	cmdProg, cmdArgs, err := p.prepareExternalCommand(cmdVars)
+	cmdProg, cmdArgs, err := p.prepareExternalCommand()
 	if err != nil {
 		return fmt.Errorf("invalid external render (%s) command %q: %w", p.Name(), p.Command, err)
 	}

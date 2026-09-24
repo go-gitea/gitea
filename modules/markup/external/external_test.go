@@ -13,12 +13,12 @@ import (
 
 func TestPrepareExternalCommand(t *testing.T) {
 	r := &Renderer{MarkupRenderer: &setting.MarkupRenderer{Command: ""}}
-	_, _, err := r.prepareExternalCommand(map[string]string{"KEY": "val"})
+	_, _, err := r.prepareExternalCommand()
 	assert.ErrorContains(t, err, "no command")
 
-	r = &Renderer{MarkupRenderer: &setting.MarkupRenderer{Command: `"/foo bar/bin" --opt $KEY "$KEY" %KEY% other`}}
-	prog, args, err := r.prepareExternalCommand(map[string]string{"KEY": `a"b`})
+	r = &Renderer{MarkupRenderer: &setting.MarkupRenderer{Command: `"/foo bar/bin" --opt $GITEA_PREFIX_SRC other`}}
+	prog, args, err := r.prepareExternalCommand()
 	assert.NoError(t, err)
 	assert.Equal(t, "/foo bar/bin", prog)
-	assert.Equal(t, []string{"--opt", `a"b`, `a"b`, `a"b`, "other"}, args)
+	assert.Equal(t, []string{"--opt", "$GITEA_PREFIX_SRC", "other"}, args)
 }
