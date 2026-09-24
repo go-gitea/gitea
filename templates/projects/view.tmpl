@@ -23,16 +23,20 @@
 				"ClosedMilestones" .ClosedMilestones
 			}}
 		</div>
-		{{if $canWriteProject}}
-			<div class="ui compact mini menu">
-				<a class="item screen-full">
-					{{svg "octicon-screen-full"}}
-					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
-				</a>
-				<a class="item screen-normal tw-hidden">
-					{{svg "octicon-screen-normal"}}
-					{{ctx.Locale.Tr "projects.exit_fullscreen"}}
-				</a>
+		<div class="ui compact mini menu">
+			<a class="item" href="{{.Link}}/workflows">
+				{{svg "octicon-workflow"}}
+				{{ctx.Locale.Tr "projects.workflows"}}
+			</a>
+			<a class="item screen-full">
+				{{svg "octicon-screen-full"}}
+				{{ctx.Locale.Tr "projects.enter_fullscreen"}}
+			</a>
+			<a class="item screen-normal tw-hidden">
+				{{svg "octicon-screen-normal"}}
+				{{ctx.Locale.Tr "projects.exit_fullscreen"}}
+			</a>
+			{{if $canWriteProject}}
 				<a class="item" href="{{.Link}}/edit?redirect=project">
 					{{svg "octicon-pencil"}}
 					{{ctx.Locale.Tr "repo.issues.label_edit"}}
@@ -66,8 +70,8 @@
 					{{svg "octicon-plus"}}
 					{{ctx.Locale.Tr "new_project_column"}}
 				</button>
-			</div>
-		{{end}}
+			{{end}}
+		</div>
 	</div>
 
 	<div class="ui container project-description">

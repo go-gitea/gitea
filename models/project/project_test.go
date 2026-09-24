@@ -83,6 +83,28 @@ func TestProject(t *testing.T) {
 	assert.True(t, projectFromDB.IsClosed)
 }
 
+// TestDeleteProjectByIDRemovesWorkflows ensures a project's workflows don't
+// become orphaned rows once the owning project is deleted.
+func TestDeleteProjectByIDRemovesWorkflows(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	assert.NoError(t, CreateWorkflow(ctx, &Workflow{
+		ProjectID:     1,
+		WorkflowEvent: WorkflowEventItemOpened,
+	}))
+
+	workflows, err := FindWorkflowsByProjectID(ctx, 1)
+	assert.NoError(t, err)
+	assert.Len(t, workflows, 1)
+
+	assert.NoError(t, DeleteProjectByID(ctx, 1))
+
+	workflows, err = FindWorkflowsByProjectID(ctx, 1)
+	assert.NoError(t, err)
+	assert.Empty(t, workflows)
+}
+
 func TestProjectsSort(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

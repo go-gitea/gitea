@@ -175,6 +175,7 @@ type User struct {
 	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
 	// * Actions task doer needs to bind to the task
 	// * Deploy-key doer needs to bind to the key
+	// * Project workflow doer needs to bind to the project ID and workflow event
 	ExtDoerData ExtDoerData `xorm:"-"`
 }
 

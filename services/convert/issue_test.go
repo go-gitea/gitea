@@ -33,6 +33,22 @@ func TestLabel_ToLabel(t *testing.T) {
 	}, ToLabel(label, repo, nil))
 }
 
+// TestLabel_ToLabel_ExclusiveOrder guards against the regression where ExclusiveOrder
+// was added to the model but never copied into the API response.
+func TestLabel_ToLabel_ExclusiveOrder(t *testing.T) {
+	label := &issues_model.Label{
+		ID:             1,
+		RepoID:         1,
+		Name:           "label1",
+		Color:          "#abcdef",
+		Exclusive:      true,
+		ExclusiveOrder: 3,
+	}
+	repo := &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"}
+	result := ToLabel(label, repo, nil)
+	assert.Equal(t, 3, result.ExclusiveOrder)
+}
+
 func TestMilestone_APIFormat(t *testing.T) {
 	milestone := &issues_model.Milestone{
 		ID:              3,
