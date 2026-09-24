@@ -6,7 +6,6 @@ package proxy
 import (
 	"net/http"
 	"net/url"
-	"os"
 	"sync"
 
 	"gitea.dev/modules/glob"
@@ -20,38 +19,6 @@ var (
 	onceWebhookProxy sync.Once
 	webhookMatchers  []glob.Glob
 )
-
-// GetProxyURL returns proxy url
-func GetProxyURL() string {
-	if !setting.Proxy.Enabled {
-		return ""
-	}
-
-	if setting.Proxy.ProxyURL == "" {
-		if os.Getenv("http_proxy") != "" {
-			return os.Getenv("http_proxy")
-		}
-		return os.Getenv("https_proxy")
-	}
-	return setting.Proxy.ProxyURL
-}
-
-// Match return true if url needs to be proxied
-func Match(u string) bool {
-	if !setting.Proxy.Enabled {
-		return false
-	}
-
-	// enforce do once
-	Proxy()
-
-	for _, v := range hostMatchers {
-		if v.Match(u) {
-			return true
-		}
-	}
-	return false
-}
 
 // Proxy returns the system proxy
 func Proxy() func(req *http.Request) (*url.URL, error) {
