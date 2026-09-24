@@ -631,7 +631,10 @@ func getManifestFromContext(ctx *context.Context) (_ *packages_model.PackageFile
 		return nil, "", err
 	}
 
-	pfd := workaroundGetContainerBlob(ctx, opts)
+	pfd, err := workaroundGetContainerBlob(ctx, opts)
+	if err != nil {
+		return nil, "", err
+	}
 	// "/v2/<name>/manifests/<reference>": must use valid manifest.mediaType as HTTP Content-Type
 	mediaType := pfd.Properties.GetByName(container_module.PropertyMediaType)
 	mediaType = util.Iif(container_module.IsMediaTypeValid(mediaType), mediaType, "application/octet-stream")
