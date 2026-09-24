@@ -93,7 +93,9 @@ func (w *SingleWorkflow) Marshal() ([]byte, error) {
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)
 	enc.SetIndent(2)
-	if err := enc.Encode(w); err != nil {
+	payload := *w
+	payload.RunName = "" // already interpolated into the run title, a runner would parse it as a template again
+	if err := enc.Encode(&payload); err != nil {
 		return nil, err
 	}
 	if err := enc.Close(); err != nil {

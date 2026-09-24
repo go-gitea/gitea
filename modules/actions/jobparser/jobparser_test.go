@@ -276,6 +276,9 @@ func TestParseInterpolatesRunName(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, result, 1)
 			assert.Equal(t, tt.want, result[0].RunName)
+			payload, err := result[0].Marshal()
+			require.NoError(t, err)
+			assert.NotContains(t, string(payload), "run-name")
 		})
 	}
 

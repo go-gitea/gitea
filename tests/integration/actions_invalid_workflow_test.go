@@ -30,7 +30,7 @@ func TestActionsInvalidWorkflowPush(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		repo := createActionsTestRepo(t, token, "invalid-workflow-push", false)
 		createWorkflowFile(t, token, user.Name, repo.Name, ".gitea/workflows/invalid.yml",
-			getWorkflowCreateFileOptions(user, repo.DefaultBranch, "invalid workflow", "on: push\njobs: {check: {if: unknown.x}}\n"))
+			getWorkflowCreateFileOptions(user, repo.DefaultBranch, "invalid workflow", "on: push\nrun-name: '${{ github.ref'\njobs: {check: {if: unknown.x}}\n"))
 
 		runs, err := db.Find[actions_model.ActionRun](t.Context(), actions_model.FindRunOptions{RepoID: repo.ID})
 		require.NoError(t, err)
@@ -51,6 +51,7 @@ func TestActionsInvalidWorkflowPush(t *testing.T) {
 		assert.Equal(t, "invalid.yml", viewResponse.State.Run.JobSummaries[0].JobName)
 		assert.Contains(t, string(viewResponse.State.Run.JobSummaries[0].SummaryHTML), "Invalid workflow file: .gitea/workflows/invalid.yml")
 		assert.Contains(t, string(viewResponse.State.Run.JobSummaries[0].SummaryHTML), "Unrecognized named-value: &#39;unknown&#39;")
+		assert.Contains(t, string(viewResponse.State.Run.JobSummaries[0].SummaryHTML), "unclosed expression")
 
 		session.MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user.Name, repo.Name, run.ID)), http.StatusBadRequest)
 	})
