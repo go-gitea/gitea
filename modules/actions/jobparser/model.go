@@ -509,6 +509,9 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 
 // EvaluateJobIfExpression evaluates a job's `if:`, which github.com decides before the matrix, so without the matrix and strategy contexts.
 func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+	if unavailable := unavailableContext(IfExpression(job.If.Value), jobConditionContexts); unavailable != "" { // only a job stored before its conditions were validated
+		return false, fmt.Errorf("job %s: Unrecognized named-value: '%s', update the workflow and trigger a new run", jobID, unavailable)
+	}
 	evaluator := expreval.New(NewInterpeter(jobID, nil, nil, model.GithubContextFromMap(gitCtx), results, vars, inputs).Evaluate)
 	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)
 }

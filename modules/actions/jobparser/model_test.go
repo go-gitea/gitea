@@ -4,6 +4,7 @@
 package jobparser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -518,4 +519,18 @@ jobs:
 			assert.Equal(t, kase.expected, got)
 		})
 	}
+
+	t.Run("stored unavailable context", func(t *testing.T) {
+		for condition, wantErr := range map[string]string{
+			"matrix.os == 'a'":          "Unrecognized named-value: 'matrix'",
+			"${{ strategy.fail-fast }}": "Unrecognized named-value: 'strategy'",
+			"secrets.TOKEN != ''":       "Unrecognized named-value: 'secrets'",
+			"${{ matrix.os == }}":       "Unexpected end of expression",
+		} {
+			_, job, err := ParseRawSingleWorkflow(fmt.Appendf(nil, "jobs: {job2: {if: %q, strategy: {matrix: {os: [a]}}}}", condition))
+			require.NoError(t, err)
+			_, err = EvaluateJobIfExpression("job2", job, map[string]any{}, map[string]*JobResult{"job2": {}}, nil, nil)
+			assert.ErrorContains(t, err, wantErr, condition)
+		}
+	})
 }
