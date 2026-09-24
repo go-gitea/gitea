@@ -100,14 +100,14 @@ func runACME(listenAddr string, m http.Handler) error {
 	// takes HTTPS down on restart (https://github.com/go-gitea/gitea/issues/38519).
 	// Prefer keeping the existing cert and retrying renewals asynchronously.
 	ctx := graceful.GetManager().ShutdownContext()
-	err := magic.ManageSync(ctx, []string{setting.Domain})
+	err := magic.ManageSync(ctx, []string{setting.AppDomain})
 	if err != nil {
-		cert, cacheErr := magic.CacheManagedCertificate(ctx, setting.Domain)
+		cert, cacheErr := magic.CacheManagedCertificate(ctx, setting.AppDomain)
 		if cacheErr != nil || cert.Expired() {
 			return errors.Join(err, cacheErr)
 		}
 		log.Error("ACME certificate manage failed; continuing with existing certificate: %v", err)
-		if err := magic.ManageAsync(ctx, []string{setting.Domain}); err != nil {
+		if err := magic.ManageAsync(ctx, []string{setting.AppDomain}); err != nil {
 			log.Error("Failed to start async ACME management: %v", err)
 		}
 	}
