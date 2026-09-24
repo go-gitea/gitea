@@ -6,7 +6,6 @@ package actions
 import (
 	"context"
 	"fmt"
-	"path"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -14,21 +13,22 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
 
-func handleInvalidWorkflows(ctx context.Context, input *notifyInput, ref git.RefName, commit *git.Commit, invalid map[string]error) error {
+func handleInvalidWorkflows(ctx context.Context, input *notifyInput, ref git.RefName, commit *git.Commit, invalid map[string]error) {
 	if len(invalid) == 0 {
-		return nil
+		return
 	}
 	payload, err := json.Marshal(input.Payload)
 	if err != nil {
-		return err
+		log.Error("marshal event payload: %v", err)
+		return
 	}
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-	for workflowPath, parseErr := range invalid {
-		entryName := path.Base(workflowPath)
+	for entryName, parseErr := range invalid {
 		if actionsConfig.IsWorkflowDisabled(entryName) {
 			continue
 		}
@@ -54,18 +54,18 @@ func handleInvalidWorkflows(ctx context.Context, input *notifyInput, ref git.Ref
 			if err := actions_model.UpdateRun(ctx, run, "latest_attempt_id"); err != nil {
 				return err
 			}
-			content := fmt.Sprintf("**Invalid workflow file: %s**\n\n```\n%v\n```\n", workflowPath, parseErr)
+			content := fmt.Sprintf("**Invalid workflow file: %s**\n\n```\n%v\n```\n", entryName, parseErr)
 			return db.Insert(ctx, &actions_model.ActionRunJobSummary{
 				RepoID: run.RepoID, RunID: run.ID, RunAttemptID: attempt.ID, Content: content, ContentSize: int64(len(content)), ContentType: actions_model.JobSummaryContentTypeMarkdown,
 			})
 		}); err != nil {
-			return fmt.Errorf("insert run for invalid workflow %q: %w", workflowPath, err)
+			log.Error("insert run for invalid workflow %q: %v", entryName, err)
+			continue
 		}
 		if err := createWorkflowCommitStatus(ctx, run.Repo, run.CommitSHA, entryName+" ("+run.TriggerEvent+")", run.WorkflowID,
 			commitstatus.CommitStatusFailure, run.Link(), "Invalid workflow file"); err != nil {
-			return err
+			log.Error("create commit status for invalid workflow %q: %v", entryName, err)
 		}
 		NotifyWorkflowRunStatusUpdate(ctx, run)
 	}
-	return nil
 }

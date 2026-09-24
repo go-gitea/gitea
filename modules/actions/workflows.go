@@ -184,7 +184,7 @@ func DetectWorkflows(
 	payload api.Payloader,
 	detectSchedule bool,
 ) (workflows, schedules, filtered []*DetectedWorkflow, invalid map[string]error, err error) {
-	workflowDir, entries, err := ListWorkflows(ctx, gitRepo, commit)
+	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -201,7 +201,7 @@ func DetectWorkflows(
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
 			if _, err := jobparser.ReadWorkflow(content); err != nil { // not an error that needs run-time values, like `run-name` reading inputs
-				invalid[path.Join(workflowDir, entry.Name())] = err
+				invalid[entry.Name()] = err
 			}
 			continue
 		}

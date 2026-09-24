@@ -269,9 +269,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if input.Event == webhook_module.HookEventPush {
-		if err := handleInvalidWorkflows(ctx, input, ref, commit, invalid); err != nil {
-			return err
-		}
+		handleInvalidWorkflows(ctx, input, ref, commit, invalid)
 	}
 
 	if err := handleWorkflows(ctx, detectedWorkflows, commit, input, ref); err != nil {

@@ -49,7 +49,7 @@ func TestActionsInvalidWorkflowPush(t *testing.T) {
 		assert.Empty(t, viewResponse.State.Run.Jobs)
 		require.Len(t, viewResponse.State.Run.JobSummaries, 1)
 		assert.Equal(t, "invalid.yml", viewResponse.State.Run.JobSummaries[0].JobName)
-		assert.Contains(t, string(viewResponse.State.Run.JobSummaries[0].SummaryHTML), "Invalid workflow file: .gitea/workflows/invalid.yml")
+		assert.Contains(t, string(viewResponse.State.Run.JobSummaries[0].SummaryHTML), "Invalid workflow file: invalid.yml")
 		assert.Contains(t, string(viewResponse.State.Run.JobSummaries[0].SummaryHTML), "Unrecognized named-value: &#39;unknown&#39;")
 		assert.Contains(t, string(viewResponse.State.Run.JobSummaries[0].SummaryHTML), "unclosed expression")
 
