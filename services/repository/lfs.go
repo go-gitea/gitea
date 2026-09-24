@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 )
@@ -132,15 +133,10 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		return err
 	}
 
-	if opts.AutoFix && collected > 0 {
-		lfsSize, err := git_model.GetRepoLFSSize(ctx, repo.ID)
-		if err != nil {
-			return fmt.Errorf("unable to recalculate lfs size for %s: %w", repo.FullName(), err)
+	if collected > 0 {
+		if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
+			return fmt.Errorf("unable to update size for %s: %w", repo.FullName(), err)
 		}
-		if err := repo_model.UpdateRepoSize(ctx, repo.ID, repo.GitSize, lfsSize); err != nil {
-			return fmt.Errorf("unable to update lfs size for %s: %w", repo.FullName(), err)
-		}
-		opts.LogDetail("Updated lfs size to %d for %-v", lfsSize, repo)
 	}
 
 	return nil

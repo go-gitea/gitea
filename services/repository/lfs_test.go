@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/lfs"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/test"
@@ -62,9 +63,7 @@ func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 	lfsContent := []byte("gitea2")
 	lfsOid := storeObjectInRepo(t, repo.ID, &lfsContent)
 
-	// simulate a stale LFSSize left over from a previous, out-of-sync GC run
-	err = repo_model.UpdateRepoSize(t.Context(), repo.ID, repo.Size, repo.LFSSize+int64(len(lfsContent)))
-	assert.NoError(t, err)
+	assert.NoError(t, repo_module.UpdateRepoSize(t.Context(), repo))
 
 	err = repo_service.GarbageCollectLFSMetaObjectsForRepo(t.Context(), repo, repo_service.GarbageCollectLFSMetaObjectsOptions{
 		LogDetail:               func(string, ...any) {},
