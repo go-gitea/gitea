@@ -1,6 +1,7 @@
 import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
-import {POST, request} from '../modules/fetch.ts';
+import {POST} from '../modules/fetch.ts';
+import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {hideFomanticModal} from '../modules/fomantic/modal.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
@@ -113,7 +114,8 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
 
     try {
       elForm.classList.add('is-loading');
-      await request(formLink, {method: formMethod, data: formData});
+      const resp = await performFetchActionRequest(elForm, {url: formLink, method: formMethod, data: formData});
+      if (!resp) return;
       if (!columnId) {
         window.location.reload(); // newly added column, need to reload the page
         return;

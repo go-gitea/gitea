@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -32,8 +33,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-
-	"github.com/google/uuid"
 )
 
 var _ base.Uploader = &GiteaLocalUploader{}
@@ -919,7 +918,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 
 			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
-			if !objectFormat.IsValid(comment.CommitID) {
+			if !git.IsStringValidObjectID(objectFormat, comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}

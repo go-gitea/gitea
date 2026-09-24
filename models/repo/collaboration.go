@@ -43,6 +43,10 @@ type FindCollaborationOptions struct {
 	CollaboratorID int64
 }
 
+func (opts *FindCollaborationOptions) ToOrders() string {
+	return "collaboration.id"
+}
+
 func (opts *FindCollaborationOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID != 0 {

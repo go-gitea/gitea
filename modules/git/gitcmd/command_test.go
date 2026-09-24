@@ -77,10 +77,27 @@ func TestRunWithContextStd(t *testing.T) {
 		cmd := NewCommand()
 		cmd.AddDynamicArguments("-test")
 		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
 
 		cmd = NewCommand()
 		cmd.AddDynamicArguments("--test")
 		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
+
+		cmd = NewCommand()
+		cmd.AddOptionGrepExpr("-x")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Empty(t, cmd.args)
+
+		cmd = NewCommand("any")
+		cmd.AddOptionGrepExpr("-x")
+		assert.ErrorIs(t, cmd.Run(t.Context()), ErrBrokenCommand)
+		assert.Equal(t, []string{"any"}, cmd.args)
+
+		cmd = NewCommand("grep")
+		cmd.AddOptionGrepExpr("-x")
+		assert.NoError(t, cmd.Run(t.Context()))
+		assert.Equal(t, []string{"grep", "-e", "-x"}, cmd.args)
 	}
 
 	{

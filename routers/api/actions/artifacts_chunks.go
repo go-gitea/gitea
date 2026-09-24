@@ -279,8 +279,17 @@ func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID, ru
 			log.Debug("artifact %d chunks not found", art.ID)
 			continue
 		}
-		if err := mergeChunksForArtifact(ctx, chunks, st, art, ""); err != nil {
+		storagePath, err := mergeChunksForArtifact(chunks, st, art, "")
+		if err != nil {
 			return err
+		}
+		if storagePath == "" {
+			continue
+		}
+		art.StoragePath = storagePath
+		art.Status = actions.ArtifactStatusUploadConfirmed
+		if err := actions.UpdateArtifact(ctx, art, "storage_path", "status"); err != nil {
+			return fmt.Errorf("update artifact error: %v", err)
 		}
 	}
 	return nil
@@ -297,7 +306,9 @@ func generateArtifactStoragePath(artifact *actions.ActionArtifact) string {
 	return fmt.Sprintf("%d/%d/%d.%s", artifact.RunID%255, artifact.ID%255, time.Now().UnixNano(), extension)
 }
 
-func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact, checksum string) error {
+// mergeChunksForArtifact merges the uploaded chunks into one stored object and returns its path.
+// An empty path means the chunks are not complete yet and nothing was merged.
+func mergeChunksForArtifact(chunks []*chunkFileItem, st storage.ObjectStorage, artifact *actions.ActionArtifact, checksum string) (string, error) {
 	sort.Slice(chunks, func(i, j int) bool {
 		return chunks[i].Start < chunks[j].Start
 	})
@@ -316,7 +327,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	// if the last chunk.End + 1 is not equal to chunk.ChunkLength, means chunks are not uploaded completely
 	if startAt+1 != artifact.FileCompressedSize {
 		log.Debug("[artifact] chunks are not uploaded completely, artifact_id: %d", artifact.ID)
-		return nil
+		return "", nil
 	}
 	// use multiReader
 	readers := make([]io.Reader, 0, len(allChunks))
@@ -331,7 +342,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		var readCloser io.ReadCloser
 		var err error
 		if readCloser, err = st.Open(c.Path); err != nil {
-			return fmt.Errorf("open chunk error: %v, %s", err, c.Path)
+			return "", fmt.Errorf("open chunk error: %v, %s", err, c.Path)
 		}
 		readers = append(readers, readCloser)
 	}
@@ -351,10 +362,10 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	storagePath := generateArtifactStoragePath(artifact)
 	written, err := st.Save(storagePath, mergedReader, artifact.FileCompressedSize)
 	if err != nil {
-		return fmt.Errorf("save merged file error: %v", err)
+		return "", fmt.Errorf("save merged file error: %v", err)
 	}
 	if written != artifact.FileCompressedSize {
-		return errors.New("merged file size is not equal to chunk length")
+		return "", errors.New("merged file size is not equal to chunk length")
 	}
 
 	defer func() {
@@ -371,7 +382,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		rawChecksum := hashSha256.Sum(nil)
 		actualChecksum := hex.EncodeToString(rawChecksum)
 		if !strings.HasSuffix(checksum, actualChecksum) {
-			return fmt.Errorf("update artifact error checksum is invalid %v vs %v", checksum, actualChecksum)
+			return "", fmt.Errorf("update artifact error checksum is invalid %v vs %v", checksum, actualChecksum)
 		}
 	}
 
@@ -384,11 +395,5 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		}
 	}
 
-	artifact.StoragePath = storagePath
-	artifact.Status = actions.ArtifactStatusUploadConfirmed
-	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
-		return fmt.Errorf("update artifact error: %v", err)
-	}
-
-	return nil
+	return storagePath, nil
 }

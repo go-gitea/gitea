@@ -411,22 +411,21 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 // participantNameLink prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
 func (ut *RenderUtils) participantNameLink(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
 	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
-		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, participantName(participant))
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>%s`, href, participantName(participant), ut.UserTypeLabel(participant.GiteaUser))
 	}
 	if participant.GiteaUser != nil {
-		return participant.GiteaUser.GetShortDisplayNameLinkHTML()
+		return participant.GiteaUser.GetShortDisplayNameLinkHTML() + ut.UserTypeLabel(participant.GiteaUser)
 	}
 	if participant.GitIdentity.Email != "" {
 		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, participant.GitIdentity.Email, participant.GitIdentity.Name)
 	}
-	return template.HTML(template.HTMLEscapeString(participant.GitIdentity.Name))
+	return htmlutil.HTMLFormat(`<span class="avatar-stack-name">%s</span>`, participant.GitIdentity.Name)
 }
 
 func (ut *RenderUtils) participantPopupRow(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
-	avatar := ut.participantAvatar(participant)
-	name := participantName(participant)
+	avatar, name, label := ut.participantAvatar(participant), participantName(participant), ut.UserTypeLabel(participant.GiteaUser)
 	if href := ut.participantHref(data, participant); href != "" {
-		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>`, href, avatar, name)
+		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>%s`, href, avatar, name, label)
 	}
-	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>`, avatar, name)
+	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>%s`, avatar, name, label)
 }

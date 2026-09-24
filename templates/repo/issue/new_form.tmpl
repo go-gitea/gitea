@@ -33,7 +33,7 @@
 						{{template "repo/issue/comment_tab" .}}
 					{{end}}
 					<div class="flex-text-block tw-justify-end">
-						<button class="ui primary button">
+						<button type="submit" class="ui primary button">
 							{{if .PageIsComparePull}}
 								{{ctx.Locale.Tr "repo.pulls.create"}}
 							{{else}}

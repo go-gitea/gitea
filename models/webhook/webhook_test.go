@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
@@ -15,7 +16,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"xorm.io/builder"

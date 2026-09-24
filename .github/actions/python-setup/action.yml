@@ -4,7 +4,7 @@ description: Set up uv and python and restore the uv cache
 runs:
   using: composite
   steps:
-    - uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
+    - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
       with:
         python-version: 3.14
         save-cache: ${{ github.workflow == 'cache-seeder' }}

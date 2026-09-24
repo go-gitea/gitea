@@ -25,6 +25,17 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
   return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
 
+export type ActionRunJobViewLocale = {
+  status: Record<ActionsStatus, string>,
+  showTimeStamps: string,
+  showLogSeconds: string,
+  showFullScreen: string,
+  logsAlwaysAutoScroll: string,
+  logsAlwaysExpandRunning: string,
+  downloadLogs: string,
+  copyOutput: string,
+};
+
 type Step = {
   summary: string,
   duration: string,
@@ -35,6 +46,7 @@ type JobStepState = {
   cursor: string|null,
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
+  firstLogTime?: number, // the step's first log line time, what "Show seconds" counts from
 }
 
 // one ANSI renderer per step, so an unterminated color carries between that step's lines only
@@ -70,7 +82,6 @@ type JobData = {
     stepsLog?: Array<{
       step: number;
       cursor: string | null;
-      started: number;
       lines: LogLine[];
     }>;
   },
@@ -84,7 +95,7 @@ const props = defineProps<{
   store: ActionRunViewStore,
   jobId: number;
   actionsViewUrl: string;
-  locale: Record<string, any>;
+  locale: ActionRunJobViewLocale;
 }>();
 const store = props.store;
 const {currentRun: run} = toRefs(store.viewData);
@@ -344,9 +355,12 @@ async function loadJob() {
 
     // append logs to the UI
     for (const stepLogs of jobLogs) {
+      const stepState = currentJobStepsStates.value[stepLogs.step];
       // save the cursor, it will be passed to backend next time
-      currentJobStepsStates.value[stepLogs.step].cursor = stepLogs.cursor;
-      appendLogs(stepLogs.step, stepLogs.started, stepLogs.lines);
+      stepState.cursor = stepLogs.cursor;
+      if (!stepLogs.lines.length) continue;
+      stepState.firstLogTime ??= stepLogs.lines[0].timestamp;
+      appendLogs(stepLogs.step, stepState.firstLogTime, stepLogs.lines);
     }
 
     // auto-scroll to the last log line of the last step

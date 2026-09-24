@@ -209,7 +209,7 @@ func TestAPIEditUser(t *testing.T) {
 
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
-	assert.Equal(t, "e-mail invalid [email: ]", errMap["message"])
+	assert.Equal(t, "email address is invalid: ", errMap["message"])
 
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.False(t, user2.IsRestricted)
@@ -289,10 +289,10 @@ func TestAPICron(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		assert.Equal(t, "29", resp.Header().Get("X-Total-Count"))
+		assert.Equal(t, "30", resp.Header().Get("X-Total-Count"))
 
 		crons := DecodeJSON(t, resp, []api.Cron{})
-		assert.Len(t, crons, 29)
+		assert.Len(t, crons, 30)
 	})
 
 	t.Run("Execute", func(t *testing.T) {
@@ -355,7 +355,7 @@ func TestAPIEditUser_NotAllowedEmailDomain(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusBadRequest)
 	errMap := make(map[string]string)
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &errMap))
-	assert.Equal(t, "the domain of user email user2@example1.com conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", errMap["message"])
+	assert.Equal(t, "email domain is not allowed: user2@example1.com", errMap["message"])
 
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{Email: new("user2@example.org")}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)

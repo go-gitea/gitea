@@ -23,10 +23,10 @@
 					{{end}}
 				</div>
 				<div class="flex-text-block">
-					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny show-outdated">
+					<button type="button" id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny show-outdated">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.issues.review.show_resolved"}}
 					</button>
-					<button id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny hide-outdated tw-hidden">
+					<button type="button" id="hide-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="btn tiny hide-outdated tw-hidden">
 						{{svg "octicon-fold" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.issues.review.hide_resolved"}}
 					</button>
 				</div>
@@ -40,15 +40,15 @@
 			</div>
 			<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
 				<div class="ui buttons">
-					<button class="ui icon tiny basic button previous-conversation">
+					<button type="button" class="ui icon tiny basic button previous-conversation">
 						{{svg "octicon-arrow-up" 12}} {{ctx.Locale.Tr "repo.issues.previous"}}
 					</button>
-					<button class="ui icon tiny basic button next-conversation">
+					<button type="button" class="ui icon tiny basic button next-conversation">
 						{{svg "octicon-arrow-down" 12}} {{ctx.Locale.Tr "repo.issues.next"}}
 					</button>
 				</div>
 				{{if and $.CanMarkConversation $hasReview (not $isReviewPending)}}
-					<button class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+					<button type="button" class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{$comment.ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 						{{if $resolved}}
 							{{ctx.Locale.Tr "repo.issues.review.un_resolve_conversation"}}
 						{{else}}
@@ -57,7 +57,7 @@
 					</button>
 				{{end}}
 				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-					<button class="comment-form-reply ui primary icon tiny button">
+					<button type="button" class="comment-form-reply ui primary icon tiny button">
 						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>
 				{{end}}
