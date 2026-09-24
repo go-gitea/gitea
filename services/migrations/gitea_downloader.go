@@ -473,6 +473,7 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, g.maxPerPage)
 
+	var prevFirstID int64
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
 		select {
@@ -487,6 +488,10 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 		}})
 		if err != nil {
 			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %w", commentable.GetForeignIndex(), err)
+		}
+		// the endpoint ignores page and limit and returns all comments on every page
+		if len(comments) > 0 && comments[0].ID == prevFirstID {
+			break
 		}
 
 		for _, comment := range comments {
@@ -508,9 +513,10 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 			})
 		}
 
-		if !g.pagination || len(comments) < g.maxPerPage {
+		if !g.pagination || len(comments) == 0 || len(comments) != g.maxPerPage {
 			break
 		}
+		prevFirstID = comments[0].ID
 	}
 	return allComments, true, nil
 }

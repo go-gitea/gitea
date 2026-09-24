@@ -4,10 +4,15 @@
 package migrations
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -308,4 +313,44 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			Content:      "looks good",
 		},
 	}, reviews)
+}
+
+func TestGiteaDownloadCommentsIgnoresPagination(t *testing.T) {
+	const maxResponseItems = 2
+	for _, tc := range []struct{ commentCount, requests int }{
+		{commentCount: maxResponseItems, requests: 2},
+		{commentCount: maxResponseItems + 3, requests: 1},
+	} {
+		t.Run(strconv.Itoa(tc.commentCount), func(t *testing.T) {
+			commentRequests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/api/v1/version":
+					_, _ = w.Write([]byte(`{"version":"1.27.0"}`))
+				case "/api/v1/settings/api":
+					_, _ = fmt.Fprintf(w, `{"max_response_items":%d}`, maxResponseItems)
+				case "/api/v1/repos/o/r/issues/1/comments":
+					commentRequests++
+					comments := make([]string, tc.commentCount)
+					for i := range comments {
+						comments[i] = fmt.Sprintf(`{"id":%d,"user":{"id":1,"login":"u"}}`, i+1)
+					}
+					_, _ = w.Write([]byte("[" + strings.Join(comments, ",") + "]"))
+				default:
+					_, _ = w.Write([]byte(`[]`))
+				}
+			}))
+			defer server.Close()
+
+			downloader, err := NewGiteaDownloader(t.Context(), server.URL, "o/r", "", "", "")
+			require.NoError(t, err)
+			require.Equal(t, maxResponseItems, downloader.maxPerPage)
+
+			comments, _, err := downloader.GetComments(t.Context(), &base.Issue{Number: 1})
+			require.NoError(t, err)
+			assert.Len(t, comments, tc.commentCount)
+			assert.Equal(t, tc.requests, commentRequests)
+		})
+	}
 }
