@@ -35,6 +35,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 		run  *actions_model.ActionRun // defaults to stubRun
 		jobs actions_model.ActionJobList
 		want map[int64]actions_model.Status
+		note string
 	}{
 		{
 			name: "no blocked",
@@ -144,6 +145,15 @@ jobs:
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
+		},
+		{
+			name: "invalid job `if` is skipped with an annotation",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, RepoID: 1, JobID: "job1", Status: actions_model.StatusSuccess},
+				{ID: 2, RepoID: 1, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte("jobs: {job2: {if: '${{ fromJSON(needs.job1.outputs.x) }}'}}")},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
+			note: "Error when evaluating `if` for job `job2`.",
 		},
 		{
 			name: "max-parallel: a freed slot promotes the lowest blocked job id",
@@ -292,6 +302,12 @@ jobs:
 			got, err := r.Resolve(ctx)
 			require.NoError(t, err)
 			assert.Equal(t, want, got)
+			if tt.note != "" {
+				summaries, err := actions_model.ListActionRunJobSummaries(ctx, 1, runID, attemptID, 0)
+				require.NoError(t, err)
+				require.Len(t, summaries, 1)
+				assert.Contains(t, summaries[0].Content, tt.note)
+			}
 		})
 	}
 }

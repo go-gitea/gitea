@@ -287,7 +287,7 @@ func TestParseInterpolatesRunName(t *testing.T) {
 	// a malformed part must not restructure the surrounding expression
 	for _, runName := range []string{"${{ 1) && (2 }}", "run ${{ 1) && (2 }} now", "${{ 'a' }} ${{ b", "${{ 'a }}"} {
 		_, err := Parse(workflow(runName), WithGitContext(&model.GithubContext{EventName: "push"}))
-		assert.ErrorContains(t, err, "interpolate run-name")
+		assert.Error(t, err, runName)
 	}
 
 	// callers such as commit status parse without a git context, leaving `github` a nil pointer

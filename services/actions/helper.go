@@ -96,7 +96,7 @@ func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
 func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
 	parsedJob, err := job.ParseJob()
 	if err != nil {
-		return false, err
+		return skipJobOnIfError(ctx, job, err)
 	}
 	// Empty `if:` reduces to implicit `success()` - true iff every need finished as Success.
 	if len(parsedJob.If.Value) == 0 {
@@ -123,7 +123,17 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 		return false, err
 	}
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
-	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs, job.IsMatrixDeferred)
+	shouldStart, err := jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs, job.IsMatrixDeferred)
+	if err != nil {
+		return skipJobOnIfError(ctx, job, err)
+	}
+	return shouldStart, nil
+}
+
+// skipJobOnIfError skips a job whose `if:` fails to evaluate, as github.com does, and shows the error as its summary.
+func skipJobOnIfError(ctx context.Context, job *actions_model.ActionRunJob, err error) (bool, error) {
+	content := fmt.Sprintf("Error when evaluating `if` for job `%s`.\n\n```\n%v\n```\n", job.JobID, err)
+	return false, actions_model.UpsertActionRunJobSummary(ctx, job.RepoID, job.RunID, job.RunAttemptID, job.ID, 0, actions_model.JobSummaryContentTypeMarkdown, []byte(content))
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

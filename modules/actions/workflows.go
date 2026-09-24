@@ -183,22 +183,26 @@ func DetectWorkflows(
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
-) (workflows, schedules, filtered []*DetectedWorkflow, err error) {
-	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
+) (workflows, schedules, filtered []*DetectedWorkflow, invalid map[string]error, err error) {
+	workflowDir, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
+	invalid = map[string]error{}
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(ctx, gitRepo, entry)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			if _, err := jobparser.ReadWorkflow(content); err != nil { // not an error that needs run-time values, like `run-name` reading inputs
+				invalid[path.Join(workflowDir, entry.Name())] = err
+			}
 			continue
 		}
 		for _, evt := range events {
@@ -231,7 +235,7 @@ func DetectWorkflows(
 		}
 	}
 
-	return workflows, schedules, filtered, nil
+	return workflows, schedules, filtered, invalid, nil
 }
 
 func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
