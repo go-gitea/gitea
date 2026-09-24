@@ -255,7 +255,7 @@ func CommonGitCmdEnvs() []string {
 	return append(commonBaseEnvs(), []string{
 		"LC_ALL=C",              // ensure git output is in English, error messages are parsed in English
 		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git 2.3
-		"no_proxy=",             // disable proxy for git to ensure git always asks proxy
+		"no_proxy=",             // override no_proxy to ensure git always goes through internal proxy
 		"NO_PROXY=",             // git-lfs uses Go's net/http, which prefers the upper spelling
 	}...)
 }
