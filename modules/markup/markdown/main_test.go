@@ -14,5 +14,5 @@ import (
 func TestMain(m *testing.M) {
 	setting.SetupGiteaTestEnv()
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	os.Exit(m.Run())
+	m.Run()
 }
