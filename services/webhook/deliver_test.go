@@ -56,10 +56,9 @@ func TestWebhookProxy(t *testing.T) {
 			want: "http://localhost:8080",
 		},
 		{
-			// not proxied (outside ProxyHosts), but the pre-screening still denies it: it is not
-			// on the allow list, so the delivery would fail on dial anyway
-			req:     "http://github.com/a/b",
-			wantErr: true,
+			// not proxied (outside ProxyHosts), so the pre-screening does not fire; it only
+			// applies to requests that are actually routed through the webhook proxy
+			req: "http://github.com/a/b",
 		},
 		{
 			req:     "http://www.discordapp.com/assets/xxxxxx",

@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	once            sync.Once
-	hostMatchers    []glob.Glob
-	webhookMatchers []glob.Glob
+	onceGlobalProxy  sync.Once
+	hostMatchers     []glob.Glob
+	onceWebhookProxy sync.Once
+	webhookMatchers  []glob.Glob
 )
 
 // GetProxyURL returns proxy url
@@ -61,7 +62,7 @@ func Proxy() func(req *http.Request) (*url.URL, error) {
 		return http.ProxyFromEnvironment
 	}
 
-	once.Do(func() {
+	onceGlobalProxy.Do(func() {
 		for _, h := range setting.Proxy.ProxyHosts {
 			if g, err := glob.Compile(h); err == nil {
 				hostMatchers = append(hostMatchers, g)
@@ -86,7 +87,7 @@ func WebHookProxy() func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
 		return Proxy()
 	}
-	once.Do(func() {
+	onceWebhookProxy.Do(func() {
 		for _, h := range setting.Webhook.ProxyHosts {
 			if g, err := glob.Compile(h); err == nil {
 				webhookMatchers = append(webhookMatchers, g)
