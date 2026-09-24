@@ -17,7 +17,7 @@ var (
 )
 
 func newMigrationPolicy() *policy.Policy {
-	allow, block := setting.Migrations.AllowedDomains, setting.Migrations.BlockedDomains
+	allow, block := setting.Migrations.AllowedHostList, setting.Migrations.DeniedHostList
 	if strings.TrimSpace(allow) == "" {
 		// an empty allow list means "any external host", matching the historical default
 		allow = "external"
