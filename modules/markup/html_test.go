@@ -375,6 +375,9 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		"😎🤪🔐🤑❓",
 		`<p><span class="emoji" data-alias="sunglasses">😎</span><span class="emoji" data-alias="zany_face">🤪</span><span class="emoji" data-alias="closed_lock_with_key">🔐</span><span class="emoji" data-alias="money_mouth_face">🤑</span><span class="emoji" data-alias="question">❓</span></p>`)
+	test(
+		"👍🏽🧑🏽‍💻👩🏿‍❤️‍👩🏿",
+		`<p><span class="emoji" data-alias="+1">👍🏽</span><span class="emoji" data-alias="technologist">🧑🏽‍💻</span><span class="emoji" data-alias="couple_with_heart_woman_woman">👩🏿‍❤️‍👩🏿</span></p>`)
 
 	// should match nothing
 	test(":100:200", `<p>:100:200</p>`)

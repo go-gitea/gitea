@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync/atomic"
+	"unicode/utf8"
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -103,6 +104,9 @@ func FromCode(code string) *Emoji {
 	vars := globalVars()
 	i, ok := vars.codeMap[code]
 	if !ok {
+		i, ok = vars.codeMap[strings.Map(func(r rune) rune { return util.Iif(isSkinTone(r), -1, r) }, code)]
+	}
+	if !ok {
 		return nil
 	}
 
@@ -143,9 +147,24 @@ func FindEmojiSubmatchIndex(s string) []int {
 		if !vars.isStartingByte[s[i]] {
 			continue
 		}
-		if matchLen := vars.trie.Match(s, i); matchLen > 0 {
+		if matchLen := vars.trie.Match(s, i, skinToneLen); matchLen > 0 {
 			return []int{i, i + matchLen}
 		}
 	}
 	return nil
+}
+
+func isSkinTone(r rune) bool {
+	return r >= 0x1f3fb && r <= 0x1f3ff
+}
+
+// skinToneLen lets skin-toned text match the toneless emoji data
+func skinToneLen(s string, pos int) int {
+	if s[pos] != 0xf0 {
+		return 0
+	}
+	if r, size := utf8.DecodeRuneInString(s[pos:]); isSkinTone(r) {
+		return size
+	}
+	return 0
 }
