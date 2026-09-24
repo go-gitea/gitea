@@ -4,9 +4,15 @@
 package actions
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
+	"time"
 
+	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/typesniffer"
@@ -65,8 +71,32 @@ func TestArtifactPreviewContentTypeUsesPreviewableExtensions(t *testing.T) {
 	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.html", sniffedText))
 	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.htm", sniffedText))
 	assert.Equal(t, "text/css; charset=utf-8", artifactPreviewContentType("style.css", sniffedText))
+	assert.Equal(t, "text/javascript; charset=utf-8", artifactPreviewContentType("script.js", sniffedText))
 	assert.Equal(t, "text/plain; charset=utf-8", artifactPreviewContentType("output.txt", sniffedText))
 	assert.True(t, isPreviewableArtifactType(typesniffer.FromContentType("image/svg+xml")))
+}
+
+func TestArtifactPreviewHTMLReader(t *testing.T) {
+	const content = "<html>report</html>"
+	reader := artifactPreviewHTMLReader(strings.NewReader(content), int64(len(content)), `a="&b=1`)
+	prefix := `<script crossorigin src="` + public.AssetURI("web_src/js/external-render-helper.ts") + `" id="gitea-external-render-helper" data-render-query-string="a=&#34;&amp;b=1"></script>`
+
+	result, err := io.ReadAll(reader)
+	require.NoError(t, err)
+	assert.Equal(t, prefix+content, string(result))
+
+	_, err = reader.Seek(int64(len(prefix)-1), io.SeekStart)
+	require.NoError(t, err)
+	result, err = io.ReadAll(reader)
+	require.NoError(t, err)
+	assert.Equal(t, ">"+content, string(result))
+
+	request := httptest.NewRequest(http.MethodGet, "/preview/raw/index.html", nil)
+	request.Header.Set("Range", "bytes="+strconv.Itoa(len(prefix)-1)+"-"+strconv.Itoa(len(prefix)+1))
+	response := httptest.NewRecorder()
+	http.ServeContent(response, request, "index.html", time.Time{}, artifactPreviewHTMLReader(strings.NewReader(content), int64(len(content)), `a="&b=1`))
+	assert.Equal(t, http.StatusPartialContent, response.Code)
+	assert.Equal(t, ">"+content[:2], response.Body.String())
 }
 
 func TestArtifactPreviewMaxSize(t *testing.T) {

@@ -8,9 +8,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"html"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	pathpkg "path"
@@ -20,6 +18,7 @@ import (
 	"time"
 
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/public"
@@ -396,7 +395,7 @@ func isPreviewableArtifactType(st typesniffer.SniffedType) bool {
 func artifactPreviewContentType(filename string, st typesniffer.SniffedType) string {
 	switch strings.ToLower(pathpkg.Ext(filename)) {
 	case ".css", ".htm", ".html", ".js", ".mjs":
-		if contentType := mime.TypeByExtension(pathpkg.Ext(filename)); contentType != "" {
+		if contentType := public.DetectWellKnownMimeType(pathpkg.Ext(filename)); contentType != "" {
 			return contentType
 		}
 	}
@@ -406,17 +405,26 @@ func artifactPreviewContentType(filename string, st typesniffer.SniffedType) str
 	return st.GetMimeType()
 }
 
-func artifactPreviewHTMLReader(ctx *context_module.Context, reader io.Reader) (*filebuffer.FileBackedBuffer, error) {
-	buf := filebuffer.New(int(setting.UI.MaxDisplayFileSize), "")
-	_, err := fmt.Fprintf(buf, `<script crossorigin src=%q id="gitea-external-render-helper" data-render-query-string=%q></script>`, public.AssetURI("web_src/js/external-render-helper.ts"), html.EscapeString(ctx.Req.URL.RawQuery))
-	if err == nil {
-		_, err = io.Copy(buf, reader)
+type artifactPreviewPrefixedReaderAt struct {
+	prefix []byte
+	body   io.ReaderAt
+}
+
+func (r *artifactPreviewPrefixedReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	n := 0
+	if off < int64(len(r.prefix)) {
+		n = copy(p, r.prefix[off:])
 	}
-	if err != nil {
-		_ = buf.Close()
-		return nil, err
+	if n == len(p) {
+		return n, nil
 	}
-	return buf, nil
+	m, err := r.body.ReadAt(p[n:], off+int64(n)-int64(len(r.prefix)))
+	return n + m, err
+}
+
+func artifactPreviewHTMLReader(reader io.ReadSeeker, size int64, rawQuery string) io.ReadSeeker {
+	prefix := []byte(htmlutil.HTMLFormat(`<script crossorigin src="%s" id="gitea-external-render-helper" data-render-query-string="%s"></script>`, public.AssetURI("web_src/js/external-render-helper.ts"), rawQuery))
+	return io.NewSectionReader(&artifactPreviewPrefixedReaderAt{prefix: prefix, body: &readAtBySeeker{rs: reader}}, 0, size+int64(len(prefix)))
 }
 
 func artifactPreviewServeHeaderOptions(path string, st typesniffer.SniffedType) context_module.ServeHeaderOptions {
@@ -501,14 +509,7 @@ func PreviewArtifactContent(ctx *context_module.Context, path string, reader io.
 
 	opts := artifactPreviewServeHeaderOptions(path, st)
 	if strings.HasPrefix(opts.ContentType, "text/html") {
-		htmlReader, err := artifactPreviewHTMLReader(ctx, reader)
-		if err != nil {
-			log.Error("artifact preview HTML helper: %v", err)
-			WritePreviewRawError(ctx, http.StatusInternalServerError, "failed to read artifact")
-			return
-		}
-		defer htmlReader.Close()
-		ctx.ServeContent(htmlReader, opts)
+		ctx.ServeContent(artifactPreviewHTMLReader(reader, size, ctx.Req.URL.RawQuery), opts)
 		return
 	}
 
