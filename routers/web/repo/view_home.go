@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -109,22 +110,26 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 			ctx.ServerError("ListEntries", err)
 			return
 		}
-		for _, entry := range allEntries {
-			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-				// Read Citation file contents
-				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
-					log.Error("checkCitationFile: GetBlobContent: %v", err)
-				} else {
-					apa, bibtex := "", content // a .bib file is offered as-is, a .cff is formatted into both or neither
-					if entry.Name() == "CITATION.cff" {
-						apa, bibtex = citation.FormatCFF(content)
-					}
-					ctx.Data["CitationExist"] = bibtex != ""
-					ctx.Data["CitationFileName"] = entry.Name()
-					ctx.Data["CitationAPA"] = apa
-					ctx.Data["CitationBibTeX"] = bibtex
-					break
-				}
+		for _, name := range []string{"CITATION.cff", "CITATION.bib"} {
+			idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool { return strings.EqualFold(entry.Name(), name) })
+			if idx == -1 {
+				continue
+			}
+			content, err := allEntries[idx].Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
+			if err != nil {
+				log.Error("checkCitationFile: GetBlobContent: %v", err)
+				continue
+			}
+			apa, bibtex := "", content
+			if name == "CITATION.cff" {
+				apa, bibtex = citation.FormatCFF(content)
+			}
+			if bibtex != "" {
+				ctx.Data["CitationExist"] = true
+				ctx.Data["CitationFileName"] = allEntries[idx].Name()
+				ctx.Data["CitationAPA"] = apa
+				ctx.Data["CitationBibTeX"] = bibtex
+				return
 			}
 		}
 	}

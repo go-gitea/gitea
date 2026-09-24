@@ -6,10 +6,14 @@ export function initCitationFileCopyContent() {
 
   const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
   const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content')!;
+  const clipboardBtn = document.querySelector('#citation-clipboard-btn')!;
 
   const updateUi = () => {
     const isBibtex = !citationCopyApa || localUserSettings.getString('citation-copy-format', 'apa') === 'bibtex';
-    inputContent.value = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
+    const text = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
+    inputContent.value = text;
+    inputContent.setSelectionRange(0, 0);
+    clipboardBtn.setAttribute('data-clipboard-text', text); // the input strips newlines
     citationCopyBibtex.classList.toggle('primary', isBibtex);
     citationCopyApa?.classList.toggle('primary', !isBibtex);
   };

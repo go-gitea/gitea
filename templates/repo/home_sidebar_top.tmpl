@@ -60,7 +60,7 @@
 
 		{{if .CitationExist}}
 			{{template "repo/cite/cite_modal" .}}
-			<a class="flex-text-block muted show-modal" data-modal="#cite-repo-modal">
+			<a class="flex-text-block muted show-modal" href="#" data-modal="#cite-repo-modal">
 				{{svg "octicon-cross-reference"}} {{ctx.Locale.Tr "repo.cite_this_repo"}}
 			</a>
 		{{end}}
