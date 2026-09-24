@@ -32,11 +32,9 @@ import (
 
 const connectOK = "HTTP/1.1 200 Connection Established\r\nVia: 1.1 gitea-gitproxy\r\n\r\n"
 
-// gitProxyServer is the in-process loopback HTTP proxy that sits between git
-// subprocesses and their http(s) remotes. Egress enforcement (SSRF protection
-// via the migration allow/deny lists) happens in the dialer's Control hook:
-// every dialed ip:port is policy-checked at connect time. Targets chain through
-// the operator proxy (setting.Proxy.ProxyURLFixed) when one is configured.
+// gitProxyServer is an in-process HTTP proxy for git's http(s) remotes.
+// It enforces egress policy via the dialer's Control hook (SSRF protection).
+// When an operator proxy is configured, targets are chained through it.
 type gitProxyServer struct {
 	// operatorProxy is the upstream proxy URL, or nil for direct dial.
 	operatorProxy *url.URL
@@ -59,8 +57,8 @@ type gitProxyServer struct {
 	socksDialer proxy.ContextDialer
 }
 
-// serverConfig is everything newServer needs, already loaded, so tests can build it
-// directly without touching settings.
+// serverConfig holds configuration for newServer, allowing tests to construct
+// servers without accessing global settings.
 type serverConfig struct {
 	policy *policy.Policy
 	// operatorTLS is non-nil when the operator proxy speaks TLS (https scheme), so the
@@ -68,8 +66,8 @@ type serverConfig struct {
 	operatorTLS *tls.Config
 }
 
-// newServer builds the git proxy handler from cfg and wraps it in an http.Server. It does
-// not listen, publish an address, or serve; Run does that.
+// newServer constructs the git proxy handler from cfg and wraps it in an http.Server.
+// It does not listen or serve; Run handles that.
 func newServer(cfg serverConfig) (*gitProxyServer, error) {
 	operatorProxy := cfg.policy.ProxyURL()
 	dial := cfg.policy.NewDialContext()
@@ -91,15 +89,14 @@ func newServer(cfg serverConfig) (*gitProxyServer, error) {
 	return srv, nil
 }
 
-// Run binds the internal git proxy on setting.Egress.GitProxyListenAddr and registers its
-// bound address via egress.SetGitProxyURL (activating git env injection). It blocks until
-// the address is published, so git subprocesses spawned after it returns are proxied.
+// Run starts the internal git proxy on setting.Egress.GitProxyListenAddr,
+// registers the bound address via egress.SetGitProxyURL, and blocks until ready.
+// Git subprocesses spawned after it returns will be proxied.
 func Run(ctx context.Context) error {
 	return run(ctx, egress.GetMigrationPolicy())
 }
 
-// run is Run's testable core: everything but the policy, which is fetched from settings by Run
-// and injected here.
+// run is Run's testable core: it receives the policy as a parameter.
 func run(ctx context.Context, policy *policy.Policy) error {
 	cfg := serverConfig{policy: policy}
 	if u := policy.ProxyURL(); u != nil && strings.EqualFold(u.Scheme, "https") {
@@ -171,10 +168,9 @@ func listen(server *http.Server, started chan<- error) {
 	log.Info("Git Proxy Listener: %s Closed", listenAddr)
 }
 
-// ServeHTTP dispatches CONNECT (https remotes) and absolute-URI GET/POST (http
-// remotes). The deferred recover is the safety net: even if a bug in validation
-// or relay panics, the handler returns an error response to git instead of
-// killing the server goroutine.
+// ServeHTTP routes CONNECT requests (https remotes) and absolute-URI requests
+// (http remotes). A recover guard ensures panics return errors instead of
+// crashing the server.
 func (s *gitProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodConnect:
@@ -184,18 +180,10 @@ func (s *gitProxyServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleCONNECT tunnels a CONNECT request to the target. Git sends CONNECT
-// host:port for https remotes.
-//
-// The direct leg is enforced by the dialer's Control hook, at connect time. When
-// an operator proxy is configured it dials the destination instead, so it owns
-// the target policy there and the target is passed through unchecked. The one
-// target never handed over is a loopback literal: that would mean the operator's
-// own localhost, not the requested one, so it is dialed directly and gated
-// normally.
-//
-// Returns true if the connection was hijacked (the recover net must not touch
-// the response writer afterwards).
+// handleCONNECT tunnels CONNECT requests to the target (Git's https remotes).
+// The dialer's Control hook enforces policy for direct connections.
+// When an operator proxy is configured, it dials the destination and handles
+// policy enforcement; loopback targets bypass the operator and are dialed directly.
 func (s *gitProxyServer) handleCONNECT(w http.ResponseWriter, r *http.Request) {
 	host, port, err := splitHostPort(r)
 	if err != nil {
@@ -239,10 +227,8 @@ func (s *gitProxyServer) handleCONNECT(w http.ResponseWriter, r *http.Request) {
 	relay(&bufferedConn{Conn: raw, r: clientBuf}, upstream)
 }
 
-// dialUpstream opens the connection to a CONNECT target: through the operator
-// proxy when one is configured, else directly. A loopback literal is never handed
-// to the operator (that would be the operator's own localhost, not the requested
-// one), so it is dialed directly and gated normally.
+// dialUpstream connects to a CONNECT target: via the operator proxy if configured,
+// otherwise directly. Loopback targets bypass the operator and are dialed directly.
 func (s *gitProxyServer) dialUpstream(ctx context.Context, host, port string) (net.Conn, error) {
 	if _, ok := ctx.Deadline(); !ok {
 		var cancel context.CancelFunc
@@ -255,9 +241,8 @@ func (s *gitProxyServer) dialUpstream(ctx context.Context, host, port string) (n
 	return s.dial(ctx, "tcp", net.JoinHostPort(host, port))
 }
 
-// IsLoopbackHost reports whether host names this machine's loopback: "localhost" or any
-// "*.localhost" name (RFC 6761), or an IP literal in 127.0.0.0/8 or ::1. A trailing root dot
-// is ignored. It involves no resolution.
+// IsLoopbackHost reports whether host is a loopback address: "localhost",
+// "*.localhost" (RFC 6761), or an IP in 127.0.0.0/8 or ::1. No DNS resolution is performed.
 func IsLoopbackHost(host string) bool {
 	host = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(host)), ".")
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
@@ -267,8 +252,7 @@ func IsLoopbackHost(host string) bool {
 	return err == nil && ip.Unmap().IsLoopback()
 }
 
-// dialFunc adapts the policy dialer to x/net/proxy's Dialer (and ContextDialer),
-// so a SOCKS handshake dials the proxy through the policy too.
+// dialFunc adapts the policy dialer to x/net/proxy's Dialer interface.
 type dialFunc func(ctx context.Context, network, addr string) (net.Conn, error)
 
 func (f dialFunc) Dial(network, addr string) (net.Conn, error) {
@@ -279,17 +263,13 @@ func (f dialFunc) DialContext(ctx context.Context, network, addr string) (net.Co
 	return f(ctx, network, addr)
 }
 
-// isSocksScheme reports whether scheme names a SOCKS5 operator proxy.
 func isSocksScheme(scheme string) bool {
 	scheme = strings.ToLower(scheme)
 	return scheme == "socks5" || scheme == "socks5h"
 }
 
-// newSocksDialer builds the target dialer for a SOCKS5 operator proxy, or nil
-// when proxyURL is nil or not a SOCKS5 URL. forward dials the proxy hop, so the
-// policy's exemption for the proxy host:port applies. The target itself is not
-// validated here: the operator dials it, and an operator proxy is assumed to
-// screen the targets it is asked to reach.
+// newSocksDialer builds a SOCKS5 dialer for the operator proxy.
+// The target is not validated here; the operator proxy screens destinations.
 func newSocksDialer(proxyURL *url.URL, forward func(context.Context, string, string) (net.Conn, error)) (proxy.ContextDialer, error) {
 	if proxyURL == nil || !isSocksScheme(proxyURL.Scheme) {
 		return nil, nil
@@ -314,10 +294,8 @@ func socksAuth(u *url.URL) *proxy.Auth {
 	return &proxy.Auth{User: u.User.Username(), Password: password}
 }
 
-// upstreamTunnel returns a connection already tunnelled to host:port through the
-// configured operator proxy. The target is not resolved or validated here: the
-// operator dials it. The scheme picks the protocol, matching what the forward
-// path's transport already supports.
+// upstreamTunnel returns a connection tunnelled to host:port through the
+// operator proxy. The target is not validated here; the operator dials it.
 func (s *gitProxyServer) upstreamTunnel(ctx context.Context, host, port string) (net.Conn, error) {
 	target := net.JoinHostPort(host, port)
 	switch strings.ToLower(s.operatorProxy.Scheme) {
@@ -334,15 +312,13 @@ func (s *gitProxyServer) upstreamTunnel(ctx context.Context, host, port string) 
 	}
 }
 
-// maxUpstreamErrorBody bounds how much of a refused upstream CONNECT response is
-// kept for the error message.
+// maxUpstreamErrorBody limits how much of a refused upstream CONNECT response
+// is included in error messages.
 const maxUpstreamErrorBody = 512
 
-// upstreamCONNECT opens a tunnel to host:port through the configured operator
-// proxy. The dial to the proxy itself goes through the policy dialer, so its
-// host:port exemption applies; the target is not resolved or validated here —
-// the operator dials it. The returned connection reads any bytes the operator
-// sent past its CONNECT response.
+// upstreamCONNECT establishes a tunnel to host:port through the operator proxy.
+// The policy dialer handles the proxy connection; the target is not validated.
+// The returned connection includes any bytes the operator sent past its response.
 func (s *gitProxyServer) upstreamCONNECT(ctx context.Context, host, port string) (net.Conn, error) {
 	uc, err := s.dial(ctx, "tcp", s.operatorDialAddr)
 	if err != nil {
@@ -401,12 +377,9 @@ func (s *gitProxyServer) upstreamCONNECT(ctx context.Context, host, port string)
 	return &bufferedConn{Conn: uc, r: reader}, nil
 }
 
-// handleHTTP forwards an absolute-URI request (http remotes) to the target. The
-// policy's transport does the work: it dials directly when no operator proxy
-// applies (enforced by the Control hook at connect time) and chains through the
-// operator proxy otherwise, where the operator dials and therefore polices the
-// destination. A loopback target is never chained — the transport's guard drops
-// it to a direct, gated dial.
+// handleHTTP forwards absolute-URI requests (http remotes) to the target.
+// The policy's transport dials directly or chains through the operator proxy.
+// Loopback targets bypass the operator and are dialed directly.
 func (s *gitProxyServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	if !r.URL.IsAbs() || r.URL.Host == "" {
 		http.Error(w, "egress: absolute request URI required", http.StatusBadRequest)
@@ -442,8 +415,8 @@ func (s *gitProxyServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(flushWriter{w: w, f: flusher}, resp.Body)
 }
 
-// writeUpstreamError maps a dial or round-trip failure to a response: a policy
-// denial from the Control hook is a 403, anything else a bad gateway.
+// writeUpstreamError converts dial/round-trip failures to HTTP responses:
+// policy denials become 403, other errors become 502.
 func writeUpstreamError(w http.ResponseWriter, err error) {
 	if errors.Is(err, policy.ErrDenied) {
 		http.Error(w, "egress: target denied by policy", http.StatusForbidden)
@@ -457,7 +430,7 @@ func writeUpstreamError(w http.ResponseWriter, err error) {
 	http.Error(w, "egress: upstream failed: "+err.Error(), http.StatusBadGateway)
 }
 
-// splitHostPort extracts host:port from a CONNECT request
+// splitHostPort parses host:port from a CONNECT request's URL.Host.
 func splitHostPort(r *http.Request) (host, port string, err error) {
 	if r.URL == nil {
 		return "", "", errors.New("egress: CONNECT request URL is nil")
@@ -485,10 +458,9 @@ func splitHostPort(r *http.Request) (host, port string, err error) {
 	return host, port, nil
 }
 
-// bufferedConn presents a connection whose reads come from r, so bytes buffered
-// past a handshake (the client's hijack buffer, or an operator CONNECT response)
-// are not lost when the tunnel starts. Writes and closes go to the underlying
-// connection.
+// bufferedConn wraps a net.Conn with a buffered reader for bytes read past
+// a handshake (e.g., hijack buffer or operator CONNECT response).
+// Writes and closes go to the underlying connection.
 type bufferedConn struct {
 	net.Conn
 	r io.Reader
@@ -505,8 +477,8 @@ type unwrapper interface {
 	Unwrap() net.Conn
 }
 
-// socketOf returns the connection beneath a buffered wrapper, so the socket's own
-// capabilities decide how the relay shuts down.
+// socketOf unwraps bufferedConn and similar wrappers to return the underlying
+// socket, enabling proper shutdown based on socket capabilities.
 func socketOf(c net.Conn) net.Conn {
 	for {
 		if u, ok := c.(unwrapper); ok {
@@ -517,12 +489,9 @@ func socketOf(c net.Conn) net.Conn {
 	}
 }
 
-// relay copies bytes in both directions until both halves close. It half-closes
-// on a clean EOF so a response still in flight can drain, and falls back to
-// closing both at once when either side cannot half-close or a copy fails, which
-// is what unblocks a peer parked on a read. Each direction runs in its own
-// goroutine wrapped in a recover guard so a panic in one half never escapes to
-// the runtime.
+// relay copies bytes bidirectionally until both sides close. It half-closes
+// on clean EOF to allow in-flight responses to drain; otherwise it closes both
+// sockets. Each direction runs in a goroutine with panic recovery.
 func relay(client, upstream net.Conn) {
 	// sync.OnceFunc guarantees sockets are closed exactly once,
 	// either on an error or after both directions finish cleanly.
@@ -581,8 +550,8 @@ var hopHeaders = []string{
 	"Upgrade",
 }
 
-// removeHopHeaders drops connection-scoped headers, including any the Connection
-// header names.
+// removeHopHeaders removes connection-scoped headers, including those named
+// in the Connection header.
 func removeHopHeaders(header http.Header) {
 	for _, value := range header.Values("Connection") {
 		for name := range strings.SplitSeq(value, ",") {
@@ -596,7 +565,7 @@ func removeHopHeaders(header http.Header) {
 	}
 }
 
-// copyHeader copies src into dst.
+// copyHeader copies all headers from src to dst.
 func copyHeader(dst, src http.Header) {
 	for k, vs := range src {
 		for _, v := range vs {

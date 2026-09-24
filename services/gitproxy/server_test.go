@@ -33,12 +33,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
-// testPolicy builds a policy that grants loopback (so tests can dial httptest
-// backends) and chains the transport through the given operator proxy.
 func testPolicy(t *testing.T, operatorProxy *url.URL) *policy.Policy {
 	t.Helper()
 	return policy.NewPolicy("test",
@@ -47,15 +41,11 @@ func testPolicy(t *testing.T, operatorProxy *url.URL) *policy.Policy {
 	)
 }
 
-// testBlockedPolicy builds a policy that denies every loopback target, so a
-// request to an httptest backend is refused by the dialer's Control hook.
 func testBlockedPolicy(t *testing.T) *policy.Policy {
 	t.Helper()
 	return policy.NewPolicy("test", policy.WithBlock("loopback", "test.BLOCKED"))
 }
 
-// testProxyFunc mirrors Run's fixed selector so the policy transport chains
-// through the operator proxy.
 func testProxyFunc(u *url.URL) func(*http.Request) (*url.URL, error) {
 	if u == nil {
 		return nil
@@ -63,8 +53,6 @@ func testProxyFunc(u *url.URL) func(*http.Request) (*url.URL, error) {
 	return func(*http.Request) (*url.URL, error) { return u, nil }
 }
 
-// mustNewServer builds the proxy through newServer, so the tests exercise the
-// real policy wiring (dialer, transport, operator address, SOCKS dialer).
 func mustNewServer(t *testing.T, cfg serverConfig) *gitProxyServer {
 	t.Helper()
 	srv, err := newServer(cfg)
@@ -72,8 +60,6 @@ func mustNewServer(t *testing.T, cfg serverConfig) *gitProxyServer {
 	return srv
 }
 
-// newTestProxy serves a proxy built from the given policy on a random loopback
-// port.
 func newTestProxy(t *testing.T, p *policy.Policy) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(mustNewServer(t, serverConfig{policy: p}))
@@ -81,8 +67,6 @@ func newTestProxy(t *testing.T, p *policy.Policy) *httptest.Server {
 	return srv
 }
 
-// dialProxy connects to the proxy's listener and returns the raw connection
-// with a buffered reader.
 func dialProxy(t *testing.T, proxyURL string) (net.Conn, *bufio.Reader) {
 	t.Helper()
 	u, err := url.Parse(proxyURL)
@@ -93,8 +77,6 @@ func dialProxy(t *testing.T, proxyURL string) (net.Conn, *bufio.Reader) {
 	return conn, bufio.NewReader(conn)
 }
 
-// connectTunnel sends a CONNECT request for target and requires a 200, then
-// returns the established connection for the caller to read.
 func connectTunnel(t *testing.T, proxyURL, target string) (net.Conn, *bufio.Reader) {
 	t.Helper()
 	conn, br := dialProxy(t, proxyURL)
@@ -107,8 +89,6 @@ func connectTunnel(t *testing.T, proxyURL, target string) (net.Conn, *bufio.Read
 	return conn, br
 }
 
-// connectRequest sends a CONNECT request for target and returns the proxy's
-// response without asserting its status.
 func connectRequest(t *testing.T, proxyURL, target string) *http.Response {
 	t.Helper()
 	conn, br := dialProxy(t, proxyURL)
@@ -119,16 +99,12 @@ func connectRequest(t *testing.T, proxyURL, target string) *http.Response {
 	return resp
 }
 
-// testCertPool trusts the certificate of an httptest TLS server.
 func testCertPool(srv *httptest.Server) *x509.CertPool {
 	pool := x509.NewCertPool()
 	pool.AddCert(srv.Certificate())
 	return pool
 }
 
-// startSOCKS5 runs a minimal SOCKS5 operator that tunnels every request to
-// backendAddr, requiring user/password auth when they are non-empty. It
-// returns its listen address.
 func startSOCKS5(t *testing.T, backendAddr, user, pass string) string {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
@@ -235,10 +211,6 @@ func serveSOCKS5(conn net.Conn, backendAddr, user, pass string) {
 	_, _ = io.Copy(conn, backend)
 }
 
-// ============================================================================
-// 1. Unit tests: parsing and header handling
-// ============================================================================
-
 func TestIsLoopbackHost(t *testing.T) {
 	tests := []struct {
 		host string
@@ -333,10 +305,6 @@ func TestSplitHostPort(t *testing.T) {
 	})
 }
 
-// ============================================================================
-// 2. Relay and half-close
-// ============================================================================
-
 // TestRelay_HalfClose verifies that when the client finishes writing and
 // half-closes its write side, the relay does not tear the upstream connection
 // down before the upstream finishes transmitting its response.
@@ -409,9 +377,8 @@ func TestRelay_HalfClose(t *testing.T) {
 }
 
 // mockGracefulWrapper simulates a net.Conn wrapper like graceful's wrappedConn.
-// Note: the real graceful wrappedConn does not implement Unwrap, so in
-// production socketOf stops there and the client leg cannot half-close; this
-// mock validates the unwrap mechanism itself.
+// In production, socketOf stops at the real wrappedConn which lacks Unwrap,
+// so the client leg cannot half-close.
 type mockGracefulWrapper struct {
 	net.Conn
 }
@@ -446,9 +413,8 @@ func TestSocketOf_Unwrapping(t *testing.T) {
 	require.True(t, ok, "socketOf must unwrap the chain down to the TCP socket")
 }
 
-// TestRelay_FullDuplexThroughWrappers simulates a git push through the wrapper
-// chain: the client sends its pack, half-closes, and still receives the
-// server's reply.
+// TestRelay_FullDuplexThroughWrappers simulates a git push through wrapper
+// chains: client sends pack, half-closes, and receives the server's reply.
 func TestRelay_FullDuplexThroughWrappers(t *testing.T) {
 	serverLn, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -519,9 +485,7 @@ func TestRelay_FullDuplexThroughWrappers(t *testing.T) {
 	}
 }
 
-// ============================================================================
-// 3. CONNECT: direct dial
-// ============================================================================
+// CONNECT tests: direct dial
 
 func TestProxy_CONNECT_Success(t *testing.T) {
 	backend, err := net.Listen("tcp", "127.0.0.1:0")
@@ -658,8 +622,8 @@ func TestProxy_CONNECT_DialDeadlineInjected(t *testing.T) {
 	}
 }
 
-// TestProxy_CONNECT_EarlyTunnelBytes checks that bytes the operator sends
-// past its CONNECT response in the same segment survive the tunnel setup.
+// TestProxy_CONNECT_EarlyTunnelBytes verifies bytes sent by the operator
+// past its CONNECT response survive the tunnel setup.
 func TestProxy_CONNECT_EarlyTunnelBytes(t *testing.T) {
 	operator := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hj, ok := w.(http.Hijacker)
@@ -690,9 +654,7 @@ func TestProxy_CONNECT_EarlyTunnelBytes(t *testing.T) {
 	assert.Equal(t, "EARLYDATA", string(got))
 }
 
-// ============================================================================
-// 4. CONNECT: operator proxy chaining
-// ============================================================================
+// CONNECT tests: operator proxy chaining
 
 func TestProxy_CONNECT_ChainedOperatorProxy(t *testing.T) {
 	var operatorReceivedAuth string
@@ -931,9 +893,8 @@ func TestProxy_CONNECT_UnsupportedOperatorScheme(t *testing.T) {
 	assert.Contains(t, string(body), "unsupported operator proxy scheme")
 }
 
-// TestProxy_CONNECT_OperatorConnClosedOnClientGone checks that the connection
-// to the operator is dropped when the client disappears while the proxy waits
-// for the operator's CONNECT response.
+// TestProxy_CONNECT_OperatorConnClosedOnClientGone verifies the operator
+// connection is closed when the client disappears during CONNECT handshake.
 func TestProxy_CONNECT_OperatorConnClosedOnClientGone(t *testing.T) {
 	requestSeen := make(chan struct{})
 	operatorClosed := make(chan struct{})
@@ -989,9 +950,7 @@ func TestProxy_CONNECT_OperatorConnClosedOnClientGone(t *testing.T) {
 	}
 }
 
-// ============================================================================
-// 5. Normal (absolute-URI) HTTP forwarding
-// ============================================================================
+// HTTP forwarding tests: absolute-URI requests
 
 func TestProxy_HTTP_ForwardingAndHopHeaders(t *testing.T) {
 	var originSawVia any
@@ -1168,18 +1127,13 @@ func TestProxy_HTTP_UpstreamTimeoutIs504(t *testing.T) {
 	assert.Equal(t, http.StatusGatewayTimeout, resp.StatusCode)
 }
 
-// ============================================================================
-// 6. Lifecycle: run() and the graceful wiring
-// ============================================================================
+// Lifecycle tests: run() and graceful wiring
 
-// TestRun_PublishesBeforeServingAndTunnels pins run()'s core contract: when
-// it returns, the proxy address is already published via egress.SetGitProxyURL,
-// so git subprocesses spawned afterwards are proxied. It then drives a CONNECT
-// tunnel through the real graceful listener, where the hijacked connection is
-// graceful's wrappedConn.
-//
-// This test must run before anything shuts the graceful manager down; it is
-// first in the lifecycle section for that reason.
+// TestRun_PublishesBeforeServingAndTunnels verifies run()'s contract: when it
+// returns, the proxy address is published via egress.SetGitProxyURL, so git
+// subprocesses spawned afterwards are proxied. It then drives a CONNECT tunnel
+// through the graceful listener where the connection is wrapped by graceful.
+// This test must run first to avoid interference from shutdowns.
 func TestRun_PublishesBeforeServingAndTunnels(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Egress.GitProxyListenAddr, "127.0.0.1:0"))
 	// registered before the connection cleanups so they run after them
@@ -1214,8 +1168,8 @@ func TestRun_PublishesBeforeServingAndTunnels(t *testing.T) {
 	assert.Equal(t, response, string(got))
 }
 
-// TestRun_BindFailurePropagates checks that a bind failure is returned to
-// run()'s caller instead of being swallowed by the serving goroutine.
+// TestRun_BindFailurePropagates verifies bind failures are returned to
+// run()'s caller instead of being swallowed.
 func TestRun_BindFailurePropagates(t *testing.T) {
 	// the manager singleton must already be shutting down: the listen
 	// goroutine's failure path logs Fatal otherwise, killing the test binary
