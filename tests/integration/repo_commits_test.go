@@ -14,7 +14,10 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -77,7 +80,6 @@ func TestRepoCommits(t *testing.T) {
 		const (
 			commitID              = "5099b81332712fe655e34e8dd63574f503f61811"
 			expectedCommitterTime = "2017-08-06T19:56:13+02:00"
-			authorTime            = "2017-08-06T19:55:01+02:00"
 		)
 
 		req := NewRequest(t, "GET", "/user2/repo16/commits/branch/master")
@@ -103,6 +105,24 @@ func TestRepoCommits(t *testing.T) {
 		assert.Equal(t, "/user2/repo1/commit/985f0301dba5e7b34be866819cd15ad3d8f508ee", commitHref)
 		authorElem := doc.doc.Find(".latest-commit .avatar-stack-names")
 		assert.Equal(t, "6543", strings.TrimSpace(authorElem.Text()))
+	})
+
+	t.Run("CommitterIsNotAuthor", func(t *testing.T) {
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		err := git.ForceFastImport(t.Context(), repo1, []git.FastImportCommit{
+			{
+				Ref:       "refs/heads/test-branch-committer",
+				Files:     []git.FastImportFile{{Path: "dummy-file.txt", Content: "dummy-content"}},
+				Author:    &git.Signature{Name: "real-commit-author", Email: "dummy-email1@example.com"},
+				Committer: &git.Signature{Name: "non-author-committer", Email: "dummy-email2@example.com"},
+			},
+		})
+		require.NoError(t, err)
+		commitID, err := git.GetBranchCommitID(t.Context(), repo1, "test-branch-committer")
+		require.NoError(t, err)
+		req := NewRequest(t, "GET", "/user2/repo1/commit/"+commitID)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "non-author-committer")
 	})
 }
 

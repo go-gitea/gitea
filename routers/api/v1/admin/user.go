@@ -190,12 +190,26 @@ func EditUser(ctx *context.APIContext) {
 
 	form := web.GetForm[*api.EditUserOption](ctx)
 
+	var userType optional.Option[user_model.UserType]
+	if form.Type != "" && form.Type != convert.UserTypeToString(ctx.ContextUser.Type) {
+		newType, err := convert.UserTypeFromString(form.Type)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+		userType = optional.Some(newType)
+	}
+
 	authOpts := &user_service.UpdateAuthOptions{
 		LoginSource:        optional.FromNonDefault(form.SourceID),
 		LoginName:          optional.FromPtr(form.LoginName),
 		Password:           optional.FromNonDefault(form.Password),
 		MustChangePassword: optional.FromPtr(form.MustChangePassword),
 		ProhibitLogin:      optional.FromPtr(form.ProhibitLogin),
+	}
+	if userType.Value() == user_model.UserTypeBot && (authOpts.Password.Has() || authOpts.LoginSource.Value() != 0 || authOpts.LoginName.Value() != "") {
+		ctx.APIError(http.StatusBadRequest, "a bot account cannot have a password or authentication source")
+		return
 	}
 	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
 		switch {
@@ -206,7 +220,7 @@ func EditUser(ctx *context.APIContext) {
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		default:
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -231,13 +245,14 @@ func EditUser(ctx *context.APIContext) {
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
 		AllowCreateOrganization: optional.FromPtr(form.AllowCreateOrganization),
 		IsRestricted:            optional.FromPtr(form.Restricted),
+		UserType:                userType,
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
 		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
