@@ -114,9 +114,9 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 	if user == nil {
 		user = r.getUserFromAuthEmail(req)
-		if user == nil {
-			return nil, nil //nolint:nilnil // the auth method is not applicable
-		}
+	}
+	if user == nil || !user.IsIndividual() {
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	if r.CreateSession && sess != nil {

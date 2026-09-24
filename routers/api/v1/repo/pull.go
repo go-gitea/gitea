@@ -1159,8 +1159,8 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 
 	log.Trace("Repo: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.FullName(), compareReq.BaseOriRef+compareReq.BaseOriRefSuffix, baseRef, compareReq.HeadOriRef+compareReq.HeadOriRefSuffix, headRef)
 
-	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
-	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
+	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringValidObjectID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
+	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringValidObjectID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
 	// Check if base&head ref are valid.
 	if !baseRefValid || !headRefValid {
 		ctx.APIErrorNotFound()
