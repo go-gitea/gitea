@@ -35,3 +35,15 @@ func TestInternalAPIConnectionIsLocal(t *testing.T) {
 		})
 	}
 }
+
+func TestInternalAPITLSConfig(t *testing.T) {
+	domain := "gitea.example.com"
+
+	localConfig := internalAPITLSConfig(setting.HTTPS, "https://localhost:3000/", domain)
+	assert.True(t, localConfig.InsecureSkipVerify)
+	assert.Equal(t, domain, localConfig.ServerName)
+
+	remoteConfig := internalAPITLSConfig(setting.HTTPS, "https://gitea.internal:3000/", domain)
+	assert.False(t, remoteConfig.InsecureSkipVerify)
+	assert.Empty(t, remoteConfig.ServerName)
+}

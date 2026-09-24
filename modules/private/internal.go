@@ -76,16 +76,20 @@ func internalAPIConnectionIsLocal(protocol setting.Scheme, localURL string) bool
 	return ip != nil && ip.IsLoopback()
 }
 
+func internalAPITLSConfig(protocol setting.Scheme, localURL, domain string) *tls.Config {
+	isLocal := internalAPIConnectionIsLocal(protocol, localURL)
+	config := &tls.Config{InsecureSkipVerify: isLocal}
+	if isLocal {
+		// Preserve public SNI for local HTTPS virtual hosts.
+		config.ServerName = domain
+	}
+	return config
+}
+
 var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
 	return &http.Transport{
-		DialContext: dialContextInternalAPI,
-		TLSClientConfig: &tls.Config{
-			// Skip verification only for a local target (unix socket, or a loopback LOCAL_ROOT_URL), where the
-			// self-signed local cert can't be verified anyway; a non-loopback LOCAL_ROOT_URL is a real network
-			// hop and must be verified so the internal token can't be MITM'd. When verifying, Go's default
-			// ServerName (the dialed LOCAL_ROOT_URL host) is already correct, so it is not overridden.
-			InsecureSkipVerify: internalAPIConnectionIsLocal(setting.Protocol, setting.LocalURL),
-		},
+		DialContext:     dialContextInternalAPI,
+		TLSClientConfig: internalAPITLSConfig(setting.Protocol, setting.LocalURL, setting.AppDomain),
 	}
 })
 
