@@ -221,10 +221,6 @@ func joinNonEmpty(sep string, parts ...string) string {
 	return strings.Join(util.SliceRemoveAll(parts, ""), sep)
 }
 
-func (r *reference) url() string {
-	return cmp.Or(r.RepositoryCode, r.URL)
-}
-
 func (r *reference) conferenceDates() (start, end date) {
 	if r.Type == "conference-paper" && r.Conference != nil {
 		return r.Conference.DateStart, r.Conference.DateEnd
@@ -283,7 +279,7 @@ func (r *reference) formatAPA() string {
 	if r.Version != "" {
 		version = " (Version " + r.Version + ")"
 	}
-	url := r.url()
+	url := cmp.Or(r.RepositoryCode, r.URL)
 	if r.DOI != "" {
 		url = "https://doi.org/" + r.DOI
 	}
@@ -294,12 +290,9 @@ func apaAuthor(author actor) string {
 	if author.isEntity {
 		return author.Name
 	}
-	name := cmp.Or(author.GivenNames, author.Alias)
-	if author.FamilyNames != "" {
-		name = author.FamilyNames
-		if author.GivenNames != "" {
-			name += ", " + initials(author.GivenNames) + "."
-		}
+	name := cmp.Or(author.FamilyNames, author.GivenNames, author.Alias)
+	if author.FamilyNames != "" && author.GivenNames != "" {
+		name += ", " + initials(author.GivenNames) + "."
 	}
 	if author.NameParticle != "" {
 		name = author.NameParticle + " " + name
@@ -411,6 +404,35 @@ var (
 )
 
 func (r *reference) formatBibTeX() string {
+	place, address := r.Publisher, ""
+	if r.Type == "conference-paper" {
+		place = r.Conference
+	}
+	if place != nil {
+		address = joinNonEmpty(", ", place.City, place.Region, place.Country)
+	}
+	editors := r.Editors
+	if len(editors) == 0 {
+		editors = r.EditorsSeries
+	}
+	typeFields := map[string]string{
+		"address":     address,
+		"booktitle":   bibtexEscaper.Replace(r.CollectionTitle),
+		"editor":      bibtexActors(editors),
+		"institution": bibtexEscaper.Replace(r.institution()),
+		"isbn":        bibtexEscaper.Replace(r.ISBN),
+		"journal":     bibtexEscaper.Replace(r.Journal),
+		"license":     bibtexEscaper.Replace(string(r.License)),
+		"note":        statusNotes[r.Status],
+		"number":      r.Issue,
+		"pages":       r.pages("--"),
+		"publisher":   bibtexEscaper.Replace(r.Publisher.name()),
+		"school":      bibtexEscaper.Replace(r.institution()),
+		"series":      bibtexEscaper.Replace(r.Conference.name()),
+		"type":        r.ThesisType,
+		"version":     bibtexEscaper.Replace(r.Version),
+		"volume":      bibtexEscaper.Replace(r.Volume),
+	}
 	entryType := bibtexType(r.Type)
 	fields := map[string]string{
 		"author": bibtexActors(r.Authors),
@@ -418,14 +440,14 @@ func (r *reference) formatBibTeX() string {
 		"doi":    bibtexEscaper.Replace(r.DOI),
 	}
 	for _, name := range bibtexTypeFields[entryType] {
-		fields[name] = r.bibtexField(name)
+		fields[name] = typeFields[name]
 	}
 	month, year := r.monthAndYear()
 	if num, _ := strconv.Atoi(month); num >= 1 && num <= 12 {
 		fields["month"] = strings.ToLower(time.Month(num).String()[:3])
 	}
 	fields["year"] = year
-	fields["url"] = r.url()
+	fields["url"] = cmp.Or(r.RepositoryCode, r.URL)
 	fields["note"] = cmp.Or(fields["note"], r.Notes)
 	maps.DeleteFunc(fields, func(_, value string) bool { return value == "" })
 
@@ -438,52 +460,6 @@ func (r *reference) formatBibTeX() string {
 		lines = append(lines, name+" = "+value)
 	}
 	return "@" + entryType + "{" + strings.Join(lines, ",\n") + "\n}"
-}
-
-func (r *reference) bibtexField(name string) string {
-	switch name {
-	case "journal":
-		return bibtexEscaper.Replace(r.Journal)
-	case "volume":
-		return bibtexEscaper.Replace(r.Volume)
-	case "isbn":
-		return bibtexEscaper.Replace(r.ISBN)
-	case "license":
-		return bibtexEscaper.Replace(string(r.License))
-	case "version":
-		return bibtexEscaper.Replace(r.Version)
-	case "note":
-		return statusNotes[r.Status]
-	case "number":
-		return r.Issue
-	case "pages":
-		return r.pages("--")
-	case "address":
-		entity := r.Publisher
-		if r.Type == "conference-paper" {
-			entity = r.Conference
-		}
-		if entity == nil {
-			return ""
-		}
-		return joinNonEmpty(", ", entity.City, entity.Region, entity.Country)
-	case "editor":
-		if len(r.Editors) > 0 {
-			return bibtexActors(r.Editors)
-		}
-		return bibtexActors(r.EditorsSeries)
-	case "publisher":
-		return bibtexEscaper.Replace(r.Publisher.name())
-	case "booktitle":
-		return bibtexEscaper.Replace(r.CollectionTitle)
-	case "series":
-		return bibtexEscaper.Replace(r.Conference.name())
-	case "school", "institution":
-		return bibtexEscaper.Replace(r.institution())
-	case "type":
-		return r.ThesisType
-	}
-	return ""
 }
 
 func bibtexType(cffType string) string {

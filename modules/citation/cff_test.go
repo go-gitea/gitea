@@ -12,12 +12,8 @@ import (
 func TestFormatCFF(t *testing.T) {
 	cases := []struct{ cff, apa, bibtex string }{
 		{
-			cff: `cff-version: 1.2.0
-title: Overridden
-authors:
-  - family-names: Haines
-    given-names: Robert
-  - name: "The {curly_braces} Collective"
+			cff: `title: Overridden
+authors: [{family-names: Haines, given-names: Robert}, {name: "The {curly_braces} Collective"}]
 title: "Software that uses the following symbols: &, %, $, #"
 version: 2024-01-16
 license: [MIT, Apache-2.0]
@@ -34,8 +30,7 @@ year = {2024}
 }`,
 		},
 		{
-			cff: `cff-version: 1.2.0
-authors:
+			cff: `authors:
   - family-names: Smith
     given-names: Arfon M.
 title: "Software citation principles"
@@ -71,8 +66,7 @@ year = {2016}
 }`,
 		},
 		{
-			cff: `cff-version: 1.2.0
-preferred-citation:
+			cff: `preferred-citation:
   type: conference-paper
   version: 1.10
   title: "Über tools"
@@ -108,10 +102,7 @@ year = {2020}
 }`,
 		},
 		{
-			cff: `cff-version: 1.2.0
-thesis: &thesis
-  type: phdthesis
-  title: Thesis
+			cff: `thesis: &thesis {type: phdthesis, title: Thesis}
 preferred-citation:
   <<: *thesis
   authors:
@@ -130,7 +121,7 @@ title = {{Thesis}},
 year = {in press}
 }`,
 		},
-		{cff: "cff-version: 1.2.0\ntitle: No authors\nauthor:\n  - name: Typo\n"},
+		{cff: "title: No authors\nauthor:\n  - name: Typo\n"},
 	}
 	for _, tc := range cases {
 		apa, bibtex := FormatCFF(tc.cff)
