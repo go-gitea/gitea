@@ -756,6 +756,28 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 	))
 }
 
+// OwnerNamesCond matches the repositories of the owners with the given names, ignoring case
+func OwnerNamesCond(ownerNames []string) builder.Cond {
+	lowerNames := make([]string, 0, len(ownerNames))
+	for _, name := range ownerNames {
+		lowerNames = append(lowerNames, strings.ToLower(name))
+	}
+	return builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.In("lower_name", lowerNames)))
+}
+
+// FullNamesCond matches the repositories with the given "owner/name" full names, ignoring case
+func FullNamesCond(fullNames []string) builder.Cond {
+	cond := builder.NewCond()
+	for _, fullName := range fullNames {
+		ownerName, repoName, _ := strings.Cut(fullName, "/")
+		cond = cond.Or(builder.And(
+			builder.Eq{"`repository`.lower_name": strings.ToLower(repoName)},
+			OwnerNamesCond([]string{ownerName}),
+		))
+	}
+	return cond
+}
+
 // PublicRepoUnderPublicOwnerCond restricts to public repos whose owner is publicly visible: the
 // "genuinely public" set a public-only token or an anonymous caller may see (a public repo under a
 // limited/private owner is not publicly reachable and must be excluded).

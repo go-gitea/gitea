@@ -26,6 +26,7 @@ type SearchOptions struct {
 	RepoIDs  []int64
 	Keyword  string
 	Language string
+	Path     string // only search the files in this directory
 
 	SearchMode indexer.SearchModeType
 

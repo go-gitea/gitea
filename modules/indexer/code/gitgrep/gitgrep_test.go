@@ -26,7 +26,7 @@ func TestIndexSettingToGitGrepPathspecList(t *testing.T) {
 }
 
 func TestGrepMatchRanges(t *testing.T) {
-	const content = "Foo bar\nfoo(x)"
+	const content = "Foo bar\nfoo(x) --verbose"
 	cases := []struct {
 		keyword  string
 		mode     git.GrepModeType
@@ -34,9 +34,9 @@ func TestGrepMatchRanges(t *testing.T) {
 	}{
 		{"foo", git.GrepModeExact, []code_indexer.MatchRange{{Start: 8, End: 11}}},
 		{"foo(x)", git.GrepModeExact, []code_indexer.MatchRange{{Start: 8, End: 14}}},
-		{"FOO -bar", git.GrepModeWords, []code_indexer.MatchRange{{Start: 0, End: 3}, {Start: 4, End: 7}, {Start: 8, End: 11}}},
+		{"--verbose", git.GrepModeExact, []code_indexer.MatchRange{{Start: 15, End: 24}}},
+		{"FOO bar", git.GrepModeWords, []code_indexer.MatchRange{{Start: 0, End: 3}, {Start: 4, End: 7}, {Start: 8, End: 11}}},
 		{"f.o", git.GrepModeRegexp, []code_indexer.MatchRange{{Start: 8, End: 11}}},
-		{"--", git.GrepModeWords, nil},
 	}
 	for _, c := range cases {
 		pattern, err := grepMatchPattern(c.keyword, c.mode)

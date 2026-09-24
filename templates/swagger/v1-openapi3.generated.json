@@ -3223,6 +3223,11 @@
             "type": "string",
             "x-go-name": "HTMLURL"
           },
+          "language": {
+            "description": "The programming language of the file, if known",
+            "type": "string",
+            "x-go-name": "Language"
+          },
           "line_numbers": {
             "description": "The line numbers of the lines in the content fragment",
             "items": {
@@ -20472,7 +20477,7 @@
             }
           },
           {
-            "description": "keywords to search for",
+            "description": "keywords to search for, with an optional \"path:DIR\" qualifier to only search the files in a directory",
             "in": "query",
             "name": "q",
             "required": true,
@@ -20499,14 +20504,6 @@
                 "words",
                 "regexp"
               ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "only search the files in this directory and its subdirectories",
-            "in": "query",
-            "name": "path",
-            "schema": {
               "type": "string"
             }
           },
@@ -33671,6 +33668,70 @@
           }
         },
         "summary": "Get a repository by id",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/search/code": {
+      "get": {
+        "description": "The default branches are searched with the code indexer.",
+        "operationId": "codeSearch",
+        "parameters": [
+          {
+            "description": "keywords to search for, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "how to match the keywords",
+            "in": "query",
+            "name": "search_mode",
+            "schema": {
+              "default": "exact",
+              "enum": [
+                "exact",
+                "words"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CodeSearchResults"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Search the code of all repositories",
         "tags": [
           "repository"
         ]

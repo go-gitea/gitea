@@ -28,17 +28,14 @@ type Result struct {
 	ContentMatches []MatchRange // byte ranges into RawContent
 }
 
-// MatchRange is the byte range [Start, End) of a match
-type MatchRange struct {
-	Start, End int
-}
-
 type ResultLine struct {
 	Num              int
 	FormattedContent template.HTML
 }
 
 type SearchResultLanguages = internal.SearchResultLanguages
+
+type MatchRange = internal.MatchRange
 
 type SearchOptions = internal.SearchOptions
 
@@ -134,7 +131,20 @@ func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Res
 		Language:    result.Language,
 		Color:       result.Color,
 		Lines:       HighlightSearchResultCode(result.Filename, result.Language, lineNums, formattedLinesBuffer.String()),
+
+		RawContent:     result.Content[startIndex:endIndex],
+		ContentMatches: rebaseMatchRanges(result.ContentMatches, startIndex, endIndex),
 	}, nil
+}
+
+// rebaseMatchRanges keeps the ranges within [start, end) and makes them relative to start
+func rebaseMatchRanges(ranges []MatchRange, start, end int) (rebased []MatchRange) {
+	for _, r := range ranges {
+		if start <= r.Start && r.End <= end {
+			rebased = append(rebased, MatchRange{Start: r.Start - start, End: r.End - start})
+		}
+	}
+	return rebased
 }
 
 // PerformSearch perform a search on a repository

@@ -99,15 +99,13 @@ func PerformSearch(ctx context.Context, gitRepo *git.Repository, opts *SearchOpt
 func grepMatchPattern(keyword string, grepMode git.GrepModeType) (*regexp.Regexp, error) {
 	switch grepMode {
 	case git.GrepModeExact:
-		return regexp.Compile(regexp.QuoteMeta(strings.TrimLeft(keyword, "-")))
+		return regexp.Compile(regexp.QuoteMeta(keyword))
 	case git.GrepModeRegexp:
-		return regexp.Compile(strings.TrimLeft(keyword, "-"))
+		return regexp.Compile(keyword)
 	default:
 		var words []string
 		for word := range strings.FieldsSeq(keyword) {
-			if word = strings.TrimLeft(word, "-"); word != "" {
-				words = append(words, regexp.QuoteMeta(word))
-			}
+			words = append(words, regexp.QuoteMeta(word))
 		}
 		return regexp.Compile("(?i)" + strings.Join(words, "|"))
 	}

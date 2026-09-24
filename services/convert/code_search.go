@@ -25,6 +25,7 @@ func ToCodeSearchResultItem(ctx context.Context, repo *repo_model.Repository, ap
 		Path:        result.Filename,
 		URL:         fileURL,
 		HTMLURL:     repo.HTMLURL(ctx) + "/src/" + git.RefNameFromCommit(result.CommitID).RefWebLinkPath() + "/" + util.PathEscapeSegments(result.Filename),
+		Language:    result.Language,
 		Repository:  apiRepo,
 		LineNumbers: make([]string, len(result.Lines)),
 		TextMatches: []*api.CodeSearchTextMatch{toCodeSearchTextMatch(fileURL, result.RawContent, result.ContentMatches)},

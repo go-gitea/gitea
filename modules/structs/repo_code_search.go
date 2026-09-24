@@ -23,6 +23,8 @@ type CodeSearchResultItem struct {
 	URL string `json:"url"`
 	// The web URL of the file at the searched commit
 	HTMLURL string `json:"html_url"`
+	// The programming language of the file, if known
+	Language string `json:"language,omitempty"`
 	// The repository containing the file
 	Repository *Repository `json:"repository"`
 	// The line numbers of the lines in the content fragment

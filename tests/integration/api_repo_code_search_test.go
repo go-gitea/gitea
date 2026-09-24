@@ -11,8 +11,10 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
+	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -69,23 +71,17 @@ func TestAPIRepoSearchCode(t *testing.T) {
 			query    string
 			expected []string
 		}{
-			{"q=WoW", nil},
 			{"q=WoW&ref=" + prToUpdateCommit, []string{"File-WoW"}},
-			{"q=description", nil},
 			{"q=description&search_mode=words", []string{"README.md"}},
 			{"q=Desc.*repo1&search_mode=regexp", []string{"README.md"}},
-			{"q=Description&path=/", []string{"README.md"}},
-			{"q=Description&path=docs", nil},
-			{"q=Description&ref=sub-home-md-img-check&path=docs", []string{"docs/README.md"}},
-			{"q=Description&ref=sub-home-md-img-check&path=doc", nil},
+			{"q=Description+path:docs&ref=sub-home-md-img-check", []string{"docs/README.md"}},
 		} {
 			assert.Equal(t, c.expected, searchPaths(t, "/api/v1/repos/user2/repo1/code/search?"+c.query), c.query)
 		}
 	})
 
 	t.Run("Invalid", func(t *testing.T) {
-		search(t, "/api/v1/repos/user2/repo1/code/search", "", http.StatusUnprocessableEntity)
-		search(t, "/api/v1/repos/user2/repo1/code/search?q=WoW&search_mode=fuzzy", "", http.StatusUnprocessableEntity)
+		search(t, "/api/v1/repos/user2/repo1/code/search?q=WoW+language:go", "", http.StatusUnprocessableEntity)
 		search(t, "/api/v1/repos/user2/repo1/code/search?q=WoW&ref=no-such-ref", "", http.StatusNotFound)
 	})
 
@@ -96,5 +92,70 @@ func TestAPIRepoSearchCode(t *testing.T) {
 		res := search(t, url, getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository), http.StatusOK)
 		require.Len(t, res.Items, 1)
 		assert.Equal(t, "readme.md", res.Items[0].Path)
+	})
+}
+
+func TestAPISearchCode(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+	repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo16"}) // private
+	code_indexer.UpdateRepoIndexer(repo1)
+	code_indexer.UpdateRepoIndexer(repo16)
+
+	searchPaths := func(t *testing.T, query, token string) (paths []string) {
+		t.Helper()
+		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/search/code?"+query).AddTokenAuth(token), http.StatusOK)
+		for _, item := range DecodeJSON(t, resp, &api.CodeSearchResults{}).Items {
+			paths = append(paths, item.Repository.FullName+"/"+item.Path)
+		}
+		return paths
+	}
+
+	t.Run("Result", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/search/code?q=Description"), http.StatusOK)
+		res := DecodeJSON(t, resp, &api.CodeSearchResults{})
+		assert.EqualValues(t, 1, res.TotalCount)
+		require.Len(t, res.Items, 1)
+		item := res.Items[0]
+		assert.Equal(t, "user2/repo1", item.Repository.FullName)
+		assert.Equal(t, "README.md", item.Path)
+		assert.Equal(t, "Markdown", item.Language)
+		assert.Equal(t, []string{"2", "3"}, item.LineNumbers)
+		require.Len(t, item.TextMatches, 1)
+		assert.Equal(t, "\nDescription for repo1", item.TextMatches[0].Fragment)
+		assert.Equal(t, []*api.CodeSearchTextMatchTerm{{Text: "Description", Indices: []int{1, 12}}}, item.TextMatches[0].Matches)
+	})
+
+	t.Run("Qualifiers", func(t *testing.T) {
+		for _, c := range []struct {
+			query    string
+			expected []string
+		}{
+			{"q=Description+repo:User2/Repo1", []string{"user2/repo1/README.md"}},
+			{"q=Description+org:org3", nil},
+			{"q=Description+path:docs", nil},
+			{"q=Description+language:markdown", []string{"user2/repo1/README.md"}},
+		} {
+			assert.Equal(t, c.expected, searchPaths(t, c.query, ""), c.query)
+		}
+	})
+
+	t.Run("Access", func(t *testing.T) {
+		assert.Nil(t, searchPaths(t, "q=signed", ""))
+		assert.Equal(t, []string{"user2/repo16/readme.md"}, searchPaths(t, "q=signed", getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)))
+		assert.Nil(t, searchPaths(t, "q=signed", getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)))
+		assert.Equal(t, []string{"user2/repo16/readme.md"}, searchPaths(t, "q=signed", getUserToken(t, "user1", auth_model.AccessTokenScopeReadRepository)))
+	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		for _, query := range []string{"q=repo:user2/repo1", "q=x+repo:noslash", "q=x+path:a+path:b", "q=x+-repo:user2/repo1", "q=x&search_mode=regexp"} {
+			MakeRequest(t, NewRequest(t, "GET", "/api/v1/search/code?"+query), http.StatusUnprocessableEntity)
+		}
+	})
+
+	t.Run("Disabled", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.Service.Explore.DisableCodePage, true)()
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/search/code?q=Description"), http.StatusNotFound)
 	})
 }

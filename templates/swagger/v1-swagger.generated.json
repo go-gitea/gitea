@@ -8690,7 +8690,7 @@
           },
           {
             "type": "string",
-            "description": "keywords to search for",
+            "description": "keywords to search for, with an optional \"path:DIR\" qualifier to only search the files in a directory",
             "name": "q",
             "in": "query",
             "required": true
@@ -8711,12 +8711,6 @@
             "default": "exact",
             "description": "how to match the keywords",
             "name": "search_mode",
-            "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "only search the files in this directory and its subdirectories",
-            "name": "path",
             "in": "query"
           },
           {
@@ -20801,6 +20795,65 @@
         }
       }
     },
+    "/search/code": {
+      "get": {
+        "description": "The default branches are searched with the code indexer.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Search the code of all repositories",
+        "operationId": "codeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keywords to search for, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "exact",
+              "words"
+            ],
+            "type": "string",
+            "default": "exact",
+            "description": "how to match the keywords",
+            "name": "search_mode",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "503": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -26346,6 +26399,11 @@
           "description": "The web URL of the file at the searched commit",
           "type": "string",
           "x-go-name": "HTMLURL"
+        },
+        "language": {
+          "description": "The programming language of the file, if known",
+          "type": "string",
+          "x-go-name": "Language"
         },
         "line_numbers": {
           "description": "The line numbers of the lines in the content fragment",
