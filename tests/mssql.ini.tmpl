@@ -52,9 +52,9 @@ FROM = mssql-integration-test@gitea.io
 
 [migrations]
 ; the test server runs on loopback, so the egress policy must allow local networks;
-; BLOCKED_DOMAINS gives tests a host that is denied without runtime setting changes
+; 127.0.0.1.nip.io resolves to loopback, letting the mirror test bind a live server that must never be reached
 ALLOW_LOCALNETWORKS = true
-BLOCKED_DOMAINS = blocked.example.com
+BLOCKED_DOMAINS = example.net, 127.0.0.1.nip.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
