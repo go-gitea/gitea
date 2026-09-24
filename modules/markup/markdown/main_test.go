@@ -4,7 +4,6 @@
 package markdown
 
 import (
-	"os"
 	"testing"
 
 	"gitea.dev/modules/markup"

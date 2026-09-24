@@ -5,6 +5,7 @@
 package emoji
 
 import (
+	"os"
 	"testing"
 
 	"gitea.dev/modules/container"
@@ -63,7 +64,7 @@ func TestReplacers(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	setting.SetupGiteaTestEnv()
-	m.Run()
+	os.Exit(m.Run())
 }
 
 const (
