@@ -137,7 +137,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		if err != nil {
 			return fmt.Errorf("unable to recalculate lfs size for %s: %w", repo.FullName(), err)
 		}
-		if err := repo_model.UpdateRepoSize(ctx, repo.ID, repo.Size-repo.LFSSize, lfsSize); err != nil {
+		if err := repo_model.UpdateRepoSize(ctx, repo.ID, repo.GitSize, lfsSize); err != nil {
 			return fmt.Errorf("unable to update lfs size for %s: %w", repo.FullName(), err)
 		}
 		opts.LogDetail("Updated lfs size to %d for %-v", lfsSize, repo)
