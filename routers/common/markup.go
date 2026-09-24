@@ -71,7 +71,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	}
 
 	if repoOwnerName != "" && (!validation.IsValidUsername(repoOwnerName) || repo.IsUsableRepoName(repoName) != nil) {
-		ctx.HTTPError(http.StatusUnprocessableEntity, "invalid repository context")
+		ctx.HTTPError(http.StatusUnprocessableEntity, "user name and/or repo name is invalid")
 		return
 	}
 
