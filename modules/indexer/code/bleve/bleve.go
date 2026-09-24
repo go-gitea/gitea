@@ -9,7 +9,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	repo_model "gitea.dev/models/repo"
@@ -139,15 +138,15 @@ func (b *Indexer) SupportedSearchModes() []indexer.SearchMode {
 	return indexer.SearchModesExactWords()
 }
 
-var initOnce = sync.OnceFunc(func() {
+func init() {
+	// due to bleve's design problem, the "Register" must be done in the main goroutine, otherwise data-race
 	util.MustNoError(registry.RegisterTokenizer(codeTokenizerName, codeTokenizerConstructor))
 	util.MustNoError(registry.RegisterTokenFilter(codeTokenFilterName, codeTokenFilterConstructor))
 	util.MustNoError(registry.RegisterTokenizer(pathTokenizerName, pathTokenizerConstructor))
-})
+}
 
 // NewIndexer creates a new bleve local indexer
 func NewIndexer(indexDir string) *Indexer {
-	initOnce()
 	inner := inner_bleve.NewIndexer(indexDir, repoIndexerLatestVersion, generateBleveIndexMapping)
 	return &Indexer{
 		Indexer: inner,
