@@ -162,7 +162,7 @@ func GetPullRequestIDsByCheckStatus(ctx context.Context, status PullRequestStatu
 	prs := make([]int64, 0, 10)
 	return prs, db.GetEngine(ctx).Table("pull_request").
 		Where("status=?", status).
-		Cols("pull_request.id").
+		Cols("id").
 		Find(&prs)
 }
 

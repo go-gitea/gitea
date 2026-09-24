@@ -163,7 +163,7 @@ func TestPullMergeWithPostReceiveFailure(t *testing.T) {
 				require.FileExists(t, hookPath)
 				require.NoError(t, os.WriteFile(hookPath, []byte("#!/bin/sh\nexit 1\n"), 0o755))
 				defer func() {
-					_ = git.CreateDelegateHooks(t.Context(), repo)
+					require.NoError(t, git.CreateDelegateHooks(t.Context(), repo))
 				}()
 
 				testPullMerge(t, session, user, repoName, pullNum, MergeOptions{

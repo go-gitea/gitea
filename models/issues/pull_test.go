@@ -83,6 +83,30 @@ func testPullRequestLoadHeadRepo(t *testing.T) {
 	assert.Equal(t, pr.HeadRepoID, pr.HeadRepo.ID)
 }
 
+func TestDeletePullsByBaseRepoIDClearsMergeIntents(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	deletedPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	retainedPR := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+	require.NotEqual(t, deletedPR.BaseRepoID, retainedPR.BaseRepoID)
+
+	_, err := db.GetEngine(t.Context()).Insert(
+		&issues_model.PullMergeIntent{PullID: deletedPR.ID, CommitID: "deleted", MergerID: 2},
+		&issues_model.PullMergeIntent{PullID: retainedPR.ID, CommitID: "retained", MergerID: 2},
+	)
+	require.NoError(t, err)
+	require.NoError(t, issues_model.DeletePullsByBaseRepoID(t.Context(), deletedPR.BaseRepoID))
+
+	unittest.AssertNotExistsBean(t, &issues_model.PullRequest{ID: deletedPR.ID})
+	deletedIntent := &issues_model.PullMergeIntent{PullID: deletedPR.ID}
+	found, err := db.GetEngine(t.Context()).Get(deletedIntent)
+	require.NoError(t, err)
+	assert.False(t, found)
+	retainedIntent := &issues_model.PullMergeIntent{PullID: retainedPR.ID}
+	found, err = db.GetEngine(t.Context()).Get(retainedIntent)
+	require.NoError(t, err)
+	assert.True(t, found)
+}
+
 // TODO TestMerge
 
 // TODO TestNewPullRequest

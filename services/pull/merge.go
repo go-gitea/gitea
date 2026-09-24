@@ -265,19 +265,7 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		return fmt.Errorf("unable to load head repo: %w", err)
 	}
 
-	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-	if err != nil {
-		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
-		return err
-	}
-	prConfig := prUnit.PullRequestsConfig()
-
-	// Check if merge style is correct and allowed
-	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
-		return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
-	}
-
-	err = globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
 		mergePR, err := issues_model.GetPullRequestByID(ctx, pr.ID)
 		if err != nil {
 			return err
@@ -290,8 +278,21 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		} else if merged {
 			return ErrHasMerged
 		}
-		if err := mergePR.LoadIssue(ctx); err != nil {
+		if err := mergePR.LoadBaseRepo(ctx); err != nil {
+			return fmt.Errorf("unable to load base repo: %w", err)
+		} else if err := mergePR.LoadHeadRepo(ctx); err != nil {
+			return fmt.Errorf("unable to load head repo: %w", err)
+		} else if err := mergePR.LoadIssue(ctx); err != nil {
+			return fmt.Errorf("unable to load pull request issue: %w", err)
+		}
+		pr = mergePR
+
+		prUnit, err := mergePR.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
+		if err != nil {
 			return err
+		}
+		if !prUnit.PullRequestsConfig().IsMergeStyleAllowed(mergeStyle) {
+			return ErrInvalidMergeStyle{ID: mergePR.BaseRepo.ID, Style: mergeStyle}
 		}
 
 		claimed := false
@@ -318,7 +319,7 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 			return err
 		}
 
-		mergePR, err = issues_model.GetPullRequestByID(ctx, pr.ID)
+		mergePR, err = issues_model.GetPullRequestByID(ctx, mergePR.ID)
 		if err != nil {
 			return err
 		}
@@ -346,8 +347,10 @@ func settlePullMergeIntent(ctx context.Context, pr *issues_model.PullRequest) (b
 		return false, err
 	}
 	defer gitRepo.Close()
-	if !gitRepo.IsObjectExist(ctx, intent.CommitID) {
+	if _, err := gitRepo.GetCommit(ctx, intent.CommitID); git.IsErrNotExist(err) {
 		_, err := db.GetEngine(ctx).ID(pr.ID).Delete(new(issues_model.PullMergeIntent))
+		return false, err
+	} else if err != nil {
 		return false, err
 	}
 	inBranch, err := gitRepo.IsCommitInBranch(ctx, intent.CommitID, pr.BaseBranch)

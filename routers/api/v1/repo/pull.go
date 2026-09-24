@@ -965,7 +965,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
 		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
+			ctx.APIError(http.StatusConflict, "The PR is already merged")
 		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
@@ -1043,6 +1043,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
+			ctx.APIError(http.StatusConflict, "The PR is already merged")
 		} else if errors.Is(err, pull_service.ErrIsMerging) {
 			ctx.APIError(http.StatusConflict, "The PR is already being merged")
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
