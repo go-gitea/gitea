@@ -1,8 +1,6 @@
 package egress
 
 import (
-	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 
@@ -30,16 +28,10 @@ func newMigrationPolicy() *policy.Policy {
 		block = joinHostList(block, "private", "loopback")
 	}
 
-	var proxyURL *url.URL
-	var proxyFunc func(*http.Request) (*url.URL, error)
-	if setting.Proxy.Enabled && setting.Proxy.ProxyURLFixed != nil {
-		proxyURL = setting.Proxy.ProxyURLFixed
-		proxyFunc = func(*http.Request) (*url.URL, error) { return proxyURL, nil }
-	}
 	return policy.NewPolicy("git-proxy",
 		policy.WithAllow(allow, "migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS"),
 		policy.WithBlock(block, "migrations.BLOCKED_DOMAINS"),
-		policy.WithProxy(proxyURL, proxyFunc))
+		policy.WithProxy(setting.Proxy.ProxyURLFixed, proxy.Proxy()))
 }
 
 func newOauth2AvatarPolicy() *policy.Policy {
