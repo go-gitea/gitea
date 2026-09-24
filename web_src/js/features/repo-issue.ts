@@ -109,7 +109,7 @@ export function initRepoIssueCommentsFilter() {
   const setFilterState = (commentsOnly: boolean) => {
     elFilterButton.setAttribute('aria-pressed', String(commentsOnly));
     const checkbox = elFilterButton.querySelector<HTMLInputElement>(
-      'input[type="checkbox"]'
+      'input[type="checkbox"]',
     );
     if (checkbox) {
       checkbox.checked = commentsOnly;
