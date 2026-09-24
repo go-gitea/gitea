@@ -71,8 +71,9 @@ func (g *ASTTransformer) extractBlockquoteAttention2(firstParagraph ast.Node, re
 	}
 	val1 := string(node1.Segment.Value(reader.Source()))
 	val2 := string(node2.Segment.Value(reader.Source()))
-	if strings.HasPrefix(val1, `\[!`) && val2 == `\]` {
-		attentionType := strings.ToLower(val1[3:])
+	// goldmark splits the text at "\[!TYPE" + "\]" or "\[" + "!TYPE\]" depending on the enabled inline parsers
+	if inner, ok := strings.CutPrefix(val1+val2, `\[!`); ok && strings.HasSuffix(val2, `\]`) {
+		attentionType := strings.ToLower(strings.TrimSuffix(inner, `\]`))
 		if g.attentionTypes.Contains(attentionType) {
 			return attentionType, []ast.Node{node1, node2}
 		}
