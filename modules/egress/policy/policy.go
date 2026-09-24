@@ -135,6 +135,9 @@ func settingHint(key string) string {
 // empty allow list allows.
 func (p *Policy) checkTarget(host string, ip netip.AddrPort) error {
 	netIP := net.IP(ip.Addr().AsSlice())
+	if classifyAddr(ip.Addr()) == classReserved {
+		return fmt.Errorf("%s is in the mandatory reserved set", ip)
+	}
 	if p.block.MatchHostOrIP(host, netIP) {
 		return fmt.Errorf("%s can not call blocked HTTP servers%s, deny '%s(%s)'", p.usage, settingHint(p.blockKey), host, ip)
 	}
