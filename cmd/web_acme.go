@@ -83,6 +83,7 @@ func runACME(listenAddr string, m http.Handler) error {
 		TrustedRoots:            certPool,
 		Email:                   setting.AcmeEmail,
 		Agreed:                  setting.AcmeTOS,
+		Profile:                 setting.AcmeProfile,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
 		ListenHost:              setting.HTTPAddr,
