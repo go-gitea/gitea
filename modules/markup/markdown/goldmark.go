@@ -6,10 +6,12 @@ package markdown
 import (
 	"fmt"
 
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/markup/markdown/math"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -23,10 +25,14 @@ import (
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct {
 	renderInternal *internal.RenderInternal
+	attentionTypes container.Set[string]
 }
 
 func NewASTTransformer(renderInternal *internal.RenderInternal) *ASTTransformer {
-	return &ASTTransformer{renderInternal: renderInternal}
+	return &ASTTransformer{
+		renderInternal: renderInternal,
+		attentionTypes: container.SetOf("note", "tip", "important", "warning", "caution"),
+	}
 }
 
 func (g *ASTTransformer) applyElementDir(n ast.Node) {
@@ -48,6 +54,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			node.InsertBefore(node, firstChild, metaNode)
 		}
 		tocMode = rc.TOC
+	}
+	if ctx.RenderOptions.FeedExcerpt {
+		filterFeedExcerpt(node)
 	}
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -88,6 +97,25 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 	if rc.Lang != "" {
 		node.SetAttributeString("lang", []byte(rc.Lang))
+	}
+}
+
+func filterFeedExcerpt(parent ast.Node) {
+	for node := parent.FirstChild(); node != nil; {
+		next := node.NextSibling()
+		switch node.Kind() {
+		case ast.KindText, ast.KindAutoLink, math.KindInline:
+		case ast.KindParagraph, ast.KindHeading, ast.KindTextBlock, ast.KindBlockquote, ast.KindList, ast.KindListItem,
+			ast.KindEmphasis, ast.KindCodeSpan, ast.KindLink,
+			east.KindStrikethrough, east.KindDefinitionList, east.KindDefinitionTerm, east.KindDefinitionDescription:
+			filterFeedExcerpt(node)
+			if !node.HasChildren() {
+				parent.RemoveChild(parent, node)
+			}
+		default:
+			parent.RemoveChild(parent, node)
+		}
+		node = next
 	}
 }
 

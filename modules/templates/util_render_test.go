@@ -241,6 +241,25 @@ com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 space</p>
 `
 	assert.Equal(t, expected, string(newTestRenderUtils(t).MarkdownToHtml(testInput())))
+
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true})()
+	for _, tc := range []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "code", input: "```suggestion\nreplacement\n```\n\nexplanation", expected: "<p>explanation</p>\n"},
+		{name: "unclosed code", input: "```suggestion"},
+		{name: "table", input: "| a | b |\n|---|---|\n| 1 | 2 |"},
+		{name: "math", input: "$$\nx\n$$\nafter", expected: "<p>after</p>\n"},
+		{name: "image", input: "![img](https://x/y.png)\n\ncaption", expected: "<p>caption</p>\n"},
+		{name: "linked image", input: "[![img](https://x/y.png)](https://example.com)"},
+		{name: "html", input: "<details>\n<summary>x</summary>\n\nbody\n</details>", expected: "<p>body</p>\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, string(newTestRenderUtils(t).FeedExcerptToHtml(tc.input)))
+		})
+	}
 }
 
 func TestRenderPackageMarkdown(t *testing.T) {

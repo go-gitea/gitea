@@ -53,49 +53,21 @@ func TestRenameRepoAction(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
-func TestCommentActionExcerpts(t *testing.T) {
+func TestPullRequestReviewActionExcerpts(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	issue.Repo = repo
-	comment := &issues_model.Comment{
-		Type: issues_model.CommentTypeComment, PosterID: doer.ID, IssueID: issue.ID,
-		Content: "```suggestion\nreplacement\n```\n\nFirst meaningful **excerpt**\nSecond line",
-	}
-	assert.NoError(t, db.Insert(t.Context(), comment))
-
-	NewNotifier().CreateIssueComment(t.Context(), doer, repo, issue, comment, nil)
-	action := unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: doer.ID, UserID: doer.ID, RepoID: repo.ID,
-		OpType: activities_model.ActionCommentIssue, CommentID: comment.ID,
-	})
-	assert.Equal(t, "1|First meaningful **excerpt**", action.Content)
-
-	codeComment := &issues_model.Comment{
-		Type: issues_model.CommentTypeCode, PosterID: doer.ID, IssueID: issue.ID,
-		Content: "```suggestion\nreplacement\n```\n\nInline **excerpt**",
-	}
-	reviewComment := &issues_model.Comment{
-		Type: issues_model.CommentTypeReview, PosterID: doer.ID, IssueID: issue.ID,
-		Content: "\n\n# Review **excerpt**",
-	}
+	issue.Repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	codeComment := &issues_model.Comment{Type: issues_model.CommentTypeCode, PosterID: doer.ID, IssueID: issue.ID, Content: "```suggestion\n" + strings.Repeat("x", 300) + "\n```\nexplanation [link](https://example.com/" + strings.Repeat("x", 300) + ")"}
+	reviewComment := &issues_model.Comment{Type: issues_model.CommentTypeReview, PosterID: doer.ID, IssueID: issue.ID, Content: "![image](image.png)\n\n**summary**\nmore"}
 	assert.NoError(t, db.Insert(t.Context(), codeComment, reviewComment))
-	review := &issues_model.Review{
-		Type: issues_model.ReviewTypeComment, Reviewer: doer, ReviewerID: doer.ID,
-		Issue: issue, IssueID: issue.ID,
+
+	NewNotifier().PullRequestReview(t.Context(), nil, &issues_model.Review{
+		Type: issues_model.ReviewTypeApprove, Reviewer: doer, ReviewerID: doer.ID, Issue: issue, IssueID: issue.ID,
 		CodeComments: issues_model.CodeComments{"file.txt": {1: {codeComment}}},
-	}
-	NewNotifier().PullRequestReview(t.Context(), nil, review, reviewComment, nil)
-	inlineAction := unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: doer.ID, UserID: doer.ID, RepoID: repo.ID,
-		OpType: activities_model.ActionCommentPull, CommentID: codeComment.ID,
-	})
-	reviewAction := unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
-		ActUserID: doer.ID, UserID: doer.ID, RepoID: repo.ID,
-		OpType: activities_model.ActionCommentPull, CommentID: reviewComment.ID,
-	})
-	assert.Equal(t, "1|Inline **excerpt**", inlineAction.Content)
-	assert.Equal(t, "1|# Review **excerpt**", reviewAction.Content)
+	}, reviewComment, nil)
+
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{OpType: activities_model.ActionCommentPull, CommentID: codeComment.ID, Content: "1|explanation…"})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{OpType: activities_model.ActionApprovePullRequest, CommentID: reviewComment.ID, Content: "1|**summary**\nmore"})
 }
