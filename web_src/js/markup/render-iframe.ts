@@ -53,7 +53,7 @@ export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
     if (cmd === 'resize') {
       iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
-      navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
+      if (navigator.userActivation.isActive) navigateToIframeLink(e.data.openLink, e.data.anchorTarget); // the frame content must not navigate the page without a click
     } else {
       throw new Error(`Unknown gitea iframe cmd: ${cmd}`);
     }

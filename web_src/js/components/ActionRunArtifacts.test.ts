@@ -9,7 +9,6 @@ describe('buildArtifactTooltipHtml', () => {
       name: 'artifact.zip',
       size: 1024 * 1024,
       status: 'completed',
-      previewable: true,
       expiresUnix,
     }, 'Expires at %s (extra)');
 
@@ -30,7 +29,6 @@ describe('buildArtifactTooltipHtml', () => {
       name: 'artifact.zip',
       size: 512,
       status: 'completed',
-      previewable: true,
       expiresUnix: 0,
     }, 'Expires at %s');
     expect(normalizeTestHtml(result)).toBe(`<span class="flex-text-inline">512 B</span>`);

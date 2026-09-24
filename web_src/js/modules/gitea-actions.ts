@@ -88,5 +88,5 @@ export type ActionsArtifact = {
   size: number;
   status: ActionsArtifactStatus;
   expiresUnix: number;
-  previewable: boolean;
+  previewLink?: string;
 };

@@ -280,6 +280,7 @@ func Routes() *web.Router {
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
+	routes.Get("/-/actions/artifacts/{artifact_id}/{expires}/{signature}/*", actions.ArtifactsPreviewRawView) // no session, the sandboxed frame sends no cookie
 
 	var mid []any
 
@@ -1589,12 +1590,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/approve", reqRepoActionsWriter, actions.Approve)
 			m.Post("/delete", reqRepoActionsWriter, actions.Delete)
 			m.Get("/artifacts/{artifact_name}", actions.ArtifactsDownloadView)
-			m.Get("/artifacts/{artifact_name}/preview", reqSignIn, actions.ArtifactsPreviewView)
-			m.Get("/artifacts/{artifact_name}/preview/raw/*", reqSignIn, actions.ArtifactsPreviewRawView)
 			m.Delete("/artifacts/{artifact_name}", reqRepoActionsWriter, actions.ArtifactsDeleteView)
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			m.Post("/rerun-failed", reqRepoActionsWriter, actions.RerunFailed)
 		})
+		m.Get("/artifacts/{artifact_id}/preview", reqSignIn, actions.ArtifactsPreviewView)
+		m.Get("/artifacts/{artifact_id}/preview/*", reqSignIn, actions.ArtifactsPreviewView)
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", webAuth.AllowBasic, webAuth.AllowOAuth2, actions.GetWorkflowBadge)
 		})
@@ -1798,9 +1799,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview-embed/*", devtest.MailPreviewEmbed)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
-			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}", devtest.MockActionsArtifactDownload)
-			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)
-			m.Get("/repo-action-view/runs/{run}/artifacts/{artifact_name}/preview/raw/*", devtest.MockActionsArtifactPreviewRaw)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/preview/*", devtest.MockActionsArtifactPreview)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/raw/*", devtest.MockActionsArtifactPreviewRaw)
 			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind[*actions.ViewRequest](), devtest.MockActionsRunsJobs)

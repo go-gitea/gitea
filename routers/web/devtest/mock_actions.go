@@ -4,11 +4,11 @@
 package devtest
 
 import (
-	"archive/zip"
 	"fmt"
-	"io"
+	"maps"
 	mathRand "math/rand/v2"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -16,7 +16,6 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
@@ -26,46 +25,20 @@ import (
 	"gitea.dev/services/context"
 )
 
-type mockArtifactFile struct {
-	Path    string
-	Content string
-}
-
-var mockActionsArtifactFiles = map[string][]mockArtifactFile{
-	"artifact-b": {
-		{
-			Path:    "report.txt",
-			Content: "artifact-b report",
-		},
-	},
+var mockActionsArtifactFiles = map[string]map[string]string{
+	"artifact-b": {"report.txt": "artifact-b report"},
 	"artifact-html-report": {
-		{
-			Path:    "report/index.html",
-			Content: `<html><head><link rel="stylesheet" href="style.css"></head><body>Next line is from JS. <script>document.write('window origin: ' + window.origin)</script></body></html>`,
-		},
-		{
-			Path:    "report/style.css",
-			Content: "body { color: red; }\n",
-		},
+		"report/index.html": `<html><head><link rel="stylesheet" href="style.css"></head><body><a href="./style.css">style.css</a> Next line is from JS. <script>document.write('window origin: ' + window.origin)</script></body></html>`,
+		"report/style.css":  "body { color: red; }\n",
 	},
 	"artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong": {
-		{
-			Path:    "index.html",
-			Content: "<html><body>mock preview</body></html>",
-		},
-		{
-			Path:    "logs/output.txt",
-			Content: "mock logs",
-		},
+		"index.html":      "<html><body>mock preview</body></html>",
+		"logs/output.txt": "mock logs",
 	},
 }
 
-func mockArtifactFilePaths(files []mockArtifactFile) []string {
-	paths := make([]string, len(files))
-	for i, file := range files {
-		paths[i] = file.Path
-	}
-	return paths
+func mockArtifactPreviewLink(artifactName string) string {
+	return setting.AppSubURL + "/devtest/repo-action-view/artifacts/" + url.PathEscape(artifactName)
 }
 
 type generateMockStepsLogOptions struct {
@@ -271,7 +244,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
-		Previewable: true,
+		PreviewLink: mockArtifactPreviewLink("artifact-b") + "/preview",
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
@@ -284,14 +257,14 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		Size:        256 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
-		Previewable: true,
+		PreviewLink: mockArtifactPreviewLink("artifact-html-report") + "/preview",
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: 0,
-		Previewable: true,
+		PreviewLink: mockArtifactPreviewLink("artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong") + "/preview",
 	})
 
 	jobLink := func(jobID int64) string {
@@ -631,68 +604,25 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	}
 }
 
-func MockActionsArtifactDownload(ctx *context.Context) {
+func MockActionsArtifactPreview(ctx *context.Context) {
 	artifactName := ctx.PathParam("artifact_name")
 	files, ok := mockActionsArtifactFiles[artifactName]
 	if !ok {
 		ctx.NotFound(nil)
 		return
 	}
-
-	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(artifactName+".zip"))
-	writer := zip.NewWriter(ctx.Resp)
-	defer writer.Close()
-	for _, file := range files {
-		w, err := writer.Create(file.Path)
-		if err != nil {
-			ctx.ServerError("writer.Create", err)
-			return
-		}
-		if _, err := io.WriteString(w, file.Content); err != nil {
-			ctx.ServerError("io.WriteString", err)
-			return
-		}
-	}
-}
-
-func prepareMockActionsArtifactPreviewData(ctx *context.Context, runID int64, artifactName, requested string, runAttempt int64) bool {
-	files, ok := mockActionsArtifactFiles[artifactName]
-	if !ok {
-		return false
-	}
-
-	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), requested)
-	runURL := fmt.Sprintf("%s/devtest/repo-action-view/runs/%d", setting.AppSubURL, runID)
-	actions.PrepareArtifactPreviewTemplateData(ctx, runURL, runID, runAttempt, artifactName, requested, selectedPath, mockArtifactFilePaths(files), false, false)
-	return true
-}
-
-func MockActionsArtifactPreview(ctx *context.Context) {
-	if !prepareMockActionsArtifactPreviewData(
-		ctx,
-		ctx.PathParamInt64("run"),
-		ctx.PathParam("artifact_name"),
-		ctx.FormString("path"),
-		ctx.FormInt64("attempt"),
-	) {
-		ctx.NotFound(nil)
-		return
-	}
-	ctx.HTML(http.StatusOK, "repo/actions/artifact_preview")
+	runURL := setting.AppSubURL + "/devtest/repo-action-view/runs/10"
+	data := &actions.ArtifactPreviewTemplateData{RunURL: runURL, RunIndex: 10, ArtifactName: artifactName, DownloadURL: runURL + "/artifacts/" + url.PathEscape(artifactName)}
+	link := mockArtifactPreviewLink(artifactName)
+	actions.RenderArtifactPreview(ctx, data, slices.Sorted(maps.Keys(files)), ctx.PathParam("*"), link+"/preview/", link+"/raw/")
 }
 
 func MockActionsArtifactPreviewRaw(ctx *context.Context) {
-	files, ok := mockActionsArtifactFiles[ctx.PathParam("artifact_name")]
+	filePath := ctx.PathParam("*")
+	content, ok := mockActionsArtifactFiles[ctx.PathParam("artifact_name")][filePath]
 	if !ok {
-		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact not found")
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
-
-	selectedPath := actions.ChoosePreviewPath(mockArtifactFilePaths(files), strings.TrimPrefix(ctx.PathParam("*"), "/"))
-	idx := slices.IndexFunc(files, func(file mockArtifactFile) bool { return file.Path == selectedPath })
-	if idx < 0 {
-		actions.WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")
-		return
-	}
-	actions.PreviewArtifactContent(ctx, selectedPath, strings.NewReader(files[idx].Content))
+	actions.ServeArtifactPreviewContent(ctx.Base, filePath, strings.NewReader(content), int64(len(content)))
 }

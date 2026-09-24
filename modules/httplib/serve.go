@@ -29,9 +29,8 @@ type ServeHeaderOptions struct {
 	ContentType   string // defaults to "application/octet-stream"
 	ContentLength *int64
 
-	Filename              string
-	ContentDisposition    ContentDispositionType
-	ContentSecurityPolicy string
+	Filename           string
+	ContentDisposition ContentDispositionType
 
 	CacheIsPublic bool
 	CacheDuration time.Duration // defaults to 5 minutes
@@ -84,9 +83,6 @@ func ServeSetHeaders(w http.ResponseWriter, opts ServeHeaderOptions) {
 	}
 
 	serveSetHeaderContentRelated(w, opts.ContentType)
-	if opts.ContentSecurityPolicy != "" {
-		header.Set("Content-Security-Policy", opts.ContentSecurityPolicy)
-	}
 
 	if opts.ContentLength != nil {
 		header.Set("Content-Length", strconv.FormatInt(*opts.ContentLength, 10))
@@ -122,6 +118,7 @@ func serveSetHeadersByUserContent(w http.ResponseWriter, contentPrefetchBuf []by
 		if sniffedType.IsBrowsableBinaryType() {
 			opts.ContentType = sniffedType.GetMimeType()
 		} else if sniffedType.IsText() {
+			//  intentionally do not render user's HTML content as a page, for safety, and avoid content spamming & abusing
 			opts.ContentType = "text/plain"
 			detectCharset = true
 		} else {
