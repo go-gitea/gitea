@@ -257,7 +257,7 @@ func (p *Policy) proxiedTargetGuard(next func(*http.Request) (*url.URL, error)) 
 	}
 	return func(req *http.Request) (*url.URL, error) {
 		u, err := next(req)
-		if err != nil { // if it errored out, we can skip guards
+		if u == nil || err != nil { // if it errored out, we can skip guards
 			return u, err
 		}
 
