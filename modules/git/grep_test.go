@@ -79,6 +79,7 @@ func TestGrepSearch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
+	// search a string starting with a dash
 	res, err = GrepSearch(t.Context(), repo, "-v", GrepOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, []*GrepResult{{Filename: ".gitattributes", LineNumbers: []int{1}, LineCodes: []string{"*.vendor.java linguist-vendored"}}}, res)

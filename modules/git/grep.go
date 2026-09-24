@@ -57,19 +57,16 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	var results []*GrepResult
 	cmd := gitcmd.NewCommand("grep", "--null", "--break", "--heading", "--line-number", "--full-name")
 	cmd.AddOptionValues("--context", strconv.Itoa(opts.ContextLineNumber))
-	// patterns are attached to "-e" as one argument, so a leading "-" stays part of the pattern
 	switch opts.GrepMode {
 	case GrepModeExact:
-		cmd.AddArguments("--fixed-strings")
-		cmd.AddOptionFormat("-e%s", search)
+		cmd.AddArguments("--fixed-strings").AddOptionGrepExpr(search)
 	case GrepModeRegexp:
-		cmd.AddArguments("--perl-regexp")
-		cmd.AddOptionFormat("-e%s", search)
+		cmd.AddArguments("--perl-regexp").AddOptionGrepExpr(search)
 	default: /* words */
 		words := strings.Fields(search)
 		cmd.AddArguments("--fixed-strings", "--ignore-case")
 		for i, word := range words {
-			cmd.AddOptionFormat("-e%s", word)
+			cmd.AddOptionGrepExpr(word)
 			if i < len(words)-1 {
 				cmd.AddOptionValues("--and")
 			}
