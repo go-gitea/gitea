@@ -56,7 +56,7 @@
 			{{if $data.ShowPreviewContent}}
 				<div class="artifact-preview-content">
 					<div class="ui warning message tw-mt-0">{{ctx.Locale.Tr "actions.artifacts.preview_generated_content"}}</div>
-					<iframe class="artifact-preview-frame" src="{{$data.PreviewContentURL}}" {{if not $data.PreviewIsPDF}}sandbox="allow-scripts" {{end}}referrerpolicy="no-referrer"></iframe>
+					<iframe id="artifact-preview-frame" class="artifact-preview-frame" data-src="{{$data.PreviewContentURL}}" data-global-init="initExternalRenderIframe" {{if not $data.PreviewIsPDF}}sandbox="allow-scripts" {{end}}referrerpolicy="no-referrer"></iframe>
 				</div>
 			{{end}}
 		</div>

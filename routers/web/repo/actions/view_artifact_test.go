@@ -65,7 +65,8 @@ func TestArtifactPreviewContentTypeUsesPreviewableExtensions(t *testing.T) {
 	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.html", sniffedText))
 	assert.Equal(t, "text/html; charset=utf-8", artifactPreviewContentType("index.htm", sniffedText))
 	assert.Equal(t, "text/css; charset=utf-8", artifactPreviewContentType("style.css", sniffedText))
-	assert.Equal(t, "text/plain", artifactPreviewContentType("output.txt", sniffedText))
+	assert.Equal(t, "text/plain; charset=utf-8", artifactPreviewContentType("output.txt", sniffedText))
+	assert.True(t, isPreviewableArtifactType(typesniffer.FromContentType("image/svg+xml")))
 }
 
 func TestArtifactPreviewMaxSize(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"mime"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/typesniffer"
@@ -388,7 +390,7 @@ func listPreview(artifacts []*actions_model.ActionArtifact) (artifactPreviewList
 }
 
 func isPreviewableArtifactType(st typesniffer.SniffedType) bool {
-	return st.IsText() || st.IsPDF()
+	return st.IsText() || st.IsImage() || st.IsPDF()
 }
 
 func artifactPreviewContentType(filename string, st typesniffer.SniffedType) string {
@@ -398,7 +400,23 @@ func artifactPreviewContentType(filename string, st typesniffer.SniffedType) str
 			return contentType
 		}
 	}
+	if st.IsText() {
+		return "text/plain; charset=utf-8"
+	}
 	return st.GetMimeType()
+}
+
+func artifactPreviewHTMLReader(ctx *context_module.Context, reader io.Reader) (*filebuffer.FileBackedBuffer, error) {
+	buf := filebuffer.New(int(setting.UI.MaxDisplayFileSize), "")
+	_, err := fmt.Fprintf(buf, `<script crossorigin src=%q id="gitea-external-render-helper" data-render-query-string=%q></script>`, public.AssetURI("web_src/js/external-render-helper.ts"), html.EscapeString(ctx.Req.URL.RawQuery))
+	if err == nil {
+		_, err = io.Copy(buf, reader)
+	}
+	if err != nil {
+		_ = buf.Close()
+		return nil, err
+	}
+	return buf, nil
 }
 
 func artifactPreviewServeHeaderOptions(path string, st typesniffer.SniffedType) context_module.ServeHeaderOptions {
@@ -481,8 +499,21 @@ func PreviewArtifactContent(ctx *context_module.Context, path string, reader io.
 		return
 	}
 
+	opts := artifactPreviewServeHeaderOptions(path, st)
+	if strings.HasPrefix(opts.ContentType, "text/html") {
+		htmlReader, err := artifactPreviewHTMLReader(ctx, reader)
+		if err != nil {
+			log.Error("artifact preview HTML helper: %v", err)
+			WritePreviewRawError(ctx, http.StatusInternalServerError, "failed to read artifact")
+			return
+		}
+		defer htmlReader.Close()
+		ctx.ServeContent(htmlReader, opts)
+		return
+	}
+
 	// CSP sandbox is applied by httplib.ServeSetHeaders, see HINT: PDF-RENDER-SANDBOX
-	ctx.ServeContent(reader, artifactPreviewServeHeaderOptions(path, st))
+	ctx.ServeContent(reader, opts)
 }
 
 func ArtifactsPreviewView(ctx *context_module.Context) {
