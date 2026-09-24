@@ -166,15 +166,6 @@ func GetPullRequestIDsByCheckStatus(ctx context.Context, status PullRequestStatu
 		Find(&prs)
 }
 
-// GetPullRequestIDsByMerging returns all pull requests with an unfinished merge.
-func GetPullRequestIDsByMerging(ctx context.Context) ([]int64, error) {
-	prs := make([]int64, 0, 10)
-	return prs, db.GetEngine(ctx).Table("pull_request").
-		Where("merge_state > ? AND has_merged = ?", PullRequestMergeStateNone, false).
-		Cols("pull_request.id").
-		Find(&prs)
-}
-
 // PullRequests returns all pull requests for a base Repo by the given conditions
 func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) (PullRequestList, int64, error) {
 	if opts.Page <= 0 {

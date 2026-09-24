@@ -167,7 +167,6 @@ func TestPullMergeWithPostReceiveFailure(t *testing.T) {
 					Index:      pullNumInt,
 				})
 				assert.True(t, pr.HasMerged)
-				assert.Equal(t, issues_model.PullRequestMergeStateNone, pr.MergeState)
 
 				gitRepo, err := git.OpenRepository(t.Context(), repo)
 				require.NoError(t, err)

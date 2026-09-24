@@ -106,16 +106,6 @@ const (
 	PullRequestStatusAncestor
 )
 
-// PullRequestMergeState tracks the durable merge operation state. It is separate
-// from PullRequestStatus, which is the mergeability/check status.
-type PullRequestMergeState int
-
-const (
-	PullRequestMergeStateNone PullRequestMergeState = iota
-	PullRequestMergeStateMerging
-	PullRequestMergeStateAutoMerging
-)
-
 // PullRequestFlow the flow of pull request
 type PullRequestFlow int
 
@@ -154,10 +144,7 @@ type PullRequest struct {
 	MergeBase           string `xorm:"VARCHAR(64)"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
-	HasMerged  bool                  `xorm:"INDEX"`
-	MergeState PullRequestMergeState `xorm:"NOT NULL DEFAULT 0 INDEX"`
-	// MergedCommitID is set before the merge is pushed, so while MergeState is not None and HasMerged is false it
-	// holds the merge commit that a merge in flight intends to push. Only trust it once HasMerged is true.
+	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(64)"`
 	MergerID       int64              `xorm:"INDEX"`
 	Merger         *user_model.User   `xorm:"-"`

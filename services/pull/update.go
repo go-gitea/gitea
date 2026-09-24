@@ -87,9 +87,7 @@ func Update(pr *issues_model.PullRequest, doer *user_model.User, message string,
 		BaseBranch: pr.HeadBranch,
 	}
 
-	// no beforePush: this pushes to the head branch and never merges the pull request, and reversePR's branches are
-	// swapped, so recording its merge commit on pr.ID would describe the wrong thing entirely
-	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, nil)
+	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message)
 	// TODO: the "update" (merge target branch to PR head branch) operation has finished, there could still be some edge cases:
 	// * the database was already out of sync: the target branch was already in head branch:
 	//   * so no post-receive hook is really executed, no PR status update
