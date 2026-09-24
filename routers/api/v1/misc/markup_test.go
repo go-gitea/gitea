@@ -163,6 +163,14 @@ Here are some links to the most important topics. You can find the full list of 
 	testRenderMarkup(t, "unknown", false, "", "## Test", "unsupported render mode: unknown\n", http.StatusUnprocessableEntity)
 }
 
+func TestAPI_RenderInvalidRepoContext(t *testing.T) {
+	setting.AppURL = AppURL
+	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markup")
+	web.SetForm(ctx, &api.MarkupOption{Mode: "gfm", Text: "test", Context: "/inv@lid/repo1/src/branch/main"})
+	Markup(ctx)
+	assert.Equal(t, http.StatusUnprocessableEntity, resp.Code)
+}
+
 func TestAPI_RenderSimple(t *testing.T) {
 	setting.AppURL = AppURL
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true

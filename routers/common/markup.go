@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/services/context"
 )
 
@@ -67,6 +68,11 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		refPath = util.PathEscapeSegments(refPath)
 	} else if fields = strings.SplitN(repoLinkPath, "/", 3); len(fields) == 2 {
 		repoOwnerName, repoName = fields[0], fields[1]
+	}
+
+	if repoOwnerName != "" && (!validation.IsValidUsername(repoOwnerName) || repo.IsUsableRepoName(repoName) != nil) {
+		ctx.HTTPError(http.StatusUnprocessableEntity, "invalid repository context")
+		return
 	}
 
 	var rctx *markup.RenderContext
