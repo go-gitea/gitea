@@ -108,9 +108,10 @@
 					<span class="tw-inline-block tw-truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
 					<a href="{{.GetCommentLink ctx}}" class="tw-inline-block tw-truncate tw-max-w-full tw-self-start issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
-					{{$comment := index .GetIssueInfos 1}}
-					{{if $comment}}
-						<div class="render-content markup truncated-markup">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
+					{{with index .GetIssueInfos 1}}
+						{{with ctx.RenderUtils.FeedExcerptToHtml .}}
+							<div class="render-content markup">{{.}}</div>
+						{{end}}
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
 					<div class="item-body tw-text-text">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</div>
