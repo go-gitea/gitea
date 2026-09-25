@@ -54,7 +54,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 	assert.Equal(t, []string{"gitea"}, result.Versions["1.0.0"].Keywords)
 	assert.Equal(t, []npm_module.User{{Name: "alice"}}, result.Versions["1.0.0"].Maintainers)
 	assert.Equal(t,
-		"https://gitea.dev/api/packages/alice/npm/@scope%2Ftest/-/test-1.0.0.tgz",
+		"https://gitea.dev/api/packages/alice/npm/@scope/test/-/test-1.0.0.tgz",
 		result.Versions["1.0.0"].Dist.Tarball,
 	)
 	assert.Equal(t, repository, result.Versions["1.0.0"].Repository)

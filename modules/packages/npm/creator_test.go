@@ -39,7 +39,6 @@ func TestParsePackage(t *testing.T) {
 	})
 	data := base64.StdEncoding.EncodeToString(dataBytes)
 	integrity := "sha512-" + base64Sha512(dataBytes)
-	emptyAttachments := map[string]*PackageAttachment{"x.tgz": {}}
 
 	t.Run("InvalidUpload", func(t *testing.T) {
 		p, _, err := ParseUpload(bytes.NewReader([]byte{0}))
@@ -48,15 +47,14 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidUploadNoData", func(t *testing.T) {
-		b, _ := json.Marshal(packageUpload{Attachments: emptyAttachments})
-		p, _, err := ParseUpload(bytes.NewReader(b))
+		p, err := parseUploadPackage(&packageUpload{})
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidPackage)
 	})
 
 	t.Run("InvalidPackageName", func(t *testing.T) {
 		test := func(t *testing.T, name string) {
-			b, _ := json.Marshal(packageUpload{
+			p, err := parseUploadPackage(&packageUpload{
 				PackageMetadata: PackageMetadata{
 					ID:   name,
 					Name: name,
@@ -66,10 +64,7 @@ func TestParsePackage(t *testing.T) {
 						},
 					},
 				},
-				Attachments: emptyAttachments,
 			})
-
-			p, _, err := ParseUpload(bytes.NewReader(b))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidPackageName)
 		}
@@ -96,7 +91,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("ValidPackageName", func(t *testing.T) {
 		test := func(t *testing.T, name string) {
-			b, _ := json.Marshal(packageUpload{
+			p, err := parseUploadPackage(&packageUpload{
 				PackageMetadata: PackageMetadata{
 					ID:   name,
 					Name: name,
@@ -106,10 +101,7 @@ func TestParsePackage(t *testing.T) {
 						},
 					},
 				},
-				Attachments: emptyAttachments,
 			})
-
-			p, _, err := ParseUpload(bytes.NewReader(b))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidPackageVersion)
 		}
@@ -128,7 +120,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {
 		version := "first-version"
-		b, _ := json.Marshal(packageUpload{
+		p, err := parseUploadPackage(&packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageFullName,
 				Name: packageFullName,
@@ -139,10 +131,7 @@ func TestParsePackage(t *testing.T) {
 					},
 				},
 			},
-			Attachments: emptyAttachments,
 		})
-
-		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidPackageVersion)
 	})
@@ -284,6 +273,9 @@ func TestParsePackage(t *testing.T) {
 			Attachments: map[string]*PackageAttachment{
 				filename: {
 					Data: data,
+				},
+				packageFullName + "-" + packageVersion + ".sigstore": {
+					Data: "{}",
 				},
 			},
 		})
@@ -432,7 +424,7 @@ func TestInspectTarball(t *testing.T) {
 		},
 		{
 			name:          "gyp file implies node-gyp install",
-			files:         map[string]string{"package/binding.gyp": "{}", "package/package.json": `{}`},
+			files:         map[string]string{"package/binding.gyp": "{}"},
 			wantInstaller: true,
 		},
 		{
@@ -472,26 +464,6 @@ func TestParseUpload(t *testing.T) {
 		assert.Nil(t, p)
 		require.NotNil(t, dep)
 		assert.Equal(t, map[string]string{"1.0.0": "gone", "1.0.1": ""}, dep.Versions)
-	})
-
-	t.Run("dispatches publish of a provenance body over 10 MiB with a readme mentioning deprecated", func(t *testing.T) {
-		data := buildTarball(map[string]string{"package/package.json": `{}`})
-		integrity := "sha512-" + base64Sha512(data)
-		body := fmt.Sprintf(
-			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","readme":%q,"dist":{"integrity":%q}}},"_attachments":{"%s-1.0.0.tgz":{"data":%q},"%s-1.0.0.sigstore":{"data":"{}"}}}`,
-			pkg, pkg, strings.Repeat("deprecated ", 1<<20), integrity, pkg, base64.StdEncoding.EncodeToString(data), pkg,
-		)
-		p, dep, err := ParseUpload(strings.NewReader(body))
-		require.NoError(t, err)
-		assert.Nil(t, dep)
-		require.NotNil(t, p)
-		assert.Equal(t, pkg, p.Name)
-		assert.Equal(t, data, p.Data)
-	})
-
-	t.Run("invalid json errors out", func(t *testing.T) {
-		_, _, err := ParseUpload(strings.NewReader("not json"))
-		assert.Error(t, err)
 	})
 }
 

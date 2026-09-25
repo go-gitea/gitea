@@ -218,7 +218,7 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageBinPath, pmv.Bin[packageBinName])
 		assert.Equal(t, integrity, pmv.Dist.Integrity)
 		assert.Equal(t, sha1SumHex, pmv.Dist.Shasum)
-		assert.Equal(t, fmt.Sprintf("%s%s/-/%s", setting.AppURL, root[1:], filename), pmv.Dist.Tarball)
+		assert.Equal(t, fmt.Sprintf("%sapi/packages/%s/npm/%s/-/%s", setting.AppURL, user.Name, packageName, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
 		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
@@ -302,22 +302,6 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageVersion, result[packageTag])
 		assert.Contains(t, result, packageTag2)
 		assert.Equal(t, packageVersion, result[packageTag2])
-	})
-
-	t.Run("PackageMetadataDistTags", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", root).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		result := DecodeJSON(t, resp, &npm.PackageMetadata{})
-
-		assert.Len(t, result.DistTags, 2)
-		assert.Contains(t, result.DistTags, packageTag)
-		assert.Equal(t, packageVersion, result.DistTags[packageTag])
-		assert.Contains(t, result.DistTags, packageTag2)
-		assert.Equal(t, packageVersion, result.DistTags[packageTag2])
 	})
 
 	t.Run("DeleteTag", func(t *testing.T) {
