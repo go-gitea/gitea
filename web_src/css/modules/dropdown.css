@@ -817,11 +817,6 @@ select.ui.dropdown {
   max-height: 2em;
 }
 
-/* TODO: MENU-ITEM-FLEX-MARGIN: need to refactor: flex menu items don't need svg margin */
-.ui.dropdown .menu:not(.flex-items-menu) > .item:not(.flex-text-block, .flex-text-inline) > .svg {
-  margin-right: 10px;
-}
-
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */
 .ui.dropdown > .text > .img {
   margin-left: 0;
@@ -894,12 +889,18 @@ select.ui.dropdown {
 }
 
 /* to override Fomantic's default display: block for ".menu .item", and use a slightly larger gap for menu item content
-the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden */
+the "!important" is necessary to override Fomantic UI menu item styles, meanwhile we should keep the "hidden" items still hidden
+TODO: rename it to "flex-items-dropdown" in the future since it is only used for dropdown menu items, not for other menu items */
 .ui.dropdown .menu.flex-items-menu > .item:not(.hidden, .filtered, .tw-hidden) {
   display: flex !important;
   align-items: center;
   gap: var(--gap-block);
   min-width: 0;
+}
+
+/* TODO: MENU-ITEM-FLEX-MARGIN: need to refactor: flex menu items don't need svg margin, too many patches (see below ...) */
+.ui.dropdown .menu:not(.flex-items-menu) > .item:not(.flex-text-block, .flex-text-inline) > .svg {
+  margin-right: 10px;
 }
 
 .ui.dropdown .menu.flex-items-menu > .item img,

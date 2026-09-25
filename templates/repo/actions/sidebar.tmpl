@@ -53,7 +53,7 @@
 
 	<div class="ui fluid secondary vertical menu flex-items-block">
 		{{/* At the moment, the "job queue" page is view-only, it doesn't really do any management.
-		GitHub has a simliar menu section which contains "cache management" and more, so this section is designed for the future */}}
+		GitHub has a similar menu section which contains "cache management" and more, so this section is designed for the future */}}
 		<div>{{ctx.Locale.Tr "actions.management"}}</div>
 		<a class="item {{if $.PageIsActionsQueue}}active{{end}}" href="{{$.RepoLink}}/actions/queue">
 			{{svg "octicon-list-ordered"}}

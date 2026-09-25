@@ -4,7 +4,6 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
 import {activePageTimerRefresh, createElementFromHTML, morphElementWithProtection} from '../utils/dom.ts';
-import {Idiomorph} from 'idiomorph';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
