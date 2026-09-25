@@ -78,13 +78,13 @@ func newServer(cfg serverConfig) (*gitProxyServer, error) {
 		dial:             dial,
 		transport:        cfg.policy.NewHTTPTransport(),
 	}
-
-	socksDialer, err := newSocksDialer(operatorProxy, dial)
-	if err != nil {
-		return nil, err
+	if operatorProxy != nil {
+		socksDialer, err := newSocksDialer(operatorProxy, dial)
+		if err != nil {
+			return nil, err
+		}
+		srv.socksDialer = socksDialer
 	}
-	srv.socksDialer = socksDialer
-
 	return srv, nil
 }
 
