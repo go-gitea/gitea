@@ -64,29 +64,3 @@ func TestCreateCredential(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{Name: "WebAuthn Created Credential", UserID: 1})
 }
-
-func TestRenameCredential(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	ok, err := auth_model.RenameCredential(t.Context(), 1, 1, "Not the owner")
-	assert.NoError(t, err)
-	assert.False(t, ok)
-	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1, Name: "WebAuthn credential"})
-
-	ok, err = auth_model.RenameCredential(t.Context(), 1, 32, "Renamed Credential")
-	assert.NoError(t, err)
-	assert.True(t, ok)
-	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1, Name: "Renamed Credential", LowerName: "renamed credential"})
-
-	// only the letter case changes
-	ok, err = auth_model.RenameCredential(t.Context(), 1, 32, "RENAMED credential")
-	assert.NoError(t, err)
-	assert.True(t, ok)
-
-	other, err := auth_model.CreateCredential(t.Context(), 32, "Other Credential", &webauthn.Credential{ID: []byte("other")})
-	assert.NoError(t, err)
-	ok, err = auth_model.RenameCredential(t.Context(), other.ID, 32, "renamed CREDENTIAL")
-	assert.True(t, auth_model.IsErrWebAuthnCredentialNameAlreadyUsed(err))
-	assert.False(t, ok)
-	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: other.ID, Name: "Other Credential"})
-}

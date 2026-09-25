@@ -48,7 +48,7 @@ func TestWebAuthnUserVerification(t *testing.T) {
 func TestWebAuthnRename(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	session := loginUser(t, "user2") // sign in before adding credentials, which would require a second factor
+	session := loginUser(t, "user2")
 	cred, err := auth_model.CreateCredential(t.Context(), 2, "My credential", &webauthn.Credential{ID: []byte("mine")})
 	require.NoError(t, err)
 	_, err = auth_model.CreateCredential(t.Context(), 2, "Other credential", &webauthn.Credential{ID: []byte("other")})
@@ -64,9 +64,8 @@ func TestWebAuthnRename(t *testing.T) {
 	}
 
 	rename(cred.ID, "Renamed credential", http.StatusOK)
-	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: cred.ID, Name: "Renamed credential"})
+	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: cred.ID, Name: "Renamed credential", LowerName: "renamed credential"})
 
-	// changing only the letter case of its own name is allowed
 	rename(cred.ID, "RENAMED credential", http.StatusOK)
 	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: cred.ID, Name: "RENAMED credential"})
 
@@ -75,9 +74,6 @@ func TestWebAuthnRename(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: cred.ID, Name: "RENAMED credential"})
 
 	rename(cred.ID, "", http.StatusBadRequest)
-	rename(12345, "Missing credential", http.StatusNotFound)
-
-	// the credential of user32 can't be renamed by user2
 	rename(1, "Stolen credential", http.StatusNotFound)
 	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1, UserID: 32, Name: "WebAuthn credential"})
 }

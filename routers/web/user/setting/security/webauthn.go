@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
@@ -161,7 +162,7 @@ func WebauthnRename(ctx *context.Context) {
 	}
 
 	if ok, err := auth.RenameCredential(ctx, cred.ID, ctx.Doer.ID, form.Name); err != nil {
-		if auth.IsErrWebAuthnCredentialNameAlreadyUsed(err) {
+		if errors.Is(err, util.ErrAlreadyExist) {
 			ctx.JSONErrorWithField(ctx.Tr("settings.webauthn_nickname_been_used"), "name")
 		} else {
 			ctx.ServerError("RenameCredential", err)
