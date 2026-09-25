@@ -89,6 +89,10 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 	ctx.Data["QueueJobs"] = jobs
 	ctx.Data["QueueJobRunners"] = runners
 	ctx.Data["QueueTotal"] = total
+	if !setting.IsProd && !ctx.FormBool("refresh") {
+		// for dev mode, force the first screen to be blank to debug more edge cases
+		ctx.Data["QueueJobs"], ctx.Data["QueueJobRunners"], ctx.Data["QueueTotal"] = nil, nil, 0
+	}
 	ctx.Data["ShowRepoColumn"] = repoID == 0
 	ctx.Data["QueueFilterStatus"] = filterStatus
 	ctx.Data["QueueFilterStatuses"] = []string{actions_model.StatusRunning.String(), actions_model.StatusWaiting.String()}

@@ -3,7 +3,7 @@ import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
-import {activePageTimerRefresh, createElementFromHTML, protectMorphElements, recoverMorphElements} from '../utils/dom.ts';
+import {activePageTimerRefresh, createElementFromHTML, morphElementWithProtection} from '../utils/dom.ts';
 import {Idiomorph} from 'idiomorph';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
@@ -115,22 +115,8 @@ function initActionRunsList(el: HTMLElement) {
     interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
     async callback() {
       const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
-      if (!resp.ok || resp.status !== 200) return;
-
-      const newEl = createElementFromHTML(await resp.text());
-      for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
-      for (const newItem of newEl.querySelectorAll(':scope > .item')) {
-        const oldItem = el.querySelector(`#${newItem.id}`);
-        if (!oldItem) continue;
-
-        // If the end user is operating the row, then don't refresh its content.
-        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
-        if (oldItem.querySelector('.ui.dropdown.active')) continue;
-
-        const protectedElems = protectMorphElements(newItem);
-        Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
-        recoverMorphElements(el.querySelector(`#${newItem.id}`)!, protectedElems);
-      }
+      if (!resp.ok) return;
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
     },
   });
 }
@@ -141,14 +127,7 @@ function initActionQueueList(el: HTMLElement) {
     async callback() {
       const resp = await GET(el.getAttribute('data-queue-refresh-link')!);
       if (!resp.ok) return;
-
-      const newEl = createElementFromHTML(await resp.text());
-      for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
-      Idiomorph.morph(el.querySelector('#actions-queue-list')!, newEl.querySelector('#actions-queue-list')!, {morphStyle: 'outerHTML'});
-      const filter = el.querySelector('#actions-queue-filter')!;
-      if (!filter.querySelector('.dropdown.active') && !filter.contains(document.activeElement)) {
-        filter.replaceWith(newEl.querySelector('#actions-queue-filter')!);
-      }
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
     },
   });
 }
