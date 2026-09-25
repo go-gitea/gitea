@@ -7,6 +7,7 @@
 /templates/swagger/*.generated.json linguist-generated
 /options/fileicon/** linguist-generated
 /services/migrations/_mock_data/** linguist-generated
+/tests/integration/_mock_data/** linguist-generated
 /vendor/** -text -eol linguist-vendored
 Dockerfile.* linguist-language=Dockerfile
 Makefile.* linguist-language=Makefile
