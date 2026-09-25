@@ -219,7 +219,7 @@ func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.Pu
 			// validate the cert for this principal
 			if err := certChecker.CheckCert(principal, cert); err != nil {
 				// User is presenting an invalid certificate - STOP any further processing
-				log.Debug("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, conn.RemoteAddr())
+				log.Warn("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, conn.RemoteAddr())
 				log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 				return nil, util.ErrPermissionDenied
 			}
