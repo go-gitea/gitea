@@ -7,23 +7,26 @@ import (
 	"testing"
 
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInternalAPIConnectionIsLocal(t *testing.T) {
+func TestInternalAPITLSConfig(t *testing.T) {
 	cases := []struct {
 		name     string
 		protocol setting.Scheme
 		localURL string
-		want     bool
+		local    bool
 	}{
 		// HTTPUnix always dials the unix socket (a local target), whatever LOCAL_ROOT_URL says
 		{"unix socket", setting.HTTPUnix, "https://gitea.example.com/", true},
 		{"localhost", setting.HTTP, "http://localhost:3000/", true},
 		{"loopback ipv4", setting.HTTPS, "https://127.0.0.1:3000/", true},
 		{"loopback ipv6", setting.HTTPS, "https://[::1]:3000/", true},
-		// a non-loopback LOCAL_ROOT_URL is a real network hop and must be verified
+		{"unspecified ipv4", setting.HTTPS, "https://0.0.0.0:3000/", true},
+		{"unspecified ipv6", setting.HTTPS, "https://[::]:3000/", true},
+		// any other LOCAL_ROOT_URL is a real network hop and must be verified
 		{"remote host", setting.HTTPS, "https://gitea.internal:443/", false},
 		{"remote ip", setting.HTTPS, "https://10.0.0.5:3000/", false},
 		// an unparseable LOCAL_ROOT_URL is a hard misconfiguration; fail closed to verification
@@ -31,7 +34,9 @@ func TestInternalAPIConnectionIsLocal(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			assert.Equal(t, c.want, internalAPIConnectionIsLocal(c.protocol, c.localURL))
+			config := internalAPITLSConfig(c.protocol, c.localURL, "gitea.example.com")
+			assert.Equal(t, c.local, config.InsecureSkipVerify)
+			assert.Equal(t, util.Iif(c.local, "gitea.example.com", ""), config.ServerName)
 		})
 	}
 }
