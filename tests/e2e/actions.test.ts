@@ -2,7 +2,7 @@ import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
 import {apiCreateFiles, apiCreateRepo, apiHeaders, randomString} from './utils.ts';
 
-test('job queue refreshes its rows while the filter dropdown stays open', async ({page, request}) => {
+test('job queue refreshes with filter open', async ({page, request}) => {
   const owner = env.GITEA_TEST_E2E_USER;
   const repo = `e2e-queue-${randomString(8)}`;
   await apiCreateRepo(request, {name: repo, autoInit: false});
@@ -18,7 +18,7 @@ test('job queue refreshes its rows while the filter dropdown stays open', async 
 
   await page.clock.install();
   await page.goto(`/${owner}/${repo}/actions/queue`);
-  await page.locator('#actions-queue-filter').getByText('Status', {exact: true}).click();
+  await page.getByRole('menu').getByText('Status', {exact: true}).click();
   const waitingFilter = page.getByRole('menuitem', {name: 'Waiting'});
   await expect(waitingFilter).toBeVisible();
 
