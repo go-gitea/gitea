@@ -107,13 +107,12 @@ func (g *GogsDownloader) client(ctx context.Context) *gogs.Client {
 	gogsClient := gogs.NewClient(g.baseURL, g.token)
 	gogsClient.SetHTTPClient(&http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
-			reqCtx := req.Clone(ctx)
+			req = req.Clone(ctx)
 			if g.password != "" {
 				// Gogs client lacks the support for basic auth, this is the only way to set it
-				// this doesn't use setCredentialsAsHeaders because request clone is already done
-				reqCtx.SetBasicAuth(g.userName, g.password)
+				req.SetBasicAuth(g.userName, g.password)
 			}
-			return httpTransport.RoundTrip(reqCtx)
+			return httpTransport.RoundTrip(req)
 		}),
 	})
 	return gogsClient

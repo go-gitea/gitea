@@ -6,29 +6,19 @@ package migrations
 import (
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
 	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
 )
-
-// migrationTestPolicy mirrors what egress.GetMigrationPolicy builds from the migration
-// settings for a given ALLOWED_DOMAINS / BLOCKED_DOMAINS / ALLOW_LOCALNETWORKS combination.
-func migrationTestPolicy(allow, block string) *policy.Policy {
-	return policy.NewPolicy("git-proxy",
-		policy.WithAllow(allow, "migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS"),
-		policy.WithBlock(block, "migrations.BLOCKED_DOMAINS"))
-}
 
 func TestIsAuthenticationError(t *testing.T) {
 	errDummy := errors.New("dummy")
@@ -52,72 +42,29 @@ func TestIsAuthenticationError(t *testing.T) {
 }
 
 func TestMigrateWhiteBlocklist(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+	adminUser := &user_model.User{IsAdmin: true}
+	nonAdminUser := &user_model.User{}
 
-	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
-	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
-
-	// ALLOWED_DOMAINS=github.com, local networks blocked
-	pol := migrationTestPolicy("github.com", "private, loopback")
-	assert.Error(t, isMigrateURLAllowed(pol, "https://gitlab.com/gitlab/gitlab.git", nonAdminUser))
-	assert.NoError(t, isMigrateURLAllowed(pol, "https://github.com/go-gitea/gitea.git", nonAdminUser))
-	assert.NoError(t, isMigrateURLAllowed(pol, "https://gITHUb.com/go-gitea/gitea.git", nonAdminUser))
-
-	// BLOCKED_DOMAINS=github.com, local networks still blocked
-	pol = migrationTestPolicy("external", "github.com, private, loopback")
-	assert.NoError(t, isMigrateURLAllowed(pol, "https://gitlab.com/gitlab/gitlab.git", nonAdminUser))
-	assert.Error(t, isMigrateURLAllowed(pol, "https://github.com/go-gitea/gitea.git", nonAdminUser))
-	assert.Error(t, isMigrateURLAllowed(pol, "https://10.0.0.1/go-gitea/gitea.git", nonAdminUser))
-
-	// ALLOW_LOCALNETWORKS=true lifts the local network block
-	pol = migrationTestPolicy("external, private, loopback", "github.com")
-	assert.NoError(t, isMigrateURLAllowed(pol, "https://10.0.0.1/go-gitea/gitea.git", nonAdminUser))
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+	defer test.MockVariableValue(&setting.Migrations.BlockedHostList, "8.8.4.4")()
+	assert.NoError(t, IsMigrateURLAllowed("https://8.8.8.8/go-gitea/gitea.git", nonAdminUser))
+	assert.Error(t, IsMigrateURLAllowed("https://8.8.4.4/go-gitea/gitea.git", nonAdminUser))
+	assert.Error(t, IsMigrateURLAllowed("https://[64:ff9b::a9fe:a9fe]/go-gitea/gitea.git", nonAdminUser))
 
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = false
 
-	assert.Error(t, isMigrateURLAllowed(pol, "/home/foo/bar/goo", adminUser))
+	assert.Error(t, IsMigrateURLAllowed("/home/foo/bar/goo", adminUser))
 
 	setting.ImportLocalPaths = true
 	abs, err := filepath.Abs(".")
 	assert.NoError(t, err)
 
-	assert.NoError(t, isMigrateURLAllowed(pol, abs, adminUser))
-	assert.Error(t, isMigrateURLAllowed(pol, abs, nonAdminUser))
+	assert.NoError(t, IsMigrateURLAllowed(abs, adminUser))
+	assert.Error(t, IsMigrateURLAllowed(abs, nonAdminUser))
 
 	nonAdminUser.AllowImportLocal = true
-	assert.NoError(t, isMigrateURLAllowed(pol, abs, nonAdminUser))
+	assert.NoError(t, IsMigrateURLAllowed(abs, nonAdminUser))
 
 	setting.ImportLocalPaths = old
-}
-
-func TestAllowBlockList(t *testing.T) {
-	// default, allow all external, block none, no local networks
-	pol := migrationTestPolicy("external", "private, loopback")
-	assert.NoError(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
-
-	// allow all including local networks (it could lead to SSRF in production)
-	pol = migrationTestPolicy("external, private, loopback", "")
-	assert.NoError(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.NoError(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
-
-	// allow wildcard, block some subdomains. every resolved address must still be allowed.
-	pol = migrationTestPolicy("*.domain.com", "blocked.domain.com, private, loopback")
-	assert.NoError(t, checkByAllowBlockList(pol, "sub.domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList(pol, "sub.domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
-	assert.Error(t, checkByAllowBlockList(pol, "sub.domain.com", []net.IP{net.ParseIP("1.2.3.4"), net.ParseIP("127.0.0.1")}))
-	assert.Error(t, checkByAllowBlockList(pol, "blocked.domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList(pol, "sub.other.com", []net.IP{net.ParseIP("1.2.3.4")}))
-
-	// allow wildcard still follows the local network policy for resolved addresses.
-	pol = migrationTestPolicy("*", "private, loopback")
-	assert.NoError(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
-	assert.Error(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("1.2.3.4"), net.ParseIP("127.0.0.1")}))
-
-	// local network can still be blocked explicitly
-	pol = migrationTestPolicy("*", "127.0.0.*")
-	assert.NoError(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
-	assert.Error(t, checkByAllowBlockList(pol, "domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
 }

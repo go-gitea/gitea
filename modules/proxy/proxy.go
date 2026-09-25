@@ -14,11 +14,32 @@ import (
 )
 
 var (
-	onceGlobalProxy  sync.Once
-	hostMatchers     []glob.Glob
-	onceWebhookProxy sync.Once
-	webhookMatchers  []glob.Glob
+	globalProxyHosts  = sync.OnceValue(func() []glob.Glob { return compileHosts(setting.Proxy.ProxyHosts) })
+	webhookProxyHosts = sync.OnceValue(func() []glob.Glob { return compileHosts(setting.Webhook.ProxyHosts) })
 )
+
+func compileHosts(hosts []string) (globs []glob.Glob) {
+	for _, h := range hosts {
+		if g, err := glob.Compile(h); err == nil {
+			globs = append(globs, g)
+		} else {
+			log.Error("glob.Compile %s failed: %v", h, err)
+		}
+	}
+	return globs
+}
+
+// hostsProxy sends requests for hosts matching globs through proxyURL, others follow the environment
+func hostsProxy(globs []glob.Glob, proxyURL *url.URL) func(req *http.Request) (*url.URL, error) {
+	return func(req *http.Request) (*url.URL, error) {
+		for _, g := range globs {
+			if g.Match(req.URL.Host) {
+				return proxyURL, nil
+			}
+		}
+		return http.ProxyFromEnvironment(req)
+	}
+}
 
 // Proxy returns the system proxy
 func Proxy() func(req *http.Request) (*url.URL, error) {
@@ -28,25 +49,7 @@ func Proxy() func(req *http.Request) (*url.URL, error) {
 	if setting.Proxy.ProxyURL == "" {
 		return http.ProxyFromEnvironment
 	}
-
-	onceGlobalProxy.Do(func() {
-		for _, h := range setting.Proxy.ProxyHosts {
-			if g, err := glob.Compile(h); err == nil {
-				hostMatchers = append(hostMatchers, g)
-			} else {
-				log.Error("glob.Compile %s failed: %v", h, err)
-			}
-		}
-	})
-
-	return func(req *http.Request) (*url.URL, error) {
-		for _, v := range hostMatchers {
-			if v.Match(req.URL.Host) {
-				return http.ProxyURL(setting.Proxy.ProxyURLFixed)(req)
-			}
-		}
-		return http.ProxyFromEnvironment(req)
-	}
+	return hostsProxy(globalProxyHosts(), setting.Proxy.ProxyURLFixed)
 }
 
 // WebHookProxy returns the webhook proxy, falling back to the system proxy if no webhook proxy is set
@@ -54,21 +57,5 @@ func WebHookProxy() func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
 		return Proxy()
 	}
-	onceWebhookProxy.Do(func() {
-		for _, h := range setting.Webhook.ProxyHosts {
-			if g, err := glob.Compile(h); err == nil {
-				webhookMatchers = append(webhookMatchers, g)
-			} else {
-				log.Error("glob.Compile %s failed: %v", h, err)
-			}
-		}
-	})
-	return func(req *http.Request) (*url.URL, error) {
-		for _, v := range webhookMatchers {
-			if v.Match(req.URL.Host) {
-				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
-			}
-		}
-		return http.ProxyFromEnvironment(req)
-	}
+	return hostsProxy(webhookProxyHosts(), setting.Webhook.ProxyURLFixed)
 }

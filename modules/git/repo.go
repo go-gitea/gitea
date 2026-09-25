@@ -181,7 +181,6 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	}
 
 	cmd := gitcmd.NewCommand().AddArguments("clone")
-	HandleGitCmdHTTPRedirection(cmd, from, to)
 	if opts.SkipTLSVerify {
 		cmd.AddArguments("-c", "http.sslVerify=false")
 	}
@@ -218,11 +217,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 		opts.Timeout = -1
 	}
 
-	if opts.Env != nil {
-		cmd = cmd.WithEnv(opts.Env)
-	}
-
-	return cmd.WithTimeout(opts.Timeout).RunWithStderr(ctx)
+	return cmd.WithTimeout(opts.Timeout).WithEnv(opts.Env).RunWithStderr(ctx)
 }
 
 // PushOptions options when push to remote

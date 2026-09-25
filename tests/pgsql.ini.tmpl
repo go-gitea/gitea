@@ -52,11 +52,7 @@ PROTOCOL = dummy
 FROM = pgsql-integration-test@gitea.io
 
 [migrations]
-; the test server runs on loopback, so the egress policy must allow local networks;
-; example.net is publicly resolvable, so a policy denial cannot be a DNS failure;
-; 127.0.0.1.nip.io resolves to loopback, letting the mirror test bind a live server that must never be reached
-ALLOW_LOCALNETWORKS = true
-BLOCKED_DOMAINS = example.net, 127.0.0.1.nip.io
+ALLOWED_HOST_LIST = external, private, loopback
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false

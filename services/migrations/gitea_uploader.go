@@ -948,8 +948,6 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 
 // Rollback when migrating failed, this will rollback all the changes.
 func (g *GiteaLocalUploader) Rollback() error {
-	// g.gitRepo is only opened once the git data migration succeeded; a failure before that
-	// must not panic here, or the real migration error gets replaced by the panic.
 	if g.repo != nil && g.repo.ID > 0 && g.gitRepo != nil {
 		g.gitRepo.Close()
 

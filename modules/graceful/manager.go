@@ -34,11 +34,10 @@ type RunCanceler interface {
 // * HTTP or HTTPS install listener
 // * HTTP redirection fallback
 // * Builtin SSH listener
-// * Builtin Git proxy
 //
 // If you add a new place you must increment this number
 // and add a function to call manager.InformCleanup if it's not going to be used
-const numberOfServersToCreate = 5
+const numberOfServersToCreate = 4
 
 var (
 	manager  *Manager

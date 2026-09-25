@@ -16,6 +16,8 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
@@ -69,6 +71,9 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
 
 	// Cleanup
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))

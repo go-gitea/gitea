@@ -3,12 +3,9 @@
 
 package policy
 
-// Base-policy tests: the decision is the hostmatcher one (deny list rejects, then a non-empty
-// allow list must match), plus the scheme-defaulted proxy exemption and the loopback proxy guard.
-
 import (
-	"context"
 	"net"
+	"net/http"
 	"net/netip"
 	"net/url"
 	"testing"
@@ -17,182 +14,105 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testPolicy(allow, block string, proxy *url.URL) *Policy {
-	return NewPolicy("test",
-		WithAllow(allow, "test.ALLOWED"),
-		WithBlock(block, "test.BLOCKED"),
-		WithProxy(proxy, nil))
-}
-
-func mustAddrPort(t *testing.T, s string) netip.AddrPort {
-	t.Helper()
-	ap, err := netip.ParseAddrPort(s)
-	require.NoError(t, err, "bad addr %q", s)
-	return ap
-}
-
-// dialPolicy returns the error from a policy-enforced dial, closing the connection on success.
-func dialPolicy(t *testing.T, pol *Policy, addr string) error {
-	t.Helper()
-	conn, err := pol.NewDialContext()(context.Background(), "tcp", addr)
-	if err == nil {
-		_ = conn.Close()
-	}
-	return err
-}
-
-// TestCheckTarget pins the hostmatcher decision: the deny list rejects, then a non-empty allow
-// list must match the host or the resolved IP; an empty allow list allows.
-func TestCheckTarget(t *testing.T) {
+func TestCheckAddr(t *testing.T) {
 	for _, tc := range []struct {
-		name         string
-		allow, block string
-		host, ip     string
-		want         bool
+		name, allow, block, host, ip string
+		localNeedsIPAllow, want      bool
 	}{
-		{name: "empty lists allow", host: "github.com", ip: "8.8.8.8:80", want: true},
-		{name: "empty lists allow private", ip: "10.0.0.5:80", want: true},
-		{name: "block host", block: "evil.example.com", host: "evil.example.com", ip: "8.8.8.8:80", want: false},
-		{name: "block cidr", block: "127.0.0.0/8", ip: "127.0.0.1:80", want: false},
-		{name: "allow loopback only", allow: "loopback", ip: "127.0.0.1:80", want: true},
-		{name: "allow list is a whitelist", allow: "loopback", ip: "8.8.8.8:80", want: false},
-		{name: "hostname allow", allow: "example.com", host: "example.com", ip: "8.8.8.8:80", want: true},
-		{name: "hostname allow does not grant others", allow: "example.com", host: "other.com", ip: "8.8.8.8:80", want: false},
-		{name: "cidr allow", allow: "10.0.0.0/8", ip: "10.0.0.5:80", want: true},
-		{name: "cidr allow does not grant others", allow: "10.0.0.0/8", ip: "192.168.0.1:80", want: false},
-		{name: "block overrides allow", allow: "10.0.0.0/8", block: "10.0.0.5/32", ip: "10.0.0.5:80", want: false},
-		{name: "block overrides hostname allow", allow: "*.example.com", block: "evil.example.com", host: "evil.example.com", ip: "8.8.8.8:80", want: false},
+		{name: "empty lists allow", host: "github.com", ip: "8.8.8.8", want: true},
+		{name: "empty lists allow private", ip: "10.0.0.5", want: true},
+		{name: "block host", block: "evil.example.com", host: "evil.example.com", ip: "8.8.8.8"},
+		{name: "block cidr", block: "127.0.0.0/8", ip: "127.0.0.1"},
+		{name: "block ipv4-mapped", block: "loopback", ip: "::ffff:127.0.0.1"},
+		{name: "allow loopback only", allow: "loopback", ip: "127.0.0.1", want: true},
+		{name: "allow list rejects others", allow: "loopback", ip: "8.8.8.8"},
+		{name: "allow host", allow: "example.com", host: "example.com", ip: "8.8.8.8", want: true},
+		{name: "allow host rejects others", allow: "example.com", host: "other.com", ip: "8.8.8.8"},
+		{name: "allow cidr", allow: "10.0.0.0/8", ip: "10.0.0.5", want: true},
+		{name: "block overrides allow", allow: "10.0.0.0/8", block: "10.0.0.5/32", ip: "10.0.0.5"},
+		{name: "reserved denied by wildcard", allow: "*", ip: "169.254.169.254"},
+		{name: "reserved allowed by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254", want: true},
+		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", localNeedsIPAllow: true},
+		{name: "local gate ignores wildcard", allow: "*", ip: "127.0.0.1", localNeedsIPAllow: true},
+		{name: "local gate accepts builtin", allow: "private", ip: "100.64.0.1", localNeedsIPAllow: true, want: true},
+		{name: "local gate accepts cidr", allow: "external, 10.0.0.0/24", ip: "10.0.0.5", localNeedsIPAllow: true, want: true},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			err := testPolicy(tc.allow, tc.block, nil).checkTarget(tc.host, mustAddrPort(t, tc.ip))
-			assert.Equal(t, tc.want, err == nil, "err = %v", err)
-		})
+		opts := []Option{WithAllow(tc.allow, "test.ALLOWED"), WithBlock(tc.block, "test.BLOCKED")}
+		if tc.localNeedsIPAllow {
+			opts = append(opts, WithLocalNeedsIPAllow())
+		}
+		err := NewPolicy("test", opts...).checkAddr(tc.host, netip.MustParseAddr(tc.ip))
+		assert.Equal(t, tc.want, err == nil, "%s: %v", tc.name, err)
 	}
 }
 
-// TestDenialNamesSetting pins the hint: a rejection names the setting the offending list was read
-// from, and the pointer is omitted when the policy was built without a key.
 func TestDenialNamesSetting(t *testing.T) {
-	denied := NewPolicy("webhook", WithAllow("example.com", "security.ALLOWED_HOST_LIST"))
-	err := denied.checkTarget("other.com", mustAddrPort(t, "8.8.8.8:80"))
-	require.Error(t, err)
-	assert.Equal(t,
-		"webhook can only call allowed HTTP servers (check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8:80)'",
-		err.Error())
+	err := NewPolicy("webhook", WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", netip.MustParseAddr("8.8.8.8"))
+	assert.EqualError(t, err, "webhook can only call allowed HTTP servers (check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8)'")
 
-	blocked := NewPolicy("webhook", WithBlock("loopback", "security.BLOCKED_HOST_LIST"))
-	err = blocked.checkTarget("localhost", mustAddrPort(t, "127.0.0.1:80"))
-	require.Error(t, err)
-	assert.Equal(t,
-		"webhook can not call blocked HTTP servers (check your security.BLOCKED_HOST_LIST setting), deny 'localhost(127.0.0.1:80)'",
-		err.Error())
-
-	bare := NewPolicy("test", WithAllow("example.com", ""))
-	err = bare.checkTarget("other.com", mustAddrPort(t, "8.8.8.8:80"))
-	require.Error(t, err)
-	assert.NotContains(t, err.Error(), "check your", "a policy built without a setting key must not invent one")
+	err = NewPolicy("webhook", WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost("evil.com")
+	assert.EqualError(t, err, "webhook can not call blocked HTTP servers (check your migrations.BLOCKED_HOST_LIST setting), deny 'evil.com'")
 }
 
-// TestCheckHostIPs pins the hostmatcher pre-check: the deny list rejects, and a non-empty allow
-// list requires the host or every resolved address to match.
 func TestCheckHostIPs(t *testing.T) {
-	pol := testPolicy("", "blocked.example.com", nil)
-	assert.NoError(t, pol.CheckHostIPs("example.com", []net.IP{net.ParseIP("8.8.8.8")}))
-	assert.NoError(t, pol.CheckHostIPs("example.com", []net.IP{net.ParseIP("8.8.8.8"), net.ParseIP("10.0.0.5")}))
-	assert.Error(t, pol.CheckHostIPs("blocked.example.com", []net.IP{net.ParseIP("8.8.8.8")}))
-	assert.NoError(t, pol.CheckHostIPs("example.com", nil))
-	assert.Error(t, pol.CheckHostIPs("blocked.example.com", nil))
+	ips := func(addrs ...string) (ret []net.IP) {
+		for _, addr := range addrs {
+			ret = append(ret, net.ParseIP(addr))
+		}
+		return ret
+	}
 
-	granted := testPolicy("10.0.0.0/8", "", nil)
-	assert.NoError(t, granted.CheckHostIPs("example.com", []net.IP{net.ParseIP("10.0.0.5")}))
-	assert.Error(t, granted.CheckHostIPs("example.com", []net.IP{net.ParseIP("192.168.0.1")}))
-	assert.Error(t, granted.CheckHostIPs("example.com", []net.IP{net.ParseIP("10.0.0.5"), net.ParseIP("192.168.0.1")}))
-	assert.NoError(t, granted.CheckHostIPs("", []net.IP{net.ParseIP("10.0.0.5")}))
+	blocked := NewPolicy("test", WithBlock("blocked.example.com", ""))
+	assert.NoError(t, blocked.CheckHostIPs("example.com", ips("8.8.8.8", "10.0.0.5")))
+	assert.NoError(t, blocked.CheckHostIPs("example.com", nil))
+	assert.Error(t, blocked.CheckHostIPs("blocked.example.com", ips("8.8.8.8")))
+	assert.Error(t, blocked.CheckHostIPs("blocked.example.com", nil))
 
-	byHost := testPolicy("*.example.com", "", nil)
-	assert.NoError(t, byHost.CheckHostIPs("git.example.com", []net.IP{net.ParseIP("192.168.0.1")}))
-	assert.Error(t, byHost.CheckHostIPs("evil.example.net", []net.IP{net.ParseIP("192.168.0.1")}))
+	allowed := NewPolicy("test", WithAllow("10.0.0.0/8, *.example.com", ""))
+	assert.NoError(t, allowed.CheckHostIPs("", ips("10.0.0.5")))
+	assert.NoError(t, allowed.CheckHostIPs("git.example.com", ips("192.168.0.1")))
+	assert.NoError(t, allowed.CheckHostIPs("git.example.com", nil))
+	assert.Error(t, allowed.CheckHostIPs("other.com", ips("10.0.0.5", "192.168.0.1")))
+	assert.Error(t, allowed.CheckHostIPs("other.com", nil))
+
+	builtins := NewPolicy("test", WithAllow("external, private, loopback", ""))
+	assert.NoError(t, builtins.CheckHostIPs("example.com", ips("8.8.8.8", "100.64.0.1", "::1")))
+	for _, ip := range []string{
+		"0.1.2.3", "100.100.100.200", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
+		"198.51.100.1", "203.0.113.1", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "2001::1", "2001:db8::1",
+		"2002::1", "fe80::1",
+	} {
+		assert.Error(t, builtins.CheckHostIPs("example.com", ips(ip)), ip)
+	}
 }
 
-// TestDialContextDeniesAsErrDenied pins the dial path's error contract: a policy denial is
-// wrapped in ErrDenied, so callers can map it apart from an ordinary network failure.
-func TestDialContextDeniesAsErrDenied(t *testing.T) {
-	err := dialPolicy(t, testPolicy("", "loopback", nil), "127.0.0.1:80")
-	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrDenied)
-}
-
-// TestDialContextProxyExemption pins the one improvement over hostmatcher.NewDialContext: the
-// exemption compares the scheme-defaulted proxy port, so a portless PROXY_URL still exempts
-// the address the transport actually dials.
-func TestDialContextProxyExemption(t *testing.T) {
+func TestNewDialContext(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = ln.Close() })
 	addr := ln.Addr().String()
-	_, port, err := net.SplitHostPort(addr)
-	require.NoError(t, err)
 
-	// loopback is blocked, so only the proxy exemption can let the dial through
-	const block = "loopback"
-
-	t.Run("explicit proxy port", func(t *testing.T) {
-		u, err := url.Parse("http://127.0.0.1:" + port)
-		require.NoError(t, err)
-		assert.NoError(t, dialPolicy(t, testPolicy("", block, u), addr))
-	})
-
-	t.Run("different port is not exempt", func(t *testing.T) {
-		u, err := url.Parse("http://127.0.0.1:1")
-		require.NoError(t, err)
-		assert.ErrorIs(t, dialPolicy(t, testPolicy("", block, u), addr), ErrDenied)
-	})
+	dial := func(proxy string) error {
+		p := NewPolicy("test", WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: proxy})))
+		_, _ = p.Proxy(&http.Request{})
+		conn, err := p.NewDialContext()(t.Context(), "tcp", addr)
+		if err == nil {
+			_ = conn.Close()
+		}
+		return err
+	}
+	assert.NoError(t, dial(addr))
+	assert.ErrorIs(t, dial("127.0.0.1:1"), ErrDenied)
 }
 
-func TestSchemePortAndProxyDialAddr(t *testing.T) {
-	for scheme, want := range map[string]string{
-		"http": "80", "https": "443", "socks5": "1080", "socks5h": "1080", "ftp": "",
-	} {
-		assert.Equal(t, want, schemePort(scheme), scheme)
-	}
-
-	assert.Empty(t, ProxyDialAddr(nil))
+func TestProxyDialAddr(t *testing.T) {
 	for raw, want := range map[string]string{
-		"http://127.0.0.1":      "127.0.0.1:80",
-		"https://127.0.0.1":     "127.0.0.1:443",
-		"socks5://127.0.0.1":    "127.0.0.1:1080",
-		"http://127.0.0.1:8080": "127.0.0.1:8080",
+		"http://127.0.0.1":        "127.0.0.1:80",
+		"socks5://[::1]":          "[::1]:1080",
+		"https://proxy.corp:8443": "proxy.corp:8443",
 	} {
 		u, err := url.Parse(raw)
 		require.NoError(t, err)
 		assert.Equal(t, want, ProxyDialAddr(u), raw)
-	}
-}
-
-func TestRestrictedRange(t *testing.T) {
-	p := NewPolicy("test", WithAllow("external", "dummy"))
-	// reserved ranges that IsPrivate does not cover: not external, but blockable as private
-	for _, ip := range []string{
-		"100.64.0.1",         // CGNAT
-		"100.127.255.254",    // CGNAT
-		"168.63.129.16",      // Azure WireServer
-		"192.0.2.1",          // TEST-NET-1
-		"198.18.0.1",         // benchmarking
-		"198.51.100.1",       // TEST-NET-2
-		"203.0.113.1",        // TEST-NET-3
-		"169.254.169.254",    // Cloud metadata
-		"192.88.99.1",        // 6to4 relay anycast
-		"64:ff9b::1",         // NAT64
-		"64:ff9b::a9fe:a9fe", // NAT64 embedding 169.254.169.254
-		"2001::1",            // Teredo
-		"2002::1",            // 6to4
-		"2001:db8::1",        // documentation
-		"fe80::1",            // link local address
-	} {
-		addr := netip.MustParseAddr(ip)
-		addrPort := netip.AddrPortFrom(addr, 80)
-
-		assert.Error(t, p.checkTarget("", addrPort), "reserved ip %s must not be external", ip)
-		assert.Error(t, p.checkTarget("", addrPort), "reserved ip %s should match private block-list", ip)
 	}
 }

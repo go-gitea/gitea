@@ -4,95 +4,56 @@
 package egress
 
 import (
-	"strings"
-	"sync"
+	"net/http"
+	"net/url"
 
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 )
 
-var (
-	migrationPolicy    = sync.OnceValue(newMigrationPolicy)
-	gitPolicy          = sync.OnceValue(newGitPolicy)
-	oauth2AvatarPolicy = sync.OnceValue(newOauth2AvatarPolicy)
-	openIDPolicy       = sync.OnceValue(newOpenIDPolicy)
-	webhookPolicy      = sync.OnceValue(newWebhookPolicy)
-)
-
-func newMigrationPolicy() *policy.Policy {
-	return commonGitPolicy("migrations")
+func NewMigrationPolicy() *policy.Policy {
+	return newMigrationPolicy(proxy.Proxy())
 }
 
-func newGitPolicy() *policy.Policy {
-	return commonGitPolicy("git-proxy")
-}
-
-func commonGitPolicy(name string) *policy.Policy {
-	allow, block := setting.Migrations.AllowedHostList, setting.Migrations.DeniedHostList
-	if strings.TrimSpace(allow) == "" {
-		// an empty allow list means "any external host", matching the historical default
-		allow = "external"
+// NewGitPolicy is the migration policy for the git proxy, git used the environment's proxy even with [proxy] disabled
+func NewGitPolicy() *policy.Policy {
+	selectProxy := proxy.Proxy()
+	if selectProxy == nil {
+		selectProxy = http.ProxyFromEnvironment
 	}
-	if setting.Migrations.AllowLocalNetworks {
-		allow = joinHostList(allow, "private", "loopback")
-	} else {
-		block = joinHostList(block, "private", "loopback")
+	return newMigrationPolicy(selectProxy)
+}
+
+func newMigrationPolicy(selectProxy func(*http.Request) (*url.URL, error)) *policy.Policy {
+	return policy.NewPolicy("migrations",
+		policy.WithAllow(setting.Migrations.AllowedHostList, "migrations.ALLOWED_HOST_LIST"),
+		policy.WithBlock(setting.Migrations.BlockedHostList, "migrations.BLOCKED_HOST_LIST"),
+		policy.WithLocalNeedsIPAllow(),
+		policy.WithProxy(selectProxy))
+}
+
+func NewWebhookPolicy() *policy.Policy {
+	var p *policy.Policy
+	selectProxy := proxy.WebHookProxy()
+	if webhookProxy := setting.Webhook.ProxyURLFixed; webhookProxy != nil {
+		next := selectProxy
+		selectProxy = func(req *http.Request) (*url.URL, error) {
+			u, err := next(req)
+			if err == nil && u == webhookProxy {
+				err = p.CheckHost(req.URL.Hostname()) // the webhook proxy resolves the target, so only its name can be checked
+			}
+			return u, err
+		}
 	}
-
-	return policy.NewPolicy(name,
-		policy.WithAllow(allow, "migrations.ALLOWED_HOST_LIST"),
-		policy.WithBlock(block, "migrations.BLOCKED_HOST_LIST"),
-		policy.WithProxy(setting.Proxy.ProxyURLFixed, proxy.Proxy()))
-}
-
-func newOauth2AvatarPolicy() *policy.Policy {
-	return policy.NewPolicy("oauth2-avatar",
-		policy.WithAllow(setting.Security.AllowedHostList, "security.ALLOWED_HOST_LIST"),
-		policy.WithProxy(setting.Proxy.ProxyURLFixed, proxy.Proxy()))
-}
-
-func newOpenIDPolicy() *policy.Policy {
-	return policy.NewPolicy("openid",
-		policy.WithAllow(setting.Security.AllowedHostList, "security.ALLOWED_HOST_LIST"),
-		policy.WithProxy(setting.Proxy.ProxyURLFixed, proxy.Proxy()))
-}
-
-func newWebhookPolicy() *policy.Policy {
-	return policy.NewPolicy("webhook",
+	p = policy.NewPolicy("webhook",
 		policy.WithAllow(setting.Webhook.AllowedHostList, "security.ALLOWED_HOST_LIST"),
-		policy.WithProxy(setting.Webhook.ProxyURLFixed, proxy.WebHookProxy()),
-		policy.WithProxyPreScreen(true)) // webhook had  prescreening in its handler so keeping it for now.
+		policy.WithProxy(selectProxy))
+	return p
 }
 
-func GetOpenIDPolicy() *policy.Policy {
-	return openIDPolicy()
-}
-
-func GetOauth2AvatarPolicy() *policy.Policy {
-	return oauth2AvatarPolicy()
-}
-
-// GetMigrationPolicy returns the policy for migrations
-// It must be called after loading settings
-func GetMigrationPolicy() *policy.Policy {
-	return migrationPolicy()
-}
-
-func GetGitPolicy() *policy.Policy {
-	return gitPolicy()
-}
-
-func GetWebhookPolicy() *policy.Policy {
-	return webhookPolicy()
-}
-
-// joinHostList appends entries to a comma-separated list, skipping an empty base.
-func joinHostList(list string, entries ...string) string {
-	parts := make([]string, 0, len(entries)+1)
-	if list = strings.TrimSpace(list); list != "" {
-		parts = append(parts, list)
-	}
-	parts = append(parts, entries...)
-	return strings.Join(parts, ", ")
+func NewSecurityPolicy(usage string) *policy.Policy {
+	return policy.NewPolicy(usage,
+		policy.WithAllow(setting.Security.AllowedHostList, "security.ALLOWED_HOST_LIST"),
+		policy.WithProxy(proxy.Proxy()))
 }

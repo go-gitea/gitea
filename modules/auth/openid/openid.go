@@ -24,15 +24,11 @@ var (
 	nonceStore     = openid.NewSimpleNonceStore()
 	discoveryCache = newTimedDiscoveryCache(24 * time.Hour)
 
-	// openIDInstance does discovery/verification via an SSRF-protected client, so a user-supplied
-	// OpenID identifier can't reach internal/loopback/reserved addresses. It honors the operator's
-	// [security] ALLOWED_HOST_LIST (empty defaults to "external"), matching the avatar/webhook/migration
-	// clients, and validates the proxy path too. Lazy: reads proxy/settings once.
+	// openIDInstance keeps user-supplied OpenID identifiers within [security] ALLOWED_HOST_LIST
 	openIDInstance = sync.OnceValue(func() *openid.OpenID {
-		policy := egress.GetOpenIDPolicy()
 		return openid.NewOpenID(&http.Client{
 			Timeout:   30 * time.Second,
-			Transport: policy.NewHTTPTransport(),
+			Transport: egress.NewSecurityPolicy("openid").NewHTTPTransport(),
 		})
 	})
 )

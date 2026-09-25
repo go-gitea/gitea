@@ -18,7 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/egress"
-	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
@@ -38,12 +37,6 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
 func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
-	return isMigrateURLAllowed(egress.GetMigrationPolicy(), remoteURL, doer)
-}
-
-// isMigrateURLAllowed is IsMigrateURLAllowed against an explicit policy, for callers that build one
-// from settings instead of using the shared instance.
-func isMigrateURLAllowed(policy *policy.Policy, remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	u, err := url.Parse(remoteURL)
 	if err != nil {
@@ -78,20 +71,11 @@ func isMigrateURLAllowed(policy *policy.Policy, remoteURL string, doer *user_mod
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
-	hostName, _, errIgnored := net.SplitHostPort(u.Host)
-	if errIgnored != nil {
-		hostName = u.Host // u.Host can be "host" or "host:port"
-	}
+	hostName := u.Hostname()
 
 	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
 	addrList, _ := net.LookupIP(hostName)
-	return checkByAllowBlockList(policy, hostName, addrList)
-}
-
-// checkByAllowBlockList reports whether hostName, resolved to addrList, may be used. The policy
-// owns the decision; this only maps it to the clone-address error.
-func checkByAllowBlockList(policy *policy.Policy, hostName string, addrList []net.IP) error {
-	if err := policy.CheckHostIPs(hostName, addrList); err != nil {
+	if err := egress.NewMigrationPolicy().CheckHostIPs(hostName, addrList); err != nil {
 		return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 	}
 	return nil

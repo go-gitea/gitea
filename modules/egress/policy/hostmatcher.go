@@ -13,23 +13,15 @@ import (
 
 // HostMatchList is used to check if a host or IP is in a list.
 type HostMatchList struct {
-	SettingKeyHint string
-	SettingValue   string
-
-	// builtins networks
 	builtins []string
-	// patterns for host names (with wildcard support)
 	patterns []string
-	// ipNets is the CIDR network list
-	ipNets []*net.IPNet
+	ipNets   []*net.IPNet
 }
 
-// MatchBuiltinExternal A valid global-unicast IP that is neither private (see MatchBuiltinPrivate)
-// nor a reserved special-purpose range (see reservedIPNets); i.e. a routable host on the public internet.
+// MatchBuiltinExternal A valid global-unicast IP that is neither private nor reserved, i.e. a routable host on the public internet.
 const MatchBuiltinExternal = "external"
 
-// MatchBuiltinPrivate RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7),
-// plus the reserved special-purpose ranges in reservedIPNets (CGNAT, NAT64, cloud metadata, etc.).
+// MatchBuiltinPrivate RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), RFC 4193 (FC00::/7) and RFC 6598 CGNAT (100.64.0.0/10).
 // Also called LAN/Intranet.
 const MatchBuiltinPrivate = "private"
 
@@ -41,8 +33,8 @@ func isBuiltin(s string) bool {
 }
 
 // ParseHostMatchList parses the host list HostMatchList
-func ParseHostMatchList(settingKeyHint, hostList string) *HostMatchList {
-	hl := &HostMatchList{SettingKeyHint: settingKeyHint, SettingValue: hostList}
+func ParseHostMatchList(hostList string) *HostMatchList {
+	hl := &HostMatchList{}
 	for s := range strings.SplitSeq(hostList, ",") {
 		s = strings.ToLower(strings.TrimSpace(s))
 		if s == "" {
@@ -60,31 +52,9 @@ func ParseHostMatchList(settingKeyHint, hostList string) *HostMatchList {
 	return hl
 }
 
-// ParseSimpleMatchList parse a simple matchlist (no built-in networks, no CIDR support, only wildcard pattern match)
-func ParseSimpleMatchList(settingKeyHint, matchList string) *HostMatchList {
-	hl := &HostMatchList{
-		SettingKeyHint: settingKeyHint,
-		SettingValue:   matchList,
-	}
-	for s := range strings.SplitSeq(matchList, ",") {
-		s = strings.ToLower(strings.TrimSpace(s))
-		if s == "" {
-			continue
-		}
-		// we keep the same result as old `matchlist`, so no builtin/CIDR support here, we only match wildcard patterns
-		hl.patterns = append(hl.patterns, s)
-	}
-	return hl
-}
-
-// AppendBuiltin appends more builtins to match
-func (hl *HostMatchList) AppendBuiltin(builtin string) {
-	hl.builtins = append(hl.builtins, builtin)
-}
-
 // IsEmpty checks if the checklist is empty
 func (hl *HostMatchList) IsEmpty() bool {
-	return hl == nil || (len(hl.builtins) == 0 && len(hl.patterns) == 0 && len(hl.ipNets) == 0)
+	return len(hl.builtins) == 0 && len(hl.patterns) == 0 && len(hl.ipNets) == 0
 }
 
 func (hl *HostMatchList) checkPattern(host string) bool {
@@ -97,22 +67,18 @@ func (hl *HostMatchList) checkPattern(host string) bool {
 	return false
 }
 
-// matchesIP determines if the given IP matches any of the configured rules
+// matchesIP reports whether ip matches a builtin or CIDR entry, host name patterns are not consulted
 func (hl *HostMatchList) matchesIP(ip net.IP) bool {
-	if slices.Contains(hl.patterns, "*") {
-		return true
-	}
-	addr, _ := netip.AddrFromSlice(ip) // bad path can't happen
+	addr, _ := netip.AddrFromSlice(ip)
+	class := classifyAddr(addr)
 	for _, builtin := range hl.builtins {
 		switch builtin {
 		case MatchBuiltinExternal:
-			// External address must be a global unicast and must not be in private range
-			if ip.IsGlobalUnicast() && !ip.IsPrivate() && !isCGNAT(addr) {
+			if ip.IsGlobalUnicast() && class == classPublic {
 				return true
 			}
 		case MatchBuiltinPrivate:
-			// Private address must be global unicast and must be in private range
-			if ip.IsGlobalUnicast() && (ip.IsPrivate() || isCGNAT(addr)) {
+			if ip.IsGlobalUnicast() && class == classRestricted {
 				return true
 			}
 		case MatchBuiltinLoopback:
@@ -121,20 +87,11 @@ func (hl *HostMatchList) matchesIP(ip net.IP) bool {
 			}
 		}
 	}
-	for _, ipNet := range hl.ipNets {
-		if ipNet.Contains(ip) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(hl.ipNets, func(ipNet *net.IPNet) bool { return ipNet.Contains(ip) })
 }
 
 // MatchHostName checks if the host matches an allow/deny(block) list
 func (hl *HostMatchList) MatchHostName(host string) bool {
-	if hl == nil {
-		return false
-	}
-
 	hostname, _, err := net.SplitHostPort(host)
 	if err != nil {
 		hostname = host
@@ -150,9 +107,6 @@ func (hl *HostMatchList) MatchHostName(host string) bool {
 
 // MatchIPAddr checks if the IP matches an allow/deny(block) list, it's safe to pass `nil` to `ip`
 func (hl *HostMatchList) MatchIPAddr(ip net.IP) bool {
-	if hl == nil {
-		return false
-	}
 	host := ip.String() // nil-safe, we will get "<nil>" if ip is nil
 	return hl.checkPattern(host) || hl.matchesIP(ip)
 }

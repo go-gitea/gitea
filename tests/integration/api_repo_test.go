@@ -378,14 +378,16 @@ func TestAPIRepoMigrate(t *testing.T) {
 		})
 
 		t.Run("DisallowedHost", func(t *testing.T) {
-			token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
-			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
-				CloneAddr:   "https://example.net/user/test_repo.git",
-				RepoOwnerID: 3,
-				RepoName:    "blocked-host",
-			}).AddTokenAuth(token)
-			resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
-			assert.Equal(t, "You can not import from disallowed hosts.", DecodeJSON(t, resp, map[string]string{})["message"])
+			defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+			for _, cloneURL := range []string{"https://localhost:3000/user/test_repo.git", "https://10.0.0.1/user/test_repo.git"} {
+				req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
+					CloneAddr:   cloneURL,
+					RepoOwnerID: 3,
+					RepoName:    "private-ip",
+				}).AddBasicAuth("user2")
+				resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
+				assert.Equal(t, "You can not import from disallowed hosts.", DecodeJSON(t, resp, map[string]string{})["message"])
+			}
 		})
 	})
 }

@@ -274,8 +274,7 @@ var webhookHTTPClient *http.Client
 func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
-	policy := egress.GetWebhookPolicy()
-	transport := policy.NewHTTPTransport()
+	transport := egress.NewWebhookPolicy().NewHTTPTransport()
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify}
 	webhookHTTPClient = &http.Client{Timeout: timeout, Transport: transport}
 

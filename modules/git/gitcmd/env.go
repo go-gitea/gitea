@@ -6,12 +6,25 @@ package gitcmd
 import (
 	"fmt"
 	"os/exec"
+	"sync/atomic"
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 )
 
 var GitExecutable = "git" // the command name of git, will be updated to an absolute path during initialization
+
+var httpProxyEnvs atomic.Pointer[[]string]
+
+// SetHTTPProxy routes the http(s) remotes of every git command through proxyURL, "" disables it.
+func SetHTTPProxy(proxyURL string) {
+	var envs []string
+	if proxyURL != "" {
+		// command scope config beats every config file and keeps the credentials out of process listings, git also honors no_proxy for a configured proxy
+		envs = []string{"GIT_CONFIG_PARAMETERS='http.proxy=" + proxyURL + "' 'http.proxyAuthMethod=basic'", "no_proxy=", "NO_PROXY="}
+	}
+	httpProxyEnvs.Store(&envs)
+}
 
 // SetExecutablePath changes the path of git executable and checks the file permission and version.
 func SetExecutablePath(path string) error {

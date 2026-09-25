@@ -68,9 +68,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
-	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
-	git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
-	stdout, _, pruneErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
+	stdout, _, pruneErr := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
 		stderrMessage := util.SanitizeCredentialURLs(pruneErr.Stderr())
@@ -126,7 +124,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("fetch", "--tags")
-		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
@@ -207,9 +204,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
-		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
-		return cmd
+		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {

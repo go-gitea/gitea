@@ -16,8 +16,6 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
-
-	"github.com/google/go-github/v92/github"
 )
 
 var (
@@ -80,23 +78,24 @@ type CodebaseDownloader struct {
 // NewCodebaseDownloader creates a new downloader
 func NewCodebaseDownloader(_ context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
 	baseURL, _ := url.Parse("https://api3.codebasehq.com")
+	transport := NewMigrationHTTPTransport()
 
 	downloader := &CodebaseDownloader{
 		baseURL:    baseURL,
 		projectURL: projectURL,
 		project:    project,
 		repoName:   repoName,
-		client:     newMigrationHTTPClient(),
-		userMap:    make(map[int64]*codebaseUser),
-		commitMap:  make(map[string]string),
-	}
-	if username != "" && password != "" {
-		basicAuth := &github.BasicAuthTransport{
-			Username:  username,
-			Password:  password,
-			Transport: downloader.client.Transport,
-		}
-		downloader.client.Transport = basicAuth
+		client: &http.Client{
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if username != "" && password != "" {
+					req = req.Clone(req.Context())
+					req.SetBasicAuth(username, password)
+				}
+				return transport.RoundTrip(req)
+			}),
+		},
+		userMap:   make(map[int64]*codebaseUser),
+		commitMap: make(map[string]string),
 	}
 
 	log.Trace("Create Codebase downloader. BaseURL: %s Project: %s RepoName: %s", baseURL, project, repoName)
