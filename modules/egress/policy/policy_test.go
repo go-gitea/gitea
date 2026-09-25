@@ -8,7 +8,6 @@ package policy
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/netip"
 	"net/url"
@@ -155,7 +154,7 @@ func TestDialContextProxyExemption(t *testing.T) {
 		// 127.0.0.1:80 is the http scheme default; whatever the TCP outcome, the policy
 		// must not deny it (hostmatcher's raw Port()=="" comparison never exempts it).
 		err = dialPolicy(t, testPolicy("", block, u), "127.0.0.1:80")
-		assert.False(t, errors.Is(err, ErrDenied), "err = %v", err)
+		assert.ErrorIs(t, err, ErrDenied)
 	})
 }
 
@@ -176,5 +175,33 @@ func TestSchemePortAndProxyDialAddr(t *testing.T) {
 		u, err := url.Parse(raw)
 		require.NoError(t, err)
 		assert.Equal(t, want, ProxyDialAddr(u), raw)
+	}
+}
+
+func TestRestrictedRange(t *testing.T) {
+	p := NewPolicy("test", WithAllow("external", "dummy"))
+	// reserved ranges that IsPrivate does not cover: not external, but blockable as private
+	for _, ip := range []string{
+		"100.64.0.1",         // CGNAT
+		"100.127.255.254",    // CGNAT
+		"168.63.129.16",      // Azure WireServer
+		"192.0.2.1",          // TEST-NET-1
+		"198.18.0.1",         // benchmarking
+		"198.51.100.1",       // TEST-NET-2
+		"203.0.113.1",        // TEST-NET-3
+		"169.254.169.254",    // Cloud metadata
+		"192.88.99.1",        // 6to4 relay anycast
+		"64:ff9b::1",         // NAT64
+		"64:ff9b::a9fe:a9fe", // NAT64 embedding 169.254.169.254
+		"2001::1",            // Teredo
+		"2002::1",            // 6to4
+		"2001:db8::1",        // documentation
+		"fe80::1",            // link local address
+	} {
+		addr := netip.MustParseAddr(ip)
+		addrPort := netip.AddrPortFrom(addr, 80)
+
+		assert.Error(t, p.checkTarget("", addrPort), "reserved ip %s must not be external", ip)
+		assert.Error(t, p.checkTarget("", addrPort), "reserved ip %s should match private block-list", ip)
 	}
 }
