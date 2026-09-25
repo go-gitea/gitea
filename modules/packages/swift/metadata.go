@@ -30,7 +30,6 @@ var (
 )
 
 const (
-	maxMetadataJSONSize = 1 << 20
 	maxManifestFileSize = 128 * 1024
 	maxManifestFiles    = 64
 	maxManifestSize     = maxManifestFiles * maxManifestFileSize
@@ -168,7 +167,7 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 			return nil, err
 		}
 
-		content, err := io.ReadAll(packages.NewLimitedDecompressor(f, maxManifestFileSize))
+		content, err := io.ReadAll(packages.NewLimitedReader(f, maxManifestFileSize))
 
 		if err := f.Close(); err != nil {
 			return nil, err
@@ -209,16 +208,10 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	}
 
 	if mr != nil {
-		data, err := io.ReadAll(packages.NewLimitedDecompressor(mr, maxMetadataJSONSize))
-		if err != nil {
-			return nil, err
-		}
-
 		var ssc *SoftwareSourceCode
-		if err := json.Unmarshal(data, &ssc); err != nil {
+		if err := json.NewDecoder(packages.NewLimitedReader(mr, packages.MaxMetadataSize)).Decode(&ssc); err != nil {
 			return nil, err
 		}
-
 		p.Metadata.Description = ssc.Description
 		p.Metadata.Keywords = ssc.Keywords
 		p.Metadata.License = ssc.License

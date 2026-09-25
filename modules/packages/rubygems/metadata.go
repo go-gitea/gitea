@@ -176,13 +176,8 @@ func parseMetadataFile(r io.Reader) (*Package, error) {
 	}
 	defer zr.Close()
 
-	data, err := io.ReadAll(packages.NewLimitedDecompressor(zr, packages.MaxMetadataScanSize))
-	if err != nil {
-		return nil, err
-	}
-
 	var spec gemspec
-	if err := yaml.Unmarshal(data, &spec); err != nil {
+	if err := yaml.NewDecoder(packages.NewLimitedReader(zr, packages.MaxMetadataSize)).Decode(&spec); err != nil {
 		return nil, err
 	}
 

@@ -16,8 +16,8 @@ import (
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
+	"gitea.dev/modules/zstd"
 
-	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 
@@ -35,8 +35,7 @@ const (
 
 	AnyArch = "any"
 
-	maxPKGINFOSize    = 1 << 20
-	maxZstdWindowSize = 128 << 20
+	maxPKGINFOSize = 1024 * 1024
 )
 
 var (
@@ -103,7 +102,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	var inner io.Reader
 	var compressionType string
 	if bytes.HasPrefix(header, []byte{0x28, 0xB5, 0x2F, 0xFD}) { // zst
-		zr, err := zstd.NewReader(r, zstd.WithDecoderMaxMemory(maxZstdWindowSize))
+		zr, err := zstd.NewReader(r)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +150,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 
 		filename := hd.FileInfo().Name()
 		if filename == ".PKGINFO" {
-			p, err = ParsePackageInfo(packages.NewLimitedDecompressor(tr, maxPKGINFOSize))
+			p, err = ParsePackageInfo(tr)
 			if err != nil {
 				return nil, err
 			}
@@ -181,7 +180,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 func ParsePackageInfo(r io.Reader) (*Package, error) {
 	p := &Package{}
 
-	s := bufio.NewScanner(r)
+	s := bufio.NewScanner(packages.NewLimitedReader(r, maxPKGINFOSize))
 	for s.Scan() {
 		line := s.Text()
 

@@ -24,10 +24,7 @@ var (
 	ErrMissingPdbStream      = util.NewInvalidArgumentErrorf("missing PDB stream")
 )
 
-const (
-	maxPdbFileSize  = 64 << 20
-	maxPdbTotalSize = 256 << 20
-)
+const maxPdbTotalSize = 256 * 1024 * 1024
 
 type PortablePdb struct {
 	Name    string
@@ -64,17 +61,12 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 			case ".nuspec", ".xml", ".psmdcp", ".rels", ".p7s":
 				continue
 			case ".pdb":
-				budget := min(int64(maxPdbFileSize), remaining)
-				if file.UncompressedSize64 > uint64(budget) {
-					return packages.ErrPackageTooLarge
-				}
-
 				f, err := archive.Open(file.Name)
 				if err != nil {
 					return err
 				}
 
-				buf, err := createBoundedHashedBuffer(f, budget)
+				buf, err := packages.CreateHashedBufferFromReader(packages.NewLimitedReader(f, remaining))
 
 				_ = f.Close()
 
@@ -115,18 +107,6 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 	}
 
 	return pdbs, nil
-}
-
-func createBoundedHashedBuffer(r io.Reader, budget int64) (*packages.HashedBuffer, error) {
-	buf, err := packages.NewHashedBuffer()
-	if err != nil {
-		return nil, err
-	}
-	if _, err := io.Copy(buf, packages.NewLimitedDecompressor(r, budget)); err != nil {
-		_ = buf.Close()
-		return nil, err
-	}
-	return buf, nil
 }
 
 // ParseDebugHeaderID TODO

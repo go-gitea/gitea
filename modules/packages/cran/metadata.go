@@ -87,7 +87,7 @@ func parsePackageTarGz(r io.Reader) (*Package, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
+	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -135,7 +135,7 @@ func parsePackageZip(r io.ReaderAt, size int64) (*Package, error) {
 			}
 			defer f.Close()
 
-			p, err := ParseDescription(packages.NewLimitedDecompressor(f, packages.MaxMetadataScanSize))
+			p, err := ParseDescription(f)
 			if p != nil {
 				p.FileExtension = ".zip"
 			}
@@ -152,7 +152,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		Metadata: &Metadata{},
 	}
 
-	scanner := bufio.NewScanner(r)
+	scanner := bufio.NewScanner(packages.NewLimitedReader(r, packages.MaxMetadataSize))
 
 	var b strings.Builder
 	for scanner.Scan() {

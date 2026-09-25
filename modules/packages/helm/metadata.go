@@ -78,7 +78,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
+	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -97,11 +97,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 				continue
 			}
 
-			data, err := io.ReadAll(tr)
-			if err != nil {
-				return nil, err
-			}
-			return ParseChartFile(bytes.NewReader(data))
+			return ParseChartFile(tr)
 		}
 	}
 
@@ -111,7 +107,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 // ParseChartFile parses a Chart.yaml file to retrieve the metadata of a Helm chart
 func ParseChartFile(r io.Reader) (*Metadata, error) {
 	var metadata *Metadata
-	if err := yaml.NewDecoder(r).Decode(&metadata); err != nil {
+	if err := yaml.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&metadata); err != nil {
 		return nil, err
 	}
 

@@ -68,6 +68,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	if err := binary.Read(r, binary.LittleEndian, &size); err != nil {
 		return nil, err
 	}
+	if size > packages.MaxMetadataSize {
+		return nil, packages.ErrContentTooLarge
+	}
 
 	p, err := parsePackage(io.LimitReader(r, int64(size)))
 	if err != nil {
@@ -113,12 +116,7 @@ func parsePackage(r io.Reader) (*Package, error) {
 		Repository    string              `json:"repository"`
 		Links         string              `json:"links"`
 	}
-
-	data, err := io.ReadAll(packages.NewLimitedDecompressor(r, packages.MaxMetadataScanSize))
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(data, &meta); err != nil {
+	if err := json.NewDecoder(r).Decode(&meta); err != nil {
 		return nil, err
 	}
 

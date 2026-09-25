@@ -6,12 +6,10 @@ package pub
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"regexp"
 	"strings"
 
-	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -68,16 +66,13 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	var p *Package
 	var readme string
 
-	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
-	for p == nil || readme == "" {
+	tr := tar.NewReader(gzr)
+	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			if p != nil && errors.Is(err, packages.ErrPackageTooLarge) {
-				break
-			}
 			return nil, err
 		}
 

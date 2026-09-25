@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -875,6 +876,16 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture)).
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
+			})
+
+			t.Run("UploadSignOversizedSignatureHeader", func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				content := bytes.Clone(packageRpmContent)
+				binary.BigEndian.PutUint32(content[96+12:], 0x10000000)
+				req := NewRequestWithBody(t, "PUT", groupURL+"/upload?sign=true", bytes.NewReader(content)).
+					AddBasicAuth(user.Name)
+				resp := MakeRequest(t, req, http.StatusBadRequest)
+				assert.Equal(t, rpm_module.ErrInvalidHeaderSize.Error(), resp.Body.String())
 			})
 		})
 	}

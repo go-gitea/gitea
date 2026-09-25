@@ -75,7 +75,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
+	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
 		if err == io.EOF {
@@ -104,7 +104,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 // ParseChefMetadata parses a metadata.json file to retrieve the metadata of a Chef package
 func ParseChefMetadata(r io.Reader) (*Package, error) {
 	var cm chefMetadata
-	if err := json.NewDecoder(r).Decode(&cm); err != nil {
+	if err := json.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&cm); err != nil {
 		return nil, err
 	}
 

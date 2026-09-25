@@ -21,7 +21,7 @@ import (
 const (
 	LockFile = "terraform.lock"
 
-	maxLockInfoSize = 64 << 10
+	maxLockInfoSize = 64 * 1024
 )
 
 // LockInfo is the metadata for a terraform lock.
@@ -41,7 +41,7 @@ func (l *LockInfo) IsLocked() bool {
 
 func ParseLockInfo(r io.Reader) (*LockInfo, error) {
 	var lock LockInfo
-	err := json.NewDecoder(packages.NewLimitedDecompressor(r, maxLockInfoSize)).Decode(&lock)
+	err := json.NewDecoder(packages.NewLimitedReader(r, maxLockInfoSize)).Decode(&lock)
 	if err != nil {
 		return nil, err
 	}

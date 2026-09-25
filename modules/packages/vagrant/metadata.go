@@ -6,7 +6,6 @@ package vagrant
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
 	"io"
 	"strings"
 
@@ -35,10 +34,10 @@ func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 	}
 	defer gzr.Close()
 
-	tr := tar.NewReader(packages.NewLimitedDecompressor(gzr, packages.MaxMetadataScanSize))
+	tr := tar.NewReader(gzr)
 	for {
 		hd, err := tr.Next()
-		if err == io.EOF || errors.Is(err, packages.ErrPackageTooLarge) {
+		if err == io.EOF {
 			break
 		}
 		if err != nil {
@@ -60,7 +59,7 @@ func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 // ParseInfoFile parses a info.json file to retrieve the metadata of a Vagrant package
 func ParseInfoFile(r io.Reader) (*Metadata, error) {
 	var values map[string]string
-	if err := json.NewDecoder(r).Decode(&values); err != nil {
+	if err := json.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&values); err != nil {
 		return nil, err
 	}
 

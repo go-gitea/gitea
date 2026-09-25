@@ -111,12 +111,12 @@ type Changelog struct {
 }
 
 // ParsePackage parses the RPM package file
-func ParsePackage(r io.ReadSeeker) (*Package, error) {
-	if err := checkHeaderSizes(r); err != nil {
+func ParsePackage(r io.ReaderAt, size int64) (*Package, error) {
+	if err := CheckHeaderSizes(r, size); err != nil {
 		return nil, err
 	}
 
-	rpm, err := rpmutils.ReadRpm(r)
+	rpm, err := rpmutils.ReadRpm(io.NewSectionReader(r, 0, size))
 	if err != nil {
 		return nil, err
 	}
@@ -171,29 +171,14 @@ func ParsePackage(r io.ReadSeeker) (*Package, error) {
 	return p, nil
 }
 
-func checkHeaderSizes(r io.ReadSeeker) error {
-	size, err := r.Seek(0, io.SeekEnd)
-	if err != nil {
-		return err
-	}
-
+// CheckHeaderSizes rejects header sizes rpmutils would otherwise allocate before reading
+func CheckHeaderSizes(r io.ReaderAt, size int64) error {
 	offset := int64(leadSize)
 	for _, isSignature := range []bool{true, false} {
-		remaining := size - offset - headerIntroSize
-		if remaining < 0 {
-			break // too short for an intro, rpmutils reports the truncation itself
-		}
-		if _, err := r.Seek(offset, io.SeekStart); err != nil {
-			return err
-		}
 		var intro [headerIntroSize]byte
-		if _, err := io.ReadFull(r, intro[:]); err != nil {
-			return err
+		if n, _ := r.ReadAt(intro[:], offset); n < headerIntroSize || binary.BigEndian.Uint32(intro[:4]) != headerMagic {
+			return nil // rpmutils rejects a truncated or malformed intro before allocating
 		}
-		if binary.BigEndian.Uint32(intro[0:4]) != headerMagic {
-			break // rpmutils reports the bad magic itself
-		}
-
 		entries := int64(binary.BigEndian.Uint32(intro[8:12]))
 		data := int64(binary.BigEndian.Uint32(intro[12:16]))
 		if entries > maxHeaderEntries || data > maxHeaderData {
@@ -202,15 +187,12 @@ func checkHeaderSizes(r io.ReadSeeker) error {
 		if isSignature {
 			data = (data + 7) &^ 7 // the signature header is padded to 8 bytes
 		}
-		length := entries*16 + data
-		if length > remaining {
+		offset += headerIntroSize + entries*16 + data
+		if offset > size {
 			return ErrInvalidHeaderSize
 		}
-		offset += headerIntroSize + length
 	}
-
-	_, err = r.Seek(0, io.SeekStart)
-	return err
+	return nil
 }
 
 func getString(h *rpmutils.RpmHeader, tag int) string {

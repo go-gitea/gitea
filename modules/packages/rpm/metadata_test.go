@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/binary"
 	"io"
 	"testing"
 
@@ -50,7 +51,7 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 	decompressed, err := io.ReadAll(zr)
 	assert.NoError(t, err)
 
-	p, err := ParsePackage(bytes.NewReader(decompressed))
+	p, err := ParsePackage(bytes.NewReader(decompressed), int64(len(decompressed)))
 	assert.NotNil(t, p)
 	assert.NoError(t, err)
 
@@ -163,4 +164,10 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 		},
 		p.FileMetadata.Changelogs,
 	)
+
+	for _, dataSize := range []uint32{maxHeaderData, maxHeaderData + 1} {
+		binary.BigEndian.PutUint32(decompressed[leadSize+12:], dataSize)
+		_, err = ParsePackage(bytes.NewReader(decompressed), int64(len(decompressed)))
+		assert.ErrorIs(t, err, ErrInvalidHeaderSize)
+	}
 }
