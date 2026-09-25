@@ -17,7 +17,10 @@ const (
 	classReserved
 )
 
-var cgnatRange = netip.MustParsePrefix("100.64.0.0/10") // RFC 6598
+var (
+	cgnatRange = netip.MustParsePrefix("100.64.0.0/10") // RFC 6598
+	nat64Range = netip.MustParsePrefix("64:ff9b::/96")  // RFC 6052, DNS64 hosts reach IPv4-only servers through it
+)
 
 // reservedRanges are never dialable unless an allow list names them by CIDR, based on https://microsoft.github.io/AntiSSRF/ipaddressranges.html
 var reservedRanges = func() (ranges []netip.Prefix) {
@@ -39,7 +42,6 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 		"240.0.0.0/4",        // reserved, incl. limited broadcast
 		"::/96",              // IPv4-compatible, embeds IPv4
 		"::ffff:0:0:0/96",    // IPv4-translated, embeds IPv4
-		"64:ff9b::/96",       // NAT64, can embed any IPv4
 		"64:ff9b:1::/48",     // local-use NAT64
 		"100::/64",           // discard-only
 		"100:0:0:1::/64",     // dummy
@@ -59,9 +61,17 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 	return ranges
 }()
 
-// classifyAddr reports ip's class, judging an IPv4-mapped address by its IPv4 payload.
-func classifyAddr(ip netip.Addr) addrClass {
+// canonicalAddr unwraps IPv4-mapped and NAT64 addresses to the IPv4 address they reach
+func canonicalAddr(ip netip.Addr) netip.Addr {
 	ip = ip.Unmap()
+	if nat64Range.Contains(ip) {
+		return netip.AddrFrom4([4]byte(ip.AsSlice()[12:]))
+	}
+	return ip
+}
+
+// classifyAddr reports the class of a canonical address.
+func classifyAddr(ip netip.Addr) addrClass {
 	switch {
 	case ip.Zone() != "" || !ip.IsLoopback() && slices.ContainsFunc(reservedRanges, func(p netip.Prefix) bool { return p.Contains(ip) }):
 		return classReserved

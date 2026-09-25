@@ -70,6 +70,8 @@ func (hl *HostMatchList) checkPattern(host string) bool {
 // matchesIP reports whether ip matches a builtin or CIDR entry, host name patterns are not consulted
 func (hl *HostMatchList) matchesIP(ip net.IP) bool {
 	addr, _ := netip.AddrFromSlice(ip)
+	addr = canonicalAddr(addr)
+	ip = addr.AsSlice()
 	class := classifyAddr(addr)
 	for _, builtin := range hl.builtins {
 		switch builtin {

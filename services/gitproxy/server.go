@@ -19,6 +19,7 @@ import (
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -26,11 +27,20 @@ import (
 	"gitea.dev/modules/egress/policy"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"golang.org/x/net/proxy"
 )
 
-// server is a forward proxy for git's http(s) remotes that enforces an egress policy on its direct dials.
+const (
+	proxyURLEnv  = "GITEA_GIT_PROXY" // tells this binary it runs as git's GIT_PROXY_COMMAND
+	directHeader = "X-Gitea-Direct"  // asks for a CONNECT tunnel that skips the operator's proxy, as git:// remotes never used one
+)
+
+// proxyDialer reaches the operator's proxies, which are configuration rather than user input
+var proxyDialer = &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+
+// server is a forward proxy for git's remotes that enforces an egress policy on its direct dials.
 type server struct {
 	auth         string // the Proxy-Authorization header git must send
 	policy       *policy.Policy
@@ -52,7 +62,7 @@ func newServer(p *policy.Policy, auth string) *server {
 	return s
 }
 
-// Run routes git's http(s) remotes through a proxy on a random loopback port until ctx is done.
+// Run routes git's network remotes through a proxy on a random loopback port until ctx is done.
 func Run(ctx context.Context) error {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -66,8 +76,54 @@ func Run(ctx context.Context) error {
 			log.Error("git proxy: %v", err)
 		}
 	}()
-	gitcmd.SetHTTPProxy((&url.URL{Scheme: "http", User: user, Host: ln.Addr().String()}).String())
+	gitcmd.SetExtraEnvs(gitEnvs((&url.URL{Scheme: "http", User: user, Host: ln.Addr().String()}).String()))
 	return nil
+}
+
+// gitEnvs route git's http(s) remotes through proxyURL and its git:// remotes through MaybeTunnel, command scope config beats every config file and keeps the credentials out of process listings
+func gitEnvs(proxyURL string) []string {
+	envs := []string{
+		"GIT_CONFIG_PARAMETERS=" + strings.TrimSpace(os.Getenv("GIT_CONFIG_PARAMETERS")+" 'http.proxy="+proxyURL+"'"),
+		"GIT_HTTP_PROXY_AUTHMETHOD=basic",
+		"no_proxy=", "NO_PROXY=", // git honors no_proxy even for a configured proxy
+	}
+	if setting.GitConfig.GetOption("core.gitProxy") == "" { // the operator's own git:// proxy command stays in charge
+		envs = append(envs, "GIT_PROXY_COMMAND="+setting.AppPath, proxyURLEnv+"="+proxyURL)
+	}
+	return envs
+}
+
+// MaybeTunnel serves as git's GIT_PROXY_COMMAND for git:// remotes when git runs this binary with host and port, it returns otherwise
+func MaybeTunnel() {
+	proxyURL := os.Getenv(proxyURLEnv)
+	if proxyURL == "" || len(os.Args) != 3 {
+		return
+	}
+	if err := tunnel(proxyURL, net.JoinHostPort(os.Args[1], os.Args[2])); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func tunnel(proxyURL, target string) error {
+	gitProxy, err := url.Parse(proxyURL)
+	if err != nil {
+		return err
+	}
+	conn, err := net.Dial("tcp", gitProxy.Host)
+	if err != nil {
+		return err
+	}
+	if conn, err = openTunnel(context.Background(), conn, gitProxy, target, http.Header{directHeader: {"1"}}); err != nil {
+		return err
+	}
+	go func() {
+		_, _ = io.Copy(conn, os.Stdin)
+		closeWrite(conn)
+	}()
+	_, err = io.Copy(os.Stdout, conn)
+	return err
 }
 
 func basicAuth(user *url.Userinfo) string {
@@ -98,7 +154,11 @@ func (s *server) handleConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
-	upstream, err := s.dialUpstream(ctx, r.URL.Host)
+	dial := s.dialUpstream
+	if r.Header.Get(directHeader) != "" {
+		dial = func(ctx context.Context, target string) (net.Conn, error) { return s.dial(ctx, "tcp", target) }
+	}
+	upstream, err := dial(ctx, r.URL.Host)
 	if err != nil {
 		writeUpstreamError(w, err)
 		return
@@ -142,7 +202,7 @@ func (s *server) dialUpstream(ctx context.Context, target string) (net.Conn, err
 	case proxyURL == nil:
 		return s.dial(ctx, "tcp", target)
 	case proxyURL.Scheme == "socks5" || proxyURL.Scheme == "socks5h":
-		dialer, err := proxy.FromURL(proxyURL, dialFunc(s.dial))
+		dialer, err := proxy.FromURL(proxyURL, proxyDialer)
 		if err != nil {
 			return nil, err
 		}
@@ -157,34 +217,29 @@ func (s *server) dialUpstream(ctx context.Context, target string) (net.Conn, err
 	return nil, fmt.Errorf("egress: unsupported proxy scheme %q", proxyURL.Scheme)
 }
 
-type dialFunc func(ctx context.Context, network, addr string) (net.Conn, error)
-
-func (f dialFunc) Dial(network, addr string) (net.Conn, error) {
-	return f(context.Background(), network, addr)
-}
-
-func (f dialFunc) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
-	return f(ctx, network, addr)
-}
-
-func (s *server) connectVia(ctx context.Context, proxyURL *url.URL, target string) (_ net.Conn, err error) {
-	conn, err := s.dial(ctx, "tcp", policy.ProxyDialAddr(proxyURL))
+func (s *server) connectVia(ctx context.Context, proxyURL *url.URL, target string) (net.Conn, error) {
+	conn, err := proxyDialer.DialContext(ctx, "tcp", policy.ProxyDialAddr(proxyURL))
 	if err != nil {
 		return nil, err
 	}
+	if proxyURL.Scheme == "https" {
+		conn = tls.Client(conn, &tls.Config{ServerName: proxyURL.Hostname(), RootCAs: s.proxyRootCAs})
+	}
+	return openTunnel(ctx, conn, proxyURL, target, http.Header{})
+}
+
+// openTunnel opens a CONNECT tunnel to target over conn to the proxy at proxyURL, closing conn on failure
+func openTunnel(ctx context.Context, conn net.Conn, proxyURL *url.URL, target string, header http.Header) (_ net.Conn, err error) {
 	defer func() {
 		if err != nil {
 			_ = conn.Close()
 		}
 	}()
 	defer context.AfterFunc(ctx, func() { _ = conn.Close() })()
-	if proxyURL.Scheme == "https" {
-		conn = tls.Client(conn, &tls.Config{ServerName: proxyURL.Hostname(), RootCAs: s.proxyRootCAs})
-	}
-	req := &http.Request{Method: http.MethodConnect, URL: &url.URL{Opaque: target}, Host: target, Header: http.Header{}}
 	if proxyURL.User != nil {
-		req.Header.Set("Proxy-Authorization", basicAuth(proxyURL.User))
+		header.Set("Proxy-Authorization", basicAuth(proxyURL.User))
 	}
+	req := &http.Request{Method: http.MethodConnect, URL: &url.URL{Opaque: target}, Host: target, Header: header}
 	if err := req.Write(conn); err != nil {
 		return nil, err
 	}
@@ -221,6 +276,11 @@ type bufferedConn struct {
 
 func (c *bufferedConn) Read(p []byte) (int, error) { return c.r.Read(p) }
 
+func (c *bufferedConn) CloseWrite() error {
+	closeWrite(c.Conn)
+	return nil
+}
+
 func withBuffered(conn net.Conn, r *bufio.Reader) net.Conn {
 	if r.Buffered() == 0 {
 		return conn // a bare socket lets io.Copy splice
@@ -228,16 +288,25 @@ func withBuffered(conn net.Conn, r *bufio.Reader) net.Conn {
 	return &bufferedConn{Conn: conn, r: r}
 }
 
-// relay copies both ways until either side is done, git tunnels TLS which needs no half-close
+// relay copies both ways and passes each end of stream on, the git:// protocol needs the half-close
 func relay(client, upstream net.Conn) {
-	done := make(chan struct{}, 2)
-	pipe := func(dst, src net.Conn) {
-		_, _ = io.Copy(dst, src)
-		done <- struct{}{}
-	}
-	go pipe(upstream, client)
-	go pipe(client, upstream)
+	done := make(chan struct{})
+	go func() {
+		_, _ = io.Copy(upstream, client)
+		closeWrite(upstream)
+		close(done)
+	}()
+	_, _ = io.Copy(client, upstream)
+	closeWrite(client)
 	<-done
 	_ = client.Close()
 	_ = upstream.Close()
+}
+
+func closeWrite(conn net.Conn) {
+	if cw, ok := conn.(interface{ CloseWrite() error }); ok {
+		_ = cw.CloseWrite()
+	} else {
+		_ = conn.Close()
+	}
 }

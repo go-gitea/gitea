@@ -4,25 +4,76 @@
 package egress
 
 import (
+	"cmp"
+	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"slices"
+	"strings"
 
 	"gitea.dev/modules/egress/policy"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
+
+	"golang.org/x/net/http/httpproxy"
 )
 
 func NewMigrationPolicy() *policy.Policy {
 	return newMigrationPolicy(proxy.Proxy())
 }
 
-// NewGitPolicy is the migration policy for the git proxy, git used the environment's proxy even with [proxy] disabled
+// NewGitPolicy is the migration policy for the git proxy, which keeps git's own proxy choice
 func NewGitPolicy() *policy.Policy {
-	selectProxy := proxy.Proxy()
-	if selectProxy == nil {
-		selectProxy = http.ProxyFromEnvironment
+	return newMigrationPolicy(gitProxySelector())
+}
+
+// gitProxySelector picks proxies like git did: [git.config] http.proxy, else a [proxy] PROXY_URL, else the environment incl. ALL_PROXY
+func gitProxySelector() func(*http.Request) (*url.URL, error) {
+	env := httpproxy.FromEnvironment()
+	if rawURL, ok := setting.GitConfig.Options["http.proxy"]; ok {
+		gitProxy, err := normalizeGitProxy(rawURL)
+		if err == nil {
+			env.HTTPProxy, env.HTTPSProxy = gitProxy, gitProxy
+			return requestProxy(env)
+		}
+		log.Error("Ignoring [git.config] http.proxy: %v", err)
 	}
-	return newMigrationPolicy(selectProxy)
+	if setting.Proxy.Enabled && setting.Proxy.ProxyURL != "" {
+		return proxy.Proxy()
+	}
+	allProxy := cmp.Or(os.Getenv("all_proxy"), os.Getenv("ALL_PROXY"))
+	env.HTTPProxy, env.HTTPSProxy = cmp.Or(env.HTTPProxy, allProxy), cmp.Or(env.HTTPSProxy, allProxy)
+	return requestProxy(env)
+}
+
+func requestProxy(cfg *httpproxy.Config) func(*http.Request) (*url.URL, error) {
+	proxyFunc := cfg.ProxyFunc()
+	return func(req *http.Request) (*url.URL, error) { return proxyFunc(req.URL) }
+}
+
+// normalizeGitProxy reads a proxy URL the way git reads http.proxy: http is the default scheme, 1080 curl's default port
+func normalizeGitProxy(rawURL string) (string, error) {
+	if rawURL == "" {
+		return "", nil
+	}
+	if !strings.Contains(rawURL, "://") {
+		rawURL = "http://" + rawURL
+	}
+	proxyURL, err := url.Parse(rawURL)
+	if err != nil {
+		return "", errors.New("invalid URL") // the parse error would echo its credentials
+	}
+	if !slices.Contains([]string{"http", "https", "socks5", "socks5h"}, proxyURL.Scheme) {
+		return "", fmt.Errorf("unsupported scheme %q", proxyURL.Scheme)
+	}
+	if proxyURL.Scheme == "http" && proxyURL.Port() == "" {
+		proxyURL.Host = net.JoinHostPort(proxyURL.Hostname(), "1080")
+	}
+	return proxyURL.String(), nil
 }
 
 func newMigrationPolicy(selectProxy func(*http.Request) (*url.URL, error)) *policy.Policy {

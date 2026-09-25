@@ -157,15 +157,3 @@ func TestRunWithContextTimeout(t *testing.T) {
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 }
-
-func TestSetHTTPProxy(t *testing.T) {
-	t.Cleanup(func() { SetHTTPProxy("") })
-
-	SetHTTPProxy("http://gitea:secret@127.0.0.1:1")
-	stdout, _, err := NewCommand("config", "--get-regexp", `^http\.proxy`).RunStdString(t.Context())
-	require.NoError(t, err)
-	assert.Equal(t, "http.proxy http://gitea:secret@127.0.0.1:1\nhttp.proxyauthmethod basic\n", stdout)
-
-	SetHTTPProxy("")
-	assert.Empty(t, *httpProxyEnvs.Load())
-}

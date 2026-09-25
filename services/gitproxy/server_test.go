@@ -15,7 +15,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"strings"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"gitea.dev/modules/egress/policy"
@@ -41,7 +42,7 @@ func listen(t *testing.T) net.Listener {
 	return ln
 }
 
-func startEcho(t *testing.T) string {
+func serveConns(t *testing.T, handle func(net.Conn)) string {
 	ln := listen(t)
 	go func() {
 		for {
@@ -51,11 +52,15 @@ func startEcho(t *testing.T) string {
 			}
 			go func() {
 				defer conn.Close()
-				_, _ = io.Copy(conn, conn)
+				handle(conn)
 			}()
 		}
 	}()
 	return ln.Addr().String()
+}
+
+func startEcho(t *testing.T) string {
+	return serveConns(t, func(conn net.Conn) { _, _ = io.Copy(conn, conn) })
 }
 
 func startProxy(t *testing.T, srv *server) string {
@@ -120,36 +125,25 @@ func startConnectOperator(t *testing.T, useTLS bool, reply string, seen chan<- *
 }
 
 func startSOCKS5(t *testing.T) string {
-	ln := listen(t)
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				return
-			}
-			go func() {
-				defer conn.Close()
-				br := bufio.NewReader(conn)
-				read := func(n int) []byte {
-					buf := make([]byte, n)
-					_, _ = io.ReadFull(br, buf)
-					return buf
-				}
-				_, _ = conn.Write([]byte{5, 2})
-				_ = read(int(read(2)[1]))
-				gotUser := string(read(int(read(2)[1])))
-				if gotPass := string(read(int(read(1)[0]))); gotUser != "user" || gotPass != "secret" {
-					_, _ = conn.Write([]byte{1, 1})
-					return
-				}
-				_, _ = conn.Write([]byte{1, 0})
-				_ = read(int(read(5)[4]) + 2)
-				_, _ = conn.Write([]byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0})
-				_, _ = io.Copy(conn, br)
-			}()
+	return serveConns(t, func(conn net.Conn) {
+		br := bufio.NewReader(conn)
+		read := func(n int) []byte {
+			buf := make([]byte, n)
+			_, _ = io.ReadFull(br, buf)
+			return buf
 		}
-	}()
-	return ln.Addr().String()
+		_, _ = conn.Write([]byte{5, 2})
+		_ = read(int(read(2)[1]))
+		gotUser := string(read(int(read(2)[1])))
+		if gotPass := string(read(int(read(1)[0]))); gotUser != "user" || gotPass != "secret" {
+			_, _ = conn.Write([]byte{1, 1})
+			return
+		}
+		_, _ = conn.Write([]byte{1, 0})
+		_ = read(int(read(5)[4]) + 2)
+		_, _ = conn.Write([]byte{5, 0, 0, 1, 0, 0, 0, 0, 0, 0})
+		_, _ = io.Copy(conn, br)
+	})
 }
 
 func TestUpstreamProxy(t *testing.T) {
@@ -386,17 +380,36 @@ func TestProxyHTTP(t *testing.T) {
 	})
 }
 
+func TestMain(m *testing.M) {
+	MaybeTunnel()
+	m.Run()
+}
+
 func TestRun(t *testing.T) {
 	t.Parallel()
-	defer test.MockVariableValue(&setting.Git.HomePath, "/nonexistent")()
-	t.Cleanup(func() { gitcmd.SetHTTPProxy("") })
+	base := t.TempDir()
+	exe, err := os.Executable()
+	require.NoError(t, err)
+	repos, err := filepath.Abs("../../modules/git/tests/repos")
+	require.NoError(t, err)
+	defer test.MockVariableValue(&setting.Git.HomePath, base)()
+	defer test.MockVariableValue(&setting.AppPath, exe)()
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "127.0.0.1/32")()
+	t.Cleanup(func() { gitcmd.SetExtraEnvs(nil) })
 	require.NoError(t, Run(t.Context()))
 
 	stdout, _, runErr := gitcmd.NewCommand("config", "--get", "http.proxy").RunStdString(t.Context())
 	require.NoError(t, runErr)
-	proxyURL, err := url.Parse(strings.TrimSpace(stdout))
-	require.NoError(t, err)
+	assert.Contains(t, stdout, "http://gitea:")
 
-	_, _, status := connect(t, proxyURL.Host, startEcho(t), basicAuth(proxyURL.User))
-	assert.Equal(t, http.StatusForbidden, status)
+	_, port, err := net.SplitHostPort(serveConns(t, func(conn net.Conn) {
+		daemon := exec.Command("git", "daemon", "--inetd", "--export-all", "--base-path="+repos)
+		daemon.Stdin, daemon.Stdout = conn, conn
+		_ = daemon.Run()
+	}))
+	require.NoError(t, err)
+	require.NoError(t, gitcmd.NewCommand("clone", "-q", "--bare").AddDynamicArguments("git://127.0.0.1:"+port+"/repo1_bare", filepath.Join(base, "allowed")).Run(t.Context()))
+	_, stderr, runErr := gitcmd.NewCommand("clone", "-q", "--bare").AddDynamicArguments("git://127.0.0.2:"+port+"/repo1_bare", filepath.Join(base, "denied")).RunStdString(t.Context())
+	require.Error(t, runErr)
+	assert.Contains(t, stderr, "target denied by policy")
 }

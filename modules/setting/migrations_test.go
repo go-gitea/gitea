@@ -21,6 +21,7 @@ BLOCKED_DOMAINS = gitlab.com
 ALLOW_LOCALNETWORKS = true`: {"github.com,private,loopback", "gitlab.com"},
 		`ALLOWED_HOST_LIST = external, 10.0.0.0/8
 ALLOWED_DOMAINS = github.com
+ALLOW_LOCALNETWORKS = true
 BLOCKED_HOST_LIST = evil.com
 BLOCKED_DOMAINS = gitlab.com`: {"external, 10.0.0.0/8", "evil.com"},
 	} {

@@ -24,11 +24,14 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	deprecatedSetting(rootCfg, "migrations", "ALLOWED_DOMAINS", "migrations", "ALLOWED_HOST_LIST", "v28.0.0")
 	deprecatedSetting(rootCfg, "migrations", "BLOCKED_DOMAINS", "migrations", "BLOCKED_HOST_LIST", "v28.0.0")
 	deprecatedSetting(rootCfg, "migrations", "ALLOW_LOCALNETWORKS", "migrations", "ALLOWED_HOST_LIST", "v28.0.0")
-	Migrations.AllowedHostList = ConfigSectionKeyString(sec, "ALLOWED_HOST_LIST", ConfigSectionKeyString(sec, "ALLOWED_DOMAINS", "external"))
-	Migrations.BlockedHostList = ConfigSectionKeyString(sec, "BLOCKED_HOST_LIST", ConfigSectionKeyString(sec, "BLOCKED_DOMAINS"))
-	if ConfigSectionKeyBool(sec, "ALLOW_LOCALNETWORKS") {
-		Migrations.AllowedHostList += ",private,loopback"
+	Migrations.AllowedHostList = ConfigSectionKeyString(sec, "ALLOWED_HOST_LIST")
+	if Migrations.AllowedHostList == "" {
+		Migrations.AllowedHostList = ConfigSectionKeyString(sec, "ALLOWED_DOMAINS", "external")
+		if ConfigSectionKeyBool(sec, "ALLOW_LOCALNETWORKS") {
+			Migrations.AllowedHostList += ",private,loopback"
+		}
 	}
+	Migrations.BlockedHostList = ConfigSectionKeyString(sec, "BLOCKED_HOST_LIST", ConfigSectionKeyString(sec, "BLOCKED_DOMAINS"))
 
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
 }

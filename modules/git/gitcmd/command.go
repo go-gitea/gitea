@@ -259,8 +259,8 @@ func CommonGitCmdEnvs() []string {
 		"LC_ALL=C",              // ensure git output is in English, error messages are parsed in English
 		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
 	}...)
-	if proxyEnvs := httpProxyEnvs.Load(); proxyEnvs != nil {
-		envs = append(envs, *proxyEnvs...)
+	if extra := extraEnvs.Load(); extra != nil {
+		envs = append(envs, *extra...)
 	}
 	return envs
 }

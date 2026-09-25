@@ -14,16 +14,11 @@ import (
 
 var GitExecutable = "git" // the command name of git, will be updated to an absolute path during initialization
 
-var httpProxyEnvs atomic.Pointer[[]string]
+var extraEnvs atomic.Pointer[[]string]
 
-// SetHTTPProxy routes the http(s) remotes of every git command through proxyURL, "" disables it.
-func SetHTTPProxy(proxyURL string) {
-	var envs []string
-	if proxyURL != "" {
-		// command scope config beats every config file and keeps the credentials out of process listings, git also honors no_proxy for a configured proxy
-		envs = []string{"GIT_CONFIG_PARAMETERS='http.proxy=" + proxyURL + "' 'http.proxyAuthMethod=basic'", "no_proxy=", "NO_PROXY="}
-	}
-	httpProxyEnvs.Store(&envs)
+// SetExtraEnvs adds envs to every git command, the git proxy routes git's network remotes with them
+func SetExtraEnvs(envs []string) {
+	extraEnvs.Store(&envs)
 }
 
 // SetExecutablePath changes the path of git executable and checks the file permission and version.

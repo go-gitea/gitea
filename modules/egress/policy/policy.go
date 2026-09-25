@@ -91,7 +91,7 @@ func (p *Policy) notAllowedError(target string) error {
 
 // checkAddr reports whether host, resolved to ip, may be called.
 func (p *Policy) checkAddr(host string, ip netip.Addr) error {
-	ip = ip.Unmap()
+	ip = canonicalAddr(ip)
 	netIP := net.IP(ip.AsSlice())
 	class := classifyAddr(ip)
 	target := fmt.Sprintf("%s(%s)", host, ip)
@@ -137,9 +137,14 @@ func (p *Policy) CheckHostIPs(host string, ips []net.IP) error {
 
 // NewDialContext returns a dial function that checks the resolved address at connect time, so DNS rebinding can't bypass it.
 func (p *Policy) NewDialContext() func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return p.dialContext(false)
+}
+
+// dialContext can let through the proxies the selector returned, for a transport dialing proxies and targets alike
+func (p *Policy) dialContext(allowProxies bool) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		dialer := net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
-		if _, isProxy := p.proxyAddrs.Load(addr); !isProxy {
+		if _, isProxy := p.proxyAddrs.Load(addr); !allowProxies || !isProxy {
 			host, _, err := net.SplitHostPort(addr) // the requested host, also on redirects where the request's Host is empty
 			if err != nil {
 				return nil, err
@@ -173,7 +178,7 @@ func (p *Policy) Proxy(req *http.Request) (proxyURL *url.URL, err error) {
 func (p *Policy) NewHTTPTransport() *http.Transport {
 	return &http.Transport{
 		Proxy:                 p.Proxy,
-		DialContext:           p.NewDialContext(),
+		DialContext:           p.dialContext(true),
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,

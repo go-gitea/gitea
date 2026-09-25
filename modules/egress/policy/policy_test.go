@@ -24,6 +24,7 @@ func TestCheckAddr(t *testing.T) {
 		{name: "block host", block: "evil.example.com", host: "evil.example.com", ip: "8.8.8.8"},
 		{name: "block cidr", block: "127.0.0.0/8", ip: "127.0.0.1"},
 		{name: "block ipv4-mapped", block: "loopback", ip: "::ffff:127.0.0.1"},
+		{name: "block nat64 by cidr", block: "10.0.0.0/8", ip: "64:ff9b::a00:1"},
 		{name: "allow loopback only", allow: "loopback", ip: "127.0.0.1", want: true},
 		{name: "allow list rejects others", allow: "loopback", ip: "8.8.8.8"},
 		{name: "allow host", allow: "example.com", host: "example.com", ip: "8.8.8.8", want: true},
@@ -76,7 +77,7 @@ func TestCheckHostIPs(t *testing.T) {
 	assert.Error(t, allowed.CheckHostIPs("other.com", nil))
 
 	builtins := NewPolicy("test", WithAllow("external, private, loopback", ""))
-	assert.NoError(t, builtins.CheckHostIPs("example.com", ips("8.8.8.8", "100.64.0.1", "::1")))
+	assert.NoError(t, builtins.CheckHostIPs("example.com", ips("8.8.8.8", "64:ff9b::808:808", "100.64.0.1", "::1")))
 	for _, ip := range []string{
 		"0.1.2.3", "100.100.100.200", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
 		"198.51.100.1", "203.0.113.1", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "2001::1", "2001:db8::1",
@@ -92,17 +93,18 @@ func TestNewDialContext(t *testing.T) {
 	t.Cleanup(func() { _ = ln.Close() })
 	addr := ln.Addr().String()
 
-	dial := func(proxy string) error {
-		p := NewPolicy("test", WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: proxy})))
-		_, _ = p.Proxy(&http.Request{})
-		conn, err := p.NewDialContext()(t.Context(), "tcp", addr)
+	dial := func(proxy string, allowProxies bool) error {
+		policy := NewPolicy("test", WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: proxy})))
+		_, _ = policy.Proxy(&http.Request{})
+		conn, err := policy.dialContext(allowProxies)(t.Context(), "tcp", addr)
 		if err == nil {
 			_ = conn.Close()
 		}
 		return err
 	}
-	assert.NoError(t, dial(addr))
-	assert.ErrorIs(t, dial("127.0.0.1:1"), ErrDenied)
+	assert.NoError(t, dial(addr, true))
+	assert.ErrorIs(t, dial(addr, false), ErrDenied)
+	assert.ErrorIs(t, dial("127.0.0.1:1", true), ErrDenied)
 }
 
 func TestProxyDialAddr(t *testing.T) {
