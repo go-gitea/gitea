@@ -1658,7 +1658,7 @@ tbody.commit-list {
 }
 
 .migrate-entry-title {
-  font-size: 1.28571429em;
+  font-size: 18px;
   font-weight: var(--font-weight-medium);
   margin-bottom: 0.5em;
 }
