@@ -30,7 +30,7 @@ func mentionProcessor(ctx *RenderContext, node *html.Node) {
 
 		if ok && strings.Contains(mention, "/") {
 			mentionOrgAndTeam := strings.Split(mention, "/")
-			if mentionOrgAndTeam[0][1:] == ctx.RenderOptions.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
+			if strings.EqualFold(mentionOrgAndTeam[0][1:], ctx.RenderOptions.Metas["org"]) && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
 				link := fmt.Sprintf("/:root/org/%s/teams/%s", ctx.RenderOptions.Metas["org"], mentionOrgAndTeam[1])
 				replaceContent(node, loc.Start, loc.End, createLink(ctx, link, mention, "" /*mention*/))
 				node = node.NextSibling.NextSibling
