@@ -26,12 +26,12 @@ func TestParseMaxParallel(t *testing.T) {
 		{"3", 3},
 		{"0", 0},
 		{"-1", 0},
-		{"1.5", 1},           // GitHub casts the YAML number to int
-		{"-1.5", 0},          // truncates to -1, which means unlimited
-		{"1e3", 256},         // clamped to MaxJobNumPerRun
-		{"nan", 0},           // must not reach the int cast
-		{"${{ vars.n }}", 0}, // expressions are not evaluated yet, logged as such
-		{"abc", 0},           // a plain workflow error, warned about rather than hidden
+		{"1.5", 1},   // GitHub casts the YAML number to int
+		{"-1.5", 0},  // truncates to -1, which means unlimited
+		{"1e3", 256}, // clamped to MaxJobNumPerRun
+		{"nan", 0},   // must not reach the int cast
+		{"${{ vars.n }}", 0},
+		{"abc", 0}, // a plain workflow error, warned about rather than hidden
 	}
 	for _, tt := range tests {
 		assert.Equal(t, tt.want, parseMaxParallel("job", tt.input), "input %q", tt.input)
@@ -45,7 +45,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 2
+      max-parallel: ${{ fromJSON('2') }}
       matrix:
         version: [1, 2, 3, 4, 5]
     steps:

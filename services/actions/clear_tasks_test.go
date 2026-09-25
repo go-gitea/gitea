@@ -60,6 +60,31 @@ func createConflictingCancellingJob(t *testing.T, concurrencyGroup string, runIn
 	return job
 }
 
+func TestCancellableJobs(t *testing.T) {
+	jobs := []*actions_model.ActionRunJob{
+		{ID: 1, JobID: "always", Status: actions_model.StatusRunning, WorkflowPayload: []byte(`jobs: {always: {if: "always() && needs.build.result == 'cancelled'"}}`)},
+		{ID: 2, JobID: "ordinary", Status: actions_model.StatusBlocked, WorkflowPayload: []byte(`jobs: {ordinary: {}}`)},
+		{ID: 3, JobID: "not-cancelled", Status: actions_model.StatusBlocked, WorkflowPayload: []byte(`jobs: {not-cancelled: {if: "always() && !cancelled()"}}`)},
+		{ID: 4, JobID: "done", Status: actions_model.StatusSuccess, WorkflowPayload: []byte(`jobs: {done: {if: "${{ always() }}"}}`)},
+	}
+	for _, test := range []struct {
+		name    string
+		started timeutil.TimeStamp
+		status  actions_model.Status
+		force   bool
+		want    []*actions_model.ActionRunJob
+	}{
+		{name: "pending run", want: jobs},
+		{name: "started run", started: 1, want: jobs[1:]},
+		{name: "legacy running run", status: actions_model.StatusRunning, want: jobs[1:]},
+		{name: "force cancellation", started: 1, force: true, want: jobs},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, cancellableJobs(&actions_model.ActionRun{Started: test.started, Status: test.status}, jobs, test.force))
+		})
+	}
+}
+
 func TestShouldBlockJobByConcurrency_CancellingJobBlocks(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -76,6 +101,10 @@ func TestShouldBlockJobByConcurrency_CancellingJobBlocks(t *testing.T) {
 	shouldBlock, err := shouldBlockJobByConcurrency(t.Context(), job)
 	require.NoError(t, err)
 	assert.True(t, shouldBlock)
+	job.ConcurrencyCancel = true
+	shouldBlock, err = shouldBlockJobByConcurrency(t.Context(), job)
+	require.NoError(t, err)
+	assert.True(t, shouldBlock)
 }
 
 func TestShouldBlockRunByConcurrency_CancellingJobBlocks(t *testing.T) {
@@ -90,6 +119,10 @@ func TestShouldBlockRunByConcurrency_CancellingJobBlocks(t *testing.T) {
 	}
 
 	shouldBlock, err := shouldBlockRunByConcurrency(t.Context(), attempt)
+	require.NoError(t, err)
+	assert.True(t, shouldBlock)
+	attempt.ConcurrencyCancel = true
+	shouldBlock, err = shouldBlockRunByConcurrency(t.Context(), attempt)
 	require.NoError(t, err)
 	assert.True(t, shouldBlock)
 }

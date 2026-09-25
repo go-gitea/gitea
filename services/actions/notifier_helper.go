@@ -188,7 +188,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	var filteredWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	workflows, schedules, filtered, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
+	workflows, schedules, filtered, invalid, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
 		input.Event,
 		input.Payload,
 		shouldDetectSchedules,
@@ -234,7 +234,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, _, baseFiltered, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
+		baseWorkflows, _, baseFiltered, _, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
@@ -266,6 +266,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 			return err
 		}
+	}
+
+	if input.Event == webhook_module.HookEventPush {
+		handleInvalidWorkflows(ctx, input, ref, commit, invalid)
 	}
 
 	if err := handleWorkflows(ctx, detectedWorkflows, commit, input, ref); err != nil {
