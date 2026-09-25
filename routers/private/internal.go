@@ -76,7 +76,7 @@ func Routes() *web.Router {
 	r.AfterRouting(setRealIP)
 
 	r.Get("/dummy", misc.DummyOK)
-	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
+	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyForSSH)
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)
 	r.Post("/ssh/log", bind(private.SSHLogOption{}), SSHLog)
 	r.Post("/hook/pre-receive/{owner}/{repo}", RepoAssignment, bind(private.HookOptions{}), HookPreReceive)

@@ -37,9 +37,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	ctx.PlainText(http.StatusOK, "success")
 }
 
-// AuthorizedPublicKeyByContent searches by the fingerprint of the given content
-// and returns the public key found.
-func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
+func AuthorizedPublicKeyForSSH(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
 	publicKey, err := asymkey_model.SearchPublicKeyForSSH(ctx, content)
 	if err != nil {

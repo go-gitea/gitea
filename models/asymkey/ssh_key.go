@@ -176,6 +176,8 @@ func GetPublicKeyByID(ctx context.Context, keyID int64) (*PublicKey, error) {
 }
 
 func SearchPublicKeyForSSH(ctx context.Context, sshPubKey string) (*PublicKey, error) {
+	// this function is designed to only accept SSH public keys,
+	// because there might be different methods to calculate the fingerprint in the future (at the moment: "SHA256:...")
 	fingerprint, err := CalcFingerprint(sshPubKey)
 	if err != nil {
 		return nil, err
