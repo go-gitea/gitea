@@ -40,10 +40,6 @@ function toggleAll() {
   store.activeExtensions = store.activeExtensions === 'all' ? [] : 'all';
 }
 
-function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Escape') tippyInstance.hide();
-}
-
 onMounted(() => {
   tippyInstance = createTippy(triggerEl.value!, {
     content: panelEl.value!,
@@ -54,8 +50,6 @@ onMounted(() => {
     theme: 'menu',
     arrow: false,
     limitSizeToViewport: {vertical: true},
-    onShow: () => document.addEventListener('keydown', onKeyDown),
-    onHide: () => document.removeEventListener('keydown', onKeyDown),
   });
 });
 
@@ -77,19 +71,17 @@ onUnmounted(() => {
   <div ref="panelEl" class="tippy-target">
     <div class="diff-ext-filter-menu" role="menu" :aria-label="props.locale.fileExtensions">
       <div class="diff-ext-filter-header">{{ props.locale.fileExtensions }}</div>
-      <div class="diff-ext-filter-list">
-        <button
-          v-for="ext in allExtensions" :key="ext.ext"
-          type="button" class="item" role="menuitemcheckbox"
-          :aria-checked="isChecked(ext.ext)" @click="toggleExt(ext.ext)"
-        >
-          <span class="diff-ext-filter-check">
-            <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check"/>
-          </span>
-          <span class="gt-ellipsis">{{ extLabel(ext.ext) }}</span>
-          <span class="diff-ext-filter-count">{{ ext.count }}</span>
-        </button>
-      </div>
+      <button
+        v-for="ext in allExtensions" :key="ext.ext"
+        type="button" class="item" role="menuitemcheckbox"
+        :aria-checked="isChecked(ext.ext)" @click="toggleExt(ext.ext)"
+      >
+        <span class="diff-ext-filter-check">
+          <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check"/>
+        </span>
+        <span class="gt-ellipsis">{{ extLabel(ext.ext) }}</span>
+        <span class="diff-ext-filter-count">{{ ext.count }}</span>
+      </button>
       <div class="divider"/>
       <button
         type="button" class="item" role="menuitemcheckbox"
@@ -111,26 +103,10 @@ onUnmounted(() => {
 }
 
 .diff-ext-filter-header {
-  padding: 6px 16px;
+  padding: 6px 18px;
   color: var(--color-text-light-2);
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
-}
-
-.diff-ext-filter-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.diff-ext-filter-menu .item {
-  width: auto; /* buttons are shrink-to-fit, the flex column parent stretches them */
-  margin: 0 4px; /* matches the menu's vertical padding so the inset is even on all sides */
-  padding: 6px 12px;
-  gap: 8px;
-  border: none;
-  border-radius: var(--border-radius-medium);
-  font: inherit;
-  text-align: left;
 }
 
 .diff-ext-filter-check {
