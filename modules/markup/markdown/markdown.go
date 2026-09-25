@@ -6,9 +6,11 @@ package markdown
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"html/template"
 	"io"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/highlight"
@@ -264,6 +266,42 @@ func RenderString(ctx *markup.RenderContext, content string) (template.HTML, err
 		return htmlutil.EscapeString(content), err
 	}
 	return template.HTML(buf.String()), nil
+}
+
+// FeedExcerpt returns the source of the prose rendered by a feed excerpt, truncated outside of inline markup.
+func FeedExcerpt(ctx context.Context, content string) string {
+	rctx := markup.NewRenderContext(ctx)
+	rctx.RenderOptions.FeedExcerpt = true
+	pc := newParserContext(rctx)
+	pc.Set(renderConfigKey, &RenderConfig{})
+	start, texts := len(content), []text.Segment(nil)
+	_ = ast.Walk(SpecializedMarkdown(rctx).goldmarkMarkdown.Parser().Parse(text.NewReader([]byte(content)), parser.WithContext(pc)), func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if entering && node.Type() == ast.TypeBlock && node.Lines().Len() > 0 {
+			start = min(start, strings.LastIndexByte(content[:node.Lines().At(0).Start], '\n')+1)
+		} else if textNode, ok := node.(*ast.Text); ok && entering && node.Parent().Type() == ast.TypeBlock {
+			texts = append(texts, textNode.Segment)
+		}
+		return ast.WalkContinue, nil
+	})
+
+	excerpt := giteautil.EllipsisDisplayString(content[start:], 200)
+	kept, ok := strings.CutSuffix(excerpt, "…")
+	if excerpt == content[start:] || !ok {
+		return excerpt
+	}
+	end := start + len(kept)
+	for _, segment := range slices.Backward(texts) {
+		if segment.Start < end {
+			end = min(end, segment.Stop)
+			break
+		}
+	}
+	excerpt = content[start:end]
+	// in case the content is in a Latin family language, we remove the last broken word.
+	if lastSpaceIdx := strings.LastIndexByte(excerpt, ' '); lastSpaceIdx != -1 && len(excerpt)-lastSpaceIdx+len("…") < 15 {
+		excerpt = excerpt[:lastSpaceIdx]
+	}
+	return excerpt + "…"
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.
