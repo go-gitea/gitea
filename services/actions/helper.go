@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
@@ -92,11 +93,20 @@ func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
 	return payload.PullRequest.Base.Sha, true
 }
 
-// evaluateJobIf evaluates a job's `if:`
+// evaluateJobIf evaluates a job's `if:`. An invalid `if:` skips the job and is reported in its summary.
 func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
+	shouldStart, err := resolveJobIf(ctx, run, attempt, job, vars, allNeedsSucceed)
+	if errors.Is(err, util.ErrInvalidArgument) {
+		return false, upsertJobErrorSummary(ctx, job, "if", err)
+	}
+	return shouldStart, err
+}
+
+// resolveJobIf evaluates a job's `if:` and returns an invalid `if:` as util.ErrInvalidArgument.
+func resolveJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
 	parsedJob, err := job.ParseJob()
 	if err != nil {
-		return false, upsertJobErrorSummary(ctx, job, "if", err)
+		return false, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	// Empty `if:` reduces to implicit `success()` - true iff every need finished as Success.
 	if len(parsedJob.If.Value) == 0 {
@@ -122,7 +132,7 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 	gitCtx["job"] = "" // github.com decides a job's `if:` before the job exists
 	shouldStart, err := jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
 	if err != nil {
-		return false, upsertJobErrorSummary(ctx, job, "if", err)
+		return false, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	return shouldStart, nil
 }

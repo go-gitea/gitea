@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -222,7 +223,6 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 	var newJobs, newJobsToRerun actions_model.ActionJobList
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
-	var hasWaitingCallerJobs bool
 
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		newAttemptStatus, jobsToCancel, err := PrepareToStartRunWithConcurrency(ctx, newAttempt)
@@ -281,10 +281,12 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.ParentJobID = newParentID
 			}
 
+			var invalidIfErr error
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
-				// A deferred-matrix placeholder must go through the emitter, which is the only place
-				// that expands it: dispatching it directly would hand the runner the raw payload.
-				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob) || newJob.IsMatrixDeferred
+				// A job with needs goes through the emitter, which decides its `if:` once the results of all its
+				// needs are there: pass-through ones may not be cloned yet. A deferred-matrix placeholder must go
+				// through it too, as the only place that expands it: dispatching it directly would hand the runner the raw payload.
+				shouldBlockJob := shouldBlock || len(newJob.Needs) > 0 || newJob.IsMatrixDeferred
 
 				newJob.Status = util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting)
 				newJob.TaskID = 0
@@ -300,8 +302,21 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					newJob.CallPayload = ""
 				}
 
+				// Decide `if:` before concurrency and max-parallel, so a skipped job neither cancels its group peers nor takes a slot.
+				if newJob.Status == actions_model.StatusWaiting {
+					shouldStart, err := resolveJobIf(ctx, plan.run, newAttempt, newJob, vars, true)
+					if errors.Is(err, util.ErrInvalidArgument) {
+						invalidIfErr = err
+					} else if err != nil {
+						return fmt.Errorf("evaluate job if: %w", err)
+					}
+					if !shouldStart {
+						newJob.Status = actions_model.StatusSkipped
+					}
+				}
+
 				// A slot-starved job must not cancel its group peers.
-				if newJob.RawConcurrency != "" && !shouldBlockJob && slots.available(newJob) {
+				if newJob.RawConcurrency != "" && newJob.Status == actions_model.StatusWaiting && slots.available(newJob) {
 					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
@@ -327,6 +342,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				return err
 			}
 			templateIDToNewID[templateJob.ID] = newJob.ID
+			if invalidIfErr != nil {
+				if err := upsertJobErrorSummary(ctx, newJob, "if", invalidIfErr); err != nil {
+					return err
+				}
+			}
 
 			// expand reusable caller
 			if newJob.IsReusableCaller && newJob.Status == actions_model.StatusWaiting && !newJob.IsExpanded {
@@ -337,7 +357,6 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				if err := actions_model.RefreshReusableCallerStatus(ctx, newJob); err != nil {
 					return fmt.Errorf("refresh caller %d status: %w", newJob.ID, err)
 				}
-				hasWaitingCallerJobs = true
 			}
 
 			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
@@ -383,12 +402,10 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)
 
-	// Post-commit kick for expanded callers and restored matrix placeholders: let job_emitter
-	// resolve child jobs, and re-expand a placeholder whose needs may all be pass-through and done.
-	if hasWaitingCallerJobs || len(plan.matrixPlaceholderTemplateIDs) > 0 {
-		if err := EmitJobsIfReadyByRun(plan.run.ID); err != nil {
-			log.Error("emit run %d after rerun: %v", plan.run.ID, err)
-		}
+	// Post-commit kick: let job_emitter resolve the rerun jobs whose needs may all be pass-through and done
+	// (restored matrix placeholders included), the children of expanded callers and the dependents of skipped jobs.
+	if err := EmitJobsIfReadyByRun(plan.run.ID); err != nil {
+		log.Error("emit run %d after rerun: %v", plan.run.ID, err)
 	}
 
 	return newAttempt, nil

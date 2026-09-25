@@ -208,6 +208,14 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
+	for _, jobID := range []int64{198, 199} {
+		job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobID})
+		// Add a valid payload so that a rerun can decide the job's `if:` from it
+		job.WorkflowPayload = fmt.Appendf(nil, "jobs:\n  %s:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", job.JobID)
+		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "workflow_payload")
+		require.NoError(t, err)
+	}
+
 	t.Run("RunLogs", func(t *testing.T) {
 		// run 795 (workflow "test.yaml") has job 198 "job_1" on task 53 and job 199 "job_2" on task 54
 		seedTaskLogs(t, 53, "hello from job_1")
@@ -522,6 +530,7 @@ func testAPIActionsApproveWorkflowRun(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
 			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
 			Name: "job1", Attempt: 1, JobID: "job1", Status: actions_model.StatusBlocked, RunsOn: []string{"ubuntu-latest"},
+			WorkflowPayload: []byte("jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"),
 		}))
 		return run
 	}

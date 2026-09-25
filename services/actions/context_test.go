@@ -17,6 +17,7 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +96,60 @@ jobs:
 	// Rerun reads raw_concurrency from the DB to re-evaluate the group;
 	// see services/actions/rerun.go. Must survive the insert.
 	assert.NotEmpty(t, persisted.RawConcurrency)
+}
+
+func TestPrepareRunAndInsert_JobIf(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+
+	content := []byte(`name: job-if
+on: push
+jobs:
+  start:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  skip:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: skip
+    steps:
+      - run: echo hi
+  invalid:
+    if: fromJSON('{')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`)
+	run := &actions_model.ActionRun{
+		Title:             "job-if",
+		RepoID:            4,
+		OwnerID:           1,
+		WorkflowID:        "job-if.yaml",
+		TriggerUserID:     1,
+		Ref:               "refs/heads/master",
+		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:             "push",
+		TriggerEvent:      "push",
+		EventPayload:      "{}",
+		WorkflowRepoID:    4,
+		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+	}
+	require.NoError(t, PrepareRunAndInsert(t.Context(), content, run, nil))
+
+	jobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
+		jobs[job.JobID] = job
+	}
+	assert.Equal(t, actions_model.StatusWaiting, jobs["start"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip"].Status)
+	assert.False(t, jobs["skip"].IsConcurrencyEvaluated, "a skipped job must not take part in concurrency")
+	assert.Equal(t, actions_model.StatusSkipped, jobs["invalid"].Status)
+	summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs["invalid"].ID, 0)
+	require.NoError(t, err)
+	assert.Contains(t, summary.Content, "Error when evaluating `if` for job `invalid`")
 }
 
 func TestComputeReusableCallerOutputs(t *testing.T) {

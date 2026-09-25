@@ -21,8 +21,8 @@ import (
 func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
-	// Track runs whose reusable callers were just expanded so we can re-emit after the tx commits.
-	expandedCallerRunIDs := make(container.Set[int64])
+	// Track runs that need a resolver pass after the tx commits: the callee rows of expanded callers and the dependents of skipped jobs.
+	runIDsToEmit := make(container.Set[int64])
 
 	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
 		for _, runID := range runIDs {
@@ -43,6 +43,11 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				return err
 			}
 
+			vars, err := actions_model.GetVariablesOfRun(ctx, run)
+			if err != nil {
+				return err
+			}
+
 			// approval unblocks every job at once, so max-parallel has to cap them here too
 			slots := maxParallelSlots{}
 			for _, job := range jobs {
@@ -58,6 +63,25 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				// Only a job this approval unblocks competes for a slot, one that is already
 				// active was counted by the seeding loop above and must not take a second.
 				isUnblocking := job.Status == actions_model.StatusBlocked
+				// Decide `if:` first, so a skipped job neither takes a slot nor cancels its group peers.
+				if isUnblocking {
+					shouldStart, err := evaluateJobIf(ctx, run, nil, job, vars, true)
+					if err != nil {
+						return fmt.Errorf("evaluate job %d if on approval: %w", job.ID, err)
+					}
+					if !shouldStart {
+						job.Status = actions_model.StatusSkipped
+						n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+						if err != nil {
+							return err
+						}
+						if n > 0 {
+							updatedJobs = append(updatedJobs, job)
+							runIDsToEmit.Add(run.ID)
+						}
+						continue
+					}
+				}
 				// A slot-starved job cannot start, skip the following checks.
 				if isUnblocking && !slots.available(job) {
 					continue
@@ -92,17 +116,13 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					if !has {
 						return errors.New("run has no attempt")
 					}
-					vars, err := actions_model.GetVariablesOfRun(ctx, run)
-					if err != nil {
-						return err
-					}
 					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
 						return fmt.Errorf("expand caller %d on approval: %w", job.ID, err)
 					}
 					if err := actions_model.RefreshReusableCallerStatus(ctx, job); err != nil {
 						return fmt.Errorf("refresh caller %d status after approval-time expansion: %w", job.ID, err)
 					}
-					expandedCallerRunIDs.Add(run.ID)
+					runIDsToEmit.Add(run.ID)
 				}
 			}
 		}
@@ -112,10 +132,11 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		return nil, err
 	}
 
-	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting.
-	for runID := range expandedCallerRunIDs {
+	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting
+	// and the dependents of skipped jobs get resolved.
+	for runID := range runIDsToEmit {
 		if err := EmitJobsIfReadyByRun(runID); err != nil {
-			log.Error("emit run %d after approval-time caller expansion: %v", runID, err)
+			log.Error("emit run %d after approval: %v", runID, err)
 		}
 	}
 

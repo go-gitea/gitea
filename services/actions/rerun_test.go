@@ -7,8 +7,11 @@ import (
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -452,4 +455,58 @@ func TestCollectMatrixCollapse(t *testing.T) {
 		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
 		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
 	})
+}
+
+func TestRerunDecidesJobIf(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+	ctx := t.Context()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	variable, err := actions_model.InsertVariable(ctx, 0, repo.ID, "DEPLOY", "yes", "")
+	require.NoError(t, err)
+
+	run := &actions_model.ActionRun{
+		Title:             "rerun-job-if",
+		RepoID:            repo.ID,
+		OwnerID:           repo.OwnerID,
+		WorkflowID:        "rerun-job-if.yaml",
+		TriggerUserID:     user.ID,
+		Ref:               "refs/heads/master",
+		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:             "push",
+		TriggerEvent:      "push",
+		EventPayload:      "{}",
+		WorkflowRepoID:    repo.ID,
+		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+	}
+	require.NoError(t, PrepareRunAndInsert(ctx, []byte(`on: push
+jobs:
+  deploy:
+    if: vars.DEPLOY == 'yes'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`), run, nil))
+	jobs := runJobs(t, run.ID, run.LatestAttemptID)
+	require.Len(t, jobs, 1)
+	require.Equal(t, actions_model.StatusWaiting, jobs[0].Status)
+
+	// finish the run, then turn the deployment off before rerunning it
+	jobs[0].Status = actions_model.StatusSuccess
+	_, err = actions_model.UpdateRunJob(ctx, jobs[0], nil, "status")
+	require.NoError(t, err)
+	run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+	run.Status = actions_model.StatusSuccess
+	require.NoError(t, actions_model.UpdateRun(ctx, run, "status"))
+	variable.Data = "no"
+	_, err = actions_model.UpdateVariableCols(ctx, variable, "data")
+	require.NoError(t, err)
+
+	attempt, err := RerunWorkflowRunJobs(ctx, repo, run, user, nil)
+	require.NoError(t, err)
+	jobs = runJobs(t, run.ID, attempt.ID)
+	require.Len(t, jobs, 1)
+	assert.Equal(t, actions_model.StatusSkipped, jobs[0].Status)
 }

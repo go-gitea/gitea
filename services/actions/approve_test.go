@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,6 +38,7 @@ func TestApproveRuns(t *testing.T) {
 			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
 			Name: "job1", Attempt: 1, JobID: "job1", Status: status,
 			RunsOn: []string{"ubuntu-latest"}, Needs: needs,
+			WorkflowPayload: []byte("jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]\n"),
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
 		return job
@@ -53,6 +55,20 @@ func TestApproveRuns(t *testing.T) {
 		assert.Equal(t, doer.ID, approved[0].ApprovedBy)
 
 		assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+	})
+
+	t.Run("approve skips a job whose if is false", func(t *testing.T) {
+		defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+		run := insertRun(1006, actions_model.StatusBlocked, true, 0)
+		job := insertJob(run, actions_model.StatusBlocked)
+		job.WorkflowPayload = []byte("jobs:\n  job1:\n    if: false\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]\n")
+		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "workflow_payload")
+		require.NoError(t, err)
+
+		_, err = ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+		require.NoError(t, err)
+
+		assert.Equal(t, actions_model.StatusSkipped, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
 	})
 
 	t.Run("a job with unmet dependencies stays blocked", func(t *testing.T) {

@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	act_model "gitea.dev/actionslib/pkg/model"
@@ -178,11 +179,11 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 	return nil
 }
 
-// insertRunJob builds a single run job from a parsed workflow job, evaluates its
-// job-level concurrency, inserts it, and — for a ready no-needs reusable caller —
-// inline-expands (or skips) it. It returns the inserted job, any jobs cancelled by
-// job concurrency, and whether a post-commit emitter pass is needed to resolve the
-// caller's dependents.
+// insertRunJob builds a single run job from a parsed workflow job, decides a ready
+// no-needs job's `if:`, evaluates its job-level concurrency, inserts it, and — for a
+// ready no-needs reusable caller — inline-expands (or skips) it. It returns the inserted
+// job, any jobs cancelled by job concurrency, and whether a post-commit emitter pass is
+// needed to resolve the dependents of a skipped job or a caller.
 func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any, slots maxParallelSlots) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
 	id, job := workflowJob.Job()
 	needs := job.Needs()
@@ -236,6 +237,21 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		runJob.CallUses = job.Uses
 	}
 
+	// Decide `if:` before concurrency and max-parallel, so a skipped job neither cancels its group peers nor takes a slot.
+	// A reusable caller decides it in processInlineReusableCaller, jobs with `needs` in the job emitter.
+	var invalidIfErr error
+	if runJob.Status == actions_model.StatusWaiting && !isReusableWorkflowCaller {
+		shouldStart, err := resolveJobIf(ctx, run, runAttempt, runJob, vars, true)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			invalidIfErr = err
+		} else if err != nil {
+			return nil, nil, false, fmt.Errorf("evaluate job if: %w", err)
+		}
+		if !shouldStart {
+			runJob.Status = actions_model.StatusSkipped
+		}
+	}
+
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
 	// check job concurrency
 	if job.RawConcurrency != nil {
@@ -245,8 +261,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		}
 		runJob.RawConcurrency = string(rawConcurrency)
 
-		// do not evaluate job concurrency when it requires `needs`, the jobs with `needs` will be evaluated later by job emitter
-		if len(needs) == 0 {
+		// do not evaluate job concurrency when it requires `needs` (the job emitter evaluates it later) or when the job is skipped
+		if len(needs) == 0 && runJob.Status != actions_model.StatusSkipped {
 			if err := EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs); err != nil {
 				return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
 			}
@@ -270,6 +286,11 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	if err := db.Insert(ctx, runJob); err != nil {
 		return nil, nil, false, err
 	}
+	if invalidIfErr != nil {
+		if err := upsertJobErrorSummary(ctx, runJob, "if", invalidIfErr); err != nil {
+			return nil, nil, false, err
+		}
+	}
 
 	// expand reusable caller
 	var needPostCommitEmit bool
@@ -282,6 +303,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		//   - if the caller is skipped, propagate its state to its dependents
 		needPostCommitEmit = true
 	}
+	// a job skipped by its `if:` needs a resolver pass to propagate its state to its dependents
+	needPostCommitEmit = needPostCommitEmit || runJob.Status == actions_model.StatusSkipped
 
 	return runJob, cancelledConcurrencyJobs, needPostCommitEmit, nil
 }
