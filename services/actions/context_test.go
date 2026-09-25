@@ -117,6 +117,11 @@ jobs:
       group: skip
     steps:
       - run: echo hi
+  skip-caller:
+    if: github.event_name != 'push'
+    uses: ./.gitea/workflows/callee.yml
+    concurrency:
+      group: skip-caller
   invalid:
     if: fromJSON('{')
     runs-on: ubuntu-latest
@@ -146,6 +151,8 @@ jobs:
 	assert.Equal(t, actions_model.StatusWaiting, jobs["start"].Status)
 	assert.Equal(t, actions_model.StatusSkipped, jobs["skip"].Status)
 	assert.False(t, jobs["skip"].IsConcurrencyEvaluated, "a skipped job must not take part in concurrency")
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip-caller"].Status)
+	assert.False(t, jobs["skip-caller"].IsConcurrencyEvaluated, "a skipped caller must not take part in concurrency")
 	assert.Equal(t, actions_model.StatusSkipped, jobs["invalid"].Status)
 	summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs["invalid"].ID, 0)
 	require.NoError(t, err)
