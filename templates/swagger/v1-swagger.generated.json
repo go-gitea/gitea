@@ -723,7 +723,7 @@
           },
           {
             "type": "string",
-            "description": "pattern of repositories to search for",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
             "name": "query",
             "in": "query"
           }
