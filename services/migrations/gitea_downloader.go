@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	gitea_sdk "gitea.dev/sdk"
 
 	"github.com/hashicorp/go-version"
@@ -75,9 +76,7 @@ type GiteaDownloader struct {
 	baseURL    string
 	repoOwner  string
 	repoName   string
-	username   string
-	password   string
-	token      string
+	httpClient *http.Client
 	pagination bool
 	maxPerPage int
 }
@@ -87,20 +86,14 @@ type GiteaDownloader struct {
 //	Use either a username/password or personal token. token is preferred
 //	Note: Public access only allows very basic access
 func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GiteaDownloader, error) {
-	giteaClient, err := gitea_sdk.NewClient(
-		baseURL,
-		gitea_sdk.SetToken(token),
-		gitea_sdk.SetBasicAuth(username, password),
-		gitea_sdk.SetHTTPClient(newMigrationHTTPClient()),
-	)
+	httpClient := newMigrationHTTPClient(baseURL, util.Iif(token != "", "token "+token, basicAuthorization(username, password)))
+	giteaClient, err := gitea_sdk.NewClient(baseURL, gitea_sdk.SetHTTPClient(httpClient))
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %v", baseURL, err))
 		return nil, err
 	}
-	if releaseVersion, err := getGiteaReleaseVersion(ctx, giteaClient); err == nil {
-		if err = gitea_sdk.SetGiteaVersion(releaseVersion)(giteaClient); err != nil {
-			return nil, err
-		}
+	if err = pinGiteaVersion(ctx, giteaClient); err != nil {
+		return nil, err
 	}
 
 	path := strings.Split(repoPath, "/")
@@ -129,35 +122,30 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		baseURL:    baseURL,
 		repoOwner:  path[0],
 		repoName:   path[1],
-		username:   username,
-		password:   password,
-		token:      token,
+		httpClient: httpClient,
 		pagination: paginationSupport,
 		maxPerPage: maxPerPage,
 	}, nil
 }
 
-// getGiteaReleaseVersion returns the Gitea release a server is compatible to, the SDK's version checks reject pre-releases
-func getGiteaReleaseVersion(ctx context.Context, client *gitea_sdk.Client) (string, error) {
+func pinGiteaVersion(ctx context.Context, client *gitea_sdk.Client) error { // the SDK's checks reject pre-releases and its lazy lookup drops errors: https://gitea.com/gitea/go-sdk/pulls/855
 	rawVersion, _, err := client.Meta.ServerVersion(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
-	serverVersion, err := version.NewVersion(rawVersion)
-	if err != nil {
-		return "1.22.0", nil // source builds report "development", assume the Gitea 1.22 API that Forgejo also provides
-	}
-	if giteaVersion, ok := strings.CutPrefix(serverVersion.Metadata(), "gitea-"); ok { // Forgejo, e.g. "17.0.0-dev-576+gitea-1.22.0"
-		if serverVersion, err = version.NewVersion(giteaVersion); err != nil {
-			return "", err
+	if serverVersion, err := version.NewVersion(rawVersion); err == nil {
+		if giteaVersion, ok := strings.CutPrefix(serverVersion.Metadata(), "gitea-"); ok { // Forgejo
+			if serverVersion, err = version.NewVersion(giteaVersion); err != nil {
+				return err
+			}
 		}
+		return gitea_sdk.SetGiteaVersion(serverVersion.Core().String())(client)
 	}
-	return serverVersion.Core().String(), nil
+	return nil
 }
 
-// unitDisabled tells the 404 of a disabled repo unit apart from one caused by missing access
-func (g *GiteaDownloader) unitDisabled(resp *gitea_sdk.Response, hasUnit func(*gitea_sdk.Repository) bool) bool {
-	if resp == nil || resp.StatusCode != http.StatusNotFound {
+func (g *GiteaDownloader) unitDisabled(resp *gitea_sdk.Response, hasUnit func(*gitea_sdk.Repository) bool) bool { // Gitea answers a disabled unit and missing access alike with 403 or 404, Forgejo with 404
+	if resp == nil || (resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden) {
 		return false
 	}
 	repo, _, err := g.client.Repositories.GetRepo(g.ctx, g.repoOwner, g.repoName)
@@ -326,50 +314,12 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 			Size:          &size,
 			DownloadCount: &dlCount,
 			Created:       asset.Created,
-			DownloadURL:   &asset.DownloadURL,
 			DownloadFunc: func() (io.ReadCloser, error) {
-				return g.downloadAttachment(rel, asset)
+				return downloadAsset(g.ctx, g.httpClient, g.baseURL+"/attachments/"+url.PathEscape(asset.UUID))
 			},
 		})
 	}
 	return r
-}
-
-func (g *GiteaDownloader) downloadAttachment(rel *gitea_sdk.Release, asset *gitea_sdk.Attachment) (io.ReadCloser, error) {
-	if !g.isHostedAttachment(rel, asset) { // Forgejo's external link assets
-		WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, asset.DownloadURL)
-		return io.NopCloser(strings.NewReader(asset.DownloadURL)), nil
-	}
-
-	req, err := http.NewRequestWithContext(g.ctx, http.MethodGet, g.baseURL+"/attachments/"+url.PathEscape(asset.UUID), nil)
-	if err != nil {
-		return nil, err
-	}
-	if g.username != "" {
-		req.SetBasicAuth(g.username, g.password)
-	} else if g.token != "" {
-		req.Header.Set("Authorization", "token "+g.token)
-	}
-	resp, err := getMigrationHTTPClient().Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return assetBody(resp, asset.ID)
-}
-
-// isHostedAttachment accepts the source's ROOT_URL and the host we migrate from, as the two can differ
-func (g *GiteaDownloader) isHostedAttachment(rel *gitea_sdk.Release, asset *gitea_sdk.Attachment) bool {
-	assetURL, err := url.Parse(asset.DownloadURL)
-	if err != nil || asset.UUID == "" {
-		return false
-	}
-	sourceURL, _ := url.Parse(g.baseURL)
-	releaseURL, _ := url.Parse(rel.HTMLURL)
-	if assetURL.Host != sourceURL.Host && (releaseURL == nil || assetURL.Host != releaseURL.Host) {
-		return false
-	}
-	return strings.HasSuffix(assetURL.Path, "/attachments/"+asset.UUID) ||
-		strings.HasSuffix(assetURL.Path, "/releases/download/"+rel.TagName+"/"+asset.Name)
 }
 
 // GetReleases returns releases
@@ -388,7 +338,7 @@ func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, err
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
-		if g.unitDisabled(resp, func(repo *gitea_sdk.Repository) bool { return repo.HasReleases }) { // only Forgejo 404s here, Gitea lists releases of a disabled unit
+		if g.unitDisabled(resp, func(repo *gitea_sdk.Repository) bool { return repo.HasReleases }) {
 			return releases, nil
 		}
 		if err != nil {
@@ -534,7 +484,7 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
-	if commentCount, ok := commentable.GetContext().(int); ok && commentCount == 0 { // the listing's count saves a request per thread without comments
+	if commentable.GetContext() == 0 {
 		return nil, true, nil
 	}
 	allComments := make([]*base.Comment, 0, g.maxPerPage)

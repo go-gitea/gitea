@@ -5,7 +5,9 @@ package migrations
 
 import (
 	"crypto/tls"
+	"encoding/base64"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -21,13 +23,12 @@ import (
 // e.g. many release assets from the same host — instead of a fresh pool and TLS handshake each time. It
 // is built lazily on first use and reset by Init whenever the allow/block lists change; OnceValue keeps
 // concurrent callers sharing a single client instead of racing to create their own.
-var migrationHTTPClient = util.OnceValue[*http.Client]{Func: newMigrationHTTPClient}
+var migrationHTTPClient = util.OnceValue[*http.Client]{Func: func() *http.Client {
+	return &http.Client{Transport: NewMigrationHTTPTransport()}
+}}
 
-// newMigrationHTTPClient returns a HTTP client for migration
-func newMigrationHTTPClient() *http.Client {
-	return &http.Client{
-		Transport: NewMigrationHTTPTransport(),
-	}
+func newMigrationHTTPClient(baseURL, authorization string) *http.Client {
+	return &http.Client{Transport: authTransport(getMigrationHTTPClient().Transport, baseURL, authorization)}
 }
 
 // getMigrationHTTPClient returns the shared migration client, building it on first use so no request
@@ -44,7 +45,6 @@ func NewMigrationHTTPTransport() http.RoundTripper {
 		&tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify})}
 }
 
-// retryAfterTransport waits out rate limits that send a Retry-After, like Codeberg's 429 and GitHub's secondary limit 403
 type retryAfterTransport struct {
 	http.RoundTripper
 }
@@ -53,9 +53,11 @@ func (t retryAfterTransport) RoundTrip(req *http.Request) (*http.Response, error
 	var waited time.Duration
 	for retries := 0; ; retries++ {
 		resp, err := t.RoundTripper.RoundTrip(req)
-		isRateLimited := resp != nil && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusForbidden)
-		if err != nil || !isRateLimited || retries == 5 || (req.Body != nil && req.GetBody == nil) {
-			return resp, err
+		if err != nil {
+			return nil, err
+		}
+		if (resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode != http.StatusForbidden) || retries == 5 || (req.Body != nil && req.GetBody == nil) { // GitHub's secondary rate limits answer 403
+			return resp, nil
 		}
 		delay, ok := parseRetryAfter(resp.Header.Get("Retry-After"))
 		if !ok || waited+delay > time.Hour {
@@ -81,11 +83,38 @@ func (t retryAfterTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func parseRetryAfter(value string) (time.Duration, bool) {
-	if seconds, err := strconv.Atoi(value); err == nil {
+	if seconds, err := strconv.ParseUint(value, 10, 32); err == nil { // 32 bits can't overflow the Duration
 		return time.Duration(seconds) * time.Second, true
 	}
 	if retryAt, err := http.ParseTime(value); err == nil {
-		return time.Until(retryAt), true
+		return max(time.Until(retryAt), 0), true
 	}
 	return 0, false
+}
+
+type roundTripperFunc func(req *http.Request) (*http.Response, error)
+
+func (rt roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return rt(req)
+}
+
+func authTransport(transport http.RoundTripper, baseURL, authorization string) http.RoundTripper {
+	base, err := url.Parse(baseURL)
+	if authorization == "" || err != nil {
+		return transport
+	}
+	return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.Host == base.Host && (req.URL.Scheme == "https" || base.Scheme == "http") { // the source host only, never downgraded to http
+			req = req.Clone(req.Context())
+			req.Header.Set("Authorization", authorization)
+		}
+		return transport.RoundTrip(req)
+	})
+}
+
+func basicAuthorization(username, password string) string {
+	if username == "" {
+		return ""
+	}
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
 }

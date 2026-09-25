@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,11 +24,18 @@ func WarnAndNotice(fmtStr string, args ...any) {
 	}
 }
 
-// assetBody returns the body of a successful asset download, the uploader closes it
-func assetBody(resp *http.Response, assetID int64) (io.ReadCloser, error) {
+func downloadAsset(ctx context.Context, client *http.Client, assetURL string) (io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return nil, fmt.Errorf("unexpected status %q downloading asset %d", resp.Status, assetID)
+		return nil, fmt.Errorf("unexpected status %s", resp.Status)
 	}
 	return resp.Body, nil
 }

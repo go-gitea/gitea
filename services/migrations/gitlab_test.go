@@ -20,6 +20,7 @@ import (
 	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 )
 
@@ -513,6 +514,39 @@ func TestGitlabGetReviews(t *testing.T) {
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}
+
+	mux.HandleFunc(fmt.Sprintf("/api/v4/projects/%d/merge_requests/4/approvals", repoID), func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `{"approved_by": [{"user": null}]}`)
+	})
+	rvs, err := downloader.GetReviews(ctx, &base.Issue{Number: 4, ForeignIndex: 4})
+	require.NoError(t, err)
+	assert.Empty(t, rvs)
+}
+
+func TestGitlabSkipsConfidentialIssuesAndInternalNotes(t *testing.T) {
+	mux, server, client := gitlabClientMockSetup(t)
+	defer gitlabClientMockTeardown(server)
+	downloader := &GitlabDownloader{client: client, repoID: 1, maxPerPage: 100}
+	const timestamps = `"created_at": "2020-01-01T00:00:00Z", "updated_at": "2020-01-01T00:00:00Z"`
+	empty := func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `[]`) }
+	mux.HandleFunc("/api/v4/projects/1/issues", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `[{"iid": 1, "author": {}, `+timestamps+`}, {"iid": 2, "confidential": true, "author": {}, `+timestamps+`}]`)
+	})
+	mux.HandleFunc("/api/v4/projects/1/issues/1/award_emoji", empty)
+	mux.HandleFunc("/api/v4/projects/1/issues/1/discussions", func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, `[{"notes": [{"id": 1, `+timestamps+`}, {"id": 2, "internal": true, `+timestamps+`}]}]`)
+	})
+	mux.HandleFunc("/api/v4/projects/1/issues/1/resource_state_events", empty)
+
+	issues, _, err := downloader.GetIssues(t.Context(), 1, 100)
+	require.NoError(t, err)
+	require.Len(t, issues, 1)
+	assert.EqualValues(t, 3, downloader.iidResolver.generatePullRequestNumber(1))
+
+	comments, _, err := downloader.GetComments(t.Context(), issues[0])
+	require.NoError(t, err)
+	require.Len(t, comments, 1)
+	assert.EqualValues(t, 1, comments[0].Index)
 }
 
 func TestAwardsToReactions(t *testing.T) {

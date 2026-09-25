@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -87,22 +86,6 @@ func (g *RepositoryDumper) reviewDir() string {
 	return filepath.Join(g.baseDir, "reviews")
 }
 
-func (g *RepositoryDumper) setURLToken(remoteAddr string) (string, error) {
-	if len(g.opts.AuthToken) > 0 || len(g.opts.AuthUsername) > 0 {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", err
-		}
-		u.User = url.UserPassword(g.opts.AuthUsername, g.opts.AuthPassword)
-		if len(g.opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", g.opts.AuthToken)
-		}
-		remoteAddr = u.String()
-	}
-
-	return remoteAddr, nil
-}
-
 // CreateRepo creates a repository
 func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository, opts base.MigrateOptions) error {
 	f, err := os.Create(filepath.Join(g.baseDir, "repo.yml"))
@@ -147,7 +130,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 
 	migrateTimeout := 2 * time.Hour
 
-	remoteAddr, err := g.setURLToken(repo.CloneURL)
+	remoteAddr, err := base.NullDownloader{}.FormatCloneURL(g.opts, repo.CloneURL)
 	if err != nil {
 		return err
 	}
@@ -294,54 +277,53 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 }
 
 // CreateReleases creates releases
-func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
+func (g *RepositoryDumper) CreateReleases(ctx context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
 		for _, release := range releases {
 			attachDir := filepath.Join("release_assets", uuid.New().String())
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
 				return err
 			}
+			assets := release.Assets[:0]
 			for _, asset := range release.Assets {
-				// we cannot use asset.Name because it might contains special characters.
-				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
-
 				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
 				// ... we must assume that they are safe and simply download the attachment
-				// download attachment
-				err := func(attachPath string) error {
-					var rc io.ReadCloser
-					var err error
-					if asset.DownloadFunc != nil {
-						rc, err = asset.DownloadFunc()
-						if err != nil {
-							return err
-						}
-						defer rc.Close()
-					} else {
-						// use the migration client so the fetch (including any redirect) is
-						// validated against the migration host allow/block list
-						resp, err := getMigrationHTTPClient().Get(*asset.DownloadURL)
-						if err != nil {
-							return err
-						}
-						defer resp.Body.Close()
-						rc = resp.Body
+				var rc io.ReadCloser
+				var err error
+				if asset.DownloadURL == nil {
+					rc, err = asset.DownloadFunc()
+				} else {
+					// use the migration client so the fetch (including any redirect) is
+					// validated against the migration host allow/block list
+					rc, err = downloadAsset(ctx, getMigrationHTTPClient(), *asset.DownloadURL)
+				}
+				if err != nil {
+					if ctx.Err() != nil {
+						return ctx.Err()
 					}
+					WarnAndNotice("Skipped asset %s of release %s: %v", asset.Name, release.TagName, err)
+					continue
+				}
 
-					fw, err := os.Create(attachPath)
+				// we cannot use asset.Name because it might contains special characters.
+				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
+				err = func() error {
+					defer rc.Close()
+					fw, err := os.Create(filepath.Join(g.baseDir, attachLocalPath))
 					if err != nil {
 						return fmt.Errorf("create: %w", err)
 					}
 					defer fw.Close()
-
 					_, err = io.Copy(fw, rc)
 					return err
-				}(filepath.Join(g.baseDir, attachLocalPath))
+				}()
 				if err != nil {
-					return err
+					return fmt.Errorf("release %s asset %s: %w", release.TagName, asset.Name, err)
 				}
 				asset.DownloadURL = &attachLocalPath // to save the filepath on the yml file, change the source
+				assets = append(assets, asset)
 			}
+			release.Assets = assets
 		}
 	}
 
@@ -454,7 +436,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 
 		// SECURITY: We will assume that the pr.PatchURL has been checked
 		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
-		u, err := g.setURLToken(pr.PatchURL)
+		u, err := base.NullDownloader{}.FormatCloneURL(g.opts, pr.PatchURL)
 		if err != nil {
 			return err
 		}

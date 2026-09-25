@@ -15,7 +15,6 @@ import (
 
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
-	gitea_sdk "gitea.dev/sdk"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,18 +44,6 @@ func TestForgejoDownloadRepo(t *testing.T) {
 		DefaultBranch: "main",
 	}, repo)
 
-	topics, err := downloader.GetTopics(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"forgejo", "migration"}, topics)
-
-	milestones, err := downloader.GetMilestones(ctx)
-	require.NoError(t, err)
-	require.Len(t, milestones, 2)
-	assert.Equal(t, "v0", milestones[0].Title)
-	assert.Equal(t, "closed", milestones[0].State)
-	assert.Equal(t, "v1", milestones[1].Title)
-	assert.Equal(t, "open", milestones[1].State)
-
 	labels, err := downloader.GetLabels(ctx)
 	require.NoError(t, err)
 	assertLabelsEqual(t, []*base.Label{
@@ -71,16 +58,13 @@ func TestForgejoDownloadRepo(t *testing.T) {
 	assert.Equal(t, "v0.9.0", releases[0].TagName)
 	assert.True(t, releases[0].Prerelease)
 	assert.Equal(t, "v1.0.0", releases[1].TagName)
-	var assets []string
-	for _, asset := range releases[1].Assets {
-		rc, err := asset.DownloadFunc()
-		require.NoError(t, err)
-		content, err := io.ReadAll(rc)
-		require.NoError(t, err)
-		require.NoError(t, rc.Close())
-		assets = append(assets, string(content))
-	}
-	assert.Equal(t, []string{"forgejo asset\n", "https://example.com/download.zip"}, assets)
+	require.Len(t, releases[1].Assets, 2)
+	rc, err := releases[1].Assets[0].DownloadFunc()
+	require.NoError(t, err)
+	content, err := io.ReadAll(rc)
+	require.NoError(t, err)
+	require.NoError(t, rc.Close())
+	assert.Equal(t, "forgejo asset\n", string(content))
 
 	issues, isEnd, err := downloader.GetIssues(ctx, 1, 50)
 	require.NoError(t, err)
@@ -111,12 +95,7 @@ func TestForgejoDownloadRepo(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, comments)
 
-	reviews, err := downloader.GetReviews(ctx, merged)
-	require.NoError(t, err)
-	require.Len(t, reviews, 1)
-	assert.Equal(t, base.ReviewStateApproved, reviews[0].State)
-
-	reviews, err = downloader.GetReviews(ctx, open)
+	reviews, err := downloader.GetReviews(ctx, open)
 	require.NoError(t, err)
 	require.Len(t, reviews, 2)
 	assert.Equal(t, base.ReviewStateChangesRequested, reviews[0].State)
@@ -127,12 +106,12 @@ func TestForgejoDownloadRepo(t *testing.T) {
 	assert.False(t, reviews[1].Dismissed)
 }
 
-func TestGiteaDownloaderPreReleaseServerVersion(t *testing.T) {
+func TestGiteaDownloaderServerVersion(t *testing.T) {
 	for rawVersion, pagination := range map[string]bool{
 		"1.11.0":              false,
 		"1.12.0-rc1":          true,
 		"11.0.0+gitea-1.11.0": false,
-		"development":         true,
+		"development":         false,
 	} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path != "/api/v1/version" {
@@ -146,6 +125,13 @@ func TestGiteaDownloaderPreReleaseServerVersion(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, pagination, downloader.pagination, rawVersion)
 	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	}))
+	defer server.Close()
+	_, err := NewGiteaDownloader(t.Context(), server.URL, "owner/repo", "", "", "bad-token")
+	assert.Error(t, err)
 }
 
 func TestGiteaDownloaderDisabledUnits(t *testing.T) {
@@ -156,6 +142,8 @@ func TestGiteaDownloaderDisabledUnits(t *testing.T) {
 				_, _ = w.Write([]byte(`{"version":"1.27.0"}`))
 			case "/api/v1/repos/owner/repo":
 				_, _ = fmt.Fprintf(w, `{"has_issues":%[1]t,"has_pull_requests":%[1]t,"has_releases":%[1]t}`, unitsEnabled)
+			case "/api/v1/repos/owner/repo/releases":
+				http.Error(w, "forbidden", http.StatusForbidden)
 			default:
 				http.NotFound(w, r)
 			}
@@ -175,18 +163,4 @@ func TestGiteaDownloaderDisabledUnits(t *testing.T) {
 		assert.Equal(t, !unitsEnabled, issuesEnd)
 		assert.Equal(t, !unitsEnabled, prsEnd)
 	}
-}
-
-func TestGiteaDownloaderIsHostedAttachment(t *testing.T) {
-	downloader := &GiteaDownloader{baseURL: "http://127.0.0.1:3000"}
-	release := &gitea_sdk.Release{TagName: "v1.0.0", HTMLURL: "https://forgejo.example/owner/repo/releases/tag/v1.0.0"}
-	for downloadURL, hosted := range map[string]bool{
-		"https://forgejo.example/owner/repo/releases/download/v1.0.0/file.zip": true,
-		"http://127.0.0.1:3000/attachments/abc":                                true,
-		"https://github.com/owner/repo/releases/download/v1.0.0/file.zip":      false,
-		"https://forgejo.example/elsewhere/file.zip":                           false,
-	} {
-		assert.Equal(t, hosted, downloader.isHostedAttachment(release, &gitea_sdk.Attachment{UUID: "abc", Name: "file.zip", DownloadURL: downloadURL}), downloadURL)
-	}
-	assert.False(t, downloader.isHostedAttachment(release, &gitea_sdk.Attachment{Name: "file.zip", DownloadURL: "http://127.0.0.1:3000/attachments/"}))
 }

@@ -18,9 +18,9 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	"github.com/google/go-github/v92/github"
-	"golang.org/x/oauth2"
 )
 
 var (
@@ -87,39 +87,15 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 		maxPerPage: 100,
 	}
 
+	apiURL := util.Iif(baseURL == "https://github.com", "https://api.github.com", baseURL)
 	if token != "" {
-		tokens := strings.SplitSeq(token, ",")
-		for token := range tokens {
-			token = strings.TrimSpace(token)
-			ts := oauth2.StaticTokenSource(
-				&oauth2.Token{AccessToken: token},
-			)
-			client := &http.Client{
-				Transport: &oauth2.Transport{
-					Base:   NewMigrationHTTPTransport(),
-					Source: oauth2.ReuseTokenSource(nil, ts),
-				},
-			}
-
-			if err := downloader.addClient(client, baseURL); err != nil {
+		for token := range strings.SplitSeq(token, ",") {
+			if err := downloader.addClient(newMigrationHTTPClient(apiURL, "Bearer "+strings.TrimSpace(token)), baseURL); err != nil {
 				return nil, err
 			}
 		}
 	} else {
-		transport := NewMigrationHTTPTransport()
-		apiURL, err := url.Parse(baseURL)
-		if err != nil {
-			return nil, err
-		}
-		client := &http.Client{
-			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
-				if req.URL.Host == apiURL.Host { // keep the credentials off redirects to asset hosts
-					req.SetBasicAuth(userName, password)
-				}
-				return transport.RoundTrip(req)
-			}),
-		}
-		if err := downloader.addClient(client, baseURL); err != nil {
+		if err := downloader.addClient(newMigrationHTTPClient(apiURL, basicAuthorization(userName, password)), baseURL); err != nil {
 			return nil, err
 		}
 	}
@@ -337,8 +313,6 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 		r.Published = rel.PublishedAt.Time
 	}
 
-	httpClient := newMigrationHTTPClient()
-
 	for _, asset := range rel.Assets {
 		assetID := asset.GetID() // Don't optimize this, for closure we need a local variable TODO: no need to do so in new Golang
 		if assetID == 0 {
@@ -379,19 +353,11 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 				}
 
 				g.waitAndPickClient(ctx)
-				req, err := http.NewRequestWithContext(ctx, http.MethodGet, redirectURL, nil)
-				if err != nil {
-					return nil, err
-				}
-				resp, err := httpClient.Do(req)
-				err1 := g.RefreshRate(ctx)
-				if err1 != nil {
+				rc, err := downloadAsset(ctx, getMigrationHTTPClient(), redirectURL)
+				if err1 := g.RefreshRate(ctx); err1 != nil {
 					log.Error("g.RefreshRate(): %s", err1)
 				}
-				if err != nil {
-					return nil, err
-				}
-				return assetBody(resp, assetID)
+				return rc, err
 			},
 		})
 	}
@@ -770,6 +736,7 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 }
 
 func convertGithubReview(r *github.PullRequestReview) *base.Review {
+	dismissed := r.GetState() == "DISMISSED"
 	return &base.Review{
 		ID:           r.GetID(),
 		ReviewerID:   r.GetUser().GetID(),
@@ -777,7 +744,8 @@ func convertGithubReview(r *github.PullRequestReview) *base.Review {
 		CommitID:     r.GetCommitID(),
 		Content:      r.GetBody(),
 		CreatedAt:    r.GetSubmittedAt().Time,
-		State:        r.GetState(),
+		State:        util.Iif(dismissed, base.ReviewStateCommented, r.GetState()), // GitHub drops the state a review had before its dismissal
+		Dismissed:    dismissed,
 	}
 }
 
@@ -900,15 +868,6 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 
 // FormatCloneURL add authentication into remote URLs
 func (g *GithubDownloaderV3) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
-	u, err := url.Parse(remoteAddr)
-	if err != nil {
-		return "", err
-	}
-	if len(opts.AuthToken) > 0 {
-		// "multiple tokens" are used to benefit more "API rate limit quota"
-		// git clone doesn't count for rate limits, so only use the first token.
-		// source: https://github.com/orgs/community/discussions/44515
-		u.User = url.UserPassword("oauth2", strings.Split(opts.AuthToken, ",")[0])
-	}
-	return u.String(), nil
+	opts.AuthToken, _, _ = strings.Cut(opts.AuthToken, ",") // the extra tokens only raise the API rate limit
+	return g.NullDownloader.FormatCloneURL(opts, remoteAddr)
 }
