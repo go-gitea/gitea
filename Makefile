@@ -403,7 +403,7 @@ test-check:
 .PHONY: test-backend\#%
 test-backend\#%:
 	@echo "Running go test with -tags '$(TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run '$(subst .,/,$*)' $(GO_TEST_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -460,7 +460,7 @@ test-integration-compile:
 
 .PHONY: test-integration\#%
 test-integration\#%: $(EXECUTABLE)
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) gitea.dev/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$(subst .,/,$*)' gitea.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test
