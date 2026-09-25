@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/egress/policy"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -102,6 +103,6 @@ func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
 		_ = resp.Body.Close()
 	}
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "can only call allowed HTTP servers",
+	assert.ErrorIs(t, err, policy.ErrDenied,
 		"avatar client must refuse a link-local cloud-metadata address")
 }
