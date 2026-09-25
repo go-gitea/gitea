@@ -113,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: elasticsearch:8.19.15@sha256:8ff844933190136cec601777d633453f4008cc126a652257d5f63cd8e92207ef
+        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -188,7 +188,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: elasticsearch:8.19.15@sha256:8ff844933190136cec601777d633453f4008cc126a652257d5f63cd8e92207ef
+        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
         env:
           discovery.type: single-node
           xpack.security.enabled: false

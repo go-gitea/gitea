@@ -155,7 +155,7 @@ func (ctx *Context) notFoundInternal(skip int, logMsg string, logErr error) {
 
 func (ctx *Context) buildUserErrorMessage(msg string, err error) (userErrorMsg string) {
 	// it's safe to show internal error to admin users, and it helps
-	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
+	if !setting.IsProd || setting.IsInTesting || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
 		userErrorMsg = msg
 		if err != nil {
 			userErrorMsg += ", error: " + err.Error()
