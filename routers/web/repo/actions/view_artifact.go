@@ -68,7 +68,12 @@ type artifactPreviewList struct {
 	truncated bool
 }
 
-var artifactPreviewV4ZipListCache = expirable.NewLRU[[2]int64, artifactPreviewList](128, nil, 10*time.Minute)
+type artifactPreviewCacheKey struct {
+	artifactID  int64
+	updatedUnix timeutil.TimeStamp // a re-upload reuses the row, the ID alone could return a stale listing
+}
+
+var artifactPreviewV4ZipListCache = expirable.NewLRU[artifactPreviewCacheKey, artifactPreviewList](128, nil, 10*time.Minute)
 
 type readAtBySeeker struct {
 	rs  io.ReadSeeker
@@ -205,7 +210,7 @@ func artifactV4ZipFilePath(file *zip.File) (string, bool) {
 }
 
 func listPreviewForV4Artifact(artifact *actions_model.ActionArtifact) (artifactPreviewList, error) {
-	key := [2]int64{artifact.ID, int64(artifact.UpdatedUnix)}
+	key := artifactPreviewCacheKey{artifactID: artifact.ID, updatedUnix: artifact.UpdatedUnix}
 	if list, ok := artifactPreviewV4ZipListCache.Get(key); ok {
 		return list, nil
 	}
