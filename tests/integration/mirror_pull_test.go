@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -17,9 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/migration"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
-	migrations "gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	release_service "gitea.dev/services/release"
 	repo_service "gitea.dev/services/repository"
@@ -142,14 +140,6 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
-	// an "internal" server that records whether it was reached
-	var reached atomic.Bool
-	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reached.Store(true)
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer internal.Close()
-
 	mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
 		Name:     "ssrf_mirror",
 		IsMirror: true,
@@ -166,11 +156,19 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	mirror, err := repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
 	require.NoError(t, err)
 
-	// repoint the mirror at the loopback server, which is disallowed once local networks are off
-	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, internal.URL+"/repo.git"))
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
-	require.NoError(t, migrations.Init())
-	t.Cleanup(func() { _ = migrations.Init() })
+	// an "internal" server that records whether it was reached; the mirror uses
+	// 127.0.0.1.nip.io, which is on BLOCKED_DOMAINS yet resolves to this server, so a
+	// sync failure can only be the policy
+	var reached atomic.Bool
+	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reached.Store(true)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer internal.Close()
+
+	// repoint the mirror at the blocked name serving the live server; every sync must re-reject it
+	blockedURL := strings.Replace(internal.URL, "127.0.0.1", "127.0.0.1.nip.io", 1) + "/repo.git"
+	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, blockedURL))
 
 	assert.False(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
 	assert.False(t, reached.Load(), "the disallowed internal remote must not be reached")

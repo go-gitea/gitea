@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -155,13 +154,11 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing %s mirror[%d] remote %s", storageRepo.RelativePath(), m.ID, m.RemoteName)
 
-		envs := proxy.EnvWithProxy(remoteURL.URL)
 		if err := gitrepo.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
-			Env:     envs,
 		}); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
 
