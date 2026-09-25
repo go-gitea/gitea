@@ -52,7 +52,7 @@
 					<div class="ui info message">{{ctx.Locale.Tr "actions.artifacts.preview_file_list_truncated"}}</div>
 				{{end}}
 				{{if $data.PreviewContentURL}}
-					<div class="ui top attached warning message">{{ctx.Locale.Tr "actions.artifacts.preview_generated_content"}}</div>
+					<div class="ui top attached warning message tw-z-1">{{ctx.Locale.Tr "actions.artifacts.preview_generated_content"}}</div>
 					<div class="ui bottom attached segment">
 						<iframe class="external-render-iframe" data-src="{{$data.PreviewContentURL}}" data-global-init="initExternalRenderIframe" referrerpolicy="no-referrer"></iframe>
 					</div>

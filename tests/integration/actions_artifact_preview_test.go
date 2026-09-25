@@ -5,8 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"context"
-	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -27,18 +25,7 @@ import (
 
 func setArtifactFile(t *testing.T, artifactID int64, artifactPath string, content []byte) {
 	artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: artifactID})
-	obj, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
-	require.NoError(t, err)
-	original, err := io.ReadAll(obj)
-	require.NoError(t, err)
-	require.NoError(t, obj.Close())
-	t.Cleanup(func() {
-		_, err := storage.ActionsArtifacts.Save(artifact.StoragePath, bytes.NewReader(original), int64(len(original)))
-		require.NoError(t, err)
-		_, err = db.GetEngine(context.Background()).ID(artifactID).Cols("artifact_path", "file_size").Update(artifact)
-		require.NoError(t, err)
-	})
-	_, err = storage.ActionsArtifacts.Save(artifact.StoragePath, bytes.NewReader(content), int64(len(content)))
+	_, err := storage.ActionsArtifacts.Save(artifact.StoragePath, bytes.NewReader(content), int64(len(content)))
 	require.NoError(t, err)
 	_, err = db.GetEngine(t.Context()).ID(artifactID).Cols("artifact_path", "file_size").Update(&actions_model.ActionArtifact{ArtifactPath: artifactPath, FileSize: int64(len(content))})
 	require.NoError(t, err)
@@ -118,7 +105,7 @@ func TestActionsArtifactPreview(t *testing.T) {
 	})
 
 	t.Run("Limits", func(t *testing.T) {
-		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user5/repo4/actions/artifacts/1/preview/abc.txt"), http.StatusOK)
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user5/repo4/actions/artifacts/19/preview/abc.txt"), http.StatusOK)
 		rawLink := NewHTMLParser(t, resp.Body).Find("iframe").AttrOr("data-src", "")
 
 		restore := test.MockVariableValue(&setting.UI.MaxDisplayFileSize, 16)
@@ -126,13 +113,13 @@ func TestActionsArtifactPreview(t *testing.T) {
 		restore()
 
 		defer test.MockVariableValue(&setting.Actions.ArtifactPreviewMaxSize, 1)()
-		resp = session.MakeRequest(t, NewRequest(t, "GET", "/user5/repo4/actions/artifacts/1/preview/abc.txt"), http.StatusOK)
+		resp = session.MakeRequest(t, NewRequest(t, "GET", "/user5/repo4/actions/artifacts/19/preview/abc.txt"), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "This artifact is too large to preview.")
 		assert.NotContains(t, resp.Body.String(), "The requested file is not present")
 		MakeRequest(t, NewRequest(t, "GET", rawLink), http.StatusRequestEntityTooLarge)
 
 		setting.Actions.ArtifactPreviewMaxSize = 0
-		session.MakeRequest(t, NewRequest(t, "GET", "/user5/repo4/actions/artifacts/1/preview"), http.StatusNotFound)
+		session.MakeRequest(t, NewRequest(t, "GET", "/user5/repo4/actions/artifacts/19/preview"), http.StatusNotFound)
 		MakeRequest(t, NewRequest(t, "GET", rawLink), http.StatusNotFound)
 		resp = session.MakeRequest(t, NewRequest(t, "POST", "/user5/repo4/actions/runs/791"), http.StatusOK)
 		for _, artifact := range DecodeJSON(t, resp, &actions_web.ViewResponse{}).Artifacts {

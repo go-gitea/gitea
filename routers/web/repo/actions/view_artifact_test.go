@@ -29,12 +29,6 @@ func TestNewArtifactPreviewList(t *testing.T) {
 	assert.Equal(t, "file-0", list.paths[0])
 }
 
-func TestInsertArtifactPreviewPath(t *testing.T) {
-	paths := []string{"a.txt", "c.txt", "dir/a.txt"}
-	assert.Equal(t, []string{"a.txt", "b.txt", "c.txt", "dir/a.txt"}, insertArtifactPreviewPath(paths, "b.txt"))
-	assert.Equal(t, []string{"a.txt", "c.txt", "dir/a.txt"}, paths)
-}
-
 func TestBuildArtifactPreviewFiles(t *testing.T) {
 	files := buildArtifactPreviewFiles([]string{"README.md", "report/assets/chart.svg", "report/index.html"}, "report/index.html", "/preview/")
 	assert.Equal(t, []ArtifactPreviewFile{

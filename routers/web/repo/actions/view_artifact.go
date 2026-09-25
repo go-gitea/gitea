@@ -61,19 +61,14 @@ type ArtifactPreviewTemplateData struct {
 	PreviewFiles          []ArtifactPreviewFile
 }
 
-const (
-	artifactPreviewV4ZipListCacheTTL        = 10 * time.Minute
-	artifactPreviewV4ZipListCacheMaxEntries = 128
-	artifactPreviewMaxFiles                 = 2000
-	artifactPreviewRawLinkTTL               = time.Hour
-)
+const artifactPreviewMaxFiles = 2000
 
 type artifactPreviewList struct {
 	paths     []string
 	truncated bool
 }
 
-var artifactPreviewV4ZipListCache = expirable.NewLRU[string, artifactPreviewList](artifactPreviewV4ZipListCacheMaxEntries, nil, artifactPreviewV4ZipListCacheTTL)
+var artifactPreviewV4ZipListCache = expirable.NewLRU[[2]int64, artifactPreviewList](128, nil, 10*time.Minute)
 
 type readAtBySeeker struct {
 	rs  io.ReadSeeker
@@ -96,9 +91,9 @@ func (r *readAtBySeeker) ReadAt(p []byte, off int64) (int, error) {
 
 // RenderArtifactPreview renders the file browser, previewLink and rawLink are the bases for file paths
 func RenderArtifactPreview(ctx *context_module.Context, data *ArtifactPreviewTemplateData, paths []string, requested, previewLink, rawLink string) {
-	if requested != "" && !slices.Contains(paths, requested) {
+	if i, found := slices.BinarySearch(paths, requested); requested != "" && !found {
 		if data.PreviewFilesTruncated {
-			paths = insertArtifactPreviewPath(paths, requested) // a capped listing cannot prove the file is missing
+			paths = slices.Insert(slices.Clone(paths), i, requested) // a capped listing cannot prove the file is missing, clone the cached slice
 		} else {
 			data.RequestedPathMissing = !data.PreviewTooLarge
 			requested = ""
@@ -142,11 +137,7 @@ func normalizeArtifactPreviewPath(path string) string {
 }
 
 func artifactPreviewFallbackPath(artifact *actions_model.ActionArtifact) string {
-	path := normalizeArtifactPreviewPath(artifact.ArtifactPath)
-	if path != "" {
-		return path
-	}
-	return artifact.ArtifactName
+	return util.IfZero(normalizeArtifactPreviewPath(artifact.ArtifactPath), artifact.ArtifactName)
 }
 
 func buildArtifactPreviewFiles(paths []string, selectedPath, previewLink string) []ArtifactPreviewFile {
@@ -176,17 +167,8 @@ func buildArtifactPreviewFiles(paths []string, selectedPath, previewLink string)
 func newArtifactPreviewList(paths []string) artifactPreviewList {
 	slices.Sort(paths)
 	paths = slices.Compact(paths)
-	if len(paths) <= artifactPreviewMaxFiles {
-		return artifactPreviewList{paths: paths}
-	}
-	// copy instead of reslicing, otherwise the cached slice keeps the full backing array alive
-	return artifactPreviewList{paths: slices.Clone(paths[:artifactPreviewMaxFiles]), truncated: true}
-}
-
-// insertArtifactPreviewPath clones because paths may be the cached slice
-func insertArtifactPreviewPath(paths []string, path string) []string {
-	i, _ := slices.BinarySearch(paths, path)
-	return slices.Insert(slices.Clone(paths), i, path)
+	// clone so the cached list does not keep the full backing array alive
+	return artifactPreviewList{paths: slices.Clone(paths[:min(len(paths), artifactPreviewMaxFiles)]), truncated: len(paths) > artifactPreviewMaxFiles}
 }
 
 func isArtifactPreviewSizeAllowed(size int64) bool {
@@ -215,7 +197,7 @@ func openArtifactV4ZipReader(artifact *actions_model.ActionArtifact) (storage.Ob
 }
 
 func artifactV4ZipFilePath(file *zip.File) (string, bool) {
-	if file.FileInfo().IsDir() {
+	if file.Mode().IsDir() {
 		return "", false
 	}
 	path := normalizeArtifactPreviewPath(file.Name)
@@ -223,7 +205,7 @@ func artifactV4ZipFilePath(file *zip.File) (string, bool) {
 }
 
 func listPreviewForV4Artifact(artifact *actions_model.ActionArtifact) (artifactPreviewList, error) {
-	key := strconv.FormatInt(artifact.ID, 10) + ":" + strconv.FormatInt(int64(artifact.UpdatedUnix), 10)
+	key := [2]int64{artifact.ID, int64(artifact.UpdatedUnix)}
 	if list, ok := artifactPreviewV4ZipListCache.Get(key); ok {
 		return list, nil
 	}
@@ -322,9 +304,7 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 		err = util.ErrNotExist
 	}
 	if err != nil {
-		ctx.NotFoundOrServerError("loadUploadedArtifactsByID", func(err error) bool {
-			return errors.Is(err, util.ErrNotExist)
-		}, err)
+		ctx.ServerError("loadUploadedArtifactsByID", err)
 		return
 	}
 	artifact := artifacts[0]
@@ -371,7 +351,7 @@ func artifactPreviewSignature(artifactID, expires int64) string {
 
 // artifactPreviewRawLink is signed because the sandboxed preview frame's requests carry no session cookie
 func artifactPreviewRawLink(artifactID int64) string {
-	expires := int64(timeutil.TimeStampNow().AddDuration(artifactPreviewRawLinkTTL))
+	expires := int64(timeutil.TimeStampNow().AddDuration(time.Hour))
 	return fmt.Sprintf("%s/-/actions/artifacts/%d/%d/%s/", setting.AppSubURL, artifactID, expires, artifactPreviewSignature(artifactID, expires))
 }
 
