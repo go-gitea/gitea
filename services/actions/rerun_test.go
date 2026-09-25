@@ -509,4 +509,9 @@ jobs:
 	jobs = runJobs(t, run.ID, attempt.ID)
 	require.Len(t, jobs, 1)
 	assert.Equal(t, actions_model.StatusSkipped, jobs[0].Status)
+
+	// the new attempt is done right away, so it must carry its stop time
+	attempt = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: attempt.ID})
+	assert.Equal(t, actions_model.StatusSkipped, attempt.Status)
+	assert.NotZero(t, attempt.Stopped)
 }

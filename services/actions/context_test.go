@@ -128,20 +128,23 @@ jobs:
     steps:
       - run: echo hi
 `)
-	run := &actions_model.ActionRun{
-		Title:             "job-if",
-		RepoID:            4,
-		OwnerID:           1,
-		WorkflowID:        "job-if.yaml",
-		TriggerUserID:     1,
-		Ref:               "refs/heads/master",
-		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:             "push",
-		TriggerEvent:      "push",
-		EventPayload:      "{}",
-		WorkflowRepoID:    4,
-		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+	newRun := func(workflowID string) *actions_model.ActionRun {
+		return &actions_model.ActionRun{
+			Title:             workflowID,
+			RepoID:            4,
+			OwnerID:           1,
+			WorkflowID:        workflowID,
+			TriggerUserID:     1,
+			Ref:               "refs/heads/master",
+			CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event:             "push",
+			TriggerEvent:      "push",
+			EventPayload:      "{}",
+			WorkflowRepoID:    4,
+			WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		}
 	}
+	run := newRun("job-if.yaml")
 	require.NoError(t, PrepareRunAndInsert(t.Context(), content, run, nil))
 
 	jobs := map[string]*actions_model.ActionRunJob{}
@@ -157,6 +160,21 @@ jobs:
 	summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs["invalid"].ID, 0)
 	require.NoError(t, err)
 	assert.Contains(t, summary.Content, "Error when evaluating `if` for job `invalid`")
+
+	// a run whose jobs are all skipped is done at insertion, so it must carry its stop time
+	skippedRun := newRun("job-if-skipped.yaml")
+	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(`on: push
+jobs:
+  skip:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+`), skippedRun, nil))
+	attempt := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: skippedRun.LatestAttemptID})
+	assert.Equal(t, actions_model.StatusSkipped, attempt.Status)
+	assert.NotZero(t, attempt.Stopped)
+	assert.NotZero(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: skippedRun.ID}).Stopped)
 }
 
 func TestComputeReusableCallerOutputs(t *testing.T) {
