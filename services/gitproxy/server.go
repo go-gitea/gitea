@@ -5,6 +5,7 @@ package gitproxy
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
@@ -29,6 +30,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
+	"github.com/Azure/go-ntlmssp"
 	"golang.org/x/net/proxy"
 )
 
@@ -46,13 +48,15 @@ type server struct {
 	policy       *policy.Policy
 	dial         func(ctx context.Context, network, addr string) (net.Conn, error)
 	reverseProxy *httputil.ReverseProxy
-	proxyRootCAs *x509.CertPool
+	proxyTLS     *tls.Config
+	proxyNTLM    bool // CONNECT only, the transport can't pin the connection NTLM authenticates
 }
 
-func newServer(p *policy.Policy, auth string) *server {
-	s := &server{auth: auth, policy: p, dial: p.NewDialContext()}
+func newServer(p *policy.Policy, auth string, proxyTLS *tls.Config) *server {
+	s := &server{auth: auth, policy: p, dial: p.NewDialContext(), proxyTLS: cmp.Or(proxyTLS, &tls.Config{})}
 	transport := p.NewHTTPTransport()
 	transport.Proxy = s.upstreamProxy
+	transport.TLSClientConfig = s.proxyTLS.Clone() // the transport adds its ALPN protocols to the config it gets
 	s.reverseProxy = &httputil.ReverseProxy{
 		Rewrite:       func(*httputil.ProxyRequest) {},
 		Transport:     transport,
@@ -64,12 +68,24 @@ func newServer(p *policy.Policy, auth string) *server {
 
 // Run routes git's network remotes through a proxy on a random loopback port until ctx is done.
 func Run(ctx context.Context) error {
+	gitPolicy, err := egress.NewGitPolicy()
+	if err != nil {
+		return fmt.Errorf("git proxy: %w", err)
+	}
+	gitOption := func(key, env string) string { return cmp.Or(os.Getenv(env), setting.GitConfig.GetOption(key)) }
+	proxyTLS, err := proxyTLSConfig(gitOption("http.proxySSLCAInfo", "GIT_PROXY_SSL_CAINFO"),
+		gitOption("http.proxySSLCert", "GIT_PROXY_SSL_CERT"), gitOption("http.proxySSLKey", "GIT_PROXY_SSL_KEY"))
+	if err != nil {
+		return fmt.Errorf("git proxy: %w", err)
+	}
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return fmt.Errorf("git proxy: %w", err)
 	}
 	user := url.UserPassword("gitea", rand.Text())
-	srv := &http.Server{Handler: newServer(egress.NewGitPolicy(), basicAuth(user)), ReadHeaderTimeout: 10 * time.Second}
+	handler := newServer(gitPolicy, basicAuth(user), proxyTLS)
+	handler.proxyNTLM = strings.EqualFold(gitOption("http.proxyAuthMethod", "GIT_HTTP_PROXY_AUTHMETHOD"), "ntlm")
+	srv := &http.Server{Handler: handler, ReadHeaderTimeout: 10 * time.Second}
 	context.AfterFunc(ctx, func() { _ = srv.Close() })
 	go func() {
 		if err := srv.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
@@ -115,7 +131,7 @@ func tunnel(proxyURL, target string) error {
 	if err != nil {
 		return err
 	}
-	if conn, err = openTunnel(context.Background(), conn, gitProxy, target, http.Header{directHeader: {"1"}}); err != nil {
+	if conn, err = openTunnel(context.Background(), conn, gitProxy, target, http.Header{directHeader: {"1"}}, false); err != nil {
 		return err
 	}
 	go func() {
@@ -124,6 +140,29 @@ func tunnel(proxyURL, target string) error {
 	}()
 	_, err = io.Copy(os.Stdout, conn)
 	return err
+}
+
+// proxyTLSConfig loads the files of git's http.proxySSL* options, like curl the CA file replaces the system roots
+func proxyTLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
+	cfg := &tls.Config{}
+	if caFile != "" {
+		pemData, err := os.ReadFile(caFile)
+		if err != nil {
+			return nil, err
+		}
+		cfg.RootCAs = x509.NewCertPool()
+		if !cfg.RootCAs.AppendCertsFromPEM(pemData) {
+			return nil, fmt.Errorf("no certificates in %s", caFile)
+		}
+	}
+	if certFile != "" {
+		cert, err := tls.LoadX509KeyPair(certFile, cmp.Or(keyFile, certFile))
+		if err != nil {
+			return nil, err
+		}
+		cfg.Certificates = []tls.Certificate{cert}
+	}
+	return cfg, nil
 }
 
 func basicAuth(user *url.Userinfo) string {
@@ -211,10 +250,9 @@ func (s *server) dialUpstream(ctx context.Context, target string) (net.Conn, err
 			return nil, errors.New("egress: socks dialer lacks context support")
 		}
 		return ctxDialer.DialContext(ctx, "tcp", target)
-	case proxyURL.Scheme == "http" || proxyURL.Scheme == "https":
+	default:
 		return s.connectVia(ctx, proxyURL, target)
 	}
-	return nil, fmt.Errorf("egress: unsupported proxy scheme %q", proxyURL.Scheme)
 }
 
 func (s *server) connectVia(ctx context.Context, proxyURL *url.URL, target string) (net.Conn, error) {
@@ -223,30 +261,44 @@ func (s *server) connectVia(ctx context.Context, proxyURL *url.URL, target strin
 		return nil, err
 	}
 	if proxyURL.Scheme == "https" {
-		conn = tls.Client(conn, &tls.Config{ServerName: proxyURL.Hostname(), RootCAs: s.proxyRootCAs})
+		cfg := s.proxyTLS.Clone()
+		cfg.ServerName = proxyURL.Hostname()
+		conn = tls.Client(conn, cfg)
 	}
-	return openTunnel(ctx, conn, proxyURL, target, http.Header{})
+	return openTunnel(ctx, conn, proxyURL, target, http.Header{}, s.proxyNTLM)
 }
 
 // openTunnel opens a CONNECT tunnel to target over conn to the proxy at proxyURL, closing conn on failure
-func openTunnel(ctx context.Context, conn net.Conn, proxyURL *url.URL, target string, header http.Header) (_ net.Conn, err error) {
+func openTunnel(ctx context.Context, conn net.Conn, proxyURL *url.URL, target string, header http.Header, ntlm bool) (_ net.Conn, err error) {
 	defer func() {
 		if err != nil {
 			_ = conn.Close()
 		}
 	}()
 	defer context.AfterFunc(ctx, func() { _ = conn.Close() })()
-	if proxyURL.User != nil {
+	switch {
+	case ntlm:
+		negotiate, _ := ntlmssp.NewNegotiateMessage("", "")
+		header.Set("Proxy-Authorization", "NTLM "+base64.StdEncoding.EncodeToString(negotiate))
+	case proxyURL.User != nil:
 		header.Set("Proxy-Authorization", basicAuth(proxyURL.User))
 	}
 	req := &http.Request{Method: http.MethodConnect, URL: &url.URL{Opaque: target}, Host: target, Header: header}
-	if err := req.Write(conn); err != nil {
-		return nil, err
-	}
 	reader := bufio.NewReader(conn)
-	resp, err := http.ReadResponse(reader, req)
+	resp, err := roundTrip(conn, reader, req)
 	if err != nil {
 		return nil, err
+	}
+	if ntlm && resp.StatusCode == http.StatusProxyAuthRequired {
+		_ = resp.Body.Close() // drains it for the next request on the connection
+		authenticate, err := ntlmAuthenticate(resp.Header, proxyURL.User)
+		if err != nil {
+			return nil, err
+		}
+		header.Set("Proxy-Authorization", authenticate)
+		if resp, err = roundTrip(conn, reader, req); err != nil {
+			return nil, err
+		}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
@@ -254,6 +306,31 @@ func openTunnel(ctx context.Context, conn net.Conn, proxyURL *url.URL, target st
 		return nil, fmt.Errorf("egress: proxy refused CONNECT: %s", strings.TrimSpace(resp.Status+" "+string(body)))
 	}
 	return withBuffered(conn, reader), nil
+}
+
+func roundTrip(conn net.Conn, reader *bufio.Reader, req *http.Request) (*http.Response, error) {
+	if err := req.Write(conn); err != nil {
+		return nil, err
+	}
+	return http.ReadResponse(reader, req)
+}
+
+func ntlmAuthenticate(header http.Header, user *url.Userinfo) (string, error) {
+	for _, value := range header.Values("Proxy-Authenticate") {
+		if encoded, ok := strings.CutPrefix(value, "NTLM "); ok {
+			challenge, err := base64.StdEncoding.DecodeString(encoded)
+			if err != nil {
+				return "", err
+			}
+			password, _ := user.Password()
+			authenticate, err := ntlmssp.NewAuthenticateMessage(challenge, user.Username(), password, nil)
+			if err != nil {
+				return "", err
+			}
+			return "NTLM " + base64.StdEncoding.EncodeToString(authenticate), nil
+		}
+	}
+	return "", errors.New("egress: proxy sent no NTLM challenge")
 }
 
 func writeUpstreamError(w http.ResponseWriter, err error) {

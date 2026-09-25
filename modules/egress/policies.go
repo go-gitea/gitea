@@ -11,11 +11,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"slices"
 	"strings"
 
 	"gitea.dev/modules/egress/policy"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 
@@ -27,27 +25,31 @@ func NewMigrationPolicy() *policy.Policy {
 }
 
 // NewGitPolicy is the migration policy for the git proxy, which keeps git's own proxy choice
-func NewGitPolicy() *policy.Policy {
-	return newMigrationPolicy(gitProxySelector())
+func NewGitPolicy() (*policy.Policy, error) {
+	selectProxy, err := gitProxySelector()
+	if err != nil {
+		return nil, err
+	}
+	return newMigrationPolicy(selectProxy), nil
 }
 
 // gitProxySelector picks proxies like git did: [git.config] http.proxy, else a [proxy] PROXY_URL, else the environment incl. ALL_PROXY
-func gitProxySelector() func(*http.Request) (*url.URL, error) {
+func gitProxySelector() (func(*http.Request) (*url.URL, error), error) {
 	env := httpproxy.FromEnvironment()
 	if rawURL, ok := setting.GitConfig.Options["http.proxy"]; ok {
 		gitProxy, err := normalizeGitProxy(rawURL)
-		if err == nil {
-			env.HTTPProxy, env.HTTPSProxy = gitProxy, gitProxy
-			return requestProxy(env)
+		if err != nil {
+			return nil, fmt.Errorf("[git.config] http.proxy: %w", err)
 		}
-		log.Error("Ignoring [git.config] http.proxy: %v", err)
+		env.HTTPProxy, env.HTTPSProxy = gitProxy, gitProxy
+		return requestProxy(env), nil
 	}
 	if setting.Proxy.Enabled && setting.Proxy.ProxyURL != "" {
-		return proxy.Proxy()
+		return proxy.Proxy(), nil
 	}
 	allProxy := cmp.Or(os.Getenv("all_proxy"), os.Getenv("ALL_PROXY"))
 	env.HTTPProxy, env.HTTPSProxy = cmp.Or(env.HTTPProxy, allProxy), cmp.Or(env.HTTPSProxy, allProxy)
-	return requestProxy(env)
+	return requestProxy(env), nil
 }
 
 func requestProxy(cfg *httpproxy.Config) func(*http.Request) (*url.URL, error) {
@@ -66,9 +68,6 @@ func normalizeGitProxy(rawURL string) (string, error) {
 	proxyURL, err := url.Parse(rawURL)
 	if err != nil {
 		return "", errors.New("invalid URL") // the parse error would echo its credentials
-	}
-	if !slices.Contains([]string{"http", "https", "socks5", "socks5h"}, proxyURL.Scheme) {
-		return "", fmt.Errorf("unsupported scheme %q", proxyURL.Scheme)
 	}
 	if proxyURL.Scheme == "http" && proxyURL.Port() == "" {
 		proxyURL.Host = net.JoinHostPort(proxyURL.Hostname(), "1080")

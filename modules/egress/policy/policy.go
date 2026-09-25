@@ -4,6 +4,7 @@
 package policy
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -65,20 +66,12 @@ func NewPolicy(usage string, opts ...Option) *Policy {
 	return p
 }
 
-// ProxyDialAddr returns the address the transport dials for proxy URL u, with net/http's default port for its scheme.
+// proxyPorts maps the proxy schemes net/http speaks to their default ports, it speaks HTTP to any other
+var proxyPorts = map[string]string{"http": "80", "https": "443", "socks5": "1080", "socks5h": "1080"}
+
+// ProxyDialAddr returns the address the transport dials for proxy URL u
 func ProxyDialAddr(u *url.URL) string {
-	port := u.Port()
-	if port == "" {
-		switch u.Scheme {
-		case "http":
-			port = "80"
-		case "https":
-			port = "443"
-		case "socks5", "socks5h":
-			port = "1080"
-		}
-	}
-	return net.JoinHostPort(u.Hostname(), port)
+	return net.JoinHostPort(u.Hostname(), cmp.Or(u.Port(), proxyPorts[u.Scheme]))
 }
 
 func (p *Policy) blockedError(target string) error {
@@ -89,7 +82,6 @@ func (p *Policy) notAllowedError(target string) error {
 	return fmt.Errorf("%s can only call allowed HTTP servers (check your %s setting), deny '%s'", p.usage, p.allowKey, target)
 }
 
-// checkAddr reports whether host, resolved to ip, may be called.
 func (p *Policy) checkAddr(host string, ip netip.Addr) error {
 	ip = canonicalAddr(ip)
 	netIP := net.IP(ip.AsSlice())
@@ -170,6 +162,9 @@ func (p *Policy) Proxy(req *http.Request) (proxyURL *url.URL, err error) {
 		proxyURL, err = p.proxyFunc(req)
 	}
 	if proxyURL != nil {
+		if _, ok := proxyPorts[proxyURL.Scheme]; !ok {
+			return nil, fmt.Errorf("unsupported proxy scheme %q, use http, https or socks5", proxyURL.Scheme)
+		}
 		p.proxyAddrs.LoadOrStore(ProxyDialAddr(proxyURL), struct{}{})
 	}
 	return proxyURL, err

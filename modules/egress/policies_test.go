@@ -71,14 +71,16 @@ func TestSecurityPolicy(t *testing.T) {
 }
 
 func TestNewGitPolicy(t *testing.T) {
-	defer test.MockVariableValue(&setting.GitConfig.Options, map[string]string{"http.proxy": "proxy.corp"})()
-	selected, err := NewGitPolicy().Proxy(&http.Request{URL: &url.URL{Scheme: "https", Host: "git.example.com"}})
+	gitConfig := map[string]string{"http.proxy": "proxy.corp"}
+	defer test.MockVariableValue(&setting.GitConfig.Options, gitConfig)()
+	gitPolicy, err := NewGitPolicy()
+	require.NoError(t, err)
+	selected, err := gitPolicy.Proxy(&http.Request{URL: &url.URL{Scheme: "https", Host: "git.example.com"}})
 	require.NoError(t, err)
 	assert.Equal(t, "http://proxy.corp:1080", selected.String())
 
-	_, err = normalizeGitProxy("socks4://proxy.corp")
-	assert.ErrorContains(t, err, "socks4")
-	_, err = normalizeGitProxy("http://user:secret@[::1")
+	gitConfig["http.proxy"] = "http://user:secret@[::1"
+	_, err = NewGitPolicy()
 	require.Error(t, err)
 	assert.NotContains(t, err.Error(), "secret")
 }

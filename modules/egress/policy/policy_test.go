@@ -107,7 +107,7 @@ func TestNewDialContext(t *testing.T) {
 	assert.ErrorIs(t, dial("127.0.0.1:1", true), ErrDenied)
 }
 
-func TestProxyDialAddr(t *testing.T) {
+func TestProxy(t *testing.T) {
 	for raw, want := range map[string]string{
 		"http://127.0.0.1":        "127.0.0.1:80",
 		"socks5://[::1]":          "[::1]:1080",
@@ -117,4 +117,7 @@ func TestProxyDialAddr(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, want, ProxyDialAddr(u), raw)
 	}
+
+	_, err := NewPolicy("test", WithProxy(http.ProxyURL(&url.URL{Scheme: "socks4", Host: "proxy.corp:1080"}))).Proxy(&http.Request{})
+	assert.ErrorContains(t, err, "unsupported proxy scheme")
 }

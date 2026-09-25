@@ -8,7 +8,6 @@ import (
 	"slices"
 )
 
-// addrClass is the intrinsic class of a dial target, before any list lookup.
 type addrClass uint8
 
 const (

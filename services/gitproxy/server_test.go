@@ -6,7 +6,11 @@ package gitproxy
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -116,6 +120,7 @@ func startConnectOperator(t *testing.T, useTLS bool, reply string, seen chan<- *
 	})
 	operator := httptest.NewUnstartedServer(handler)
 	if useTLS {
+		operator.TLS = &tls.Config{ClientAuth: tls.RequireAnyClientCert}
 		operator.StartTLS()
 	} else {
 		operator.Start()
@@ -199,10 +204,10 @@ func TestRelay(t *testing.T) {
 func TestProxyCONNECT(t *testing.T) {
 	t.Parallel()
 	echo := startEcho(t)
-	srv := newServer(allowLoopback, testAuth)
+	srv := newServer(allowLoopback, testAuth, nil)
 
 	assert.Equal(t, http.StatusProxyAuthRequired, serve(srv, http.MethodConnect, echo, "").Code)
-	assert.Equal(t, http.StatusForbidden, serve(newServer(blockLoopback, ""), http.MethodConnect, echo, "").Code)
+	assert.Equal(t, http.StatusForbidden, serve(newServer(blockLoopback, "", nil), http.MethodConnect, echo, "").Code)
 	assert.Equal(t, http.StatusBadRequest, serve(srv, http.MethodConnect, "127.0.0.1", testAuth).Code)
 
 	conn, br, status := connect(t, startProxy(t, srv), echo, testAuth)
@@ -222,7 +227,7 @@ func TestProxyCONNECTOperator(t *testing.T) {
 		require.NoError(t, err)
 		opURL.User = url.UserPassword("user", "secret")
 
-		conn, br, status := connect(t, startProxy(t, newServer(viaProxy(opURL), "")), target, "")
+		conn, br, status := connect(t, startProxy(t, newServer(viaProxy(opURL), "", nil)), target, "")
 		require.Equal(t, http.StatusOK, status)
 		early := make([]byte, 5)
 		_, err = io.ReadFull(br, early)
@@ -239,11 +244,15 @@ func TestProxyCONNECTOperator(t *testing.T) {
 		operator := startConnectOperator(t, true, "HTTP/1.1 200 OK\r\n\r\n", make(chan *http.Request, 1))
 		opURL, err := url.Parse(operator.URL)
 		require.NoError(t, err)
-		srv := newServer(viaProxy(opURL), "")
-		srv.proxyRootCAs = x509.NewCertPool()
-		srv.proxyRootCAs.AddCert(operator.Certificate())
+		key, err := x509.MarshalPKCS8PrivateKey(operator.TLS.Certificates[0].PrivateKey)
+		require.NoError(t, err)
+		pemFile := filepath.Join(t.TempDir(), "proxy.pem")
+		pemData := append(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: operator.Certificate().Raw}), pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: key})...)
+		require.NoError(t, os.WriteFile(pemFile, pemData, 0o600))
+		proxyTLS, err := proxyTLSConfig(pemFile, pemFile, "")
+		require.NoError(t, err)
 
-		conn, br, status := connect(t, startProxy(t, srv), target, "")
+		conn, br, status := connect(t, startProxy(t, newServer(viaProxy(opURL), "", proxyTLS)), target, "")
 		require.Equal(t, http.StatusOK, status)
 		assertEcho(t, conn, br)
 	})
@@ -251,9 +260,36 @@ func TestProxyCONNECTOperator(t *testing.T) {
 	t.Run("SOCKS5", func(t *testing.T) {
 		t.Parallel()
 		opURL := &url.URL{Scheme: "socks5", User: url.UserPassword("user", "secret"), Host: startSOCKS5(t)}
-		conn, br, status := connect(t, startProxy(t, newServer(viaProxy(opURL), "")), target, "")
+		conn, br, status := connect(t, startProxy(t, newServer(viaProxy(opURL), "", nil)), target, "")
 		require.Equal(t, http.StatusOK, status)
 		assertEcho(t, conn, br)
+	})
+
+	t.Run("NTLM", func(t *testing.T) {
+		t.Parallel()
+		challenge := make([]byte, 48)
+		copy(challenge, "NTLMSSP\x00")
+		challenge[8] = 2
+		binary.LittleEndian.PutUint32(challenge[20:], 0x201)
+		auths := make(chan string, 2)
+		addr := serveConns(t, func(conn net.Conn) {
+			br := bufio.NewReader(conn)
+			for _, reply := range []string{"HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: NTLM " + base64.StdEncoding.EncodeToString(challenge) + "\r\nContent-Length: 4\r\n\r\ndeny", "HTTP/1.1 200 OK\r\n\r\n"} {
+				req, err := http.ReadRequest(br)
+				if err != nil {
+					return
+				}
+				auths <- req.Header.Get("Proxy-Authorization")
+				_, _ = io.WriteString(conn, reply)
+			}
+		})
+		srv := newServer(viaProxy(&url.URL{Scheme: "http", User: url.UserPassword(`CORP\alice`, "secret"), Host: addr}), "", nil)
+		srv.proxyNTLM = true
+
+		_, _, status := connect(t, startProxy(t, srv), target, "")
+		require.Equal(t, http.StatusOK, status)
+		assert.Regexp(t, "^NTLM TlRMTVNTUAAB", <-auths)
+		assert.Regexp(t, "^NTLM TlRMTVNTUAAD", <-auths)
 	})
 
 	t.Run("Refused", func(t *testing.T) {
@@ -265,15 +301,9 @@ func TestProxyCONNECTOperator(t *testing.T) {
 		opURL, err := url.Parse(operator.URL)
 		require.NoError(t, err)
 
-		rec := serve(newServer(viaProxy(opURL), ""), http.MethodConnect, target, "")
+		rec := serve(newServer(viaProxy(opURL), "", nil), http.MethodConnect, target, "")
 		assert.Equal(t, http.StatusBadGateway, rec.Code)
 		assert.Contains(t, rec.Body.String(), "blocked by policy")
-	})
-
-	t.Run("UnsupportedScheme", func(t *testing.T) {
-		t.Parallel()
-		opURL := &url.URL{Scheme: "ftp", Host: "127.0.0.1:21"}
-		assert.Equal(t, http.StatusBadGateway, serve(newServer(viaProxy(opURL), ""), http.MethodConnect, target, "").Code)
 	})
 
 	t.Run("ClientGone", func(t *testing.T) {
@@ -295,7 +325,7 @@ func TestProxyCONNECTOperator(t *testing.T) {
 			_, _ = io.Copy(io.Discard, conn)
 		}()
 
-		conn, err := net.Dial("tcp", startProxy(t, newServer(viaProxy(&url.URL{Scheme: "http", Host: ln.Addr().String()}), "")))
+		conn, err := net.Dial("tcp", startProxy(t, newServer(viaProxy(&url.URL{Scheme: "http", Host: ln.Addr().String()}), "", nil)))
 		require.NoError(t, err)
 		_, err = fmt.Fprintf(conn, "CONNECT %s HTTP/1.1\r\nHost: %s\r\n\r\n", target, target)
 		require.NoError(t, err)
@@ -336,7 +366,7 @@ func TestProxyHTTP(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Connection", "close, X-Drop-Me")
 		req.Header.Set("X-Drop-Me", "dropped")
-		proxyURL := &url.URL{Scheme: "http", Host: startProxy(t, newServer(allowLoopback, ""))}
+		proxyURL := &url.URL{Scheme: "http", Host: startProxy(t, newServer(allowLoopback, "", nil))}
 		resp, err := (&http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)}}).Do(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
@@ -361,7 +391,7 @@ func TestProxyHTTP(t *testing.T) {
 		opURL, err := url.Parse(operator.URL)
 		require.NoError(t, err)
 
-		rec := serve(newServer(viaProxy(opURL), ""), http.MethodGet, "http://git.example.com/repo.git", "")
+		rec := serve(newServer(viaProxy(opURL), "", nil), http.MethodGet, "http://git.example.com/repo.git", "")
 		assert.Equal(t, "http://git.example.com/repo.git", rec.Body.String())
 	})
 
@@ -371,12 +401,12 @@ func TestProxyHTTP(t *testing.T) {
 			t.Error("the blocked origin must not be reached")
 		}))
 		t.Cleanup(origin.Close)
-		assert.Equal(t, http.StatusForbidden, serve(newServer(blockLoopback, ""), http.MethodGet, origin.URL, "").Code)
+		assert.Equal(t, http.StatusForbidden, serve(newServer(blockLoopback, "", nil), http.MethodGet, origin.URL, "").Code)
 	})
 
 	t.Run("OriginForm", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, http.StatusBadRequest, serve(newServer(allowLoopback, ""), http.MethodGet, "/", "").Code)
+		assert.Equal(t, http.StatusBadRequest, serve(newServer(allowLoopback, "", nil), http.MethodGet, "/", "").Code)
 	})
 }
 
