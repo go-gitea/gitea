@@ -25,7 +25,7 @@ import (
 const tplNewReleaseMail templates.TplName = "mail/repo/release"
 
 func generateMessageIDForRelease(release *repo_model.Release) string {
-	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.Domain)
+	return fmt.Sprintf("<%s/releases/%d@%s>", release.Repo.FullName(), release.ID, setting.AppDomain)
 }
 
 // MailNewRelease send new release notify to all repo watchers.
