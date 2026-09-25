@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -29,13 +30,7 @@ func Queue(ctx *context.Context) {
 	RenderQueue(ctx, 0, "admin/actions")
 }
 
-const (
-	queuePageSize = 50 // jobs per page
-
-	// status filter values, as submitted by the filter bar ("" means every listed status)
-	queueFilterRunning = "running"
-	queueFilterWaiting = "waiting"
-)
+const queuePageSize = 50
 
 // RefreshIntervalMs is how often an auto-refreshing Actions list re-fetches itself.
 func RefreshIntervalMs(hasActivity bool) int64 {
@@ -45,25 +40,20 @@ func RefreshIntervalMs(hasActivity bool) int64 {
 	return util.Iif[int64](hasActivity, 3*1000, 12*1000)
 }
 
-// RenderQueue queries and renders a build-queue view (running jobs followed by the queued ones in pickup
-// order): a single repository when repoID > 0, otherwise the whole instance. It serves both the initial
-// full page (fullTemplate) and the in-place auto-refresh fragment. The list can be narrowed by status and,
-// outside a repo scope, by owner and repository.
+// RenderQueue renders the build queue of one repository, or of the instance when repoID is 0.
 func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplName) {
 	page := max(ctx.FormInt("page"), 1)
 
 	filterStatus := ctx.FormString("status")
 	status := actions_model.StatusUnknown
 	switch filterStatus {
-	case queueFilterRunning:
+	case actions_model.StatusRunning.String():
 		status = actions_model.StatusRunning
-	case queueFilterWaiting:
+	case actions_model.StatusWaiting.String():
 		status = actions_model.StatusWaiting
 	default:
 		filterStatus = ""
 	}
-	isRefresh := ctx.FormBool("refresh")
-	// A repo queue is already a single repository, so it offers no owner/repository filter.
 	var filterOwnerID, filterRepoID int64
 	if repoID == 0 {
 		var err error
@@ -88,9 +78,11 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 		return
 	}
 
-	runners, err := jobRunnerNames(ctx, jobs)
+	runners, err := actions_model.GetTaskRunnerNames(ctx, container.FilterSlice(jobs, func(job *actions_model.ActionRunJob) (int64, bool) {
+		return job.TaskID, job.TaskID > 0
+	}))
 	if err != nil {
-		ctx.ServerError("jobRunnerNames", err)
+		ctx.ServerError("GetTaskRunnerNames", err)
 		return
 	}
 
@@ -99,7 +91,7 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 	ctx.Data["QueueTotal"] = total
 	ctx.Data["ShowRepoColumn"] = repoID == 0
 	ctx.Data["QueueFilterStatus"] = filterStatus
-	ctx.Data["QueueFilterStatuses"] = []string{queueFilterRunning, queueFilterWaiting}
+	ctx.Data["QueueFilterStatuses"] = []string{actions_model.StatusRunning.String(), actions_model.StatusWaiting.String()}
 
 	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(queuePageSize).CurPage(page).Build()
 	query := url.Values{}
@@ -121,7 +113,7 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 	query.Set("refresh", "1")
 	ctx.Data["QueueRefreshLink"] = setting.AppSubURL + ctx.Req.URL.EscapedPath() + "?" + query.Encode()
 
-	if isRefresh {
+	if ctx.FormBool("refresh") {
 		ctx.HTML(http.StatusOK, "shared/actions/queue_list")
 		return
 	}
@@ -134,13 +126,9 @@ type QueueFilterOwner struct {
 	Name string
 }
 
-// queueFilterOptionsLimit caps how many repositories the filter dropdowns offer. The list only covers
-// repositories with pending work, so the cap is far above any realistic queue.
-const queueFilterOptionsLimit = 200
-
 // renderQueueFilterOptions includes pending work and the selected scope, even when its queue is empty.
 func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID int64, _ error) {
-	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, actions_model.QueueJobsOptions{}, queueFilterOptionsLimit)
+	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, 200)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -153,12 +141,7 @@ func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID
 		return 0, 0, err
 	}
 
-	repos := make([]*repo_model.Repository, 0, len(repoMap))
-	for _, repo := range repoMap {
-		if repo != nil {
-			repos = append(repos, repo)
-		}
-	}
+	repos := slices.Collect(maps.Values(repoMap))
 	slices.SortFunc(repos, func(a, b *repo_model.Repository) int {
 		return base.NaturalSortCompare(a.FullName(), b.FullName())
 	})
@@ -191,36 +174,10 @@ func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID
 		return base.NaturalSortCompare(a.Name, b.Name)
 	})
 
-	// The repository dropdown only lists the selected owner's repositories, mirroring the selection made.
 	if filterOwnerID > 0 {
 		repos = slices.DeleteFunc(repos, func(repo *repo_model.Repository) bool { return repo.OwnerID != filterOwnerID })
 	}
 	ctx.Data["QueueFilterOwners"] = owners
 	ctx.Data["QueueFilterRepos"] = repos
 	return filterOwnerID, filterRepoID, nil
-}
-
-// jobRunnerNames maps each running job's ID to the name of the runner executing it.
-func jobRunnerNames(ctx *context.Context, jobs []*actions_model.ActionRunJob) (map[int64]string, error) {
-	taskIDs := make([]int64, 0, len(jobs))
-	for _, j := range jobs {
-		if tid := j.EffectiveTaskID(); tid > 0 {
-			taskIDs = append(taskIDs, tid)
-		}
-	}
-	names := make(map[int64]string, len(jobs))
-	if len(taskIDs) == 0 {
-		return names, nil
-	}
-
-	runnerNames, err := actions_model.GetTaskRunnerNames(ctx, taskIDs)
-	if err != nil {
-		return nil, err
-	}
-	for _, job := range jobs {
-		if name, ok := runnerNames[job.EffectiveTaskID()]; ok {
-			names[job.ID] = name
-		}
-	}
-	return names, nil
 }

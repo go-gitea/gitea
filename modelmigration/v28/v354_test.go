@@ -32,11 +32,6 @@ func TestAddActionQueueIndexes(t *testing.T) {
 		return
 	}
 
-	_, err := x.Insert(&ActionRunJob{RepoID: 1, TaskID: 0, Status: 1})
-	require.NoError(t, err)
-	_, err = x.Insert(&ActionRun{RepoID: 1, Status: 1})
-	require.NoError(t, err)
-
 	require.NoError(t, AddActionQueueIndexes(t.Context(), x))
 
 	tables := migrationtest.LoadTableSchemasMap(t, x)
@@ -50,8 +45,6 @@ func TestAddActionQueueIndexes(t *testing.T) {
 		return cols
 	}
 
-	// the runner-poll query filters on (task_id, status) and sorts on updated, so all three columns
-	// must land in the same index for the poll to stay index-ordered instead of filesorting
 	assert.Contains(t, indexCols("action_run_job"), []string{"task_id", "status", "updated"})
 	assert.Contains(t, indexCols("action_run_job"), []string{"repo_id", "status"})
 	assert.Contains(t, indexCols("action_run"), []string{"repo_id", "status"})

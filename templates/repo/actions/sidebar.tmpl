@@ -1,4 +1,3 @@
-{{/* Shared by the Actions runs list and build queue. */}}
 <div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
 		<a class="item {{if and (not $.CurWorkflow) (not $.PageIsActionsQueue)}}active{{end}}" href="{{$.RepoLink}}/actions?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>

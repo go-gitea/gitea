@@ -7,14 +7,13 @@
 		<strong>{{ctx.Locale.Tr "actions.queue.title"}} ({{ctx.Locale.Tr "admin.total" .QueueTotal}})</strong>
 		<div class="ui secondary filter menu flex-text-block tw-m-0" id="actions-queue-filter">
 			{{if .ShowRepoColumn}}
-			<!-- Owner -->
 			<div class="ui{{if not .QueueFilterOwners}} disabled{{end}} dropdown jump item">
-				<span class="text">{{if .QueueFilterOwnerName}}{{.QueueFilterOwnerName}}{{else}}{{ctx.Locale.Tr "actions.queue.filter_owner"}}{{end}}</span>
+				<span class="text">{{if .QueueFilterOwnerName}}{{.QueueFilterOwnerName}}{{else}}{{ctx.Locale.Tr "repo.owner"}}{{end}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
 					<div class="ui icon search input">
 						<i class="icon">{{svg "octicon-search"}}</i>
-						<input type="text" placeholder="{{ctx.Locale.Tr "actions.queue.filter_owner"}}">
+						<input type="text" placeholder="{{ctx.Locale.Tr "repo.owner"}}">
 					</div>
 					<a class="item{{if not .QueueFilterOwnerID}} selected{{end}}" href="?status={{.QueueFilterStatus}}">{{ctx.Locale.Tr "actions.queue.filter_owner_no_select"}}</a>
 					{{range .QueueFilterOwners}}
@@ -22,7 +21,6 @@
 					{{end}}
 				</div>
 			</div>
-			<!-- Repository -->
 			<div class="ui{{if not .QueueFilterRepos}} disabled{{end}} dropdown jump item">
 				<span class="text">{{if .QueueFilterRepoName}}{{.QueueFilterRepoName}}{{else}}{{ctx.Locale.Tr "repository"}}{{end}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -38,12 +36,11 @@
 				</div>
 			</div>
 			{{end}}
-			<!-- Status -->
 			<div class="ui dropdown jump item">
 				<span class="text">{{if .QueueFilterStatus}}{{ctx.Locale.Tr (printf "actions.status.%s" .QueueFilterStatus)}}{{else}}{{ctx.Locale.Tr "actions.runs.status"}}{{end}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
-					<a class="item{{if not .QueueFilterStatus}} selected{{end}}" href="?owner_id={{.QueueFilterOwnerID}}&repo_id={{.QueueFilterRepoID}}">{{ctx.Locale.Tr "actions.queue.filter_status_no_select"}}</a>
+					<a class="item{{if not .QueueFilterStatus}} selected{{end}}" href="?owner_id={{.QueueFilterOwnerID}}&repo_id={{.QueueFilterRepoID}}">{{ctx.Locale.Tr "actions.runs.status_no_select"}}</a>
 					{{range $status := .QueueFilterStatuses}}
 						<a class="item{{if eq $status $.QueueFilterStatus}} selected{{end}}" href="?owner_id={{$.QueueFilterOwnerID}}&repo_id={{$.QueueFilterRepoID}}&status={{$status}}">
 							<span class="flex-text-inline tw-gap-2">
@@ -75,16 +72,15 @@
 					{{range $job := .QueueJobs}}
 					<tr>
 						<td>
-							<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $job.Status.String)}}">
-								{{template "repo/icons/action_status" (dict "Status" $job.Status.String "IconVariant" "circle-fill")}}
+							<span class="flex-text-inline" data-tooltip-content="{{$job.Status.LocaleString ctx.Locale}}">
+								{{template "repo/icons/action_status" (dict "Status" $job.Status.String)}}
 							</span>
 						</td>
 						{{if $.ShowRepoColumn}}<td>{{if $job.Repo}}<a href="{{$job.Repo.Link}}">{{$job.Repo.FullName}}</a>{{end}}</td>{{end}}
 						<td>{{if $job.Run}}<a href="{{$job.Run.Link}}">{{$job.Name}} <span class="text grey">#{{$job.Run.Index}}</span></a>{{else}}{{$job.Name}}{{end}}</td>
 						<td><span class="flex-text-inline tw-flex-wrap">{{range $job.RunsOn}}<span class="ui label">{{.}}</span>{{end}}</span></td>
-						<td>{{index $.QueueJobRunners $job.ID}}</td>
+						<td>{{index $.QueueJobRunners $job.TaskID}}</td>
 						<td>{{if and $job.Run $job.Repo}}<a href="{{$job.Repo.Link}}/commit/{{$job.Run.CommitSHA}}">{{ShortSha $job.Run.CommitSHA}}</a>{{end}}</td>
-						{{/* a queued job has never started, so its wait is measured from the last status change */}}
 						<td>{{if $job.Started}}{{DateUtils.TimeSince $job.Started}}{{else}}{{DateUtils.TimeSince $job.Updated}}{{end}}</td>
 					</tr>
 					{{end}}

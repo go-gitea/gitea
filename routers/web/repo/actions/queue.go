@@ -6,15 +6,12 @@ package actions
 import (
 	"errors"
 
-	"gitea.dev/models/unit"
-	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/util"
 	shared_actions "gitea.dev/routers/web/shared/actions"
 	"gitea.dev/services/context"
 )
 
-// Queue renders this repository's Actions build queue (queued jobs in pickup order plus running jobs)
-// inside the Actions tab.
+// Queue renders this repository's Actions build queue.
 func Queue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
@@ -28,7 +25,7 @@ func Queue(ctx *context.Context) {
 	shared_actions.RenderQueue(ctx, ctx.Repo.Repository.ID, "repo/actions/queue")
 }
 
-// prepareActionsSidebar lists the navigation entries without binding run-list filters or validating workflows.
+// prepareActionsSidebar lists the workflows without binding the runs list filters.
 func prepareActionsSidebar(ctx *context.Context) {
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if errors.Is(err, util.ErrNotExist) {
@@ -40,18 +37,10 @@ func prepareActionsSidebar(ctx *context.Context) {
 		return
 	}
 
-	_, entries, err := actions_module.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
-	if err != nil {
-		ctx.ServerError("ListWorkflows", err)
+	workflows, _ := prepareWorkflowTemplate(ctx, commit)
+	if ctx.Written() {
 		return
 	}
-	workflows := make([]WorkflowInfo, 0, len(entries))
-	for _, entry := range entries {
-		workflows = append(workflows, WorkflowInfo{EntryName: entry.Name()})
-	}
-	ctx.Data["workflows"] = workflows
-	ctx.Data["RepoLink"] = ctx.Repo.Repository.Link()
-	ctx.Data["ActionsConfig"] = ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 	ctx.Data["CurWorkflow"] = ""
 	ctx.Data["CurWorkflowScopedRepoID"] = int64(0)
 	ctx.Data["CurActor"] = int64(0)

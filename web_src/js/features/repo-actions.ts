@@ -31,6 +31,7 @@ export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
   registerGlobalInitFunc('initActionRunsList', initActionRunsList);
+  registerGlobalInitFunc('initActionQueueList', initActionQueueList);
 }
 
 function initRepositoryActionsView() {
@@ -129,6 +130,24 @@ function initActionRunsList(el: HTMLElement) {
         const protectedElems = protectMorphElements(newItem);
         Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
         recoverMorphElements(el.querySelector(`#${newItem.id}`)!, protectedElems);
+      }
+    },
+  });
+}
+
+function initActionQueueList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-queue-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-queue-refresh-link')!);
+      if (!resp.ok) return;
+
+      const newEl = createElementFromHTML(await resp.text());
+      for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
+      Idiomorph.morph(el.querySelector('#actions-queue-list')!, newEl.querySelector('#actions-queue-list')!, {morphStyle: 'outerHTML'});
+      const filter = el.querySelector('#actions-queue-filter')!;
+      if (!filter.querySelector('.dropdown.active') && !filter.contains(document.activeElement)) {
+        filter.replaceWith(newEl.querySelector('#actions-queue-filter')!);
       }
     },
   });

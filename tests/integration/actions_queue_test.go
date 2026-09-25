@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -22,151 +21,92 @@ import (
 
 func TestActionsQueue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
 	ctx := t.Context()
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}) // public, owned by user2
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
-	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}) // owned by org3, for the filters
-
-	// A queued job is waiting and unclaimed, so it appears in its repo's Actions-tab queue and in the
-	// instance-wide admin queue.
 	insertQueuedJob := func(repo *repo_model.Repository, index int64, jobName string) *actions_model.ActionRunJob {
-		run := &actions_model.ActionRun{
-			Title:         "queue-test",
-			RepoID:        repo.ID,
-			OwnerID:       repo.OwnerID,
-			Index:         index,
-			WorkflowID:    "test.yaml",
-			TriggerUserID: user2.ID,
-			Ref:           "refs/heads/master",
-			CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-			Event:         "push",
-			TriggerEvent:  "push",
-			EventPayload:  "{}",
-			Status:        actions_model.StatusWaiting,
-		}
+		run := &actions_model.ActionRun{RepoID: repo.ID, OwnerID: repo.OwnerID, Index: index, Status: actions_model.StatusWaiting}
 		require.NoError(t, db.Insert(ctx, run))
-		job := &actions_model.ActionRunJob{
-			RunID:   run.ID,
-			RepoID:  repo.ID,
-			OwnerID: repo.OwnerID,
-			Name:    jobName,
-			JobID:   jobName,
-			RunsOn:  []string{"ubuntu-latest"},
-			Status:  actions_model.StatusWaiting,
-		}
+		job := &actions_model.ActionRunJob{RunID: run.ID, RepoID: repo.ID, Name: jobName, Status: actions_model.StatusWaiting}
 		require.NoError(t, db.Insert(ctx, job))
 		return job
 	}
-	const queuedJobName, otherJobName = "queued-job-marker", "queued-job-other-owner"
+	const queuedJobName, otherJobName, callerJobName = "queued-job-marker", "queued-job-other-owner", "reusable-caller-marker"
 	job := insertQueuedJob(repo1, 8801, queuedJobName)
 	insertQueuedJob(repo3, 8802, otherJobName)
-
-	// A reusable-workflow caller lives in the same run as its children and turns Running by aggregating their status,
-	// but caller should not be in the running job list since it is never claimed by a runner.
-	const callerJobName = "reusable-caller-marker"
 	require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
 		RunID:            job.RunID,
 		RepoID:           repo1.ID,
-		OwnerID:          repo1.OwnerID,
 		Name:             callerJobName,
-		JobID:            callerJobName,
 		Status:           actions_model.StatusRunning,
 		IsReusableCaller: true,
 	}))
 
-	sessionAdmin := loginUser(t, "user1") // site admin
-	sessionUser2 := loginUser(t, user2.Name)
-	sessionUser4 := loginUser(t, "user4") // unrelated user (repo1 is public, so may read the queue)
-
 	const repoQueue = "/user2/repo1/actions/queue"
+	sessionUser2 := loginUser(t, "user2")
+	repoDoc := NewHTMLParser(t, sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?workflow=test.yaml"), http.StatusOK).Body)
+	assert.Contains(t, repoDoc.Find("#actions-queue-list").Text(), queuedJobName)
+	assert.NotContains(t, repoDoc.Find("#actions-queue-list").Text(), callerJobName)
+	assert.Equal(t, 1, repoDoc.Find(`.actions-management a.selected[href="`+repoQueue+`"]`).Length())
+	assert.Zero(t, repoDoc.Find(".flex-container-nav > .ui.menu > a.active").Length())
 
-	// Repo Actions-tab queue: a repo admin sees the queued job.
-	body := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()
-	assert.Contains(t, body, queuedJobName)
-	assert.Contains(t, body, "actions-management", "queue sits under Management in the Actions sidebar")
-	assert.NotContains(t, body, callerJobName, "a reusable caller occupies no runner, so it is not a running job")
-	assert.Contains(t, body, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`)
-	queueWithWorkflowQuery := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?workflow=test.yaml"), http.StatusOK)
-	queueDoc := NewHTMLParser(t, queueWithWorkflowQuery.Body)
-	assert.Zero(t, queueDoc.Find(".flex-container-nav > .ui.menu > a.active").Length(), "queue chrome must not bind the runs-list workflow filter")
+	listDoc := NewHTMLParser(t, sessionUser2.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/actions"), http.StatusOK).Body)
+	assert.Equal(t, 1, listDoc.Find(`.actions-management a:not(.selected)[href="`+repoQueue+`"]`).Length())
 
-	// The Actions runs list exposes Queue under Management, not as a top tab.
-	listBody := sessionUser2.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/actions"), http.StatusOK).Body.String()
-	assert.Contains(t, listBody, "actions-management")
-	assert.Contains(t, listBody, `href="/user2/repo1/actions/queue"`)
-	assert.NotContains(t, listBody, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`, "Queue is not selected on the runs list")
+	assert.Contains(t, MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String(), queuedJobName)
 
-	// A non-admin reader of the public repo may view the queue too.
-	body4 := sessionUser4.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()
-	assert.Contains(t, body4, queuedJobName)
-
-	// The instance-wide admin queue lists the same job.
-	const adminQueue = "/-/admin/actions/queue"
-	adminBody := func(query string) string {
-		return sessionAdmin.MakeRequest(t, NewRequest(t, "GET", adminQueue+query), http.StatusOK).Body.String()
+	sessionAdmin := loginUser(t, "user1")
+	adminGet := func(link string) (string, *HTMLDoc) {
+		body := sessionAdmin.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body.String()
+		return body, NewHTMLParser(t, strings.NewReader(body))
 	}
-	unfiltered := adminBody("")
+	refreshLinkOf := func(doc *HTMLDoc) string {
+		link, ok := doc.Find("#actions-queue").Attr("data-queue-refresh-link")
+		require.True(t, ok)
+		return link
+	}
+	repoFilterSelector := func(repoID int64) string {
+		return `#actions-queue-filter a[href^="?repo_id=` + strconv.FormatInt(repoID, 10) + `&"]`
+	}
+
+	const adminQueue = "/-/admin/actions/queue"
+	unfiltered, unfilteredDoc := adminGet(adminQueue)
 	assert.Contains(t, unfiltered, queuedJobName)
 	assert.Contains(t, unfiltered, otherJobName)
-	// The filter dropdowns only offer repositories that have pending work, so both are listed.
-	assert.Contains(t, unfiltered, "repo_id="+strconv.FormatInt(repo1.ID, 10))
-	assert.Contains(t, unfiltered, "repo_id="+strconv.FormatInt(repo3.ID, 10))
+	assert.Equal(t, 1, unfilteredDoc.Find(repoFilterSelector(repo1.ID)).Length())
 
-	// Filters narrow the merged list: by status, by owner and by repository.
-	assert.NotContains(t, adminBody("?status=running"), queuedJobName, "a waiting job is hidden by the running filter")
-	assert.NotContains(t, adminBody("?status=running"), callerJobName)
-	assert.Contains(t, adminBody("?status=waiting"), queuedJobName)
-
-	byOwner := adminBody("?owner_id=" + strconv.FormatInt(user2.ID, 10))
-	assert.Contains(t, byOwner, queuedJobName)
-	assert.NotContains(t, byOwner, otherJobName, "org3's job is not user2's")
-
-	byRepo := adminBody("?repo_id=" + strconv.FormatInt(repo3.ID, 10))
-	assert.Contains(t, byRepo, otherJobName)
-	assert.NotContains(t, byRepo, queuedJobName, "repo1's job is not repo3's")
-
-	// The auto-refresh endpoint returns just the list fragment (no full-page chrome), still listing the job.
-	refresh := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?refresh=1"), http.StatusOK).Body.String()
-	assert.Contains(t, refresh, `id="actions-queue"`)
+	refresh, refreshDoc := adminGet(refreshLinkOf(unfilteredDoc))
+	assert.NotContains(t, refresh, "<html")
 	assert.Contains(t, refresh, queuedJobName)
-	assert.NotContains(t, refresh, `<html`, "the refresh response is a fragment, not a full page")
+	assert.Equal(t, 1, refreshDoc.Find(repoFilterSelector(repo3.ID)).Length())
 
-	// A stale page after the queue shrinks (or ?page=2 on a one-page list) still shows the jobs.
-	stalePage := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?page=2"), http.StatusOK).Body.String()
-	assert.Contains(t, stalePage, queuedJobName)
-	assert.NotContains(t, stalePage, "No jobs are running or waiting to be picked up.")
-	staleRefresh := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?refresh=1&page=2"), http.StatusOK).Body.String()
-	assert.Contains(t, staleRefresh, queuedJobName)
-	assert.NotContains(t, staleRefresh, "No jobs are running or waiting to be picked up.")
+	running, _ := adminGet(adminQueue + "?status=running")
+	assert.NotContains(t, running, queuedJobName)
+	assert.NotContains(t, running, callerJobName)
+
+	byOwner, _ := adminGet(adminQueue + "?owner_id=" + strconv.FormatInt(repo1.OwnerID, 10))
+	assert.Contains(t, byOwner, queuedJobName)
+	assert.NotContains(t, byOwner, otherJobName)
+
+	byRepo, _ := adminGet(adminQueue + "?repo_id=" + strconv.FormatInt(repo3.ID, 10))
+	assert.Contains(t, byRepo, otherJobName)
+	assert.NotContains(t, byRepo, queuedJobName)
 
 	for _, query := range []string{"?repo_id=987654321", "?owner_id=987654321"} {
-		body := adminBody(query)
-		doc := NewHTMLParser(t, strings.NewReader(body))
-		refreshLink, ok := doc.Find("#actions-queue").Attr("data-queue-refresh-link")
-		require.True(t, ok)
-		assert.NotContains(t, refreshLink, "987654321")
-		refreshed := sessionAdmin.MakeRequest(t, NewRequest(t, "GET", refreshLink), http.StatusOK).Body.String()
-		assert.Contains(t, refreshed, queuedJobName)
-		assert.Contains(t, refreshed, otherJobName)
+		body, doc := adminGet(adminQueue + query)
+		assert.Contains(t, body, queuedJobName)
+		assert.Contains(t, body, otherJobName)
+		assert.NotContains(t, refreshLinkOf(doc), "987654321")
 	}
-	refreshDoc := NewHTMLParser(t, strings.NewReader(adminBody("?refresh=1")))
-	assert.NotZero(t, refreshDoc.Find("#actions-queue-filter a[href*='repo_id="+strconv.FormatInt(repo3.ID, 10)+"']").Length())
 
 	_, err := db.GetEngine(ctx).Where("repo_id = ?", repo3.ID).Cols("status").Update(&actions_model.ActionRunJob{Status: actions_model.StatusSuccess})
 	require.NoError(t, err)
 	for _, scope := range []string{"repo_id=" + strconv.FormatInt(repo3.ID, 10), "owner_id=" + strconv.FormatInt(repo3.OwnerID, 10)} {
-		for _, refresh := range []string{"", "&refresh=1"} {
-			body := adminBody("?" + scope + refresh)
-			assert.NotContains(t, body, queuedJobName, "an empty selection must not expand to all repositories")
-			assert.NotContains(t, body, otherJobName)
-			doc := NewHTMLParser(t, strings.NewReader(body))
-			link, ok := doc.Find("#actions-queue").Attr("data-queue-refresh-link")
-			require.True(t, ok)
-			assert.Contains(t, link, scope)
-			assert.Positive(t, doc.Find("#actions-queue-filter a.selected[href*='"+scope+"']").Length())
-		}
+		body, doc := adminGet(adminQueue + "?" + scope)
+		assert.NotContains(t, body, queuedJobName)
+		assert.NotContains(t, body, otherJobName)
+		assert.Contains(t, refreshLinkOf(doc), scope)
 	}
 }

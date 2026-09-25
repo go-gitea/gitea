@@ -13,19 +13,7 @@ import (
 	"xorm.io/xorm"
 )
 
-// queueJobCols lists the columns the build-queue view reads. The row also carries several payload/blob
-// columns (WorkflowPayload, DeferredMatrixPayload, ReusableWorkflowContent) that the queue never touches,
-// so restricting the SELECT keeps its 3-second auto-refresh cheap.
-// Qualified with the table name: an owner-scoped query joins `repository`, whose own "id" column
-// would otherwise make an unqualified "id" ambiguous.
-var queueJobCols = []string{
-	"`action_run_job`.id", "`action_run_job`.repo_id", "`action_run_job`.name", "`action_run_job`.status",
-	"`action_run_job`.run_id", "`action_run_job`.runs_on", "`action_run_job`.updated", "`action_run_job`.started",
-	"`action_run_job`.task_id", "`action_run_job`.source_task_id",
-}
-
-// QueueJobsOptions scopes a build-queue query: RepoID>0 → a single repo; OwnerID>0 → an org/user;
-// both zero → the whole instance. Status narrows the list to running or queued jobs, StatusUnknown lists both.
+// QueueJobsOptions scopes the build queue to a repo, an owner or, when both are zero, the instance.
 type QueueJobsOptions struct {
 	RepoID  int64
 	OwnerID int64
@@ -45,10 +33,9 @@ func (opts QueueJobsOptions) session(ctx context.Context) *xorm.Session {
 }
 
 var (
-	// queuedJobsCond matches the jobs a runner may still pick up: waiting and not yet claimed by a task.
-	// Keep it in sync with CreateTaskForRunner, which claims jobs oldest-ready-first.
+	// keep in sync with CreateTaskForRunner
 	queuedJobsCond = builder.Eq{"`action_run_job`.status": StatusWaiting, "`action_run_job`.task_id": 0}
-	// A cancelling job still occupies its runner until cancellation cleanup completes.
+	// a cancelling job still occupies its runner
 	runningJobsCond = builder.In("`action_run_job`.status", StatusRunning, StatusCancelling)
 )
 
@@ -63,8 +50,7 @@ func (opts QueueJobsOptions) statusCond() builder.Cond {
 	}
 }
 
-// queueJobsOrderBy puts active jobs first, then orders each group by the very timestamp the row displays:
-// an active job by its start, a queued one by its pickup order.
+// active jobs first by start time, then queued jobs in pickup order
 var queueJobsOrderBy = fmt.Sprintf(
 	"CASE WHEN `action_run_job`.status IN (%d, %d) THEN 0 ELSE 1 END ASC, CASE WHEN `action_run_job`.status IN (%d, %d) THEN `action_run_job`.started ELSE `action_run_job`.updated END ASC, `action_run_job`.id ASC",
 	StatusRunning, StatusCancelling, StatusRunning, StatusCancelling)
@@ -77,22 +63,19 @@ func FindQueueJobs(ctx context.Context, opts QueueJobsOptions, page, pageSize in
 	}
 
 	// Auto-refresh can shrink the queue under a user still on page 2; show the last page instead of empty.
-	pageSize = max(pageSize, 1)
-	page = min(max(page, 1), int((total+int64(pageSize)-1)/int64(pageSize)))
+	page = min(page, int((total+int64(pageSize)-1)/int64(pageSize)))
 
 	jobs := make([]*ActionRunJob, 0, pageSize)
 	return jobs, total, opts.session(ctx).
-		Cols(queueJobCols...).
+		Cols("`action_run_job`.id", "`action_run_job`.repo_id", "`action_run_job`.name", "`action_run_job`.status", // skip the payload columns
+			"`action_run_job`.run_id", "`action_run_job`.runs_on", "`action_run_job`.updated", "`action_run_job`.started", "`action_run_job`.task_id").
 		OrderBy(queueJobsOrderBy).
 		Limit(pageSize, (page-1)*pageSize).
 		Find(&jobs)
 }
 
-// QueueFilterRepoIDs returns the ids of the repositories that currently have a queued or running job in
-// the given scope, so the build-queue filters only offer values that can match. At most limit ids are
-// returned; the list is bounded by pending work rather than by repository count.
-func QueueFilterRepoIDs(ctx context.Context, opts QueueJobsOptions, limit int) ([]int64, error) {
-	ids := make([]int64, 0, 10)
-	return ids, opts.session(ctx).
-		Distinct("`action_run_job`.repo_id").Cols("`action_run_job`.repo_id").Limit(limit).Find(&ids)
+// QueueFilterRepoIDs returns up to limit ids of the repositories with queued or running jobs.
+func QueueFilterRepoIDs(ctx context.Context, limit int) ([]int64, error) {
+	var ids []int64
+	return ids, QueueJobsOptions{}.session(ctx).Distinct("`action_run_job`.repo_id").Limit(limit).Find(&ids)
 }
