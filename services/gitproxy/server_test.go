@@ -342,11 +342,9 @@ func TestRelay_HalfClose(t *testing.T) {
 	var clientServerConn net.Conn
 	var acceptErr error
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		clientServerConn, acceptErr = lnClient.Accept()
-	}()
+	})
 
 	clientConn, err := net.Dial("tcp", lnClient.Addr().String())
 	require.NoError(t, err)

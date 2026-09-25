@@ -262,17 +262,9 @@ func (f dialFunc) DialContext(ctx context.Context, network, addr string) (net.Co
 	return f(ctx, network, addr)
 }
 
-func isSocksScheme(scheme string) bool {
-	scheme = strings.ToLower(scheme)
-	return scheme == "socks5" || scheme == "socks5h"
-}
-
 // newSocksDialer builds a SOCKS5 dialer for the operator proxy.
 // The target is not validated here; the operator proxy screens destinations.
 func newSocksDialer(proxyURL *url.URL, forward func(context.Context, string, string) (net.Conn, error)) (proxy.ContextDialer, error) {
-	if proxyURL == nil || !isSocksScheme(proxyURL.Scheme) {
-		return nil, nil
-	}
 	dialer, err := proxy.SOCKS5("tcp", policy.ProxyDialAddr(proxyURL), socksAuth(proxyURL), dialFunc(forward))
 	if err != nil {
 		return nil, fmt.Errorf("egress: operator proxy: %w", err)

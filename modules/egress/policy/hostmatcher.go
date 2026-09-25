@@ -5,6 +5,7 @@ package policy
 
 import (
 	"net"
+	"net/netip"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -101,16 +102,17 @@ func (hl *HostMatchList) matchesIP(ip net.IP) bool {
 	if slices.Contains(hl.patterns, "*") {
 		return true
 	}
+	addr, _ := netip.AddrFromSlice(ip) // bad path can't happen
 	for _, builtin := range hl.builtins {
 		switch builtin {
 		case MatchBuiltinExternal:
 			// External address must be a global unicast and must not be in private range
-			if ip.IsGlobalUnicast() && !ip.IsPrivate() {
+			if ip.IsGlobalUnicast() && !ip.IsPrivate() && !isCGNAT(addr) {
 				return true
 			}
 		case MatchBuiltinPrivate:
 			// Private address must be global unicast and must be in private range
-			if ip.IsGlobalUnicast() && ip.IsPrivate() {
+			if ip.IsGlobalUnicast() && (ip.IsPrivate() || isCGNAT(addr)) {
 				return true
 			}
 		case MatchBuiltinLoopback:
