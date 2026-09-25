@@ -394,6 +394,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode = issues_model.FilterModeReviewRequested
 	case "reviewed_by":
 		filterMode = issues_model.FilterModeReviewed
+	case "timer":
+		filterMode = issues_model.FilterModeTimer
 	case "your_repositories":
 		fallthrough
 	default:
@@ -498,6 +500,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.ReviewRequestedID = ctx.Doer.ID
 	case issues_model.FilterModeReviewed:
 		opts.ReviewedID = ctx.Doer.ID
+	case issues_model.FilterModeTimer:
+		opts.TimerTrackerID = ctx.Doer.ID
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -788,6 +792,8 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 			openClosedOpts.ReviewRequestedID = optional.Some(doerID)
 		case issues_model.FilterModeReviewed:
 			openClosedOpts.ReviewedID = optional.Some(doerID)
+		case issues_model.FilterModeTimer:
+			openClosedOpts.TimerTrackerID = optional.Some(doerID)
 		}
 		openClosedOpts.IsClosed = optional.Some(false)
 		ret.OpenCount, err = issue_indexer.CountIssues(ctx, openClosedOpts)
@@ -808,6 +814,7 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		o.MentionID = nil
 		o.ReviewRequestedID = nil
 		o.ReviewedID = nil
+		o.TimerTrackerID = nil
 	})
 
 	ret.YourRepositoriesCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.AllPublic = false }))
@@ -831,6 +838,10 @@ func getUserIssueStats(ctx *context.Context, ctxUser *user_model.User, filterMod
 		return nil, err
 	}
 	ret.ReviewedCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.ReviewedID = optional.Some(doerID) }))
+	if err != nil {
+		return nil, err
+	}
+	ret.TimerTrackerCount, err = issue_indexer.CountIssues(ctx, opts.Copy(func(o *issue_indexer.SearchOptions) { o.TimerTrackerID = optional.Some(doerID) }))
 	if err != nil {
 		return nil, err
 	}
