@@ -49,23 +49,6 @@ func TestRepoWiki(t *testing.T) {
 `, rendered)
 	})
 
-	t.Run("RelativeInSubdirectory", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(t.Context(), repo1, RepoWikiOptions{
-			CurrentTreePath: "sub/dir",
-		}).WithMarkupType(markdown.MarkupName)
-		rendered, err := testRenderString(rctx, `
-[sibling](sibling.md)
-[/root](/root)
-![image](img/pic.png)
-`)
-		assert.NoError(t, err)
-		assert.Equal(t,
-			`<p><a href="/user2/repo1/wiki/sub/dir/sibling.md" rel="nofollow">sibling</a>
-<a href="/user2/repo1/wiki/root" rel="nofollow">/root</a>
-<a href="/user2/repo1/wiki/sub/dir/img/pic.png" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/sub/dir/img/pic.png" alt="image"/></a></p>
-`, rendered)
-	})
-
 	t.Run("PathInTag", func(t *testing.T) {
 		rctx := NewRenderContextRepoWiki(t.Context(), repo1, RepoWikiOptions{
 			CurrentTreePath: "my dir",

@@ -49,8 +49,6 @@ type RepoWikiOptions struct {
 	DeprecatedRepoName  string // it is only a patch for the non-standard "markup" api
 	DeprecatedOwnerName string // it is only a patch for the non-standard "markup" api
 
-	// CurrentTreePath is the directory of the page being rendered (relative to the wiki root),
-	// relative links in the page are resolved against it. Empty for pages in the wiki root.
 	CurrentTreePath string // eg: "path/to/dir" in the wiki repo
 
 	// not used at the moment because Wiki doesn't support branch
