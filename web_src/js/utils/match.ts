@@ -1,4 +1,4 @@
-import emojis from '../../../assets/emoji.json' with {type: 'json'};
+import emojis from '../../../public/assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {parseIssuePageInfo} from '../utils.ts';

@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path"
@@ -120,19 +121,19 @@ func GetContentFromEntry(ctx context.Context, gitRepo *git.Repository, entry *gi
 }
 
 func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := jobparser.ReadWorkflow(content)
-	if err != nil {
-		return nil, err
-	}
-	events, err := jobparser.ParseRawOn(&workflow.RawOn)
-	if err != nil {
-		return nil, err
-	}
-	if err := ValidateWorkflowContent(content); err != nil {
-		return nil, err
-	}
+	events, _, err := readWorkflowEvents(content)
+	return events, err
+}
 
-	return events, nil
+// readWorkflowEvents also reports whether its error needs no run-time values to find, as a parse error of a workflow without expressions does.
+func readWorkflowEvents(content []byte) (events []*jobparser.Event, static bool, err error) {
+	if events, err = jobparser.ValidateWorkflowStatic(content); err != nil {
+		return nil, true, err
+	}
+	if err = ValidateWorkflowContent(content); err != nil {
+		return nil, !bytes.Contains(content, []byte("${{")), err
+	}
+	return events, false, nil
 }
 
 // ValidateWorkflowContent catches structural errors (e.g. blank lines in run: | blocks)
@@ -183,22 +184,26 @@ func DetectWorkflows(
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
-) (workflows, schedules, filtered []*DetectedWorkflow, err error) {
+) (workflows, schedules, filtered []*DetectedWorkflow, invalid map[string]error, err error) {
 	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
+	invalid = map[string]error{}
 	for _, entry := range entries {
 		content, err := GetContentFromEntry(ctx, gitRepo, entry)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		// one workflow may have multiple events
-		events, err := GetEventsFromContent(content)
+		events, static, err := readWorkflowEvents(content)
 		if err != nil {
 			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			if static {
+				invalid[entry.Name()] = err
+			}
 			continue
 		}
 		for _, evt := range events {
@@ -231,7 +236,7 @@ func DetectWorkflows(
 		}
 	}
 
-	return workflows, schedules, filtered, nil
+	return workflows, schedules, filtered, invalid, nil
 }
 
 func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
