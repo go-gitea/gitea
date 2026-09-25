@@ -361,7 +361,9 @@ func TestRelay_HalfClose(t *testing.T) {
 
 	_, err = io.WriteString(clientConn, expectedClientData)
 	require.NoError(t, err)
-	require.NoError(t, clientConn.(*net.TCPConn).CloseWrite())
+	tcpConn, ok := clientConn.(*net.TCPConn)
+	require.True(t, ok)
+	require.NoError(t, tcpConn.CloseWrite())
 
 	response, err := io.ReadAll(clientConn)
 	require.NoError(t, err)
@@ -456,7 +458,8 @@ func TestRelay_FullDuplexThroughWrappers(t *testing.T) {
 		close(relayDone)
 	}()
 
-	clientTCP := clientRawConn.(*net.TCPConn)
+	clientTCP, ok := clientRawConn.(*net.TCPConn)
+	require.True(t, ok)
 	payload := bytes.Repeat([]byte("A"), 10*1024)
 	_, err = clientTCP.Write(payload)
 	require.NoError(t, err)
@@ -1160,7 +1163,9 @@ func TestRun_PublishesBeforeServingAndTunnels(t *testing.T) {
 	conn, br := connectTunnel(t, addr, backend.Addr().String())
 	_, err = conn.Write(bytes.Repeat([]byte("A"), 1024))
 	require.NoError(t, err)
-	require.NoError(t, conn.(*net.TCPConn).CloseWrite())
+	tcpConn, ok := conn.(*net.TCPConn)
+	require.True(t, ok)
+	require.NoError(t, tcpConn.CloseWrite())
 	got, err := io.ReadAll(br)
 	require.NoError(t, err)
 	assert.Equal(t, response, string(got))
