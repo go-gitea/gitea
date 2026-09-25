@@ -1594,8 +1594,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			m.Post("/rerun-failed", reqRepoActionsWriter, actions.RerunFailed)
 		})
-		m.Get("/artifacts/{artifact_id}/preview", reqSignIn, actions.ArtifactsPreviewView)
-		m.Get("/artifacts/{artifact_id}/preview/*", reqSignIn, actions.ArtifactsPreviewView)
+		// signed-in only: previews render user-generated HTML under the instance domain, keep it from anonymous visitors and crawlers
+		m.Group("/artifacts/{artifact_id}/preview", func() {
+			m.Get("", actions.ArtifactsPreviewView)
+			m.Get("/*", actions.ArtifactsPreviewView)
+		}, reqSignIn)
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", webAuth.AllowBasic, webAuth.AllowOAuth2, actions.GetWorkflowBadge)
 		})
