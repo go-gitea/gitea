@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
+	"slices"
 	"sort"
 	"time"
 
@@ -25,6 +26,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 	distTags := make(map[string]string)
 	times := make(map[string]time.Time)
 	firstPublished, lastPublished := pds[0].Version.CreatedUnix, pds[0].Version.CreatedUnix
+	var latest *packages_model.PackageDescriptor
 	for _, pd := range pds {
 		semVer := pd.SemVer.String()
 		versions[semVer] = createPackageMetadataVersion(registryURL, pd)
@@ -35,6 +37,9 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 		for _, pvp := range pd.VersionProperties {
 			if pvp.Name == npm_module.TagProperty {
 				distTags[pvp.Value] = pd.Version.Version
+				if pvp.Value == "latest" {
+					latest = pd
+				}
 			}
 		}
 	}
@@ -43,7 +48,16 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 	times["created"] = firstPublished.AsTimeInLocation(time.UTC)
 	times["modified"] = lastPublished.AsTimeInLocation(time.UTC)
 
-	latest := pds[len(pds)-1]
+	if latest == nil { // yarn and pnpm fail without it, e.g. after its version got deleted
+		latest = pds[len(pds)-1]
+		for _, pd := range slices.Backward(pds) {
+			if pd.SemVer.Prerelease() == "" {
+				latest = pd
+				break
+			}
+		}
+		distTags["latest"] = latest.Version.Version
+	}
 
 	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](latest)
 
@@ -86,13 +100,13 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		PeerDependencies:     metadata.PeerDependencies,
 		PeerDependenciesMeta: metadata.PeerDependenciesMeta,
 		OptionalDependencies: metadata.OptionalDependencies,
-		Readme:               metadata.Readme,
 		Bin:                  metadata.Bin,
 		HasInstallScript:     metadata.HasInstallScript,
 		HasShrinkwrap:        metadata.HasShrinkwrap,
 		Engines:              metadata.Engines,
 		CPU:                  metadata.CPU,
 		OS:                   metadata.OS,
+		Libc:                 metadata.Libc,
 		Directories:          metadata.Directories,
 		Funding:              metadata.Funding,
 		AcceptDependencies:   metadata.AcceptDependencies,
@@ -100,7 +114,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),
-			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.PathEscape(pd.Package.Name), url.PathEscape(pd.Version.Version), url.PathEscape(pd.Files[0].File.LowerName)),
+			Tarball:   fmt.Sprintf("%s/%s/-/%s", registryURL, url.PathEscape(pd.Package.Name), url.PathEscape(pd.Files[0].File.LowerName)), // npm parses name and version from this shape, e.g. for allowScripts
 		},
 	}
 }
