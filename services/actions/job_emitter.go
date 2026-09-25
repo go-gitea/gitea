@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -281,13 +282,26 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	if err != nil {
 		return nil, err
 	}
-	resolver := newJobStatusResolver(jobs, vars)
-
+	var resolver *jobStatusResolver
 	expandedAnyCaller := false
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		for _, job := range jobs {
 			job.Run = run
 		}
+		cancelledJobs, err := cancelFailedMatrixSiblings(ctx, jobs)
+		if err != nil {
+			return err
+		}
+		result.CancelledJobs = append(result.CancelledJobs, cancelledJobs...)
+		for _, cancelledJob := range cancelledJobs {
+			for _, job := range jobs {
+				if job.ID == cancelledJob.ID {
+					job.Status = cancelledJob.Status
+					break
+				}
+			}
+		}
+		resolver = newJobStatusResolver(jobs, vars)
 
 		updates, err := resolver.Resolve(ctx)
 		if err != nil {
@@ -310,6 +324,9 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
 							return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
 						} else if n == 1 {
+							if err := upsertJobErrorSummary(ctx, job, "uses", err); err != nil {
+								return err
+							}
 							log.Warn("unexpandable caller %d has been marked as failed", job.ID)
 							result.UpdatedJobs = append(result.UpdatedJobs, job)
 							// Re-emit so the failed caller's dependents get resolved on the next pass.
@@ -323,10 +340,12 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					} else {
 						expandedAnyCaller = true
 					}
-				case actions_model.StatusSkipped:
-					job.Status = actions_model.StatusSkipped
-					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
+				case actions_model.StatusSkipped, actions_model.StatusFailure:
+					job.Status = status
+					if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
 						return err
+					} else if n == 1 {
+						result.UpdatedJobs = append(result.UpdatedJobs, job)
 					}
 				}
 				continue
@@ -357,8 +376,29 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	if expandedAnyCaller || resolver.matrixChanged {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
-	result.CancelledJobs = resolver.cancelledJobs
+	result.CancelledJobs = append(result.CancelledJobs, resolver.cancelledJobs...)
 	return result, nil
+}
+
+func cancelFailedMatrixSiblings(ctx context.Context, jobs actions_model.ActionJobList) ([]*actions_model.ActionRunJob, error) {
+	var toCancel []*actions_model.ActionRunJob
+	for _, failed := range jobs {
+		if failed.Status != actions_model.StatusFailure || failed.ContinueOnError {
+			continue
+		}
+		siblings := slices.DeleteFunc(slices.Clone(jobs), func(sibling *actions_model.ActionRunJob) bool {
+			return !sibling.IsMatrixSiblingOf(failed) || sibling.Status.IsDone() || slices.Contains(toCancel, sibling)
+		})
+		if len(siblings) == 0 {
+			continue
+		}
+		if failFast, err := failed.GetFailFast(); err != nil {
+			return nil, fmt.Errorf("parse failed matrix job %d: %w", failed.ID, err)
+		} else if failFast {
+			toCancel = append(toCancel, siblings...)
+		}
+	}
+	return actions_model.CancelJobs(ctx, toCancel, false)
 }
 
 type jobStatusResolver struct {
@@ -512,13 +552,9 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			}
 		}
 
-		// Decide whether the job runs at all before expanding a deferred matrix: a job whose needs
-		// failed or were skipped has to be skipped too, not failed for a matrix those needs never
-		// produced the outputs for. An `if:` that reads `matrix.*` cannot be decided this early, so
-		// evaluateJobIf reduces it to that needs gate and the pass below decides it per combination.
+		// decide before expanding, so failed needs skip the job instead of failing its matrix
 		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
 		if err != nil {
-			// TODO: surface deterministic expression errors to users by failing the job with a message.
 			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
@@ -528,7 +564,6 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 		}
 
 		// Expand a needs-dependent matrix now that its needs are done and the job is going to run.
-		wasDeferred := actionRunJob.IsMatrixDeferred
 		siblings, err := expandDeferredMatrix(ctx, actionRunJob, r.vars)
 		if err != nil {
 			// Aborting the pass is required: once the placeholder is claimed as the first combination,
@@ -550,19 +585,6 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 		if len(siblings) > 0 {
 			r.matrixChanged, r.matrixInserted = true, true
 		}
-		if wasDeferred {
-			// This row is now the first combination, and the `if:` can be evaluated.
-			// Gate it on its own combination here, as the siblings will be on the next pass.
-			shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
-			if err != nil {
-				log.Error("evaluateJobIf failed after matrix expansion, job will stay blocked: job: %d, err: %v", id, err)
-				continue
-			}
-			if !shouldStartJob {
-				ret[id] = actions_model.StatusSkipped
-				continue
-			}
-		}
 
 		// A slot-starved job cannot start, skip the following checks.
 		if !slots.available(actionRunJob) {
@@ -570,11 +592,13 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 		}
 
 		// update concurrency and check whether the job can run now
-		err = updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
-		if err != nil {
-			// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed
-			// At the moment there is no way to distinguish them.
-			// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
+		if err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars); errors.Is(err, util.ErrInvalidArgument) {
+			if err := upsertJobErrorSummary(ctx, actionRunJob, "concurrency", err); err != nil {
+				return nil, err
+			}
+			ret[id] = actions_model.StatusFailure
+			continue
+		} else if err != nil {
 			log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
 			continue
 		}
@@ -612,7 +636,7 @@ func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJo
 		}
 	}
 	if err := EvaluateJobConcurrencyFillModel(ctx, actionRunJob.Run, attempt, actionRunJob, vars, nil); err != nil {
-		return fmt.Errorf("evaluate job concurrency: %w", err)
+		return err
 	}
 
 	if _, err := actions_model.UpdateRunJob(ctx, actionRunJob, nil, "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"); err != nil {

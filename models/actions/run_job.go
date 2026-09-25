@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions/jobparser"
@@ -192,30 +193,24 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 
 // ParseJob parses the job structure from the ActionRunJob.WorkflowPayload
 func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
-	if job.IsMatrixDeferred {
-		// The needs were erased before the placeholder was persisted, so jobparser.Parse no longer
-		// recognises the raw matrix it still carries and would re-expand it: see ParseRawSingleWorkflow.
-		_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
-		if err != nil {
-			return nil, fmt.Errorf("job %d deferred matrix placeholder: unable to parse: %w", job.ID, err)
-		}
-		return workflowJob, nil
-	}
-
-	// job.WorkflowPayload is a SingleWorkflow created from an ActionRun's workflow, which exactly contains this job's YAML definition.
-	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
-	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	// read as stored, jobparser.Parse would evaluate the payload again and reset its strategy.job-index
+	_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
 		return nil, fmt.Errorf("job %d single workflow: unable to parse: %w", job.ID, err)
-	} else if len(parsedWorkflows) != 1 {
-		return nil, fmt.Errorf("job %d single workflow: not single workflow", job.ID)
-	}
-	_, workflowJob := parsedWorkflows[0].Job()
-	if workflowJob == nil {
-		// it shouldn't happen, and since the callers don't check nil, so return an error instead of nil
-		return nil, util.ErrorWrap(util.ErrNotExist, "job %d single workflow: payload doesn't contain a job", job.ID)
 	}
 	return workflowJob, nil
+}
+
+func (job *ActionRunJob) IsMatrixSiblingOf(other *ActionRunJob) bool {
+	return job.JobID == other.JobID && job.ParentJobID == other.ParentJobID && job.ID != other.ID
+}
+
+func (job *ActionRunJob) GetFailFast() (bool, error) {
+	parsed, err := job.ParseJob()
+	if err != nil {
+		return false, err
+	}
+	return (&act_model.Strategy{FailFastString: parsed.Strategy.FailFastString}).GetFailFast(), nil
 }
 
 func GetRunJobByRepoAndID(ctx context.Context, repoID, jobID int64) (*ActionRunJob, error) {
@@ -666,12 +661,30 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	case hasPending:
 		return StatusRunning // the run is between jobs that wait on finished ones
 	case hasCancelled:
+		if hasFailure && hasFailFastMatrixFailure(jobs) {
+			return StatusFailure
+		}
 		return StatusCancelled
 	case hasFailure:
 		return StatusFailure
 	default:
 		return StatusUnknown // it shouldn't happen
 	}
+}
+
+func hasFailFastMatrixFailure(jobs []*ActionRunJob) bool {
+	for _, failed := range jobs {
+		if failed.Status != StatusFailure || failed.ContinueOnError || !slices.ContainsFunc(jobs, func(sibling *ActionRunJob) bool {
+			return sibling.IsMatrixSiblingOf(failed) && sibling.Status == StatusCancelled
+		}) {
+			continue
+		}
+		failFast, err := failed.GetFailFast()
+		if err == nil && failFast {
+			return true
+		}
+	}
+	return false
 }
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.

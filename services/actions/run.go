@@ -203,7 +203,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		return nil, nil, false, fmt.Errorf("alloc attempt_job_id: %w", err)
 	}
 
-	job.Name = util.EllipsisDisplayString(job.Name, 255)
+	job.Name = job.DisplayName()
 	runJob := &actions_model.ActionRunJob{
 		RunID:                   run.ID,
 		RunAttemptID:            runAttempt.ID,

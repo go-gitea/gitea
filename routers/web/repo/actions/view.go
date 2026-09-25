@@ -594,7 +594,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	// Hide the Cancel button once a cancel is already in cancelling progress
 	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
-	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && len(jobs) > 0 && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
 		for _, job := range jobs {
@@ -682,7 +682,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		return
 	}
 	if len(summaries) > 0 {
-		jobNameByID := make(map[int64]string, len(jobs))
+		jobNameByID := map[int64]string{0: run.WorkflowID} // a workflow-level summary, such as an invalid workflow file
 		for _, j := range jobs {
 			jobNameByID[j.ID] = j.Name
 		}
@@ -963,6 +963,10 @@ func Rerun(ctx *context_module.Context) {
 	if !checkRunRerunAllowed(ctx, run) {
 		return
 	}
+	if len(jobs) == 0 {
+		ctx.JSONError(ctx.Locale.Tr("actions.runs.no_job"))
+		return
+	}
 
 	currentJob, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if hasPathParam && currentJob == nil {
@@ -1096,7 +1100,7 @@ func getRunViewLink(run *actions_model.ActionRun, attempt *actions_model.ActionR
 }
 
 // getCurrentRunJobsByPathParam resolves the current run view context from path parameters, including the run, optional attempt, and jobs to render.
-// Any error will be written to the ctx, empty jobs will also result in 404 error, then the return values are all nil.
+// Any error will be written to the ctx, then the return values are all nil.
 func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.ActionRun, *actions_model.ActionRunAttempt, []*actions_model.ActionRunJob) {
 	run := getCurrentRunByPathParam(ctx)
 	if ctx.Written() {
@@ -1161,10 +1165,6 @@ func getCurrentRunJobsByPathParam(ctx *context_module.Context) (*actions_model.A
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, resolvedAttemptID)
 	if err != nil {
 		ctx.ServerError("get current jobs", err)
-		return nil, nil, nil
-	}
-	if len(jobs) == 0 {
-		ctx.NotFound(nil)
 		return nil, nil, nil
 	}
 	jobs.SortMatrixGroupsByName()

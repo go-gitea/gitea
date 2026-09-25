@@ -445,7 +445,6 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
   justify-content: space-between;
   align-items: center;
   padding: 16px 16px 8px;
-  background: var(--color-console-bg);
   gap: var(--gap-block);
   flex-wrap: wrap;
   border-bottom: 1px solid var(--color-secondary);
