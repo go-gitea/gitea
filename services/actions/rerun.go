@@ -504,7 +504,7 @@ func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob)
 
 // hasRerunDependency reports whether `job` has a needs-reference that points to a job which is itself being rerun (in rerunAttemptJobIDs)
 // or is an ancestor caller whose subtree is being rerun (in ancestorAttemptJobIDs).
-// Either case means `job` should start in Blocked status.
+// Either case means the needs of `job` may produce different results or outputs in the new attempt.
 func (p *rerunPlan) hasRerunDependency(job *actions_model.ActionRunJob) bool {
 	if len(job.Needs) == 0 {
 		return false
