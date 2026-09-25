@@ -34,8 +34,7 @@
   background: var(--color-active);
 }
 
-#navbar a.item:hover,
-#navbar button.item:hover {
+#navbar :is(a, button).item:not(.dropdown *):hover {
   background: var(--color-nav-hover-bg);
 }
 
