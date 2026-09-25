@@ -8,6 +8,7 @@ import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {moveWithinColumn} from './project-swimlanes.ts';
 
 function updateIssueCount(card: HTMLElement): void {
   const parent = card.parentElement!;
@@ -81,6 +82,53 @@ async function initRepoProjectSortable(): Promise<void> {
   }
 }
 
+async function moveSwimlaneIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
+  const board = to.closest<HTMLElement>('#project-board')!;
+  const columnID = to.getAttribute('data-board')!;
+  const header = board.querySelector(`.project-column[data-id="${CSS.escape(columnID)}"]`)!;
+  const column = JSON.parse(header.getAttribute('data-issue-order')!) as number[];
+  const lane = Array.from(to.querySelectorAll('.issue-card'), (card) => Number(card.getAttribute('data-issue')));
+  const issueID = Number(item.getAttribute('data-issue'));
+  const order = moveWithinColumn(column, lane, issueID);
+  board.inert = true;
+  let saved = false;
+  try {
+    const response = await performFetchActionRequest(to, {
+      url: `${to.getAttribute('data-url')}/move`,
+      method: 'POST',
+      data: {issues: order.map((id, sorting) => ({issueID: id, sorting}))},
+    });
+    if (response) {
+      saved = true;
+      window.location.reload(); // Refresh every copy of multi-label cards.
+    }
+  } finally {
+    if (!saved) {
+      if (oldIndex !== undefined) {
+        item.remove();
+        from.insertBefore(item, from.children.item(oldIndex));
+      }
+      board.inert = false;
+    }
+  }
+}
+
+function initProjectSwimlaneSortable(board: Element): void {
+  for (const cards of board.querySelectorAll<HTMLElement>('.project-swimlane .cards')) {
+    createSortable(cards, {
+      group: `project-label-${cards.getAttribute('data-label-id')}`,
+      onAdd: (event) => {
+        moveSwimlaneIssue(event);
+      },
+      onUpdate: (event) => {
+        moveSwimlaneIssue(event);
+      },
+      delayOnTouchOnly: true,
+      delay: 500,
+    });
+  }
+}
+
 function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit')!;
   const elForm = elModal.querySelector<HTMLFormElement>('form')!;
@@ -116,8 +164,8 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
       elForm.classList.add('is-loading');
       const resp = await performFetchActionRequest(elForm, {url: formLink, method: formMethod, data: formData});
       if (!resp) return;
-      if (!columnId) {
-        window.location.reload(); // newly added column, need to reload the page
+      if (!columnId || writableProjectBoard.classList.contains('project-board-swimlanes')) {
+        window.location.reload();
         return;
       }
 
@@ -182,7 +230,11 @@ export function initRepoProjectsView(): void {
     const writableProjectBoard = document.querySelector('#project-board[data-project-board-writable="true"]');
     if (!writableProjectBoard) return;
 
-    initRepoProjectSortable(); // no await
+    if (writableProjectBoard.classList.contains('project-board-swimlanes')) {
+      initProjectSwimlaneSortable(writableProjectBoard);
+    } else {
+      initRepoProjectSortable(); // no await
+    }
     initRepoProjectColumnEdit(writableProjectBoard);
   });
 }

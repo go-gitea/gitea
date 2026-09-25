@@ -25,6 +25,83 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestProjectLabelSwimlanes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	boardURL := "/user2/repo1/projects/1"
+	resp := MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels"), http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 4, doc.Find(".project-swimlane").Length())
+	assert.Equal(t, 5, doc.Find(".project-swimlane .issue-card").Length())
+	assert.Equal(t, 2, doc.Find(`.project-swimlane[data-label-id="1"] .issue-card`).Length())
+	assert.Equal(t, 1, doc.Find(`.project-swimlane[data-label-id="4"] .issue-card`).Length())
+	assert.Equal(t, 1, doc.Find(`.project-swimlane[data-label-id="0"] .issue-card`).Length())
+	assert.Empty(t, doc.Find(".project-swimlane .tw-cursor-grab").Nodes)
+	assert.Equal(t, "2", strings.TrimSpace(doc.Find(`.project-column[data-id="1"] .project-column-issue-count`).Text()))
+	assert.Contains(t, doc.Find(`.label-filter a[href*="labels=1"]`).First().AttrOr("href", ""), "group_by=labels")
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=1"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, doc.Find(".project-swimlane").Length())
+	assert.Equal(t, 2, doc.Find(".project-swimlane .issue-card").Length())
+	assert.Empty(t, doc.Find(`.project-swimlane[data-label-id="0"]`).Nodes)
+	assert.Contains(t, doc.Find(`.project-group-by a[href*="group_by=labels"]`).AttrOr("href", ""), "labels=1")
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=1%2C2"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 2, doc.Find(".project-swimlane").Length())
+	assert.Equal(t, 3, doc.Find(".project-swimlane .issue-card").Length())
+	assert.Equal(t, 2, doc.Find(`.project-swimlane[data-label-id="1"] .issue-card`).Length())
+	assert.Equal(t, 1, doc.Find(`.project-swimlane[data-label-id="2"] .issue-card`).Length())
+	assert.Equal(t, "2", strings.TrimSpace(doc.Find(`.project-column[data-id="1"] .project-column-issue-count`).Text()))
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=1%2C4"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 3, doc.Find(".project-swimlane .issue-card").Length())
+	assert.Equal(t, "2", strings.TrimSpace(doc.Find(`.project-column[data-id="1"] .project-column-issue-count`).Text()))
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=-1"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 3, doc.Find(".project-swimlane").Length())
+	assert.Empty(t, doc.Find(`.project-swimlane[data-label-id="1"]`).Nodes)
+	assert.Equal(t, 1, doc.Find(`.project-swimlane[data-label-id="4"] .issue-card`).Length())
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=0"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, doc.Find(".project-swimlane").Length())
+	assert.Equal(t, 1, doc.Find(`.project-swimlane[data-label-id="0"] .issue-card`).Length())
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=1%2C2&assignee=%28any%29"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, doc.Find(".project-swimlane .issue-card").Length())
+	assert.Equal(t, 1, doc.Find(`.issue-card[data-issue="1"]`).Length())
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=2&assignee=%28any%29"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Empty(t, doc.Find(".project-swimlane").Nodes)
+	assert.Contains(t, doc.Find(".project-swimlanes-empty").Text(), "Try adjusting your search filters.")
+
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?labels=1%2C2"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Empty(t, doc.Find(".issue-card").Nodes)
+
+	for _, query := range []string{"", "?group_by=unsupported"} {
+		resp = MakeRequest(t, NewRequest(t, "GET", boardURL+query), http.StatusOK)
+		doc = NewHTMLParser(t, resp.Body)
+		assert.Empty(t, doc.Find(".project-swimlane").Nodes)
+		assert.Equal(t, 4, doc.Find(".issue-card").Length())
+	}
+
+	for _, id := range []int64{1, 2} {
+		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: id})
+		label.Name = fmt.Sprintf("topic/%d", id)
+		label.Exclusive = true
+		require.NoError(t, issues_model.UpdateLabel(t.Context(), label))
+	}
+	resp = MakeRequest(t, NewRequest(t, "GET", boardURL+"?group_by=labels&labels=1"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Contains(t, doc.Find(`.label-filter-query-item[data-label-id="2"]`).AttrOr("href", ""), "labels=1%2C2")
+}
+
 func TestPrivateRepoProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
