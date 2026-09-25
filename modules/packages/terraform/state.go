@@ -7,7 +7,6 @@ import (
 	"io"
 
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 )
 
@@ -19,12 +18,10 @@ type State struct {
 	Lineage string `json:"lineage"`
 }
 
-const maxStateSize = 256 * 1024 * 1024
-
 // ParseState parses the required parts of Terraform state file
 func ParseState(r io.Reader) (*State, error) {
 	var state State
-	err := json.NewDecoder(packages.NewLimitedReader(r, maxStateSize)).Decode(&state)
+	err := json.NewDecoder(r).Decode(&state)
 	if err != nil {
 		return nil, err
 	}

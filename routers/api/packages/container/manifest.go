@@ -158,15 +158,10 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 	return handleCreateManifestResult(ctx, err, mci, contentStore, &txRet)
 }
 
-const maxIndexManifests = 256
-
 func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (manifestDigest string, errRet error) {
 	var index oci.Index
 	if err := json.NewDecoder(buf).Decode(&index); err != nil {
 		return "", err
-	}
-	if len(index.Manifests) > maxIndexManifests {
-		return "", errManifestInvalid.WithMessage("Index references too many manifests")
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		return "", err
