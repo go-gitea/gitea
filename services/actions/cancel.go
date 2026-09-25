@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"gitea.dev/actionslib/pkg/expreval"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/actions/jobparser"
 )
 
 // CancelRun cancels a run's cancellable jobs and returns the run's post-cancellation state.
@@ -26,7 +28,7 @@ func ForceCancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*a
 func cancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob, force bool) (*actions_model.ActionRun, error) {
 	var updatedJobs []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(ctx context.Context) (err error) {
-		updatedJobs, err = actions_model.CancelJobs(ctx, jobs, force)
+		updatedJobs, err = actions_model.CancelJobs(ctx, cancellableJobs(run, jobs, force), force)
 		if err != nil {
 			return fmt.Errorf("CancelJobs: %w", err)
 		}
@@ -51,4 +53,29 @@ func cancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 		NotifyWorkflowRunStatusUpdate(ctx, reloaded)
 	}
 	return reloaded, nil
+}
+
+func cancellableJobs(run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob, force bool) []*actions_model.ActionRunJob {
+	if force || (run.Started.IsZero() && !run.Status.In(actions_model.StatusRunning, actions_model.StatusCancelling)) {
+		return jobs
+	}
+	toCancel := make([]*actions_model.ActionRunJob, 0, len(jobs))
+	for _, job := range jobs {
+		if !runsAfterCancellation(job) {
+			toCancel = append(toCancel, job)
+		}
+	}
+	return toCancel
+}
+
+func runsAfterCancellation(job *actions_model.ActionRunJob) bool {
+	if job.Status.IsDone() {
+		return false
+	}
+	parsed, err := job.ParseJob()
+	if err != nil || parsed.If.Value == "" {
+		return false
+	}
+	condition := jobparser.IfExpression(parsed.If.Value)
+	return expreval.CallsFunction(condition, "always") && !expreval.CallsFunction(condition, "cancelled")
 }

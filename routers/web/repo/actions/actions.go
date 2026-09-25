@@ -34,8 +34,6 @@ import (
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
-
-	"go.yaml.in/yaml/v4"
 )
 
 const (
@@ -227,7 +225,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			workflows = append(workflows, workflow)
 			continue
 		}
-		if err := actions.ValidateWorkflowContent(content); err != nil {
+		if _, err := actions.GetEventsFromContent(content); err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
 			continue
@@ -442,12 +440,13 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	}
 
 	ctx.Data["CurWorkflowExists"] = true
-	curWfDispatchCfg := workflowDispatchConfig(curWorkflow)
+	curWfDispatchCfg := curWorkflow.WorkflowDispatchConfig()
 	if curWfDispatchCfg == nil {
 		return
 	}
 
 	ctx.Data["WorkflowDispatchConfig"] = curWfDispatchCfg
+	ctx.Data["WorkflowDispatchInputs"] = curWorkflow.WorkflowDispatchInputs()
 
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
@@ -746,91 +745,6 @@ func loadIsRefDeleted(ctx stdCtx.Context, repoID int64, runs actions_model.RunLi
 		}
 	}
 	return nil
-}
-
-type WorkflowDispatchInput struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Required    bool     `yaml:"required"`
-	Default     string   `yaml:"default"`
-	Type        string   `yaml:"type"`
-	Options     []string `yaml:"options"`
-}
-
-func (i WorkflowDispatchInput) IsDefaultTrue() bool {
-	return util.ParseYamlBool(i.Default)
-}
-
-type WorkflowDispatch struct {
-	Inputs []WorkflowDispatchInput
-}
-
-func workflowDispatchConfig(w *act_model.Workflow) *WorkflowDispatch {
-	switch w.RawOn.Kind {
-	case yaml.ScalarNode:
-		var val string
-		if !decodeNode(w.RawOn, &val) {
-			return nil
-		}
-		if val == "workflow_dispatch" {
-			return &WorkflowDispatch{}
-		}
-	case yaml.SequenceNode:
-		var val []string
-		if !decodeNode(w.RawOn, &val) {
-			return nil
-		}
-		if slices.Contains(val, "workflow_dispatch") {
-			return &WorkflowDispatch{}
-		}
-	case yaml.MappingNode:
-		var val map[string]yaml.Node
-		if !decodeNode(w.RawOn, &val) {
-			return nil
-		}
-
-		workflowDispatchNode, found := val["workflow_dispatch"]
-		if !found {
-			return nil
-		}
-
-		var workflowDispatch WorkflowDispatch
-		var workflowDispatchVal map[string]yaml.Node
-		if !decodeNode(workflowDispatchNode, &workflowDispatchVal) {
-			return &workflowDispatch
-		}
-
-		inputsNode, found := workflowDispatchVal["inputs"]
-		if !found || inputsNode.Kind != yaml.MappingNode {
-			return &workflowDispatch
-		}
-
-		i := 0
-		for {
-			if i+1 >= len(inputsNode.Content) {
-				break
-			}
-			var input WorkflowDispatchInput
-			if decodeNode(*inputsNode.Content[i+1], &input) {
-				input.Name = inputsNode.Content[i].Value
-				workflowDispatch.Inputs = append(workflowDispatch.Inputs, input)
-			}
-			i += 2
-		}
-		return &workflowDispatch
-
-	default:
-		return nil
-	}
-	return nil
-}
-
-func decodeNode(node yaml.Node, out any) bool {
-	if err := node.Decode(out); err != nil {
-		log.Warn("Failed to decode node %v into %T: %v", node, out, err)
-		return false
-	}
-	return true
 }
 
 func actionsListRedirectURL(repoLink, workflow, scopedWorkflowSourceRepoID, actor, status, branch string) string {
