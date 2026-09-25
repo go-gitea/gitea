@@ -51,7 +51,7 @@ func TestRepoWiki(t *testing.T) {
 
 	t.Run("PathInTag", func(t *testing.T) {
 		rctx := NewRenderContextRepoWiki(t.Context(), repo1, RepoWikiOptions{
-			CurrentTreePath: "my dir",
+			currentTreePath: "my dir",
 		}).WithMarkupType(markdown.MarkupName)
 		rendered, err := testRenderString(rctx, `
 <img src="LINK">

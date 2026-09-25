@@ -251,9 +251,9 @@ func renderViewPage(ctx *context.Context) (*git.Repository, string) {
 		return nil, ""
 	}
 
-	rctx := renderhelper.NewRenderContextRepoWiki(ctx, ctx.Repo.Repository, renderhelper.RepoWikiOptions{CurrentTreePath: path.Dir(pageFilename)})
+	rctx := renderhelper.NewRenderContextRepoWiki(ctx, ctx.Repo.Repository)
 
-	renderFn := func(rctx *markup.RenderContext, data []byte) (escaped *charset.EscapeStatus, output template.HTML, err error) {
+	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output template.HTML, err error) {
 		buf := &htmlutil.HTMLBuilder{}
 		markupRd, markupWr := io.Pipe()
 		defer markupWr.Close()
@@ -271,7 +271,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, string) {
 		return escaped, output, err
 	}
 
-	ctx.Data["EscapeStatus"], ctx.Data["WikiContentHTML"], err = renderFn(rctx, data)
+	ctx.Data["EscapeStatus"], ctx.Data["WikiContentHTML"], err = renderFn(data)
 	if err != nil {
 		ctx.ServerError("Render", err)
 		return nil, ""
@@ -283,15 +283,12 @@ func renderViewPage(ctx *context.Context) (*git.Repository, string) {
 		ctx.Data["WikiSidebarTocHTML"] = template.HTML(sb.String())
 	}
 
-	// _Sidebar and _Footer live in the wiki root
-	rootRctx := renderhelper.NewRenderContextRepoWiki(ctx, ctx.Repo.Repository)
-
 	if !isSideBar {
 		sidebarContent, _, _, _ := wikiContentsByName(ctx, wikiGitRepo, commit, "_Sidebar")
 		if ctx.Written() {
 			return nil, ""
 		}
-		ctx.Data["WikiSidebarEscapeStatus"], ctx.Data["WikiSidebarHTML"], err = renderFn(rootRctx, sidebarContent)
+		ctx.Data["WikiSidebarEscapeStatus"], ctx.Data["WikiSidebarHTML"], err = renderFn(sidebarContent)
 		if err != nil {
 			ctx.ServerError("Render", err)
 			return nil, ""
@@ -303,7 +300,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, string) {
 		if ctx.Written() {
 			return nil, ""
 		}
-		ctx.Data["WikiFooterEscapeStatus"], ctx.Data["WikiFooterHTML"], err = renderFn(rootRctx, footerContent)
+		ctx.Data["WikiFooterEscapeStatus"], ctx.Data["WikiFooterHTML"], err = renderFn(footerContent)
 		if err != nil {
 			ctx.ServerError("Render", err)
 			return nil, ""

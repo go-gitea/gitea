@@ -12,6 +12,7 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/contexttest"
@@ -99,23 +100,27 @@ func TestWiki(t *testing.T) {
 	})
 	t.Run("Pages", testWikiPages)
 	t.Run("SubdirectoryPage", func(t *testing.T) {
-		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/sub/Page")
-		ctx.SetPathParam("*", "sub/Page")
-		contexttest.LoadUser(t, ctx, 2)
-		contexttest.LoadRepo(t, ctx, 1)
-		require.NoError(t, wiki_service.AddWikiPage(t.Context(), ctx.Doer, ctx.Repo.Repository, "sub/Page", "[link](other) ![](img.png)", testWikiMessage))
-		Wiki(ctx)
-		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-		assert.EqualValues(t, 1, ctx.Data["CommitCount"])
-		assert.Contains(t, ctx.Data["WikiContentHTML"], `href="/user2/repo1/wiki/sub/other"`)
-		assert.Contains(t, ctx.Data["WikiContentHTML"], `src="/user2/repo1/wiki/raw/sub/img.png"`)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		require.NoError(t, wiki_service.AddWikiPage(t.Context(), doer, repo, "sub/Page", "[link](other) ![](sub/img.png)", testWikiMessage))
+		for _, pagePath := range []string{"sub/Page", "sub/Page.md"} {
+			ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/"+pagePath)
+			ctx.SetPathParam("*", pagePath)
+			contexttest.LoadRepo(t, ctx, 1)
+			Wiki(ctx)
+			assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+			assert.EqualValues(t, 1, ctx.Data["CommitCount"])
+			assert.Contains(t, ctx.Data["WikiContentHTML"], `href="/user2/repo1/wiki/other"`)
+			assert.Contains(t, ctx.Data["WikiContentHTML"], `src="/user2/repo1/wiki/raw/sub/img.png"`)
 
-		ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/sub/Page?action=_revision")
-		ctx.SetPathParam("*", "sub/Page")
-		contexttest.LoadRepo(t, ctx, 1)
-		WikiRevision(ctx)
-		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-		assert.EqualValues(t, 1, ctx.Data["CommitCount"])
+			ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/"+pagePath+"?action=_revision")
+			ctx.SetPathParam("*", pagePath)
+			contexttest.LoadRepo(t, ctx, 1)
+			WikiRevision(ctx)
+			assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+			assert.EqualValues(t, 1, ctx.Data["CommitCount"])
+			assert.Len(t, ctx.Data["Commits"], 1)
+		}
 	})
 	t.Run("NewWiki", testNewWiki)
 	t.Run("NewWikiPost", testNewWikiPost)
