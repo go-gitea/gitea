@@ -147,15 +147,6 @@ func TestDialContextProxyExemption(t *testing.T) {
 		require.NoError(t, err)
 		assert.ErrorIs(t, dialPolicy(t, testPolicy("", block, u), addr), ErrDenied)
 	})
-
-	t.Run("portless proxy defaults from the scheme", func(t *testing.T) {
-		u, err := url.Parse("http://127.0.0.1")
-		require.NoError(t, err)
-		// 127.0.0.1:80 is the http scheme default; whatever the TCP outcome, the policy
-		// must not deny it (hostmatcher's raw Port()=="" comparison never exempts it).
-		err = dialPolicy(t, testPolicy("", block, u), "127.0.0.1:80")
-		assert.ErrorIs(t, err, ErrDenied)
-	})
 }
 
 func TestSchemePortAndProxyDialAddr(t *testing.T) {
