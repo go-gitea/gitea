@@ -4,10 +4,15 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -96,6 +101,11 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		"workflow":          run.WorkflowID,                           // string, The name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
 		"workspace":         "",                                       // string, The default working directory on the runner for steps, and the default location of your repository when using the checkout action.
 
+		"actor_id":            strconv.FormatInt(run.TriggerUserID, 10),
+		"repository_id":       strconv.FormatInt(run.RepoID, 10),
+		"repository_owner_id": strconv.FormatInt(run.Repo.OwnerID, 10),
+		"workflow_sha":        run.WorkflowCommitSHA,
+
 		// additional contexts
 		"gitea_default_actions_url": setting.Actions.DefaultActionsURL.URL(),
 	}
@@ -164,9 +174,9 @@ type TaskNeed struct {
 
 // FindTaskNeeds finds the `needs` for the task by the task's job.
 // Lookup is scoped to the same ParentJobID.
-func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, error) {
+func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, map[string][]*actions_model.ActionRunJob, error) {
 	if len(job.Needs) == 0 {
-		return nil, nil //nolint:nilnil // return nil when the job has no needs
+		return nil, nil, nil
 	}
 	needs := container.SetOf(job.Needs...)
 
@@ -178,7 +188,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 
 	jobs, err := db.Find[actions_model.ActionRunJob](ctx, findOpts)
 	if err != nil {
-		return nil, fmt.Errorf("FindRunJobs: %w", err)
+		return nil, nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
 
 	jobIDJobs := make(map[string][]*actions_model.ActionRunJob)
@@ -199,9 +209,10 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		if !needs.Contains(jobID) {
 			continue
 		}
+		sortJobsByCompletion(jobsWithSameID)
 		var jobOutputs map[string]string
 		for _, candidate := range jobsWithSameID {
-			if !candidate.Status.IsDone() {
+			if !candidate.Status.IsDone() || candidate.IsReusableCaller && candidate.Status != actions_model.StatusSuccess {
 				continue
 			}
 			var outputs map[string]string
@@ -212,7 +223,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 				outputs, err = loadJobTaskOutputs(ctx, candidate)
 			}
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if len(jobOutputs) == 0 {
 				jobOutputs = outputs
@@ -225,7 +236,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 			Result:  actions_model.AggregateJobStatus(jobsWithSameID),
 		}
 	}
-	return ret, nil
+	return ret, jobIDJobs, nil
 }
 
 // computeReusableCallerOutputs returns the workflow_call outputs of a reusable caller by recursing into its child subtree.
@@ -240,7 +251,7 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	if err := caller.LoadRun(ctx); err != nil {
 		return nil, err
 	}
-	wcSpec, err := jobparser.ParseWorkflowCallSpec(caller.ReusableWorkflowContent)
+	wcSpec, err := jobparser.ParseWorkflowCallConfig(caller.ReusableWorkflowContent)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +260,8 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	}
 
 	// Per-job outputs over the children of this caller.
-	jobOutputs := make(jobparser.JobOutputs, len(directChildren))
+	sortJobsByCompletion(directChildren)
+	jobOutputs := make(map[string]*model.WorkflowCallResult, len(directChildren))
 	for _, child := range directChildren {
 		var outs map[string]string
 		switch {
@@ -262,10 +274,9 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 			return nil, err
 		}
 		if existing, ok := jobOutputs[child.JobID]; ok {
-			jobOutputs[child.JobID] = mergeTwoOutputs(outs, existing)
-		} else {
-			jobOutputs[child.JobID] = outs
+			outs = mergeTwoOutputs(outs, existing.Outputs)
 		}
+		jobOutputs[child.JobID] = &model.WorkflowCallResult{Outputs: outs}
 	}
 
 	// build contexts for evaluating outputs
@@ -288,7 +299,19 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 		}
 	}
 
-	return jobparser.EvaluateWorkflowCallOutputs(wcSpec, gitCtx.ToGitHubContext(), vars, inputs, jobOutputs)
+	// See `on.workflow_call.outputs.<output_id>.value` in https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability
+	return expreval.New(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{
+		Github: gitCtx.ToGitHubContext(),
+		Jobs:   &jobOutputs,
+		Vars:   vars,
+		Inputs: inputs,
+	}, exprparser.Config{}).Evaluate).EvaluateWorkflowCallOutputs(wcSpec)
+}
+
+func sortJobsByCompletion(jobs []*actions_model.ActionRunJob) {
+	slices.SortFunc(jobs, func(left, right *actions_model.ActionRunJob) int {
+		return cmp.Or(cmp.Compare(left.Stopped, right.Stopped), cmp.Compare(left.ID, right.ID))
+	})
 }
 
 // loadJobTaskOutputs returns the task-output map of `job`.
@@ -312,56 +335,18 @@ func loadJobTaskOutputs(ctx context.Context, job *actions_model.ActionRunJob) (m
 // Values with the same output name may be overridden. The user should ensure the output names are unique.
 // See https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#using-job-outputs-in-a-matrix-job
 func mergeTwoOutputs(o1, o2 map[string]string) map[string]string {
-	ret := make(map[string]string, len(o1))
+	ret := make(map[string]string, len(o1)+len(o2))
+	maps.Copy(ret, o2)
 	for k1, v1 := range o1 {
-		if len(v1) > 0 {
+		if len(v1) > 0 || ret[k1] == "" {
 			ret[k1] = v1
-		} else {
-			ret[k1] = o2[k1]
 		}
 	}
 	return ret
 }
 
-func contextMapValueOrDefault[T any](m map[string]any, key string, defaultValue T) T {
-	if value, ok := m[key]; ok {
-		if v, ok := value.(T); ok {
-			return v
-		}
-	}
-	return defaultValue
-}
-
 func (g *GiteaContext) ToGitHubContext() *model.GithubContext {
-	return &model.GithubContext{
-		Event:            contextMapValueOrDefault(*g, "event", map[string]any(nil)),
-		EventPath:        contextMapValueOrDefault(*g, "event_path", ""),
-		Workflow:         contextMapValueOrDefault(*g, "workflow", ""),
-		RunID:            contextMapValueOrDefault(*g, "run_id", ""),
-		RunNumber:        contextMapValueOrDefault(*g, "run_number", ""),
-		Actor:            contextMapValueOrDefault(*g, "actor", ""),
-		Repository:       contextMapValueOrDefault(*g, "repository", ""),
-		EventName:        contextMapValueOrDefault(*g, "event_name", ""),
-		Sha:              contextMapValueOrDefault(*g, "sha", ""),
-		Ref:              contextMapValueOrDefault(*g, "ref", ""),
-		RefName:          contextMapValueOrDefault(*g, "ref_name", ""),
-		RefType:          contextMapValueOrDefault(*g, "ref_type", ""),
-		HeadRef:          contextMapValueOrDefault(*g, "head_ref", ""),
-		BaseRef:          contextMapValueOrDefault(*g, "base_ref", ""),
-		Token:            "", // deliberately omitted for security
-		Workspace:        contextMapValueOrDefault(*g, "workspace", ""),
-		Action:           contextMapValueOrDefault(*g, "action", ""),
-		ActionPath:       contextMapValueOrDefault(*g, "action_path", ""),
-		ActionRef:        contextMapValueOrDefault(*g, "action_ref", ""),
-		ActionRepository: contextMapValueOrDefault(*g, "action_repository", ""),
-		Job:              contextMapValueOrDefault(*g, "job", ""),
-		JobName:          "", // not present in GiteaContext
-		RepositoryOwner:  contextMapValueOrDefault(*g, "repository_owner", ""),
-		RetentionDays:    contextMapValueOrDefault(*g, "retention_days", ""),
-		RunnerPerflog:    "", // not present in GiteaContext
-		RunnerTrackingID: "", // not present in GiteaContext
-		ServerURL:        contextMapValueOrDefault(*g, "server_url", ""),
-		APIURL:           contextMapValueOrDefault(*g, "api_url", ""),
-		GraphQLURL:       contextMapValueOrDefault(*g, "graphql_url", ""),
-	}
+	githubCtx := model.GithubContextFromMap(*g)
+	githubCtx.Token = "" // deliberately omitted for security
+	return githubCtx
 }

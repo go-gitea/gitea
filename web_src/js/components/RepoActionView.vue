@@ -542,7 +542,7 @@ onBeforeUnmount(() => {
 
 .action-view-right-panel {
   flex: 1; /* fill the right column so the summary graph stretches even without a job-summary section */
-  border: 1px solid var(--color-console-border);
+  border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
   display: flex;
@@ -589,7 +589,7 @@ onBeforeUnmount(() => {
 
 .job-summary-section-header {
   padding: 12px;
-  border-bottom: 1px solid var(--color-console-border);
+  border-bottom: 1px solid var(--color-secondary);
   background: var(--color-console-bg);
   color: var(--color-console-fg);
   font-weight: var(--font-weight-semibold);
@@ -606,7 +606,7 @@ onBeforeUnmount(() => {
   padding: 12px;
   border-radius: var(--border-radius);
   background: var(--color-console-hover-bg);
-  border: 1px solid var(--color-console-border);
+  border: 1px solid var(--color-secondary);
 }
 
 .job-summary-header {
