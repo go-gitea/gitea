@@ -175,8 +175,11 @@ func GetPublicKeyByID(ctx context.Context, keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-// SearchPublicKeyByFingerprint searches by key fingerprint and returns the public key found.
-func SearchPublicKeyByFingerprint(ctx context.Context, fingerprint string) (*PublicKey, error) {
+func SearchPublicKeyForSSH(ctx context.Context, sshPubKey string) (*PublicKey, error) {
+	fingerprint, err := CalcFingerprint(sshPubKey)
+	if err != nil {
+		return nil, err
+	}
 	key := new(PublicKey)
 	has, err := db.GetEngine(ctx).
 		Where("fingerprint = ?", fingerprint).
@@ -189,12 +192,12 @@ func SearchPublicKeyByFingerprint(ctx context.Context, fingerprint string) (*Pub
 	return key, nil
 }
 
-// SearchPublicKeyByContentExact searches content
-// and returns public key found.
-func SearchPublicKeyByContentExact(ctx context.Context, content string) (*PublicKey, error) {
+func SearchPrincipalKey(ctx context.Context, principalKey string) (*PublicKey, error) {
+	// FIXME: this function is wrong, and there is no index on the content column
+	// In the future, the existing principal keys should be migrated to use the fingerprint ("principal:{name}") instead of the content
 	key := new(PublicKey)
 	has, err := db.GetEngine(ctx).
-		Where("content = ?", content).
+		Where("content = ?", principalKey).
 		Get(key)
 	if err != nil {
 		return nil, err
@@ -320,15 +323,10 @@ func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, erro
 	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
 		// Delete keys marked for deletion
 		var sshKeysNeedUpdate bool
-		for _, KeyToDelete := range keys {
-			fingerprint, err := CalcFingerprint(KeyToDelete)
+		for _, sshKeyToDelete := range keys {
+			key, err := SearchPublicKeyForSSH(ctx, sshKeyToDelete)
 			if err != nil {
-				log.Error("CalcFingerprint: %v", err)
-				continue
-			}
-			key, err := SearchPublicKeyByFingerprint(ctx, fingerprint)
-			if err != nil {
-				log.Error("SearchPublicKeyByFingerprint: %v", err)
+				log.Error("SearchPublicKeyForSSH: %v", err)
 				continue
 			}
 			if _, err = db.DeleteByID[PublicKey](ctx, key.ID); err != nil {

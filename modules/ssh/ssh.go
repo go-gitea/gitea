@@ -159,6 +159,7 @@ func keyPermissions(keyID int64) *gossh.Permissions {
 // returned Permissions to the ssh conn once it verified the signature for that key, so a user
 // offering keys A (with a private key) and B (without one) authenticates and is served as A.
 func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.PublicKey) (*gossh.Permissions, error) {
+	sshPubKey := string(gossh.MarshalAuthorizedKey(key))
 	fingerprint := gossh.FingerprintSHA256(key)
 	log.Debug("Handle Public Key: Fingerprint: %s from %s", fingerprint, conn.RemoteAddr())
 
@@ -187,13 +188,13 @@ func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.Pu
 		// look for the exact principal
 	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
-			pkey, err := asymkey_model.SearchPublicKeyByContentExact(ctx, principal)
+			pkey, err := asymkey_model.SearchPrincipalKey(ctx, principal)
 			if err != nil {
 				if asymkey_model.IsErrKeyNotExist(err) {
 					log.Debug("Principal Rejected: %s Unknown Principal: %s", conn.RemoteAddr(), principal)
 					continue principalLoop
 				}
-				log.Error("SearchPublicKeyByContentExact: %v", err)
+				log.Error("SearchPrincipalKey: %v", err)
 				return nil, util.ErrPermissionDenied
 			}
 
@@ -238,7 +239,7 @@ func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.Pu
 
 	log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", conn.RemoteAddr(), fingerprint)
 
-	pkey, err := asymkey_model.SearchPublicKeyByFingerprint(ctx, fingerprint)
+	pkey, err := asymkey_model.SearchPublicKeyForSSH(ctx, sshPubKey)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			log.Warn("Unknown public key: %s from %s", fingerprint, conn.RemoteAddr())

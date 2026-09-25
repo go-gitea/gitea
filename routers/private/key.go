@@ -41,14 +41,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 // and returns the public key found.
 func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
-
-	fingerprint, err := asymkey_model.CalcFingerprint(content)
-	if err != nil {
-		ctx.PrivateInternalErrorf("%v", err)
-		return
-	}
-
-	publicKey, err := asymkey_model.SearchPublicKeyByFingerprint(ctx, fingerprint)
+	publicKey, err := asymkey_model.SearchPublicKeyForSSH(ctx, content)
 	if err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return
