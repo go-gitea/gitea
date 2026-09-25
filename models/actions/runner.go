@@ -66,6 +66,8 @@ type ActionRunner struct {
 	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
 	// Store if this runner supports the StatusCancelling flow
 	HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
+	// Advertised via runner capability workflow-call-original-event
+	HasWorkflowCallOriginalEventSupport bool `xorm:"has_workflow_call_original_event_support NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
