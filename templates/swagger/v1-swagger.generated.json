@@ -30933,7 +30933,8 @@
             "onedev",
             "gitbucket",
             "codebase",
-            "codecommit"
+            "codecommit",
+            "forgejo"
           ],
           "x-go-name": "Service"
         },

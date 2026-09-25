@@ -1,0 +1,9 @@
+Access-Control-Expose-Headers: X-Total-Count
+Cache-Control: max-age=0, private, must-revalidate
+Content-Length: 409
+Content-Type: application/json;charset=utf-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Total-Count: 2
+
+[{"id":2,"title":"v0","description":"","state":"closed","open_issues":0,"closed_issues":0,"created_at":"2026-09-25T01:13:54Z","updated_at":"2026-09-25T01:13:54Z","closed_at":"2026-09-25T01:13:54Z","due_on":null},{"id":1,"title":"v1","description":"first","state":"open","open_issues":1,"closed_issues":0,"created_at":"2026-09-25T01:13:54Z","updated_at":"2026-09-25T01:13:56Z","closed_at":null,"due_on":null}]

@@ -6,6 +6,7 @@ package integration
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -186,10 +187,12 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 		},
 		"CloneURL": {transform: c.replaceRepoName},
 	}
+	compareBaseBranch := maps.Clone(*comparePullRequestBranch)
+	compareBaseBranch["SHA"] = compareField{ignore: true}
 	prs, ok := c.assertEqual("pull_request.yml", []base.PullRequest{}, compareFields{
 		"Assignees": {ignore: true}, // not implemented yet
 		"Head":      {nested: comparePullRequestBranch},
-		"Base":      {nested: comparePullRequestBranch},
+		"Base":      {nested: &compareBaseBranch},
 		"Labels":    {ignore: true}, // because org labels are not handled properly
 	}).([]*base.PullRequest)
 	assert.True(c.t, ok)

@@ -7852,7 +7852,8 @@
               "onedev",
               "gitbucket",
               "codebase",
-              "codecommit"
+              "codecommit",
+              "forgejo"
             ],
             "type": "string",
             "x-go-name": "Service"

@@ -5,6 +5,8 @@ package migrations
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	system_model "gitea.dev/models/system"
@@ -19,6 +21,15 @@ func WarnAndNotice(fmtStr string, args ...any) {
 	if err := system_model.CreateRepositoryNotice(fmt.Sprintf(fmtStr, args...)); err != nil {
 		log.Error("create repository notice failed: ", err)
 	}
+}
+
+// assetBody returns the body of a successful asset download, the uploader closes it
+func assetBody(resp *http.Response, assetID int64) (io.ReadCloser, error) {
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("unexpected status %q downloading asset %d", resp.Status, assetID)
+	}
+	return resp.Body, nil
 }
 
 func hasBaseURL(toCheck, baseURL string) bool {

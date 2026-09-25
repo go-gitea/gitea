@@ -6,8 +6,11 @@ package migrations
 import (
 	"crypto/tls"
 	"net/http"
+	"strconv"
+	"time"
 
 	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -36,7 +39,53 @@ func getMigrationHTTPClient() *http.Client {
 // NewMigrationHTTPTransport returns a HTTP transport for migration. The target is validated against the
 // allow/block lists on both the direct-dial and proxy paths, so a configured proxy cannot be used to
 // reach an otherwise-forbidden target (SSRF).
-func NewMigrationHTTPTransport() *http.Transport {
-	return hostmatcher.NewHTTPTransport("migration", allowList, blockList, proxy.Proxy(), setting.Proxy.ProxyURLFixed,
-		&tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify})
+func NewMigrationHTTPTransport() http.RoundTripper {
+	return retryAfterTransport{hostmatcher.NewHTTPTransport("migration", allowList, blockList, proxy.Proxy(), setting.Proxy.ProxyURLFixed,
+		&tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify})}
+}
+
+// retryAfterTransport waits out rate limits that send a Retry-After, like Codeberg's 429 and GitHub's secondary limit 403
+type retryAfterTransport struct {
+	http.RoundTripper
+}
+
+func (t retryAfterTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	var waited time.Duration
+	for retries := 0; ; retries++ {
+		resp, err := t.RoundTripper.RoundTrip(req)
+		isRateLimited := resp != nil && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusForbidden)
+		if err != nil || !isRateLimited || retries == 5 || (req.Body != nil && req.GetBody == nil) {
+			return resp, err
+		}
+		delay, ok := parseRetryAfter(resp.Header.Get("Retry-After"))
+		if !ok || waited+delay > time.Hour {
+			return resp, nil
+		}
+		waited += delay
+		resp.Body.Close()
+		log.Info("Rate limited by %s, retrying in %s", req.URL.Host, delay)
+		select {
+		case <-req.Context().Done():
+			return nil, req.Context().Err()
+		case <-time.After(delay):
+		}
+		if req.GetBody != nil {
+			body, err := req.GetBody()
+			if err != nil {
+				return nil, err
+			}
+			req = req.Clone(req.Context())
+			req.Body = body
+		}
+	}
+}
+
+func parseRetryAfter(value string) (time.Duration, bool) {
+	if seconds, err := strconv.Atoi(value); err == nil {
+		return time.Duration(seconds) * time.Second, true
+	}
+	if retryAt, err := http.ParseTime(value); err == nil {
+		return time.Until(retryAt), true
+	}
+	return 0, false
 }

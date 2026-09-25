@@ -311,7 +311,7 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 				err := func(attachPath string) error {
 					var rc io.ReadCloser
 					var err error
-					if asset.DownloadURL == nil {
+					if asset.DownloadFunc != nil {
 						rc, err = asset.DownloadFunc()
 						if err != nil {
 							return err

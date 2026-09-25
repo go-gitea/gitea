@@ -32,7 +32,7 @@ func newDumpRepositoryCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:  "git_service",
 				Value: "",
-				Usage: "Git service, git, github, gitea, gitlab. If clone_addr could be recognized, this could be ignored.",
+				Usage: "Git service, git, github, gitea, forgejo, gitlab. If clone_addr could be recognized, this could be ignored.",
 			},
 			&cli.StringFlag{
 				Name:    "repo_dir",
@@ -113,6 +113,8 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 		serviceStr = "gitlab"
 	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitea.com/") {
 		serviceStr = "gitea"
+	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://codeberg.org/") {
+		serviceStr = "forgejo"
 	}
 	if serviceStr == "" {
 		return errors.New("git_service missed or clone_addr cannot be recognized")

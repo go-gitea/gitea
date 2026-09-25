@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/structs"
 
 	"github.com/google/go-github/v92/github"
@@ -108,12 +107,17 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 		}
 	} else {
 		transport := NewMigrationHTTPTransport()
-		transport.Proxy = func(req *http.Request) (*url.URL, error) {
-			req.SetBasicAuth(userName, password)
-			return proxy.Proxy()(req)
+		apiURL, err := url.Parse(baseURL)
+		if err != nil {
+			return nil, err
 		}
 		client := &http.Client{
-			Transport: transport,
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if req.URL.Host == apiURL.Host { // keep the credentials off redirects to asset hosts
+					req.SetBasicAuth(userName, password)
+				}
+				return transport.RoundTrip(req)
+			}),
 		}
 		if err := downloader.addClient(client, baseURL); err != nil {
 			return nil, err
@@ -387,7 +391,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 				if err != nil {
 					return nil, err
 				}
-				return resp.Body, nil
+				return assetBody(resp, assetID)
 			},
 		})
 	}

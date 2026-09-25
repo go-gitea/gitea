@@ -8,10 +8,8 @@
 					<a class="ui card migrate-entry flex-text-block" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
 							{{svg "octicon-mark-github" 184 "tw-p-4"}}
-						{{else if eq .Name "gitlab"}}
-							{{svg "gitea-gitlab" 184 "tw-p-4"}}
-						{{else if eq .Name "gitbucket"}}
-							{{svg "gitea-gitbucket" 184 "tw-p-4"}}
+						{{else if or (eq .Name "gitlab") (eq .Name "gitbucket") (eq .Name "forgejo")}}
+							{{svg (printf "gitea-%s" .Name) 184 "tw-p-4"}}
 						{{else}}
 							{{svg (printf "gitea-%s" .Name) 184}}
 						{{end}}

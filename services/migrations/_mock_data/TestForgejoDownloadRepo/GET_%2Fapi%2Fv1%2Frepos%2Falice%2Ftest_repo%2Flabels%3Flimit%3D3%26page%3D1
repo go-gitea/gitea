@@ -1,0 +1,9 @@
+Access-Control-Expose-Headers: X-Total-Count
+Cache-Control: max-age=0, private, must-revalidate
+Content-Length: 529
+Content-Type: application/json;charset=utf-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Total-Count: 3
+
+[{"id":1,"name":"kind/bug","exclusive":true,"is_archived":false,"color":"ee0701","description":"Something is broken","url":"https://forgejo.example/api/v1/repos/alice/test_repo/labels/1"},{"id":2,"name":"kind/feature","exclusive":true,"is_archived":true,"color":"0e8a16","description":"","url":"https://forgejo.example/api/v1/repos/alice/test_repo/labels/2"},{"id":3,"name":"question","exclusive":false,"is_archived":false,"color":"cc317c","description":"","url":"https://forgejo.example/api/v1/repos/alice/test_repo/labels/3"}]

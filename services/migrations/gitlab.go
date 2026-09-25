@@ -83,6 +83,7 @@ type GitlabDownloader struct {
 	base.NullDownloader
 	client      *gitlab.Client
 	baseURL     string
+	token       string
 	repoID      int64
 	repoName    string
 	iidResolver gitlabIIDResolver
@@ -139,6 +140,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, token string) (
 	return &GitlabDownloader{
 		client:     gitlabClient,
 		baseURL:    baseURL,
+		token:      token,
 		repoID:     gr.ID,
 		repoName:   gr.Name,
 		maxPerPage: 100,
@@ -339,13 +341,14 @@ func (g *GitlabDownloader) convertGitlabRelease(ctx context.Context, rel *gitlab
 					return nil, err
 				}
 				req = req.WithContext(ctx)
+				if g.token != "" {
+					req.Header.Set("Authorization", "Bearer "+g.token)
+				}
 				resp, err := httpClient.Do(req)
 				if err != nil {
 					return nil, err
 				}
-
-				// resp.Body is closed by the uploader
-				return resp.Body, nil
+				return assetBody(resp, assetID)
 			},
 		})
 	}

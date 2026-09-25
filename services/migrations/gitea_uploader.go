@@ -88,6 +88,11 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	return 10
 }
 
+// removeNULs strips NUL bytes, which PostgreSQL text columns reject
+func removeNULs(s string) string {
+	return strings.ReplaceAll(s, "\x00", "")
+}
+
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := user_model.GetUserByName(ctx, g.repoOwner)
@@ -202,7 +207,7 @@ func (g *GiteaLocalUploader) CreateMilestones(ctx context.Context, milestones ..
 		ms := issues_model.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
-			Content:      milestone.Description,
+			Content:      removeNULs(milestone.Description),
 			IsClosed:     milestone.State == "closed",
 			CreatedUnix:  timeutil.TimeStamp(milestone.Created.Unix()),
 			UpdatedUnix:  timeutil.TimeStamp(milestone.Updated.Unix()),
@@ -236,13 +241,15 @@ func (g *GiteaLocalUploader) CreateLabels(ctx context.Context, labels ...*base.L
 			l.Color = color
 		}
 
-		lbs = append(lbs, &issues_model.Label{
+		lb := &issues_model.Label{
 			RepoID:      g.repo.ID,
 			Name:        l.Name,
 			Exclusive:   l.Exclusive,
-			Description: l.Description,
+			Description: removeNULs(l.Description),
 			Color:       l.Color,
-		})
+		}
+		lb.SetArchived(l.Archived)
+		lbs = append(lbs, lb)
 	}
 
 	err := issues_model.NewLabels(ctx, lbs...)
@@ -284,8 +291,8 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			TagName:       release.TagName,
 			LowerTagName:  strings.ToLower(release.TagName),
 			Target:        release.TargetCommitish,
-			Title:         release.Name,
-			Note:          release.Body,
+			Title:         removeNULs(release.Name),
+			Note:          removeNULs(release.Body),
 			IsDraft:       release.Draft,
 			IsPrerelease:  release.Prerelease,
 			IsTag:         false,
@@ -351,7 +358,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 				if rc == nil {
 					return nil
 				}
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+				attach.Size, err = storage.Attachments.Save(attach.RelativePath(), rc, util.Iif[int64](*asset.Size > 0, int64(*asset.Size), -1)) // GitLab links and Forgejo external links report no size
 				rc.Close()
 				return err
 			}()
@@ -418,8 +425,8 @@ func (g *GiteaLocalUploader) CreateIssues(ctx context.Context, issues ...*base.I
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
-			Title:       util.TruncateRunes(issue.Title, 255),
-			Content:     issue.Content,
+			Title:       util.TruncateRunes(removeNULs(issue.Title), 255),
+			Content:     removeNULs(issue.Content),
 			Ref:         issue.Ref,
 			IsClosed:    issue.State == "closed",
 			IsLocked:    issue.IsLocked,
@@ -486,7 +493,7 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 		cm := issues_model.Comment{
 			IssueID:     issue.ID,
 			Type:        issues_model.AsCommentType(comment.CommentType),
-			Content:     comment.Content,
+			Content:     removeNULs(comment.Content),
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
 		}
@@ -773,9 +780,9 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 	issue := issues_model.Issue{
 		RepoID:      g.repo.ID,
 		Repo:        g.repo,
-		Title:       util.TruncateRunes(prTitle, 255),
+		Title:       util.TruncateRunes(removeNULs(prTitle), 255),
 		Index:       pr.Number,
-		Content:     pr.Content,
+		Content:     removeNULs(pr.Content),
 		MilestoneID: milestoneID,
 		IsPull:      true,
 		IsClosed:    pr.State == "closed",
@@ -860,8 +867,9 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 		cm := issues_model.Review{
 			Type:        convertReviewState(review.State),
 			IssueID:     issue.ID,
-			Content:     review.Content,
+			Content:     removeNULs(review.Content),
 			Official:    review.Official,
+			Dismissed:   review.Dismissed,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 		}
@@ -926,7 +934,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			c := issues_model.Comment{
 				Type:        issues_model.CommentTypeCode,
 				IssueID:     issue.ID,
-				Content:     comment.Content,
+				Content:     removeNULs(comment.Content),
 				Line:        int64(line + comment.Position - 1),
 				TreePath:    comment.TreePath,
 				CommitSHA:   comment.CommitID,
