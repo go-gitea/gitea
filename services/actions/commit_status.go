@@ -54,7 +54,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 
 	var pending *pendingJobFilter
-	if slices.ContainsFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.Status.IsPending() }) {
+	if slices.ContainsFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.Status.IsPending() && !job.IsMatrixDeferred }) {
 		pending = newPendingJobFilter(ctx, run)
 	}
 	for _, job := range jobs {
