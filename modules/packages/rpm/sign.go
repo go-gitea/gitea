@@ -15,6 +15,8 @@ import (
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
+// TODO: replace this signer with go-rpmutils once https://github.com/sassoftware/go-rpmutils/pull/44 is released
+
 // SignPackage replaces all OpenPGP signatures with a header-only and a header+payload one, the latter needed by packages without payload digest
 func SignPackage(r io.ReadSeeker, key *packet.PrivateKey) (io.Reader, error) {
 	lead, sig, h, err := readHeaders(r)

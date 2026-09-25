@@ -18,7 +18,7 @@ import (
 )
 
 // https://rpm-software-management.github.io/rpm/manual/format_v4.html
-// TODO: replace this reader and sign.go with go-rpmutils once https://github.com/sassoftware/go-rpmutils/pull/44 is released
+// TODO: replace this reader with go-rpmutils once https://github.com/sassoftware/go-rpmutils/pull/44 is released
 
 var ErrInvalidPackage = util.NewInvalidArgumentErrorf("invalid RPM package")
 
