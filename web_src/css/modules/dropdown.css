@@ -817,8 +817,9 @@ select.ui.dropdown {
   max-height: 2em;
 }
 
-.ui.dropdown .menu > .item > svg {
-  margin-right: 0.78rem;
+/* TODO: MENU-ITEM-FLEX-MARGIN: need to refactor: flex menu items don't need svg margin */
+.ui.dropdown .menu:not(.flex-items-menu) > .item:not(.flex-text-block, .flex-text-inline) > .svg {
+  margin-right: 10px;
 }
 
 /* extend fomantic style '.ui.dropdown > .text > img' to include svg.img */

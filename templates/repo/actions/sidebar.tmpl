@@ -51,13 +51,11 @@
 		{{end}}
 	</div>
 
-	<div class="actions-management">
-		<div class="actions-management-header">{{ctx.Locale.Tr "actions.management"}}</div>
-		<div class="flex-items-block actions-management-list">
-			<a class="item flex-text-block silenced{{if $.PageIsActionsQueue}} selected{{end}}" href="{{$.RepoLink}}/actions/queue">
-				{{svg "octicon-list-ordered" 16 "tw-text-text"}}
-				<span class="gt-ellipsis">{{ctx.Locale.Tr "actions.queue.title"}}</span>
-			</a>
-		</div>
+	<div class="ui fluid secondary vertical menu flex-items-block">
+		<div>{{ctx.Locale.Tr "actions.management"}}</div>
+		<a class="item {{if $.PageIsActionsQueue}}active{{end}}" href="{{$.RepoLink}}/actions/queue">
+			{{svg "octicon-list-ordered" 16 "tw-text-text"}}
+			<span class="gt-ellipsis">{{ctx.Locale.Tr "actions.queue.title"}}</span>
+		</a>
 	</div>
 </div>
