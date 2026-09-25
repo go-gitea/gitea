@@ -242,7 +242,7 @@ func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.Pu
 			log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 			return nil, util.ErrPermissionDenied
 		}
-		log.Error("SearchPublicKeyByFingerprint: %v", err)
+		log.Error("SearchPublicKeyForSSH: %v", err)
 		return nil, util.ErrPermissionDenied
 	}
 
