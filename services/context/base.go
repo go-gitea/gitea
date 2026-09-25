@@ -161,7 +161,7 @@ func (b *Base) Redirect(location string, status ...int) {
 	}
 	// In case the request is made by "fetch-action" module, make JS redirect to the new location
 	// Otherwise, the JS fetch will follow the redirection and read a "login" page, embed it to the current page, which is not expected.
-	if b.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
+	if httplib.IsGiteaFetchActionRequest(b.Req) {
 		b.JSON(http.StatusOK, map[string]any{"redirect": location})
 		return
 	}
@@ -218,10 +218,9 @@ func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 		Locale: middleware.Locale(resp, req),
 		Data:   reqCtx.GetData(),
 	}
-	b.Req = b.Req.WithContext(b)
+	b.Req = httplib.RequestWithContext(b.Req, reqCtx)
 	reqCtx.SetContextValue(BaseContextKey, b)
 	reqCtx.SetContextValue(translation.ContextKey, b.Locale)
-	reqCtx.SetContextValue(httplib.RequestContextKey, b.Req)
 	return b
 }
 

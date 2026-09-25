@@ -45,11 +45,24 @@ func (j jsonProvider) NewEncoder(writer io.Writer) binding.JSONEncoder {
 }
 
 func newFieldError(field reflect.StructField, cls, msg string) *BindingError {
-	return &BindingError{[]string{field.Name}, cls, msg} //nolint:govet // make sure no missing fields
+	return &BindingError{FieldNames: []string{field.Name}, Classification: cls, Message: msg}
+}
+
+func AddValidationError(errs BindingErrors, fieldName, errorMsg string) BindingErrors {
+	errs.Add([]string{fieldName}, ErrCustomMessage, errorMsg)
+	return errs
 }
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules(b *binding.Binder) {
+	b.ClearRules("Email")
+	b.AddRuleNonZero("Email", func(_ context.Context, f *binding.ValidationField) *binding.Error {
+		if !IsEmailAddressValid(f.ValueMustString()) {
+			return newFieldError(f.StructField, binding.ERR_EMAIL, "invalid email")
+		}
+		return nil
+	})
+
 	b.AddRuleNonZero("GitRefName", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
 		if !git.IsValidRefPattern(f.ValueMustString()) {
 			return newFieldError(f.StructField, ErrGitRefName, "GitRefName")
@@ -146,5 +159,5 @@ var Binder = sync.OnceValue(func() *binding.Binder {
 
 type (
 	BindingErrors = binding.Errors
-	BindingError  = binding.Error
+	BindingError  = binding.Error //exhaustruct:enforce
 )

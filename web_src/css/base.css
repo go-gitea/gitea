@@ -324,11 +324,15 @@ a.silenced:hover {
   text-decoration-line: none;
 }
 
+a.disabled {
+  cursor: default;
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
 a.label,
-.ui.search .results a,
 .ui .menu a,
-.ui.cards a.card,
-.issue-keyword a {
+.ui.cards a.card {
   text-decoration-line: none !important;
 }
 
@@ -388,10 +392,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-.ui.comments .comment .metadata {
-  color: var(--color-text-light-2);
-}
-
 .full.height {
   flex-grow: 1;
   padding-bottom: var(--page-space-bottom);
@@ -426,30 +426,11 @@ a.label,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.ui .header > i + .content {
-  padding-left: 0.75rem;
-  vertical-align: middle;
-}
-
 .ui .sha.label {
   font-family: var(--fonts-monospace);
   font-size: 13px;
   font-weight: var(--font-weight-normal);
   flex-shrink: 0;
-}
-
-.ui .button.truncate {
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: top;
-  white-space: nowrap;
-  margin-right: 6px;
-}
-
-.ui.status.buttons .svg {
-  margin-right: 4px;
 }
 
 .ui .migrate {
@@ -462,11 +443,6 @@ a.label,
 
 .ui .migrate a:hover {
   color: var(--color-text) !important;
-}
-
-.user-menu > .item {
-  width: 100%;
-  border-radius: 0 !important;
 }
 
 .color-preview {
@@ -563,24 +539,22 @@ overflow-menu .overflow-menu-popup::after {
   border-bottom-color: var(--color-menu);
 }
 
-overflow-menu .overflow-menu-popup > .item {
-  display: flex;
-  align-items: center;
-  padding: 9px 18px !important;
-  color: var(--color-text) !important;
-  background: transparent !important;
-  text-decoration: none;
-  gap: 10px;
-  width: 100%;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item { /* doubled class beats the host menu's item styles */
+  margin: 0 4px;
+  padding-inline: 8px !important; /* plus the margin, matches the host's tab padding */
+  border: none;
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  width: calc(100% - 8px);
 }
 
-overflow-menu .overflow-menu-popup > .item:hover,
-overflow-menu .overflow-menu-popup > .item:focus {
-  background: var(--color-hover) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:hover,
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:focus {
+  background: var(--color-hover);
 }
 
-overflow-menu .overflow-menu-popup > .item.active {
-  background: var(--color-active) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item.active {
+  background: var(--color-active);
 }
 
 overflow-menu .overflow-menu-items {
@@ -682,24 +656,6 @@ overflow-menu .ui.label:empty {
   vertical-align: top;
 }
 
-.lines-num pre,
-.lines-code pre,
-.lines-num ol,
-.lines-code ol {
-  background-color: inherit;
-  margin: 0;
-  padding: 0 !important;
-}
-
-.lines-num pre li,
-.lines-code pre li,
-.lines-num ol li,
-.lines-code ol li {
-  display: block;
-  width: calc(100% - 1ch);
-  padding-left: 1ch;
-}
-
 .lines-escape {
   width: 0;
   white-space: nowrap;
@@ -715,6 +671,17 @@ overflow-menu .ui.label:empty {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: inherit; /* needed for inline code preview in markup */
+}
+
+.code-inner:has(.diff-line-truncated) {
+  text-decoration: underline dashed 1px;
+  text-underline-offset: 4px;
+}
+
+.code-inner .diff-line-truncated {
+  margin-left: var(--gap-inline);
+  padding: 0 4px;
+  user-select: none;
 }
 
 .blame .code-inner {
@@ -878,7 +845,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.list.flex-items-block > .item,
-.ui.vertical.menu.flex-items-block > .item,
 .ui.vertical.menu .item.flex-text-block,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
