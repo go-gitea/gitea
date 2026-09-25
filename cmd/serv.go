@@ -343,8 +343,8 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 	// Update user key activity.
 	if results.PublicKeyID > 0 {
-		if err = private.UpdatePublicKeyInRepo(ctx, results.PublicKeyID, results.RepoID); err != nil {
-			return fail(ctx, "Failed to update public key", "UpdatePublicKeyInRepo: %v", err)
+		if err = private.UpdatePublicKeyLastUsed(ctx, results.PublicKeyID, results.RepoID); err != nil {
+			return fail(ctx, "Failed to update public key", "UpdatePublicKeyLastUsed: %v", err)
 		}
 	}
 
