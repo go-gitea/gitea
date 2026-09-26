@@ -42,7 +42,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 		assert.NoError(t, issues_model.ChangeIssueContent(t.Context(), pr, d, body, version))
 		unittest.AssertCount(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: pr.ID}, 1)
 	}
-	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: ref.ID})
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: pr.ID})
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
 	// Comment on PR to reopen issue #1
