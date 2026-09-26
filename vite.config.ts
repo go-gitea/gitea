@@ -106,7 +106,7 @@ function iifePlugin(sourceFileName: string): Plugin {
         const result = await build(iifeBuildOpts({sourceFileName, write: false}));
         const output = (Array.isArray(result) ? result[0] : result) as Rolldown.RolldownOutput;
         const chunk = output.output[0];
-        iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, `//# sourceMappingURL=${sourceBaseName}.js.map`);
+        iifeCode = chunk.code.replace(/\/\/# sourceMappingURL=.*/, () => `//# sourceMappingURL=${sourceBaseName}.js.map`);
         const mapAsset = output.output.find((o) => o.fileName.endsWith('.map'));
         iifeMap = mapAsset && 'source' in mapAsset ? String(mapAsset.source) : '';
         iifeModules.clear();
