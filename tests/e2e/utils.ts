@@ -97,6 +97,18 @@ export async function apiCloseIssue(requestContext: APIRequestContext, owner: st
   }), 'apiCloseIssue');
 }
 
+/** Update an existing file's content on a branch (fetches the current blob sha first, as the update API requires it). */
+export async function apiUpdateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message, headers}: {branch?: string; newBranch?: string; message?: string; headers?: Record<string, string>} = {}) {
+  const response = await apiRetry(() => requestContext.get(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}${branch ? `?ref=${encodeURIComponent(branch)}` : ''}`, {
+    headers: headers || apiHeaders(),
+  }), 'apiUpdateFile:getSha');
+  const sha = (await response.json()).sha;
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+    headers: headers || apiHeaders(),
+    data: {content: Buffer.from(content, 'utf8').toString('base64'), sha, branch, new_branch: newBranch, message},
+  }), 'apiUpdateFile');
+}
+
 /** Create a PR via API. Returns the PR index for subsequent operations. */
 export async function apiCreatePR(requestContext: APIRequestContext, owner: string, repo: string, head: string, base: string, title: string, {headers}: {headers?: Record<string, string>} = {}): Promise<number> {
   const response = await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls`, {
