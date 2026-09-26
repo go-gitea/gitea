@@ -95,6 +95,11 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
+	// builds the allow/block lists the clone path validates remote addresses against
+	if err := migrations.Init(); err != nil {
+		return err
+	}
+
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
