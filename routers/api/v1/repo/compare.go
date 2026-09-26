@@ -48,6 +48,14 @@ func CompareDiff(ctx *context.APIContext) {
 	//   enum:
 	//   - diff
 	//   - patch
+	// - name: verification
+	//   in: query
+	//   description: include verification for every commit (disable for speedup, default 'true')
+	//   type: boolean
+	// - name: files
+	//   in: query
+	//   description: include a list of affected files for every commit (disable for speedup, default 'true')
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Compare"
