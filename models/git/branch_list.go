@@ -112,9 +112,6 @@ func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, err
 }
 
 func FindBranchesByRepoAndBranchName(ctx context.Context, repoBranches map[int64]string) (map[int64]string, error) {
-	if len(repoBranches) == 0 {
-		return map[int64]string{}, nil // an empty condition would select the whole table
-	}
 	cond := builder.NewCond()
 	for repoID, branchName := range repoBranches {
 		cond = cond.Or(builder.And(builder.Eq{"repo_id": repoID}, builder.Eq{"name": branchName}))
