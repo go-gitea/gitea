@@ -58,6 +58,7 @@ var (
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
 		DefaultObjectFormat                     string
+		DefaultRejectForcePush                  bool
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
@@ -154,6 +155,7 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		DefaultObjectFormat:                     "sha1",
+		DefaultRejectForcePush:                  false,
 		AllowForkWithoutMaximumLimit:            true,
 		StreamArchives:                          true,
 
