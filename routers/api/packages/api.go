@@ -34,6 +34,7 @@ import (
 	"gitea.dev/routers/api/packages/rubygems"
 	"gitea.dev/routers/api/packages/swift"
 	"gitea.dev/routers/api/packages/terraform"
+	tfmodule "gitea.dev/routers/api/packages/terraform_module"
 	"gitea.dev/routers/api/packages/vagrant"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -129,6 +130,19 @@ func CommonRoutes() *web.Router {
 		&Auth{},
 		&chef.Auth{},
 	}, verifyAuthOptions{})
+
+	// host-level base URL for service discovery, the namespace is the owner
+	r.Group("/-/terraform/modules/{username}/{name}/{provider}", func() {
+		r.Get("/{version}/archive", func(ctx *context.Context) {
+			if !tfmodule.HasValidArchiveSignature(ctx) {
+				reqPackageAccess(perm.AccessModeRead)(ctx)
+			}
+		}, tfmodule.DownloadArchive)
+		r.Get("/versions", reqPackageAccess(perm.AccessModeRead), tfmodule.ListVersions)
+		r.Get("/{version}/download", reqPackageAccess(perm.AccessModeRead), tfmodule.DownloadRedirect)
+		r.Put("/{version}", reqPackageAccess(perm.AccessModeWrite), tfmodule.UploadModule)
+		r.Delete("/{version}", reqPackageAccess(perm.AccessModeWrite), tfmodule.DeleteModule)
+	}, context.UserAssignmentWeb(), context.PackageAssignment())
 
 	r.Group("/{username}", func() {
 		r.Group("/alpine", func() {
