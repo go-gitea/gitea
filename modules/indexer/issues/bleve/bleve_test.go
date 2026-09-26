@@ -77,6 +77,47 @@ func TestBleveIndexerNoAssignee(t *testing.T) {
 	}
 }
 
+func TestBleveIndexerTokenFilter(t *testing.T) {
+	dir := t.TempDir()
+	indexer := NewIndexer(dir)
+	defer indexer.Close()
+
+	_, err := indexer.Init(t.Context())
+	require.NoError(t, err)
+
+	require.NoError(t, indexer.Index(t.Context(),
+		&internal.IndexerData{ID: 1, Title: "fix(packages): SomeThing needs a rewrite (#12345)"},
+		&internal.IndexerData{ID: 2, Title: "add support for mDNS discovery abc1234"},
+	))
+
+	testCases := []struct {
+		name        string
+		keyword     string
+		expectedIDs []int64
+	}{
+		{name: "exact original case", keyword: "SomeThing", expectedIDs: []int64{1}},
+		{name: "case matching original transitions", keyword: "someThing", expectedIDs: []int64{1}},
+		{name: "all lower case", keyword: "something", expectedIDs: []int64{1}},
+		{name: "all upper case", keyword: "SOMETHING", expectedIDs: []int64{1}},
+		{name: "number match", keyword: "12345", expectedIDs: []int64{1}},
+		{name: "number as part", keyword: "1234", expectedIDs: []int64{2}},
+		{name: "sub-word search still works", keyword: "DNS", expectedIDs: []int64{2}},
+		{name: "sub-word search, lower case", keyword: "mdns", expectedIDs: []int64{2}},
+		{name: "keyword is camel case", keyword: "addSupport", expectedIDs: []int64{2}},
+		{name: "keyword not match", keyword: "addsupport", expectedIDs: []int64{}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			result, err := indexer.Search(t.Context(), &internal.SearchOptions{
+				Keyword: testCase.keyword,
+			})
+			require.NoError(t, err)
+			assert.ElementsMatch(t, testCase.expectedIDs, searchResultIDs(result))
+		})
+	}
+}
+
 func searchResultIDs(result *internal.SearchResult) []int64 {
 	ids := make([]int64, 0, len(result.Hits))
 	for _, hit := range result.Hits {

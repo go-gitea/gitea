@@ -9,17 +9,18 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 
 	"xorm.io/builder"
@@ -130,7 +131,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// 2 - check whether the repository with the same storage exists
 	var isExist bool
-	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err = git.IsRepositoryExist(ctx, repo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return nil, err
@@ -154,7 +155,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		cloneOpts.SingleBranch = true
 		cloneOpts.Branch = opts.SingleBranch
 	}
-	if err = gitrepo.Clone(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
+	if err = git.CloneManaged(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
 		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nError: %v", repo, opts.BaseRepo, err)
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
@@ -165,13 +166,13 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// 5 - Create hooks
-	if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+	if err = git.CreateDelegateHooks(ctx, repo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
 	// 6 - Sync the repository branches and tags
 	var gitRepo *git.Repository
-	gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err = git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -211,7 +212,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Repository) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repo, err := repo_model.GetRepositoryByID(ctx, repo.ID)
 		if err != nil {
 			return err
@@ -229,13 +230,23 @@ func ConvertForkToNormalRepository(ctx context.Context, repo *repo_model.Reposit
 		repo.IsFork = false
 		repo.ForkID = 0
 		return repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fork", "fork_id")
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryConvertFork, repo)
+
+	return nil
 }
 
 type findForksOptions struct {
 	db.ListOptions
 	RepoID int64
 	Doer   *user_model.User
+}
+
+func (opts findForksOptions) ToOrders() string {
+	return "id"
 }
 
 func (opts findForksOptions) ToConds() builder.Cond {

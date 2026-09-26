@@ -151,7 +151,7 @@ export class IssueSidebarComboList {
     }
   }
 
-  async onItemClick(elItem: HTMLElement, e: Event) {
+  onItemClick(elItem: HTMLElement, e: Event) {
     e.preventDefault();
     if (elItem.hasAttribute('data-can-change') && elItem.getAttribute('data-can-change') !== 'true') return;
 
@@ -184,7 +184,7 @@ export class IssueSidebarComboList {
     this.onChange();
   }
 
-  async onHide() {
+  onHide() {
     if (this.selectionMode === 'multiple') this.doUpdate();
   }
 

@@ -1,31 +1,70 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "schedule:weekly", // dependency update PR on monday, vulnerabilityAlerts bypasses this
+  ],
   "configMigration": true,
   "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix", "custom.regex", "dockerfile"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
-  "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
+  "separateMajorMinor": false, // include major updates in group PRs
   "minimumReleaseAge": "5 days",
+  "postUpdateOptions": ["gomodUpdateImportPaths", "pnpmDedupe"],
+  "constraints": {"gomodMod": "v0.10.0"},
   "semanticCommits": "enabled",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
+    "semanticCommitType": "fix", // overrides packageRules
+  },
+  "postUpgradeTasks": {
+    "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
+    "installTools": {
+      "golang": {},
+      "node": {},
+      "pnpm": {},
+    },
+    "fileFilters": [
+      "go.mod",
+      "go.sum",
+      "assets/go-licenses.json",
+      "assets/codemirror-languages.json",
+      "public/assets/img/svg/**",
+      "options/fileicon/**",
+    ],
+    "executionMode": "branch",
   },
   "customManagers": [
     {
       "customType": "regex",
+      "managerFilePatterns": ["/(^|/)\\.(gitea|github)/(workflows|actions)/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "[A-Za-z0-9_]+_VERSION[ \\t]*:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+) depName=(?<depName>\\S+)(?: (?:lookupName|packageName)=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?(?: registryUrl=(?<registryUrl>\\S+))?",
+      ],
+    },
+    {
+      "customType": "regex",
       "managerFilePatterns": ["/(^|/)Makefile$/"],
       "matchStrings": [
-        "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
+        "(?<packageName>(?<depName>[^\\s/=@]+(?:/[^\\s/@]+){2})(?:/v[0-9]+)?)(?:/[^\\s@]+)?@(?<currentValue>v\\S+)\\s+# renovate: datasource=(?<datasource>go)",
+      ],
+      "autoReplaceStringTemplate": "{{{depName}}}{{#unless (or (equals newMajor 0) (equals newMajor 1))}}/v{{{newMajor}}}{{/unless}}{{{replace '^[^/]+(?:/[^/@]+){2}(?:/v[0-9]+)?(/[^@]*)?@.*$' '$1' replaceString}}}@{{{newValue}}} # renovate: datasource=go",
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Makefile$/"],
+      "matchStrings": [
         "[A-Z_]+_IMAGE\\s*\\?=\\s*(?<depName>[^:\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)\\s+# renovate: datasource=(?<datasource>\\S+)",
       ],
     },
   ],
   "packageRules": [
     {
-      "groupName": "action dependencies",
-      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["*"],
+      "groupName": "dependencies", // single weekly PR for all dependency updates
+      "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
     },
     {
       "matchPackageNames": ["@mcaptcha/vanilla-glue"],
@@ -40,20 +79,16 @@
       "allowedVersions": "^3", // need to migrate
     },
     {
-      "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
-      "allowedVersions": "<1.21.0", // v1.21.0+ uses API version unsupported by Azurite in CI
+      "matchPackageNames": ["@citation-js/core", "@citation-js/plugin-bibtex", "@citation-js/plugin-csl"],
+      "allowedVersions": "<0.8", // https://github.com/citation-js/citation-js/pull/277
     },
     {
-      "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"],
-      "allowedVersions": "<1.6.4", // v1.6.4+ uses API version unsupported by Azurite in CI
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "^6", // typescript-eslint is not yet compatible with typescript 7
     },
     {
-      "matchPackageNames": ["github.com/microsoft/go-mssqldb"],
-      "allowedVersions": "<=1.9.7", // downgraded with Azure SDK
-    },
-    {
-      "matchPackageNames": ["go.yaml.in/yaml/v4"],
-      "allowedVersions": "<4.0.0-rc.4", // rc.4 changes block scalar serialization, wait for stable release
+      "matchPackageNames": ["github.com/yuin/goldmark"],
+      "allowedVersions": "<2.0.0", // v2 is a rewrite, the markdown renderer and extensions need a migration
     },
     {
       "matchPackageNames": ["postgres"],
@@ -68,49 +103,29 @@
       "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
     },
     {
-      "groupName": "go dependencies",
-      "matchManagers": ["gomod"],
-      "postUpdateOptions": ["gomodUpdateImportPaths"],
-      "postUpgradeTasks": {
-        "commands": ["make tidy"],
-        "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
-        "executionMode": "branch",
-      },
+      "matchPackageNames": ["elasticsearch"],
+      "allowedVersions": "/^8($|[.-])/", // pin to oldest supported major
     },
     {
-      "groupName": "tool dependencies",
-      "matchManagers": ["custom.regex"],
-      "matchFileNames": ["**/Makefile"],
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["mcr.microsoft.com/**"],
+      "minimumReleaseAgeBehaviour": "timestamp-optional", // registry has no release timestamps, https://github.com/renovatebot/renovate/issues/38656
     },
     {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"],
+      "matchDepTypes": ["golang", "toolchain"], // fast-track go and toolchain in their own PR
+      "groupName": "golang",
       "rangeStrategy": "bump",
       "schedule": ["at any time"],
       "minimumReleaseAge": "0",
     },
     {
-      "groupName": "npm dependencies",
-      "matchManagers": ["npm"],
-      "postUpdateOptions": ["pnpmDedupe"],
-      "postUpgradeTasks": {
-        "commands": ["make svg"],
-        "fileFilters": ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "public/assets/img/svg/**"],
-        "executionMode": "branch",
-      },
-    },
-    {
-      "groupName": "python dependencies",
-      "matchManagers": ["pep621"],
-    },
-    {
-      "groupName": "nix dependencies",
-      "matchManagers": ["nix"],
-    },
-    {
-      "groupName": "docker dependencies",
-      "matchManagers": ["dockerfile"],
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "matchUpdateTypes": ["patch", "major"], // go minimum bumps on minor only
+      "enabled": false,
     },
   ],
 }

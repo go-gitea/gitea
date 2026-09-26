@@ -15,8 +15,11 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	"gitea.dev/tests"
 
@@ -42,7 +45,8 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(ctx, unit_model.TypeExternalTracker); err == nil {
+	}
+	if unit, err := repo.GetUnit(ctx, unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -460,6 +464,10 @@ func TestAPIRepoEdit(t *testing.T) {
 
 		require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
 
+		defer migrations.Init()
+		defer test.MockVariableValue(&setting.Migrations.AllowedDomains, "*")()
+		_ = migrations.Init()
+
 		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", mirrorRepo.OwnerName, mirrorRepo.Name), &api.EditRepoOption{
 			MirrorPassword: &newPassword,
 		}).AddTokenAuth(token2)
@@ -471,7 +479,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 		assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
 
-		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		remoteURL, err := git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
 		require.NoError(t, err)
 		require.NotNil(t, remoteURL.User)
 		assert.Equal(t, "existing-user", remoteURL.User.Username())
@@ -495,7 +503,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		updatedRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 		assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
 
-		remoteURL, err = gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		remoteURL, err = git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
 		require.NoError(t, err)
 		require.NotNil(t, remoteURL.User)
 		assert.Empty(t, remoteURL.User.Username())
@@ -521,7 +529,7 @@ func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 		AllowMergeUpdate:  &allowMergeUpdate,
 		AllowRebaseUpdate: &allowRebaseUpdate,
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	allowRebaseUpdate = true
 	defaultUpdateStyle := string(repo_model.UpdateStyleMerge)
@@ -530,5 +538,5 @@ func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 		AllowRebaseUpdate:  &allowRebaseUpdate,
 		DefaultUpdateStyle: &defaultUpdateStyle,
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusBadRequest)
 }

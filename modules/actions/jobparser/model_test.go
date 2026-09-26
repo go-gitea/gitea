@@ -4,10 +4,12 @@
 package jobparser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
-	"gitea.com/gitea/runner/act/model"
+	"gitea.dev/actionslib/pkg/model"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
@@ -15,9 +17,18 @@ import (
 
 func TestParseRawOn(t *testing.T) {
 	kases := []struct {
-		input  string
-		result []*Event
+		input   string
+		result  []*Event
+		wantErr bool
 	}{
+		{input: "on:\n  push:\n    branches:\n      a: b", wantErr: true},
+		{input: "on: [push, {pull_request: null}]", wantErr: true},
+		{input: "on:", wantErr: true},
+		{input: "on: 42", wantErr: true},
+		{input: "jobs: {}", wantErr: true},
+		{input: "on:\n  schedule: []", wantErr: true},
+		{input: "on:\n  schedule:\n    - {}", wantErr: true},
+		{input: "on:\n  schedule:\n    - cron: nope", wantErr: true},
 		{
 			input: "on: issue_comment",
 			result: []*Event{
@@ -188,13 +199,14 @@ func TestParseRawOn(t *testing.T) {
 			},
 		},
 		{
-			input: "on:\n  schedule:\n    - cron: '20 6 * * *'",
+			input: "on:\n  schedule:\n    - cron: '20 6 * * *'\n      timezone: UTC",
 			result: []*Event{
 				{
 					Name: "schedule",
 					schedules: []map[string]string{
 						{
-							"cron": "20 6 * * *",
+							"cron":     "20 6 * * *",
+							"timezone": "UTC",
 						},
 					},
 				},
@@ -226,28 +238,6 @@ func TestParseRawOn(t *testing.T) {
 			result: []*Event{
 				{
 					Name: "workflow_dispatch",
-					inputs: []WorkflowDispatchInput{
-						{
-							Name:        "logLevel",
-							Description: "Log level",
-							Required:    true,
-							Default:     "warning",
-							Type:        "choice",
-							Options:     []string{"info", "warning", "debug"},
-						},
-						{
-							Name:        "tags",
-							Description: "Test scenario tags",
-							Required:    false,
-							Type:        "boolean",
-						},
-						{
-							Name:        "environment",
-							Description: "Environment to run tests against",
-							Type:        "environment",
-							Required:    true,
-						},
-					},
 				},
 				{
 					Name: "push",
@@ -308,6 +298,10 @@ func TestParseRawOn(t *testing.T) {
 			assert.NoError(t, err)
 
 			events, err := ParseRawOn(&origin.RawOn)
+			if kase.wantErr {
+				assert.Error(t, err)
+				return
+			}
 			assert.NoError(t, err)
 			assert.Equal(t, kase.result, events, events)
 		})
@@ -463,4 +457,80 @@ func TestParseMappingNode(t *testing.T) {
 			assert.Equal(t, test.datas, datas, datas)
 		})
 	}
+}
+
+func TestEvaluateJobIfExpression(t *testing.T) {
+	kases := []struct {
+		name       string
+		ifCond     string
+		needResult string
+		expected   bool
+	}{
+		{name: "empty need success", ifCond: "${{ 1 == 1 }}", needResult: "success", expected: true},
+		{name: "always", ifCond: "${{ always() }}", needResult: "failure", expected: true},
+		{name: "failure true", ifCond: "${{ failure() }}", needResult: "failure", expected: true},
+		{name: "failure false", ifCond: "${{ failure() }}", needResult: "success", expected: false},
+		{name: "success true", ifCond: "${{ success() }}", needResult: "success", expected: true},
+		// cancelled() is always false on the server: a cancelled run never evaluates a blocked job's `if:`
+		{name: "cancelled", ifCond: "${{ cancelled() }}", needResult: "success", expected: false},
+		{name: "not cancelled or failure", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "success", expected: true},
+		{name: "not cancelled or failure, need failed", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "failure", expected: false},
+		// a condition is an expression with or without `${{ }}`, literal text around one makes it a string
+		{name: "bare expression", ifCond: "always()", needResult: "failure", expected: true},
+		{name: "literal text keeps the success() default", ifCond: "x ${{ 1 }}", needResult: "failure", expected: false},
+		{name: "literal text around a status function drops it", ifCond: "x ${{ always() }}", needResult: "failure", expected: true},
+	}
+	for _, kase := range kases {
+		t.Run(kase.name, func(t *testing.T) {
+			content := strings.ReplaceAll(`
+name: test
+on: push
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo job1
+  job2:
+    runs-on: ubuntu-latest
+    needs: [job1]
+    if: IF_COND
+    steps:
+      - run: echo job2
+`, "IF_COND", kase.ifCond)
+
+			workflows, err := Parse([]byte(content))
+			require.NoError(t, err)
+
+			var job2 *Job
+			for _, wf := range workflows {
+				if id, job := wf.Job(); id == "job2" {
+					job2 = job
+				}
+			}
+			require.NotNil(t, job2)
+
+			// mirrors findJobNeedsAndFillJobResults: the needs' results plus a self entry carrying Needs
+			results := map[string]*JobResult{
+				"job1": {Result: kase.needResult},
+				"job2": {Needs: []string{"job1"}},
+			}
+			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, kase.expected, got)
+		})
+	}
+
+	t.Run("stored unavailable context", func(t *testing.T) {
+		for condition, wantErr := range map[string]string{
+			"matrix.os == 'a'":          "Unrecognized named-value: 'matrix'",
+			"${{ strategy.fail-fast }}": "Unrecognized named-value: 'strategy'",
+			"secrets.TOKEN != ''":       "Unrecognized named-value: 'secrets'",
+			"${{ matrix.os == }}":       "Unexpected end of expression",
+		} {
+			_, job, err := ParseRawSingleWorkflow(fmt.Appendf(nil, "jobs: {job2: {if: %q, strategy: {matrix: {os: [a]}}}}", condition))
+			require.NoError(t, err)
+			_, err = EvaluateJobIfExpression("job2", job, map[string]any{}, map[string]*JobResult{"job2": {}}, nil, nil)
+			assert.ErrorContains(t, err, wantErr, condition)
+		}
+	})
 }

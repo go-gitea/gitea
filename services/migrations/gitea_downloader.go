@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
@@ -84,7 +85,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		baseURL,
 		gitea_sdk.SetToken(token),
 		gitea_sdk.SetBasicAuth(username, password),
-		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
+		gitea_sdk.SetHTTPClient(newMigrationHTTPClient()),
 	)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %v", baseURL, err))
@@ -273,7 +274,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 		Created:         rel.CreatedAt,
 	}
 
-	httpClient := NewMigrationHTTPClient()
+	httpClient := newMigrationHTTPClient()
 
 	for _, asset := range rel.Attachments {
 		assetID := asset.ID // Don't optimize this, for closure we need a local variable
@@ -472,6 +473,7 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, g.maxPerPage)
+	seenIDs := container.Set[int64]{}
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -488,8 +490,12 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 		if err != nil {
 			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %w", commentable.GetForeignIndex(), err)
 		}
+		if len(comments) == 0 || seenIDs.Contains(comments[0].ID) {
+			break // the endpoint ignores page and limit, so page 2 repeats page 1
+		}
 
 		for _, comment := range comments {
+			seenIDs.Add(comment.ID)
 			reactions, err := g.getCommentReactions(comment.ID)
 			if err != nil {
 				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %v", commentable.GetForeignIndex(), comment.ID, g, err)
@@ -508,7 +514,7 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 			})
 		}
 
-		if !g.pagination || len(comments) < g.maxPerPage {
+		if !g.pagination || len(comments) != g.maxPerPage {
 			break
 		}
 	}

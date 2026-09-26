@@ -14,7 +14,9 @@ import (
 	packages_service "gitea.dev/services/packages"
 )
 
-type Specialization struct{}
+type Specialization struct {
+	packages_service.SpecRenderUsageManual
+}
 
 var _ packages_service.Specialization = (*Specialization)(nil)
 

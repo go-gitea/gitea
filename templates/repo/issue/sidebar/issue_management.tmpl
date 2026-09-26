@@ -4,7 +4,7 @@
 	{{/* Pin issue */}}
 	{{if or .PinEnabled .Issue.IsPinned}}
 		<form class="tw-mt-1 form-fetch-action single-button-form" method="post" {{if $.NewPinAllowed}}action="{{.Issue.Link}}/pin"{{else}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.max_pinned"}}"{{end}}>
-			<button class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
+			<button type="submit" class="fluid ui button {{if not $.NewPinAllowed}}disabled{{end}}">
 				{{if not .Issue.IsPinned}}
 					{{svg "octicon-pin"}}
 					{{ctx.Locale.Tr "pin"}}
@@ -17,7 +17,7 @@
 	{{end}}
 
 	{{/* Lock/unlock conversation */}}
-	<button class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock-conversation">
+	<button type="button" class="tw-mt-1 fluid ui show-modal button{{if .Issue.IsLocked}} red{{end}}" data-modal="#lock-conversation">
 		{{if .Issue.IsLocked}}
 			{{svg "octicon-key"}} {{ctx.Locale.Tr "repo.issues.unlock"}}
 		{{else}}
@@ -66,9 +66,9 @@
 				{{end}}
 
 				<div class="actions">
-					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button type="button" class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					{{/* explicitly focus the submit button, to avoid Fomantic modal focuses and popups the dropdown */}}
-					<button class="ui red button" autofocus>
+					<button type="submit" class="ui red button" autofocus>
 						{{if .Issue.IsLocked}}
 							{{ctx.Locale.Tr "repo.issues.unlock_confirm"}}
 						{{else}}
@@ -79,7 +79,7 @@
 			</form>
 		</div>
 	</div>
-	<button class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
+	<button type="button" class="tw-mt-1 fluid ui show-modal button" data-modal="#sidebar-delete-issue">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "repo.issues.delete"}}
 	</button>

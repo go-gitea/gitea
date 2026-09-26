@@ -22,6 +22,9 @@ func TestTimeStr(t *testing.T) {
 			{"1s", 1, false},
 			{"1h 1m 1s", 3600 + 60 + 1, false},
 			{"1d1x", 0, true},
+			{"1h 2x 3m", 0, true},
+			{"1h_2m", 0, true},
+			{"1h,1m", 0, true},
 		}
 		for _, test := range tests {
 			t.Run(test.input, func(t *testing.T) {

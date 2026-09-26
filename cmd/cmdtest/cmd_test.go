@@ -203,7 +203,7 @@ func TestCliCmdError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 1, r.ExitCode)
 	assert.Empty(t, r.Stdout)
-	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n\n", r.Stderr)
+	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -no-such\n", r.Stderr)
 
 	app = newTestApp(cli.Command{Action: func(ctx context.Context, cmd *cli.Command) error { return nil }})
 	r, err = runTestApp(app, "./gitea", "test-cmd")
@@ -234,4 +234,15 @@ func TestCliCmdBefore(t *testing.T) {
 	assert.Equal(t, ctxNew, actionCtx)
 	assert.Equal(t, "/tmp/any.ini", configValues["before"], "BeforeFunc must be called before preparing config")
 	assert.Equal(t, "/dev/null", configValues["action"])
+}
+
+func TestCliCmdCompletion(t *testing.T) {
+	app := newTestApp(cli.Command{
+		Action: func(ctx context.Context, cmd *cli.Command) error { return nil },
+	})
+	res, err := runTestApp(app, "./gitea", "completion", "bash", "--nonexist")
+	assert.Error(t, err)
+	assert.Equal(t, 1, res.ExitCode)
+	assert.Equal(t, "", res.Stdout)
+	assert.Equal(t, "Incorrect Usage: flag provided but not defined: -nonexist\n", res.Stderr)
 }

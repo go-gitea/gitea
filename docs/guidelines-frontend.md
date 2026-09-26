@@ -6,7 +6,7 @@ and testing see [development.md](development.md) and [testing.md](testing.md).
 
 ## Background
 
-The frontend uses [Vue 3](https://vuejs.org/), [Fomantic-UI](https://fomantic-ui.com/) (built on jQuery)
+The frontend uses [Vue 3](https://vuejs.org/), hard-forked Fomantic-UI (built on jQuery)
 and [Tailwind CSS](https://tailwindcss.com/). Pages are rendered with Go HTML templates.
 Source files live in:
 
@@ -44,8 +44,10 @@ Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
 ## Gitea-specific conventions
 
 - Keep features in their own files or directories.
-- Use kebab-case for HTML `id`s and classes, ideally with 2-3 feature keywords.
+- Use kebab-case for HTML `id`s and classes with 2-3 feature keywords.
 - Prefix classes to avoid short-name conflicts between different frameworks.
+- Our framework can automatically link "input" and "label" if they are the children of a `.field` element,
+  no need to write `id`/`for` attributes for them unless there are reasons to do so.
 - Create a new class name when overriding framework styles instead of editing the framework's own classes,
   or fix the framework's source to fix all cases.
 - Prefer semantic elements such as `<button>` over generic `<div>`s.
@@ -68,16 +70,17 @@ Write class attributes as a single readable unit in templates:
 ## TypeScript
 
 - Use `import type` for type-only imports.
-- Prefer `@ts-expect-error` over `@ts-ignore`.
 - Use the `!` non-null assertion (rather than `?.`/`??`) when a value is known to always exist.
 - Only mark a function `async` when it actually uses `await` or returns a `Promise`.
-  Avoid async event listeners; if unavoidable, call `e.preventDefault()` before the
-  first `await`. For a deliberately un-awaited call, assign it: `const _promise = asyncFoo()`.
+  Avoid async event listeners; if unavoidable, call `e.preventDefault()` before the first `await`.
 
 ## Data fetching
 
 Use the `GET`, `POST`, `PUT`, `PATCH`, and `DELETE` wrappers from
 [`web_src/js/modules/fetch.ts`](../web_src/js/modules/fetch.ts).
+
+Prefer to use our [`fetch-action.ts`](../web_src/js/modules/fetch-action.ts) framework
+for form submissions, button clicks and network requests, which provides a consistent UX and error handling.
 
 ## DOM attributes
 
@@ -86,7 +89,7 @@ in new code. Never bind user-provided data directly onto DOM nodes.
 
 ## Showing and hiding elements
 
-- In Vue, use `v-if` and `v-show`.
+- In Vue, use `v-if` and `v-show`. If an element contains unmanaged DOM, use `v-show` to avoid losing the DOM state.
 - In Go templates and plain JavaScript, use the `.tw-hidden` class together with the
   `showElem()`, `hideElem()`, and `toggleElem()` helpers from
   [`web_src/js/utils/dom.ts`](../web_src/js/utils/dom.ts).

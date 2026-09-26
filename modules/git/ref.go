@@ -4,9 +4,12 @@
 package git
 
 import (
+	"context"
 	"regexp"
+	"strconv"
 	"strings"
 
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -16,6 +19,7 @@ const (
 	RemotePrefix = "refs/remotes/"
 	// PullPrefix is the base directory of the pull information of git.
 	PullPrefix = "refs/pull/"
+	pullSuffix = "/head"
 )
 
 // refNamePatternInvalid is regular expression with unallowed characters in git reference name
@@ -50,8 +54,8 @@ type Reference struct {
 }
 
 // Commit return the commit of the reference
-func (ref *Reference) Commit() (*Commit, error) {
-	return ref.repo.getCommit(ref.Object)
+func (ref *Reference) Commit(ctx context.Context) (*Commit, error) {
+	return ref.repo.getCommit(ctx, ref.Object)
 }
 
 // ShortName returns the short name of the reference
@@ -89,6 +93,10 @@ func RefNameFromCommit(shortName string) RefName {
 		return RefName("refs/invalid-commit/" + shortName)
 	}
 	return RefName(shortName)
+}
+
+func RefNameFromPullIndex(prIndex int64) RefName {
+	return RefName(PullPrefix + strconv.FormatInt(prIndex, 10) + pullSuffix)
 }
 
 func (ref RefName) String() string {
@@ -132,14 +140,21 @@ func (ref RefName) BranchName() string {
 	return ref.nameWithoutPrefix(BranchPrefix)
 }
 
-// PullName returns the pull request name part of refs like refs/pull/<pull_name>/head
-func (ref RefName) PullName() string {
+func (ref RefName) PullIndex() (int64, bool) {
 	refName := string(ref)
-	lastIdx := strings.LastIndexByte(refName[len(PullPrefix):], '/')
-	if strings.HasPrefix(refName, PullPrefix) && lastIdx > -1 {
-		return refName[len(PullPrefix) : lastIdx+len(PullPrefix)]
+	s, ok := strings.CutPrefix(refName, PullPrefix)
+	if !ok {
+		return 0, false
 	}
-	return ""
+	pullStr, last, ok := strings.CutLast(s, "/")
+	if !ok || last != "head" {
+		return 0, false
+	}
+	pullIndex, err := strconv.ParseInt(pullStr, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return pullIndex, true
 }
 
 // ForBranchName returns the branch name part of refs like refs/for/<branch_name>
@@ -163,7 +178,7 @@ func (ref RefName) ShortName() string {
 		return ref.RemoteName()
 	}
 	if ref.IsPull() {
-		return ref.PullName()
+		return strings.TrimSuffix(ref.nameWithoutPrefix(PullPrefix), pullSuffix)
 	}
 	if ref.IsFor() {
 		return ref.ForBranchName()
@@ -209,7 +224,7 @@ func (ref RefName) RefType() RefType {
 		return RefTypeBranch
 	case ref.IsTag():
 		return RefTypeTag
-	case IsStringLikelyCommitID(nil, string(ref), 6):
+	case IsStringValidObjectID(nil, string(ref), 6):
 		return RefTypeCommit
 	}
 	return ""
@@ -240,4 +255,12 @@ func ParseRefSuffix(ref string) (refName, refSuffix string) {
 		return ref, ""
 	}
 	return ref[:suffixIdx], ref[suffixIdx:]
+}
+
+func UpdateRef(ctx context.Context, repo RepositoryFacade, refName, newCommitID string) error {
+	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
+}
+
+func RemoveRef(ctx context.Context, repo RepositoryFacade, refName string) error {
+	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).Run(ctx)
 }

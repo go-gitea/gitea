@@ -7,12 +7,10 @@
 package git
 
 import (
-	"context"
 	"path/filepath"
 
-	gitealog "gitea.dev/modules/log"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
@@ -24,40 +22,21 @@ import (
 
 const isGogit = true
 
-// Repository represents a Git repository.
 type Repository struct {
-	Path string
-
-	tagCache *ObjectCache[*Tag]
+	RepositoryBase
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
-
-	Ctx             context.Context
-	LastCommitCache *LastCommitCache
-	objectFormat    ObjectFormat
 }
 
-// OpenRepository opens the repository at the given path within the context.Context
-func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
-	repoPath, err := filepath.Abs(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	exist, err := util.IsDir(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	if !exist {
-		return nil, util.NewNotExistErrorf("no such file or directory")
-	}
-
+func openRepositoryInternal(gitRepo *Repository) error {
+	repoPath := gitrepo.RepoLocalPath(gitRepo)
 	fs := osfs.New(repoPath)
-	_, err = fs.Stat(".git")
+	_, err := fs.Stat(".git")
 	if err == nil {
 		fs, err = fs.Chroot(".git")
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 	// the "clone --shared" repo doesn't work well with go-git AlternativeFS, https://github.com/go-git/go-git/issues/1006
@@ -68,34 +47,23 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	} else {
 		altFs = osfs.New("/")
 	}
-	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold, AlternatesFS: altFs})
-	gogitRepo, err := gogit.Open(storage, fs)
+	gitRepo.objectFormatCache = ParseGogitHash(plumbing.ZeroHash).Type()
+	gitRepo.gogitStorage = filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold, AlternatesFS: altFs})
+	gitRepo.gogitRepo, err = gogit.Open(gitRepo.gogitStorage, fs)
 	if err != nil {
-		return nil, err
+		_ = gitRepo.gogitStorage.Close()
+		return err
 	}
-
-	return &Repository{
-		Path:         repoPath,
-		gogitRepo:    gogitRepo,
-		gogitStorage: storage,
-		tagCache:     newObjectCache[*Tag](),
-		Ctx:          ctx,
-		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
-	}, nil
+	return nil
 }
 
-// Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() error {
-	if repo == nil || repo.gogitStorage == nil {
+func (repo *Repository) closeInternal() error {
+	if repo.gogitStorage == nil {
 		return nil
 	}
-	if err := repo.gogitStorage.Close(); err != nil {
-		gitealog.Error("Error closing storage: %v", err)
-	}
+	err := repo.gogitStorage.Close()
 	repo.gogitStorage = nil
-	repo.LastCommitCache = nil
-	repo.tagCache = nil
-	return nil
+	return err
 }
 
 // GoGitRepo gets the go-git repo representation

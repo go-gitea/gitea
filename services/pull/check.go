@@ -21,7 +21,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -191,11 +190,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 
 			// * if the doer tries to "Force Merge", check whether it is really allowed
 			if forceMerge {
-				isRepoAdmin, errForceMerge := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
-				if errForceMerge != nil {
-					return fmt.Errorf("IsUserRepoAdmin failed, repo: %v, doer: %v, err: %w", pr.BaseRepoID, doer.ID, errForceMerge)
-				}
-
+				isRepoAdmin := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
 				protectedBranchRule, errForceMerge := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 				if errForceMerge != nil {
 					return fmt.Errorf("GetFirstMatchProtectedBranchRule failed, repo: %v, base branch: %v, err: %w", pr.BaseRepoID, pr.BaseBranch, errForceMerge)
@@ -247,7 +242,7 @@ func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}
@@ -264,7 +259,7 @@ func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest,
 	}
 
 	if mergeStyle != repo_model.MergeStyleFastForwardOnly {
-		if _, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo); err != nil {
+		if _, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo, pr.BaseBranch, pr.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}
@@ -302,7 +297,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 	} else if !exist {
 		return
 	}
-	automergequeue.StartPRCheckAndAutoMerge(ctx, pr)
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 }
 
 // getMergeCommit checks if a pull request has been merged
@@ -316,7 +311,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 	// Check if the pull request is merged into BaseBranch
 	cmd := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(prHeadRef, pr.BaseBranch)
-	if err := gitrepo.RunCmdWithStderr(ctx, pr.BaseRepo, cmd); err != nil {
+	if err := cmd.WithRepo(pr.BaseRepo).RunWithStderr(ctx); err != nil {
 		if gitcmd.IsErrorExitCode(err, 1) {
 			// prHeadRef is not an ancestor of the base branch
 			return nil, nil //nolint:nilnil // return nil to indicate that the PR head is not merged
@@ -328,12 +323,12 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	// If merge-base successfully exits then prHeadRef is an ancestor of pr.BaseBranch
 
 	// Find the head commit id
-	prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pr.BaseRepo, prHeadRef)
+	prHeadCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo, prHeadRef)
 	if err != nil {
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("%-v OpenRepository: %w", pr.BaseRepo, err)
 	}
@@ -346,9 +341,8 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	// rev-list returns one line per merge commit on the ancestry path; we
 	// only want the first one (the oldest, with --reverse, i.e. the merge
 	// commit that actually introduced this PR).
-	mergeCommit, _, err := gitrepo.RunCmdString(ctx, pr.BaseRepo,
-		gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
-			AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch))
+	mergeCommit, _, err := gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
+		AddDynamicArguments(prHeadCommitID + ".." + pr.BaseBranch).WithRepo(pr.BaseRepo).RunStdString(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	}
@@ -360,7 +354,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = prHeadCommitID
 	}
-	commit, err := gitRepo.GetCommit(mergeCommit)
+	commit, err := gitRepo.GetCommit(ctx, mergeCommit)
 	if err != nil {
 		return nil, fmt.Errorf("GetMergeCommit[%s]: %w", mergeCommit, err)
 	}
@@ -370,7 +364,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 func getMergerForManuallyMergedPullRequest(ctx context.Context, pr *issues_model.PullRequest) (*user_model.User, error) {
 	var errs []error
-	if branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
+	if branch, err := git_model.GetBranchExisting(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
 		errs = append(errs, err)
 	} else {
 		err := branch.LoadPusher(ctx) // LoadPusher uses ghost for non-existing user

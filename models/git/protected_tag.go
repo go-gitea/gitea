@@ -13,6 +13,8 @@ import (
 	"gitea.dev/models/organization"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // ProtectedTag struct
@@ -111,8 +113,7 @@ func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 
 // GetProtectedTagByNamePattern gets protected tag by name_pattern
 func GetProtectedTagByNamePattern(ctx context.Context, repoID int64, pattern string) (*ProtectedTag, error) {
-	tag := &ProtectedTag{NamePattern: pattern, RepoID: repoID}
-	has, err := db.GetEngine(ctx).Get(tag)
+	tag, has, err := db.Get[ProtectedTag](ctx, builder.Eq{"name_pattern": pattern, "repo_id": repoID})
 	if err != nil {
 		return nil, err
 	}

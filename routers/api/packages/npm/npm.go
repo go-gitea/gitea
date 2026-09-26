@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -17,10 +18,12 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	npm_module "gitea.dev/modules/packages/npm"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	"gitea.dev/services/context"
@@ -40,14 +43,26 @@ func apiError(ctx *context.Context, status int, obj any) {
 }
 
 // packageNameFromParams gets the package name from the url parameters
-// Variations: /name/, /@scope/name/, /@scope%2Fname/
 func packageNameFromParams(ctx *context.Context) string {
+	// Real examples: these 2 both should work:
+	// * "https://registry.npmjs.org/@angular/core"
+	// * "https://registry.npmjs.org/@angular%2Fcore"
+	//
+	// HINT: NPM-ROUTE-PATH-PATTERN: The cases for the path parameters:
+	// * ".../TheName/...": id="TheName"
+	// * ".../@TheScope/TheName/...": scope="@TheScope", id="TheName"
+	// * ".../@TheScope%2FTheName/...": id="@TheScope/TheName"
 	scope := ctx.PathParam("scope")
-	id := ctx.PathParam("id")
+	fullOrSub := ctx.PathParam("id") // may be a full name or a subpath of the full package name
 	if scope != "" {
-		return fmt.Sprintf("@%s/%s", scope, id)
+		// now id is the subpath of the full package name, e.g. "core" in "@angular/core"
+		return fmt.Sprintf("%s/%s", scope, fullOrSub)
 	}
-	return id
+	return fullOrSub // id is the full package name, e.g.: "@angular/core" or "lodash"
+}
+
+func buildNpmRegistryURL(ctx std_ctx.Context, owner *user_model.User) string {
+	return httplib.GuessCurrentAppURL(ctx) + "api/packages/" + url.PathEscape(owner.Name) + "/npm"
 }
 
 // PackageMetadata returns the metadata for a single package
@@ -70,12 +85,42 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
-	resp := createPackageMetadataResponse(
-		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
-		pds,
-	)
-
+	resp := createPackageMetadataResponse(buildNpmRegistryURL(ctx, ctx.Package.Owner), pds)
 	ctx.JSON(http.StatusOK, resp)
+}
+
+// PackageVersionMetadata returns the metadata for a single version or dist-tag
+func PackageVersionMetadata(ctx *context.Context) {
+	versionOrTag := ctx.PathParam("version")
+
+	opts := &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNpm,
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
+		IsInternal: optional.Some(false),
+	}
+	if _, err := version.NewVersion(versionOrTag); err == nil {
+		opts.Version = packages_model.SearchValue{ExactMatch: true, Value: versionOrTag}
+	} else { // a tag, since setPackageTag rejects version-like names
+		opts.Properties = map[string]string{npm_module.TagProperty: versionOrTag}
+	}
+	pvs, _, err := packages_model.SearchVersions(ctx, opts)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, "version not found: "+versionOrTag)
+		return
+	}
+
+	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, createPackageMetadataVersion(buildNpmRegistryURL(ctx, ctx.Package.Owner), pd))
 }
 
 // DownloadPackageFile serves the content of a package
@@ -98,11 +143,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		ctx.Req.Method,
 	)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 
@@ -154,13 +195,19 @@ func DownloadPackageFileByName(ctx *context.Context) {
 
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
+	npmPackage, deprecation, err := npm_module.ParseUpload(ctx.Req.Body)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	// `npm deprecate` reuses the publish endpoint with no `_attachments`.
+	if deprecation != nil {
+		deprecatePackage(ctx, deprecation)
 		return
 	}
 
@@ -252,6 +299,57 @@ func DeletePreview(ctx *context.Context) {
 	ctx.Status(http.StatusOK)
 }
 
+// deprecatePackage handles an `npm deprecate` request, which is a PUT to the
+// package URL with no attachments and a `deprecated` string set on each
+// affected version (empty string means undeprecate).
+func deprecatePackage(ctx *context.Context, dep *npm_module.PackageDeprecation) {
+	if len(dep.Versions) == 0 {
+		apiError(ctx, http.StatusBadRequest, "npm deprecate request contains no versions")
+		return
+	}
+
+	// Run per-version updates in one transaction so a partial failure does
+	// not leave the package in a half-applied state.
+	err := db.WithTx(ctx, func(txCtx std_ctx.Context) error {
+		for version, message := range dep.Versions {
+			pv, err := packages_model.GetVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
+			if err != nil {
+				if errors.Is(err, packages_model.ErrPackageNotExist) {
+					continue
+				}
+				return err
+			}
+
+			metadata := &npm_module.Metadata{}
+			if err := json.Unmarshal([]byte(pv.MetadataJSON), metadata); err != nil {
+				return err
+			}
+
+			if metadata.Deprecated == message {
+				continue
+			}
+			metadata.Deprecated = message
+
+			raw, err := json.Marshal(metadata)
+			if err != nil {
+				return err
+			}
+			pv.MetadataJSON = string(raw)
+
+			if err := packages_model.UpdateVersion(txCtx, pv); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
 // DeletePackageVersion deletes the package version
 func DeletePackageVersion(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
@@ -333,9 +431,16 @@ func ListPackageTags(ctx *context.Context) {
 func AddPackageTag(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
-	body, err := io.ReadAll(ctx.Req.Body)
+	// the dist-tag body is only a quoted version string; bound it to avoid an unbounded
+	// read that could exhaust memory
+	const maxDistTagBodySize = 4 * 1024
+	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, maxDistTagBodySize+1))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(body) > maxDistTagBodySize {
+		apiError(ctx, http.StatusRequestEntityTooLarge, errors.New("request body too large"))
 		return
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
@@ -454,10 +559,7 @@ func PackageSearch(ctx *context.Context) {
 		return
 	}
 
-	resp := createPackageSearchResponse(
-		pds,
-		total,
-	)
+	resp := createPackageSearchResponse(ctx, pds, total)
 
 	ctx.JSON(http.StatusOK, resp)
 }

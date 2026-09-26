@@ -7,6 +7,8 @@ import (
 	"context"
 
 	"gitea.dev/models/db"
+
+	"xorm.io/builder"
 )
 
 // AppState represents a state record in database
@@ -44,9 +46,7 @@ func SaveAppStateContent(ctx context.Context, key, content string) error {
 
 // GetAppStateContent gets an app state from database
 func GetAppStateContent(ctx context.Context, key string) (content string, err error) {
-	e := db.GetEngine(ctx)
-	appState := &AppState{ID: key}
-	has, err := e.Get(appState)
+	appState, has, err := db.Get[AppState](ctx, builder.Eq{"id": key})
 	if err != nil {
 		return "", err
 	} else if !has {

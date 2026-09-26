@@ -19,11 +19,11 @@ type TemplateSubmoduleCommit struct {
 
 // GetTemplateSubmoduleCommits returns a list of submodules paths and their commits from a repository
 // This function is only for generating new repos based on existing template, the template couldn't be too large.
-func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submoduleCommits []TemplateSubmoduleCommit, _ error) {
+func GetTemplateSubmoduleCommits(ctx context.Context, repo RepositoryFacade) (submoduleCommits []TemplateSubmoduleCommit, _ error) {
 	cmd := gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD")
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := cmd.WithDir(repoPath).
+	err := cmd.WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			for scanner.Scan() {
@@ -46,11 +46,11 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 
 // AddTemplateSubmoduleIndexes Adds the given submodules to the git index.
 // It is only for generating new repos based on existing template, requires the .gitmodules file to be already present in the work dir.
-func AddTemplateSubmoduleIndexes(ctx context.Context, repoPath string, submodules []TemplateSubmoduleCommit) error {
+func AddTemplateSubmoduleIndexes(ctx context.Context, tmpRepoPath string, submodules []TemplateSubmoduleCommit) error {
 	for _, submodule := range submodules {
 		cmd := gitcmd.NewCommand("update-index", "--add", "--cacheinfo", "160000").AddDynamicArguments(submodule.Commit, submodule.Path)
-		if stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx); err != nil {
-			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Path, repoPath, stdout, err)
+		if stdout, _, err := cmd.WithDir(tmpRepoPath).RunStdString(ctx); err != nil {
+			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Path, tmpRepoPath, stdout, err)
 			return err
 		}
 	}

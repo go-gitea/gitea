@@ -1,15 +1,26 @@
 <script setup lang="ts">
-import WorkflowGraph from './WorkflowGraph.vue';
-import type {ActionRunViewStore} from "./ActionRunView.ts";
-import {computed, onBeforeUnmount, onMounted, toRefs} from "vue";
+import WorkflowGraph, {type WorkflowGraphLocale} from './WorkflowGraph.vue';
+import type {ActionRunViewStore} from './ActionRunView.ts';
+import {computed, onBeforeUnmount, onMounted, toRefs} from 'vue';
+import {trString} from '../modules/i18n.ts';
+import type {ActionsStatus} from '../modules/gitea-actions.ts';
 
 defineOptions({
   name: 'ActionRunSummaryView',
 });
 
+export type ActionRunSummaryViewLocale = WorkflowGraphLocale & {
+  status: Record<ActionsStatus, string>,
+  statusLabel: string,
+  totalDuration: string,
+  artifactsTitle: string,
+  triggeredVia: string,
+  rerunTriggered: string,
+};
+
 const props = defineProps<{
   store: ActionRunViewStore;
-  locale: Record<string, any>;
+  locale: ActionRunSummaryViewLocale;
   artifactCount: number;
 }>();
 
@@ -41,7 +52,7 @@ const triggerUser = computed(() => {
 
 const triggerLabel = computed(() => {
   if (isRerun.value) return locale.rerunTriggered;
-  return locale.triggeredVia.replace('%s', run.value.triggerEvent);
+  return trString(locale.triggeredVia, run.value.triggerEvent);
 });
 
 const artifactsDisplay = computed(() => props.artifactCount > 0 ? String(props.artifactCount) : '–');
@@ -108,7 +119,7 @@ onBeforeUnmount(() => {
         <span class="action-run-summary-stat-value">{{ run.duration || '–' }}</span>
       </div>
 
-      <div class="action-run-summary-stat action-run-summary-stat-last">
+      <div class="action-run-summary-stat">
         <span class="action-run-summary-label">{{ locale.artifactsTitle }}</span>
         <span class="action-run-summary-stat-value">{{ artifactsDisplay }}</span>
       </div>
@@ -119,7 +130,7 @@ onBeforeUnmount(() => {
       :jobs="topLevelJobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"
-      :workflow-link="`${run.link}/workflow`"
+      :workflow-link="run.canViewWorkflowFile ? `${run.link}/workflow` : ''"
       :trigger-event="run.triggerEvent"
       :locale="locale"
     />
@@ -137,9 +148,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch; /* equal-height columns so labels align at top and values at bottom */
+  gap: 8px 48px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-secondary);
-  background: var(--color-console-bg);
 }
 
 .action-run-summary-trigger {
@@ -148,7 +159,6 @@ onBeforeUnmount(() => {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
-  margin-right: 24px;
 }
 
 .action-run-summary-label {
@@ -211,18 +221,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   flex: 0 0 auto;
   min-width: 72px;
-  margin-left: 24px;
-  margin-right: 24px;
-}
-
-.action-run-summary-stat-last {
-  margin-right: 0;
 }
 
 .action-run-summary-stat-divider {
   display: none;
   flex: 0 0 100%;
-  margin: 8px 0;
   border-bottom: 1px solid var(--color-secondary);
 }
 
@@ -236,14 +239,12 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767.98px) {
-  .action-run-summary-trigger {
-    flex: 0 0 100%;
-    margin-right: 0;
+  .action-run-summary-block {
+    column-gap: 24px;
   }
 
-  .action-run-summary-stat {
-    margin-left: 0;
-    margin-right: 24px;
+  .action-run-summary-trigger {
+    flex: 0 0 100%;
   }
 
   .action-run-summary-stat-divider {

@@ -7,9 +7,9 @@ package repo
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
-	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -24,7 +24,8 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -163,7 +164,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && !ctx.Doer.IsGiteaActions() {
+		if ctx.IsBasicAuth && ctx.Data["ApiTokenScope"] == nil && ctx.Doer.IsIndividual() {
 			_, err = auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
@@ -232,8 +233,8 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 		repo, err = repo_service.PushCreateRepo(ctx, ctx.Doer, owner, repoName)
 		if err != nil {
-			log.Error("pushCreateRepo: %v", err)
-			ctx.Status(http.StatusNotFound)
+			log.Debug("PushCreateRepo: %v", err)
+			ctx.Status(http.StatusNotFound) // TODO: need to refactor PushCreateRepo and its returned errors
 			return nil
 		}
 	}
@@ -252,7 +253,6 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 	var environ []string
 	if !isPull {
-		// if not "pull", then must be "push", and doer must exist
 		environ = repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
 	}
 
@@ -266,23 +266,23 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
+		tmpEmptyRepoDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return
 		}
 		defer cleanup()
 
-		if err := git.InitRepository(ctx, tmpDir, true, git.Sha1ObjectFormat.Name()); err != nil {
+		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, git.Sha1ObjectFormat.Name()); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}
 
 		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").
-			WithDir(tmpDir).
+			WithDir(tmpEmptyRepoDir).
 			RunStdBytes(ctx)
 		if err != nil {
-			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
+			log.Error("Failed to prepare git-receive-pack cache: %v", err)
 		}
 
 		log.Debug("populating infoRefsCache: \n%s", string(refs))
@@ -293,9 +293,9 @@ func dummyInfoRefs(ctx *context.Context) {
 	ctx.RespHeader().Set("Pragma", "no-cache")
 	ctx.RespHeader().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
 	ctx.RespHeader().Set("Content-Type", "application/x-git-receive-pack-advertisement")
-	_, _ = ctx.Write(packetWrite("# service=git-receive-pack\n"))
-	_, _ = ctx.Write([]byte("0000"))
-	_, _ = ctx.Write(infoRefsCache)
+	_ = pktLineWriteText(ctx.Resp, "# service=git-receive-pack")
+	_ = pktLineWriteFlush(ctx.Resp)
+	_, _ = ctx.Resp.Write(infoRefsCache)
 }
 
 type serviceHandler struct {
@@ -306,11 +306,11 @@ type serviceHandler struct {
 	environ []string
 }
 
-func (h *serviceHandler) getStorageRepo() gitrepo.Repository {
+func (h *serviceHandler) getStorageRepo() git.RepositoryFacade {
 	if h.isWiki {
 		return h.repo.WikiStorageRepo()
 	}
-	return h.repo
+	return h.repo.CodeStorageRepo()
 }
 
 func setHeaderNoCache(ctx *context.Context) {
@@ -327,29 +327,27 @@ func setHeaderCacheForever(ctx *context.Context) {
 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
-func containsParentDirectorySeparator(v string) bool {
-	if !strings.Contains(v, "..") {
-		return false
-	}
-	return slices.Contains(strings.FieldsFunc(v, isSlashRune), "..")
-}
-
-func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
-
 func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string) {
-	if containsParentDirectorySeparator(file) {
-		log.Debug("request file path contains invalid path: %v", file)
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	fs := gitrepo.GetRepoFS(h.getStorageRepo())
+	fs := gitrepo.RepoLocalFS(h.getStorageRepo())
 	ctx.Resp.Header().Set("Content-Type", contentType)
-	http.ServeFileFS(ctx.Resp, ctx.Req, fs, path.Clean(file))
+	relPath := util.PathJoinRelX(file)
+	http.ServeFileFS(ctx.Resp, ctx.Req, fs, relPath)
 }
 
 // one or more key=value pairs separated by colons
-var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
+var safeGitProtocolHeader = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
+})
+
+func prepareGitCmdEnvs(ctx *context.Context, h *serviceHandler, more ...string) []string {
+	envs := slices.Clone(os.Environ())
+	envs = append(envs, h.environ...)
+	envs = append(envs, more...)
+	if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader().MatchString(protocol) {
+		envs = append(envs, "GIT_PROTOCOL="+protocol)
+	}
+	return envs
+}
 
 func prepareGitCmdWithAllowedService(service string, allowedServices []string) *gitcmd.Command {
 	if !slices.Contains(allowedServices, service) {
@@ -405,21 +403,15 @@ func serviceRPC(ctx *context.Context, service string) {
 		}
 	}
 
-	// set this for allow pre-receive and post-receive execute
-	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
-
-	if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
-		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
-	}
-
-	if err := gitrepo.RunCmdWithStderr(ctx, h.getStorageRepo(), cmd.AddArguments(".").
-		WithEnv(append(os.Environ(), h.environ...)).
+	// set SSH_ORIGINAL_COMMAND to allow pre-receive and post-receive hooks
+	gitCmdEnvs := prepareGitCmdEnvs(ctx, h, "SSH_ORIGINAL_COMMAND="+service)
+	err := cmd.AddArguments(".").
+		WithRepo(h.getStorageRepo()).WithEnv(gitCmdEnvs).
 		WithStdinCopy(reqBody).
-		WithStdoutCopy(ctx.Resp),
-	); err != nil {
-		if !gitcmd.IsErrorCanceledOrKilled(err) {
-			log.Error("Fail to serve RPC(%s) in %s: %v", service, h.getStorageRepo().RelativePath(), err)
-		}
+		WithStdoutCopy(ctx.Resp).
+		RunWithStderr(ctx)
+	if err != nil && !gitcmd.IsErrorCanceledOrKilled(err) && !httplib.IsClientOrNetworkError(ctx, err) {
+		log.Error("Fail to serve RPC(%s) for repo %s: %v", service, h.getStorageRepo().LogString(), err)
 	}
 }
 
@@ -443,25 +435,43 @@ func ServiceUploadArchive(ctx *context.Context) {
 	serviceRPC(ctx, ServiceTypeUploadArchive)
 }
 
-func packetWrite(str string) []byte {
-	s := strconv.FormatInt(int64(len(str)+4), 16)
-	if len(s)%4 != 0 {
-		s = strings.Repeat("0", 4-len(s)%4) + s
+func pktLineWriteText(w io.Writer, str string) error {
+	// https://git-scm.com/docs/gitprotocol-common
+	prefix := strconv.FormatInt(int64(len(str)+4+1), 16)
+	if len(prefix)%4 != 0 {
+		prefix = "0000" + prefix
+		prefix = prefix[len(prefix)-4:]
 	}
-	return []byte(s + str)
+	if _, err := io.WriteString(w, prefix); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, str); err != nil {
+		return err
+	}
+	_, err := io.WriteString(w, "\n")
+	return err
+}
+
+func pktLineWriteFlush(w io.Writer) error {
+	_, err := io.WriteString(w, "0000")
+	return err
 }
 
 // GetInfoRefs implements Git dumb HTTP
+// ref: https://git-scm.com/docs/gitprotocol-http , https://git-scm.com/docs/gitprotocol-v2
 func GetInfoRefs(ctx *context.Context) {
 	h := httpBase(ctx, ctx.FormString("service")) // git http protocol: "?service=git-<service>"
 	if h == nil {
 		return
 	}
+
+	repo := h.getStorageRepo()
 	setHeaderNoCache(ctx)
+
 	if h.serviceType == "" {
 		// it's said that some legacy git clients will send requests to "/info/refs" without "service" parameter,
 		// although there should be no such case client in the modern days. TODO: not quite sure why we need this UpdateServerInfo logic
-		if err := gitrepo.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
+		if err := git.UpdateServerInfo(ctx, repo); err != nil {
 			ctx.ServerError("UpdateServerInfo", err)
 			return
 		}
@@ -469,28 +479,43 @@ func GetInfoRefs(ctx *context.Context) {
 		return
 	}
 
+	gitCmdEnvs := prepareGitCmdEnvs(ctx, h)
 	cmd := prepareGitCmdWithAllowedService(h.serviceType, []string{ServiceTypeUploadPack, ServiceTypeReceivePack})
 	if cmd == nil {
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
-		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
-	}
-	h.environ = append(os.Environ(), h.environ...)
+	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", h.serviceType))
 
-	cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(h.environ)
-	refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd)
+	repoExists, err := git.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		ctx.ServerError("IsRepositoryExist", err)
+		return
+	}
+
+	if !repoExists {
+		ctx.Resp.WriteHeader(http.StatusOK)
+		// error-line = PKT-LINE("ERR" SP explanation-text)
+		errMsg := "repository doesn't exist"
+		if h.isWiki {
+			errMsg = "wiki doesn't exist, please initialize the wiki by creating a new page first"
+		}
+		_ = pktLineWriteText(ctx.Resp, "ERR "+errMsg)
+		return
+	}
+
+	cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(gitCmdEnvs)
+	refs, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
 		ctx.ServerError("RunGitServiceAdvertiseRefs", err)
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", h.serviceType))
+	// https://git-scm.com/docs/gitprotocol-pack
 	ctx.Resp.WriteHeader(http.StatusOK)
-	_, _ = ctx.Resp.Write(packetWrite("# service=git-" + h.serviceType + "\n"))
-	_, _ = ctx.Resp.Write([]byte("0000"))
+	_ = pktLineWriteText(ctx.Resp, "# service=git-"+h.serviceType)
+	_ = pktLineWriteFlush(ctx.Resp)
 	_, _ = ctx.Resp.Write(refs)
 }
 

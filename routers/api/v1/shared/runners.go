@@ -131,7 +131,7 @@ func UpdateRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.EditActionRunnerOption)
+	form := web.GetForm[*api.EditActionRunnerOption](ctx)
 	if form.Disabled == nil {
 		ctx.APIError(http.StatusUnprocessableEntity, "[Disabled]: Required")
 		return

@@ -4,6 +4,7 @@
 package project
 
 import (
+	"strconv"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -15,7 +16,6 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_Projects(t *testing.T) {
@@ -25,6 +25,9 @@ func Test_Projects(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	org3 := unittest.AssertExistsAndLoadBean(t, &org_model.Organization{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	// user15 is on org3's team7 (write access to the public repo32 only), so it can see org3 public repos
+	// but has no access to the private repo3 — a genuine "no permission to the private repo" org member.
+	user15 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 
 	t.Run("User projects", func(t *testing.T) {
 		pi1 := project_model.ProjectIssue{
@@ -143,13 +146,65 @@ func Test_Projects(t *testing.T) {
 		})
 
 		t.Run("Authenticated user with no permission to the private repo", func(t *testing.T) {
+			// user2 is on org3's Owners team and has owner access to the private repo3, so it is not a
+			// valid "no permission" subject; user15 has no access to repo3 but can see the public repo32.
+			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
+				Owner: org3.AsUser(),
+				Doer:  user15,
+			})
+			assert.NoError(t, err)
+			assert.Len(t, columnIssues, 1)
+			assert.Len(t, columnIssues[defaultColumn.ID], 1) // user15 can only visit public repo issues
+		})
+
+		t.Run("Org owner team member", func(t *testing.T) {
+			// user2 is on org3's Owners team, so it has access to the private repo3 and must see both the
+			// public and the private issue — the owner-team access that team.authorize grants at runtime.
 			columnIssues, err := LoadIssuesFromProject(t.Context(), projects[0], &issues_model.IssuesOptions{
 				Owner: org3.AsUser(),
 				Doer:  user2,
 			})
 			assert.NoError(t, err)
 			assert.Len(t, columnIssues, 1)
-			assert.Len(t, columnIssues[defaultColumn.ID], 1) // user2 can only visit public repo issues
+			assert.Len(t, columnIssues[defaultColumn.ID], 2) // owner-team member visits both public and private issues
+		})
+	})
+
+	t.Run("Moving an issue in one project keeps its column in other projects", func(t *testing.T) {
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		// issue 11 is in repo1 but in no fixture project, so reconciling its memberships disturbs nothing
+		issue11 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 11})
+
+		projects := make([]*project_model.Project, 2)
+		for i := range projects {
+			projects[i] = &project_model.Project{
+				Title:        "multi-project isolation " + strconv.Itoa(i),
+				RepoID:       repo1.ID,
+				Type:         project_model.TypeRepository,
+				TemplateType: project_model.TemplateTypeBasicKanban,
+			}
+			assert.NoError(t, project_model.NewProject(t.Context(), projects[i]))
+			defer func() {
+				assert.NoError(t, project_model.DeleteProjectByID(t.Context(), projects[i].ID))
+			}()
+		}
+
+		assert.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue11, user2, []int64{projects[0].ID, projects[1].ID}))
+
+		// the column the issue must stay in for the second project
+		otherColumn, err := projects[1].MustDefaultColumn(t.Context())
+		assert.NoError(t, err)
+
+		// move the issue into a non-default column of the first project only
+		targetColumn := &project_model.Column{Title: "target", ProjectID: projects[0].ID}
+		assert.NoError(t, project_model.NewColumn(t.Context(), targetColumn))
+		assert.NoError(t, MoveIssuesOnProjectColumn(t.Context(), user2, targetColumn, map[int64]int64{0: issue11.ID}))
+
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
+			IssueID: issue11.ID, ProjectID: projects[0].ID, ProjectColumnID: targetColumn.ID,
+		})
+		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{
+			IssueID: issue11.ID, ProjectID: projects[1].ID, ProjectColumnID: otherColumn.ID,
 		})
 	})
 
@@ -197,19 +252,5 @@ func Test_Projects(t *testing.T) {
 			assert.Len(t, columnIssues[2], 1)
 			assert.Len(t, columnIssues[3], 1)
 		})
-	})
-
-	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
-		issuesMap := map[int64]issues_model.IssueList{}
-		issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		issuesMap[1] = issues_model.IssueList{issue1}
-		issuesMap[2] = issues_model.IssueList{issue6}
-		assignees, err := LoadIssuesAssigneesForProject(t.Context(), issuesMap)
-		require.NoError(t, err)
-		require.Len(t, assignees, 3)
-		require.Equal(t, "user1", assignees[0].Name)
-		require.Equal(t, "user10", assignees[1].Name)
-		require.Equal(t, "user2", assignees[2].Name)
 	})
 }

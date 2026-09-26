@@ -1,5 +1,6 @@
 .toastify {
-  color: var(--color-white);
+  color: var(--color-text);
+  border: 1px solid var(--color-secondary);
   position: fixed;
   opacity: 0;
   transition: all .2s ease;
@@ -15,6 +16,31 @@
 .toastify.on {
   opacity: 1;
 }
+
+.toast-success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}
+
+.toast-info {
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+}
+
+.toast-warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+}
+
+.toast-error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+}
+
+.toast-success .toast-icon { color: var(--color-success-text); }
+.toast-info .toast-icon { color: var(--color-info-text); }
+.toast-warning .toast-icon { color: var(--color-warning-text); }
+.toast-error .toast-icon { color: var(--color-error-text); }
 
 .toast-body {
   flex: 1;

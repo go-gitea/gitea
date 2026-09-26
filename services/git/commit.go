@@ -41,7 +41,7 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 		}
 
 		isOwnerMemberCollaborator := func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, repo, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, repo, user.ID)
 		}
 
 		_ = asymkey_model.CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)

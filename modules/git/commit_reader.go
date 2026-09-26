@@ -15,7 +15,7 @@ const (
 	commitHeaderGpgsigSha256 = "gpgsig-sha256"
 )
 
-func assignCommitFields(gitRepo *Repository, commit *Commit, headerKey string, headerValue []byte) error {
+func assignCommitFields(commit *Commit, headerKey string, headerValue []byte) error {
 	if len(headerValue) > 0 && headerValue[len(headerValue)-1] == '\n' {
 		headerValue = headerValue[:len(headerValue)-1] // remove trailing newline
 	}
@@ -25,7 +25,7 @@ func assignCommitFields(gitRepo *Repository, commit *Commit, headerKey string, h
 		if err != nil {
 			return fmt.Errorf("invalid tree ID %q: %w", string(headerValue), err)
 		}
-		commit.Tree = *NewTree(gitRepo, objID)
+		commit.TreeID = objID
 	case "parent":
 		objID, err := NewIDFromString(string(headerValue))
 		if err != nil {
@@ -48,7 +48,7 @@ func assignCommitFields(gitRepo *Repository, commit *Commit, headerKey string, h
 // We need this to interpret commits from cat-file or cat-file --batch
 //
 // If used as part of a cat-file --batch stream you need to limit the reader to the correct size
-func CommitFromReader(gitRepo *Repository, objectID ObjectID, reader io.Reader) (*Commit, error) {
+func CommitFromReader(objectID ObjectID, reader io.Reader) (*Commit, error) {
 	commit := &Commit{
 		ID:        objectID,
 		Author:    &Signature{},
@@ -74,7 +74,7 @@ func CommitFromReader(gitRepo *Repository, objectID ObjectID, reader io.Reader) 
 			k, v, _ := bytes.Cut(line, []byte{' '})
 			if len(k) != 0 || !inHeader {
 				if headerKey != "" {
-					if err = assignCommitFields(gitRepo, commit, headerKey, headerValue); err != nil {
+					if err = assignCommitFields(commit, headerKey, headerValue); err != nil {
 						return nil, fmt.Errorf("unable to parse commit %q: %w", objectID.String(), err)
 					}
 				}

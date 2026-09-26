@@ -14,6 +14,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -22,9 +23,9 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/label"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -34,6 +35,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	feed_service "gitea.dev/services/feed"
@@ -278,7 +280,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 
 // Create one repository of mine
 func Create(ctx *context.APIContext) {
-	// swagger:operation POST /user/repos repository user createCurrentUserRepo
+	// swagger:operation POST /user/repos user createCurrentUserRepo
 	// ---
 	// summary: Create a repository
 	// consumes:
@@ -299,7 +301,7 @@ func Create(ctx *context.APIContext) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	opt := web.GetForm(ctx).(*api.CreateRepoOption)
+	opt := web.GetForm[*api.CreateRepoOption](ctx)
 	if ctx.Doer.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.APIError(http.StatusUnprocessableEntity, "not allowed creating repository for organization")
@@ -343,7 +345,7 @@ func Generate(ctx *context.APIContext) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	form := web.GetForm(ctx).(*api.GenerateRepoOption)
+	form := web.GetForm[*api.GenerateRepoOption](ctx)
 
 	if !ctx.Repo.Repository.IsTemplate {
 		ctx.APIError(http.StatusUnprocessableEntity, "this is not a template repo")
@@ -485,7 +487,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	opt := web.GetForm(ctx).(*api.CreateRepoOption)
+	opt := web.GetForm[*api.CreateRepoOption](ctx)
 	orgName := ctx.PathParam("org")
 	org := prepareDoerCreateRepoInOrg(ctx, orgName)
 	if ctx.Written() {
@@ -604,13 +606,14 @@ func Edit(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := *web.GetForm(ctx).(*api.EditRepoOption)
+	opts := *web.GetForm[*api.EditRepoOption](ctx)
 
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
 	}
 
 	if err := updateRepoUnits(ctx, opts); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -705,7 +708,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+		ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, repo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return err
@@ -714,10 +717,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	// Default branch only updated if changed and exist or the repository is empty
 	updateRepoLicense := false
-	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, *opts.DefaultBranch)) {
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || git.IsBranchExist(ctx, ctx.Repo.Repository, *opts.DefaultBranch)) {
 		repo.DefaultBranch = *opts.DefaultBranch
 		if !repo.IsEmpty {
-			if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+			if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				ctx.APIErrorInternal(err)
 				return err
 			}
@@ -728,6 +731,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if err := repo_service.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
 		ctx.APIErrorInternal(err)
 		return err
+	}
+
+	if visibilityChanged {
+		audit.Record(ctx, audit_model.RepositoryVisibility, repo, "visibility", repo.IsPrivate)
 	}
 
 	if updateRepoLicense {
@@ -745,24 +752,21 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 // updateRepoUnits updates repo units: Issue settings, Wiki settings, PR settings
 func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
-	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	var units []repo_model.RepoUnit
 	var deleteUnitTypes []unit_model.Type
 
-	if opts.HasIssues != nil {
-		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-			// Check that values are valid
-			if !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
-				err := errors.New("External tracker URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return err
+	if opts.HasIssues != nil && *opts.HasIssues {
+		if opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+			if (opts.InternalTracker == nil || opts.ExternalTracker.ExternalTrackerURL != "") && !validation.IsValidURL(opts.ExternalTracker.ExternalTrackerURL) {
+				return util.ErrorWrap(util.ErrUnprocessableContent, "external tracker URL not valid")
 			}
-			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
-				err := errors.New("External tracker URL format not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-				return err
+			if opts.InternalTracker != nil && (opts.ExternalTracker.ExternalTrackerStyle == "" || opts.ExternalTracker.ExternalTrackerStyle == markup.IssueNameStyleNumeric) {
+				return util.ErrorWrap(util.ErrUnprocessableContent, "external tracker style Numeric is only used for internal tracker")
+			}
+			if opts.ExternalTracker.ExternalTrackerFormat != "" && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
+				return util.ErrorWrap(util.ErrUnprocessableContent, "External tracker URL format not valid")
 			}
 
 			units = append(units, repo_model.RepoUnit{
@@ -775,8 +779,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalTrackerRegexpPattern: opts.ExternalTracker.ExternalTrackerRegexpPattern,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-		} else if *opts.HasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+		}
+		if (opts.ExternalTracker == nil || opts.InternalTracker != nil) && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *repo_model.IssuesConfig
 
@@ -802,24 +808,20 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   unit_model.TypeIssues,
 				Config: config,
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		} else if !*opts.HasIssues {
-			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-			}
-			if !unit_model.TypeIssues.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-			}
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 		}
+	}
+	if opts.HasIssues != nil && !*opts.HasIssues {
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 	}
 
 	if opts.HasWiki != nil {
 		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidURL(opts.ExternalWiki.ExternalWikiURL) {
-				err := errors.New("External wiki URL not valid")
-				ctx.APIError(http.StatusUnprocessableEntity, "Invalid external wiki URL")
-				return err
+				return util.ErrorWrap(util.ErrUnprocessableContent, "external wiki URL not valid")
 			}
 
 			units = append(units, repo_model.RepoUnit{
@@ -897,7 +899,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// so unrelated PATCH calls don't reject historical configs.
 			if opts.AllowMergeUpdate != nil || opts.AllowRebaseUpdate != nil || opts.DefaultUpdateStyle != nil {
 				if err := config.ValidateUpdateSettings(); err != nil {
-					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return err
 				}
 			}
@@ -972,12 +973,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	if len(units)+len(deleteUnitTypes) > 0 {
 		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
-			ctx.APIErrorInternal(err)
 			return err
 		}
 	}
-
-	log.Trace("Repository advanced settings updated: %s/%s", owner.Name, repo.Name)
 	return nil
 }
 
@@ -1067,7 +1065,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 	authUpdateRequested := opts.MirrorPassword != nil || opts.MirrorToken != nil || opts.MirrorUsername != nil
 	if authUpdateRequested {
-		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, repo, mirror.GetRemoteName())
+		remoteURL, err := git.ParseRemoteAddressURL(ctx, repo, mirror.GetRemoteName())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return err
@@ -1155,15 +1153,6 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !canDelete {
-		ctx.APIError(http.StatusForbidden, "Given user is not owner of organization.")
-		return
-	}
-
 	if ctx.Repo.GitRepo != nil {
 		ctx.Repo.GitRepo.Close()
 	}
@@ -1200,7 +1189,7 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	//     "$ref": "#/responses/IssueTemplates"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	if cnt := len(ret.TemplateErrors); cnt != 0 {
 		ctx.Resp.Header().Add("X-Gitea-Warning", "error occurs when parsing issue template: count="+strconv.Itoa(cnt))
 	}
@@ -1230,7 +1219,7 @@ func GetIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfig"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	issueConfig, _ := issue.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.JSON(http.StatusOK, issueConfig)
 }
 
@@ -1257,7 +1246,7 @@ func ValidateIssueConfig(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepoIssueConfigValidation"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	_, err := issue.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 
 	if err == nil {
 		ctx.JSON(http.StatusOK, api.IssueConfigValidation{Valid: true, Message: ""})

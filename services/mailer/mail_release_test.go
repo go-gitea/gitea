@@ -21,7 +21,7 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	defer test.MockVariableValue(&setting.MailService)()
-	defer test.MockVariableValue(&setting.Domain)()
+	defer test.MockVariableValue(&setting.AppDomain)()
 	defer test.MockVariableValue(&setting.AppName)()
 	defer test.MockVariableValue(&setting.AppURL)()
 
@@ -29,7 +29,6 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 		From:      "Gitea",
 		FromEmail: "noreply@example.com",
 	}
-	setting.Domain = "example.com"
 	setting.AppName = "Gitea"
 	setting.AppURL = "https://example.com/"
 	defer mockMailTemplates(string(tplNewReleaseMail), "{{.Subject}}", "<p>{{.Release.TagName}}</p>")()
@@ -40,8 +39,8 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	unauthorized := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	assert.NoError(t, repo_model.WatchRepo(t.Context(), admin, repo, true))
-	assert.NoError(t, repo_model.WatchRepo(t.Context(), unauthorized, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), admin, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(t.Context(), unauthorized, repo, true))
 
 	rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 11})
 	rel.Repo = nil

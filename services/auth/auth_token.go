@@ -6,7 +6,6 @@ package auth
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"strings"
@@ -54,9 +53,13 @@ func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, e
 
 	hashedToken := sha256.Sum256([]byte(parts[1]))
 
-	if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(hex.EncodeToString(hashedToken[:]))) == 0 {
+	if !util.CryptoConstTimeEqual(t.TokenHash, hex.EncodeToString(hashedToken[:])) {
 		// If an attacker steals a token and uses the token to create a new session the hash gets updated.
 		// When the victim uses the old token the hashes don't match anymore and the victim should be notified about the compromised token.
+		// Revoke the token so the attacker's rotated token (which shares this ID) can no longer be used.
+		if err := auth_model.DeleteAuthTokenByID(ctx, t.ID); err != nil {
+			return nil, err
+		}
 		return nil, ErrAuthTokenInvalidHash
 	}
 

@@ -111,6 +111,39 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: 2})
 }
 
+// TestAPIDeleteIssueLabelCrossRepo ensures DeleteIssueLabel does not act on a label
+// belonging to another repository, and that a foreign-but-existing label ID and a
+// nonexistent label ID return the same status (no cross-repo enumeration oracle).
+func TestAPIDeleteIssueLabelCrossRepo(t *testing.T) {
+	assert.NoError(t, unittest.LoadFixtures())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	// label 5 exists but belongs to repo 10, not repo 1
+	foreignLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 5})
+	assert.NotEqual(t, repo.ID, foreignLabel.RepoID)
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
+	base := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels", repo.OwnerName, repo.Name, issue.Index)
+
+	// a foreign-but-existing label ID must not be accepted (was 204 before the fix)
+	req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", base, foreignLabel.ID)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// a nonexistent label ID must return the SAME status, so no oracle exists (was 422 before the fix)
+	req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", base, 9999999)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// a label that belongs to the repo is still removable
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 2, RepoID: repo.ID})
+	addReq := NewRequestWithJSON(t, "POST", base, &api.IssueLabelsOption{Labels: []any{2}}).AddTokenAuth(token)
+	MakeRequest(t, addReq, http.StatusOK)
+	req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", base, 2)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+}
+
 func TestAPIAddIssueLabelsWithLabelNames(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 

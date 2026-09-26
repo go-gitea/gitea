@@ -23,6 +23,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -327,8 +328,8 @@ func TestPackageConan(t *testing.T) {
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, name, pd.Package.Name)
 				assert.Equal(t, version1, pd.Version.Version)
-				assert.IsType(t, &conan_module.Metadata{}, pd.Metadata)
-				metadata := pd.Metadata.(*conan_module.Metadata)
+				metadata, ok := pd.Metadata.(*conan_module.Metadata)
+				require.True(t, ok)
 				assert.Equal(t, conanLicense, metadata.License)
 				assert.Equal(t, conanAuthor, metadata.Author)
 				assert.Equal(t, conanHomepage, metadata.ProjectURL)

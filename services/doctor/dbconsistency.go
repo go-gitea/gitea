@@ -6,11 +6,11 @@ package doctor
 import (
 	"context"
 
+	modelmigration "gitea.dev/modelmigration"
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/migrations"
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/log"
@@ -222,6 +222,9 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 		// find action without repository
 		genericOrphanCheck("Action entries without existing repository",
 			"action", "repository", "action.repo_id=repository.id"),
+		// find action runs without repository
+		genericOrphanCheck("Action runs without existing repository",
+			"action_run", "repository", "action_run.repo_id=repository.id"),
 		// find action without user
 		genericOrphanCheck("Action entries without existing user",
 			"action", "user", "action.act_user_id=`user`.id"),
@@ -249,7 +252,7 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 
 func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
+	if err := db.InitEngineWithMigration(ctx, modelmigration.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}

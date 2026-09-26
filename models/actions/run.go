@@ -7,7 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
+	"net/url"
+	"strconv"
 	"time"
 
 	"gitea.dev/models/db"
@@ -21,13 +22,15 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
+
+	"xorm.io/builder"
 )
 
 // ActionRun represents a run of a workflow file
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"unique(repo_index)"`
+	RepoID            int64                  `xorm:"unique(repo_index) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -44,9 +47,16 @@ type ActionRun struct {
 	Event             webhook_module.HookEventType // the webhook event that causes the workflow to run
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
-	Status            Status                       `xorm:"index"`
+	Status            Status                       `xorm:"index index(repo_status)"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
+
+	// WorkflowRepoID/WorkflowCommitSHA record the (repo, commit) the run's workflow file content came from.
+	// Always filled (repo-level run = the repo itself; scoped run = the source repo).
+	WorkflowRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
+	WorkflowCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+
+	IsScopedRun bool `xorm:"NOT NULL DEFAULT false"` // IsScopedRun explicitly classifies scoped runs.
 
 	// Started and Stopped are identical to the latest attempt after ActionRunAttempt was introduced.
 	// When a rerun creates a new latest attempt, they are reset until the new attempt starts and stops.
@@ -82,11 +92,22 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.ID)
 }
 
+func (run *ActionRun) APIURL(ctx context.Context) string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID)
+}
+
 func (run *ActionRun) WorkflowLink() string {
 	if run.Repo == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), run.WorkflowID)
+	// A scoped run's workflow is disambiguated by its source repo, so carry scoped_workflow_source_repo_id back to the run list
+	if run.IsScopedRun {
+		return fmt.Sprintf("%s/actions/?workflow=%s&scoped_workflow_source_repo_id=%d", run.Repo.Link(), url.QueryEscape(run.WorkflowID), run.WorkflowRepoID)
+	}
+	return fmt.Sprintf("%s/actions/?workflow=%s", run.Repo.Link(), url.QueryEscape(run.WorkflowID))
 }
 
 // RefLink return the url of run's ref
@@ -102,12 +123,14 @@ func (run *ActionRun) RefLink() string {
 func (run *ActionRun) PrettyRef() string {
 	refName := git.RefName(run.Ref)
 	if refName.IsPull() {
-		return "#" + strings.TrimSuffix(strings.TrimPrefix(run.Ref, git.PullPrefix), "/head")
+		if pullIndex, ok := refName.PullIndex(); ok {
+			return "#" + strconv.FormatInt(pullIndex, 10)
+		}
 	}
 	return refName.ShortName()
 }
 
-// RefTooltip return a tooltop of run's ref. For pull request, it's the title of the PR, otherwise it's the ShortName.
+// RefTooltip return a tooltip of run's ref. For pull request, it's the title of the PR, otherwise it's the ShortName.
 func (run *ActionRun) RefTooltip() string {
 	payload, err := run.GetPullRequestEventPayload()
 	if err == nil && payload != nil && payload.PullRequest != nil {
@@ -151,7 +174,10 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated)
+	if run.LatestAttemptID == 0 {
+		d += run.PreviousDuration
+	}
 	if d < 0 {
 		return 0
 	}
@@ -263,12 +289,14 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	return &run, nil
 }
 
+func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) ([]*ActionRun, error) {
+	var runs []*ActionRun
+	err := db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).Find(&runs)
+	return runs, err
+}
+
 func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {
-	run := &ActionRun{
-		RepoID: repoID,
-		Index:  runIndex,
-	}
-	has, err := db.GetEngine(ctx).Get(run)
+	run, has, err := db.Get[ActionRun](ctx, builder.Eq{"repo_id": repoID, "`index`": runIndex})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -279,9 +307,7 @@ func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionR
 }
 
 func GetLatestRun(ctx context.Context, repoID int64) (*ActionRun, error) {
-	run := &ActionRun{
-		RepoID: repoID,
-	}
+	run := &ActionRun{}
 	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).Desc("index").Get(run)
 	if err != nil {
 		return nil, err
@@ -295,7 +321,10 @@ func GetWorkflowLatestRun(ctx context.Context, repoID int64, workflowFile, branc
 	var run ActionRun
 	q := db.GetEngine(ctx).Where("repo_id=?", repoID).
 		And("ref = ?", branch).
-		And("workflow_id = ?", workflowFile)
+		And("workflow_id = ?", workflowFile).
+		// TODO: the badge only reflects the repo's own (repo-level) runs; a same-named scoped run must not leak in.
+		// Support a scoped-workflow badge later by making this source-aware.
+		And("is_scoped_run = ?", false)
 	if event != "" {
 		q.And("event = ?", event)
 	}
@@ -380,5 +409,5 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return CancelJobs(ctx, jobsToCancel)
+	return CancelJobs(ctx, jobsToCancel, false)
 }

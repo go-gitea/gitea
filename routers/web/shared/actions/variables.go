@@ -122,12 +122,11 @@ func VariableCreate(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 
 	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
 	if err != nil {
-		log.Error("CreateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -154,14 +153,13 @@ func VariableUpdate(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 	variable.Name = form.Name
 	variable.Data = form.Data
 	variable.Description = form.Description
 
-	if ok, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil || !ok {
-		log.Error("UpdateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
+	if _, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil {
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))

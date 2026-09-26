@@ -10,14 +10,13 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 )
 
 // getRebaseAmendMessage composes the message to amend commits in rebase merge of a pull request.
 func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (message string, err error) {
 	// Get existing commit message.
-	commitMessage, _, err := gitcmd.NewCommand("show", "--format=%B", "-s").WithDir(ctx.tmpBasePath).RunStdString(ctx)
+	commitMessage, _, err := gitcmd.NewCommand("show", "--format=%B", "-s").WithRepo(ctx.tmpRepo).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -38,7 +37,7 @@ func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (mess
 
 // Perform rebase merge without merge commit.
 func doMergeRebaseFastForward(ctx *mergeContext) error {
-	baseHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpBasePath, "HEAD")
+	baseHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpRepo, "HEAD")
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
@@ -49,8 +48,8 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 		return err
 	}
 
-	// Check if anything actually changed before we amend the message, fast forward can skip commits.
-	newMergeHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpBasePath, "HEAD")
+	// Check if anything actually changed before we amend the message, fast-forward can skip commits.
+	newMergeHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpRepo, "HEAD")
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
@@ -59,7 +58,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	// Original repo to read template from.
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, ctx.pr.BaseRepo)
+	baseGitRepo, err := git.OpenRepository(ctx, ctx.pr.BaseRepo)
 	if err != nil {
 		log.Error("Unable to get Git repo for rebase: %v", err)
 		return err
@@ -74,10 +73,12 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	if newMessage != "" {
-		cmdCommit := gitcmd.NewCommand("commit", "--amend").
-			AddOptionFormat("--message=%s", newMessage)
+		cmdCommit := gitcmd.NewCommand("commit", "--amend")
+		if err = git.AddObjectMessageArgument(cmdCommit, git.ObjectCommit, newMessage); err != nil {
+			return err
+		}
 		addCommitSigningOptions(cmdCommit, ctx.signKey)
-		if err := cmdCommit.WithDir(ctx.tmpBasePath).Run(ctx); err != nil {
+		if err := cmdCommit.WithRepo(ctx.tmpRepo).Run(ctx); err != nil {
 			log.Error("Unable to amend commit message: %v", err)
 			return err
 		}

@@ -223,7 +223,7 @@ func (r *Review) HTMLTypeColorClass() string {
 	case ReviewTypeReject:
 		return "tw-text-red"
 	case ReviewTypeRequest:
-		return "tw-text-yellow"
+		return util.Iif(r.Official, "tw-text-yellow", "tw-text-text-light")
 	}
 	return "tw-text-text-light"
 }
@@ -322,6 +322,59 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	}
 
 	return slices.Contains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
+}
+
+// RecalculateReviewsOfficial re-evaluates the "official" flag of the latest approve
+// and reject reviews of an issue against its pull request's current base branch.
+// It must be called whenever the target branch changes, otherwise an approval that
+// was official on the previous (possibly unprotected) branch would keep satisfying
+// the new branch's protection rules.
+func RecalculateReviewsOfficial(ctx context.Context, issue *Issue) error {
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return err
+	}
+
+	// Clearing and restoring the official flags must happen atomically, otherwise a
+	// failure in between would leave the reviews without any official flag set.
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Only the latest approve/reject review of each reviewer counts as official, so
+		// clear the flag on all of them first and restore it only where it still applies.
+		if _, err := db.GetEngine(ctx).
+			Where("issue_id = ?", issue.ID).
+			In("type", ReviewTypeApprove, ReviewTypeReject).
+			Cols("official").
+			Update(&Review{Official: false}); err != nil {
+			return err
+		}
+
+		reviews, err := FindLatestReviews(ctx, FindReviewOptions{
+			Types:   []ReviewType{ReviewTypeApprove, ReviewTypeReject},
+			IssueID: issue.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, review := range reviews {
+			if err := review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+			if review.Reviewer == nil {
+				continue
+			}
+			official, err := IsOfficialReviewer(ctx, issue, review.Reviewer)
+			if err != nil {
+				return err
+			}
+			if official {
+				if _, err := db.GetEngine(ctx).ID(review.ID).Cols("official").Update(&Review{Official: true}); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
 // CreateReview creates a new review based on opts
@@ -1012,19 +1065,23 @@ func (r *Review) GetCodeCommentsCount(ctx context.Context) int {
 	return int(count)
 }
 
-// HTMLURL formats a URL-string to the related review issue-comment
+// HashTag returns unique hash tag for review.
+func (r *Review) HashTag() string {
+	return fmt.Sprintf("pullrequestreview-%d", r.ID)
+}
+
+// HTMLURL formats a URL-string to the review on the pull request page
 func (r *Review) HTMLURL(ctx context.Context) string {
-	opts := FindCommentsOptions{
-		Type:     CommentTypeReview,
-		IssueID:  r.IssueID,
-		ReviewID: r.ID,
+	if r.Type != ReviewTypeApprove && r.Type != ReviewTypeComment && r.Type != ReviewTypeReject {
+		return "" // only submitted reviews get a timeline block carrying the anchor
 	}
-	comment := new(Comment)
-	has, err := db.GetEngine(ctx).Where(opts.ToConds()).Get(comment)
-	if err != nil || !has {
+	if err := r.LoadIssue(ctx); err != nil {
 		return ""
 	}
-	return comment.HTMLURL(ctx)
+	if err := r.Issue.LoadRepo(ctx); err != nil {
+		return ""
+	}
+	return r.Issue.HTMLURL(ctx) + "#" + r.HashTag()
 }
 
 // RemapExternalUser ExternalUserRemappable interface

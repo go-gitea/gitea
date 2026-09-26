@@ -7,7 +7,7 @@ function initOrgTeamSettings() {
   queryElems(pageContent, 'input[name=permission]', (el) => el.addEventListener('change', () => {
     // Change team access mode
     const val = pageContent.querySelector<HTMLInputElement>('input[name=permission]:checked')?.value;
-    toggleElem(pageContent.querySelectorAll('.team-units'), val !== 'admin');
+    toggleElem(pageContent.querySelectorAll('.team-units'), val !== 'admin' && val !== 'write');
   }));
 }
 

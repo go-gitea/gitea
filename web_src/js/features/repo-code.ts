@@ -1,6 +1,5 @@
 import {svg} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 
 function changeHash(hash: string) {
@@ -24,7 +23,7 @@ function selectRange(range: string): Element | null {
     if (!refInNewIssue) return;
     const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
     const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link')!;
-    const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
+    const issueContent = `${urlParamBodyLink}#${anchor}`; // the default content for issue body
     refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 

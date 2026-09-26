@@ -473,10 +473,20 @@ func runErr(t *testing.T, stdin []byte, args ...string) {
 	}
 }
 
-func Test_PublicKeysAreExternallyManaged(t *testing.T) {
+func TestPublicKeysAreExternallyManaged(t *testing.T) {
 	key1 := unittest.AssertExistsAndLoadBean(t, &PublicKey{ID: 1})
 	externals, err := PublicKeysAreExternallyManaged(t.Context(), []*PublicKey{key1})
 	assert.NoError(t, err)
 	assert.Len(t, externals, 1)
 	assert.False(t, externals[0])
+}
+
+// TestCheckPublicKeyStringOversized tests if oversized SSH2 public key strings are rejected before triggering costly operations.
+func TestCheckPublicKeyStringOversized(t *testing.T) {
+	_, err := parseKeyString(strings.Repeat("a", maxKeyContentBytes+1))
+	assert.ErrorContains(t, err, "SSH public key content is too long")
+
+	content := "---- BEGIN SSH2 PUBLIC KEY ----\n" + strings.Repeat("a", maxKeyContentBase64Bytes+1) + "\n--- END SSH2 PUBLIC KEY ----"
+	_, err = parseKeyString(content)
+	assert.ErrorContains(t, err, "SSH public key base64 is too long")
 }

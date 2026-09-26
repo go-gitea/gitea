@@ -16,7 +16,9 @@ import (
 // terraform-module package type. Unlike the Terraform State package
 // there are no lock semantics: modules are immutable releases and any
 // version may be deleted by a writer.
-type Specialization struct{}
+type Specialization struct {
+	packages_service.SpecRenderUsageManual
+}
 
 var _ packages_service.Specialization = (*Specialization)(nil)
 

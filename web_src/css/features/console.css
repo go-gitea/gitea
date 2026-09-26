@@ -16,15 +16,40 @@
   text-decoration: underline;
   text-decoration-style: dashed;
 }
-.console a:hover { color: var(--color-primary); }
+.console a:hover {
+  color: var(--color-primary);
+}
 
 @keyframes blink-animation {
-  to {
-    visibility: hidden;
+  50% {
+    color: transparent;
   }
 }
 
-/* ansi_up colors used in actions */
+/* SGR attributes emitted by web_src/js/render/ansi.ts */
+
+.ansi-bold { font-weight: var(--font-weight-semibold); }
+.ansi-italic { font-style: italic; }
+.ansi-blink { animation: blink-animation 1s step-end infinite; }
+.ansi-faint { color: color-mix(in srgb, currentcolor 70%, transparent); }
+.ansi-conceal { color: transparent; }
+.ansi-inverse-fg { color: var(--color-console-bg); }
+.ansi-inverse-bg { background-color: var(--color-console-fg); }
+
+.ansi-underline { text-decoration-line: underline; }
+.ansi-line-through { text-decoration-line: line-through; }
+.ansi-overline { text-decoration-line: overline; }
+.ansi-underline.ansi-line-through { text-decoration-line: underline line-through; }
+.ansi-underline.ansi-overline { text-decoration-line: underline overline; }
+.ansi-line-through.ansi-overline { text-decoration-line: line-through overline; }
+.ansi-underline.ansi-line-through.ansi-overline { text-decoration-line: underline line-through overline; }
+
+.ansi-double { text-decoration-style: double; }
+.ansi-wavy { text-decoration-style: wavy; }
+.ansi-dotted { text-decoration-style: dotted; }
+.ansi-dashed { text-decoration-style: dashed; }
+
+/* ANSI colors used in actions */
 
 .ansi-black-fg { color: var(--color-ansi-black); }
 .ansi-red-fg { color: var(--color-ansi-red); }
@@ -67,7 +92,7 @@
 .term-fg2 { color: var(--color-ansi-bright-black); } /* faint (decreased intensity) - same as gray really */
 .term-fg3 { font-style: italic; } /* italic */
 .term-fg4 { text-decoration: underline; } /* underline */
-.term-fg5 { animation: blink-animation 1s steps(3, start) infinite; } /* blink */
+.term-fg5 { animation: blink-animation 1s step-end infinite; } /* blink */
 .term-fg9 { text-decoration: line-through; } /* crossed-out */
 
 .term-fg30 { color: var(--color-ansi-black); } /* black (but we can't use black, so a diff color) */

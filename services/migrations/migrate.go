@@ -87,15 +87,14 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 }
 
 func checkByAllowBlockList(hostName string, addrList []net.IP) error {
-	var ipAllowed bool
+	ipAllowed := len(addrList) > 0
 	var ipBlocked bool
 	for _, addr := range addrList {
-		ipAllowed = ipAllowed || allowList.MatchIPAddr(addr)
+		ipAllowed = ipAllowed && allowList.MatchIPAddr(addr)
 		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
 	}
-	var blockedError error
 	if blockList.MatchHostName(hostName) || ipBlocked {
-		blockedError = &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
+		return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 	}
 	// if we have an allow-list, check the allow-list before return to get the more accurate error
 	if !allowList.IsEmpty() {
@@ -104,7 +103,7 @@ func checkByAllowBlockList(hostName string, addrList []net.IP) error {
 		}
 	}
 	// otherwise, we always follow the blocked list
-	return blockedError
+	return nil
 }
 
 // MigrateRepository migrate repository according MigrateOptions
@@ -131,7 +130,8 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository (%s/%s) from %s failed: %v", ownerName, opts.RepoName, opts.OriginalURL, err)); err2 != nil {
+		noticeMsg := fmt.Sprintf("Migrate repository (%s/%s) from %s failed: %v", ownerName, opts.RepoName, util.SanitizeCredentialURLs(opts.OriginalURL), util.SanitizeErrorCredentialURLs(err))
+		if err2 := system_model.CreateRepositoryNotice(noticeMsg); err2 != nil {
 			log.Error("create repository notice failed: ", err2)
 		}
 		return nil, err
@@ -524,9 +524,14 @@ func Init() error {
 	if setting.Migrations.AllowLocalNetworks {
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
+	} else {
+		blockList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
+		blockList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
-	// TODO: at the moment, if ALLOW_LOCALNETWORKS=false, ALLOWED_DOMAINS=domain.com, and domain.com has IP 127.0.0.1, then it's still allowed.
-	// if we want to block such case, the private&loopback should be added to the blockList when ALLOW_LOCALNETWORKS=false
+
+	// reset the shared client so it is rebuilt from the freshly parsed lists on next use; download paths
+	// then reuse one connection pool instead of creating a client (and pool) per request
+	migrationHTTPClient.Reset()
 
 	return nil
 }

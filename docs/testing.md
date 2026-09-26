@@ -23,7 +23,7 @@ go test -run '^TestName$' ./modulepath/
 make test-backend#TestName
 ```
 
-Frontend unit tests run with [Vitest](https://vitest.dev/):
+Frontend unit tests run with [Vitest](https://vitest.dev/) browser mode:
 
 ```bash
 make test-frontend
@@ -111,6 +111,13 @@ gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request 
 gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
 
+## Recorded API responses
+
+Repository migration unit and integration tests replay API responses recorded under
+`_mock_data/`, so they run offline. Setting the environment variables a test reads, usually
+API credentials, makes it record from the live API instead. To re-record, delete the test's
+`_mock_data` directory, run the test with those variables set, and update its assertions.
+
 ## End-to-end tests
 
 End-to-end tests drive a running Gitea instance with [Playwright](https://playwright.dev/):
@@ -136,7 +143,7 @@ Useful environment variables:
 ## Migration tests
 
 If you change a database-persisted struct under `models/` you will usually need a
-new migration in `models/migrations/`. Run the migration tests with:
+new migration in `modelmigration`. Run the migration tests with:
 
 ```bash
 make test-migration

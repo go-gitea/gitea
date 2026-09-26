@@ -11,7 +11,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 
@@ -55,6 +54,9 @@ func newAuthCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
+		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+			return cliAuditContext(ctx), nil
+		},
 		Commands: []*cli.Command{
 			microcmdAuthAddOauth(),
 			microcmdAuthUpdateOauth(),
@@ -128,8 +130,8 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RelativePath())
-			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+			log.Trace("Synchronizing repo %s", repo.FullName())
+			gitRepo, err := git.OpenRepository(ctx, repo)
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue

@@ -15,8 +15,12 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -213,8 +217,8 @@ func (status *CommitStatus) LocaleString(lang translation.Locale) string {
 	return lang.TrString("repo.commitstatus." + status.State.String())
 }
 
-// HideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
-func (status *CommitStatus) HideActionsURL(ctx context.Context) {
+// hideActionsURL set `TargetURL` to an empty string if the status comes from Gitea Actions
+func (status *CommitStatus) hideActionsURL(ctx context.Context) {
 	if _, ok := status.cutTargetURLGiteaActionsPrefix(ctx); ok {
 		status.TargetURL = ""
 	}
@@ -544,18 +548,38 @@ func HashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 
-// CommitStatusesHideActionsURL hide Gitea Actions urls
-func CommitStatusesHideActionsURL(ctx context.Context, statuses []*CommitStatus) {
-	idToRepos := make(map[int64]*repo_model.Repository)
+// CommitStatusesApplyDoerPermission hides the Gitea Actions url of every status whose repository
+// the doer cannot read the Actions unit of, so the "Details" link does not lead to a 404.
+func CommitStatusesApplyDoerPermission(ctx context.Context, doer *user_model.User, statuses []*CommitStatus) {
 	for _, status := range statuses {
-		if status == nil {
-			continue
+		if status != nil && !statusRepoCanReadActions(ctx, doer, status) {
+			status.hideActionsURL(ctx)
 		}
-
-		if status.Repo == nil {
-			status.Repo = idToRepos[status.RepoID]
-		}
-		status.HideActionsURL(ctx)
-		idToRepos[status.RepoID] = status.Repo
 	}
+}
+
+// SignCommitsApplyDoerPermission is CommitStatusesApplyDoerPermission for a list of commits.
+func SignCommitsApplyDoerPermission(ctx context.Context, doer *user_model.User, commits []*SignCommitWithStatuses) {
+	var statuses []*CommitStatus
+	for _, commit := range commits {
+		statuses = append(statuses, commit.Status)
+		statuses = append(statuses, commit.Statuses...)
+	}
+	CommitStatusesApplyDoerPermission(ctx, doer, statuses)
+}
+
+func statusRepoCanReadActions(ctx context.Context, doer *user_model.User, status *CommitStatus) bool {
+	perm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(status.RepoID, doer),
+		func(ctx context.Context, _ string) (access_model.Permission, error) { // only runs on a cache miss
+			if err := status.loadRepository(ctx); err != nil {
+				return access_model.Permission{}, err
+			}
+			return access_model.GetDoerRepoPermission(ctx, status.Repo, doer)
+		},
+	)
+	if err != nil {
+		log.Error("GetDoerRepoPermission[%d]: %v", status.RepoID, err)
+		return false
+	}
+	return perm.CanRead(unit.TypeActions)
 }

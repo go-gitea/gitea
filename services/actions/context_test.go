@@ -7,13 +7,19 @@ import (
 	"strconv"
 	"testing"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	webhook_module "gitea.dev/modules/webhook"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,12 +38,13 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 
 	expr := &act_model.RawConcurrency{
 		Group:            "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
-		CancelInProgress: "true",
+		CancelInProgress: "True",
 	}
 
 	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, attemptA, expr, nil, nil))
 	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runB, attemptB, expr, nil, nil))
 
+	assert.True(t, attemptA.ConcurrencyCancel)
 	assert.Contains(t, attemptA.ConcurrencyGroup, "791")
 	assert.Contains(t, attemptB.ConcurrencyGroup, "792")
 	assert.NotEqual(t, attemptA.ConcurrencyGroup, attemptB.ConcurrencyGroup)
@@ -63,16 +70,18 @@ jobs:
 `)
 
 	run := &actions_model.ActionRun{
-		Title:         "before parse",
-		RepoID:        4,
-		OwnerID:       1,
-		WorkflowID:    "expr-runid.yaml",
-		TriggerUserID: 1,
-		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		EventPayload:  "{}",
+		Title:             "before parse",
+		RepoID:            4,
+		OwnerID:           1,
+		WorkflowID:        "expr-runid.yaml",
+		TriggerUserID:     1,
+		Ref:               "refs/heads/master",
+		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:             "push",
+		TriggerEvent:      "push",
+		EventPayload:      "{}",
+		WorkflowRepoID:    4,
+		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
 	}
 	require.NoError(t, PrepareRunAndInsert(ctx, content, run, nil))
 	require.Positive(t, run.ID)
@@ -87,6 +96,47 @@ jobs:
 	// Rerun reads raw_concurrency from the DB to re-evaluate the group;
 	// see services/actions/rerun.go. Must survive the insert.
 	assert.NotEmpty(t, persisted.RawConcurrency)
+}
+
+func TestPrepareRunAndInsert_JobIf(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+
+	run := insertMaxParallelRun(t, `on: push
+jobs:
+  start:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+  skip:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    concurrency: skip
+    steps:
+      - run: echo
+  skip-caller:
+    if: false
+    uses: ./.gitea/workflows/callee.yml
+  invalid:
+    if: fromJSON('{')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`, false)
+
+	jobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
+		jobs[job.JobID] = job
+	}
+	assert.Equal(t, actions_model.StatusWaiting, jobs["start"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip"].Status)
+	assert.False(t, jobs["skip"].IsConcurrencyEvaluated)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip-caller"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["invalid"].Status)
+	summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs["invalid"].ID, 0)
+	require.NoError(t, err)
+	assert.Contains(t, summary.Content, "Error when evaluating `if` for job `invalid`")
 }
 
 func TestComputeReusableCallerOutputs(t *testing.T) {
@@ -285,20 +335,24 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		assert.Equal(t, map[string]string{"bubbled": "bubble-value"}, out)
 	})
 
-	t.Run("matrix children with same JobID prefer non-empty values", func(t *testing.T) {
+	t.Run("matrix children combine outputs by completion order while ignoring empty values", func(t *testing.T) {
 		run := insertRun(t, "matrix-out.yaml")
 		caller := insertCaller(t, run, "caller", 0, `on:
   workflow_call:
     outputs:
       foo:
         value: ${{ jobs.matrix.outputs.foo }}
+      bar:
+        value: ${{ jobs.matrix.outputs.bar }}
 `, "")
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "filled"})
+		later := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "latest", "bar": "kept"})
+		earlier := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "earlier"})
+		empty := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
+		later.Stopped, earlier.Stopped, empty.Stopped = 200, 100, 300
 
-		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, map[int64][]*actions_model.ActionRunJob{caller.ID: {later, earlier, empty}})
 		require.NoError(t, err)
-		assert.Equal(t, map[string]string{"foo": "filled"}, out)
+		assert.Equal(t, map[string]string{"foo": "latest", "bar": "kept"}, out)
 	})
 }
 
@@ -308,11 +362,120 @@ func TestFindTaskNeeds(t *testing.T) {
 	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 51})
 	job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: task.JobID})
 
-	ret, err := FindTaskNeeds(t.Context(), job)
+	ret, _, err := FindTaskNeeds(t.Context(), job)
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Contains(t, ret, "job1")
 	assert.Len(t, ret["job1"].Outputs, 2)
 	assert.Equal(t, "abc", ret["job1"].Outputs["output_a"])
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
+}
+
+func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
+	payload := api.PullRequestPayload{
+		PullRequest: &api.PullRequest{
+			Base: &api.PRBranchInfo{
+				Name: "owner:main",
+				Ref:  "main",
+				Sha:  "1234567890abcdef",
+			},
+			Head: &api.PRBranchInfo{
+				Name: "fork:feature",
+				Ref:  "feature",
+				Sha:  "fedcba0987654321",
+			},
+		},
+	}
+	payloadBytes, err := json.Marshal(payload)
+	assert.NoError(t, err)
+
+	run := &actions_model.ActionRun{
+		Event:        webhook_module.HookEventPullRequest,
+		TriggerEvent: string(actions_module.GithubEventPullRequestTarget),
+		EventPayload: string(payloadBytes),
+		TriggerUser:  &user_model.User{Name: "test-user"},
+		Repo:         &repo_model.Repository{Name: "test-repo", OwnerName: "test-owner"},
+	}
+
+	giteaCtx := GenerateGiteaContext(t.Context(), run, nil, nil)
+
+	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
+	assert.Equal(t, "main", giteaCtx["ref_name"])
+}
+
+func TestGenerateGiteaContextRefProtected(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, &git_model.ProtectedBranch{
+		RepoID:   repo.ID,
+		RuleName: "master",
+	}, git_model.WhitelistOptions{}))
+	require.NoError(t, git_model.InsertProtectedTag(t.Context(), &git_model.ProtectedTag{
+		RepoID:      repo.ID,
+		NamePattern: "v*",
+	}))
+
+	gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+		RepoID:      repo.ID,
+		Repo:        repo,
+		TriggerUser: &user_model.User{Name: "test-user"},
+		Ref:         "refs/heads/master",
+	}, nil, nil)
+
+	assert.Equal(t, true, gitCtx["ref_protected"])
+
+	tagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+		RepoID:      repo.ID,
+		Repo:        repo,
+		TriggerUser: &user_model.User{Name: "test-user"},
+		Ref:         "refs/tags/v1.0.0",
+	}, nil, nil)
+
+	assert.Equal(t, true, tagCtx["ref_protected"])
+
+	unprotectedTagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+		RepoID:      repo.ID,
+		Repo:        repo,
+		TriggerUser: &user_model.User{Name: "test-user"},
+		Ref:         "refs/tags/other",
+	}, nil, nil)
+
+	assert.Equal(t, false, unprotectedTagCtx["ref_protected"])
+}
+
+// TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,
+// use GetLatestAttempt to load the latest attempt and resolve attempt-related context variables.
+func TestGenerateGiteaContext_NilAttempt(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	require.NoError(t, repo.LoadOwner(t.Context()))
+	actor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})     // initiated the run
+	triggerer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // initiated the latest attempt
+
+	run := &actions_model.ActionRun{
+		RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID,
+		TriggerUserID: actor.ID, TriggerUser: actor,
+		WorkflowID: "test.yml", Index: 99600, Ref: "refs/heads/main",
+		CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0", TriggerEvent: "push",
+		Status: actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID: repo.ID, RunID: run.ID, Attempt: 3, TriggerUserID: triggerer.ID, Status: actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), attempt))
+	run.LatestAttemptID = attempt.ID
+	job := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1, RepoID: repo.ID, OwnerID: repo.OwnerID,
+		Name: "j", JobID: "j", Attempt: attempt.Attempt, Status: actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	// attempt == nil forces the fallback lookup via run.GetLatestAttempt.
+	gitCtx := GenerateGiteaContext(t.Context(), run, nil, job)
+	assert.Equal(t, actor.Name, gitCtx["actor"])
+	assert.Equal(t, triggerer.Name, gitCtx["triggering_actor"])
+	assert.Equal(t, "3", gitCtx["run_attempt"])
 }

@@ -42,20 +42,9 @@
 }
 
 .repository .diff-file-box .code-diff .add-comment-left,
-.repository .diff-file-box .code-diff .add-comment-right,
-.repository .diff-file-box .code-diff .add-code-comment .add-comment-left,
-.repository .diff-file-box .code-diff .add-code-comment .add-comment-right,
-.repository .diff-file-box .code-diff .add-code-comment .lines-type-marker {
+.repository .diff-file-box .code-diff .add-comment-right {
   padding-left: 0 !important;
   padding-right: 0 !important;
-}
-
-.add-comment-left.add-comment-right .ui.attached.header {
-  border: 1px solid var(--color-secondary);
-}
-
-.add-comment-left.add-comment-right .ui.attached.header:not(.top) {
-  margin-bottom: 0.5em;
 }
 
 .comment-code-cloud {
@@ -71,37 +60,6 @@
   padding: 0;
 }
 
-.comment-code-cloud .attached.tab {
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-
-.comment-code-cloud .attached.header {
-  padding: 1px 8px 1px 12px;
-}
-
-@media (max-width: 767.98px) {
-  .comment-code-cloud .attached.header {
-    padding-top: 4px;
-    padding-bottom: 4px;
-  }
-}
-
-.comment-code-cloud .attached.header .text {
-  margin: 0;
-}
-
-.comment-code-cloud .right.menu.options .item {
-  padding: 0.85714286em 0.442857em;
-  cursor: pointer;
-}
-
-.comment-code-cloud .ui.active.tab.markup {
-  padding: 1em;
-  min-height: 168px;
-}
-
 .comment-code-cloud .editor-statusbar {
   display: none;
 }
@@ -112,10 +70,6 @@
 
 .diff-file-body .comment-form {
   margin: 0 0 0 3em;
-}
-
-.diff-file-body.binary {
-  padding: 5px 10px;
 }
 
 .file-comment {

@@ -7,7 +7,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"net/mail"
 	"strings"
 	"time"
 
@@ -21,45 +20,6 @@ import (
 
 	"xorm.io/builder"
 )
-
-// ErrEmailCharIsNotSupported e-mail address contains unsupported character
-type ErrEmailCharIsNotSupported struct {
-	Email string
-}
-
-// IsErrEmailCharIsNotSupported checks if an error is an ErrEmailCharIsNotSupported
-func IsErrEmailCharIsNotSupported(err error) bool {
-	_, ok := err.(ErrEmailCharIsNotSupported)
-	return ok
-}
-
-func (err ErrEmailCharIsNotSupported) Error() string {
-	return fmt.Sprintf("e-mail address contains unsupported character [email: %s]", err.Email)
-}
-
-func (err ErrEmailCharIsNotSupported) Unwrap() error {
-	return util.ErrInvalidArgument
-}
-
-// ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
-// or has a leading '-' character
-type ErrEmailInvalid struct {
-	Email string
-}
-
-// IsErrEmailInvalid checks if an error is an ErrEmailInvalid
-func IsErrEmailInvalid(err error) bool {
-	_, ok := err.(ErrEmailInvalid)
-	return ok
-}
-
-func (err ErrEmailInvalid) Error() string {
-	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
-}
-
-func (err ErrEmailInvalid) Unwrap() error {
-	return util.ErrInvalidArgument
-}
 
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
 type ErrEmailAlreadyUsed struct {
@@ -147,18 +107,34 @@ func InsertEmailAddress(ctx context.Context, email *EmailAddress) (*EmailAddress
 	return email, nil
 }
 
+type ErrEmailInvalid string
+
+func (err ErrEmailInvalid) Error() string {
+	return string(err)
+}
+
+func (err ErrEmailInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ValidateEmail check if email is a valid & allowed address
 func ValidateEmail(email string) error {
-	if err := validateEmailBasic(email); err != nil {
-		return err
+	if !validation.IsEmailAddressValid(email) {
+		return ErrEmailInvalid("email address is invalid: " + email)
 	}
-	return validateEmailDomain(email)
+	if !IsEmailDomainAllowed(email) {
+		return ErrEmailInvalid("email domain is not allowed: " + email)
+	}
+	return nil
 }
 
 // ValidateEmailForAdmin check if email is a valid address when admins manually add or edit users
 func ValidateEmailForAdmin(email string) error {
-	return validateEmailBasic(email)
 	// In this case we do not need to check the email domain
+	if !validation.IsEmailAddressValid(email) {
+		return ErrEmailInvalid("email address is invalid: " + email)
+	}
+	return nil
 }
 
 func GetEmailAddressByEmail(ctx context.Context, email string) (*EmailAddress, error) {
@@ -348,8 +324,8 @@ func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddres
 		opts := &TimeLimitCodeOptions{Purpose: TimeLimitCodeActivateEmail, NewEmail: email}
 		data := makeTimeLimitCodeHashData(opts, user)
 		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
-			emailAddress := &EmailAddress{UID: user.ID, Email: email}
-			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
+			emailAddress, has, _ := db.Get[EmailAddress](ctx, builder.Eq{"uid": user.ID, "email": email})
+			if has {
 				return emailAddress
 			}
 		}
@@ -491,37 +467,11 @@ func ActivateUserEmail(ctx context.Context, userID int64, email string, activate
 	})
 }
 
-// validateEmailBasic checks whether the email complies with the rules
-func validateEmailBasic(email string) error {
-	if len(email) == 0 {
-		return ErrEmailInvalid{email}
-	}
-
-	if !globalVars().emailRegexp.MatchString(email) {
-		return ErrEmailCharIsNotSupported{email}
-	}
-
-	if email[0] == '-' {
-		return ErrEmailInvalid{email}
-	}
-
-	if _, err := mail.ParseAddress(email); err != nil {
-		return ErrEmailInvalid{email}
-	}
-
-	return nil
-}
-
-// validateEmailDomain checks whether the email domain is allowed or blocked
-func validateEmailDomain(email string) error {
-	if !IsEmailDomainAllowed(email) {
-		return ErrEmailInvalid{email}
-	}
-
-	return nil
-}
-
 func IsEmailDomainAllowed(email string) bool {
+	localPart, _, _ := strings.CutLast(email, "@")
+	if strings.ContainsAny(localPart, "%!") && (len(setting.Service.EmailDomainAllowList) > 0 || len(setting.Service.EmailDomainBlockList) > 0) {
+		return false // percent-hack and bang-path local parts can route mail to a domain other than the listed one
+	}
 	if len(setting.Service.EmailDomainAllowList) == 0 {
 		return !validation.IsEmailDomainListed(setting.Service.EmailDomainBlockList, email)
 	}

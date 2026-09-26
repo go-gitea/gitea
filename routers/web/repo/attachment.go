@@ -143,16 +143,16 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	// prevent visiting attachment from other repository directly
-	// The check will be ignored before this code merged.
-	if attach.CreatedUnix > repo_model.LegacyAttachmentMissingRepoIDCutoff && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
-		ctx.HTTPError(http.StatusNotFound)
-		return
-	}
-
 	unitType, repoID, err := repo_service.GetAttachmentLinkedTypeAndRepoID(ctx, attach)
 	if err != nil {
 		ctx.ServerError("GetAttachmentLinkedTypeAndRepoID", err)
+		return
+	}
+	if repoID == 0 {
+		repoID = attach.RepoID
+	}
+	if ctx.Repo.Repository != nil && repoID != 0 && ctx.Repo.Repository.ID != repoID {
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
@@ -184,6 +184,22 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		if !perm.CanRead(unitType) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
+		}
+
+		// Draft release attachments must not be exposed to anyone without write
+		// access, matching the API-side canAccessReleaseDraft gate. Otherwise the
+		// UUID-based web endpoints would leak draft attachments to any recipient of
+		// the (leaked) download URL.
+		if unitType == unit.TypeReleases && attach.ReleaseID != 0 && !perm.CanWrite(unit.TypeReleases) {
+			rel, err := repo_model.GetReleaseByID(ctx, attach.ReleaseID)
+			if err != nil {
+				ctx.ServerError("GetReleaseByID", err)
+				return
+			}
+			if rel.IsDraft {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
 		}
 
 		if requiredScope, ok := attachmentReadScope(unitType); ok {

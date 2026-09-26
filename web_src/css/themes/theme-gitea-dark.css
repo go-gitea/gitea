@@ -66,11 +66,8 @@ gitea-theme-meta-info {
   --color-console-fg: #f8f8f8;
   --color-console-fg-subtle: #c1c3c8;
   --color-console-bg: #191a1c;
-  --color-console-border: #313338;
   --color-console-hover-bg: #2a2c30;
   --color-console-active-bg: #313338;
-  --color-console-menu-bg: #292b2e;
-  --color-console-menu-border: #46494f;
   --color-console-link: #969aa1;
   /* named colors */
   --color-red: #cc4848;
@@ -163,14 +160,14 @@ gitea-theme-meta-info {
   --color-grey-light: #898d96;
   --color-gold: #b1983b;
   --color-white: #ffffff;
-  --color-diff-added-fg: #87ab63;
+  --color-diff-added-fg: #93b373;
   --color-diff-added-linenum-bg: #274227;
   --color-diff-added-row-bg: #203224;
   --color-diff-added-row-border: #314a37;
   --color-diff-added-word-bg: #3c653c;
   --color-diff-moved-row-bg: #818044;
   --color-diff-moved-row-border: #bcca6f;
-  --color-diff-removed-fg: #cc4848;
+  --color-diff-removed-fg: #fb5f5b;
   --color-diff-removed-linenum-bg: #482121;
   --color-diff-removed-row-bg: #301e1e;
   --color-diff-removed-row-border: #634343;
@@ -249,7 +246,7 @@ gitea-theme-meta-info {
   --color-reaction-hover-bg: var(--color-primary-light-4);
   --color-reaction-active-bg: var(--color-primary-light-5);
   --color-tooltip-text: #fafafa;
-  --color-tooltip-bg: #0b0b0cf0;
+  --color-tooltip-bg: #2b2e33;
   --color-nav-bg: #18191b;
   --color-nav-hover-bg: var(--color-secondary-light-1);
   --color-nav-text: var(--color-text);
@@ -270,7 +267,7 @@ gitea-theme-meta-info {
   --color-syntax-keyword: #ff8854;
   --color-syntax-bool: #25bbc9;
   --color-syntax-control: #dd9e17;
-  --color-syntax-name: #c7a618;
+  --color-syntax-name: #fabd2f;
   --color-syntax-type: #eb8cb3;
   --color-syntax-number: #63b2dd;
   --color-syntax-operator: #ff8854;
@@ -313,25 +310,25 @@ gitea-theme-meta-info {
 }
 
 /* invert emojis that are hard to read otherwise */
-.emoji[aria-label="check mark"],
-.emoji[aria-label="currency exchange"],
-.emoji[aria-label="TOP arrow"],
-.emoji[aria-label="END arrow"],
-.emoji[aria-label="ON! arrow"],
-.emoji[aria-label="SOON arrow"],
-.emoji[aria-label="heavy dollar sign"],
-.emoji[aria-label="copyright"],
-.emoji[aria-label="registered"],
-.emoji[aria-label="trade mark"],
-.emoji[aria-label="multiply"],
-.emoji[aria-label="plus"],
-.emoji[aria-label="minus"],
-.emoji[aria-label="divide"],
-.emoji[aria-label="curly loop"],
-.emoji[aria-label="double curly loop"],
-.emoji[aria-label="wavy dash"],
-.emoji[aria-label="paw prints"],
-.emoji[aria-label="musical note"],
-.emoji[aria-label="musical notes"] {
+.emoji[data-alias="heavy_check_mark"],
+.emoji[data-alias="currency_exchange"],
+.emoji[data-alias="top"],
+.emoji[data-alias="end"],
+.emoji[data-alias="on"],
+.emoji[data-alias="soon"],
+.emoji[data-alias="heavy_dollar_sign"],
+.emoji[data-alias="copyright"],
+.emoji[data-alias="registered"],
+.emoji[data-alias="tm"],
+.emoji[data-alias="heavy_multiplication_x"],
+.emoji[data-alias="heavy_plus_sign"],
+.emoji[data-alias="heavy_minus_sign"],
+.emoji[data-alias="heavy_division_sign"],
+.emoji[data-alias="curly_loop"],
+.emoji[data-alias="loop"],
+.emoji[data-alias="wavy_dash"],
+.emoji[data-alias="feet"],
+.emoji[data-alias="musical_note"],
+.emoji[data-alias="notes"] {
   filter: invert(100%) hue-rotate(180deg);
 }

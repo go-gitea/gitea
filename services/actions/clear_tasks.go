@@ -26,11 +26,13 @@ func StopZombieTasks(ctx context.Context) error {
 	}, actions_model.StatusRunning, actions_model.StatusCancelling)
 }
 
-// StopEndlessTasks stops tasks in running/cancelling status with continuous updates that don't end for a long time
+// StopEndlessTasks stops running tasks with continuous updates that don't end for a long time.
+// StatusRunning only: the threshold is the task's *start* time, so including StatusCancelling would kill a
+// task mid post-cancel cleanup. StopZombieTasks covers a stalled one, keying off the last update instead.
 func StopEndlessTasks(ctx context.Context) error {
 	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
-	}, actions_model.StatusRunning, actions_model.StatusCancelling)
+	}, actions_model.StatusRunning)
 }
 
 func stopTasksByStatuses(ctx context.Context, opts actions_model.FindTaskOptions, statuses ...actions_model.Status) error {
@@ -65,7 +67,7 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 		return true, nil
 	}
 
-	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
+	if job.ConcurrencyGroup == "" {
 		return false, nil
 	}
 
@@ -95,7 +97,7 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 }
 
 func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (bool, error) {
-	if attempt.ConcurrencyGroup == "" || attempt.ConcurrencyCancel {
+	if attempt.ConcurrencyGroup == "" {
 		return false, nil
 	}
 
@@ -180,7 +182,7 @@ func CancelAbandonedJobs(ctx context.Context) error {
 		return err
 	}
 
-	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs)
+	updatedJobs, err := actions_model.CancelJobs(ctx, abandonedJobs, false)
 	if err != nil {
 		log.Warn("cancel abandoned jobs: %v", err)
 	}

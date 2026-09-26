@@ -13,8 +13,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 
@@ -48,7 +48,7 @@ func GitFsckRepos(ctx context.Context, timeout time.Duration, args gitcmd.Truste
 // GitFsckRepo calls 'git fsck' to check an individual repository's health.
 func GitFsckRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
 	log.Trace("Running health check on repository %-v", repo.FullName())
-	if err := gitrepo.Fsck(ctx, repo, timeout, args); err != nil {
+	if err := git.Fsck(ctx, repo, timeout, args); err != nil {
 		log.Warn("Failed to health check repository (%-v): %v", repo.FullName(), err)
 		if err = system_model.CreateRepositoryNotice("Failed to health check repository (%s): %v", repo.FullName(), err); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
@@ -88,14 +88,14 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 	command := gitcmd.NewCommand("gc").AddArguments(args...)
 	var stdout string
 	var err error
-	stdout, _, err = gitrepo.RunCmdString(ctx, repo, command)
+	stdout, _, err = command.WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
 		desc := fmt.Sprintf("Repository garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
-		return fmt.Errorf("Repository garbage collection failed in repo: %s: Error: %w", repo.RelativePath(), err)
+		return fmt.Errorf("repository garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
 	}
 
 	// Now update the size of the repository
@@ -105,7 +105,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
-		return fmt.Errorf("Updating size as part of garbage collection failed in repo: %s: Error: %w", repo.RelativePath(), err)
+		return fmt.Errorf("updating size as part of garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
 	}
 
 	return nil
@@ -122,7 +122,7 @@ func gatherMissingRepoRecords(ctx context.Context) (repo_model.RepositoryList, e
 				return db.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())
 			default:
 			}
-			exist, err := gitrepo.IsRepositoryExist(ctx, repo)
+			exist, err := git.IsRepositoryExist(ctx, repo)
 			if err != nil {
 				return fmt.Errorf("Unable to check dir for %s. %w", repo.FullName(), err)
 			}
@@ -189,8 +189,8 @@ func ReinitMissingRepositories(ctx context.Context) error {
 		default:
 		}
 		log.Trace("Initializing %d/%d...", repo.OwnerID, repo.ID)
-		if err := gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
-			log.Error("Unable (re)initialize repository %d at %s. Error: %v", repo.ID, repo.RelativePath(), err)
+		if err := git.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
+			log.Error("Unable (re)initialize repository %d at %s. Error: %v", repo.ID, repo.FullName(), err)
 			if err2 := system_model.CreateRepositoryNotice("InitRepository (%s) [%d]: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err2)
 			}

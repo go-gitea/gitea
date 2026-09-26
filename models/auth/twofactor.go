@@ -195,3 +195,18 @@ func HasTwoFactorOrWebAuthn(ctx context.Context, id int64) (bool, error) {
 	}
 	return HasWebAuthnRegistrationsByUID(ctx, id)
 }
+
+// DisableTwoFactor removes every two-factor method of the given user atomically,
+// returning the number of TOTP records and WebAuthn credentials removed.
+// It is a no-op for a user that has no 2FA enrolled.
+func DisableTwoFactor(ctx context.Context, uid int64) (totp, webAuthn int64, err error) {
+	err = db.WithTx(ctx, func(ctx context.Context) error {
+		var e error
+		if totp, e = db.GetEngine(ctx).Where("uid = ?", uid).Delete(&TwoFactor{}); e != nil {
+			return e
+		}
+		webAuthn, e = db.GetEngine(ctx).Where("user_id = ?", uid).Delete(&WebAuthnCredential{})
+		return e
+	})
+	return totp, webAuthn, err
+}

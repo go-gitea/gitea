@@ -8,9 +8,10 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"uuid"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
-	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -20,7 +21,6 @@ import (
 	actions_service "gitea.dev/services/actions"
 
 	"connectrpc.com/connect"
-	gouuid "github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -74,7 +74,7 @@ func (s *Service) Register(
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:                 gouuid.New().String(),
+		UUID:                 uuid.New().String(),
 		Name:                 name,
 		OwnerID:              runnerToken.OwnerID,
 		RepoID:               runnerToken.RepoID,
@@ -194,9 +194,15 @@ func (s *Service) FetchTask(
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
+		if t, ok, throttled, err := actions_service.TryPickTask(ctx, freshRunner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+		} else if throttled {
+			// Concurrency limit reached: don't advance the runner's tasks version,
+			// so it retries on its next poll instead of sleeping until the next bump.
+			latestVersion = tasksVersion
+			//  A steady stream here means MAX_CONCURRENT_TASK_PICKS is too low for the fleet.
+			log.Debug("task pick throttled for runner %q (id %d); it will retry on its next poll", freshRunner.Name, freshRunner.ID)
 		} else if ok {
 			task = t
 		}

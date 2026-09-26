@@ -124,7 +124,7 @@ func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) (
 		e.Limit(pageSize, start)
 	}
 	lfsLocks := make(LFSLockList, 0, pageSize)
-	return lfsLocks, e.Find(&lfsLocks, &LFSLock{RepoID: repoID})
+	return lfsLocks, e.OrderBy("id").Find(&lfsLocks, &LFSLock{RepoID: repoID})
 }
 
 // GetTreePathLock returns LSF lock for the treePath

@@ -20,9 +20,11 @@ var Security = struct {
 	XContentTypeOptions string
 
 	ContentSecurityPolicyGeneral string // it only supports empty (default policy) or "unset", maybe it can support more in the future
+	AllowedHostList              string
 }{
 	XFrameOptions:       "SAMEORIGIN",
 	XContentTypeOptions: "nosniff",
+	AllowedHostList:     "external",
 }
 
 var (

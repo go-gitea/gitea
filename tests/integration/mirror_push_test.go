@@ -15,7 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/migrations"
@@ -60,21 +60,26 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
 
-	srcGitRepo, err := gitrepo.OpenRepository(t.Context(), srcRepo)
+	srcGitRepo, err := git.OpenRepository(t.Context(), srcRepo)
 	assert.NoError(t, err)
 	defer srcGitRepo.Close()
 
-	srcCommit, err := srcGitRepo.GetBranchCommit("master")
+	srcCommit, err := srcGitRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
 
-	mirrorGitRepo, err := gitrepo.OpenRepository(t.Context(), mirrorRepo)
+	mirrorGitRepo, err := git.OpenRepository(t.Context(), mirrorRepo)
 	assert.NoError(t, err)
 	defer mirrorGitRepo.Close()
 
-	mirrorCommit, err := mirrorGitRepo.GetBranchCommit("master")
+	mirrorCommit, err := mirrorGitRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)() // the remote is re-checked every sync, not just when added
+	assert.NoError(t, migrations.Init())
+	t.Cleanup(func() { _ = migrations.Init() })
+	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
 
 	// Cleanup
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))
@@ -101,9 +106,9 @@ func testMirrorPushWikiDefaultBranchMismatch(t *testing.T, u *url.URL) {
 	mirrorRepo.DefaultBranch = "mirror-head"
 	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), mirrorRepo, "default_branch"))
 
-	wikiCommitID, err := gitrepo.GetBranchCommitID(t.Context(), mirrorRepo.WikiStorageRepo(), mirrorRepo.DefaultWikiBranch)
+	wikiCommitID, err := git.GetBranchCommitID(t.Context(), mirrorRepo.WikiStorageRepo(), mirrorRepo.DefaultWikiBranch)
 	assert.NoError(t, err)
-	assert.NoError(t, gitrepo.CreateBranch(t.Context(), mirrorRepo.WikiStorageRepo(), "mirror-head", wikiCommitID))
+	assert.NoError(t, git.CreateBranch(t.Context(), mirrorRepo.WikiStorageRepo(), "mirror-head", wikiCommitID))
 
 	session := loginUser(t, user.Name)
 

@@ -5,6 +5,7 @@ package git
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -34,15 +35,15 @@ type CodeActivityAuthor struct {
 }
 
 // GetCodeActivityStats returns code statistics for activity page
-func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) (*CodeActivityStats, error) {
+func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.Time, branch string) (*CodeActivityStats, error) {
 	stats := &CodeActivityStats{}
 
 	since := fromTime.Format(time.RFC3339)
 
 	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		WithRepo(repo).
+		RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -64,7 +65,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	err = gitCmd.
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
@@ -131,7 +132,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.Authors = a
 			return nil
 		}).
-		RunWithStderr(repo.Ctx)
+		RunWithStderr(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetCodeActivityStats: %w", err)
 	}

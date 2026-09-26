@@ -111,7 +111,7 @@ If further discussion is needed, we encourage you to open a new issue instead an
 
 ## Building Gitea
 
-See [docs/setup.md](docs/setup.md) for prerequisites and [docs/development.md](docs/development.md)
+See [docs/build-setup.md](docs/build-setup.md) for prerequisites and [docs/development.md](docs/development.md)
 for building Gitea and the development workflow.
 
 ## Styleguide

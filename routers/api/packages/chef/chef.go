@@ -71,7 +71,7 @@ func PackagesUniverse(ctx *context.Context) {
 			LocationType: "opscode",
 			LocationPath: baseURL,
 			DownloadURL:  fmt.Sprintf("%s/cookbooks/%s/versions/%s/download", baseURL, url.PathEscape(pd.Package.Name), pd.Version.Version),
-			Dependencies: pd.Metadata.(*chef_module.Metadata).Dependencies,
+			Dependencies: packages_model.DescriptorMetadata[*chef_module.Metadata](pd).Dependencies,
 		}
 	}
 
@@ -128,7 +128,7 @@ func EnumeratePackages(ctx *context.Context) {
 
 	items := make([]*Item, 0, len(pds))
 	for _, pd := range pds {
-		metadata := pd.Metadata.(*chef_module.Metadata)
+		metadata := packages_model.DescriptorMetadata[*chef_module.Metadata](pd)
 
 		items = append(items, &Item{
 			CookbookName:        pd.Package.Name,
@@ -193,7 +193,7 @@ func PackageMetadata(ctx *context.Context) {
 
 	latest := pds[len(pds)-1]
 
-	metadata := latest.Metadata.(*chef_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*chef_module.Metadata](latest)
 
 	ctx.JSON(http.StatusOK, &Result{
 		Name:          latest.Package.Name,
@@ -241,7 +241,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 
 	baseURL := fmt.Sprintf("%sapi/packages/%s/chef/api/v1/cookbooks/%s", setting.AppURL, ctx.Package.Owner.Name, url.PathEscape(pd.Package.Name))
 
-	metadata := pd.Metadata.(*chef_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*chef_module.Metadata](pd)
 
 	ctx.JSON(http.StatusOK, &Result{
 		Version:         pd.Version.Version,

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -260,6 +260,7 @@ jobs:
       output_2: ${{ steps.gen_output.outputs.output_2 }}
       output_3: ${{ steps.gen_output.outputs.output_3 }}
     strategy:
+      fail-fast: false
       matrix:
         version: [1, 2, 3]
     steps:
@@ -530,9 +531,9 @@ jobs:
 		assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
 		assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
 		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
-		assert.Equal(t, (git.RefName(actionRun.Ref)).ShortName(), gtCtx["ref_name"].GetStringValue())
+		assert.Equal(t, git.RefName(actionRun.Ref).ShortName(), gtCtx["ref_name"].GetStringValue())
 		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string((git.RefName(actionRun.Ref)).RefType()), gtCtx["ref_type"].GetStringValue())
+		assert.Equal(t, string(git.RefName(actionRun.Ref).RefType()), gtCtx["ref_type"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
@@ -622,9 +623,9 @@ jobs:
 		assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
 		assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
 		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
-		assert.Equal(t, (git.RefName(actionRun.Ref)).ShortName(), gtCtx["ref_name"].GetStringValue())
+		assert.Equal(t, git.RefName(actionRun.Ref).ShortName(), gtCtx["ref_name"].GetStringValue())
 		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string((git.RefName(actionRun.Ref)).RefType()), gtCtx["ref_type"].GetStringValue())
+		assert.Equal(t, string(git.RefName(actionRun.Ref).RefType()), gtCtx["ref_type"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())

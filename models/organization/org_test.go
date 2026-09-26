@@ -10,7 +10,9 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -625,4 +627,11 @@ func TestCreateOrganization4(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, db.IsErrNameReserved(err))
 	unittest.CheckConsistencyFor(t, &organization.Organization{}, &organization.Team{})
+}
+
+func TestOrAnyRepoUnitPermission(t *testing.T) {
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+	org := organization.Organization{Visibility: structs.VisibleTypeLimited}
+	assert.Equal(t, perm.AccessModeNone, org.AnyRepoUnitPermission(t.Context(), nil, unit.TypeWiki))
+	assert.Equal(t, perm.AccessModeRead, org.AnyRepoUnitPermission(t.Context(), &user_model.User{}, unit.TypeWiki))
 }

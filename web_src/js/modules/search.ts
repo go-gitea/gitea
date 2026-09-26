@@ -1,4 +1,4 @@
-import {debounce} from 'throttle-debounce';
+import {debounce} from '../utils/func.ts';
 import {GET} from './fetch.ts';
 import {errorName} from './errors.ts';
 import {html, htmlRaw} from '../utils/html.ts';
@@ -69,12 +69,12 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     hide();
   };
 
-  const search = debounce(200, async (query: string) => {
+  const search = debounce(async (query: string) => {
     fetchController?.abort();
     if (query.length < minCharacters) return hide();
     const ctrl = (fetchController = new AbortController());
     try {
-      const response = await GET(url.replaceAll('{query}', urlQueryEscape(query)), {signal: ctrl.signal});
+      const response = await GET(url.replaceAll('{query}', () => urlQueryEscape(query)), {signal: ctrl.signal});
       if (!response.ok) return hide();
       const results = parse(await response.json(), query);
       // only render if the fetch wasn't aborted (e.g. by hide()) and the input still matches
@@ -82,7 +82,7 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     } catch (err) {
       if (errorName(err) !== 'AbortError') hide();
     }
-  });
+  }, 200);
   // cancel + hide ensures a debounced fetch scheduled before any of these can't fire afterwards
   const dismiss = () => { search.cancel(); hide() };
 

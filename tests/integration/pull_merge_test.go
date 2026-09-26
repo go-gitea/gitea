@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
@@ -52,6 +51,7 @@ type MergeOptions struct {
 	Style        repo_model.MergeStyle
 	HeadCommitID string
 	DeleteBranch bool
+	Message      string
 }
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
@@ -59,6 +59,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 		"do":                        string(mergeOptions.Style),
 		"head_commit_id":            mergeOptions.HeadCommitID,
 		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
+		"merge_message_field":       mergeOptions.Message,
 	}
 	var resp *httptest.ResponseRecorder
 	require.Eventually(t, func() bool {
@@ -78,19 +79,14 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 	assert.NoError(t, err)
 	assert.True(t, pull.HasMerged)
 
-	return resp
-}
-
-func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "pulls", pullnum))
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	// Click the little button to create a pull
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Attr("data-url")
-	assert.True(t, exists, "The template has changed, can not find delete button url")
-	req = NewRequest(t, "POST", link)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	if mergeOptions.Message != "" {
+		gitRepo, err := git.OpenRepository(t.Context(), repository)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+		commit, err := gitRepo.GetCommit(t.Context(), pull.MergedCommitID)
+		require.NoError(t, err)
+		assert.Contains(t, commit.CommitMessage.MessageRaw, mergeOptions.Message)
+	}
 
 	return resp
 }
@@ -131,8 +127,8 @@ func TestPullMerge(t *testing.T) {
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
-			Style:        repo_model.MergeStyleMerge,
-			DeleteBranch: false,
+			Style:   repo_model.MergeStyleMerge,
+			Message: strings.Repeat("x", 200*1024),
 		})
 
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
@@ -243,7 +239,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
-		headBranch, err := git_model.GetBranch(t.Context(), repo1.ID, "master")
+		headBranch, err := git_model.GetBranchExisting(t.Context(), repo1.ID, "master")
 		assert.NoError(t, err)
 		assert.NotNil(t, headBranch)
 
@@ -267,7 +263,7 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 	})
 }
 
-func TestPullCleanUpAfterMerge(t *testing.T) {
+func TestPullCleanUpAfterClose(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -277,39 +273,60 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		assert.Equal(t, 3, repo.NumPulls)
 		assert.Equal(t, 3, repo.NumOpenPulls)
 
-		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
+		getDeleteBranchLink := func(t *testing.T, session *TestSession, user, repo, pullnum string) string {
+			req := NewRequest(t, "GET", "/"+path.Join(user, repo, "pulls", pullnum))
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			return htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").AttrOr("data-url", "")
+		}
 
-		elem := strings.Split(test.RedirectURL(resp), "/")
-		assert.Equal(t, "pulls", elem[3])
+		var closedPullNumStr string
+		t.Run("CreateAndClosePR", func(t *testing.T) {
+			resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
+			_, pullNumStr, _ := strings.CutLast(test.RedirectURL(resp), "/")
 
-		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
-		assert.Equal(t, 4, repo.NumPulls)
-		assert.Equal(t, 4, repo.NumOpenPulls)
+			testIssueClose(t, session, "user2", "repo1", pullNumStr)
 
-		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
-			Style:        repo_model.MergeStyleMerge,
-			DeleteBranch: false,
+			repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+			assert.Equal(t, 4, repo.NumPulls)
+			assert.Equal(t, 3, repo.NumOpenPulls)
+
+			closedPullNumStr = pullNumStr
+
+			// the closed but unmerged PR should have the "delete branch" button
+			link := getDeleteBranchLink(t, session, "user2", "repo1", closedPullNumStr)
+			assert.NotEmpty(t, link)
 		})
 
-		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
-		assert.Equal(t, 4, repo.NumPulls)
-		assert.Equal(t, 3, repo.NumOpenPulls)
+		t.Run("CreateAndMergePR", func(t *testing.T) {
+			resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
+			_, pullNumStr, _ := strings.CutLast(test.RedirectURL(resp), "/")
 
-		// Check PR branch deletion
-		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
-		respJSON := test.ParseJSONRedirect(resp.Body.Bytes())
-		require.NotEmpty(t, respJSON.Redirect, "Redirected URL is not found")
+			// the closed but unmerged PR should not have the "delete branch" button because there is a new PR for the same branch
+			link := getDeleteBranchLink(t, session, "user2", "repo1", closedPullNumStr)
+			assert.Empty(t, link)
 
-		elem = strings.Split(*respJSON.Redirect, "/")
-		assert.Equal(t, "pulls", elem[3])
+			testPullMerge(t, session, "user2", "repo1", pullNumStr, MergeOptions{
+				Style:        repo_model.MergeStyleMerge,
+				DeleteBranch: false,
+			})
 
-		// Check branch deletion result
-		req := NewRequest(t, "GET", *respJSON.Redirect)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+			// Check PR branch deletion
+			link = getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr)
+			assert.NotEmpty(t, link)
+			resp = session.MakeRequest(t, NewRequest(t, "POST", link), http.StatusOK)
 
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		resultMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.message.flash-message").Text())
-		assert.Equal(t, `Branch "user1/repo1:feature/test" has been deleted.`, resultMsg)
+			// Check branch deletion result
+			req := NewRequest(t, "GET", test.RedirectURL(resp))
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			resultMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.message.flash-message").Text())
+			assert.Equal(t, `Branch "user1/repo1:feature/test" has been deleted.`, resultMsg)
+
+			// the "delete branch" button should be gone since the PR has been merged
+			link = getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr)
+			assert.Empty(t, link)
+		})
 	})
 }
 
@@ -361,11 +378,11 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleMerge, "", "CONFLICT", false)
+		err := pull_service.Merge(pr, user1, repo_model.MergeStyleMerge, "", "CONFLICT", false)
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, pull_service.IsErrMergeConflicts(err), "Merge error is not a conflict error")
 
-		err = pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleRebase, "", "CONFLICT", false)
+		err = pull_service.Merge(pr, user1, repo_model.MergeStyleRebase, "", "CONFLICT", false)
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, pull_service.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
 	})
@@ -386,13 +403,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
+		err := gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo1).Run(t.Context())
 		assert.NoError(t, err)
 
 		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
-			WithDir(path).
+			WithRepo(repo1).
 			WithStdinBytes([]byte("Unrelated File")).
 			RunStdString(t.Context())
 
@@ -401,11 +417,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
 			AddDynamicArguments("100644", sha, "somewhere-over-the-rainbow").
-			WithDir(path).
+			WithRepo(repo1).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
 
-		treeSha, _, err := gitcmd.NewCommand("write-tree").WithDir(path).RunStdString(t.Context())
+		treeSha, _, err := gitcmd.NewCommand("write-tree").WithRepo(repo1).RunStdString(t.Context())
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -426,7 +442,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
 			WithEnv(env).
-			WithDir(path).
+			WithRepo(repo1).
 			WithStdinBytes(messageBytes.Bytes()).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
@@ -434,7 +450,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		_, _, err = gitcmd.NewCommand("branch", "unrelated").
 			AddDynamicArguments(commitSha).
-			WithDir(path).
+			WithRepo(repo1).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
 
@@ -457,7 +473,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		err = pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleMerge, "", "UNRELATED", false)
+		err = pull_service.Merge(pr, user1, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, pull_service.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 	})
@@ -493,7 +509,7 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
+		err := pull_service.Merge(pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
 		assert.NoError(t, err)
 	})
 }
@@ -580,7 +596,7 @@ func TestFastForwardOnlyMergeWithRequiredSignedCommits(t *testing.T) {
 		pb.RequireSignedCommits = false
 		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, pb, git_model.WhitelistOptions{}))
 
-		require.NoError(t, pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false))
+		require.NoError(t, pull_service.Merge(pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false))
 	})
 }
 
@@ -615,7 +631,7 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
+		err := pull_service.Merge(pr, user1, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
 		assert.Error(t, err, "Merge should return an error due to being for a diverging branch")
 		assert.True(t, pull_service.IsErrMergeDivergingFastForwardOnly(err), "Merge error is not a diverging fast-forward-only error")
 	})
@@ -810,22 +826,20 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
-		oldAutoMergeAddToQueue := automergequeue.AddToQueue
-		addToQueueShaChan := make(chan string, 1)
-		automergequeue.AddToQueue = func(pr *issues_model.PullRequest, sha string) {
-			addToQueueShaChan <- sha
-		}
+		addToQueuePullChan := make(chan automergequeue.AutoMergeItem, 1)
+		resetAutoMergeQueueMock := test.MockVariableValue(&automergequeue.AddToQueue, func(item automergequeue.AutoMergeItem) { addToQueuePullChan <- item })
+
 		// first time insert automerge record, return true
 		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
 		assert.NoError(t, err)
 		assert.True(t, scheduled)
 		// and the pr should be added to automergequeue, in case it is already "mergeable"
 		select {
-		case <-addToQueueShaChan:
+		case <-addToQueuePullChan:
 		case <-time.After(time.Second):
 			assert.FailNow(t, "Timeout: nothing was added to automergequeue")
 		}
-		automergequeue.AddToQueue = oldAutoMergeAddToQueue
+		resetAutoMergeQueueMock()
 
 		// second time insert automerge record, return false because it does exist
 		scheduled, err = automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
@@ -838,11 +852,11 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		branches, _, err := baseGitRepo.GetBranchNames(0, 100)
+		branches, _, err := baseGitRepo.GetBranchNames(t.Context(), 0, 100)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
@@ -910,9 +924,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 
@@ -1023,9 +1037,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
@@ -1321,7 +1335,8 @@ Co-authored-by: user4 <user4@example.com>
 				pullIndex, err := strconv.ParseInt(elems[4], 10, 64)
 				assert.NoError(t, err)
 				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: pullIndex})
-				squashMergeCommitMessage := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				squashMergeCommitMessage, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
 			})
 		}

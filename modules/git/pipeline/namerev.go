@@ -9,15 +9,16 @@ import (
 	"errors"
 	"strings"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 
 	"golang.org/x/sync/errgroup"
 )
 
-func fillResultNameRev(ctx context.Context, basePath string, results []*LFSResult) error {
+func fillResultNameRev(ctx context.Context, repo git.RepositoryFacade, results []*LFSResult) error {
 	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
 	wg := errgroup.Group{}
-	cmd := gitcmd.NewCommand("name-rev", "--stdin", "--name-only", "--always").WithDir(basePath)
+	cmd := gitcmd.NewCommand("name-rev", "--stdin", "--name-only", "--always").WithRepo(repo)
 	stdin, stdinClose := cmd.MakeStdinPipe()
 	stdout, stdoutClose := cmd.MakeStdoutPipe()
 	defer stdinClose()

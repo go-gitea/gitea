@@ -18,6 +18,7 @@ export type ActionsRun = {
   done: boolean,
   workflowID: string,
   workflowLink: string,
+  canViewWorkflowFile: boolean,
   isSchedule: boolean,
   runAttempt: number,
   attempts: Array<ActionsRunAttempt>,
@@ -87,4 +88,5 @@ export type ActionsArtifact = {
   size: number;
   status: ActionsArtifactStatus;
   expiresUnix: number;
+  previewLink?: string;
 };

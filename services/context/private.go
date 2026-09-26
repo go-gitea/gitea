@@ -5,12 +5,16 @@ package context
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/web"
 	web_types "gitea.dev/modules/web/types"
 )
@@ -20,12 +24,13 @@ type PrivateContext struct {
 	*Base
 	Override context.Context
 
+	Doer *user_model.User
 	Repo *Repository
 }
 
 func init() {
 	web.RegisterResponseStatusProvider[*PrivateContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(privateContextKey).(*PrivateContext)
+		return GetPrivateContext(req)
 	})
 }
 
@@ -50,12 +55,14 @@ func (ctx *PrivateContext) Err() error {
 	return ctx.Base.Err()
 }
 
-func (ctx *PrivateContext) PrivateError(status int, err error, userMsg string) {
-	errMsg := ""
-	if err != nil {
-		errMsg = err.Error()
-	}
-	ctx.JSON(status, private.Response{Err: errMsg, UserMsg: userMsg})
+func (ctx *PrivateContext) PrivateInternalErrorf(format string, args ...any) {
+	s := fmt.Sprintf(format, args...)
+	log.ErrorWithSkip(1, "Internal error: %s", s)
+	ctx.JSON(http.StatusInternalServerError, private.Response{Err: s})
+}
+
+func (ctx *PrivateContext) PrivateUserErrorf(status int, format string, args ...any) {
+	ctx.JSON(status, private.Response{UserMsg: fmt.Sprintf(format, args...)})
 }
 
 type privateContextKeyType struct{}
@@ -63,7 +70,7 @@ type privateContextKeyType struct{}
 var privateContextKey privateContextKeyType
 
 func GetPrivateContext(req *http.Request) *PrivateContext {
-	return req.Context().Value(privateContextKey).(*PrivateContext)
+	return reqctx.MustContextValue[*PrivateContext](req.Context(), privateContextKey)
 }
 
 func PrivateContexter() func(http.Handler) http.Handler {

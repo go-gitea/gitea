@@ -13,7 +13,7 @@ import (
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
@@ -252,7 +252,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := web.GetForm(ctx).(*api.CreatePullReviewCommentReplyOptions)
+	opts := web.GetForm[*api.CreatePullReviewCommentReplyOptions](ctx)
 
 	parent := getPullReviewCommentToResolve(ctx)
 	if parent == nil {
@@ -499,7 +499,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := web.GetForm(ctx).(*api.CreatePullReviewOptions)
+	opts := web.GetForm[*api.CreatePullReviewOptions](ctx)
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -519,14 +519,14 @@ func CreatePullReview(ctx *context.APIContext) {
 
 	// if CommitID is empty, set it as lastCommitID
 	if opts.CommitID == "" {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
 		defer closer.Close()
 
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -622,7 +622,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := web.GetForm(ctx).(*api.SubmitPullReviewOptions)
+	opts := web.GetForm[*api.SubmitPullReviewOptions](ctx)
 	review, pr, isWrong := prepareSingleReview(ctx)
 	if isWrong {
 		return
@@ -645,7 +645,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 		return
 	}
 
-	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -792,7 +792,7 @@ func CreateReviewRequests(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
+	opts := web.GetForm[*api.PullReviewRequestOptions](ctx)
 	apiReviewRequest(ctx, *opts, true)
 }
 
@@ -834,7 +834,7 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
+	opts := web.GetForm[*api.PullReviewRequestOptions](ctx)
 	apiReviewRequest(ctx, *opts, false)
 }
 
@@ -1014,7 +1014,7 @@ func DismissPullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	opts := web.GetForm(ctx).(*api.DismissPullReviewOptions)
+	opts := web.GetForm[*api.DismissPullReviewOptions](ctx)
 	dismissReview(ctx, opts.Message, true, opts.Priors)
 }
 

@@ -137,6 +137,7 @@ func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
 		assert.NoError(t, err)
@@ -168,7 +169,7 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
+		assert.NoError(t, git.InitRepositoryLocal(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
 		// forcibly set default branch to master
 		_, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").
 			WithDir(dstPath).

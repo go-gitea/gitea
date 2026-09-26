@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -53,17 +54,39 @@ func dialContextInternalAPI(ctx context.Context, network, address string) (conn 
 	return conn, nil
 }
 
+// unspecified IPs dial the local host too, other targets are network hops that must be verified to protect INTERNAL_TOKEN
+func internalAPIConnectionIsLocal(protocol setting.Scheme, localURL string) bool {
+	if protocol == setting.HTTPUnix {
+		return true
+	}
+	u, err := url.Parse(localURL)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && (ip.IsLoopback() || ip.IsUnspecified())
+}
+
+func internalAPITLSConfig(protocol setting.Scheme, localURL, domain string) *tls.Config {
+	if internalAPIConnectionIsLocal(protocol, localURL) {
+		// the ACME listener selects its certificate by SNI, so send the public domain instead of the local host
+		return &tls.Config{InsecureSkipVerify: true, ServerName: domain}
+	}
+	return &tls.Config{}
+}
+
 var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
 	return &http.Transport{
-		DialContext: dialContextInternalAPI,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         setting.Domain,
-		},
+		DialContext:     dialContextInternalAPI,
+		TLSClientConfig: internalAPITLSConfig(setting.Protocol, setting.LocalURL, setting.AppDomain),
 	}
 })
 
-func NewInternalRequest(ctx context.Context, url, method string) *httplib.Request {
+func NewInternalRequest(ctx context.Context, url, method string) *httplib.ClientRequest {
 	if setting.InternalToken == "" {
 		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
 Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
@@ -73,14 +96,14 @@ Ensure you are running in the correct environment or set the correct configurati
 		log.Fatal("Invalid internal request URL: %q", url)
 	}
 
-	return httplib.NewRequest(url, method).
+	return httplib.NewClientRequest(method, url).
 		SetContext(ctx).
 		SetTransport(internalAPITransport()).
 		Header("X-Real-IP", getClientIP()).
 		Header("X-Gitea-Internal-Auth", "Bearer "+setting.InternalToken)
 }
 
-func newInternalRequestAPI(ctx context.Context, url, method string, body ...any) *httplib.Request {
+func newInternalRequestAPI(ctx context.Context, url, method string, body ...any) *httplib.ClientRequest {
 	req := NewInternalRequest(ctx, url, method)
 	if len(body) == 1 {
 		req.Header("Content-Type", "application/json")

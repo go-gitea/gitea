@@ -45,12 +45,41 @@ func TestCreateComment(t *testing.T) {
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
+func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 15})
+	comment := &issues_model.Comment{
+		Type:           issues_model.CommentTypeAssignees,
+		IssueID:        issue.ID,
+		AssigneeTeamID: 999999, // non-existing team ID
+	}
+	assert.NoError(t, comment.LoadAssigneeUserAndTeam(t.Context()))
+	assert.NotNil(t, comment.AssigneeTeam)
+	assert.EqualValues(t, -1, comment.AssigneeTeam.ID)
+}
+
+func TestCommentListLoadAttributesMixedAssignees(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	comments := issues_model.CommentList{
+		{AssigneeTeamID: 8},
+		{AssigneeID: 999999},
+	}
+
+	assert.NoError(t, comments.LoadAttributes(t.Context()))
+	assert.Nil(t, comments[0].Assignee)
+	assert.Zero(t, comments[0].AssigneeID)
+	assert.Equal(t, user_model.GhostUserID, comments[1].AssigneeID)
+	assert.Equal(t, user_model.GhostUserID, comments[1].Assignee.ID)
+}
+
 func Test_UpdateCommentAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
 	attachment := repo_model.Attachment{
-		Name: "test.txt",
+		RepoID: issue.RepoID, // must match the comment's repo, else the cross-repo guard rejects it
+		Name:   "test.txt",
 	}
 	assert.NoError(t, db.Insert(t.Context(), &attachment))
 

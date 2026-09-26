@@ -14,7 +14,7 @@ import (
 	"gitea.dev/services/context"
 )
 
-// GetGitAllRefs get ref or an list all the refs of a repository
+// GetGitAllRefs get ref or a list of all the refs of a repository
 func GetGitAllRefs(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/refs repository repoListAllGitRefs
 	// ---
