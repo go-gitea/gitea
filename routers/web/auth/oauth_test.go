@@ -12,9 +12,7 @@ import (
 	"gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/hostmatcher"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/test"
+	"gitea.dev/modules/egress/policy"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -98,17 +96,6 @@ func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {
 	assert.False(t, hit.Load(), "avatar client must refuse to dial a loopback address")
 }
 
-func TestOAuth2AvatarAllowListRestricts(t *testing.T) {
-	defer test.MockVariableValue(&setting.Security.AllowedHostList, "avatars.example.com")()
-	allowList := oauth2AvatarAllowList()
-	assert.True(t, allowList.MatchHostName("avatars.example.com"), "the configured host must be allowed")
-	assert.False(t, allowList.MatchHostName("8.8.8.8"), "an unrelated external host must be rejected")
-
-	// the default `external` allow-list still permits external hosts
-	setting.Security.AllowedHostList = hostmatcher.MatchBuiltinExternal
-	assert.True(t, oauth2AvatarAllowList().MatchHostName("8.8.8.8"), "default allow-list permits external hosts")
-}
-
 func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
 	// external-only allow-list must reject link-local cloud metadata (169.254.169.254) at dial time
 	resp, err := oauth2AvatarHTTPClient().Get("http://169.254.169.254/latest/meta-data/")
@@ -116,6 +103,6 @@ func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
 		_ = resp.Body.Close()
 	}
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "can only call allowed HTTP servers",
+	assert.ErrorIs(t, err, policy.ErrDenied,
 		"avatar client must refuse a link-local cloud-metadata address")
 }

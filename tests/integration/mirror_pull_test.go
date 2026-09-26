@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -20,7 +21,6 @@ import (
 	"gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	migrations "gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	release_service "gitea.dev/services/release"
 	repo_service "gitea.dev/services/repository"
@@ -139,40 +139,19 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	ctx := t.Context()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := gitrepo.RepoLocalPath(repo)
-
-	// an "internal" server that records whether it was reached
-	var reached atomic.Bool
-	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reached.Store(true)
-		w.WriteHeader(http.StatusNotFound)
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		http.Redirect(w, r, "http://"+strings.Replace(r.Host, "127.0.0.1", "0.0.0.0", 1)+r.URL.RequestURI(), http.StatusFound)
 	}))
-	defer internal.Close()
+	defer server.Close()
 
-	mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
-		Name:     "ssrf_mirror",
-		IsMirror: true,
-		Status:   repo_model.RepositoryBeingMigrated,
-	}, false)
-	require.NoError(t, err)
-	_, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, migration.MigrateOptions{
-		RepoName:  "ssrf_mirror",
-		Mirror:    true,
-		CloneAddr: repoPath,
-	}, nil)
-	require.NoError(t, err)
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
+	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, server.URL+"/repo.git"))
+	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
+	assert.EqualValues(t, 1, requests.Load(), "the git proxy must deny the redirect to a reserved address")
 
-	mirror, err := repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
-	require.NoError(t, err)
-
-	// repoint the mirror at the loopback server, which is disallowed once local networks are off
-	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, internal.URL+"/repo.git"))
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
-	require.NoError(t, migrations.Init())
-	t.Cleanup(func() { _ = migrations.Init() })
-
-	assert.False(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
-	assert.False(t, reached.Load(), "the disallowed internal remote must not be reached")
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
+	assert.EqualValues(t, 1, requests.Load(), "the disallowed internal remote must not be reached")
 }

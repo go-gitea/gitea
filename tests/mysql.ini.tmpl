@@ -53,6 +53,9 @@ ENABLED = true
 PROTOCOL = dummy
 FROM = mysql-integration-test@gitea.io
 
+[migrations]
+ALLOWED_HOST_LIST = external, private, loopback
+
 [service]
 REGISTER_EMAIL_CONFIRM            = false
 REGISTER_MANUAL_CONFIRM           = false

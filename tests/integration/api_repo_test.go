@@ -18,12 +18,10 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
-	"gitea.dev/services/migrations"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
@@ -357,9 +355,6 @@ func TestAPIRepoMigrate(t *testing.T) {
 		cloneAddr := fmt.Sprintf("%s%s/%s.git", u.String(), repo1.OwnerName, repo1.Name)
 
 		t.Run("Permitted", func(t *testing.T) {
-			// migrations.Init builds the host allowlist from AllowLocalNetworks, so set it first
-			defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-			require.NoError(t, migrations.Init())
 			for _, testCase := range []struct {
 				ctxUserID, ownerID int64
 				repoName           string
@@ -383,15 +378,13 @@ func TestAPIRepoMigrate(t *testing.T) {
 		})
 
 		t.Run("DisallowedHost", func(t *testing.T) {
-			defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
-			require.NoError(t, migrations.Init())
-			token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
+			defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
 			for _, cloneURL := range []string{"https://localhost:3000/user/test_repo.git", "https://10.0.0.1/user/test_repo.git"} {
 				req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
 					CloneAddr:   cloneURL,
 					RepoOwnerID: 3,
 					RepoName:    "private-ip",
-				}).AddTokenAuth(token)
+				}).AddBasicAuth("user2")
 				resp := MakeRequest(t, req, http.StatusUnprocessableEntity)
 				assert.Equal(t, "You can not import from disallowed hosts.", DecodeJSON(t, resp, map[string]string{})["message"])
 			}
