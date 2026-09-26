@@ -366,6 +366,11 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
+	for _, job := range resolver.needsFinishedJobs {
+		if !slices.Contains(result.UpdatedJobs, job) {
+			result.UpdatedJobs = append(result.UpdatedJobs, job)
+		}
+	}
 	// Caller and matrix expansion both insert Blocked jobs, which only a follow-up pass resolves.
 	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
 	if expandedAnyCaller || resolver.matrixChanged {
@@ -413,6 +418,7 @@ type jobStatusResolver struct {
 	// matrixUpdatedJobs holds jobs whose status matrix expansion persisted itself, so they are
 	// notified like the ones the caller updates from the resolved status map.
 	matrixUpdatedJobs []*actions_model.ActionRunJob
+	needsFinishedJobs []*actions_model.ActionRunJob
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
@@ -498,6 +504,20 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 	return allDone, allSucceed
 }
 
+func (r *jobStatusResolver) markNeedsFinished(ctx context.Context, job *actions_model.ActionRunJob) error {
+	job.Status = actions_model.StatusBlocked
+	affected, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusPending}, "status")
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return fmt.Errorf("no affected for updating pending job %d", job.ID)
+	}
+	r.statuses[job.ID] = actions_model.StatusBlocked
+	r.needsFinishedJobs = append(r.needsFinishedJobs, job)
+	return nil
+}
+
 func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_model.Status, error) {
 	ret := map[int64]actions_model.Status{}
 
@@ -509,7 +529,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 	for _, id := range r.sortedIDs {
 		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
-		if status != actions_model.StatusBlocked {
+		if !status.In(actions_model.StatusPending, actions_model.StatusBlocked) {
 			continue
 		}
 		// An expanded caller has been resolved in an earlier pass, skip.
@@ -525,6 +545,11 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 		allDone, allSucceed := r.resolveCheckNeeds(id)
 		if !allDone {
 			continue
+		}
+		if status.IsPending() {
+			if err := r.markNeedsFinished(ctx, actionRunJob); err != nil {
+				return nil, err
+			}
 		}
 
 		// decide before expanding, so failed needs skip the job instead of failing its matrix

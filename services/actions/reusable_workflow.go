@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
 
 	"xorm.io/builder"
@@ -187,7 +188,7 @@ func canonicalCallUses(job *actions_model.ActionRunJob) string {
 }
 
 // expandReusableWorkflowCaller loads and parses the target reusable workflow and inserts the caller's direct child jobs.
-// It expands only ONE level: a child that is itself a reusable caller is inserted Blocked and expanded later by a subsequent resolver pass.
+// It expands only ONE level: a child that is itself a reusable caller is inserted Blocked or Pending and expanded later by a subsequent resolver pass.
 // It does NOT schedule a follow-up resolver pass; the caller of this function is responsible for emitting.
 //
 // All call sites (PrepareRunAndInsert, execRerunPlan, checkJobsOfCurrentRunAttempt, ApproveRuns) invoke this inside their enclosing write transaction,
@@ -406,7 +407,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			RunsOn:                  parsedChild.RunsOn(),
 			ContinueOnError:         parsedChild.GetContinueOnError(),
 			MaxParallel:             parseMaxParallel(jobID, parsedChild.Strategy.MaxParallelString),
-			Status:                  actions_model.StatusBlocked,
+			Status:                  util.Iif(len(needs) > 0, actions_model.StatusPending, actions_model.StatusBlocked),
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
 			WorkflowSourceCommitSHA: sourceCommitSHA,

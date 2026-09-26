@@ -184,13 +184,13 @@ jobs:
 				callerJob2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "caller_job2"})
 				callerJob2ID = callerJob2.ID
 				callerJob2AttemptJobID = callerJob2.AttemptJobID
-				assert.Equal(t, actions_model.StatusBlocked, callerJob2.Status)
+				assert.Equal(t, actions_model.StatusPending, callerJob2.Status)
 				assert.True(t, callerJob2.IsReusableCaller)
 
 				// caller_job3
 				callerJob3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "caller_job3"})
 				callerJob3AttemptJobID = callerJob3.AttemptJobID
-				assert.Equal(t, actions_model.StatusBlocked, callerJob3.Status)
+				assert.Equal(t, actions_model.StatusPending, callerJob3.Status)
 				assert.False(t, callerJob3.IsReusableCaller)
 			})
 
@@ -230,9 +230,8 @@ jobs:
 					result: runnerv1.Result_RESULT_SUCCESS,
 				})
 
-				// reusable1_job3 (a nested caller) needs reusable1_job2, so it stays Blocked until r1j2 succeeds.
 				r1Job3Pre := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable1_job3"})
-				assert.Equal(t, actions_model.StatusBlocked, r1Job3Pre.Status)
+				assert.Equal(t, actions_model.StatusPending, r1Job3Pre.Status)
 				assert.False(t, r1Job3Pre.IsExpanded)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable2_job1"}))
 
@@ -308,11 +307,11 @@ jobs:
 				callerJob2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: callerJob2AttemptJobID})
 				assert.Equal(t, actions_model.StatusWaiting, callerJob2.Status)
 				callerJob3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: callerJob3AttemptJobID})
-				assert.Equal(t, actions_model.StatusBlocked, callerJob3.Status)
+				assert.Equal(t, actions_model.StatusPending, callerJob3.Status)
 
 				// reusable1_job3 needs reusable1_job2, so rerunning r1j2 pulls r1j3 (and its subtree) into the rerun set
 				r1Job3Attempt2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: r1Job3AttemptJobID})
-				assert.Equal(t, actions_model.StatusBlocked, r1Job3Attempt2.Status)
+				assert.Equal(t, actions_model.StatusPending, r1Job3Attempt2.Status)
 				assert.True(t, r1Job3Attempt2.IsReusableCaller)
 				assert.False(t, r1Job3Attempt2.IsExpanded)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, JobID: "reusable2_job1"}))
@@ -606,12 +605,11 @@ jobs:
     uses: ./.gitea/workflows/does-not-exist.yml
 `)
 
-			// plain_job runs first; bad_caller is Blocked on needs and is NOT expanded at creation.
 			plainTask := runner.fetchTask(t)
 			_, plainJob, run := getTaskAndJobAndRunByTaskID(t, plainTask.Id)
 			assert.Equal(t, "plain_job", plainJob.JobID)
 			badCallerPre := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "bad_caller"})
-			assert.Equal(t, actions_model.StatusBlocked, badCallerPre.Status)
+			assert.Equal(t, actions_model.StatusPending, badCallerPre.Status)
 			assert.False(t, badCallerPre.IsExpanded)
 
 			runner.execTask(t, plainTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
@@ -975,7 +973,6 @@ jobs:
 			innerChild := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner"})
 			assert.Equal(t, willRun.ID, innerChild.ParentJobID)
 
-			// after_skip: a dependent of the skipped caller resolves to Skipped instead of staying Blocked.
 			afterSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "after_skip"})
 			assert.Equal(t, actions_model.StatusSkipped, afterSkip.Status)
 		})

@@ -1045,7 +1045,7 @@ jobs:
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "workflow_job", triggeredEvent)
-		assert.Len(t, payloads, 2)
+		assert.Len(t, payloads, 1)
 		assert.Equal(t, "queued", payloads[0].Action)
 		assert.Equal(t, "queued", payloads[0].WorkflowJob.Status)
 		assert.Equal(t, []string{"ubuntu-latest"}, payloads[0].WorkflowJob.Labels)
@@ -1053,11 +1053,11 @@ jobs:
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 
-		assert.Equal(t, "waiting", payloads[1].Action)
-		assert.Equal(t, "waiting", payloads[1].WorkflowJob.Status)
-		assert.Equal(t, commitID, payloads[1].WorkflowJob.HeadSha)
-		assert.Equal(t, "repo1", payloads[1].Repo.Name)
-		assert.Equal(t, "user2/repo1", payloads[1].Repo.FullName)
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/jobs?status=waiting").AddTokenAuth(token)
+		waitingFilterJobs := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJobsResponse{})
+		require.Len(t, waitingFilterJobs.Entries, 1)
+		assert.Equal(t, "wf2-job", waitingFilterJobs.Entries[0].Name)
+		assert.Equal(t, "requested", waitingFilterJobs.Entries[0].Status)
 
 		// 4. Execute a single Job
 		task := runner.fetchTask(t)
@@ -1068,31 +1068,31 @@ jobs:
 
 		// 5. validate the webhook is triggered
 		assert.Equal(t, "workflow_job", triggeredEvent)
-		assert.Len(t, payloads, 5)
-		assert.Equal(t, "in_progress", payloads[2].Action)
-		assert.Equal(t, "in_progress", payloads[2].WorkflowJob.Status)
+		assert.Len(t, payloads, 4)
+		assert.Equal(t, "in_progress", payloads[1].Action)
+		assert.Equal(t, "in_progress", payloads[1].WorkflowJob.Status)
+		assert.Equal(t, "mock-runner", payloads[1].WorkflowJob.RunnerName)
+		assert.Equal(t, commitID, payloads[1].WorkflowJob.HeadSha)
+		assert.Equal(t, "repo1", payloads[1].Repo.Name)
+		assert.Equal(t, "user2/repo1", payloads[1].Repo.FullName)
+
+		assert.Equal(t, "completed", payloads[2].Action)
+		assert.Equal(t, "completed", payloads[2].WorkflowJob.Status)
 		assert.Equal(t, "mock-runner", payloads[2].WorkflowJob.RunnerName)
+		assert.Equal(t, "success", payloads[2].WorkflowJob.Conclusion)
 		assert.Equal(t, commitID, payloads[2].WorkflowJob.HeadSha)
 		assert.Equal(t, "repo1", payloads[2].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[2].Repo.FullName)
+		assert.Contains(t, payloads[2].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[2].WorkflowJob.ID))
+		assert.Contains(t, payloads[2].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[2].WorkflowJob.ID))
+		assert.Len(t, payloads[2].WorkflowJob.Steps, 1)
 
-		assert.Equal(t, "completed", payloads[3].Action)
-		assert.Equal(t, "completed", payloads[3].WorkflowJob.Status)
-		assert.Equal(t, "mock-runner", payloads[3].WorkflowJob.RunnerName)
-		assert.Equal(t, "success", payloads[3].WorkflowJob.Conclusion)
+		assert.Equal(t, "queued", payloads[3].Action)
+		assert.Equal(t, "queued", payloads[3].WorkflowJob.Status)
+		assert.Equal(t, []string{"ubuntu-latest"}, payloads[3].WorkflowJob.Labels)
 		assert.Equal(t, commitID, payloads[3].WorkflowJob.HeadSha)
 		assert.Equal(t, "repo1", payloads[3].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[3].Repo.FullName)
-		assert.Contains(t, payloads[3].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[3].WorkflowJob.ID))
-		assert.Contains(t, payloads[3].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[3].WorkflowJob.ID))
-		assert.Len(t, payloads[3].WorkflowJob.Steps, 1)
-
-		assert.Equal(t, "queued", payloads[4].Action)
-		assert.Equal(t, "queued", payloads[4].WorkflowJob.Status)
-		assert.Equal(t, []string{"ubuntu-latest"}, payloads[4].WorkflowJob.Labels)
-		assert.Equal(t, commitID, payloads[4].WorkflowJob.HeadSha)
-		assert.Equal(t, "repo1", payloads[4].Repo.Name)
-		assert.Equal(t, "user2/repo1", payloads[4].Repo.FullName)
 
 		// 6. Execute a single Job
 		task = runner.fetchTask(t)
@@ -1103,25 +1103,25 @@ jobs:
 
 		// 7. validate the webhook is triggered
 		assert.Equal(t, "workflow_job", triggeredEvent)
-		assert.Len(t, payloads, 7)
-		assert.Equal(t, "in_progress", payloads[5].Action)
-		assert.Equal(t, "in_progress", payloads[5].WorkflowJob.Status)
-		assert.Equal(t, "mock-runner", payloads[5].WorkflowJob.RunnerName)
+		assert.Len(t, payloads, 6)
+		assert.Equal(t, "in_progress", payloads[4].Action)
+		assert.Equal(t, "in_progress", payloads[4].WorkflowJob.Status)
+		assert.Equal(t, "mock-runner", payloads[4].WorkflowJob.RunnerName)
 
+		assert.Equal(t, commitID, payloads[4].WorkflowJob.HeadSha)
+		assert.Equal(t, "repo1", payloads[4].Repo.Name)
+		assert.Equal(t, "user2/repo1", payloads[4].Repo.FullName)
+
+		assert.Equal(t, "completed", payloads[5].Action)
+		assert.Equal(t, "completed", payloads[5].WorkflowJob.Status)
+		assert.Equal(t, "failure", payloads[5].WorkflowJob.Conclusion)
+		assert.Equal(t, "mock-runner", payloads[5].WorkflowJob.RunnerName)
 		assert.Equal(t, commitID, payloads[5].WorkflowJob.HeadSha)
 		assert.Equal(t, "repo1", payloads[5].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[5].Repo.FullName)
-
-		assert.Equal(t, "completed", payloads[6].Action)
-		assert.Equal(t, "completed", payloads[6].WorkflowJob.Status)
-		assert.Equal(t, "failure", payloads[6].WorkflowJob.Conclusion)
-		assert.Equal(t, "mock-runner", payloads[6].WorkflowJob.RunnerName)
-		assert.Equal(t, commitID, payloads[6].WorkflowJob.HeadSha)
-		assert.Equal(t, "repo1", payloads[6].Repo.Name)
-		assert.Equal(t, "user2/repo1", payloads[6].Repo.FullName)
-		assert.Contains(t, payloads[6].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[6].WorkflowJob.ID))
-		assert.Contains(t, payloads[6].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[6].WorkflowJob.ID))
-		assert.Len(t, payloads[6].WorkflowJob.Steps, 2)
+		assert.Contains(t, payloads[5].WorkflowJob.URL, fmt.Sprintf("/actions/jobs/%d", payloads[5].WorkflowJob.ID))
+		assert.Contains(t, payloads[5].WorkflowJob.HTMLURL, fmt.Sprintf("/jobs/%d", payloads[5].WorkflowJob.ID))
+		assert.Len(t, payloads[5].WorkflowJob.Steps, 2)
 	})
 }
 

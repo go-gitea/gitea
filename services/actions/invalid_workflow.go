@@ -63,7 +63,7 @@ func handleInvalidWorkflows(ctx context.Context, input *notifyInput, ref git.Ref
 			continue
 		}
 		if err := createWorkflowCommitStatus(ctx, run.Repo, run.CommitSHA, entryName+" ("+run.TriggerEvent+")", run.WorkflowID,
-			commitstatus.CommitStatusFailure, run.Link(), "Invalid workflow file"); err != nil {
+			commitstatus.CommitStatusFailure, run.Link(), "Invalid workflow file", false); err != nil {
 			log.Error("create commit status for invalid workflow %q: %v", entryName, err)
 		}
 		NotifyWorkflowRunStatusUpdate(ctx, run)

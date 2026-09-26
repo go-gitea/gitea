@@ -35,6 +35,7 @@ func TestCommitStatusDescription(t *testing.T) {
 		{actions_model.StatusRunning, 0, 0, "In progress"},
 		{actions_model.StatusWaiting, 0, 0, "Waiting to run"},
 		{actions_model.StatusBlocked, 0, 0, "Blocked by required conditions"},
+		{actions_model.StatusPending, 0, 0, "Waiting for needed jobs"},
 		{actions_model.StatusUnknown, 0, 0, "Unknown status: 0"},
 	}
 	for _, tc := range cases {
@@ -71,7 +72,7 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	expectedContext := "status-dedupe-test.yaml / status-dedupe-job (push)"
 	expectedTargetURL := run.Link() + "/jobs/99002"
 
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job, nil))
 
 	statuses := findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	require.Len(t, statuses, 1)
@@ -80,7 +81,7 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.Equal(t, expectedTargetURL, statuses[0].TargetURL)
 
 	job.Status = actions_model.StatusRunning
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job, nil))
 
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	require.Len(t, statuses, 2)
@@ -89,15 +90,44 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.Equal(t, "In progress", statuses[1].Description)
 	assert.Equal(t, expectedTargetURL, statuses[1].TargetURL)
 
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job, nil))
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	assert.Len(t, statuses, 2)
 
 	job.Status = actions_model.StatusSuccess
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", commit.ID.String(), "", run, job, nil))
 	statuses = findCommitStatusesForContext(t, repo.ID, commit.ID.String(), expectedContext)
 	require.Len(t, statuses, 3)
 	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
+}
+
+func TestCreateCommitStatus_HidesPendingJobs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
+	run := &actions_model.ActionRun{ID: 99101, RepoID: repo.ID, Repo: repo, WorkflowID: "ci.yaml"}
+	deploy := &actions_model.ActionRunJob{ID: 99102, RunID: run.ID, RepoID: repo.ID, Name: "deploy", Status: actions_model.StatusPending}
+	postDeploy := func(pending *pendingJobFilter) []*git_model.CommitStatus {
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, deploy, pending))
+		return findCommitStatusesForContext(t, repo.ID, branch.CommitID, "ci.yaml / deploy (push)")
+	}
+
+	pending := newPendingJobFilter(t.Context(), run)
+	assert.Empty(t, postDeploy(pending))
+
+	deploy.Status = actions_model.StatusSuccess
+	assert.Len(t, postDeploy(nil), 1)
+	deploy.Status = actions_model.StatusPending
+	assert.Len(t, postDeploy(pending), 2)
+
+	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "main", EnableStatusCheck: true, StatusCheckContexts: []string{"ci.yaml / deploy*"}}))
+	pending = newPendingJobFilter(t.Context(), run)
+	assert.False(t, pending.onlyReplace(deploy, "ci.yaml / deploy (push)"))
+	assert.True(t, pending.onlyReplace(deploy, "other / deploy (push)"))
+
+	require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "release", EnableStatusCheck: true}))
+	assert.Nil(t, newPendingJobFilter(t.Context(), run))
 }
 
 func TestGetCommitActionsStatusMap(t *testing.T) {
@@ -125,7 +155,7 @@ func TestGetCommitActionsStatusMap(t *testing.T) {
 			RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID, Name: tc.jobName, Status: tc.status,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
-		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job, nil))
 	}
 
 	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
@@ -184,7 +214,7 @@ jobs:
 			WorkflowPayload: payload,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
-		require.NoError(t, createCommitStatus(t.Context(), repo, "pull_request", branch.CommitID, "", run, job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "pull_request", branch.CommitID, "", run, job, nil))
 	}
 
 	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
@@ -242,7 +272,7 @@ func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
 		Name: "my-job", Status: actions_model.StatusSuccess,
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job, nil))
 
 	latest, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
 	require.NoError(t, err)
@@ -299,7 +329,7 @@ func TestCreateCommitStatus_LegacyHashExternalNotAdopted(t *testing.T) {
 		Name: "my-job", Status: actions_model.StatusSuccess,
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
-	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job, nil))
 
 	latest, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
 	require.NoError(t, err)
@@ -351,7 +381,7 @@ func TestCreateCommitStatus_UnnamedWorkflowUsesFileName(t *testing.T) {
 `),
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
-		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
+		require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job, nil))
 
 		statuses := findCommitStatusesForContext(t, repo.ID, branch.CommitID, tc.workflowID+" / my-test (push)")
 		require.Len(t, statuses, 1)
@@ -406,7 +436,7 @@ jobs:
 		if run.IsScopedRun {
 			scopedPrefix = actions_model.ScopedStatusContextPrefix(t.Context(), run.WorkflowRepoID)
 		}
-		require.NoError(t, createCommitStatus(t.Context(), consumer, "push", branch.CommitID, scopedPrefix, run, job))
+		require.NoError(t, createCommitStatus(t.Context(), consumer, "push", branch.CommitID, scopedPrefix, run, job, nil))
 	}
 
 	// repo-level Context is the bare "<display name> / <job> (<event>)"; the scoped one is the same but sets off the source repo with a colon,

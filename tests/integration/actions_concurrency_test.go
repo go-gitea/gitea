@@ -603,6 +603,11 @@ jobs:
 		})
 		// cannot fetch wf2-job2 because wf1-job1 is running
 		runner1.fetchNoTask(t)
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs?status=pending", user2.Name, repo.Name)).AddTokenAuth(token)
+		pendingJobs := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJobsResponse{})
+		require.Len(t, pendingJobs.Entries, 1)
+		assert.Equal(t, "wf2-job2", pendingJobs.Entries[0].Name)
+		assert.Equal(t, "pending", pendingJobs.Entries[0].Status)
 		// exec wf1-job1
 		runner1.execTask(t, wf1Job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,

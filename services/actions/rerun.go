@@ -282,10 +282,12 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 			var invalidIf error
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
-				// the emitter decides `if:` once all needs have results, and is the only place expanding a deferred matrix
-				shouldBlockJob := shouldBlock || len(newJob.Needs) > 0 || newJob.IsMatrixDeferred
-
-				newJob.Status = util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting)
+				// A deferred-matrix placeholder must go through the emitter, which is the only place
+				// that expands it: dispatching it directly would hand the runner the raw payload.
+				newJob.Status = util.Iif(shouldBlock || newJob.IsMatrixDeferred, actions_model.StatusBlocked, actions_model.StatusWaiting)
+				if len(newJob.Needs) > 0 {
+					newJob.Status = actions_model.StatusPending
+				}
 				newJob.TaskID = 0
 				newJob.SourceTaskID = 0
 				newJob.Started = 0
@@ -305,7 +307,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				}
 
 				// A slot-starved job must not cancel its group peers.
-				if newJob.RawConcurrency != "" && newJob.Status == actions_model.StatusWaiting && slots.available(newJob) {
+				if newJob.RawConcurrency != "" && newJob.Status.IsWaiting() && slots.available(newJob) {
 					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
