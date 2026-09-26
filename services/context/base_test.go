@@ -6,6 +6,7 @@ package context
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -13,8 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRedirect(t *testing.T) {
+func TestMain(m *testing.M) {
 	setting.IsInTesting = true
+	os.Exit(m.Run())
+}
+
+func TestRedirect(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 	cases := []struct {

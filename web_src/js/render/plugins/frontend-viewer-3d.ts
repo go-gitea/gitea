@@ -15,7 +15,7 @@ solid SimpleTriangle
 endsolid SimpleTriangle
 */
 
-export const frontendRender: FrontendRenderFunc = async (opts): Promise<boolean> => {
+export const frontendRender: FrontendRenderFunc = (opts) => {
   try {
     opts.container.style.height = `${window.innerHeight}px`;
     const bgColor = colord(getComputedStyle(document.body).backgroundColor).toRgb();

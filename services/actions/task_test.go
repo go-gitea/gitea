@@ -9,6 +9,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/actions/jobparser"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,4 +72,18 @@ func TestReleaseTaskForRunnerCleanup(t *testing.T) {
 	assert.Equal(t, actions_model.StatusWaiting, released.Status)
 	assert.Zero(t, released.TaskID)
 	unittest.AssertNotExistsBean(t, &actions_model.ActionTask{ID: task.ID})
+}
+
+func TestRunnerWorkflowPayload(t *testing.T) {
+	payload, err := runnerWorkflowPayload(&actions_model.ActionRunJob{
+		JobID:           "build",
+		WorkflowPayload: []byte("name: ci\njobs:\n  build:\n    if: false\n    steps:\n      - run: echo\n"),
+	})
+	require.NoError(t, err)
+
+	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(payload)
+	require.NoError(t, err)
+	assert.Equal(t, "ci", swf.Name)
+	assert.Equal(t, "always()", parsedJob.If.Value)
+	assert.Len(t, parsedJob.Steps, 1)
 }

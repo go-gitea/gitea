@@ -24,7 +24,7 @@ async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citati
   citationCopyApa.setAttribute('data-text', apaOutput);
 }
 
-export async function initCitationFileCopyContent() {
+export function initCitationFileCopyContent() {
   const defaultCitationFormat = 'apa'; // apa or bibtex
 
   if (!pageData.citationFileContent) return;

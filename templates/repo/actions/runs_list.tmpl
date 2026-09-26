@@ -10,7 +10,7 @@
 	</div>
 	{{end}}
 	{{range $run := $data.ActionRuns}}
-		<div id="action-run-item-{{$run.ID}}" class="item tw-items-center" data-status="{{$run.Status.String}}">
+		<div id="action-run-item-{{$run.ID}}" class="item tw-items-center" data-status="{{$run.Status.String}}" data-morph-whole>
 			<div class="item-leading">
 				<span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $run.Status.String)}}">
 					{{template "repo/icons/action_status" (dict "Status" $run.Status.String "IconVariant" "circle-fill")}}
@@ -62,7 +62,7 @@
 							</a>
 						{{end}}
 						{{if and $data.CanWriteRepoUnitActions $run.Status.IsDone}}
-							<a class="item link-action"
+							<a class="item link-action negative"
 								data-url="{{$run.Link}}/delete"
 								data-modal-confirm="{{ctx.Locale.Tr "actions.runs.delete.description"}}"
 							>

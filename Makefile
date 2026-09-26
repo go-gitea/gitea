@@ -5,12 +5,12 @@ GO ?= go
 SHASUM ?= shasum -a 256
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.11.2 # renovate: datasource=go
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v4/cmd/editorconfig-checker@v4.0.1 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.16 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.5 # renovate: datasource=go
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.7.0 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.6 # renovate: datasource=go
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.8.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
 
@@ -403,7 +403,7 @@ test-check:
 .PHONY: test-backend\#%
 test-backend\#%:
 	@echo "Running go test with -tags '$(TAGS)'..."
-	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run $(subst .,/,$*) $(GO_TEST_PACKAGES)
+	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' -run '$(subst .,/,$*)' $(GO_TEST_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -460,7 +460,7 @@ test-integration-compile:
 
 .PHONY: test-integration\#%
 test-integration\#%: $(EXECUTABLE)
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) gitea.dev/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run '$(subst .,/,$*)' gitea.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test
@@ -636,6 +636,10 @@ lockfile-check:
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
+
+.PHONY: generate-emoji
+generate-emoji: ## update emoji data from Unicode
+	$(GO) run build/generate-emoji.go
 
 .PHONY: generate-images
 generate-images: | node_modules ## generate images

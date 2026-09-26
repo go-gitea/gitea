@@ -51,6 +51,7 @@ type MergeOptions struct {
 	Style        repo_model.MergeStyle
 	HeadCommitID string
 	DeleteBranch bool
+	Message      string
 }
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
@@ -58,6 +59,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 		"do":                        string(mergeOptions.Style),
 		"head_commit_id":            mergeOptions.HeadCommitID,
 		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
+		"merge_message_field":       mergeOptions.Message,
 	}
 	var resp *httptest.ResponseRecorder
 	require.Eventually(t, func() bool {
@@ -76,6 +78,15 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullNumInt)
 	assert.NoError(t, err)
 	assert.True(t, pull.HasMerged)
+
+	if mergeOptions.Message != "" {
+		gitRepo, err := git.OpenRepository(t.Context(), repository)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+		commit, err := gitRepo.GetCommit(t.Context(), pull.MergedCommitID)
+		require.NoError(t, err)
+		assert.Contains(t, commit.CommitMessage.MessageRaw, mergeOptions.Message)
+	}
 
 	return resp
 }
@@ -116,8 +127,8 @@ func TestPullMerge(t *testing.T) {
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
-			Style:        repo_model.MergeStyleMerge,
-			DeleteBranch: false,
+			Style:   repo_model.MergeStyleMerge,
+			Message: strings.Repeat("x", 200*1024),
 		})
 
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
