@@ -4,9 +4,475 @@
 package policy
 
 import (
+	"cmp"
+	"errors"
+	"fmt"
+	"net"
 	"net/netip"
 	"slices"
+	"strconv"
+	"strings"
+	"sync"
+	"unicode/utf8"
 )
+
+// matchList keeps a list of IPs and hostnames
+type matchList struct {
+	patterns           []domainRule
+	ipv6List, ipv4List []prefixRule
+	rejected           []string
+}
+
+type portRange struct {
+	start uint16
+	end   uint16
+}
+
+func (p *portRange) Contains(port uint16) bool {
+	return port >= p.start && port <= p.end
+}
+
+type prefixRule struct {
+	prefix     netip.Prefix
+	portRanges []portRange
+}
+
+func (p *prefixRule) Contains(port netip.AddrPort) bool {
+	return p.prefix.Contains(port.Addr()) && slices.ContainsFunc(p.portRanges, func(r portRange) bool {
+		return r.Contains(port.Port())
+	})
+}
+
+type domainRule struct {
+	pattern    string
+	portRanges []portRange
+}
+
+func (p *domainRule) Contains(hostname string, port uint16) bool {
+	return matchDomain(p.pattern, hostname) && slices.ContainsFunc(p.portRanges, func(r portRange) bool {
+		return r.Contains(port)
+	})
+}
+
+const (
+	AliasPrivate  = "private"
+	AliasLoopback = "loopback"
+)
+
+var namedRanges = sync.OnceValue(func() map[string][]netip.Prefix {
+	base := map[string][]string{
+		// private ranges and CGNAT
+		AliasPrivate:  {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "100.64.0.0/10"},
+		AliasLoopback: {"127.0.0.0/8", "::1/128"},
+	}
+	out := make(map[string][]netip.Prefix, 2)
+	for name, ranges := range base {
+		out[name] = make([]netip.Prefix, 0, len(ranges))
+		for _, r := range ranges {
+			out[name] = append(out[name], netip.MustParsePrefix(r))
+		}
+	}
+	return out
+})
+
+type (
+	AllowList struct{ matchList }
+	BlockList struct{ matchList }
+)
+
+type listBuilder struct {
+	ipv4 map[netip.Prefix][]portRange
+	ipv6 map[netip.Prefix][]portRange
+	host map[string][]portRange
+
+	rejected []string
+}
+
+func newListBuilder() *listBuilder {
+	return &listBuilder{
+		ipv4:     map[netip.Prefix][]portRange{},
+		ipv6:     map[netip.Prefix][]portRange{},
+		host:     map[string][]portRange{},
+		rejected: []string{},
+	}
+}
+
+type listEntry interface {
+	addTo(*listBuilder)
+}
+
+func (p prefixRule) addTo(b *listBuilder) { b.addPrefix(p.prefix, p.portRanges) }
+
+func (p domainRule) addTo(b *listBuilder) { b.addHost(p.pattern, p.portRanges) }
+
+type aliasExpansion []prefixRule
+
+func (r aliasExpansion) addTo(b *listBuilder) {
+	for _, pr := range r {
+		b.addPrefix(pr.prefix, pr.portRanges)
+	}
+}
+
+func (b *listBuilder) addPrefix(p netip.Prefix, ranges []portRange) {
+	target := b.ipv4
+	if !p.Addr().Is4() {
+		target = b.ipv6
+	}
+	target[p] = append(target[p], ranges...)
+}
+
+func (b *listBuilder) addHost(pattern string, ranges []portRange) {
+	b.host[pattern] = append(b.host[pattern], ranges...)
+}
+
+func (b *listBuilder) reject(err error) {
+	b.rejected = append(b.rejected, err.Error())
+}
+
+func (b *listBuilder) build() matchList {
+	return matchList{
+		ipv4List: b.prefixRules(b.ipv4),
+		ipv6List: b.prefixRules(b.ipv6),
+		patterns: b.domainRules(),
+		rejected: b.rejected,
+	}
+}
+
+// prefixRules coalesces port ranges per prefix
+func (b *listBuilder) prefixRules(entries map[netip.Prefix][]portRange) []prefixRule {
+	if len(entries) == 0 {
+		return nil
+	}
+	rules := make([]prefixRule, 0, len(entries))
+	for prefix, ranges := range entries {
+		rules = append(rules, prefixRule{prefix: prefix, portRanges: coalesceRanges(ranges)})
+	}
+	slices.SortFunc(rules, func(a, b prefixRule) int { return strings.Compare(a.prefix.String(), b.prefix.String()) })
+	return rules
+}
+
+func (b *listBuilder) domainRules() []domainRule {
+	if len(b.host) == 0 {
+		return nil
+	}
+	rules := make([]domainRule, 0, len(b.host))
+	for pattern, ranges := range b.host {
+		rules = append(rules, domainRule{pattern: pattern, portRanges: coalesceRanges(ranges)})
+	}
+	slices.SortFunc(rules, func(a, b domainRule) int { return strings.Compare(a.pattern, b.pattern) })
+	return rules
+}
+
+func parseList(hostlist string, isBlocklist bool) matchList {
+	b := newListBuilder()
+	for entry := range strings.SplitSeq(hostlist, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		rule, err := parseRule(entry, isBlocklist)
+		if err != nil {
+			b.reject(err)
+			continue
+		}
+		rule.addTo(b)
+	}
+	return b.build()
+}
+
+func splitEntry(entry string) (target, portSpec string, err error) {
+	if strings.HasPrefix(entry, "[") {
+		end := strings.IndexByte(entry, ']')
+		if end < 0 {
+			return "", "", errors.New("missing closing bracket")
+		}
+		target = entry[1:end]
+		if target == "" {
+			return "", "", errors.New("empty host")
+		}
+		rest := entry[end+1:]
+		if rest == "" {
+			return target, "", nil
+		}
+		if !strings.HasPrefix(rest, ":") {
+			return "", "", fmt.Errorf("unexpected %q after bracketed target", rest)
+		}
+		portSpec = rest[1:]
+		if portSpec == "" {
+			return "", "", errors.New("empty port")
+		}
+		return target, portSpec, nil
+	}
+
+	// check for host:port
+	if strings.Count(entry, ":") == 1 {
+		i := strings.IndexByte(entry, ':')
+		target, portSpec = entry[:i], entry[i+1:]
+		switch {
+		case target == "":
+			return "", "", fmt.Errorf("empty host: '%s'", entry)
+		case portSpec == "":
+			return "", "", fmt.Errorf("empty port: '%s'", entry)
+		}
+		return target, portSpec, nil
+	}
+
+	// Portless: patterns, IPs, CIDRs - and multi-colon forms
+	return entry, "", nil
+}
+
+func parseRule(entry string, isBlocklist bool) (listEntry, error) {
+	target, portSpec, err := splitEntry(entry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to split entry %s: %w", entry, err)
+	}
+	portRanges, err := parsePortSpec(portSpec, isBlocklist)
+	if err != nil {
+		return nil, fmt.Errorf("invalid port syntax on entry %s: %w", entry, err)
+	}
+	return classifyTarget(target, portRanges)
+}
+
+func classifyTarget(target string, ranges []portRange) (listEntry, error) {
+	target = strings.ToLower(strings.TrimSpace(target))
+	target = strings.TrimSuffix(target, ".")
+
+	if expanded, ok := newNamedRanges(target, ranges); ok {
+		return expanded, nil
+	}
+	if prefix, err := newPrefixRule(target, ranges); !errors.Is(err, errNotIP) {
+		return prefix, err
+	}
+	return newDomainRule(target, ranges)
+}
+
+var errNotIP = errors.New("not an IP address")
+
+func newPrefixRule(target string, ranges []portRange) (prefixRule, error) {
+	if strings.ContainsRune(target, '/') {
+		prefix, err := netip.ParsePrefix(target)
+		if err != nil {
+			if strings.ContainsRune(target, ':') {
+				return prefixRule{}, fmt.Errorf("invalid IPv6 CIDR %q (unbracketed IPv6 with port? use [addr] or [addr]:port): %w", target, err)
+			}
+			return prefixRule{}, fmt.Errorf("invalid CIDR %q: %w", target, err)
+		}
+		if prefix.Bits() == 0 {
+			return prefixRule{}, fmt.Errorf("catch-all CIDR %q covers every address and is not allowed", target)
+		}
+		if masked := prefix.Masked(); masked != prefix {
+			return prefixRule{}, fmt.Errorf("invalid CIDR %q: host bits must be zero, use %q", target, masked)
+		}
+		return prefixRule{prefix: prefix, portRanges: ranges}, nil
+	}
+
+	addr, addrErr := netip.ParseAddr(target)
+	if addrErr == nil {
+		if addr.Zone() != "" {
+			return prefixRule{}, fmt.Errorf("invalid address %q: address zone is not dialable", target)
+		}
+		addr = addr.Unmap()
+		return prefixRule{prefix: netip.PrefixFrom(addr, addr.BitLen()), portRanges: ranges}, nil
+	}
+
+	if !ipShaped(target) {
+		return prefixRule{}, errNotIP
+	}
+	return prefixRule{}, fmt.Errorf("target %q looks like an IP address but is not a valid one: %w", target, addrErr)
+}
+
+func ipShaped(target string) bool {
+	if strings.ContainsRune(target, ':') {
+		return true
+	}
+	return strings.ContainsRune(target, '.') && !strings.ContainsFunc(target, func(r rune) bool {
+		return (r < '0' || r > '9') && r != '.'
+	})
+}
+
+// newNamedRanges expands a named range alias into one prefixRule per CIDR. ok
+// is false when target is not an alias.
+func newNamedRanges(target string, ranges []portRange) (aliasExpansion, bool) {
+	prefixes, ok := namedRanges()[target]
+	if !ok {
+		return nil, false
+	}
+	expanded := make(aliasExpansion, len(prefixes))
+	for i, prefix := range prefixes {
+		expanded[i] = prefixRule{prefix: prefix, portRanges: ranges}
+	}
+	return expanded, true
+}
+
+// newDomainRule classifies a hostname pattern.
+func newDomainRule(target string, ranges []portRange) (domainRule, error) {
+	if target == "*" {
+		return domainRule{}, fmt.Errorf("catch-all host pattern %q matches every host and is not allowed", target)
+	}
+	if !validDomainPattern(target) {
+		return domainRule{}, fmt.Errorf("target %q is not an IP, CIDR, named range, or valid hostname pattern", target)
+	}
+	return domainRule{pattern: target, portRanges: ranges}, nil
+}
+
+func coalesceRanges(ranges []portRange) []portRange {
+	slices.SortFunc(ranges, func(a, b portRange) int { return cmp.Compare(a.start, b.start) })
+	// merged aliases ranges: callers pass the builder's own per-key slice and
+	// never read it again, so compacting in place is safe and avoids an alloc.
+	merged := ranges[:0]
+	for _, r := range ranges {
+		// uint32 so the +1 adjacency check cannot overflow at 65535.
+		if last := len(merged) - 1; last >= 0 && uint32(r.start) <= uint32(merged[last].end)+1 {
+			merged[last].end = max(merged[last].end, r.end)
+			continue
+		}
+		merged = append(merged, r)
+	}
+	return merged
+}
+
+// parsePortSpec parses a port spec: "" means the context default, "*" all
+// ports on either list, otherwise a port, a "lo-hi" range, or a bracketed
+// "[p|p-p|...]" set.
+func parsePortSpec(spec string, isBlocklist bool) ([]portRange, error) {
+	if spec == "" {
+		return defaultPorts(isBlocklist), nil
+	}
+	if spec == "*" {
+		return []portRange{{start: 0, end: 65535}}, nil
+	}
+	if strings.HasPrefix(spec, "[") && strings.HasSuffix(spec, "]") {
+		inner := spec[1 : len(spec)-1]
+		if inner == "" {
+			return nil, fmt.Errorf("empty port set %q", spec)
+		}
+		var ranges []portRange
+		for item := range strings.SplitSeq(inner, "|") {
+			r, err := parsePortItem(item)
+			if err != nil {
+				return nil, err
+			}
+			ranges = append(ranges, r)
+		}
+		return ranges, nil
+	}
+	r, err := parsePortItem(spec)
+	if err != nil {
+		return nil, err
+	}
+	return []portRange{r}, nil
+}
+
+// parsePortItem parses "p" or "lo-hi" with 1 <= lo <= hi <= 65535. The parts
+// are trimmed, so a bracketed set may be spaced ("[80 | 443]").
+func parsePortItem(item string) (portRange, error) {
+	lo, hi, isRange := strings.Cut(item, "-")
+	start, err := parsePort(strings.TrimSpace(lo))
+	if err != nil {
+		return portRange{}, err
+	}
+	end := start
+	if isRange {
+		end, err = parsePort(strings.TrimSpace(hi))
+		if err != nil {
+			return portRange{}, err
+		}
+	}
+	if start > end {
+		return portRange{}, fmt.Errorf("reversed port range %q", item)
+	}
+	return portRange{start: start, end: end}, nil
+}
+
+func parsePort(s string) (uint16, error) {
+	p, err := strconv.ParseUint(s, 10, 16)
+	if err != nil || p == 0 {
+		return 0, fmt.Errorf("invalid port %q", s)
+	}
+	return uint16(p), nil
+}
+
+func defaultPorts(isBlocklist bool) []portRange {
+	if isBlocklist {
+		return []portRange{{start: 0, end: 65535}}
+	}
+	return []portRange{{start: 80, end: 80}, {start: 443, end: 443}}
+}
+
+func NewAllowList(hostList string) *AllowList {
+	return &AllowList{parseList(hostList, false)}
+}
+
+func NewBlockList(hostList string) *BlockList {
+	return &BlockList{parseList(hostList, true)}
+}
+
+func (m *matchList) MatchHostname(host string, port uint16) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if hostname, _, err := net.SplitHostPort(host); err == nil {
+		host = hostname
+	}
+	host = strings.TrimSuffix(host, ".")
+
+	for _, pattern := range m.patterns {
+		if pattern.Contains(host, port) {
+			return true
+		}
+	}
+	return false
+}
+
+// matchDomain implements the domain-matching model of x/net/http/httpproxy
+// (dot-anchored suffix), adapted to Gitea's config surface:
+//   - "example.com" matches exactly that host (deliberate deviation: httpproxy also
+//     grants subdomains, but bare-entry = exact keeps existing configs from widening)
+//   - "*.example.com" and ".example.com" match any subdomain, dot-anchored, apex
+//     excluded — the two spellings are equivalent, mirroring httpproxy's normalization
+func matchDomain(pattern, host string) bool {
+	if strings.HasPrefix(pattern, "*.") || strings.HasPrefix(pattern, ".") {
+		suffix := pattern[1:]
+		return strings.HasSuffix(host, suffix) && len(host) > len(suffix)
+	}
+	return pattern == host
+}
+
+// validDomainPattern reports whether p is a usable domain pattern: any glob
+// metacharacter beyond the documented forms (?, character classes, backslash
+// escapes, mid-pattern *) is rejected instead of silently never matching, and
+// so is any non-ASCII rune, which byte-wise matching against a resolved
+// hostname could never hit (IDN names must be given as punycode).
+func validDomainPattern(p string) bool {
+	if strings.HasPrefix(p, "*.") || strings.HasPrefix(p, ".") {
+		p = p[1:]
+	}
+	if p == "" || strings.ContainsFunc(p, func(r rune) bool { return r >= utf8.RuneSelf }) {
+		return false
+	}
+	return !strings.ContainsAny(p, " *?[]/:\\")
+}
+
+// Rejected returns the entries dropped at parse, so callers can log them at startup.
+func (m *matchList) Rejected() []string {
+	return slices.Clone(m.rejected)
+}
+
+// MatchIPAddr checks if the given IP is in the list.
+func (m *matchList) MatchIPAddr(ip netip.AddrPort) bool {
+	match := m.ipv4List
+	if ip.Addr().Is6() {
+		match = m.ipv6List
+	}
+	for _, prefix := range match {
+		if prefix.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *matchList) IsEmpty() bool {
+	return len(m.patterns) == 0 && len(m.ipv4List) == 0 && len(m.ipv6List) == 0
+}
 
 type addrClass uint8
 
@@ -16,10 +482,7 @@ const (
 	classReserved
 )
 
-var (
-	cgnatRange = netip.MustParsePrefix("100.64.0.0/10") // RFC 6598
-	nat64Range = netip.MustParsePrefix("64:ff9b::/96")  // RFC 6052, DNS64 hosts reach IPv4-only servers through it
-)
+var cgnatRange = netip.MustParsePrefix("100.64.0.0/10") // RFC 6598
 
 // reservedRanges are never dialable unless an allow list names them by CIDR, based on https://microsoft.github.io/AntiSSRF/ipaddressranges.html
 var reservedRanges = func() (ranges []netip.Prefix) {
@@ -41,6 +504,7 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 		"240.0.0.0/4",        // reserved, incl. limited broadcast
 		"::/96",              // IPv4-compatible, embeds IPv4
 		"::ffff:0:0:0/96",    // IPv4-translated, embeds IPv4
+		"64:ff9b::/96",       // wkp NAT64
 		"64:ff9b:1::/48",     // local-use NAT64
 		"100::/64",           // discard-only
 		"100:0:0:1::/64",     // dummy
@@ -59,15 +523,6 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 	}
 	return ranges
 }()
-
-// canonicalAddr unwraps IPv4-mapped and NAT64 addresses to the IPv4 address they reach
-func canonicalAddr(ip netip.Addr) netip.Addr {
-	ip = ip.Unmap()
-	if nat64Range.Contains(ip) {
-		return netip.AddrFrom4([4]byte(ip.AsSlice()[12:]))
-	}
-	return ip
-}
 
 // classifyAddr reports the class of a canonical address.
 func classifyAddr(ip netip.Addr) addrClass {

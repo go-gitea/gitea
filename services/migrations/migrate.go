@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -71,12 +70,8 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		return &git.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
-	hostName := u.Hostname()
-
-	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
-	addrList, _ := net.LookupIP(hostName)
-	if err := egress.NewMigrationPolicy().CheckHostIPs(hostName, addrList); err != nil {
-		return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
+	if err := egress.NewMigrationPolicy().CheckHostIPs(u); err != nil {
+		return &git.ErrInvalidCloneAddr{Host: u.Hostname(), IsPermissionDenied: true}
 	}
 	return nil
 }

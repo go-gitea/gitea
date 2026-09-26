@@ -42,17 +42,24 @@ func TestCheckAddr(t *testing.T) {
 		if tc.localNeedsIPAllow {
 			opts = append(opts, WithLocalNeedsIPAllow())
 		}
-		err := NewPolicy("test", opts...).checkAddr(tc.host, netip.MustParseAddr(tc.ip))
+		err := NewPolicy("test", opts...).checkAddr(tc.host, netip.AddrPortFrom(netip.MustParseAddr(tc.ip), 80))
 		assert.Equal(t, tc.want, err == nil, "%s: %v", tc.name, err)
 	}
 }
 
 func TestDenialNamesSetting(t *testing.T) {
-	err := NewPolicy("webhook", WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", netip.MustParseAddr("8.8.8.8"))
+	err := NewPolicy("webhook", WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80))
 	assert.EqualError(t, err, "webhook can only call allowed HTTP servers (check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8)'")
 
-	err = NewPolicy("webhook", WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost("evil.com")
+	err = NewPolicy("webhook", WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost(hostURL(t, "http://evil.com"))
 	assert.EqualError(t, err, "webhook can not call blocked HTTP servers (check your migrations.BLOCKED_HOST_LIST setting), deny 'evil.com'")
+}
+
+func hostURL(t *testing.T, raw string) *url.URL {
+	t.Helper()
+	u, err := url.Parse(raw)
+	require.NoError(t, err)
+	return u
 }
 
 func TestCheckHostIPs(t *testing.T) {
@@ -64,26 +71,26 @@ func TestCheckHostIPs(t *testing.T) {
 	}
 
 	blocked := NewPolicy("test", WithBlock("blocked.example.com", ""))
-	assert.NoError(t, blocked.CheckHostIPs("example.com", ips("8.8.8.8", "10.0.0.5")))
-	assert.NoError(t, blocked.CheckHostIPs("example.com", nil))
-	assert.Error(t, blocked.CheckHostIPs("blocked.example.com", ips("8.8.8.8")))
-	assert.Error(t, blocked.CheckHostIPs("blocked.example.com", nil))
+	assert.NoError(t, blocked.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "10.0.0.5")))
+	assert.NoError(t, blocked.checkHostIPs(hostURL(t, "http://example.com"), nil))
+	assert.Error(t, blocked.checkHostIPs(hostURL(t, "http://blocked.example.com"), ips("8.8.8.8")))
+	assert.Error(t, blocked.checkHostIPs(hostURL(t, "http://blocked.example.com"), nil))
 
 	allowed := NewPolicy("test", WithAllow("10.0.0.0/8, *.example.com", ""))
-	assert.NoError(t, allowed.CheckHostIPs("", ips("10.0.0.5")))
-	assert.NoError(t, allowed.CheckHostIPs("git.example.com", ips("192.168.0.1")))
-	assert.NoError(t, allowed.CheckHostIPs("git.example.com", nil))
-	assert.Error(t, allowed.CheckHostIPs("other.com", ips("10.0.0.5", "192.168.0.1")))
-	assert.Error(t, allowed.CheckHostIPs("other.com", nil))
+	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://"), ips("10.0.0.5")))
+	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), ips("192.168.0.1")))
+	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), nil))
+	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), ips("10.0.0.5", "192.168.0.1")))
+	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), nil))
 
 	builtins := NewPolicy("test", WithAllow("external, private, loopback", ""))
-	assert.NoError(t, builtins.CheckHostIPs("example.com", ips("8.8.8.8", "64:ff9b::808:808", "100.64.0.1", "::1")))
+	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "64:ff9b::808:808", "100.64.0.1", "::1")))
 	for _, ip := range []string{
 		"0.1.2.3", "100.100.100.200", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
 		"198.51.100.1", "203.0.113.1", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "2001::1", "2001:db8::1",
 		"2002::1", "fe80::1",
 	} {
-		assert.Error(t, builtins.CheckHostIPs("example.com", ips(ip)), ip)
+		assert.Error(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips(ip)), ip)
 	}
 }
 

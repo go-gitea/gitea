@@ -4,7 +4,6 @@
 package egress
 
 import (
-	"net"
 	"net/http"
 	"net/url"
 	"testing"
@@ -16,18 +15,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mustURL(t *testing.T, raw string) *url.URL {
+	t.Helper()
+	u, err := url.Parse(raw)
+	require.NoError(t, err)
+	return u
+}
+
 func TestNewMigrationPolicy(t *testing.T) {
 	defer test.MockVariableValue(&setting.Migrations)()
 	for _, tc := range []struct {
-		allow, block, host, ip string
-		want                   bool
+		allow, block, target string
+		want                 bool
 	}{
-		{allow: "external", host: "github.com", ip: "1.2.3.4", want: true},
-		{allow: "github.com", host: "github.com", ip: "10.0.0.1"},
-		{allow: "external", block: "github.com", host: "github.com", ip: "1.2.3.4"},
+		{allow: "external", target: "https://1.2.3.4", want: true},
+		{allow: "github.com", target: "https://10.0.0.1"}, // a hostname allow doesn't cover a private IP
+		{allow: "external", block: "10.0.0.0/8", target: "https://10.0.0.1"},
 	} {
 		setting.Migrations.AllowedHostList, setting.Migrations.BlockedHostList = tc.allow, tc.block
-		err := NewMigrationPolicy().CheckHostIPs(tc.host, []net.IP{net.ParseIP(tc.ip)})
+		u, err := url.Parse(tc.target)
+		require.NoError(t, err)
+		err = NewMigrationPolicy().CheckHostIPs(u)
 		assert.Equal(t, tc.want, err == nil, "%+v: %v", tc, err)
 	}
 }
@@ -66,8 +74,8 @@ func TestWebhookPolicyProxy(t *testing.T) {
 func TestSecurityPolicy(t *testing.T) {
 	defer test.MockVariableValue(&setting.Security.AllowedHostList, "avatars.example.com")()
 	securityPolicy := NewSecurityPolicy("test")
-	assert.NoError(t, securityPolicy.CheckHost("avatars.example.com"))
-	assert.Error(t, securityPolicy.CheckHost("8.8.8.8"))
+	assert.NoError(t, securityPolicy.CheckHost(mustURL(t, "https://avatars.example.com")))
+	assert.Error(t, securityPolicy.CheckHost(mustURL(t, "https://8.8.8.8")))
 }
 
 func TestNewGitPolicy(t *testing.T) {

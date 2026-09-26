@@ -12,9 +12,19 @@ import (
 	"net/http"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
+)
+
+type Mode uint8
+
+const (
+	// Lax mode allows outbound connections by default, unless they are restricted or on denylist
+	Lax Mode = iota
+	// Strict mode requires all addresses to be explicitly allowed
+	Strict
 )
 
 // ErrDenied wraps a policy rejection, so callers can tell it from a network failure.
@@ -22,7 +32,9 @@ var ErrDenied = errors.New("denied by egress policy")
 
 type Policy struct {
 	usage              string
-	allow, block       *HostMatchList
+	mode               Mode
+	allow              *AllowList
+	block              *BlockList
 	allowKey, blockKey string // the settings the lists were read from, named in rejections
 	localNeedsIPAllow  bool
 	proxyFunc          func(*http.Request) (*url.URL, error)
@@ -34,13 +46,13 @@ type Option func(*Policy)
 // WithAllow sets the allow list from the setting named by key, an empty list allows every target.
 func WithAllow(hostList, key string) Option {
 	return func(p *Policy) {
-		p.allow, p.allowKey = ParseHostMatchList(hostList), key
+		p.allow, p.allowKey = NewAllowList(hostList), key
 	}
 }
 
 func WithBlock(hostList, key string) Option {
 	return func(p *Policy) {
-		p.block, p.blockKey = ParseHostMatchList(hostList), key
+		p.block, p.blockKey = NewBlockList(hostList), key
 	}
 }
 
@@ -59,7 +71,7 @@ func WithProxy(proxyFunc func(*http.Request) (*url.URL, error)) Option {
 
 // NewPolicy compiles a policy enforced on every outbound dial, usage names the caller in rejections.
 func NewPolicy(usage string, opts ...Option) *Policy {
-	p := &Policy{usage: usage, allow: &HostMatchList{}, block: &HostMatchList{}}
+	p := &Policy{usage: usage, block: NewBlockList(""), allow: NewAllowList("")}
 	for _, opt := range opts {
 		opt(p)
 	}
@@ -68,6 +80,17 @@ func NewPolicy(usage string, opts ...Option) *Policy {
 
 // proxyPorts maps the proxy schemes net/http speaks to their default ports, it speaks HTTP to any other
 var proxyPorts = map[string]string{"http": "80", "https": "443", "socks5": "1080", "socks5h": "1080"}
+
+// targetPorts maps target schemes to their default dial port, http and anything else dials 80
+var targetPorts = map[string]uint16{"https": 443, "git": 9418}
+
+// dialPort resolves the port a target URL is dialed on, empty port means the scheme default
+func dialPort(u *url.URL) uint16 {
+	if port, err := strconv.ParseUint(u.Port(), 10, 16); err == nil && port != 0 {
+		return uint16(port)
+	}
+	return cmp.Or(targetPorts[u.Scheme], 80)
+}
 
 // ProxyDialAddr returns the address the transport dials for proxy URL u
 func ProxyDialAddr(u *url.URL) string {
@@ -82,45 +105,81 @@ func (p *Policy) notAllowedError(target string) error {
 	return fmt.Errorf("%s can only call allowed HTTP servers (check your %s setting), deny '%s'", p.usage, p.allowKey, target)
 }
 
-func (p *Policy) checkAddr(host string, ip netip.Addr) error {
-	ip = canonicalAddr(ip)
-	netIP := net.IP(ip.AsSlice())
-	class := classifyAddr(ip)
+func (p *Policy) checkAddr(host string, ip netip.AddrPort) error {
+	ip = netip.AddrPortFrom(ip.Addr().Unmap(), ip.Port())
+	class := classifyAddr(ip.Addr())
 	target := fmt.Sprintf("%s(%s)", host, ip)
-	switch {
-	case class == classReserved && !p.allow.matchesIP(netIP):
+	if class == classReserved {
 		return fmt.Errorf("%s can not call reserved addresses, deny '%s'", p.usage, target)
-	case p.block.MatchHostOrIP(host, netIP):
-		return p.blockedError(target)
-	case p.localNeedsIPAllow && class == classRestricted && !p.allow.matchesIP(netIP),
-		!p.allow.IsEmpty() && !p.allow.MatchHostOrIP(host, netIP):
-		return p.notAllowedError(target)
+	}
+	if p.mode == Strict {
+		return p.strictGate(host, ip)
+	}
+	return p.laxGate(host, ip, class)
+}
+
+// laxGate asserts that host and ip aren't on denylist and if the target is restricted that it is allowed explictly
+func (p *Policy) laxGate(host string, ip netip.AddrPort, class addrClass) error {
+	if err := p.blockReason(host, ip); err != nil {
+		return err
+	}
+	if class == classPublic {
+		return nil
+	}
+	if p.allow.MatchIPAddr(ip) || p.allow.MatchHostname(host, ip.Port()) {
+		return nil
+	}
+	if host == "" {
+		return fmt.Errorf("%s needs an explicit allow entry (private/loopback/CGNAT)", ip)
+	}
+	return fmt.Errorf("host %q and IP %s need an explicit allow entry (private/loopback/CGNAT)", host, ip)
+}
+
+// strictGate asserts that host and ip are on the allow list and not on the block list
+func (p *Policy) strictGate(host string, ip netip.AddrPort) error {
+	if !p.allow.MatchIPAddr(ip) && !p.allow.MatchHostname(host, ip.Port()) {
+		return fmt.Errorf("host %q and IP %s are not matched by the allow list", host, ip)
+	}
+	return p.blockReason(host, ip)
+}
+
+func (p *Policy) blockReason(host string, ip netip.AddrPort) error {
+	if p.block.MatchHostname(host, ip.Port()) {
+		return fmt.Errorf("host %q matches the deny list", host)
+	}
+	if p.block.MatchIPAddr(ip) {
+		return fmt.Errorf("%s matches the deny list", ip)
 	}
 	return nil
 }
 
-// CheckHost pre-screens an unresolved host name or IP literal.
-func (p *Policy) CheckHost(host string) error {
-	if ip, err := netip.ParseAddr(host); err == nil {
-		return p.checkAddr(host, ip)
+// CheckHost pre-screens a target URL whose host name may be unresolved or an IP literal.
+func (p *Policy) CheckHost(u *url.URL) error {
+	host, port := u.Hostname(), dialPort(u)
+	ip, err := netip.ParseAddr(host)
+	addrPort := netip.AddrPortFrom(ip, port)
+	if err == nil {
+		return p.checkAddr("", addrPort)
 	}
-	if p.block.MatchHostName(host) {
-		return p.blockedError(host)
-	}
-	if !p.allow.IsEmpty() && !p.allow.MatchHostName(host) {
-		return p.notAllowedError(host)
-	}
-	return nil
+	return p.checkAddr(host, addrPort) // invalid ip doesn't match anything
 }
 
-// CheckHostIPs reports whether host, resolved to ips, may be called, every address must pass as the dialer may pick any.
-func (p *Policy) CheckHostIPs(host string, ips []net.IP) error {
+// CheckHostIPs reports whether u's host may be called, it resolves the host and every address must pass as the dialer may pick any.
+func (p *Policy) CheckHostIPs(u *url.URL) error {
+	// hosts behind a proxy may have no DNS resolver, the name-only CheckHost screen still applies
+	ips, _ := net.LookupIP(u.Hostname())
+	return p.checkHostIPs(u, ips)
+}
+
+func (p *Policy) checkHostIPs(u *url.URL, ips []net.IP) error {
 	if len(ips) == 0 {
-		return p.CheckHost(host)
+		return p.CheckHost(u)
 	}
+	host, port := u.Hostname(), dialPort(u)
 	for _, ip := range ips {
 		addr, _ := netip.AddrFromSlice(ip)
-		if err := p.checkAddr(host, addr); err != nil {
+		addrPort := netip.AddrPortFrom(addr, port)
+		if err := p.checkAddr(host, addrPort); err != nil {
 			return err
 		}
 	}
@@ -146,7 +205,7 @@ func (p *Policy) dialContext(allowProxies bool) func(ctx context.Context, networ
 				if err != nil {
 					return fmt.Errorf("%s can only call HTTP servers via TCP, deny '%s(%s)': %w", p.usage, host, ipAddr, err)
 				}
-				if err := p.checkAddr(host, addrPort.Addr()); err != nil {
+				if err := p.checkAddr(host, addrPort); err != nil {
 					return fmt.Errorf("%w: %w", ErrDenied, err)
 				}
 				return nil
