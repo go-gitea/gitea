@@ -131,22 +131,22 @@ func CommonRoutes() *web.Router {
 		&chef.Auth{},
 	}, verifyAuthOptions{})
 
-	// Terraform Module Registry — mounted under the `-` system prefix so the
-	// HashiCorp service-discovery base URL stays host-level. The module
-	// namespace is the leading {username} path param, resolved by the same
-	// user/package middleware as every other registry.
-	// See routers/api/packages/terraform_module/.
-	r.Group("/-/terraform/modules", func() {
-		r.Group("/{username}/{name}/{provider}", func() {
+	// host-level base URL for service discovery, the namespace is the owner
+	r.Group("/-/terraform/modules/{username}/{name}/{provider}", func() {
+		r.Get("/{version}/archive", func(ctx *context.Context) {
+			if !tfmodule.HasValidArchiveSignature(ctx) {
+				reqPackageAccess(perm.AccessModeRead)(ctx)
+			}
+		}, tfmodule.DownloadArchive)
+		r.Group("", func() {
 			r.Get("/versions", tfmodule.ListVersions)
 			r.Get("/{version}/download", tfmodule.DownloadRedirect)
-			r.Get("/{version}/archive", tfmodule.DownloadArchive)
 			r.Group("/{version}", func() {
 				r.Put("", tfmodule.UploadModule)
 				r.Delete("", tfmodule.DeleteModule)
 			}, reqPackageAccess(perm.AccessModeWrite))
-		}, context.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
-	})
+		}, reqPackageAccess(perm.AccessModeRead))
+	}, context.UserAssignmentWeb(), context.PackageAssignment())
 
 	r.Group("/{username}", func() {
 		r.Group("/alpine", func() {

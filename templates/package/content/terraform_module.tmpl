@@ -1,24 +1,25 @@
 {{if eq .PackageDescriptor.Package.Type "terraform-module"}}
-	{{$nameProvider := StringUtils.Cut $.PackageDescriptor.Package.Name "/"}}
+	{{$nameProvider := StringUtils.Cut .PackageDescriptor.Package.Name "/"}}
+	{{$source := print .PackageRegistryHost "/" .PackageDescriptor.Owner.Name "/" .PackageDescriptor.Package.Name}}
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform_module.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>module "{{index $nameProvider 0}}" {
-	source  = "{{ctx.AppHost}}/{{$.PackageDescriptor.Owner.Name}}/{{$.PackageDescriptor.Package.Name}}"
-	version = "{{$.PackageDescriptor.Version.Version}}"
+	source  = "{{$source}}"
+	version = "{{.PackageDescriptor.Version.Version}}"
 }</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-code"}} {{ctx.Locale.Tr "packages.terraform_module.install_terragrunt"}}</label>
 				<div class="markup"><pre class="code-block"><code>terraform {
-	source = "tfr://{{ctx.AppHost}}/{{$.PackageDescriptor.Owner.Name}}/{{$.PackageDescriptor.Package.Name}}?version={{$.PackageDescriptor.Version.Version}}"
+	source = "tfr://{{$source}}?version={{.PackageDescriptor.Version.Version}}"
 }</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{svg "octicon-key"}} {{ctx.Locale.Tr "packages.terraform_module.credentials"}}</label>
-				<div class="markup"><pre class="code-block"><code>credentials "{{ctx.AppHost}}" {
+				<div class="markup"><pre class="code-block"><code>credentials "{{.PackageRegistryHost}}" {
 	token = "&lt;token&gt;"
 }</code></pre></div>
 			</div>
@@ -28,22 +29,26 @@
 		</div>
 	</div>
 
-	{{if and .PackageDescriptor.Metadata .PackageDescriptor.Metadata.Root}}
-		{{$root := .PackageDescriptor.Metadata.Root}}
-		{{if $root.Inputs}}
+	{{if .PackageDescriptor.Metadata.Readme}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">{{ctx.RenderUtils.RenderPackageMarkdown .PackageDescriptor.Metadata.Readme .PackageDescriptor.Repository}}</div>
+	{{end}}
+
+	{{with .PackageDescriptor.Metadata.Root}}
+		{{if .Inputs}}
 			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.inputs"}}</h4>
 			<div class="ui attached segment">
 				<table class="ui table">
 					<thead><tr>
-						<th>{{ctx.Locale.Tr "packages.terraform_module.input.name"}}</th>
-						<th>{{ctx.Locale.Tr "packages.terraform_module.input.type"}}</th>
-						<th>{{ctx.Locale.Tr "packages.terraform_module.input.default"}}</th>
-						<th>{{ctx.Locale.Tr "packages.terraform_module.input.description"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.name"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.type"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.default"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.description"}}</th>
 					</tr></thead>
 					<tbody>
-					{{range $root.Inputs}}
+					{{range .Inputs}}
 						<tr>
-							<td><code>{{.Name}}</code>{{if .Required}} <span class="ui tiny red label">{{ctx.Locale.Tr "packages.terraform_module.input.required"}}</span>{{end}}</td>
+							<td><code>{{.Name}}</code>{{if .Required}} <span class="ui tiny red label">{{ctx.Locale.Tr "packages.terraform_module.required"}}</span>{{end}}</td>
 							<td><code>{{.Type}}</code></td>
 							<td><code>{{.Default}}</code></td>
 							<td>{{.Description}}</td>
@@ -54,16 +59,16 @@
 			</div>
 		{{end}}
 
-		{{if $root.Outputs}}
+		{{if .Outputs}}
 			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.outputs"}}</h4>
 			<div class="ui attached segment">
 				<table class="ui table">
 					<thead><tr>
-						<th>{{ctx.Locale.Tr "packages.terraform_module.output.name"}}</th>
-						<th>{{ctx.Locale.Tr "packages.terraform_module.output.description"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.name"}}</th>
+						<th>{{ctx.Locale.Tr "packages.terraform_module.description"}}</th>
 					</tr></thead>
 					<tbody>
-					{{range $root.Outputs}}
+					{{range .Outputs}}
 						<tr>
 							<td><code>{{.Name}}</code></td>
 							<td>{{.Description}}</td>
@@ -74,35 +79,33 @@
 			</div>
 		{{end}}
 
-		{{if $root.Providers}}
+		{{if .Providers}}
 			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.providers"}}</h4>
 			<div class="ui attached segment">
 				<ul>
-				{{range $root.Providers}}
-					<li><code>{{.Name}}</code>{{if .Source}} ({{.Source}}){{end}}{{if .VersionConstraint}} — <code>{{.VersionConstraint}}</code>{{end}}</li>
+				{{range .Providers}}
+					<li><code>{{.Name}}</code>{{if .Source}} ({{.Source}}){{end}}{{if .Version}} <code>{{.Version}}</code>{{end}}</li>
 				{{end}}
 				</ul>
 			</div>
 		{{end}}
 	{{end}}
 
-	{{if and .PackageDescriptor.Metadata .PackageDescriptor.Metadata.Submodules}}
+	{{if .PackageDescriptor.Metadata.Submodules}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.submodules"}}</h4>
 		<div class="ui attached segment">
 			<table class="ui table">
 				<thead><tr>
-					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.name"}}</th>
-					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.inputs"}}</th>
-					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.outputs"}}</th>
-					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.description"}}</th>
+					<th>{{ctx.Locale.Tr "packages.terraform_module.name"}}</th>
+					<th>{{ctx.Locale.Tr "packages.terraform_module.inputs"}}</th>
+					<th>{{ctx.Locale.Tr "packages.terraform_module.outputs"}}</th>
 				</tr></thead>
 				<tbody>
 				{{range .PackageDescriptor.Metadata.Submodules}}
 					<tr>
 						<td><code>{{.Name}}</code></td>
-						<td>{{if .Root}}{{len .Root.Inputs}}{{else}}0{{end}}</td>
-						<td>{{if .Root}}{{len .Root.Outputs}}{{else}}0{{end}}</td>
-						<td>{{.Description}}</td>
+						<td>{{len .Inputs}}</td>
+						<td>{{len .Outputs}}</td>
 					</tr>
 				{{end}}
 				</tbody>

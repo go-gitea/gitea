@@ -546,10 +546,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		})
 		m.Get("/passkey-endpoints", passkeyEndpoints)
-		// Terraform service discovery. Returned base URL points at the
-		// package API mount; clients append {namespace}/{name}/{provider}
-		// per the module-registry protocol.
-		m.Get("/terraform.json", tfmodule.ServiceDiscovery)
+		m.Get("/terraform.json", packagesEnabled, tfmodule.ServiceDiscovery)
 		m.Methods("GET, HEAD", "/*", public.FileHandlerFunc())
 	}, optionsCorsHandler())
 

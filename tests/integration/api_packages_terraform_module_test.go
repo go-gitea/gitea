@@ -4,304 +4,87 @@
 package integration
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"net/http"
-	"sort"
+	"net/url"
 	"strings"
 	"testing"
 
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// buildTFModuleArchive returns a gzipped tarball with the given files at the
-// root. Entries are written in sorted filename order so the output is
-// byte-for-byte reproducible — map iteration order is randomized in Go, which
-// would otherwise make the archive (and tests comparing it) nondeterministic.
-func buildTFModuleArchive(t *testing.T, files map[string]string) []byte {
-	t.Helper()
-	names := make([]string, 0, len(files))
-	for name := range files {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	for _, name := range names {
-		content := files[name]
-		require.NoError(t, tw.WriteHeader(&tar.Header{
-			Name:     name,
-			Typeflag: tar.TypeReg,
-			Mode:     0o644,
-			Size:     int64(len(content)),
-		}))
-		_, err := tw.Write([]byte(content))
-		require.NoError(t, err)
-	}
-	require.NoError(t, tw.Close())
-	require.NoError(t, gz.Close())
-	return buf.Bytes()
-}
-
-// canonicalModuleArchive returns the .tar.gz used across most subtests.
-// Kept as a function so each subtest gets its own buffer (the helpers
-// below read it).
-func canonicalModuleArchive(t *testing.T) []byte {
-	t.Helper()
-	src := `
-terraform {
-  required_version = ">= 1.5.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-variable "region" {
-  type        = string
-  description = "AWS region"
-  default     = "eu-west-1"
-}
-
-output "vpc_id" {
-  value = aws_vpc.this.id
-}
-
-resource "aws_vpc" "this" {
-  cidr_block = "10.0.0.0/16"
-}
-`
-	return buildTFModuleArchive(t, map[string]string{
-		"main.tf":   src,
-		"README.md": "# vpc\n",
-	})
-}
-
 func TestPackageTerraformModule(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	privateOrg := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "privated_org"})
+	root := "/api/packages/-/terraform/modules/" + privateOrg.Name
+	base := root + "/vpc/aws"
+	archive := test.WriteTarCompression(gzip.NewWriter, map[string]string{"main.tf": `variable "region" {}`, "README.md": "# VPC module"}).Bytes()
 
-	const (
-		name     = "vpc"
-		provider = "aws"
-		version  = "1.0.0"
-	)
-	base := fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s", user.Name, name, provider)
-
-	// uploadFixture publishes the canonical module so the subtest can
-	// exercise the read path. Registered cleanup deletes it, which keeps
-	// every subtest self-contained — running `go test -run .../Download_*`
-	// or any individual subtest works without the others having run.
-	uploadFixture := func(t *testing.T) []byte {
-		t.Helper()
-		archive := canonicalModuleArchive(t)
-		req := NewRequestWithBody(t, "PUT", base+"/"+version, bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-		t.Cleanup(func() {
-			req := NewRequest(t, "DELETE", base+"/"+version).AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusNoContent)
-		})
-		// Return the exact bytes uploaded so a caller can assert a
-		// byte-for-byte download round-trip without rebuilding the archive.
-		return archive
+	upload := func(t *testing.T, uploadURL string, body []byte, status int) {
+		MakeRequest(t, NewRequestWithBody(t, "PUT", uploadURL, bytes.NewReader(body)).AddBasicAuth(admin.Name), status)
 	}
 
 	t.Run("ServiceDiscovery", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/.well-known/terraform.json")
-		resp := MakeRequest(t, req, http.StatusOK)
-		var doc map[string]string
-		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &doc))
-		assert.Equal(t, "/api/packages/-/terraform/modules/", doc["modules.v1"])
-	})
+		resp := MakeRequest(t, NewRequest(t, "GET", "/.well-known/terraform.json"), http.StatusOK)
+		assert.JSONEq(t, `{"modules.v1":"/api/packages/-/terraform/modules/"}`, resp.Body.String())
 
-	t.Run("ListVersions_UnknownPackage", func(t *testing.T) {
-		req := NewRequest(t, "GET",
-			fmt.Sprintf("/api/packages/-/terraform/modules/%s/does-not-exist/%s/versions", user.Name, provider),
-		).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusNotFound)
+		defer test.MockVariableValue(&setting.Packages.Enabled, false)()
+		MakeRequest(t, NewRequest(t, "GET", "/.well-known/terraform.json"), http.StatusForbidden)
 	})
 
 	t.Run("Upload", func(t *testing.T) {
-		uploadFixture(t)
+		upload(t, base+"/v1.0.0", archive, http.StatusCreated)
+		upload(t, base+"/1.0.0", archive, http.StatusConflict)
+		upload(t, base+"/not-semver", archive, http.StatusBadRequest)
+		upload(t, root+"/vpc/my-cloud/1.0.0", archive, http.StatusBadRequest)
+		upload(t, base+"/2.0.0", test.WriteTarCompression(gzip.NewWriter, map[string]string{"vpc-2.0.0/main.tf": `variable "region" {}`}).Bytes(), http.StatusBadRequest)
+		MakeRequest(t, NewRequestWithBody(t, "PUT", base+"/2.0.0", bytes.NewReader(archive)), http.StatusUnauthorized)
 	})
 
-	t.Run("Upload_DuplicateVersion", func(t *testing.T) {
-		uploadFixture(t)
-		archive := canonicalModuleArchive(t)
-		req := NewRequestWithBody(t, "PUT", base+"/"+version, bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusConflict)
-	})
-
-	t.Run("Upload_InvalidSemver", func(t *testing.T) {
-		archive := canonicalModuleArchive(t)
-		req := NewRequestWithBody(t, "PUT", base+"/not-semver", bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusBadRequest)
-	})
-
-	t.Run("Upload_InvalidProvider", func(t *testing.T) {
-		archive := canonicalModuleArchive(t)
-		// Uppercase provider violates the naming rule.
-		req := NewRequestWithBody(t, "PUT",
-			fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/AWS/%s", user.Name, name, version),
-			bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusBadRequest)
-	})
-
-	t.Run("Upload_NoModuleAtRoot", func(t *testing.T) {
-		// An archive with no .tf at the root and no modules/<name> is not a
-		// consumable module and must be rejected.
-		archive := buildTFModuleArchive(t, map[string]string{"LICENSE": "MIT\n"})
-		req := NewRequestWithBody(t, "PUT", base+"/2.0.0", bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusBadRequest)
-	})
-
-	t.Run("Upload_VersionPrefixNormalized", func(t *testing.T) {
-		// `v1.2.3` and `1.2.3` must address the same stored version, so the
-		// registry never mixes prefixed and unprefixed names.
-		archive := canonicalModuleArchive(t)
-		nbase := fmt.Sprintf("/api/packages/-/terraform/modules/%s/prefixed/aws", user.Name)
-		req := NewRequestWithBody(t, "PUT", nbase+"/v1.2.3", bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-		t.Cleanup(func() {
-			req := NewRequest(t, "DELETE", nbase+"/1.2.3").AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusNoContent)
-		})
-
-		// Stored canonically, without the `v`.
-		req = NewRequest(t, "GET", nbase+"/versions").AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Body.String(), `"1.2.3"`)
-		assert.NotContains(t, resp.Body.String(), `"v1.2.3"`)
-
-		// Re-uploading the unprefixed form is the same version -> conflict.
-		req = NewRequestWithBody(t, "PUT", nbase+"/1.2.3", bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusConflict)
-
-		// Both spellings resolve for download.
-		for _, v := range []string{"1.2.3", "v1.2.3"} {
-			req = NewRequest(t, "GET", nbase+"/"+v+"/download").AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusNoContent)
-		}
-	})
-
-	t.Run("Upload_SubmoduleCollection", func(t *testing.T) {
-		// A module that is only a collection of submodules (no .tf at the
-		// root) is valid and must be accepted.
-		collection := buildTFModuleArchive(t, map[string]string{
-			"README.md":               "# collection\n",
-			"modules/network/main.tf": `variable "cidr" { type = string }`,
-		})
-		cbase := fmt.Sprintf("/api/packages/-/terraform/modules/%s/collection/aws", user.Name)
-		req := NewRequestWithBody(t, "PUT", cbase+"/1.0.0", bytes.NewReader(collection)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-		t.Cleanup(func() {
-			req := NewRequest(t, "DELETE", cbase+"/1.0.0").AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusNoContent)
-		})
+	t.Run("View", func(t *testing.T) {
+		resp := loginUser(t, admin.Name).MakeRequest(t, NewRequest(t, "GET", "/"+privateOrg.Name+"/-/packages/terraform-module/vpc%2Faws/1.0.0"), http.StatusOK)
+		content := NewHTMLParser(t, resp.Body).Find(".packages-content-left").Text()
+		appURL, _ := url.Parse(setting.AppURL)
+		assert.Contains(t, content, `source  = "`+appURL.Host+"/"+privateOrg.Name+`/vpc/aws"`)
+		assert.Contains(t, content, "VPC module")
+		assert.Contains(t, content, "region")
 	})
 
 	t.Run("ListVersions", func(t *testing.T) {
-		uploadFixture(t)
-		req := NewRequest(t, "GET", base+"/versions").AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
-		var body struct {
-			Modules []struct {
-				Versions []struct {
-					Version string `json:"version"`
-				} `json:"versions"`
-			} `json:"modules"`
-		}
-		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &body))
-		require.Len(t, body.Modules, 1)
-		require.Len(t, body.Modules[0].Versions, 1)
-		assert.Equal(t, version, body.Modules[0].Versions[0].Version)
+		resp := MakeRequest(t, NewRequest(t, "GET", base+"/versions").AddBasicAuth(admin.Name), http.StatusOK)
+		assert.JSONEq(t, `{"modules":[{"versions":[{"version":"1.0.0"}]}]}`, resp.Body.String())
+		MakeRequest(t, NewRequest(t, "GET", base+"/versions"), http.StatusUnauthorized)
+		MakeRequest(t, NewRequest(t, "GET", root+"/unknown/aws/versions").AddBasicAuth(admin.Name), http.StatusNotFound)
 	})
 
-	t.Run("Download_XTerraformGet", func(t *testing.T) {
-		uploadFixture(t)
-		req := NewRequest(t, "GET", base+"/"+version+"/download").AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusNoContent)
-		got := resp.Header().Get("X-Terraform-Get")
-		require.NotEmpty(t, got)
-		// Flat archive: bare archive URL with the forced decompressor and
-		// no subdir glob. ?archive=tar.gz is required because the URL has
-		// no file extension for go-getter to sniff.
-		assert.True(t, strings.HasSuffix(got,
-			fmt.Sprintf("/api/packages/-/terraform/modules/%s/%s/%s/%s/archive?archive=tar.gz", user.Name, name, provider, version)),
-			"X-Terraform-Get should point at the archive endpoint, got %q", got)
-	})
+	t.Run("Download", func(t *testing.T) {
+		downloadURL := base + "/1.0.0/download"
+		resp := MakeRequest(t, NewRequest(t, "GET", downloadURL).AddBasicAuth(admin.Name), http.StatusNoContent)
+		location, err := url.Parse(resp.Header().Get("X-Terraform-Get"))
+		require.NoError(t, err)
+		assert.Equal(t, "tar.gz", location.Query().Get("archive"))
+		archiveURL := (&url.URL{Path: downloadURL}).ResolveReference(location).String()
 
-	t.Run("Upload_Wrapped_Rejected", func(t *testing.T) {
-		// Archives are stored verbatim, so a module wrapped in a top-level
-		// directory (a GitHub release tarball) has no module at the root
-		// and must be rejected rather than stored unusable.
-		wrapped := buildTFModuleArchive(t, map[string]string{
-			"mymod-1.0.0/main.tf":   `variable "x" { type = string }`,
-			"mymod-1.0.0/README.md": "# wrapped\n",
-		})
-		wbase := fmt.Sprintf("/api/packages/-/terraform/modules/%s/wrapped/aws", user.Name)
-		req := NewRequestWithBody(t, "PUT", wbase+"/1.0.0", bytes.NewReader(wrapped)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusBadRequest)
-	})
-
-	t.Run("Download_Archive", func(t *testing.T) {
-		// Compare against the exact bytes uploaded, not a freshly built
-		// archive, so the assertion tests the storage round-trip rather
-		// than gzip/tar reproducibility.
-		uploaded := uploadFixture(t)
-		req := NewRequest(t, "GET", base+"/"+version+"/archive").AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, uploaded, resp.Body.Bytes())
-	})
-
-	t.Run("Download_UnknownVersion", func(t *testing.T) {
-		uploadFixture(t)
-		req := NewRequest(t, "GET", base+"/9.9.9/download").AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusNotFound)
+		resp = MakeRequest(t, NewRequest(t, "GET", archiveURL), http.StatusOK)
+		assert.Equal(t, archive, resp.Body.Bytes())
+		MakeRequest(t, NewRequest(t, "GET", strings.Replace(archiveURL, "sig=", "sig=x", 1)), http.StatusUnauthorized)
+		MakeRequest(t, NewRequest(t, "GET", base+"/1.0.0/archive").AddBasicAuth(admin.Name), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", base+"/9.9.9/download").AddBasicAuth(admin.Name), http.StatusNotFound)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		// Upload directly (no Cleanup) since this subtest owns the
-		// deletion. Skipping uploadFixture also avoids a double-DELETE
-		// returning 404 in cleanup.
-		archive := canonicalModuleArchive(t)
-		req := NewRequestWithBody(t, "PUT", base+"/"+version, bytes.NewReader(archive)).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusCreated)
-
-		req = NewRequest(t, "DELETE", base+"/"+version).AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusNoContent)
-
-		req = NewRequest(t, "GET", base+"/"+version+"/download").AddBasicAuth(user.Name)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
-
-	t.Run("Anonymous_PublicOwner_ReadAllowed_WriteDenied", func(t *testing.T) {
-		// user2 has the default (public) visibility, so an anonymous
-		// caller may read but never write.
-		uploadFixture(t)
-
-		req := NewRequest(t, "GET", base+"/versions")
-		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Body.String(), version)
-
-		archive := canonicalModuleArchive(t)
-		req = NewRequestWithBody(t, "PUT", base+"/3.0.0", bytes.NewReader(archive))
-		MakeRequest(t, req, http.StatusUnauthorized)
-
-		req = NewRequest(t, "DELETE", base+"/"+version)
-		MakeRequest(t, req, http.StatusUnauthorized)
+		MakeRequest(t, NewRequest(t, "DELETE", base+"/1.0.0"), http.StatusUnauthorized)
+		MakeRequest(t, NewRequest(t, "DELETE", base+"/v1.0.0").AddBasicAuth(admin.Name), http.StatusNoContent)
+		MakeRequest(t, NewRequest(t, "GET", base+"/versions").AddBasicAuth(admin.Name), http.StatusNotFound)
 	})
 }

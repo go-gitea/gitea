@@ -1,140 +1,112 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package terraform_module implements the HashiCorp Module Registry
-// Protocol on top of Gitea's generic package storage.
-//
-// See https://developer.hashicorp.com/terraform/internals/module-registry-protocol
-//
-// Scope of v1:
-//   - Archives are stored and served verbatim; the module must sit at the
-//     archive root. The root module and its `modules/<name>` submodules
-//     are parsed for the package page; examples are not.
-//   - Only .tar.gz archives are accepted on upload.
-//   - Versions are normalized to canonical semver, so `v1.0.0` and
-//     `1.0.0` address the same version.
-//   - Module versions are immutable: re-uploading the same
-//     {namespace, name, provider, version} returns 409 Conflict.
-//   - There is no search, no module deprecation; delete is the only
-//     mutation other than upload.
 package terraform_module
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"time"
 
 	packages_model "gitea.dev/models/packages"
-	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
 	packages_module "gitea.dev/modules/packages"
 	tfmod "gitea.dev/modules/packages/terraform_module"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	"gitea.dev/services/context"
 	packages_service "gitea.dev/services/packages"
 )
 
-// archiveFilename is the canonical filename under which the .tar.gz is stored.
-const archiveFilename = "module.tar.gz"
+const (
+	archiveFilename    = "module.tar.gz"
+	archiveURLLifetime = 10 * time.Minute
+)
 
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
 	ctx.PlainText(status, message)
 }
 
-// packageName encodes the registry tuple `{name}/{provider}` into the
-// single package name used by the underlying generic package storage.
-// Slash is safe because Gitea stores the value verbatim and only
-// requires it to be unique per (owner, type).
-func packageName(name, provider string) string {
-	return fmt.Sprintf("%s/%s", name, provider)
+func packageName(ctx *context.Context) (string, error) {
+	name, provider := ctx.PathParam("name"), ctx.PathParam("provider")
+	if err := tfmod.ValidateNameAndProvider(name, provider); err != nil {
+		return "", err
+	}
+	return name + "/" + provider, nil
 }
 
-// parsePackagePath pulls and validates the {name} and {provider} path
-// parameters. Returns 400-friendly errors so handlers can fail fast.
-func parsePackagePath(ctx *context.Context) (string, string, error) {
-	name := ctx.PathParam("name")
-	provider := ctx.PathParam("provider")
-	if err := tfmod.ValidateName(name); err != nil {
-		return "", "", err
+func packageInfo(ctx *context.Context) (*packages_service.PackageInfo, error) {
+	name, err := packageName(ctx)
+	if err != nil {
+		return nil, err
 	}
-	if err := tfmod.ValidateProvider(provider); err != nil {
-		return "", "", err
+	version, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
+	if err != nil {
+		return nil, err
 	}
-	return name, provider, nil
+	return &packages_service.PackageInfo{
+		Owner:       ctx.Package.Owner,
+		PackageType: packages_model.TypeTerraformModule,
+		Name:        name,
+		Version:     version,
+	}, nil
 }
 
-// ListVersions implements GET :base/:username/:name/:provider/versions.
-// Response shape per protocol: a "modules" array whose first element
-// holds the "versions" array.
+func archiveSignature(pi *packages_service.PackageInfo, expires string) string {
+	mac := hmac.New(sha256.New, setting.GetGeneralTokenSigningSecret())
+	_, _ = fmt.Fprintf(mac, "terraform-module:%d:%s:%s:%s", pi.Owner.ID, pi.Name, pi.Version, expires)
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func HasValidArchiveSignature(ctx *context.Context) bool {
+	pi, err := packageInfo(ctx)
+	expires := ctx.FormString("expires")
+	expiresUnix, _ := strconv.ParseInt(expires, 10, 64)
+	return err == nil && time.Now().Unix() < expiresUnix && hmac.Equal([]byte(ctx.FormString("sig")), []byte(archiveSignature(pi, expires)))
+}
+
+func ServiceDiscovery(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, map[string]string{"modules.v1": setting.AppSubURL + "/api/packages/-/terraform/modules/"})
+}
+
 // https://developer.hashicorp.com/terraform/internals/module-registry-protocol#list-available-versions-for-a-specific-module
 func ListVersions(ctx *context.Context) {
-	name, provider, err := parsePackagePath(ctx)
+	name, err := packageName(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-
-	pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformModule, packageName(name, provider))
-	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		PackageID:  pkg.ID,
-		IsInternal: optional.Some(false),
-	})
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformModule, name)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
-	type versionEntry struct {
-		Version string `json:"version"`
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
+		return
 	}
-	type moduleEntry struct {
-		Versions []versionEntry `json:"versions"`
-	}
-	resp := struct {
-		Modules []moduleEntry `json:"modules"`
-	}{
-		Modules: []moduleEntry{{Versions: make([]versionEntry, 0, len(pvs))}},
-	}
+	versions := make([]map[string]string, 0, len(pvs))
 	for _, pv := range pvs {
-		resp.Modules[0].Versions = append(resp.Modules[0].Versions, versionEntry{Version: pv.Version})
+		versions = append(versions, map[string]string{"version": pv.Version})
 	}
-	ctx.JSON(http.StatusOK, resp)
+	ctx.JSON(http.StatusOK, map[string]any{"modules": []any{map[string]any{"versions": versions}}})
 }
 
-// DownloadRedirect implements GET :base/:username/:name/:provider/:version/download.
-// Per protocol it returns 204 with an X-Terraform-Get header pointing at
-// the archive, kept on the same authenticated path so Terraform reuses
-// the credentials from the initial request.
 // https://developer.hashicorp.com/terraform/internals/module-registry-protocol#download-source-code-for-a-specific-module-version
 func DownloadRedirect(ctx *context.Context) {
-	name, provider, err := parsePackagePath(ctx)
+	pi, err := packageInfo(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
-	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	// Confirm the version exists (404 otherwise). The archive endpoint
-	// re-resolves the file, so the version record itself is not needed here.
-	if _, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformModule, packageName(name, provider), v); err != nil {
+	if _, err := packages_model.GetVersionByNameAndVersion(ctx, pi.Owner.ID, pi.PackageType, pi.Name, pi.Version); err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
@@ -142,43 +114,19 @@ func DownloadRedirect(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
-	// The archive is served exactly as uploaded. The URL has no file
-	// extension, hence the ?archive=tar.gz hint so go-getter decompresses it.
-	archiveURL := fmt.Sprintf(
-		"%sapi/packages/-/terraform/modules/%s/%s/%s/%s/archive?archive=tar.gz",
-		setting.AppURL,
-		ctx.Package.Owner.Name, name, provider, v,
-	)
-	ctx.Resp.Header().Set("X-Terraform-Get", archiveURL)
+	// signed because Terraform sends no credentials when fetching it, "archive" tells go-getter the format of the extensionless URL
+	expires := strconv.FormatInt(time.Now().Add(archiveURLLifetime).Unix(), 10)
+	ctx.Resp.Header().Set("X-Terraform-Get", "./archive?archive=tar.gz&expires="+expires+"&sig="+archiveSignature(pi, expires))
 	ctx.Status(http.StatusNoContent)
 }
 
-// DownloadArchive streams the stored .tar.gz blob.
 func DownloadArchive(ctx *context.Context) {
-	name, provider, err := parsePackagePath(ctx)
+	pi, err := packageInfo(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
-	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
-		ctx,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeTerraformModule,
-			Name:        packageName(name, provider),
-			Version:     v,
-		},
-		&packages_service.PackageFileInfo{Filename: archiveFilename},
-		ctx.Req.Method,
-	)
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(ctx, pi, &packages_service.PackageFileInfo{Filename: archiveFilename}, ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -190,19 +138,8 @@ func DownloadArchive(ctx *context.Context) {
 	helper.ServePackageFile(ctx, s, u, pf)
 }
 
-// UploadModule implements PUT of a .tar.gz body for a new version.
-//
-// The endpoint is *not* part of the HashiCorp protocol — every private
-// registry invents its own. We accept the archive as the raw request
-// body to match how cargo and generic packages publish.
 func UploadModule(ctx *context.Context) {
-	name, provider, err := parsePackagePath(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
-	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
+	pi, err := packageInfo(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -219,23 +156,16 @@ func UploadModule(ctx *context.Context) {
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		log.Error("terraform_module: hashed buffer: %v", err)
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
 
-	module, err := tfmod.ParseModuleArchive(buf, setting.Packages.LimitSizeTerraformModule)
+	metadata, err := tfmod.ParseModuleArchive(buf)
 	if err != nil {
-		switch {
-		case errors.Is(err, tfmod.ErrArchiveTooLarge):
-			apiError(ctx, http.StatusRequestEntityTooLarge, err)
-		default:
-			apiError(ctx, http.StatusBadRequest, err)
-		}
+		apiError(ctx, util.Iif(errors.Is(err, tfmod.ErrArchiveTooLarge), http.StatusRequestEntityTooLarge, http.StatusBadRequest), err)
 		return
 	}
-
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -244,15 +174,10 @@ func UploadModule(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeTerraformModule,
-				Name:        packageName(name, provider),
-				Version:     v,
-			},
+			PackageInfo:      *pi,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
-			Metadata:         module.Metadata,
+			Metadata:         metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{Filename: archiveFilename},
@@ -263,15 +188,11 @@ func UploadModule(ctx *context.Context) {
 	)
 	if err != nil {
 		switch {
-		case errors.Is(err, packages_model.ErrDuplicatePackageVersion),
-			errors.Is(err, packages_model.ErrDuplicatePackageFile):
+		case errors.Is(err, packages_model.ErrDuplicatePackageVersion):
 			apiError(ctx, http.StatusConflict, err)
-		case errors.Is(err, packages_service.ErrQuotaTotalCount),
-			errors.Is(err, packages_service.ErrQuotaTypeSize),
-			errors.Is(err, packages_service.ErrQuotaTotalSize):
+		case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
-			log.Error("terraform_module: create: %v", err)
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
@@ -280,23 +201,13 @@ func UploadModule(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
-// DeleteModule removes a specific module version. This is the only
-// mutation other than upload in v1.
 func DeleteModule(ctx *context.Context) {
-	name, provider, err := parsePackagePath(ctx)
+	pi, err := packageInfo(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
-	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformModule, packageName(name, provider), v)
-	if err != nil {
+	if err := packages_service.RemovePackageVersionByNameAndVersion(ctx, ctx.Doer, pi); err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
@@ -304,23 +215,5 @@ func DeleteModule(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-
-	if err := packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
 	ctx.Status(http.StatusNoContent)
-}
-
-// ServiceDiscovery returns the host-level Terraform service-discovery
-// document. Per the spec only the `modules.v1` capability is advertised;
-// other capabilities (login.v1, providers.v1, ...) are unimplemented
-// and therefore omitted. The path is prefixed with AppSubURL so it stays
-// correct when Gitea is deployed under a sub-path.
-func ServiceDiscovery(ctx *context.Context) {
-	resp := map[string]string{
-		"modules.v1": setting.AppSubURL + "/api/packages/-/terraform/modules/",
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(ctx.Resp).Encode(resp)
 }
