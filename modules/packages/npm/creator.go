@@ -121,6 +121,7 @@ type PackageMetadataVersion struct {
 	Engines              map[string]string   `json:"engines,omitempty"`
 	CPU                  []string            `json:"cpu,omitempty"`
 	OS                   []string            `json:"os,omitempty"`
+	Libc                 []string            `json:"libc,omitempty"`
 	Directories          map[string]string   `json:"directories,omitempty"`
 	Funding              any                 `json:"funding,omitempty"`
 	AcceptDependencies   map[string]string   `json:"acceptDependencies,omitempty"`
@@ -129,12 +130,9 @@ type PackageMetadataVersion struct {
 
 // PackageDistribution https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
 type PackageDistribution struct {
-	Integrity    string `json:"integrity"`
-	Shasum       string `json:"shasum"`
-	Tarball      string `json:"tarball"`
-	FileCount    int    `json:"fileCount,omitempty"`
-	UnpackedSize int    `json:"unpackedSize,omitempty"`
-	NpmSignature string `json:"npm-signature,omitempty"`
+	Integrity string `json:"integrity"`
+	Shasum    string `json:"shasum"`
+	Tarball   string `json:"tarball"`
 }
 
 type PackageSearch struct {
@@ -226,7 +224,7 @@ func (r *Repository) UnmarshalJSON(data []byte) error {
 }
 
 // Bin maps command names to executable files. npm also allows a single string,
-// in which case the command is named after the package (resolved in ParsePackage).
+// in which case the command is named after the package (resolved in parseUploadPackage).
 type Bin map[string]string
 
 // UnmarshalJSON is needed because the bin field can be a string or an object.
@@ -264,7 +262,7 @@ type packageUpload struct {
 // is non-nil on success; a body without `_attachments` is a deprecate request,
 // otherwise it is a "publish".
 func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
-	body, err := io.ReadAll(io.LimitReader(r, 10*1024*1024))
+	body, err := io.ReadAll(r)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -278,16 +276,6 @@ func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
 	}
 	p, err := parseUploadPackage(&upload)
 	return p, nil, err
-}
-
-// ParsePackage parses a npm publish PUT body. Bodies without `_attachments`
-// surface as ErrInvalidAttachment once name/version validation has passed.
-func ParsePackage(r io.Reader) (*Package, error) {
-	var upload packageUpload
-	if err := json.NewDecoder(r).Decode(&upload); err != nil {
-		return nil, err
-	}
-	return parseUploadPackage(&upload)
 }
 
 // parseUploadPackage builds a Package from a decoded publish body.
@@ -343,6 +331,7 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 				Engines:                 meta.Engines,
 				CPU:                     meta.CPU,
 				OS:                      meta.OS,
+				Libc:                    meta.Libc,
 				Directories:             meta.Directories,
 				Funding:                 meta.Funding,
 				AcceptDependencies:      meta.AcceptDependencies,
@@ -356,12 +345,7 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 
 		p.Filename = strings.ToLower(fmt.Sprintf("%s-%s.tgz", name, p.Version))
 
-		attachment := func() *PackageAttachment {
-			for _, a := range upload.Attachments {
-				return a
-			}
-			return nil
-		}()
+		attachment := upload.Attachments[meta.Name+"-"+meta.Version+".tgz"] // not the sigstore bundle of `npm publish --provenance`
 		if attachment == nil || len(attachment.Data) == 0 {
 			return nil, ErrInvalidAttachment
 		}
@@ -393,8 +377,6 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 			return nil, ErrInvalidIntegrity
 		}
 
-		// Derive _hasShrinkwrap and hasInstallScript from the tarball; the
-		// packument can lie about either.
 		p.Metadata.HasShrinkwrap, p.Metadata.HasInstallScript = inspectTarball(data)
 
 		return p, nil
@@ -410,11 +392,7 @@ const maxNpmTarballScanBytes = int64(32 * 1024 * 1024) // 32 MiB
 // maxNpmPackageJSONBytes caps the package.json bytes decoded from the tarball.
 const maxNpmPackageJSONBytes = int64(1 * 1024 * 1024) // 1 MiB
 
-// inspectTarball reports hasShrinkwrap (presence of package/npm-shrinkwrap.json)
-// and hasInstallScript (package/package.json declares any of preinstall,
-// install, postinstall). Both must be derived server-side because the client
-// can lie in the packument. Any read/decode error yields (false, false) so a
-// malformed archive does not block publishing.
+// inspectTarball trusts the tarball over the client's packument, read errors yield zero values to not block publishing
 func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 	gr, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -422,11 +400,16 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 	}
 	defer gr.Close()
 
+	var hasGypFile bool
+	var pkg struct {
+		Scripts map[string]string `json:"scripts"`
+		Gypfile any               `json:"gypfile"`
+	}
 	tr := tar.NewReader(io.LimitReader(gr, maxNpmTarballScanBytes))
 	for {
 		hdr, err := tr.Next()
 		if err != nil {
-			return hasShrinkwrap, hasInstallScript
+			break
 		}
 		// npm pack puts files under a single root directory (usually "package/").
 		name := strings.TrimPrefix(hdr.Name, "./")
@@ -436,30 +419,14 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 		switch {
 		case strings.HasSuffix(name, "/npm-shrinkwrap.json"):
 			hasShrinkwrap = true
+		case strings.HasSuffix(name, ".gyp"):
+			hasGypFile = true
 		case strings.HasSuffix(name, "/package.json"):
-			hasInstallScript = tarballDeclaresInstallScript(tr)
-		}
-		if hasShrinkwrap && hasInstallScript {
-			return hasShrinkwrap, hasInstallScript
+			_ = json.NewDecoder(io.LimitReader(tr, maxNpmPackageJSONBytes)).Decode(&pkg)
 		}
 	}
-}
-
-// tarballDeclaresInstallScript reports whether a package.json declares any
-// of preinstall, install, postinstall.
-func tarballDeclaresInstallScript(r io.Reader) bool {
-	var pkg struct {
-		Scripts map[string]string `json:"scripts"`
-	}
-	if err := json.NewDecoder(io.LimitReader(r, maxNpmPackageJSONBytes)).Decode(&pkg); err != nil {
-		return false
-	}
-	for _, name := range []string{"preinstall", "install", "postinstall"} {
-		if strings.TrimSpace(pkg.Scripts[name]) != "" {
-			return true
-		}
-	}
-	return false
+	// npm publish adds "install": "node-gyp rebuild" for a root *.gyp file to the manifest, but not to the tarball
+	return hasShrinkwrap, strings.TrimSpace(pkg.Scripts["preinstall"]+pkg.Scripts["install"]+pkg.Scripts["postinstall"]) != "" || hasGypFile && pkg.Gypfile != false
 }
 
 func validateName(name string) bool {

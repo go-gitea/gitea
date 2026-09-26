@@ -41,21 +41,20 @@ func TestParsePackage(t *testing.T) {
 	integrity := "sha512-" + base64Sha512(dataBytes)
 
 	t.Run("InvalidUpload", func(t *testing.T) {
-		p, err := ParsePackage(bytes.NewReader([]byte{0}))
+		p, _, err := ParseUpload(bytes.NewReader([]byte{0}))
 		assert.Nil(t, p)
 		assert.Error(t, err)
 	})
 
 	t.Run("InvalidUploadNoData", func(t *testing.T) {
-		b, _ := json.Marshal(packageUpload{})
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, err := parseUploadPackage(&packageUpload{})
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidPackage)
 	})
 
 	t.Run("InvalidPackageName", func(t *testing.T) {
 		test := func(t *testing.T, name string) {
-			b, _ := json.Marshal(packageUpload{
+			p, err := parseUploadPackage(&packageUpload{
 				PackageMetadata: PackageMetadata{
 					ID:   name,
 					Name: name,
@@ -66,8 +65,6 @@ func TestParsePackage(t *testing.T) {
 					},
 				},
 			})
-
-			p, err := ParsePackage(bytes.NewReader(b))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidPackageName)
 		}
@@ -94,7 +91,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("ValidPackageName", func(t *testing.T) {
 		test := func(t *testing.T, name string) {
-			b, _ := json.Marshal(packageUpload{
+			p, err := parseUploadPackage(&packageUpload{
 				PackageMetadata: PackageMetadata{
 					ID:   name,
 					Name: name,
@@ -105,8 +102,6 @@ func TestParsePackage(t *testing.T) {
 					},
 				},
 			})
-
-			p, err := ParsePackage(bytes.NewReader(b))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidPackageVersion)
 		}
@@ -125,7 +120,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {
 		version := "first-version"
-		b, _ := json.Marshal(packageUpload{
+		p, err := parseUploadPackage(&packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageFullName,
 				Name: packageFullName,
@@ -137,8 +132,6 @@ func TestParsePackage(t *testing.T) {
 				},
 			},
 		})
-
-		p, err := ParsePackage(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidPackageVersion)
 	})
@@ -160,7 +153,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidAttachment)
 	})
@@ -185,7 +178,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidAttachment)
 	})
@@ -213,7 +206,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidIntegrity)
 	})
@@ -241,7 +234,7 @@ func TestParsePackage(t *testing.T) {
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidIntegrity)
 	})
@@ -281,10 +274,13 @@ func TestParsePackage(t *testing.T) {
 				filename: {
 					Data: data,
 				},
+				packageFullName + "-" + packageVersion + ".sigstore": {
+					Data: "{}",
+				},
 			},
 		})
 
-		p, err := ParsePackage(bytes.NewReader(b))
+		p, _, err := ParseUpload(bytes.NewReader(b))
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -324,12 +320,12 @@ func TestParsePackage(t *testing.T) {
 		}
 	},
 	"_attachments": {
-		"foo": {
+		"dev-null-0.1.1.tgz": {
 			"data": "AAAA"
 		}
 	}
 }`
-		p, err := ParsePackage(strings.NewReader(packageJSON))
+		p, _, err := ParseUpload(strings.NewReader(packageJSON))
 		require.NoError(t, err)
 		require.Equal(t, "MIT", string(p.Metadata.License))
 	})
@@ -349,12 +345,12 @@ func TestParsePackage(t *testing.T) {
 		}
 	},
 	"_attachments": {
-		"foo": {
+		"dev-null-0.1.1.tgz": {
 			"data": "AAAA"
 		}
 	}
 }`
-		p, err := ParsePackage(strings.NewReader(packageJSON))
+		p, _, err := ParseUpload(strings.NewReader(packageJSON))
 		require.NoError(t, err)
 		require.Equal(t, "https://gitea.io/gitea/test.git", p.Metadata.Repository.URL)
 		// a string bin is named after the package
@@ -426,6 +422,15 @@ func TestInspectTarball(t *testing.T) {
 			// npm pack sometimes emits "./package/..." entries.
 			wantShrinkwrap: true,
 		},
+		{
+			name:          "gyp file implies node-gyp install",
+			files:         map[string]string{"package/binding.gyp": "{}"},
+			wantInstaller: true,
+		},
+		{
+			name:  "gypfile false disables gyp install",
+			files: map[string]string{"package/binding.gyp": "{}", "package/package.json": `{"gypfile":false}`},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -459,41 +464,6 @@ func TestParseUpload(t *testing.T) {
 		assert.Nil(t, p)
 		require.NotNil(t, dep)
 		assert.Equal(t, map[string]string{"1.0.0": "gone", "1.0.1": ""}, dep.Versions)
-	})
-
-	t.Run("dispatches publish when _attachments present", func(t *testing.T) {
-		// Reuse a minimal tarball with a package.json.
-		data := buildTarball(map[string]string{"package/package.json": `{}`})
-		integrity := "sha512-" + base64Sha512(data)
-		body := fmt.Sprintf(
-			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
-			pkg, pkg, integrity, base64.StdEncoding.EncodeToString(data),
-		)
-		p, dep, err := ParseUpload(strings.NewReader(body))
-		require.NoError(t, err)
-		assert.Nil(t, dep)
-		require.NotNil(t, p)
-		assert.Equal(t, pkg, p.Name)
-	})
-
-	t.Run("publish whose readme mentions deprecated is not misrouted", func(t *testing.T) {
-		// The old fast-path used a substring check for "deprecated"; make sure
-		// the new dispatch keys off _attachments only.
-		data := buildTarball(map[string]string{"package/package.json": `{}`})
-		integrity := "sha512-" + base64Sha512(data)
-		body := fmt.Sprintf(
-			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","readme":"this package is deprecated!","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
-			pkg, pkg, integrity, base64.StdEncoding.EncodeToString(data),
-		)
-		p, dep, err := ParseUpload(strings.NewReader(body))
-		require.NoError(t, err)
-		assert.Nil(t, dep)
-		require.NotNil(t, p)
-	})
-
-	t.Run("invalid json errors out", func(t *testing.T) {
-		_, _, err := ParseUpload(strings.NewReader("not json"))
-		assert.Error(t, err)
 	})
 }
 

@@ -412,11 +412,9 @@ func CommonRoutes() *web.Router {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Get("/{version}", npm.PackageVersionMetadata)
-				r.Group("/-/{version}/{filename}", func() {
-					r.Get("", npm.DownloadPackageFile)
-					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				})
+				r.Get("/-/{version}/{filename}", npm.DownloadPackageFileByName) // former tarball URL, still in lockfiles
 				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
+				r.Delete("/-/{filename}/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
@@ -437,6 +435,8 @@ func CommonRoutes() *web.Router {
 			r.Group("/-/v1/search", func() {
 				r.Get("", npm.PackageSearch)
 			})
+			r.Get("/-/ping", npm.Ping)
+			r.Get("/-/whoami", npm.Whoami)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pub", func() {
 			r.Group("/api/packages", func() {
