@@ -1,4 +1,4 @@
-{{template "org/settings/layout_head" (dict "pageClass" "organization settings actions")}}
+{{template "org/settings/layout_head" (dict "pageClass" "organization settings actions" "containerClass" "fluid padded")}}
 	<div class="org-setting-content">
 	{{if eq .PageType "runners"}}
 		{{template "shared/actions/runner_list" .}}

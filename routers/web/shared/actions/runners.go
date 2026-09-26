@@ -153,7 +153,12 @@ func Runners(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = opts.Filter
-	ctx.Data["Runners"] = runners
+	rows, err := runnerListRows(ctx, runners, opts.OwnerID, opts.RepoID)
+	if err != nil {
+		ctx.ServerError("runnerListRows", err)
+		return
+	}
+	ctx.Data["Runners"] = rows
 	ctx.Data["Total"] = count
 	ctx.Data["RegistrationToken"] = token.Token
 	ctx.Data["RunnerOwnerID"] = opts.OwnerID
@@ -166,6 +171,69 @@ func Runners(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
+}
+
+type runnerListRow struct {
+	*actions_model.ActionRunner
+	RunningTasks  []*actions_model.ActionTask
+	WaitingQueues []actions_model.RunnerRepoQueue // only repositories with Waiting > 0
+}
+
+func runnerListRows(ctx *context.Context, runners []*actions_model.ActionRunner, ownerID, repoID int64) ([]runnerListRow, error) {
+	rows := make([]runnerListRow, len(runners))
+	if len(runners) == 0 {
+		return rows, nil
+	}
+	ids := make([]int64, len(runners))
+	for i, runner := range runners {
+		rows[i].ActionRunner = runner
+		ids[i] = runner.ID
+	}
+	byRunner, err := actions_model.FindRunningTasksByRunnerIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	var running actions_model.TaskList
+	for id, tasks := range byRunner {
+		visible := tasks[:0]
+		for _, task := range tasks {
+			// Repository settings also lists org and global runners. Their current
+			// job may belong to a repository this page's viewer cannot read.
+			if taskInPageScope(task, ownerID, repoID) {
+				visible = append(visible, task)
+			}
+		}
+		byRunner[id] = visible
+		running = append(running, visible...)
+	}
+	if len(running) > 0 {
+		if err := running.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
+	}
+	for i := range rows {
+		rows[i].RunningTasks = byRunner[rows[i].ID]
+		queues, err := actions_model.ListRunnerRepoQueues(ctx, rows[i].ActionRunner)
+		if err != nil {
+			return nil, err
+		}
+		for _, q := range queues {
+			if q.Waiting > 0 {
+				rows[i].WaitingQueues = append(rows[i].WaitingQueues, q)
+			}
+		}
+	}
+	return rows, nil
+}
+
+func taskInPageScope(task *actions_model.ActionTask, ownerID, repoID int64) bool {
+	if repoID > 0 {
+		return task.RepoID == repoID
+	}
+	if ownerID > 0 {
+		return task.OwnerID == ownerID
+	}
+	return true
 }
 
 // RunnersEdit renders runner edit page for repository level
@@ -200,6 +268,31 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Runner"] = runner
+
+	runningByRunner, err := actions_model.FindRunningTasksByRunnerIDs(ctx, []int64{runner.ID})
+	if err != nil {
+		ctx.ServerError("FindRunningTasksByRunnerIDs", err)
+		return
+	}
+	runningTasks := runningByRunner[runner.ID]
+	if len(runningTasks) > 0 {
+		if err = actions_model.TaskList(runningTasks).LoadAttributes(ctx); err != nil {
+			ctx.ServerError("RunningTasksLoadAttributes", err)
+			return
+		}
+	}
+	repoQueues, err := actions_model.ListRunnerRepoQueues(ctx, runner)
+	if err != nil {
+		ctx.ServerError("ListRunnerRepoQueues", err)
+		return
+	}
+	repoQueueEmpty := "actions.runners.repo_queue.none"
+	if runner.RepoID == 0 && runner.OwnerID == 0 {
+		repoQueueEmpty = "actions.runners.repo_queue.none_global"
+	}
+	ctx.Data["RunningTasks"] = runningTasks
+	ctx.Data["RepoQueues"] = repoQueues
+	ctx.Data["RepoQueueEmpty"] = repoQueueEmpty
 
 	opts := actions_model.FindTaskOptions{
 		ListOptions: db.ListOptions{
