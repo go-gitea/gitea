@@ -1097,7 +1097,7 @@ func MergePullRequest(ctx *context.Context) {
 			switch {
 			case pull_service.IsErrInvalidMergeStyle(err):
 				ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
-			case strings.Contains(err.Error(), "Wrong commit ID"):
+			case errors.Is(err, util.ErrInvalidArgument):
 				ctx.JSONError(ctx.Tr("repo.pulls.wrong_commit_id"))
 			default:
 				ctx.ServerError("MergedManually", err)
@@ -1131,7 +1131,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	if form.MergeWhenChecksSucceed {
 		// delete all scheduled auto merges
-		_ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
+		_, _ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
 		// schedule auto merge
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
@@ -1145,7 +1145,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {

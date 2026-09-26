@@ -364,7 +364,6 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 
 		PullRequestID: prID,
-		PushTrigger:   repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
 
 		UserID:          pusherID,
 		UserName:        os.Getenv(repo_module.EnvPusherName),

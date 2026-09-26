@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 )
 
@@ -415,7 +416,7 @@ func (repo *Repository) GetCommitsFromIDs(ctx context.Context, commitIDs []strin
 }
 
 // IsCommitInBranch check if the commit is on the branch
-func (repo *Repository) IsCommitInBranch(ctx context.Context, commitID, branch string) (r bool, err error) {
+func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commitID, branch string) (r bool, err error) {
 	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch).
 		WithRepo(repo).

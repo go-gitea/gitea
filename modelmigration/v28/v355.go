@@ -11,18 +11,18 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddDeletionAllowlistToBranchProtection(_ context.Context, x base.EngineMigration) error {
-	type ProtectedBranch struct {
-		CanDelete                   bool    `xorm:"NOT NULL DEFAULT false"`
-		EnableDeletionAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
-		DeletionAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistDeployKeys bool    `xorm:"NOT NULL DEFAULT false"`
-	}
+type pullAutoMerge struct {
+	MergedCommitID string `xorm:"VARCHAR(64)"`
+}
 
+func (pullAutoMerge) TableName() string {
+	return "pull_auto_merge"
+}
+
+func AddAutoMergeMergedCommitID(_ context.Context, x base.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: true,
-		IgnoreIndices:    true,
-	}, new(ProtectedBranch))
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(pullAutoMerge))
 	return err
 }

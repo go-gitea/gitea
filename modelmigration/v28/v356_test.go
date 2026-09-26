@@ -12,26 +12,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type protectedBranchBeforeV355 struct {
+type protectedBranchBeforeV356 struct {
 	ID         int64  `xorm:"pk autoincr"`
 	RepoID     int64  `xorm:"UNIQUE(s)"`
 	BranchName string `xorm:"UNIQUE(s)"`
 }
 
-func (protectedBranchBeforeV355) TableName() string { return "protected_branch" }
+func (protectedBranchBeforeV356) TableName() string { return "protected_branch" }
 
 func TestAddDeletionAllowlistToBranchProtection(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(protectedBranchBeforeV355))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(protectedBranchBeforeV356))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	_, err := x.Insert(&protectedBranchBeforeV355{RepoID: 1, BranchName: "release/*"})
+	_, err := x.Insert(&protectedBranchBeforeV356{RepoID: 1, BranchName: "release/*"})
 	require.NoError(t, err)
 	require.NoError(t, AddDeletionAllowlistToBranchProtection(t.Context(), x))
 
-	type protectedBranchAfterV355 struct {
+	type protectedBranchAfterV356 struct {
 		CanDelete                   bool
 		EnableDeletionAllowlist     bool
 		DeletionAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
@@ -39,7 +39,7 @@ func TestAddDeletionAllowlistToBranchProtection(t *testing.T) {
 		DeletionAllowlistDeployKeys bool
 	}
 
-	var branch protectedBranchAfterV355
+	var branch protectedBranchAfterV356
 	has, err := x.Table("protected_branch").Where("repo_id = ? AND branch_name = ?", 1, "release/*").Get(&branch)
 	require.NoError(t, err)
 	require.True(t, has)
