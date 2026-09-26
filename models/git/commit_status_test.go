@@ -290,8 +290,8 @@ func TestGetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
 
 	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
-	var commitIDs []string
-	for i := range 60 { // pad so that sha1 lands in a later query batch
+	commitIDs := []string{sha1} // repeated in a later batch, must not duplicate its statuses
+	for i := range 60 {         // pad so that sha1 lands in a later query batch
 		commitIDs = append(commitIDs, fmt.Sprintf("%040d", i))
 	}
 	commitIDs = append(commitIDs, sha1)

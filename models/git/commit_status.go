@@ -381,6 +381,7 @@ func getLatestCommitStatusForRepoSHAs(ctx context.Context, repoID int64, shas []
 		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
 	}
 
+	shas = slices.Compact(slices.Sorted(slices.Values(shas))) // a SHA repeated across batches would return its statuses twice
 	statuses := make([]*CommitStatus, 0, len(shas))
 	for batch := range slices.Chunk(shas, commitStatusSHABatchSize) {
 		// most listed commits have no status at all, and the sha index answers this narrowing
