@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -44,7 +45,7 @@ import (
 
 const (
 	tplCompare     templates.TplName = "repo/diff/compare"
-	tplBlobExcerpt templates.TplName = "repo/diff/blob_excerpt"
+	tplDiffSection templates.TplName = "repo/diff/section"
 	tplDiffBox     templates.TplName = "repo/diff/box"
 )
 
@@ -435,6 +436,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
+	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpandable
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
@@ -697,27 +699,47 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 	}
 }
 
+// maxExcerptGaps rejects absurd input rather than bounding the work: the gaps of a file are read in
+// one pass over it and cannot overlap, so naming more of them costs little. A file heavily rewritten
+// in many places still has far fewer hunks than this.
+const maxExcerptGaps = 1000
+
+// deserializeExcerptGaps reads the gaps a request names, in the order they appear in the file
+func deserializeExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
+	if len(gapSpecs) == 0 {
+		return nil, errors.New("no gap requested")
+	}
+	if len(gapSpecs) > maxExcerptGaps {
+		return nil, errors.New("too many gaps requested")
+	}
+	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapSpecs))
+	for _, spec := range gapSpecs {
+		opts, err := gitdiff.DeserializeGapNumbers(spec)
+		if err != nil {
+			return nil, err
+		}
+		opts.Language = language
+		gapOpts = append(gapOpts, opts)
+	}
+	// expanded in one pass over the file, so the gaps have to be in the order they appear in it
+	slices.SortFunc(gapOpts, func(a, b gitdiff.BlobExcerptOptions) int { return a.LastRight - b.LastRight })
+	return gapOpts, nil
+}
+
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
-	opts := gitdiff.BlobExcerptOptions{
-		LastLeft:      ctx.FormInt("last_left"),
-		LastRight:     ctx.FormInt("last_right"),
-		LeftIndex:     ctx.FormInt("left"),
-		RightIndex:    ctx.FormInt("right"),
-		LeftHunkSize:  ctx.FormInt("left_hunk_size"),
-		RightHunkSize: ctx.FormInt("right_hunk_size"),
-		Direction:     ctx.FormString("direction"),
-		Language:      ctx.FormString("filelang"),
+	gapOpts, err := deserializeExcerptGaps(ctx.FormStrings("gap"), ctx.FormString("filelang"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(gapOpts) == 1 {
+		// one gap may be expanded a chunk at a time, from whichever end its arrow points at
+		gapOpts[0].Direction = ctx.FormString("direction")
 	}
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
-
-	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
-		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
-		DiffStyle:     GetDiffViewStyle(ctx),
-		AfterCommitID: commitID,
-	}
 
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
@@ -726,7 +748,6 @@ func ExcerptBlob(ctx *context.Context) {
 			ctx.ServerError("OpenRepository", err)
 			return
 		}
-		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
 
 	commit, err := gitRepo.GetCommit(ctx, commitID)
@@ -746,20 +767,21 @@ func ExcerptBlob(ctx *context.Context) {
 	}
 	defer reader.Close()
 
-	section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
+	sections, err := gitdiff.BuildBlobExcerptDiffSections(filePath, reader, gapOpts)
 	if err != nil {
-		ctx.ServerError("BuildBlobExcerptDiffSection", err)
+		ctx.ServerError("BuildBlobExcerptDiffSections", err)
 		return
 	}
+	section := sections[0]
 
-	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
-	if diffBlobExcerptData.PullIssueIndex > 0 {
+	pullIssueIndex := ctx.FormInt64("pull_issue_index")
+	if pullIssueIndex > 0 {
 		if !ctx.Repo.Permission.CanRead(unit.TypePullRequests) {
 			ctx.NotFound(nil)
 			return
 		}
 
-		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, pullIssueIndex)
 		if err != nil {
 			log.Error("GetIssueByIndex error: %v", err)
 		} else if issue.IsPull {
@@ -770,7 +792,7 @@ func ExcerptBlob(ctx *context.Context) {
 			}
 			// and "diff/comment_form.tmpl" (reply comment) needs them
 			ctx.Data["PageIsPullFiles"] = true
-			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+			ctx.Data["AfterCommitID"] = commitID
 
 			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
 			if err != nil {
@@ -784,9 +806,14 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["section"] = section
-	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
-	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
+	// render through the same section templates as the diff itself, so an excerpt row and a diff row
+	// are built by one piece of markup
+	ctx.Data["file"] = &gitdiff.DiffFile{
+		Name:     filePath,
+		NameHash: git.HashFilePathForWebUI(filePath),
+		Sections: sections,
+	}
+	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpanded
 
-	ctx.HTML(http.StatusOK, tplBlobExcerpt)
+	ctx.HTML(http.StatusOK, tplDiffSection)
 }

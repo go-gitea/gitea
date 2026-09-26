@@ -968,115 +968,11 @@ func TestCalculateHiddenCommentIDsForLine(t *testing.T) {
 	}
 }
 
-func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
-	tests := []struct {
-		name             string
-		line             *DiffLine
-		fileNameHash     string
-		data             *DiffBlobExcerptData
-		expectContains   []string
-		expectNotContain []string
-	}{
-		{
-			name: "expand up button with hidden comments",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     0,
-					RightIdx:         26,
-					LeftIdx:          26,
-					LastLeftIdx:      0,
-					LeftHunkSize:     0,
-					RightHunkSize:    0,
-					HiddenCommentIDs: []int64{100},
-				},
-			},
-			fileNameHash: "abc123",
-			data: &DiffBlobExcerptData{
-				BaseLink:      "/repo/blob_excerpt",
-				AfterCommitID: "commit123",
-				DiffStyle:     "unified",
-			},
-			expectContains: []string{
-				"octicon-fold-up",
-				"direction=up",
-				"code-comment-more",
-				"1 hidden comment(s)",
-			},
-		},
-		{
-			name: "expand up and down buttons with pull request",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     10,
-					RightIdx:         50,
-					LeftIdx:          10,
-					LastLeftIdx:      5,
-					LeftHunkSize:     5,
-					RightHunkSize:    5,
-					HiddenCommentIDs: []int64{200, 201},
-				},
-			},
-			fileNameHash: "def456",
-			data: &DiffBlobExcerptData{
-				BaseLink:       "/repo/blob_excerpt",
-				AfterCommitID:  "commit456",
-				DiffStyle:      "split",
-				PullIssueIndex: 42,
-			},
-			expectContains: []string{
-				"octicon-fold-down",
-				"octicon-fold-up",
-				"direction=down",
-				"direction=up",
-				`data-hidden-comment-ids=",200,201,"`, // use leading and trailing commas to ensure exact match by CSS selector `attr*=",id,"`
-				"pull_issue_index=42",
-				"2 hidden comment(s)",
-			},
-		},
-		{
-			name: "no hidden comments",
-			line: &DiffLine{
-				Type: DiffLineSection,
-				SectionInfo: &DiffLineSectionInfo{
-					LastRightIdx:     10,
-					RightIdx:         20,
-					LeftIdx:          10,
-					LastLeftIdx:      5,
-					LeftHunkSize:     5,
-					RightHunkSize:    5,
-					HiddenCommentIDs: nil,
-				},
-			},
-			fileNameHash: "ghi789",
-			data: &DiffBlobExcerptData{
-				BaseLink:      "/repo/blob_excerpt",
-				AfterCommitID: "commit789",
-			},
-			expectContains: []string{
-				"code-expander-button",
-			},
-			expectNotContain: []string{
-				"code-comment-more",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data)
-			resultStr := string(result)
-
-			for _, expected := range tt.expectContains {
-				assert.Contains(t, resultStr, expected, "Expected to contain: %s", expected)
-			}
-
-			for _, notExpected := range tt.expectNotContain {
-				assert.NotContains(t, resultStr, notExpected, "Expected NOT to contain: %s", notExpected)
-			}
-		})
-	}
+func TestDiffLineSectionInfo_HiddenCommentIDsCSV(t *testing.T) {
+	// the leading and trailing commas the template adds let a CSS "attr*=,id," match find one exactly
+	info := DiffLineSectionInfo{HiddenCommentIDs: []int64{200, 201}}
+	assert.Equal(t, "200,201", info.HiddenCommentIDsCSV())
+	assert.Empty(t, (&DiffLineSectionInfo{}).HiddenCommentIDsCSV())
 }
 
 func TestDiffLine_GetExpandDirection(t *testing.T) {
@@ -1414,4 +1310,17 @@ func TestGetDiffShortStatWithOptions(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, &DiffShortStat{NumFiles: 1, TotalAddition: 3, TotalDeletion: 2}, stat)
 	})
+}
+
+func TestDiffFile_addTailSectionSharesHighlightState(t *testing.T) {
+	// every section of a file shares the file's highlight state, so that lines added to one later
+	// can be rendered like any other
+	diffFile := &DiffFile{Name: "a.py", Sections: []*DiffSection{{Lines: []*DiffLine{{LeftIdx: 1, RightIdx: 1}}}}}
+	diffFile.addTailSection(DiffRenderDetail{leftLineCount: 10, rightLineCount: 10})
+
+	tailSection := diffFile.Sections[len(diffFile.Sections)-1]
+	assert.Same(t, &diffFile.language, tailSection.language)
+	assert.Same(t, &diffFile.highlightRender, tailSection.highlightLexer)
+	assert.Same(t, &diffFile.highlightedLeftLines, tailSection.highlightedLeftLines)
+	assert.Same(t, &diffFile.highlightedRightLines, tailSection.highlightedRightLines)
 }

@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"strconv"
+	"strings"
 
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 
@@ -23,110 +26,122 @@ type BlobExcerptOptions struct {
 	RightIndex    int
 	LeftHunkSize  int
 	RightHunkSize int
-	Direction     string
+	Direction     string // an arrow expands one chunk from the end it points at, otherwise the whole gap
 	Language      string
 }
 
-func (diffSection *DiffSection) fillExcerptLines(reader io.Reader, leftStart, rightStart, chunkSize int) error {
-	buf := &bytes.Buffer{}
-	scanner := git.NewGitDiffScanner(reader)
-	var diffLines []*DiffLine
-	for rightLineIdx := 1; rightLineIdx < rightStart+chunkSize; rightLineIdx++ {
-		if ok := scanner.Scan(); !ok {
-			break
-		}
-		lineText := scanner.Text()
-		if buf.Len()+len(lineText) < int(setting.UI.MaxDisplayFileSize) {
-			buf.WriteString(lineText)
-			buf.WriteByte('\n')
-		}
-		if rightLineIdx < rightStart {
-			continue
-		}
-		diffLine := &DiffLine{
-			LeftIdx:  leftStart + (rightLineIdx - rightStart),
-			RightIdx: rightLineIdx,
-			Type:     DiffLinePlain,
-			Content:  " " + lineText,
-		}
-		diffLines = append(diffLines, diffLine)
-	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("fillExcerptLines scan: %w", err)
-	}
-	diffSection.Lines = diffLines
-	// DiffLinePlain always uses right lines
-	diffSection.highlightedRightLines.value = highlightCodeLines(diffSection.FileName, diffSection.language.value, []*DiffSection{diffSection}, false /* right */, buf.Bytes())
-	return nil
+// SerializeGapNumbers writes the six numbers a gap is, for the browser to hand back to
+// DeserializeGapNumbers
+func (s *DiffLineSectionInfo) SerializeGapNumbers() string {
+	return fmt.Sprintf("%d,%d,%d,%d,%d,%d",
+		s.LastLeftIdx, s.LastRightIdx, s.LeftIdx, s.RightIdx, s.LeftHunkSize, s.RightHunkSize)
 }
 
-func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExcerptOptions) (*DiffSection, error) {
-	lastLeft, lastRight, idxLeft, idxRight := opts.LastLeft, opts.LastRight, opts.LeftIndex, opts.RightIndex
-	leftHunkSize, rightHunkSize, direction := opts.LeftHunkSize, opts.RightHunkSize, opts.Direction
+// HiddenCommentIDsCSV lists the comments a gap hides, for a CSS "attr*=,id," match to find them
+func (s *DiffLineSectionInfo) HiddenCommentIDsCSV() string {
+	return strings.Join(base.Int64sToStrings(s.HiddenCommentIDs), ",")
+}
 
-	expandLimit := BlobExcerptChunkSize
-	section := &DiffSection{
-		language:              &diffVarMutable[string]{value: opts.Language},
+// DeserializeGapNumbers reads back what SerializeGapNumbers wrote
+func DeserializeGapNumbers(gapNumbers string) (BlobExcerptOptions, error) {
+	invalid := fmt.Errorf("invalid gap: %q", gapNumbers)
+	nums := strings.Split(gapNumbers, ",")
+	if len(nums) != 6 {
+		return BlobExcerptOptions{}, invalid
+	}
+	var parsed [6]int
+	for i, num := range nums {
+		v, err := strconv.Atoi(num)
+		if err != nil || v < 0 {
+			return BlobExcerptOptions{}, invalid
+		}
+		parsed[i] = v
+	}
+	return BlobExcerptOptions{
+		LastLeft: parsed[0], LastRight: parsed[1],
+		LeftIndex: parsed[2], RightIndex: parsed[3],
+		LeftHunkSize: parsed[4], RightHunkSize: parsed[5],
+	}, nil
+}
+
+// a gap with no hunk on either side runs to the end of the file, so nothing follows it
+func gapReachesFileEnd(leftHunkSize, rightHunkSize int) bool {
+	return leftHunkSize <= 0 && rightHunkSize <= 0
+}
+
+// expandRange returns the 1-based inclusive lines a request expands from a gap
+func (opts BlobExcerptOptions) expandRange() (leftStart, rightStart, rightEnd int) {
+	if opts.RightIndex-opts.LastRight > BlobExcerptChunkSize {
+		switch opts.Direction {
+		case "up": // the chunk nearest the hunk below the gap
+			return opts.LeftIndex - BlobExcerptChunkSize, opts.RightIndex - BlobExcerptChunkSize, opts.RightIndex - 1
+		case "down": // the chunk nearest the hunk above it
+			return opts.LastLeft + 1, opts.LastRight + 1, opts.LastRight + BlobExcerptChunkSize
+		}
+	}
+	// the whole gap: the line at "right" is already rendered, except where the gap runs to the end
+	// of the file and nothing follows it
+	rightEnd = opts.RightIndex
+	if !gapReachesFileEnd(opts.LeftHunkSize, opts.RightHunkSize) {
+		rightEnd--
+	}
+	return opts.LastLeft + 1, opts.LastRight + 1, rightEnd
+}
+
+func newExcerptSection(filePath, language string) *DiffSection {
+	return &DiffSection{
+		language:              &diffVarMutable[string]{value: language},
 		highlightLexer:        &diffVarMutable[chroma.Lexer]{},
 		highlightedLeftLines:  &diffVarMutable[map[int]template.HTML]{},
 		highlightedRightLines: &diffVarMutable[map[int]template.HTML]{},
 		FileName:              filePath,
 	}
-	var err error
-	remainingLines := idxRight - lastRight
-	if direction == "up" && remainingLines > expandLimit {
-		idxLeft -= expandLimit
-		idxRight -= expandLimit
-		leftHunkSize += expandLimit
-		rightHunkSize += expandLimit
-		err = section.fillExcerptLines(reader, idxLeft, idxRight, expandLimit)
-	} else if direction == "down" && remainingLines > expandLimit {
-		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
-		lastLeft += expandLimit
-		lastRight += expandLimit
-	} else /* "single" or [ ("up" or "down") and (remainingLines <= expandLimit) ] */ {
-		if direction == "up" || direction == "single" {
-			// if the direction is "up" or "single":
-			// * top: last=0, idx=11, chunk=11: line 11 is already rendered, line 0 can be considered as a "virtually rendered line"
-			//   * then need to expand line 10 lines (1-10), so "-1".
-			// * middle: last=100, idx=106, chunk=6: line 100 and 106 are both already rendered
-			//   * then need to expand 5 lines (101-105), so "-1".
-			expandLimit = remainingLines - 1
-		} else {
-			// if the direction is "down": either the hidden lines are too many in the middle (otherwise "single"), or are at the bottom
-			// * "last" line is already rendered, so just render the remaining lines from the next line
-			expandLimit = remainingLines
-		}
-		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
-		// now, the hidden lines are fewer than "expand limit", after expand, no hidden lines anymore,
-		// no need to show new "expand buttons" (setting them to 0 will make GetExpandDirection returns "no direction")
-		leftHunkSize, rightHunkSize, idxLeft, idxRight = 0, 0, 0, 0
-	}
-	if err != nil {
-		return nil, err
-	}
+}
 
-	newLineSection := &DiffLine{
-		Type: DiffLineSection,
-		SectionInfo: &DiffLineSectionInfo{
-			language:      &diffVarMutable[string]{value: opts.Language},
-			Path:          filePath,
-			LastLeftIdx:   lastLeft,
-			LastRightIdx:  lastRight,
-			LeftIdx:       idxLeft,
-			RightIdx:      idxRight,
-			LeftHunkSize:  leftHunkSize,
-			RightHunkSize: rightHunkSize,
-		},
+// BuildBlobExcerptDiffSections expands the requested part of each gap in a single pass over the
+// blob, so that showing a whole file takes one request rather than one per gap. The caller passes
+// the gaps in the order they appear in the file.
+func BuildBlobExcerptDiffSections(filePath string, reader io.Reader, optsList []BlobExcerptOptions) ([]*DiffSection, error) {
+	buf := &bytes.Buffer{}
+	scanner := git.NewGitDiffScanner(reader)
+	scanned := 0 // the last line number read from the blob
+	sections := make([]*DiffSection, 0, len(optsList))
+	for _, opts := range optsList {
+		leftStart, rightStart, rightEnd := opts.expandRange()
+		var lines []*DiffLine
+		for scanned < rightEnd {
+			if ok := scanner.Scan(); !ok {
+				break
+			}
+			scanned++
+			lineText := scanner.Text()
+			if buf.Len()+len(lineText) < int(setting.UI.MaxDisplayFileSize) {
+				buf.WriteString(lineText)
+				buf.WriteByte('\n')
+			}
+			if scanned < rightStart {
+				continue
+			}
+			lines = append(lines, &DiffLine{
+				LeftIdx:  leftStart + (scanned - rightStart),
+				RightIdx: scanned,
+				Type:     DiffLinePlain,
+				Content:  " " + lineText,
+			})
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, fmt.Errorf("BuildBlobExcerptDiffSections scan: %w", err)
+		}
+		section := newExcerptSection(filePath, opts.Language)
+		section.Lines = lines
+		sections = append(sections, section)
 	}
-	if newLineSection.GetExpandDirection() != "" {
-		newLineSection.Content = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
-		switch direction {
-		case "up":
-			section.Lines = append([]*DiffLine{newLineSection}, section.Lines...)
-		case "down":
-			section.Lines = append(section.Lines, newLineSection)
+	if len(sections) > 0 {
+		// DiffLinePlain always uses right lines, and one pass highlights them all
+		highlighted := highlightCodeLines(filePath, optsList[0].Language, sections, false /* right */, buf.Bytes())
+		for _, section := range sections {
+			section.highlightedRightLines.value = highlighted
 		}
 	}
-	return section, nil
+	return sections, nil
 }
