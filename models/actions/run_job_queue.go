@@ -13,14 +13,14 @@ import (
 	"xorm.io/xorm"
 )
 
-// QueueJobsOptions scopes the build queue to a repo, an owner or, when both are zero, the instance.
-type QueueJobsOptions struct {
+// JobQueueOptions scopes the job queue to a repo, an owner or, when both are zero, the instance.
+type JobQueueOptions struct {
 	RepoID  int64
 	OwnerID int64
 	Status  Status
 }
 
-func (opts QueueJobsOptions) session(ctx context.Context) *xorm.Session {
+func (opts JobQueueOptions) session(ctx context.Context) *xorm.Session {
 	// a reusable-workflow caller only tracks its children, it never occupies a runner itself
 	sess := db.GetEngine(ctx).Table("action_run_job").Where(builder.Eq{"`action_run_job`.is_reusable_caller": false})
 	if opts.RepoID > 0 {
@@ -39,7 +39,7 @@ var (
 	runningJobsCond = builder.In("`action_run_job`.status", StatusRunning, StatusCancelling)
 )
 
-func (opts QueueJobsOptions) statusCond() builder.Cond {
+func (opts JobQueueOptions) statusCond() builder.Cond {
 	switch opts.Status {
 	case StatusRunning:
 		return runningJobsCond
@@ -51,12 +51,12 @@ func (opts QueueJobsOptions) statusCond() builder.Cond {
 }
 
 // active jobs first by start time, then queued jobs in pickup order
-var queueJobsOrderBy = fmt.Sprintf(
+var jobQueueOrderBy = fmt.Sprintf(
 	"CASE WHEN `action_run_job`.status IN (%d, %d) THEN 0 ELSE 1 END ASC, CASE WHEN `action_run_job`.status IN (%d, %d) THEN `action_run_job`.started ELSE `action_run_job`.updated END ASC, `action_run_job`.id ASC",
 	StatusRunning, StatusCancelling, StatusRunning, StatusCancelling)
 
-// FindQueueJobs returns one page of the build queue and its total count.
-func FindQueueJobs(ctx context.Context, opts QueueJobsOptions, page, pageSize int) ([]*ActionRunJob, int64, error) {
+// FindJobQueueJobs returns one page of the job queue and its total count.
+func FindJobQueueJobs(ctx context.Context, opts JobQueueOptions, page, pageSize int) ([]*ActionRunJob, int64, error) {
 	total, err := opts.session(ctx).Count(new(ActionRunJob))
 	if err != nil || total == 0 {
 		return nil, total, err
@@ -69,13 +69,13 @@ func FindQueueJobs(ctx context.Context, opts QueueJobsOptions, page, pageSize in
 	return jobs, total, opts.session(ctx).
 		Cols("`action_run_job`.id", "`action_run_job`.repo_id", "`action_run_job`.name", "`action_run_job`.status", // skip the payload columns
 			"`action_run_job`.run_id", "`action_run_job`.runs_on", "`action_run_job`.updated", "`action_run_job`.started", "`action_run_job`.task_id").
-		OrderBy(queueJobsOrderBy).
+		OrderBy(jobQueueOrderBy).
 		Limit(pageSize, (page-1)*pageSize).
 		Find(&jobs)
 }
 
-// QueueFilterRepoIDs returns up to limit ids of the repositories with queued or running jobs.
-func QueueFilterRepoIDs(ctx context.Context, limit int) ([]int64, error) {
+// JobQueueFilterRepoIDs returns up to limit ids of the repositories with queued or running jobs.
+func JobQueueFilterRepoIDs(ctx context.Context, limit int) ([]int64, error) {
 	var ids []int64
-	return ids, QueueJobsOptions{}.session(ctx).Distinct("`action_run_job`.repo_id").Limit(limit).Find(&ids)
+	return ids, JobQueueOptions{}.session(ctx).Distinct("`action_run_job`.repo_id").Limit(limit).Find(&ids)
 }

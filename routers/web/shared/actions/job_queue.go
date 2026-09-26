@@ -21,16 +21,16 @@ import (
 	"gitea.dev/services/context"
 )
 
-// Queue renders the instance-wide Actions build queue on the admin settings page.
-func Queue(ctx *context.Context) {
-	ctx.Data["PageIsSharedSettingsQueue"] = true
+// JobQueue renders the instance-wide Actions job queue on the admin settings page.
+func JobQueue(ctx *context.Context) {
+	ctx.Data["PageIsSharedSettingsActionsJobQueue"] = true
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageType"] = "queue"
+	ctx.Data["PageType"] = "job_queue"
 
-	RenderQueue(ctx, 0, "admin/actions")
+	RenderJobQueue(ctx, 0, "admin/actions")
 }
 
-const queuePageSize = 50
+const jobQueuePageSize = 50
 
 // RefreshIntervalMs is how often an auto-refreshing Actions list re-fetches itself.
 func RefreshIntervalMs(hasActivity bool) int64 {
@@ -40,8 +40,8 @@ func RefreshIntervalMs(hasActivity bool) int64 {
 	return util.Iif[int64](hasActivity, 3*1000, 12*1000)
 }
 
-// RenderQueue renders the build queue of one repository, or of the instance when repoID is 0.
-func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplName) {
+// RenderJobQueue renders the job queue of one repository, or of the instance when repoID is 0.
+func RenderJobQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplName) {
 	page := max(ctx.FormInt("page"), 1)
 
 	filterStatus := ctx.FormString("status")
@@ -57,20 +57,20 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 	var filterOwnerID, filterRepoID int64
 	if repoID == 0 {
 		var err error
-		if filterOwnerID, filterRepoID, err = renderQueueFilterOptions(ctx); err != nil {
-			ctx.ServerError("renderQueueFilterOptions", err)
+		if filterOwnerID, filterRepoID, err = renderJobQueueFilterOptions(ctx); err != nil {
+			ctx.ServerError("renderJobQueueFilterOptions", err)
 			return
 		}
 	}
-	ctx.Data["QueueFilterOwnerID"], ctx.Data["QueueFilterRepoID"] = filterOwnerID, filterRepoID
+	ctx.Data["JobQueueFilterOwnerID"], ctx.Data["JobQueueFilterRepoID"] = filterOwnerID, filterRepoID
 
-	jobs, total, err := actions_model.FindQueueJobs(ctx, actions_model.QueueJobsOptions{
+	jobs, total, err := actions_model.FindJobQueueJobs(ctx, actions_model.JobQueueOptions{
 		RepoID:  util.Iif(filterRepoID > 0, filterRepoID, repoID),
 		OwnerID: filterOwnerID,
 		Status:  status,
-	}, page, queuePageSize)
+	}, page, jobQueuePageSize)
 	if err != nil {
-		ctx.ServerError("FindQueueJobs", err)
+		ctx.ServerError("FindJobQueueJobs", err)
 		return
 	}
 	if err := actions_model.ActionJobList(jobs).LoadAttributes(ctx, true); err != nil {
@@ -86,18 +86,18 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 		return
 	}
 
-	ctx.Data["QueueJobs"] = jobs
-	ctx.Data["QueueJobRunners"] = runners
-	ctx.Data["QueueTotal"] = total
+	ctx.Data["JobQueueJobs"] = jobs
+	ctx.Data["JobQueueRunners"] = runners
+	ctx.Data["JobQueueTotal"] = total
 	if !setting.IsProd && !ctx.FormBool("refresh") {
 		// for dev mode, force the first screen to be blank to debug more edge cases
-		ctx.Data["QueueJobs"], ctx.Data["QueueJobRunners"], ctx.Data["QueueTotal"] = nil, nil, 0
+		ctx.Data["JobQueueJobs"], ctx.Data["JobQueueRunners"], ctx.Data["JobQueueTotal"] = nil, nil, 0
 	}
 	ctx.Data["ShowRepoColumn"] = repoID == 0
-	ctx.Data["QueueFilterStatus"] = filterStatus
-	ctx.Data["QueueFilterStatuses"] = []string{actions_model.StatusRunning.String(), actions_model.StatusWaiting.String()}
+	ctx.Data["JobQueueFilterStatus"] = filterStatus
+	ctx.Data["JobQueueFilterStatuses"] = []string{actions_model.StatusRunning.String(), actions_model.StatusWaiting.String()}
 
-	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(queuePageSize).CurPage(page).Build()
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(jobQueuePageSize).CurPage(page).Build()
 	query := url.Values{}
 	if filterOwnerID > 0 {
 		query.Set("owner_id", strconv.FormatInt(filterOwnerID, 10))
@@ -112,27 +112,27 @@ func RenderQueue(ctx *context.Context, repoID int64, fullTemplate templates.TplN
 	pager.AddParamFromQuery(query)
 	ctx.Data["Page"] = pager
 
-	ctx.Data["QueueRefreshIntervalMs"] = RefreshIntervalMs(len(jobs) > 0)
+	ctx.Data["JobQueueRefreshIntervalMs"] = RefreshIntervalMs(len(jobs) > 0)
 	query.Set("page", strconv.Itoa(pager.Paginator.Current()))
 	query.Set("refresh", "1")
-	ctx.Data["QueueRefreshLink"] = setting.AppSubURL + ctx.Req.URL.EscapedPath() + "?" + query.Encode()
+	ctx.Data["JobQueueRefreshLink"] = setting.AppSubURL + ctx.Req.URL.EscapedPath() + "?" + query.Encode()
 
 	if ctx.FormBool("refresh") {
-		ctx.HTML(http.StatusOK, "shared/actions/queue_list")
+		ctx.HTML(http.StatusOK, "shared/actions/job_queue_list")
 		return
 	}
 	ctx.HTML(http.StatusOK, fullTemplate)
 }
 
-// QueueFilterOwner is one entry of the build queue's owner filter.
-type QueueFilterOwner struct {
+// JobQueueFilterOwner is one entry of the job queue's owner filter.
+type JobQueueFilterOwner struct {
 	ID   int64
 	Name string
 }
 
-// renderQueueFilterOptions includes pending work and the selected scope, even when its queue is empty.
-func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID int64, _ error) {
-	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, 200)
+// renderJobQueueFilterOptions includes pending work and the selected scope, even when its queue is empty.
+func renderJobQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID int64, _ error) {
+	repoIDs, err := actions_model.JobQueueFilterRepoIDs(ctx, 200)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -150,17 +150,17 @@ func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID
 		return base.NaturalSortCompare(a.FullName(), b.FullName())
 	})
 
-	owners := make([]*QueueFilterOwner, 0, len(repos))
+	owners := make([]*JobQueueFilterOwner, 0, len(repos))
 	seenOwners := make(container.Set[int64], len(repos))
 	for _, repo := range repos {
 		if seenOwners.Add(repo.OwnerID) {
-			owners = append(owners, &QueueFilterOwner{ID: repo.OwnerID, Name: repo.OwnerName})
+			owners = append(owners, &JobQueueFilterOwner{ID: repo.OwnerID, Name: repo.OwnerName})
 		}
 	}
 
 	if repo := repoMap[reqRepoID]; repo != nil {
 		filterRepoID = repo.ID
-		ctx.Data["QueueFilterRepoName"] = repo.FullName()
+		ctx.Data["JobQueueFilterRepoName"] = repo.FullName()
 	} else if reqOwnerID := ctx.FormInt64("owner_id"); reqOwnerID > 0 {
 		owner, err := user_model.GetUserByID(ctx, reqOwnerID)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
@@ -168,20 +168,20 @@ func renderQueueFilterOptions(ctx *context.Context) (filterOwnerID, filterRepoID
 		}
 		if owner != nil {
 			filterOwnerID = owner.ID
-			ctx.Data["QueueFilterOwnerName"] = owner.Name
+			ctx.Data["JobQueueFilterOwnerName"] = owner.Name
 			if seenOwners.Add(owner.ID) {
-				owners = append(owners, &QueueFilterOwner{ID: owner.ID, Name: owner.Name})
+				owners = append(owners, &JobQueueFilterOwner{ID: owner.ID, Name: owner.Name})
 			}
 		}
 	}
-	slices.SortFunc(owners, func(a, b *QueueFilterOwner) int {
+	slices.SortFunc(owners, func(a, b *JobQueueFilterOwner) int {
 		return base.NaturalSortCompare(a.Name, b.Name)
 	})
 
 	if filterOwnerID > 0 {
 		repos = slices.DeleteFunc(repos, func(repo *repo_model.Repository) bool { return repo.OwnerID != filterOwnerID })
 	}
-	ctx.Data["QueueFilterOwners"] = owners
-	ctx.Data["QueueFilterRepos"] = repos
+	ctx.Data["JobQueueFilterOwners"] = owners
+	ctx.Data["JobQueueFilterRepos"] = repos
 	return filterOwnerID, filterRepoID, nil
 }

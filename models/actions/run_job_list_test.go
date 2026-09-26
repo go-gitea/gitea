@@ -65,7 +65,7 @@ func TestActionJobList_SortMatrixGroupsByName(t *testing.T) {
 	})
 }
 
-func TestFindQueueJobs(t *testing.T) {
+func TestFindJobQueueJobs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 	const repoID int64 = 987654
@@ -85,7 +85,7 @@ func TestFindQueueJobs(t *testing.T) {
 	insert(StatusWaiting, 0, true, 0)
 
 	find := func(status Status, page, pageSize int) (ids []int64, total int64) {
-		jobs, total, err := FindQueueJobs(ctx, QueueJobsOptions{RepoID: repoID, Status: status}, page, pageSize)
+		jobs, total, err := FindJobQueueJobs(ctx, JobQueueOptions{RepoID: repoID, Status: status}, page, pageSize)
 		require.NoError(t, err)
 		for _, job := range jobs {
 			ids = append(ids, job.ID)
@@ -106,7 +106,7 @@ func TestFindQueueJobs(t *testing.T) {
 	ids, _ = find(StatusUnknown, 99, 3)
 	assert.Equal(t, []int64{queuedA, queuedB}, ids)
 
-	repoIDs, err := QueueFilterRepoIDs(ctx, 1000)
+	repoIDs, err := JobQueueFilterRepoIDs(ctx, 1000)
 	require.NoError(t, err)
 	assert.Contains(t, repoIDs, repoID)
 }

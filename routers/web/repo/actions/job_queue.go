@@ -11,18 +11,18 @@ import (
 	"gitea.dev/services/context"
 )
 
-// Queue renders this repository's Actions build queue.
-func Queue(ctx *context.Context) {
+// JobQueue renders this repository's Actions job queue.
+func JobQueue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
-	ctx.Data["PageIsActionsQueue"] = true
+	ctx.Data["PageIsActionsJobQueue"] = true
 	if !ctx.FormBool("refresh") {
 		prepareActionsSidebar(ctx)
 		if ctx.Written() {
 			return
 		}
 	}
-	shared_actions.RenderQueue(ctx, ctx.Repo.Repository.ID, "repo/actions/queue")
+	shared_actions.RenderJobQueue(ctx, ctx.Repo.Repository.ID, "repo/actions/job_queue")
 }
 
 // prepareActionsSidebar lists the workflows without binding the runs list filters.

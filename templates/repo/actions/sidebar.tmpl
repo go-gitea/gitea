@@ -1,6 +1,6 @@
 <div class="flex-container-nav">
 	<div class="ui fluid vertical menu">
-		<a class="item {{if and (not $.CurWorkflow) (not $.PageIsActionsQueue)}}active{{end}}" href="{{$.RepoLink}}/actions?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
+		<a class="item {{if and (not $.CurWorkflow) (not $.PageIsActionsJobQueue)}}active{{end}}" href="{{$.RepoLink}}/actions?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 		{{range .workflows}}
 			<a class="item flex-text-block {{if and (eq .EntryName $.CurWorkflow) (not $.CurWorkflowScopedRepoID)}}active{{end}}" href="{{$.RepoLink}}/actions?workflow={{.EntryName}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
 				<span class="gt-ellipsis" data-tooltip-content="{{.DisplayName}}">{{.DisplayName}}</span>
@@ -55,9 +55,9 @@
 		{{/* At the moment, the "job queue" page is view-only, it doesn't really do any management.
 		GitHub has a similar menu section which contains "cache management" and more, so this section is designed for the future */}}
 		<div>{{ctx.Locale.Tr "actions.management"}}</div>
-		<a class="item {{if $.PageIsActionsQueue}}active{{end}}" href="{{$.RepoLink}}/actions/queue">
+		<a class="item {{if $.PageIsActionsJobQueue}}active{{end}}" href="{{$.RepoLink}}/actions/job_queue">
 			{{svg "octicon-list-ordered"}}
-			<span class="gt-ellipsis">{{ctx.Locale.Tr "actions.queue.title"}}</span>
+			<span class="gt-ellipsis">{{ctx.Locale.Tr "actions.job_queue.title"}}</span>
 		</a>
 	</div>
 </div>

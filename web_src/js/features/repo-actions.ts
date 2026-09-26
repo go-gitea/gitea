@@ -30,7 +30,7 @@ export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
   registerGlobalInitFunc('initActionRunsList', initActionRunsList);
-  registerGlobalInitFunc('initActionQueueList', initActionQueueList);
+  registerGlobalInitFunc('initActionJobQueueList', initActionJobQueueList);
 }
 
 function initRepositoryActionsView() {
@@ -120,11 +120,11 @@ function initActionRunsList(el: HTMLElement) {
   });
 }
 
-function initActionQueueList(el: HTMLElement) {
+function initActionJobQueueList(el: HTMLElement) {
   activePageTimerRefresh({
-    interval: () => Number(el.getAttribute('data-queue-refresh-interval')),
+    interval: () => Number(el.getAttribute('data-job-queue-refresh-interval')),
     async callback() {
-      const resp = await GET(el.getAttribute('data-queue-refresh-link')!);
+      const resp = await GET(el.getAttribute('data-job-queue-refresh-link')!);
       if (!resp.ok) return;
       morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
     },
