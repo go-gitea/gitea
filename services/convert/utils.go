@@ -40,8 +40,6 @@ func ToGitServiceType(value string) structs.GitServiceType {
 		return structs.CodebaseService
 	case "codecommit":
 		return structs.CodeCommitService
-	case "forgejo":
-		return structs.ForgejoService
 	default:
 		return structs.PlainGitService
 	}

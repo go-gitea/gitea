@@ -8,7 +8,7 @@
 					<a class="ui basic button migrate-entry" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
 							{{svg "octicon-mark-github" 184 "tw-p-4"}}
-						{{else if or (eq .Name "gitlab") (eq .Name "gitbucket") (eq .Name "forgejo")}}
+						{{else if or (eq .Name "gitlab") (eq .Name "gitbucket")}}
 							{{svg (printf "gitea-%s" .Name) 184 "tw-p-4"}}
 						{{else}}
 							{{svg (printf "gitea-%s" .Name) 184}}
