@@ -191,7 +191,8 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 // Inside a single database transaction it then inserts the new attempt, clones all template jobs, evaluates job-level concurrency for rerun jobs,
 // and updates the run's latest_attempt_id.
 // Jobs not in the rerun set are cloned as pass-through: their status is preserved and SourceTaskID points to the original task so the UI can still display their results.
-// The attempt's final status is derived only from the rerun jobs, not the pass-through jobs.
+// The attempt's status is aggregated from all its jobs, pass-through ones included: rerun jobs skipped by their `if:`
+// are done right away, and no later job update would re-aggregate it.
 // Notifications and commit statuses are sent after the transaction commits.
 func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionRunAttempt, error) {
 	vars, err := actions_model.GetVariablesOfRun(ctx, plan.run)
@@ -283,9 +284,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 			var invalidIfErr error
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
-				// A job with needs goes through the emitter, which decides its `if:` once the results of all its
-				// needs are there: pass-through ones may not be cloned yet. A deferred-matrix placeholder must go
-				// through it too, as the only place that expands it: dispatching it directly would hand the runner the raw payload.
+				// Jobs with needs go through the emitter: it decides `if:` once all needs have results, and is the only place expanding a deferred matrix.
 				shouldBlockJob := shouldBlock || len(newJob.Needs) > 0 || newJob.IsMatrixDeferred
 
 				newJob.Status = util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting)
@@ -350,12 +349,8 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 			// expand reusable caller
 			if newJob.IsReusableCaller && newJob.Status == actions_model.StatusWaiting && !newJob.IsExpanded {
-				if err := expandReusableWorkflowCaller(ctx, plan.run, newAttempt, newJob, vars); err != nil {
-					return fmt.Errorf("inline trigger caller %d ready: %w", newJob.ID, err)
-				}
-				// refresh the caller status
-				if err := actions_model.RefreshReusableCallerStatus(ctx, newJob); err != nil {
-					return fmt.Errorf("refresh caller %d status: %w", newJob.ID, err)
+				if err := expandInlineReusableCaller(ctx, plan.run, newAttempt, newJob, vars); err != nil {
+					return err
 				}
 			}
 
@@ -375,7 +370,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			}
 		}
 
-		newAttempt.Status = actions_model.AggregateJobStatus(newJobsToRerun)
+		newAttempt.Status = actions_model.AggregateJobStatus(newJobs)
 		if err := actions_model.UpdateRunAttempt(ctx, newAttempt, "status"); err != nil {
 			return err
 		}

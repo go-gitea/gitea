@@ -483,35 +483,44 @@ func TestRerunDecidesJobIf(t *testing.T) {
 	}
 	require.NoError(t, PrepareRunAndInsert(ctx, []byte(`on: push
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
   deploy:
     if: vars.DEPLOY == 'yes'
     runs-on: ubuntu-latest
     steps:
       - run: echo hi
 `), run, nil))
-	jobs := runJobs(t, run.ID, run.LatestAttemptID)
-	require.Len(t, jobs, 1)
-	require.Equal(t, actions_model.StatusWaiting, jobs[0].Status)
-
-	// finish the run, then turn the deployment off before rerunning it
-	jobs[0].Status = actions_model.StatusSuccess
-	_, err = actions_model.UpdateRunJob(ctx, jobs[0], nil, "status")
-	require.NoError(t, err)
+	jobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
+		require.Equal(t, actions_model.StatusWaiting, job.Status)
+		job.Status = actions_model.StatusSuccess
+		_, err = actions_model.UpdateRunJob(ctx, job, nil, "status")
+		require.NoError(t, err)
+		jobs[job.JobID] = job
+	}
+	require.Len(t, jobs, 2)
 	run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
-	run.Status = actions_model.StatusSuccess
-	require.NoError(t, actions_model.UpdateRun(ctx, run, "status"))
+	require.Equal(t, actions_model.StatusSuccess, run.Status)
+
+	// turn the deployment off, then rerun it alone
 	variable.Data = "no"
 	_, err = actions_model.UpdateVariableCols(ctx, variable, "data")
 	require.NoError(t, err)
-
-	attempt, err := RerunWorkflowRunJobs(ctx, repo, run, user, nil)
+	attempt, err := RerunWorkflowRunJobs(ctx, repo, run, user, []*actions_model.ActionRunJob{jobs["deploy"]})
 	require.NoError(t, err)
-	jobs = runJobs(t, run.ID, attempt.ID)
-	require.Len(t, jobs, 1)
-	assert.Equal(t, actions_model.StatusSkipped, jobs[0].Status)
+	rerunJobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, attempt.ID) {
+		rerunJobs[job.JobID] = job
+	}
+	assert.Equal(t, actions_model.StatusSuccess, rerunJobs["build"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, rerunJobs["deploy"].Status)
 
-	// the new attempt is done right away, so it must carry its stop time
+	// nothing is left to run, so the new attempt is done right away: its status includes the pass-through build
 	attempt = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: attempt.ID})
-	assert.Equal(t, actions_model.StatusSkipped, attempt.Status)
+	assert.Equal(t, actions_model.StatusSuccess, attempt.Status)
 	assert.NotZero(t, attempt.Stopped)
+	assert.Equal(t, actions_model.StatusSuccess, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID}).Status)
 }

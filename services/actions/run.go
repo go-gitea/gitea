@@ -295,12 +295,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	// expand reusable caller
 	var needPostCommitEmit bool
 	if isReusableWorkflowCaller && runJob.Status == actions_model.StatusWaiting {
-		if err := expandReusableWorkflowCaller(ctx, run, runAttempt, runJob, vars); err != nil {
-			return nil, nil, false, fmt.Errorf("inline trigger caller %d ready: %w", runJob.ID, err)
-		}
-		// refresh the caller status
-		if err := actions_model.RefreshReusableCallerStatus(ctx, runJob); err != nil {
-			return nil, nil, false, fmt.Errorf("refresh caller %d status: %w", runJob.ID, err)
+		if err := expandInlineReusableCaller(ctx, run, runAttempt, runJob, vars); err != nil {
+			return nil, nil, false, err
 		}
 		// an expanded caller needs a resolver pass to resolve its children jobs
 		needPostCommitEmit = true
@@ -309,4 +305,16 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	needPostCommitEmit = needPostCommitEmit || runJob.Status == actions_model.StatusSkipped
 
 	return runJob, cancelledConcurrencyJobs, needPostCommitEmit, nil
+}
+
+// expandInlineReusableCaller expands a ready caller into its child jobs and refreshes its status from them.
+func expandInlineReusableCaller(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
+	if err := expandReusableWorkflowCaller(ctx, run, runAttempt, caller, vars); err != nil {
+		return fmt.Errorf("inline trigger caller %d ready: %w", caller.ID, err)
+	}
+	// refresh the caller status
+	if err := actions_model.RefreshReusableCallerStatus(ctx, caller); err != nil {
+		return fmt.Errorf("refresh caller %d status: %w", caller.ID, err)
+	}
+	return nil
 }
