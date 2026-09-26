@@ -29,16 +29,20 @@ import (
 
 var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
+var pushMirrorRefSpecs = []string{"+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*"}
+
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
 		if err := git.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, git.RemoteOptionMirrorPush); err != nil {
 			return err
 		}
-		if err := git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
-			return err
+		for _, refSpec := range pushMirrorRefSpecs {
+			if err := git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", refSpec); err != nil {
+				return err
+			}
 		}
-		return git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
+		return nil
 	}
 
 	if err := addRemoteAndConfig(m.Repo.CodeStorageRepo(), addr); err != nil {
@@ -159,9 +163,8 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		envs := proxy.EnvWithProxy(remoteURL.URL)
 		// Push to the address, never the remote name: git writes pushed values back into the local refs
 		// a named remote's fetch refspec maps to (e.g. "+refs/*:refs/*"), rolling back concurrent pushes.
-		// An anonymous remote has no refspec, so leftover ones are harmless. https://github.com/go-gitea/gitea/issues/28986
-		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
-			Remote:  remoteAddr,
+		// Pushing to the address ignores such leftover refspecs. https://github.com/go-gitea/gitea/issues/28986
+		if err := git.PushToExternalAddress(ctx, storageRepo, remoteAddr, pushMirrorRefSpecs, git.PushOptions{
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
