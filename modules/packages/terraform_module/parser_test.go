@@ -82,6 +82,10 @@ output "vpc_id" {
 	assert.ErrorIs(t, err, ErrNoRootModule)
 	_, err = ParseModuleArchive(bytes.NewReader(buildArchive(map[string]string{"main.tf": strings.Repeat("#", maxParseSize)})))
 	assert.ErrorIs(t, err, ErrArchiveTooLarge)
+
+	for _, src := range []string{`variable "x" { description = "`, `x = <<EOT`, `/*`, `variable {`, `"${"${`, `}}}`} {
+		assert.NotNil(t, parseModule(map[string][]byte{"main.tf": []byte(src)}))
+	}
 }
 
 func TestValidateNameAndProvider(t *testing.T) {

@@ -18,10 +18,6 @@ import (
 	"gitea.dev/modules/container"
 
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclparse"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/zclconf/go-cty/cty"
 )
 
 var (
@@ -76,7 +72,7 @@ func ParseModuleArchive(r io.Reader) (*Metadata, error) {
 
 func parseTar(tr *tar.Reader) (*Metadata, error) {
 	metadata := &Metadata{}
-	root := map[string][]byte{}
+	root := map[string][]byte{} // .tf.json content yields no HCL blocks
 	submodules := container.Set[string]{}
 	for {
 		hdr, err := tr.Next()
@@ -114,101 +110,52 @@ func parseTar(tr *tar.Reader) (*Metadata, error) {
 		return nil, ErrNoRootModule
 	}
 	if len(root) > 0 {
-		var err error
-		if metadata.Root, err = parseModule(root); err != nil {
-			return nil, err
-		}
+		metadata.Root = parseModule(root)
 	}
 	metadata.Submodules = slices.Sorted(maps.Keys(submodules))
 	return metadata, nil
 }
 
-func parseModule(files map[string][]byte) (*Module, error) {
+func parseModule(files map[string][]byte) *Module {
 	module := &Module{}
 	providers := map[string]*Provider{}
-	parser := hclparse.NewParser()
 	for _, filename := range slices.Sorted(maps.Keys(files)) {
-		if strings.HasSuffix(strings.ToLower(filename), ".json") {
-			continue // .tf.json is consumable but not indexed
-		}
-		src := files[filename]
-		file, diags := parser.ParseHCL(src, filename)
-		if diags.HasErrors() {
-			return nil, fmt.Errorf("parse %s: %w", filename, diags)
-		}
-		body, ok := file.Body.(*hclsyntax.Body)
-		if !ok {
-			continue
-		}
-		for _, block := range body.Blocks {
-			attrs := block.Body.Attributes
+		for _, block := range (&hclScanner{src: files[filename]}).body(0).blocks {
+			attrs := block.attrs
 			switch {
-			case block.Type == "variable" && len(block.Labels) == 1:
+			case block.typ == "variable" && len(block.labels) == 1:
+				_, hasDefault := attrs["default"]
 				module.Inputs = append(module.Inputs, &Input{
-					Name:        block.Labels[0],
-					Type:        attrSource(attrs["type"], src),
-					Description: attrString(attrs["description"]),
-					Default:     attrSource(attrs["default"], src),
-					Required:    attrs["default"] == nil,
+					Name:        block.labels[0],
+					Type:        attrs["type"],
+					Description: hclString(attrs["description"]),
+					Default:     attrs["default"],
+					Required:    !hasDefault,
 				})
-			case block.Type == "output" && len(block.Labels) == 1:
-				module.Outputs = append(module.Outputs, &Output{Name: block.Labels[0], Description: attrString(attrs["description"])})
-			case block.Type == "terraform":
-				for _, inner := range block.Body.Blocks {
-					if inner.Type != "required_providers" {
+			case block.typ == "output" && len(block.labels) == 1:
+				module.Outputs = append(module.Outputs, &Output{Name: block.labels[0], Description: hclString(attrs["description"])})
+			case block.typ == "terraform":
+				for _, inner := range block.blocks {
+					if inner.typ != "required_providers" {
 						continue
 					}
-					for name, attr := range inner.Body.Attributes {
-						if providers[name] == nil {
-							providers[name] = parseProvider(name, attr.Expr)
+					for name, expr := range inner.attrs {
+						if providers[name] != nil {
+							continue
 						}
+						provider := &Provider{Name: name}
+						if strings.HasPrefix(expr, "{") {
+							fields := (&hclScanner{src: []byte(expr[1:])}).body(2).attrs
+							provider.Source, provider.Version = hclString(fields["source"]), hclString(fields["version"])
+						} else {
+							provider.Version = hclString(expr) // legacy `name = "<version>"` form
+						}
+						providers[name] = provider
 					}
 				}
 			}
 		}
 	}
 	module.Providers = slices.SortedFunc(maps.Values(providers), func(a, b *Provider) int { return strings.Compare(a.Name, b.Name) })
-	return module, nil
-}
-
-// parseProvider evaluates only the literal keys, `configuration_aliases` holds references that can't be evaluated
-func parseProvider(name string, expr hcl.Expression) *Provider {
-	provider := &Provider{Name: name}
-	if version := exprString(expr); version != "" { // legacy `name = "<version>"` form
-		provider.Version = version
-		return provider
-	}
-	pairs, _ := hcl.ExprMap(expr)
-	for _, pair := range pairs {
-		switch exprString(pair.Key) {
-		case "source":
-			provider.Source = exprString(pair.Value)
-		case "version":
-			provider.Version = exprString(pair.Value)
-		}
-	}
-	return provider
-}
-
-func exprString(expr hcl.Expression) string {
-	val, diags := expr.Value(nil)
-	if diags.HasErrors() || val.IsNull() || val.Type() != cty.String {
-		return ""
-	}
-	return val.AsString()
-}
-
-func attrString(attr *hclsyntax.Attribute) string {
-	if attr == nil {
-		return ""
-	}
-	return exprString(attr.Expr)
-}
-
-// attrSource returns the source text of an expression like `list(string)` that can't be evaluated without a context
-func attrSource(attr *hclsyntax.Attribute, src []byte) string {
-	if attr == nil {
-		return ""
-	}
-	return strings.TrimSpace(string(attr.Expr.Range().SliceBytes(src)))
+	return module
 }
