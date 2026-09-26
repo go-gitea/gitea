@@ -545,13 +545,7 @@ func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64, no
 		if len(jobs) == 0 {
 			attempt.Status = noJobsStatus
 		}
-		if attempt.Started.IsZero() && attempt.Status.IsRunning() {
-			attempt.Started = timeutil.TimeStampNow()
-		}
-		if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
-			attempt.Stopped = timeutil.TimeStampNow()
-		}
-		if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
+		if err := UpdateRunAttempt(ctx, attempt, "status"); err != nil {
 			return fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
 		}
 		return nil

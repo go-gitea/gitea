@@ -190,7 +190,7 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 // Inside a single database transaction it then inserts the new attempt, clones all template jobs, evaluates job-level concurrency for rerun jobs,
 // and updates the run's latest_attempt_id.
 // Jobs not in the rerun set are cloned as pass-through: their status is preserved and SourceTaskID points to the original task so the UI can still display their results.
-// The attempt's final status is derived only from the rerun jobs, not the pass-through jobs.
+// The attempt's status aggregates all its jobs, pass-through ones included, as rerun jobs skipped by `if:` get no later update.
 // Notifications and commit statuses are sent after the transaction commits.
 func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionRunAttempt, error) {
 	vars, err := actions_model.GetVariablesOfRun(ctx, plan.run)
@@ -222,7 +222,6 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 	var newJobs, newJobsToRerun actions_model.ActionJobList
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
-	var hasWaitingCallerJobs bool
 
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		newAttemptStatus, jobsToCancel, err := PrepareToStartRunWithConcurrency(ctx, newAttempt)
@@ -281,11 +280,12 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.ParentJobID = newParentID
 			}
 
+			var invalidIf error
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
 				// A deferred-matrix placeholder must go through the emitter, which is the only place
 				// that expands it: dispatching it directly would hand the runner the raw payload.
 				newJob.Status = util.Iif(shouldBlock || newJob.IsMatrixDeferred, actions_model.StatusBlocked, actions_model.StatusWaiting)
-				if plan.hasRerunDependency(templateJob) {
+				if len(newJob.Needs) > 0 {
 					newJob.Status = actions_model.StatusPending
 				}
 				newJob.TaskID = 0
@@ -299,6 +299,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				if templateJob.IsReusableCaller {
 					newJob.IsExpanded = false
 					newJob.CallPayload = ""
+				}
+
+				invalidIf, err = decideJobIf(ctx, plan.run, newAttempt, newJob, vars)
+				if err != nil {
+					return fmt.Errorf("evaluate job if: %w", err)
 				}
 
 				// A slot-starved job must not cancel its group peers.
@@ -328,17 +333,17 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				return err
 			}
 			templateIDToNewID[templateJob.ID] = newJob.ID
+			if invalidIf != nil {
+				if err := upsertJobErrorSummary(ctx, newJob, "if", invalidIf); err != nil {
+					return err
+				}
+			}
 
 			// expand reusable caller
 			if newJob.IsReusableCaller && newJob.Status == actions_model.StatusWaiting && !newJob.IsExpanded {
-				if err := expandReusableWorkflowCaller(ctx, plan.run, newAttempt, newJob, vars); err != nil {
-					return fmt.Errorf("inline trigger caller %d ready: %w", newJob.ID, err)
+				if err := expandInlineReusableCaller(ctx, plan.run, newAttempt, newJob, vars); err != nil {
+					return err
 				}
-				// refresh the caller status
-				if err := actions_model.RefreshReusableCallerStatus(ctx, newJob); err != nil {
-					return fmt.Errorf("refresh caller %d status: %w", newJob.ID, err)
-				}
-				hasWaitingCallerJobs = true
 			}
 
 			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
@@ -357,7 +362,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			}
 		}
 
-		newAttempt.Status = actions_model.AggregateJobStatus(newJobsToRerun)
+		newAttempt.Status = actions_model.AggregateJobStatus(newJobs)
 		if err := actions_model.UpdateRunAttempt(ctx, newAttempt, "status"); err != nil {
 			return err
 		}
@@ -384,12 +389,9 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)
 
-	// Post-commit kick for expanded callers and restored matrix placeholders: let job_emitter
-	// resolve child jobs, and re-expand a placeholder whose needs may all be pass-through and done.
-	if hasWaitingCallerJobs || len(plan.matrixPlaceholderTemplateIDs) > 0 {
-		if err := EmitJobsIfReadyByRun(plan.run.ID); err != nil {
-			log.Error("emit run %d after rerun: %v", plan.run.ID, err)
-		}
+	// Post-commit kick: resolve rerun jobs with needs, children of expanded callers and dependents of skipped jobs.
+	if err := EmitJobsIfReadyByRun(plan.run.ID); err != nil {
+		log.Error("emit run %d after rerun: %v", plan.run.ID, err)
 	}
 
 	return newAttempt, nil
@@ -488,7 +490,7 @@ func (p *rerunPlan) expandRerunJobIDs(jobsToRerun []*actions_model.ActionRunJob)
 
 // hasRerunDependency reports whether `job` has a needs-reference that points to a job which is itself being rerun (in rerunAttemptJobIDs)
 // or is an ancestor caller whose subtree is being rerun (in ancestorAttemptJobIDs).
-// Either case means `job` should start in Pending status.
+// Either case means the needs of `job` may produce different results or outputs in the new attempt.
 func (p *rerunPlan) hasRerunDependency(job *actions_model.ActionRunJob) bool {
 	if len(job.Needs) == 0 {
 		return false
