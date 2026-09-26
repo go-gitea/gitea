@@ -50,7 +50,6 @@ func (l *license) UnmarshalYAML(node *yaml.Node) error {
 }
 
 type actor struct {
-	isEntity     bool
 	Name         string `yaml:"name"`
 	Alias        string `yaml:"alias"`
 	FamilyNames  string `yaml:"family-names"`
@@ -68,26 +67,13 @@ type actor struct {
 func (a *actor) UnmarshalYAML(node *yaml.Node) error {
 	switch node.Kind {
 	case yaml.ScalarNode:
-		a.isEntity, a.Name = true, node.Value
+		a.Name = node.Value
 		return nil
 	case yaml.SequenceNode:
 		return nil // ruby-cff can't format an entity given as a list either
 	}
 	type plainActor actor
-	if err := node.Load((*plainActor)(a), yaml.WithUniqueKeys(false)); err != nil {
-		return err
-	}
-	for i := 0; i < len(node.Content); i += 2 {
-		a.isEntity = a.isEntity || node.Content[i].Value == "name"
-	}
-	return nil
-}
-
-func (a *actor) name() string {
-	if a == nil {
-		return ""
-	}
-	return a.Name
+	return node.Load((*plainActor)(a), yaml.WithUniqueKeys(false))
 }
 
 type metadata struct {
@@ -120,9 +106,9 @@ type reference struct {
 	Notes           string  `yaml:"notes"`
 	CollectionTitle string  `yaml:"collection-title"`
 	ThesisType      string  `yaml:"thesis-type"`
-	Publisher       *actor  `yaml:"publisher"`
-	Institution     *actor  `yaml:"institution"`
-	Conference      *actor  `yaml:"conference"`
+	Publisher       actor   `yaml:"publisher"`
+	Institution     actor   `yaml:"institution"`
+	Conference      actor   `yaml:"conference"`
 }
 
 // FormatCFF returns the APA and BibTeX citations of a CITATION.cff file, both empty if it has no title or authors
@@ -222,7 +208,7 @@ func joinNonEmpty(sep string, parts ...string) string {
 }
 
 func (r *reference) conferenceDates() (start, end date) {
-	if r.Type == "conference-paper" && r.Conference != nil {
+	if r.Type == "conference-paper" {
 		return r.Conference.DateStart, r.Conference.DateEnd
 	}
 	return date{}, date{}
@@ -260,10 +246,7 @@ func (r *reference) volume() string {
 }
 
 func (r *reference) institution() string {
-	if r.Institution != nil {
-		return r.Institution.Name
-	}
-	return r.Authors[0].Affiliation
+	return cmp.Or(r.Institution.Name, r.Authors[0].Affiliation)
 }
 
 func (r *reference) formatAPA() string {
@@ -287,7 +270,7 @@ func (r *reference) formatAPA() string {
 }
 
 func apaAuthor(author actor) string {
-	if author.isEntity {
+	if author.Name != "" {
 		return author.Name
 	}
 	name := cmp.Or(author.FamilyNames, author.GivenNames, author.Alias)
@@ -356,7 +339,7 @@ func (r *reference) apaPublicationData() string {
 	case "article":
 		return joinNonEmpty(", ", r.Journal, r.volume(), r.pages("–"), statusNotes[r.Status])
 	case "book":
-		return r.Publisher.name()
+		return r.Publisher.Name
 	case "conference-paper":
 		return joinNonEmpty(", ", r.CollectionTitle, r.volume(), r.pages("–"))
 	case "report":
@@ -404,21 +387,14 @@ var (
 )
 
 func (r *reference) formatBibTeX() string {
-	place, address := r.Publisher, ""
+	place := r.Publisher
 	if r.Type == "conference-paper" {
 		place = r.Conference
 	}
-	if place != nil {
-		address = joinNonEmpty(", ", place.City, place.Region, place.Country)
-	}
-	editors := r.Editors
-	if len(editors) == 0 {
-		editors = r.EditorsSeries
-	}
 	typeFields := map[string]string{
-		"address":     address,
+		"address":     joinNonEmpty(", ", place.City, place.Region, place.Country),
 		"booktitle":   bibtexEscaper.Replace(r.CollectionTitle),
-		"editor":      bibtexActors(editors),
+		"editor":      cmp.Or(bibtexActors(r.Editors), bibtexActors(r.EditorsSeries)),
 		"institution": bibtexEscaper.Replace(r.institution()),
 		"isbn":        bibtexEscaper.Replace(r.ISBN),
 		"journal":     bibtexEscaper.Replace(r.Journal),
@@ -426,9 +402,9 @@ func (r *reference) formatBibTeX() string {
 		"note":        statusNotes[r.Status],
 		"number":      r.Issue,
 		"pages":       r.pages("--"),
-		"publisher":   bibtexEscaper.Replace(r.Publisher.name()),
+		"publisher":   bibtexEscaper.Replace(r.Publisher.Name),
 		"school":      bibtexEscaper.Replace(r.institution()),
-		"series":      bibtexEscaper.Replace(r.Conference.name()),
+		"series":      bibtexEscaper.Replace(r.Conference.Name),
 		"type":        r.ThesisType,
 		"version":     bibtexEscaper.Replace(r.Version),
 		"volume":      bibtexEscaper.Replace(r.Volume),
@@ -487,7 +463,7 @@ func bibtexActors(actors []actor) string {
 	names := make([]string, 0, len(actors))
 	for _, entry := range actors {
 		switch {
-		case entry.isEntity:
+		case entry.Name != "":
 			names = append(names, "{"+bibtexEscaper.Replace(entry.Name)+"}")
 		case entry.FamilyNames == "" && entry.GivenNames == "":
 			names = append(names, bibtexEscaper.Replace(entry.Alias))
