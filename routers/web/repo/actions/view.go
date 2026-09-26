@@ -287,6 +287,7 @@ type ArtifactsViewItem struct {
 	Size        int64  `json:"size"`
 	Status      string `json:"status"`
 	ExpiresUnix int64  `json:"expiresUnix"`
+	PreviewLink string `json:"previewLink,omitempty"`
 }
 
 type ViewResponse struct {
@@ -708,11 +709,14 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.Artifacts = make([]*ArtifactsViewItem, 0, len(arts))
 	for _, art := range arts {
+		allowPreview := ctx.IsSigned && isArtifactPreviewSizeAllowed(art.FileSize)
+		previewLink := fmt.Sprintf("%s/actions/artifacts/%d/preview", ctx.Repo.RepoLink, art.ID)
 		resp.Artifacts = append(resp.Artifacts, &ArtifactsViewItem{
 			Name:        art.ArtifactName,
 			Size:        art.FileSize,
 			Status:      util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
 			ExpiresUnix: int64(art.ExpiredUnix),
+			PreviewLink: util.Iif(allowPreview, previewLink, ""),
 		})
 	}
 }
