@@ -407,6 +407,8 @@ func HandleRemoteAddressError(ctx *context.APIContext, err error) {
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.APIError(http.StatusBadRequest, "Invalid mirror protocol")
+		case addrErr.IsAuthNotSupported:
+			ctx.APIError(http.StatusBadRequest, "Username and password are not supported for SSH addresses, authentication uses the managed SSH key.")
 		case addrErr.IsURLError:
 			ctx.APIError(http.StatusBadRequest, "Invalid Url ")
 		case addrErr.IsPermissionDenied:

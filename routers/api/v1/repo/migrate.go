@@ -107,6 +107,13 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
+	// The managed SSH key must belong to the doer or the migration target owner,
+	// never to an arbitrary third party (0 means "the target owner's key").
+	if form.SSHKeyOwnerID != 0 && form.SSHKeyOwnerID != ctx.Doer.ID && form.SSHKeyOwnerID != repoOwner.ID {
+		ctx.APIError(http.StatusForbidden, "ssh_key_owner_id must be 0, the authenticated user, or the repository owner")
+		return
+	}
+
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
@@ -146,6 +153,7 @@ func Migrate(ctx *context.APIContext) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
+		SSHKeyOwnerID:  form.SSHKeyOwnerID,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,
@@ -258,6 +266,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 func handleRemoteAddrError(ctx *context.APIContext, err error) {
 	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
+		case addrErr.IsAuthNotSupported:
+			ctx.APIError(http.StatusUnprocessableEntity, "Username and password are not supported for SSH addresses, authentication uses the managed SSH key.")
 		case addrErr.IsURLError:
 			ctx.APIError(http.StatusUnprocessableEntity, "The provided URL is invalid.")
 		case addrErr.IsPermissionDenied:

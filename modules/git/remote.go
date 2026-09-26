@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/util"
 )
 
@@ -34,6 +35,7 @@ type ErrInvalidCloneAddr struct {
 	IsInvalidPath      bool
 	IsProtocolInvalid  bool
 	IsPermissionDenied bool
+	IsAuthNotSupported bool
 	LocalPath          bool
 }
 
@@ -52,6 +54,9 @@ func (err *ErrInvalidCloneAddr) Error() string {
 	}
 	if err.IsPermissionDenied {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed.", err.Host)
+	}
+	if err.IsAuthNotSupported {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: username and password are not supported for SSH addresses", err.Host)
 	}
 	if err.IsURLError {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided url is invalid", err.Host)
@@ -73,19 +78,31 @@ func IsRemoteNotExistError(err error) bool {
 // and returns composed URL with needed username and password.
 func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
 	remoteAddr = strings.TrimSpace(remoteAddr)
-	// Remote address can be HTTP/HTTPS/Git URL or local path.
-	if strings.HasPrefix(remoteAddr, "http://") ||
-		strings.HasPrefix(remoteAddr, "https://") ||
-		strings.HasPrefix(remoteAddr, "git://") {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", &ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
-		}
+
+	u, err := giturl.ParseGitURL(remoteAddr)
+	if err != nil {
+		return "", &ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
+	}
+
+	switch u.Scheme {
+	case "http", "https", "git":
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
 		}
-		remoteAddr = u.String()
+		return u.URL.String(), nil
+	case "ssh":
+		// SSH uses key-based auth only; the address itself is valid, the credentials are not usable
+		if len(authUsername)+len(authPassword) > 0 {
+			return "", &ErrInvalidCloneAddr{IsAuthNotSupported: true, Host: remoteAddr}
+		}
+		// Normalize SCP short syntax (git@host:path) into an ssh:// URL so
+		// downstream SSH handling can detect and use it consistently
+		if !strings.HasPrefix(u.Path, "/") {
+			u.Path = "/" + u.Path
+		}
+		return u.URL.String(), nil
+	default:
+		// Local path or unsupported scheme: pass through unchanged
+		return remoteAddr, nil
 	}
-
-	return remoteAddr, nil
 }
