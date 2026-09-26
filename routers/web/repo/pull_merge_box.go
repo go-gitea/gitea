@@ -19,35 +19,17 @@ type pullMergeBoxInfoItem struct {
 }
 
 type pullMergeBoxInfoItemCollection struct {
-	infoItems  []*pullMergeBoxInfoItem
-	errorItems []*pullMergeBoxInfoItem
+	items     []*pullMergeBoxInfoItem
+	hasErrors bool
 }
 
-func (c *pullMergeBoxInfoItemCollection) isEmpty() bool {
-	return len(c.infoItems) == 0 && len(c.errorItems) == 0
-}
-
-// pullInfoSection is one rendered block of the merge box: the error items are rendered
-// as sub-items of the heading item, the info items are rendered as top-level rows below them
 type pullInfoSection struct {
-	HeadingItem *pullMergeBoxInfoItem
-	SubItems    []*pullMergeBoxInfoItem
-	InfoItems   []*pullMergeBoxInfoItem
+	InfoItems []*pullMergeBoxInfoItem
+	IsBlocked bool
 }
 
-func (s *pullInfoSection) HasItems() bool {
-	return s.HeadingItem != nil || len(s.SubItems) > 0 || len(s.InfoItems) > 0
-}
-
-func newPullInfoSection(ctx *context.Context, c *pullMergeBoxInfoItemCollection) *pullInfoSection {
-	section := &pullInfoSection{SubItems: c.errorItems, InfoItems: c.infoItems}
-	if len(section.SubItems) > 0 {
-		section.HeadingItem = &pullMergeBoxInfoItem{
-			SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
-			InfoHTML:    htmlutil.HTMLFormat("<strong>%s</strong>", ctx.Locale.Tr("repo.pulls.merging_is_blocked")),
-		}
-	}
-	return section
+func (c *pullMergeBoxInfoItemCollection) toSection() *pullInfoSection {
+	return &pullInfoSection{InfoItems: c.items, IsBlocked: c.hasErrors}
 }
 
 func escapeStringSliceToHTML(s []string) (ret []template.HTML) {
@@ -58,16 +40,16 @@ func escapeStringSliceToHTML(s []string) (ret []template.HTML) {
 }
 
 func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, optItems ...[]template.HTML) {
-	c.infoItems = append(c.infoItems, &pullMergeBoxInfoItem{
+	c.items = append(c.items, &pullMergeBoxInfoItem{
 		SvgIconHTML: svg,
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
 	})
 }
 
-// AddErrorItem adds a blocking reason, it is rendered as a sub-item of the "merging is blocked" heading
 func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
-	c.errorItems = append(c.errorItems, &pullMergeBoxInfoItem{
+	c.hasErrors = true
+	c.items = append(c.items, &pullMergeBoxInfoItem{
 		SvgIconHTML: svg.RenderHTML("octicon-dot-fill", 16, "tw-text-text-light"),
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
@@ -91,7 +73,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
 			((mergeBoxData.enableStatusCheck || mergeBoxData.hasRequiredStatusContexts) && (statusCheckData.RequiredChecksState.IsWarning() || statusCheckData.RequiredChecksState.IsPending()))
 	}
 
-	hasBlockers := !mergeBoxData.infoCommitBlockers.isEmpty() || !mergeBoxData.infoProtectionBlockers.isEmpty()
+	hasBlockers := len(mergeBoxData.infoCommitBlockers.items) > 0 || len(mergeBoxData.infoProtectionBlockers.items) > 0
 
 	switch {
 	case pull.HasMerged:
@@ -189,8 +171,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	// when the doer can bypass overridable blockers, the merge form offers switch-to-force-merge,
-	// so no separate admin/allowlist prompt is needed here; only show the positive "can be merged" hint when clear
 	if data.canMergeNow && !data.hasOverridableBlockers && (pull.IsStatusMergeable() || pull.IsEmpty()) {
 		prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
 			svg.RenderHTML("octicon-check"),
@@ -198,9 +178,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	blockers := &data.infoCommitBlockers
-	if blockers.isEmpty() {
-		blockers = &data.infoProtectionBlockers
+	if len(data.infoCommitBlockers.items) > 0 {
+		data.InfoSections = append(data.InfoSections, data.infoCommitBlockers.toSection())
+	} else {
+		data.InfoSections = append(data.InfoSections, data.infoProtectionBlockers.toSection())
 	}
-	data.InfoSections = append(data.InfoSections, newPullInfoSection(ctx, blockers), newPullInfoSection(ctx, &data.infoMergePrompts))
+	data.InfoSections = append(data.InfoSections, data.infoMergePrompts.toSection())
 }

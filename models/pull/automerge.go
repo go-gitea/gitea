@@ -10,6 +10,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/timeutil"
 )
 
@@ -80,18 +81,24 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 	return true, scheduledPRM, err
 }
 
-// GetScheduledMergeByPullIDs returns the scheduled auto merges for the given pull request IDs, keyed by pull ID.
-// The returned entries do not have their Doer loaded.
+// GetScheduledMergeByPullIDs returns the scheduled auto merges with their doers loaded, keyed by pull ID
 func GetScheduledMergeByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]*AutoMerge, error) {
 	if len(pullIDs) == 0 {
 		return map[int64]*AutoMerge{}, nil
 	}
-	merges := make([]*AutoMerge, 0, len(pullIDs))
+	var merges []*AutoMerge
 	if err := db.GetEngine(ctx).In("pull_id", pullIDs).Find(&merges); err != nil {
+		return nil, err
+	}
+	doers, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(merges, func(m *AutoMerge) (int64, bool) {
+		return m.DoerID, true
+	}))
+	if err != nil {
 		return nil, err
 	}
 	result := make(map[int64]*AutoMerge, len(merges))
 	for _, m := range merges {
+		m.Doer = user_model.GetPossibleUserFromMap(m.DoerID, doers)
 		result[m.PullID] = m
 	}
 	return result, nil

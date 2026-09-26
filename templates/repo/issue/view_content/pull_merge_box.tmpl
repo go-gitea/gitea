@@ -29,21 +29,12 @@
 				</div>
 			{{end}}
 			{{range $infoSection := $data.InfoSections}}
-				{{if $infoSection.HasItems}}
+				{{if $infoSection.InfoItems}}
 				<div class="item">
-					{{with $infoSection.HeadingItem}}
-						<div class="flex-text-block">{{.SvgIconHTML}} {{.InfoHTML}}</div>
+					{{if $infoSection.IsBlocked}}
+						<div class="flex-text-block tw-font-semibold">{{svg "octicon-x" 16 "tw-text-red"}} {{ctx.Locale.Tr "repo.pulls.merging_is_blocked"}}</div>
 					{{end}}
-					{{range $subItem := $infoSection.SubItems}}
-						<div class="flex-text-block tw-pl-6 tw-text-text-light">{{$subItem.SvgIconHTML}} {{$subItem.InfoHTML}}</div>
-						{{if $subItem.ListItems}}
-							<ul class="tw-pl-[60px] tw-text-text-light">{{/* align with the sub-item icon and text */}}
-								{{range $listItem := $subItem.ListItems}}
-									<li>{{$listItem}}</li>
-								{{end}}
-							</ul>
-						{{end}}
-					{{end}}
+					<div class="{{if $infoSection.IsBlocked}}tw-pl-6 tw-text-text-light{{end}}">
 					{{range $infoItem := $infoSection.InfoItems}}
 						<div class="flex-text-block">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
 						{{if $infoItem.ListItems}}
@@ -54,6 +45,7 @@
 							</ul>
 						{{end}}
 					{{end}}
+					</div>
 				</div>
 				{{end}}
 			{{end}}
@@ -77,18 +69,18 @@
 			{{end}}
 
 			{{if or $data.MergeFormProps $data.ShowPullCommands}}
-				<div class="item">
+				<div class="item tw-bg-box-header tw-rounded-b">
 					{{if $data.MergeFormProps}}
 						<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
 					{{else}}
 						<a class="show-modal" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a>
 					{{end}}
-					{{if $data.ShowPullCommands}}
-						{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
-					{{end}}
 				</div>
 			{{end}}
 			</div>
+			{{if $data.ShowPullCommands}}
+				{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
+			{{end}}
 		</div>
 	</div>
 </div>

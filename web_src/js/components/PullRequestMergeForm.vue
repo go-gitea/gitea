@@ -17,7 +17,6 @@ type MergeStyle = {
 type MergeForm = {
   allOverridableChecksOk: boolean,
   baseLink: string,
-  canBypassProtection: boolean,
   canMergeNow: boolean,
   defaultDeleteBranchAfterMerge: boolean,
   defaultMergeMessage: string,
@@ -30,12 +29,11 @@ type MergeForm = {
   mergeStyles: MergeStyle[],
   pullHeadCommitID: string,
   showPullCommands: boolean,
-  textAutoMergeButtonWhenSucceed: string,
   textAutoMergeCancelSchedule: string,
-  textAutoMergeWhenSucceed: string,
   textBypassRules: string,
   textCancel: string,
   textCmdHint: string,
+  textCmdMergeHint: string,
   textClearMergeMessage: string,
   textClearMergeMessageHint: string,
   textDeleteBranch: string,
@@ -58,29 +56,19 @@ const forceMerge = shallowRef(false);
 const mergeStyle = shallowRef('');
 const mergeStyleDetail = shallowRef<MergeStyle>({name: '', allowed: false, textDoMerge: '', hideAutoMerge: false});
 
-const mergeStyleAllowedCount = computed(() => mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0));
+const allowedMergeStyles = mergeForm.mergeStyles.filter((msd) => msd.allowed);
 
 const showMergeStyleMenu = shallowRef(false);
 const showActionForm = shallowRef(false);
 
-// the bypass action is only offered when the user can bypass and there are overridable blockers
-const showBypassProtection = computed(() => {
-  return mergeForm.canBypassProtection && !mergeForm.allOverridableChecksOk;
-});
+const autoMergeWhenSucceed = computed(() => !mergeStyleDetail.value.hideAutoMerge && !forceMerge.value);
 
-// the merge mode is derived, not hand-managed: with overridable blockers present and no explicit bypass,
-// the only valid action is to schedule an auto merge (unless the selected style has no auto merge, eg manual merge)
-const autoMergeWhenSucceed = computed(() => {
-  return !mergeForm.allOverridableChecksOk && !forceMerge.value && !mergeStyleDetail.value.hideAutoMerge;
-});
+const mergeButtonText = computed(() => autoMergeWhenSucceed.value ? mergeStyleDetail.value.textAutoMerge : mergeStyleDetail.value.textDoMerge);
 
-// primary: the merge happens on submit; uncolored: it is only scheduled, or is a bookkeeping action
 const mergeButtonStyleClass = computed(() => {
-  if (mergeStyle.value === mergeStyleManuallyMerged) return '';
-  return autoMergeWhenSucceed.value ? '' : 'primary';
+  if (!mergeForm.canMergeNow || !mergeForm.allOverridableChecksOk) return '';
+  return mergeStyle.value === mergeStyleManuallyMerged ? '' : 'primary';
 });
-
-const mergeSelectStyleClass = computed(() => mergeForm.emptyCommit ? '' : mergeButtonStyleClass.value);
 
 watch(mergeStyle, (val) => {
   mergeStyleDetail.value = mergeForm.mergeStyles.find((e) => e.name === val)!;
@@ -114,7 +102,6 @@ function toggleActionForm(show: boolean) {
 }
 
 function selectMergeStyle(name: string) {
-  // the dropdown only chooses the merge style; the merge mode (auto / force) is chosen independently
   mergeStyle.value = name;
   showMergeStyleMenu.value = false;
 }
@@ -126,11 +113,8 @@ function clearMergeMessage() {
 
 <template>
   <!--
-  if this component is shown, the user has permission to merge.
-  the dropdown only chooses the merge style; the merge mode is derived:
-  - no overridable blockers => merge now
-  - overridable blockers, no bypass => enable auto merge (merge when checks succeed)
-  - overridable blockers + "bypass rules" checkbox (only offered when the user can bypass) => merge now, skipping the blockers
+  if this component is shown, either the user is an admin (can do a merge without checks), or they are a writer who has the permission to do a merge
+  if the user is a writer and can't do a merge now (canMergeNow==false), then only show the Auto Merge for them
   How to test the UI manually:
   * Method 1: manually set some variables in pull.tmpl, eg: {{$notAllOverridableChecksOk = true}} {{$canMergeNow = false}}
   * Method 2: make a protected branch, then set state=pending/success :
@@ -142,10 +126,9 @@ function clearMergeMessage() {
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
 
-    <!-- opt in to bypassing the blockers and merging now, instead of scheduling an auto merge -->
-    <div class="ui checkbox tw-mb-2" v-if="showBypassProtection">
+    <div class="ui checkbox tw-mb-3" v-if="mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk">
       <input type="checkbox" v-model="forceMerge" id="merge-bypass-rules">
-      <label for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
+      <label class="tw-text-red" for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
     </div>
 
     <!-- another similar form is in pull.tmpl (manual merge)-->
@@ -174,8 +157,7 @@ function clearMergeMessage() {
 
       <div class="flex-text-block">
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
-          <template v-if="autoMergeWhenSucceed">{{ mergeStyleDetail.textAutoMerge }}</template>
-          <template v-else>{{ mergeStyleDetail.textDoMerge }}</template>
+          {{ mergeButtonText }}
         </button>
 
         <button class="ui button merge-cancel" type="button" @click="toggleActionForm(false)">
@@ -189,25 +171,21 @@ function clearMergeMessage() {
       </div>
     </form>
 
-    <div v-if="!showActionForm" class="flex-text-block">
+    <div v-if="!showActionForm" class="flex-text-block tw-flex-wrap">
       <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
+      <div class="ui buttons merge-button" :class="mergeForm.emptyCommit ? '' : mergeButtonStyleClass" @click="toggleActionForm(true)">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
-            <template v-if="autoMergeWhenSucceed">{{ mergeStyleDetail.textAutoMerge }}</template>
-            <template v-else>{{ mergeStyleDetail.textDoMerge }}</template>
+            {{ mergeButtonText }}
           </span>
         </button>
-        <!-- the dropdown only chooses the merge style; hidden when there is nothing to choose -->
-        <div class="ui dropdown icon button" v-if="mergeStyleAllowedCount > 1" @click.stop="showMergeStyleMenu = !showMergeStyleMenu">
+        <div class="ui dropdown icon button" v-if="allowedMergeStyles.length > 1" @click.stop="showMergeStyleMenu = !showMergeStyleMenu">
           <svg-icon name="octicon-triangle-down" :size="14"/>
           <div class="menu" :class="{'show':showMergeStyleMenu}">
-            <template v-for="msd in mergeForm.mergeStyles">
-              <div class="item" v-if="msd.allowed" :key="msd.name" @click.stop="selectMergeStyle(msd.name)">
-                {{ msd.textDoMerge }}
-              </div>
-            </template>
+            <div class="item" v-for="msd in allowedMergeStyles" :key="msd.name" @click.stop="selectMergeStyle(msd.name)">
+              {{ msd.textDoMerge }}
+            </div>
           </div>
         </div>
       </div>
@@ -219,7 +197,10 @@ function clearMergeMessage() {
         </button>
       </form>
 
-      <a v-if="mergeForm.showPullCommands" class="show-modal" href="" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
+      <span v-if="mergeForm.showPullCommands" class="tw-text-12 tw-text-text-light">
+        {{ mergeForm.textCmdMergeHint }}
+        <a class="show-modal" href="" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
+      </span>
     </div>
   </div>
 </template>
@@ -243,9 +224,6 @@ function clearMergeMessage() {
 .ui.merge-button > .ui.dropdown:last-child > .menu:not(.left) {
   left: 0;
   right: auto;
-}
-.ui.merge-button .ui.dropdown .menu > .item {
-  padding: 0.8rem !important; /* polluted by semantic.css: .ui.dropdown .menu > .item { !important } */
 }
 
 </style>
