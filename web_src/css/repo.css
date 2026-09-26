@@ -995,16 +995,10 @@
   width: 100%;
 }
 
-#cite-repo-modal #citation-panel input {
-  border-radius: 0;
-  padding: 5px 10px;
-  width: 50%;
-  line-height: 1.4;
-}
-
 #cite-repo-modal #citation-panel .citation.button {
   font-size: 13px;
   padding: 7.5px 5px;
+  border-right: none;
 }
 
 #cite-repo-modal #citation-panel #citation-copy-content {
@@ -1013,11 +1007,6 @@
   font-size: 1.2em;
   line-height: 1.4;
   flex: 1;
-}
-
-#cite-repo-modal #citation-panel #citation-copy-apa,
-#cite-repo-modal #citation-panel #citation-copy-bibtex {
-  border-right: none;
 }
 
 #cite-repo-modal #citation-panel #goto-citation-btn {

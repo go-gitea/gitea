@@ -31,7 +31,6 @@ interface Window {
         SortType: string,
         StatusFilterMap: Record<string, string>,
       },
-      citationFileContent?: string,
       prReview?: {
         numberOfFiles: number,
         numberOfViewedFiles: number,

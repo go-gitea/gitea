@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/citation"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
@@ -93,32 +95,32 @@ func prepareClonePanel(ctx *context.Context) {
 	}
 }
 
-func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
-	return func(ctx *context.Context) {
-		if entry.Name() != "" {
-			return
+func prepareHomeSidebarCitationFile(ctx *context.Context) {
+	allEntries, err := ctx.Repo.Commit.Tree().ListEntries(ctx, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.ServerError("ListEntries", err)
+		return
+	}
+	for _, name := range []string{"CITATION.cff", "CITATION.bib"} {
+		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool { return strings.EqualFold(entry.Name(), name) })
+		if idx == -1 {
+			continue
 		}
-		tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
+		content, err := allEntries[idx].Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 		if err != nil {
-			HandleGitError(ctx, "Repo.Commit.SubTree", err)
-			return
+			log.Error("checkCitationFile: GetBlobContent: %v", err)
+			continue
 		}
-		allEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
-		if err != nil {
-			ctx.ServerError("ListEntries", err)
-			return
+		apa, bibtex := "", content
+		if name == "CITATION.cff" {
+			apa, bibtex = citation.FormatCFF(content)
 		}
-		for _, entry := range allEntries {
-			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-				// Read Citation file contents
-				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
-					log.Error("checkCitationFile: GetBlobContent: %v", err)
-				} else {
-					ctx.Data["CitiationExist"] = true
-					ctx.PageData["citationFileContent"] = content
-					break
-				}
-			}
+		if bibtex != "" {
+			ctx.Data["CitationExist"] = true
+			ctx.Data["CitationFileName"] = allEntries[idx].Name()
+			ctx.Data["CitationAPA"] = apa
+			ctx.Data["CitationBibTeX"] = bibtex
+			return
 		}
 	}
 }
@@ -470,7 +472,7 @@ func Home(ctx *context.Context) {
 			checkOutdatedBranch,
 			prepareUpstreamDivergingInfo,
 			prepareHomeSidebarLicenses,
-			prepareHomeSidebarCitationFile(entry),
+			prepareHomeSidebarCitationFile,
 			prepareHomeSidebarLanguageStats,
 			prepareHomeSidebarLatestRelease,
 		)
