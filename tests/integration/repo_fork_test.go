@@ -80,6 +80,37 @@ func TestRepoForkToOrg(t *testing.T) {
 	assert.False(t, exists, "Forking should not be allowed anymore")
 }
 
+func TestRepoForkMultipleUnderDifferentNames(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user1")
+	testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+
+	// forking the same repo again under a different name should still be offered (via the fork modal) and succeed
+	req := NewRequest(t, "GET", "/user2/repo1")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find(`a[href$="/fork"]`).Attr("href")
+	assert.True(t, exists, "The template has changed")
+
+	req = NewRequest(t, "GET", link)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	formAction, exists := htmlDoc.doc.Find(`form.ui.form[action*="/fork"]`).Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	forkOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
+	req = NewRequestWithValues(t, "POST", formAction, map[string]string{
+		"uid":                strconv.FormatInt(forkOwner.ID, 10),
+		"repo_name":          "repo1-variant",
+		"fork_single_branch": "",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "/user1/repo1-variant", test.RedirectURL(resp))
+
+	req = NewRequest(t, "GET", "/user1/repo1-variant")
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	forkItemSelector := ".fork-list .item"
