@@ -102,6 +102,21 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 	return shouldStart, err
 }
 
+// decideJobIf skips a waiting job whose `if:` is false before its insertion, an invalid `if:` is returned for the job's summary.
+func decideJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string) (invalidIf, err error) {
+	if job.Status != actions_model.StatusWaiting {
+		return nil, nil
+	}
+	shouldStart, err := resolveJobIf(ctx, run, attempt, job, vars, true)
+	if errors.Is(err, util.ErrInvalidArgument) {
+		invalidIf, err = err, nil
+	}
+	if !shouldStart {
+		job.Status = actions_model.StatusSkipped
+	}
+	return invalidIf, err
+}
+
 // resolveJobIf evaluates a job's `if:` and returns an invalid `if:` as util.ErrInvalidArgument.
 func resolveJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
 	parsedJob, err := job.ParseJob()

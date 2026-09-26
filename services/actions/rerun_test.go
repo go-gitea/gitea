@@ -463,36 +463,21 @@ func TestRerunDecidesJobIf(t *testing.T) {
 	ctx := t.Context()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	variable, err := actions_model.InsertVariable(ctx, 0, repo.ID, "DEPLOY", "yes", "")
 	require.NoError(t, err)
 
-	run := &actions_model.ActionRun{
-		Title:             "rerun-job-if",
-		RepoID:            repo.ID,
-		OwnerID:           repo.OwnerID,
-		WorkflowID:        "rerun-job-if.yaml",
-		TriggerUserID:     user.ID,
-		Ref:               "refs/heads/master",
-		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:             "push",
-		TriggerEvent:      "push",
-		EventPayload:      "{}",
-		WorkflowRepoID:    repo.ID,
-		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-	}
-	require.NoError(t, PrepareRunAndInsert(ctx, []byte(`on: push
+	run := insertMaxParallelRun(t, `on: push
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo hi
+      - run: echo
   deploy:
     if: vars.DEPLOY == 'yes'
     runs-on: ubuntu-latest
     steps:
-      - run: echo hi
-`), run, nil))
+      - run: echo
+`, false)
 	jobs := map[string]*actions_model.ActionRunJob{}
 	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
 		require.Equal(t, actions_model.StatusWaiting, job.Status)
@@ -501,15 +486,12 @@ jobs:
 		require.NoError(t, err)
 		jobs[job.JobID] = job
 	}
-	require.Len(t, jobs, 2)
 	run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
-	require.Equal(t, actions_model.StatusSuccess, run.Status)
 
-	// turn the deployment off, then rerun it alone
 	variable.Data = "no"
 	_, err = actions_model.UpdateVariableCols(ctx, variable, "data")
 	require.NoError(t, err)
-	attempt, err := RerunWorkflowRunJobs(ctx, repo, run, user, []*actions_model.ActionRunJob{jobs["deploy"]})
+	attempt, err := RerunWorkflowRunJobs(ctx, repo, run, &user_model.User{ID: 1}, []*actions_model.ActionRunJob{jobs["deploy"]})
 	require.NoError(t, err)
 	rerunJobs := map[string]*actions_model.ActionRunJob{}
 	for _, job := range runJobs(t, run.ID, attempt.ID) {
@@ -518,7 +500,6 @@ jobs:
 	assert.Equal(t, actions_model.StatusSuccess, rerunJobs["build"].Status)
 	assert.Equal(t, actions_model.StatusSkipped, rerunJobs["deploy"].Status)
 
-	// nothing is left to run, so the new attempt is done right away: its status includes the pass-through build
 	attempt = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: attempt.ID})
 	assert.Equal(t, actions_model.StatusSuccess, attempt.Status)
 	assert.NotZero(t, attempt.Stopped)

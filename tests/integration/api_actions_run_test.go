@@ -210,8 +210,7 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 
 	for _, jobID := range []int64{198, 199} {
 		job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobID})
-		// Add a valid payload so that a rerun can decide the job's `if:` from it
-		job.WorkflowPayload = fmt.Appendf(nil, "jobs:\n  %s:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", job.JobID)
+		job.WorkflowPayload = minimalConcurrentWorkflowPayload(job.JobID)
 		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "workflow_payload")
 		require.NoError(t, err)
 	}
@@ -530,7 +529,7 @@ func testAPIActionsApproveWorkflowRun(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
 			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
 			Name: "job1", Attempt: 1, JobID: "job1", Status: actions_model.StatusBlocked, RunsOn: []string{"ubuntu-latest"},
-			WorkflowPayload: []byte("jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n"),
+			WorkflowPayload: minimalConcurrentWorkflowPayload("job1"),
 		}))
 		return run
 	}

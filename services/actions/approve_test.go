@@ -38,7 +38,7 @@ func TestApproveRuns(t *testing.T) {
 			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
 			Name: "job1", Attempt: 1, JobID: "job1", Status: status,
 			RunsOn: []string{"ubuntu-latest"}, Needs: needs,
-			WorkflowPayload: []byte("jobs:\n  job1:\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]\n"),
+			WorkflowPayload: minimalWorkflowPayload("job1"),
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
 		return job
@@ -61,7 +61,7 @@ func TestApproveRuns(t *testing.T) {
 		defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 		run := insertRun(1006, actions_model.StatusBlocked, true, 0)
 		job := insertJob(run, actions_model.StatusBlocked)
-		job.WorkflowPayload = []byte("jobs:\n  job1:\n    if: false\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]\n")
+		job.WorkflowPayload = []byte("jobs:\n  job1:\n    if: false\n")
 		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "workflow_payload")
 		require.NoError(t, err)
 

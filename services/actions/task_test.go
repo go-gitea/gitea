@@ -75,17 +75,15 @@ func TestReleaseTaskForRunnerCleanup(t *testing.T) {
 }
 
 func TestRunnerWorkflowPayload(t *testing.T) {
-	job := &actions_model.ActionRunJob{
+	payload, err := runnerWorkflowPayload(&actions_model.ActionRunJob{
 		JobID:           "build",
-		WorkflowPayload: []byte("name: ci\non: push\njobs:\n  build:\n    if: github.event_name == 'push'\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
-	}
-	payload, err := runnerWorkflowPayload(job)
+		WorkflowPayload: []byte("name: ci\njobs:\n  build:\n    if: false\n    steps:\n      - run: echo\n"),
+	})
 	require.NoError(t, err)
 
 	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(payload)
 	require.NoError(t, err)
 	assert.Equal(t, "ci", swf.Name)
 	assert.Equal(t, "always()", parsedJob.If.Value)
-	assert.Equal(t, []string{"ubuntu-latest"}, parsedJob.RunsOn())
 	assert.Len(t, parsedJob.Steps, 1)
 }

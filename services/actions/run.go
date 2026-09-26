@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	act_model "gitea.dev/actionslib/pkg/model"
@@ -179,11 +178,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 	return nil
 }
 
-// insertRunJob builds a single run job from a parsed workflow job, decides a ready
-// no-needs job's `if:`, evaluates its job-level concurrency, inserts it, and — for a
-// ready no-needs reusable caller — inline-expands it. It returns the inserted job, any
-// jobs cancelled by job concurrency, and whether a post-commit emitter pass is needed
-// to resolve the dependents of a skipped job or a caller.
+// insertRunJob returns the inserted job, the jobs its concurrency cancelled, and whether a post-commit emitter pass is needed.
 func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any, slots maxParallelSlots) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
 	id, job := workflowJob.Job()
 	needs := job.Needs()
@@ -237,19 +232,10 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		runJob.CallUses = job.Uses
 	}
 
-	// Decide `if:` before concurrency and max-parallel, so a skipped job neither cancels its group peers nor takes a slot.
-	// Jobs with `needs` decide it in the job emitter.
-	var invalidIfErr error
-	if runJob.Status == actions_model.StatusWaiting {
-		shouldStart, err := resolveJobIf(ctx, run, runAttempt, runJob, vars, true)
-		if errors.Is(err, util.ErrInvalidArgument) {
-			invalidIfErr = err
-		} else if err != nil {
-			return nil, nil, false, fmt.Errorf("evaluate job if: %w", err)
-		}
-		if !shouldStart {
-			runJob.Status = actions_model.StatusSkipped
-		}
+	// a skipped job must neither cancel its group peers nor take a slot
+	invalidIf, err := decideJobIf(ctx, run, runAttempt, runJob, vars)
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("evaluate job if: %w", err)
 	}
 
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
@@ -261,7 +247,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		}
 		runJob.RawConcurrency = string(rawConcurrency)
 
-		// do not evaluate job concurrency when it requires `needs` (the job emitter evaluates it later) or when the job is skipped
+		// the job emitter evaluates it for jobs with `needs`, a skipped job never takes part
 		if len(needs) == 0 && runJob.Status != actions_model.StatusSkipped {
 			if err := EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs); err != nil {
 				return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
@@ -286,33 +272,26 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	if err := db.Insert(ctx, runJob); err != nil {
 		return nil, nil, false, err
 	}
-	if invalidIfErr != nil {
-		if err := upsertJobErrorSummary(ctx, runJob, "if", invalidIfErr); err != nil {
+	if invalidIf != nil {
+		if err := upsertJobErrorSummary(ctx, runJob, "if", invalidIf); err != nil {
 			return nil, nil, false, err
 		}
 	}
 
-	// expand reusable caller
-	var needPostCommitEmit bool
 	if isReusableWorkflowCaller && runJob.Status == actions_model.StatusWaiting {
 		if err := expandInlineReusableCaller(ctx, run, runAttempt, runJob, vars); err != nil {
 			return nil, nil, false, err
 		}
-		// an expanded caller needs a resolver pass to resolve its children jobs
-		needPostCommitEmit = true
 	}
-	// a job skipped by its `if:` needs a resolver pass to propagate its state to its dependents
-	needPostCommitEmit = needPostCommitEmit || runJob.Status == actions_model.StatusSkipped
 
-	return runJob, cancelledConcurrencyJobs, needPostCommitEmit, nil
+	// the emitter resolves an expanded caller's children and a skipped job's dependents
+	return runJob, cancelledConcurrencyJobs, runJob.IsExpanded || runJob.Status == actions_model.StatusSkipped, nil
 }
 
-// expandInlineReusableCaller expands a ready caller into its child jobs and refreshes its status from them.
 func expandInlineReusableCaller(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
 	if err := expandReusableWorkflowCaller(ctx, run, runAttempt, caller, vars); err != nil {
 		return fmt.Errorf("inline trigger caller %d ready: %w", caller.ID, err)
 	}
-	// refresh the caller status
 	if err := actions_model.RefreshReusableCallerStatus(ctx, caller); err != nil {
 		return fmt.Errorf("refresh caller %d status: %w", caller.ID, err)
 	}

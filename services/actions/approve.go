@@ -21,7 +21,6 @@ import (
 func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
-	// Track runs that need a resolver pass after the tx commits: the callee rows of expanded callers and the dependents of skipped jobs.
 	runIDsToEmit := make(container.Set[int64])
 
 	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
@@ -63,7 +62,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				// Only a job this approval unblocks competes for a slot, one that is already
 				// active was counted by the seeding loop above and must not take a second.
 				isUnblocking := job.Status == actions_model.StatusBlocked
-				// Decide `if:` first, so a skipped job neither takes a slot nor cancels its group peers.
+				// a skipped job must neither cancel its group peers nor take a slot
 				if isUnblocking {
 					shouldStart, err := evaluateJobIf(ctx, run, nil, job, vars, true)
 					if err != nil {
@@ -116,11 +115,8 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					if !has {
 						return errors.New("run has no attempt")
 					}
-					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
-						return fmt.Errorf("expand caller %d on approval: %w", job.ID, err)
-					}
-					if err := actions_model.RefreshReusableCallerStatus(ctx, job); err != nil {
-						return fmt.Errorf("refresh caller %d status after approval-time expansion: %w", job.ID, err)
+					if err := expandInlineReusableCaller(ctx, run, attempt, job, vars); err != nil {
+						return err
 					}
 					runIDsToEmit.Add(run.ID)
 				}
@@ -132,8 +128,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		return nil, err
 	}
 
-	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting
-	// and the dependents of skipped jobs get resolved.
+	// Re-emit AFTER the tx commits so callee rows and dependents of skipped jobs get resolved.
 	for runID := range runIDsToEmit {
 		if err := EmitJobsIfReadyByRun(runID); err != nil {
 			log.Error("emit run %d after approval: %v", runID, err)

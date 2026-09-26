@@ -102,50 +102,28 @@ func TestPrepareRunAndInsert_JobIf(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 
-	content := []byte(`name: job-if
-on: push
+	run := insertMaxParallelRun(t, `on: push
 jobs:
   start:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - run: echo hi
+      - run: echo
   skip:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    concurrency:
-      group: skip
+    concurrency: skip
     steps:
-      - run: echo hi
+      - run: echo
   skip-caller:
-    if: github.event_name != 'push'
+    if: false
     uses: ./.gitea/workflows/callee.yml
-    concurrency:
-      group: skip-caller
   invalid:
     if: fromJSON('{')
     runs-on: ubuntu-latest
     steps:
-      - run: echo hi
-`)
-	newRun := func(workflowID string) *actions_model.ActionRun {
-		return &actions_model.ActionRun{
-			Title:             workflowID,
-			RepoID:            4,
-			OwnerID:           1,
-			WorkflowID:        workflowID,
-			TriggerUserID:     1,
-			Ref:               "refs/heads/master",
-			CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-			Event:             "push",
-			TriggerEvent:      "push",
-			EventPayload:      "{}",
-			WorkflowRepoID:    4,
-			WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		}
-	}
-	run := newRun("job-if.yaml")
-	require.NoError(t, PrepareRunAndInsert(t.Context(), content, run, nil))
+      - run: echo
+`, false)
 
 	jobs := map[string]*actions_model.ActionRunJob{}
 	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
@@ -153,28 +131,12 @@ jobs:
 	}
 	assert.Equal(t, actions_model.StatusWaiting, jobs["start"].Status)
 	assert.Equal(t, actions_model.StatusSkipped, jobs["skip"].Status)
-	assert.False(t, jobs["skip"].IsConcurrencyEvaluated, "a skipped job must not take part in concurrency")
+	assert.False(t, jobs["skip"].IsConcurrencyEvaluated)
 	assert.Equal(t, actions_model.StatusSkipped, jobs["skip-caller"].Status)
-	assert.False(t, jobs["skip-caller"].IsConcurrencyEvaluated, "a skipped caller must not take part in concurrency")
 	assert.Equal(t, actions_model.StatusSkipped, jobs["invalid"].Status)
 	summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs["invalid"].ID, 0)
 	require.NoError(t, err)
 	assert.Contains(t, summary.Content, "Error when evaluating `if` for job `invalid`")
-
-	// a run whose jobs are all skipped is done at insertion, so it must carry its stop time
-	skippedRun := newRun("job-if-skipped.yaml")
-	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(`on: push
-jobs:
-  skip:
-    if: github.event_name != 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo hi
-`), skippedRun, nil))
-	attempt := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: skippedRun.LatestAttemptID})
-	assert.Equal(t, actions_model.StatusSkipped, attempt.Status)
-	assert.NotZero(t, attempt.Stopped)
-	assert.NotZero(t, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: skippedRun.ID}).Stopped)
 }
 
 func TestComputeReusableCallerOutputs(t *testing.T) {

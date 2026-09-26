@@ -173,9 +173,7 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 	}, job, nil
 }
 
-// runnerWorkflowPayload returns the job's payload with `if:` replaced by `always()`.
-// Gitea has already decided the job-level `if:` before dispatching the job, so a runner does not need to check it again.
-// Setting `if:` to `always()` makes the runner no longer check the `if:` expression.
+// runnerWorkflowPayload sets the job `if:` to `always()`, as Gitea has decided it and a runner must not re-evaluate it.
 func runnerWorkflowPayload(job *actions_model.ActionRunJob) ([]byte, error) {
 	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
