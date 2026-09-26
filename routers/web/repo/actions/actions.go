@@ -39,6 +39,7 @@ const (
 	tplListActions           templates.TplName = "repo/actions/list"
 	tplDispatchInputsActions templates.TplName = "repo/actions/workflow_dispatch_inputs"
 	tplViewActions           templates.TplName = "repo/actions/view"
+	tplArtifactPreviewAction templates.TplName = "repo/actions/artifact_preview"
 )
 
 type WorkflowInfo struct {
