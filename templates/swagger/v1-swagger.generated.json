@@ -15000,6 +15000,9 @@
           },
           "409": {
             "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/error"
           }
         }
       }

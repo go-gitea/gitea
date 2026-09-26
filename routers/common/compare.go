@@ -27,12 +27,6 @@ type CompareRouterReq struct {
 	HeadOriRefSuffix string
 }
 
-func (cr *CompareRouterReq) DirectComparison() bool {
-	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
-	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
-	return cr.CompareSeparator == ".."
-}
-
 func parseHead(head string) (headOwnerName, headRepoName, headRef string) {
 	paths := strings.SplitN(head, ":", 2)
 	if len(paths) == 1 {

@@ -19,7 +19,10 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
+	"gitea.dev/modules/util"
 )
+
+var errUpdateUnrelatedHistories = util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "update failed because of unrelated histories"), "repo.pulls.no_common_history")
 
 // Update updates pull request with base branch.
 func Update(pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
@@ -96,6 +99,9 @@ func Update(pr *issues_model.PullRequest, doer *user_model.User, message string,
 	// * "merge" operation does finish, but the post-receive hook isn't correctly executed due to other reasons:
 	//   * although the target branch is merged into head branch by this "update" (head branch receives new commits)
 	//   * but database isn't updated, so the PR status is still "behind the target branch"
+	if IsErrMergeUnrelatedHistories(err) {
+		return errUpdateUnrelatedHistories
+	}
 	return err
 }
 
