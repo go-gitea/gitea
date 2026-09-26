@@ -16,6 +16,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // GetIssueDependencies list an issue's dependencies
@@ -313,57 +314,25 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	page := max(ctx.FormInt("page"), 1)
-	limit := ctx.FormInt("limit")
-	if limit <= 1 {
-		limit = setting.API.DefaultPagingNum
-	}
+	listOptions := utils.GetListOptions(ctx)
 
-	skip := (page - 1) * limit
-	maxNum := page * limit
-
-	deps, err := issue.BlockingDependencies(ctx)
+	loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: ctx.Doer, PublicOnly: ctx.PublicOnly}
+	deps, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, issues_model.IssueList{issue})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	blocking := deps[issue.ID].Blocking
 
-	var issues []*issues_model.Issue
-
-	repoPerms := make(map[int64]access_model.Permission)
-	repoPerms[ctx.Repo.Repository.ID] = ctx.Repo.Permission
-
-	for i, depMeta := range deps {
-		if i < skip || i >= maxNum {
-			continue
-		}
-
-		// Get the permissions for this repository
-		// If the repo ID exists in the map, return the exist permissions
-		// else get the permission and add it to the map
-		var perm access_model.Permission
-		existPerm, ok := repoPerms[depMeta.RepoID]
-		if ok {
-			perm = existPerm
-		} else {
-			var err error
-			perm, err = access_model.GetDoerRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			repoPerms[depMeta.RepoID] = perm
-		}
-
-		if !perm.CanReadIssuesOrPulls(depMeta.Issue.IsPull) {
-			continue
-		}
-
-		depMeta.Issue.Repo = &depMeta.Repository
-		issues = append(issues, &depMeta.Issue)
+	// paginate after filtering so hidden issues never leave gaps in a page
+	skip, take := listOptions.GetSkipTake()
+	start, end := len(blocking), len(blocking) // a negative skip means page*limit overflowed, so it is past the end
+	if skip >= 0 {
+		start = min(skip, len(blocking))
+		end = min(start+take, len(blocking))
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, blocking[start:end]))
 }
 
 // CreateIssueBlocking block the issue given in the body by the issue in path

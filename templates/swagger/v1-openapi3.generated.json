@@ -7172,6 +7172,22 @@
             "type": "array",
             "x-go-name": "Assignees"
           },
+          "blocked_by": {
+            "description": "Set only when the request includes \"dependencies\"; issues blocking this one that the caller may read",
+            "items": {
+              "$ref": "#/components/schemas/IssueMeta"
+            },
+            "type": "array",
+            "x-go-name": "BlockedBy"
+          },
+          "blocking": {
+            "description": "Set only when the request includes \"dependencies\"; issues this one blocks that the caller may read",
+            "items": {
+              "$ref": "#/components/schemas/IssueMeta"
+            },
+            "type": "array",
+            "x-go-name": "Blocking"
+          },
           "body": {
             "type": "string",
             "x-go-name": "Body"
@@ -16629,6 +16645,14 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "description": "comma-separated list of extra fields to include. \"dependencies\" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read",
+            "in": "query",
+            "name": "includes",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -22865,6 +22889,14 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "comma-separated list of extra fields to include. \"dependencies\" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read",
+            "in": "query",
+            "name": "includes",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -23779,6 +23811,14 @@
             "schema": {
               "format": "int64",
               "type": "integer"
+            }
+          },
+          {
+            "description": "comma-separated list of extra fields to include. \"dependencies\" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read",
+            "in": "query",
+            "name": "includes",
+            "schema": {
+              "type": "string"
             }
           }
         ],

@@ -5274,6 +5274,12 @@
             "description": "Number of items per page",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma-separated list of extra fields to include. \"dependencies\" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read",
+            "name": "includes",
+            "in": "query"
           }
         ],
         "responses": {
@@ -11003,6 +11009,12 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma-separated list of extra fields to include. \"dependencies\" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read",
+            "name": "includes",
+            "in": "query"
           }
         ],
         "responses": {
@@ -11808,6 +11820,12 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "comma-separated list of extra fields to include. \"dependencies\" adds blocked_by and blocking, each an array of {owner, repo, index} for the dependencies the caller may read",
+            "name": "includes",
+            "in": "query"
           }
         ],
         "responses": {
@@ -30247,6 +30265,22 @@
             "$ref": "#/definitions/User"
           },
           "x-go-name": "Assignees"
+        },
+        "blocked_by": {
+          "description": "Set only when the request includes \"dependencies\"; issues blocking this one that the caller may read",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueMeta"
+          },
+          "x-go-name": "BlockedBy"
+        },
+        "blocking": {
+          "description": "Set only when the request includes \"dependencies\"; issues this one blocks that the caller may read",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueMeta"
+          },
+          "x-go-name": "Blocking"
         },
         "body": {
           "type": "string",

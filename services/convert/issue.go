@@ -19,21 +19,43 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	issue_service "gitea.dev/services/issue"
 )
 
-func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, WebAssetDownloadURL)
+// ToIssueOptions controls optional data included in issue API responses
+type ToIssueOptions struct {
+	IncludeDependencies bool
+	PublicOnly          bool
+	// dependencies is filled by prepareIssueListOpts so a list converts with one batch load
+	dependencies map[int64]*issue_service.VisibleDependencies
+}
+
+func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL, util.OptionalArg(opts))
 }
 
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
+func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, opts ...ToIssueOptions) *api.Issue {
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL, util.OptionalArg(opts))
 }
 
-func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(ctx context.Context, repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
+// toIssueMetas always returns a non-nil slice so an issue with no dependencies serializes as []
+func toIssueMetas(issues []*issues_model.Issue) []*api.IssueMeta {
+	result := make([]*api.IssueMeta, 0, len(issues))
+	for _, issue := range issues {
+		result = append(result, &api.IssueMeta{
+			Owner: issue.Repo.OwnerName,
+			Name:  issue.Repo.Name,
+			Index: issue.Index,
+		})
+	}
+	return result
+}
+
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(ctx context.Context, repo *repo_model.Repository, attach *repo_model.Attachment) string, opts ToIssueOptions) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
@@ -131,27 +153,58 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		apiIssue.Deadline = issue.DeadlineUnix.AsTimePtr()
 	}
 
+	if opts.IncludeDependencies {
+		deps := opts.dependencies[issue.ID]
+		if deps == nil { // single-issue path: no list batch was prepared
+			loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: doer, PublicOnly: opts.PublicOnly}
+			loaded, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, issues_model.IssueList{issue})
+			if err != nil {
+				log.Error("LoadVisibleDependencies: %v", err)
+				return apiIssue
+			}
+			deps = loaded[issue.ID]
+		}
+		apiIssue.BlockedBy = toIssueMetas(deps.BlockedBy)
+		apiIssue.Blocking = toIssueMetas(deps.Blocking)
+	}
+
 	return apiIssue
 }
 
 // ToIssueList converts an IssueList to API format
-func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
+	o := prepareIssueListOpts(ctx, doer, il, util.OptionalArg(opts))
 	result := make([]*api.Issue, len(il))
-	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = ToIssue(ctx, doer, il[i])
+		result[i] = ToIssue(ctx, doer, il[i], o)
 	}
 	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
+func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList, opts ...ToIssueOptions) []*api.Issue {
+	o := prepareIssueListOpts(ctx, doer, il, util.OptionalArg(opts))
 	result := make([]*api.Issue, len(il))
-	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = ToAPIIssue(ctx, doer, il[i])
+		result[i] = ToAPIIssue(ctx, doer, il[i], o)
 	}
 	return result
+}
+
+func prepareIssueListOpts(ctx context.Context, doer *user_model.User, il issues_model.IssueList, o ToIssueOptions) ToIssueOptions {
+	_ = il.LoadPinOrder(ctx)
+	if !o.IncludeDependencies {
+		return o
+	}
+	loadOpts := issue_service.LoadVisibleDependenciesOptions{Doer: doer, PublicOnly: o.PublicOnly}
+	deps, err := issue_service.LoadVisibleDependencies(ctx, loadOpts, il)
+	if err != nil {
+		log.Error("LoadVisibleDependencies: %v", err)
+		o.IncludeDependencies = false // do not retry per issue after the batch failed
+		return o
+	}
+	o.dependencies = deps
+	return o
 }
 
 // ToTrackedTime converts TrackedTime to API format
