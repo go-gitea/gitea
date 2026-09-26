@@ -443,7 +443,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		log.Error("GetRunsFromCommitStatuses: %v", err)
 	}
 	for _, run := range runs {
-		if run.NeedApproval {
+		if run.IsAwaitingApproval() {
 			statusCheckData.RequireApprovalRunCount++
 		}
 	}
