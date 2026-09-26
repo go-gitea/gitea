@@ -138,14 +138,10 @@ func CommonRoutes() *web.Router {
 				reqPackageAccess(perm.AccessModeRead)(ctx)
 			}
 		}, tfmodule.DownloadArchive)
-		r.Group("", func() {
-			r.Get("/versions", tfmodule.ListVersions)
-			r.Get("/{version}/download", tfmodule.DownloadRedirect)
-			r.Group("/{version}", func() {
-				r.Put("", tfmodule.UploadModule)
-				r.Delete("", tfmodule.DeleteModule)
-			}, reqPackageAccess(perm.AccessModeWrite))
-		}, reqPackageAccess(perm.AccessModeRead))
+		r.Get("/versions", reqPackageAccess(perm.AccessModeRead), tfmodule.ListVersions)
+		r.Get("/{version}/download", reqPackageAccess(perm.AccessModeRead), tfmodule.DownloadRedirect)
+		r.Put("/{version}", reqPackageAccess(perm.AccessModeWrite), tfmodule.UploadModule)
+		r.Delete("/{version}", reqPackageAccess(perm.AccessModeWrite), tfmodule.DeleteModule)
 	}, context.UserAssignmentWeb(), context.PackageAssignment())
 
 	r.Group("/{username}", func() {

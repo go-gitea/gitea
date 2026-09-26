@@ -82,11 +82,7 @@
 		{{if .Providers}}
 			<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.providers"}}</h4>
 			<div class="ui attached segment">
-				<ul>
-				{{range .Providers}}
-					<li><code>{{.Name}}</code>{{if .Source}} ({{.Source}}){{end}}{{if .Version}} <code>{{.Version}}</code>{{end}}</li>
-				{{end}}
-				</ul>
+				<ul>{{range .Providers}}<li><code>{{.Name}}</code>{{if .Source}} ({{.Source}}){{end}}{{if .Version}} <code>{{.Version}}</code>{{end}}</li>{{end}}</ul>
 			</div>
 		{{end}}
 	{{end}}
@@ -94,22 +90,7 @@
 	{{if .PackageDescriptor.Metadata.Submodules}}
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.submodules"}}</h4>
 		<div class="ui attached segment">
-			<table class="ui table">
-				<thead><tr>
-					<th>{{ctx.Locale.Tr "packages.terraform_module.name"}}</th>
-					<th>{{ctx.Locale.Tr "packages.terraform_module.inputs"}}</th>
-					<th>{{ctx.Locale.Tr "packages.terraform_module.outputs"}}</th>
-				</tr></thead>
-				<tbody>
-				{{range .PackageDescriptor.Metadata.Submodules}}
-					<tr>
-						<td><code>{{.Name}}</code></td>
-						<td>{{len .Inputs}}</td>
-						<td>{{len .Outputs}}</td>
-					</tr>
-				{{end}}
-				</tbody>
-			</table>
+			<ul>{{range .PackageDescriptor.Metadata.Submodules}}<li><code>{{$source}}//modules/{{.}}</code></li>{{end}}</ul>
 		</div>
 	{{end}}
 {{end}}

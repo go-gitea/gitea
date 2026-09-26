@@ -76,7 +76,6 @@ func ServiceDiscovery(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]string{"modules.v1": setting.AppSubURL + "/api/packages/-/terraform/modules/"})
 }
 
-// https://developer.hashicorp.com/terraform/internals/module-registry-protocol#list-available-versions-for-a-specific-module
 func ListVersions(ctx *context.Context) {
 	name, err := packageName(ctx)
 	if err != nil {
@@ -99,7 +98,6 @@ func ListVersions(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]any{"modules": []any{map[string]any{"versions": versions}}})
 }
 
-// https://developer.hashicorp.com/terraform/internals/module-registry-protocol#download-source-code-for-a-specific-module-version
 func DownloadRedirect(ctx *context.Context) {
 	pi, err := packageInfo(ctx)
 	if err != nil {
@@ -107,11 +105,7 @@ func DownloadRedirect(ctx *context.Context) {
 		return
 	}
 	if _, err := packages_model.GetVersionByNameAndVersion(ctx, pi.Owner.ID, pi.PackageType, pi.Name, pi.Version); err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 	// signed because Terraform sends no credentials when fetching it, "archive" tells go-getter the format of the extensionless URL
@@ -128,11 +122,7 @@ func DownloadArchive(ctx *context.Context) {
 	}
 	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(ctx, pi, &packages_service.PackageFileInfo{Filename: archiveFilename}, ctx.Req.Method)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 	helper.ServePackageFile(ctx, s, u, pf)
@@ -208,11 +198,7 @@ func DeleteModule(ctx *context.Context) {
 		return
 	}
 	if err := packages_service.RemovePackageVersionByNameAndVersion(ctx, ctx.Doer, pi); err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

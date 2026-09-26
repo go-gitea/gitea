@@ -14,7 +14,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"sync"
+
+	"gitea.dev/modules/container"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -24,27 +25,26 @@ import (
 )
 
 var (
-	ErrInvalidName         = errors.New("module name is invalid")
-	ErrInvalidProvider     = errors.New("module provider is invalid")
-	ErrInvalidVersion      = errors.New("module version is invalid")
-	ErrArchiveTooLarge     = errors.New("module archive exceeds size limit")
-	ErrNoRootModule        = errors.New("no terraform module at the archive root: package the module directory's contents, not the directory itself (e.g. `tar -czf module.tar.gz -C path/to/module .`)")
-	ErrUnsupportedTFFormat = errors.New("only .tf files are supported, .tf.json is not")
+	ErrInvalidName     = errors.New("module name is invalid")
+	ErrInvalidProvider = errors.New("module provider is invalid")
+	ErrInvalidVersion  = errors.New("module version is invalid")
+	ErrArchiveTooLarge = errors.New("module archive exceeds size limit")
+	ErrNoRootModule    = errors.New("no terraform module at the archive root: package the module directory's contents, not the directory itself (e.g. `tar -czf module.tar.gz -C path/to/module .`)")
 )
 
 const maxParseSize = 32 << 20 // decompressed bytes, bounds gzip bombs independently of the storage quota
 
 // same rules as Terraform's module source address parser (github.com/hashicorp/terraform-registry-address)
 var (
-	nameRe   = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`\A[0-9A-Za-z](?:[0-9A-Za-z_-]{0,62}[0-9A-Za-z])?\z`) })
-	systemRe = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`\A[0-9a-z]{1,64}\z`) })
+	nameRe   = regexp.MustCompile(`\A[0-9A-Za-z](?:[0-9A-Za-z_-]{0,62}[0-9A-Za-z])?\z`)
+	systemRe = regexp.MustCompile(`\A[0-9a-z]{1,64}\z`)
 )
 
 func ValidateNameAndProvider(name, provider string) error {
-	if !nameRe().MatchString(name) {
+	if !nameRe.MatchString(name) {
 		return ErrInvalidName
 	}
-	if !systemRe().MatchString(provider) {
+	if !systemRe.MatchString(provider) {
 		return ErrInvalidProvider
 	}
 	return nil
@@ -75,9 +75,9 @@ func ParseModuleArchive(r io.Reader) (*Metadata, error) {
 }
 
 func parseTar(tr *tar.Reader) (*Metadata, error) {
-	sources := map[string]map[string][]byte{} // module dir ("" for the root) -> .tf filename -> content
-	var readme string
-	var hasTFJSON bool
+	metadata := &Metadata{}
+	root := map[string][]byte{}
+	submodules := container.Set[string]{}
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
@@ -87,59 +87,40 @@ func parseTar(tr *tar.Reader) (*Metadata, error) {
 			return nil, fmt.Errorf("invalid tar stream: %w", err)
 		}
 		dir, base := path.Split(path.Clean(hdr.Name))
-		dir = strings.TrimSuffix(dir, "/")
-		if hdr.Typeflag != tar.TypeReg || strings.HasPrefix(base, "._") || !isModuleDir(dir) { // "._" are macOS AppleDouble sidecars
+		if hdr.Typeflag != tar.TypeReg || strings.HasPrefix(base, "._") { // macOS AppleDouble sidecars
 			continue
 		}
+		dir = strings.TrimSuffix(dir, "/")
 		lowerBase := strings.ToLower(base)
-		switch {
-		case strings.HasSuffix(lowerBase, ".tf.json"):
-			hasTFJSON = true
-		case strings.HasSuffix(lowerBase, ".tf"):
-			data, err := io.ReadAll(tr)
-			if err != nil {
-				return nil, err
-			}
-			if sources[dir] == nil {
-				sources[dir] = map[string][]byte{}
-			}
-			sources[dir][base] = data
-		case dir == "" && (lowerBase == "readme.md" || lowerBase == "readme"):
-			data, err := io.ReadAll(tr)
-			if err != nil {
-				return nil, err
-			}
-			readme = string(data)
+		isSource := strings.HasSuffix(lowerBase, ".tf") || strings.HasSuffix(lowerBase, ".tf.json")
+		isReadme := lowerBase == "readme.md" || lowerBase == "readme"
+		if name, ok := strings.CutPrefix(dir, "modules/"); ok && isSource && !strings.Contains(name, "/") { // standard module structure
+			submodules.Add(name)
 		}
-	}
-
-	if len(sources) == 0 {
-		if hasTFJSON {
-			return nil, ErrUnsupportedTFFormat
+		if dir != "" || !isSource && !isReadme {
+			continue
 		}
-		return nil, ErrNoRootModule
-	}
-
-	metadata := &Metadata{Readme: readme}
-	for _, dir := range slices.Sorted(maps.Keys(sources)) {
-		module, err := parseModule(sources[dir])
+		data, err := io.ReadAll(tr)
 		if err != nil {
 			return nil, err
 		}
-		if dir == "" {
-			metadata.Root = module
+		if isReadme {
+			metadata.Readme = string(data)
 		} else {
-			module.Name = strings.TrimPrefix(dir, "modules/")
-			metadata.Submodules = append(metadata.Submodules, module)
+			root[base] = data
 		}
 	}
+	if len(root) == 0 && len(submodules) == 0 {
+		return nil, ErrNoRootModule
+	}
+	if len(root) > 0 {
+		var err error
+		if metadata.Root, err = parseModule(root); err != nil {
+			return nil, err
+		}
+	}
+	metadata.Submodules = slices.Sorted(maps.Keys(submodules))
 	return metadata, nil
-}
-
-// isModuleDir reports whether dir is the root or a `modules/<name>` submodule of the standard module structure
-func isModuleDir(dir string) bool {
-	name, ok := strings.CutPrefix(dir, "modules/")
-	return dir == "" || ok && !strings.Contains(name, "/")
 }
 
 func parseModule(files map[string][]byte) (*Module, error) {
@@ -147,6 +128,9 @@ func parseModule(files map[string][]byte) (*Module, error) {
 	providers := map[string]*Provider{}
 	parser := hclparse.NewParser()
 	for _, filename := range slices.Sorted(maps.Keys(files)) {
+		if strings.HasSuffix(strings.ToLower(filename), ".json") {
+			continue // .tf.json is consumable but not indexed
+		}
 		src := files[filename]
 		file, diags := parser.ParseHCL(src, filename)
 		if diags.HasErrors() {

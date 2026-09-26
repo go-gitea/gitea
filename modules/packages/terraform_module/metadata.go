@@ -4,13 +4,12 @@
 package terraform_module
 
 type Metadata struct {
-	Readme     string    `json:"readme,omitempty"`
-	Root       *Module   `json:"root,omitempty"`
-	Submodules []*Module `json:"submodules,omitempty"`
+	Readme     string   `json:"readme,omitempty"`
+	Root       *Module  `json:"root,omitempty"`
+	Submodules []string `json:"submodules,omitempty"`
 }
 
 type Module struct {
-	Name      string      `json:"name,omitempty"`
 	Inputs    []*Input    `json:"inputs,omitempty"`
 	Outputs   []*Output   `json:"outputs,omitempty"`
 	Providers []*Provider `json:"providers,omitempty"`
