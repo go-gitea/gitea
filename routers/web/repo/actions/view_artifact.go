@@ -252,10 +252,45 @@ func artifactPreviewContentType(filename string, st typesniffer.SniffedType) str
 	case ".css", ".htm", ".html", ".js", ".mjs":
 		return public.DetectWellKnownMimeType(ext)
 	}
-	if st.IsText() {
+	if st.IsTextPlain() {
 		return "text/plain; charset=utf-8"
 	}
 	return st.GetMimeType()
+}
+
+func insertArtifactPreviewHelperScript(buf []byte) []byte {
+	addHeadTag := false
+	// try after "<head>"
+	pos := bytes.Index(buf, []byte("<head>"))
+	if pos != -1 {
+		pos += len("<head>")
+	}
+
+	// try before "<body>"
+	if pos == -1 {
+		pos = bytes.Index(buf, []byte("<body>"))
+	}
+
+	// try after "<html>"
+	if pos == -1 {
+		pos = bytes.Index(buf, []byte("<html>"))
+		if pos != -1 {
+			pos += len("<html>")
+			addHeadTag = true
+		}
+	}
+
+	helperScript := htmlutil.HTMLFormat(`<script crossorigin src="%s"></script>`, public.AssetURI("web_src/js/external-render-helper.ts"))
+	if addHeadTag {
+		helperScript = "<head>" + helperScript + "</head>"
+	}
+
+	if pos == -1 {
+		return append([]byte(helperScript), buf...)
+	}
+	ret := append(append([]byte(nil), buf[:pos]...), []byte(helperScript)...)
+	ret = append(ret, buf[pos:]...)
+	return ret
 }
 
 // ServeArtifactPreviewContent serves a previewable file, size must be the exact content length
@@ -264,39 +299,31 @@ func ServeArtifactPreviewContent(ctx *context_module.Base, filePath string, read
 		ctx.HTTPError(http.StatusRequestEntityTooLarge, "file is too large to preview, please download the artifact instead")
 		return
 	}
-	sniffBuf, err := util.ReadWithLimit(reader, int(min(size, typesniffer.SniffContentSize)))
+	reader = io.LimitReader(reader, size) // avoid reading more than the expected size
+
+	headBuf, err := util.ReadWithLimit(reader, 8*1024) // will try to find HTML head  in this buffer
 	if err != nil {
 		log.Error("artifact preview ReadWithLimit: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError)
 		return
 	}
-	st := typesniffer.DetectContentType(sniffBuf)
+	st := typesniffer.DetectContentType(headBuf)
 	if !st.IsText() && !st.IsImage() && !st.IsPDF() {
 		ctx.HTTPError(http.StatusUnsupportedMediaType, "artifact preview is not supported for this file type")
 		return
 	}
 
 	contentType := artifactPreviewContentType(filePath, st)
-	var helperScript []byte
 	if strings.HasPrefix(contentType, "text/html") {
-		helperScript = []byte(htmlutil.HTMLFormat(`<script crossorigin src="%s"></script>`, public.AssetURI("web_src/js/external-render-helper.ts")))
+		headBuf = insertArtifactPreviewHelperScript(headBuf)
 	}
-	var doctype []byte // the helper must follow a leading doctype, otherwise the page renders in quirks mode
-	if end := bytes.IndexByte(sniffBuf, '>'); helperScript != nil && end != -1 && bytes.HasPrefix(bytes.ToLower(bytes.TrimLeft(sniffBuf[:end], "\ufeff \t\r\n")), []byte("<!doctype")) {
-		doctype, sniffBuf = sniffBuf[:end+1], sniffBuf[end+1:]
-	}
-	contentLength := size + int64(len(helperScript))
 	httplib.ServeSetHeaders(ctx.Resp, httplib.ServeHeaderOptions{
 		Filename:           filePath,
 		ContentDisposition: httplib.ContentDispositionInline,
 		ContentType:        contentType,
-		ContentLength:      &contentLength,
 	})
-	if helperScript != nil {
-		ctx.Resp.Header().Set("Content-Security-Policy", "sandbox allow-scripts")
-	}
 	ctx.Resp.Header().Set("Access-Control-Allow-Origin", "*") // module scripts and fetch() from the sandboxed opaque origin need CORS
-	_, _ = io.Copy(ctx.Resp, io.MultiReader(bytes.NewReader(doctype), bytes.NewReader(helperScript), bytes.NewReader(sniffBuf), io.LimitReader(reader, size-int64(len(sniffBuf)))))
+	_, _ = io.Copy(ctx.Resp, io.MultiReader(bytes.NewReader(headBuf), reader))
 }
 
 func ArtifactsPreviewView(ctx *context_module.Context) {

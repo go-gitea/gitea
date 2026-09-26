@@ -41,7 +41,7 @@ const (
 	// Disable JS execution on the same origin, since we serve the file from the same origin as Gitea server.
 	// This rule can be relaxed in the future as long as it is properly sandboxed.
 	// "style-src" is for SVG inline styles (from Display SVG files as images instead of text #14101)
-	serveHeaderCspDefault = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+	serveHeaderCspDefault = "default-src 'none'; style-src 'unsafe-inline'; sandbox allow-scripts allow-modals allow-popups allow-downloads"
 
 	// No sandbox attribute for PDF as it breaks rendering in at least Safari.
 	// This should generally be safe as scripts inside PDF can not escape the PDF document.

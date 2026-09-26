@@ -280,7 +280,6 @@ func Routes() *web.Router {
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
-	routes.Get("/-/actions/artifacts/{artifact_id}/{expires}/{signature}/*", actions.ArtifactsPreviewRawView) // no session, the sandboxed frame sends no cookie
 
 	var mid []any
 
@@ -305,6 +304,7 @@ func Routes() *web.Router {
 	}
 
 	routes.Methods("GET,HEAD", "/robots.txt", append(mid, misc.RobotsTxt)...)
+	routes.Get("/-/actions/artifacts/{artifact_id}/{expires}/{signature}/*", append(mid, actions.ArtifactsPreviewRawView)...) // no session, the sandboxed frame sends no cookie
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
