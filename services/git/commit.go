@@ -69,19 +69,30 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 	return ParseCommitsWithStatus(ctx, signedCommits, repo)
 }
 
+// maxCommitStatusLookupCount bounds the commit status lookup: the compare and pull request commit
+// pages are not paginated, so an unrelated-histories comparison would otherwise ask the database
+// for the statuses of every commit in the repository. The lookup runs one batch per 50 commits at
+// well under a millisecond each, so this is set high enough never to drop a status for a real
+// comparison, and still far below what verifying the same commits' signatures costs.
+const maxCommitStatusLookupCount = 5000
+
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
 func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
 	if len(oldCommits) == 0 {
 		return nil, nil
 	}
 
-	commitIDs := make([]string, 0, len(oldCommits))
-	for _, c := range oldCommits {
-		commitIDs = append(commitIDs, c.GitCommit.ID.String())
-	}
-	statusMap, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, repo.ID, commitIDs)
-	if err != nil {
-		return nil, err
+	var statusMap map[string][]*git_model.CommitStatus
+	if len(oldCommits) <= maxCommitStatusLookupCount {
+		commitIDs := make([]string, 0, len(oldCommits))
+		for _, c := range oldCommits {
+			commitIDs = append(commitIDs, c.GitCommit.ID.String())
+		}
+		var err error
+		statusMap, err = git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, repo.ID, commitIDs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	newCommits := make([]*git_model.SignCommitWithStatuses, 0, len(oldCommits))

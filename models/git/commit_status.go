@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -364,65 +365,14 @@ func CountLatestCommitStatus(ctx context.Context, repoID int64, sha string) (int
 		Count()
 }
 
-// GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
-func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map[int64][]*CommitStatus, error) {
-	type result struct {
-		Index  int64
-		RepoID int64
-		SHA    string
-	}
+// commitStatusSHABatchSize caps how many SHAs go into one "sha IN (...)" query. The cost of a
+// long condition list is superlinear: on a MariaDB table of 1.3M rows, 3000 conditions took 36s
+// while batches of 50 stayed under a millisecond each, whatever indexes were available.
+const commitStatusSHABatchSize = 50
 
-	results := make([]result, 0, len(repoSHAs))
-
-	getBase := func() db.Session {
-		return db.GetEngine(ctx).Table(&CommitStatus{})
-	}
-
-	// Create a disjunction of conditions for each repoID and SHA pair
-	conds := make([]builder.Cond, 0, len(repoSHAs))
-	for _, repoSHA := range repoSHAs {
-		conds = append(conds, builder.Eq{"repo_id": repoSHA.RepoID, "sha": repoSHA.SHA})
-	}
-	sess := getBase().Where(builder.Or(conds...)).
-		Select("max( `index` ) as `index`, repo_id, sha").
-		GroupBy("context_hash, repo_id, sha").OrderBy("max( `index` ) desc")
-
-	err := sess.Find(&results)
-	if err != nil {
-		return nil, err
-	}
-
-	repoStatuses := make(map[int64][]*CommitStatus)
-
-	if len(results) > 0 {
-		statuses := make([]*CommitStatus, 0, len(results))
-
-		conds = make([]builder.Cond, 0, len(results))
-		for _, result := range results {
-			cond := builder.Eq{
-				"`index`": result.Index,
-				"repo_id": result.RepoID,
-				"sha":     result.SHA,
-			}
-			conds = append(conds, cond)
-		}
-		err = getBase().Where(builder.Or(conds...)).Find(&statuses)
-		if err != nil {
-			return nil, err
-		}
-
-		// Group the statuses by repo ID
-		for _, status := range statuses {
-			repoStatuses[status.RepoID] = append(repoStatuses[status.RepoID], status)
-		}
-	}
-
-	return repoStatuses, nil
-}
-
-// GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
-func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
-	type result struct {
+// getLatestCommitStatusForRepoSHAs returns the latest status of every context for the given SHAs of one repository
+func getLatestCommitStatusForRepoSHAs(ctx context.Context, repoID int64, shas []string) ([]*CommitStatus, error) {
+	type contextIndex struct {
 		Index int64
 		SHA   string
 	}
@@ -430,41 +380,75 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 	getBase := func() db.Session {
 		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
 	}
-	results := make([]result, 0, len(commitIDs))
 
-	conds := make([]builder.Cond, 0, len(commitIDs))
-	for _, sha := range commitIDs {
-		conds = append(conds, builder.Eq{"sha": sha})
+	shas = slices.Compact(slices.Sorted(slices.Values(shas))) // a SHA repeated across batches would return its statuses twice
+	statuses := make([]*CommitStatus, 0, len(shas))
+	for batch := range slices.Chunk(shas, commitStatusSHABatchSize) {
+		// most listed commits have no status at all, and the sha index answers this narrowing
+		// query cheaply, so the grouping below only has to touch the few SHAs that do have one
+		shasWithStatus := make([]string, 0, len(batch))
+		if err := getBase().And(builder.In("sha", batch)).Distinct("sha").Find(&shasWithStatus); err != nil {
+			return nil, err
+		}
+		if len(shasWithStatus) == 0 {
+			continue
+		}
+
+		indexes := make([]contextIndex, 0, len(shasWithStatus))
+		if err := getBase().And(builder.In("sha", shasWithStatus)).
+			Select("max( `index` ) as `index`, sha").
+			GroupBy("context_hash, sha").Find(&indexes); err != nil {
+			return nil, err
+		}
+		if len(indexes) == 0 {
+			continue
+		}
+
+		conds := make([]builder.Cond, 0, len(indexes))
+		for _, idx := range indexes {
+			conds = append(conds, builder.Eq{"`index`": idx.Index, "sha": idx.SHA})
+		}
+		batchStatuses := make([]*CommitStatus, 0, len(indexes))
+		// the redundant "sha IN" narrows the rows down by index before the pairs are evaluated
+		if err := getBase().And(builder.In("sha", shasWithStatus)).And(builder.Or(conds...)).Find(&batchStatuses); err != nil {
+			return nil, err
+		}
+		statuses = append(statuses, batchStatuses...)
 	}
-	sess := getBase().And(builder.Or(conds...)).
-		Select("max( `index` ) as `index`, sha").
-		GroupBy("context_hash, sha").OrderBy("max( `index` ) desc")
+	return statuses, nil
+}
 
-	err := sess.Find(&results)
+// GetLatestCommitStatusForPairs returns all statuses with a unique context for a given list of repo-sha pairs
+func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map[int64][]*CommitStatus, error) {
+	shasByRepo := make(map[int64][]string)
+	for _, repoSHA := range repoSHAs {
+		shasByRepo[repoSHA.RepoID] = append(shasByRepo[repoSHA.RepoID], repoSHA.SHA)
+	}
+
+	repoStatuses := make(map[int64][]*CommitStatus)
+	for repoID, shas := range shasByRepo {
+		statuses, err := getLatestCommitStatusForRepoSHAs(ctx, repoID, shas)
+		if err != nil {
+			return nil, err
+		}
+		if len(statuses) > 0 {
+			repoStatuses[repoID] = statuses
+		}
+	}
+	return repoStatuses, nil
+}
+
+// GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of commit IDs of one repository
+func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
+	statuses, err := getLatestCommitStatusForRepoSHAs(ctx, repoID, commitIDs)
 	if err != nil {
 		return nil, err
 	}
 
 	repoStatuses := make(map[string][]*CommitStatus)
-
-	if len(results) > 0 {
-		statuses := make([]*CommitStatus, 0, len(results))
-
-		conds = make([]builder.Cond, 0, len(results))
-		for _, result := range results {
-			conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
-		}
-		err = getBase().And(builder.Or(conds...)).Find(&statuses)
-		if err != nil {
-			return nil, err
-		}
-
-		// Group the statuses by commit
-		for _, status := range statuses {
-			repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
-		}
+	for _, status := range statuses {
+		repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
 	}
-
 	return repoStatuses, nil
 }
 

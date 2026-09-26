@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -282,4 +283,81 @@ func TestGetCountLatestCommitStatus(t *testing.T) {
 	count, err := git_model.CountLatestCommitStatus(t.Context(), repo1.ID, sha1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
+}
+
+func TestGetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
+
+	commitIDs := []string{sha1} // repeated in a later batch, must not duplicate its statuses
+	for i := range 60 {         // pad so that sha1 lands in a later query batch
+		commitIDs = append(commitIDs, fmt.Sprintf("%040d", i))
+	}
+	commitIDs = append(commitIDs, sha1)
+
+	statusMap, err := git_model.GetLatestCommitStatusForRepoCommitIDs(t.Context(), 1, commitIDs)
+	assert.NoError(t, err)
+	assert.Len(t, statusMap, 1)
+
+	states := make([]commitstatus.CommitStatusState, 0, 3)
+	for _, status := range statusMap[sha1] {
+		states = append(states, status.State)
+	}
+	assert.ElementsMatch(t, []commitstatus.CommitStatusState{
+		commitstatus.CommitStatusFailure, // ci/awesomeness, index 4
+		commitstatus.CommitStatusSuccess, // cov/awesomeness, index 3
+		commitstatus.CommitStatusError,   // deploy/awesomeness, index 5
+	}, states)
+
+	pairStatuses, err := git_model.GetLatestCommitStatusForPairs(t.Context(), []git_model.RepoSHA{
+		{RepoID: 1, SHA: sha1},
+		{RepoID: 2, SHA: sha1},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, pairStatuses, 1)
+	assert.Len(t, pairStatuses[1], 3)
+}
+
+func TestGetLatestCommitStatusForRepoAndSHAs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
+	sha2 := "2345234523452345234523452345234523452345"
+
+	// a second repository, plus a decoy status at repo 1 / sha2 that is never asked for:
+	// matching repositories and SHAs as a cross product would wrongly return it
+	for _, repoID := range []int64{1, 2} {
+		assert.NoError(t, db.Insert(t.Context(), &git_model.CommitStatus{
+			Index:       6,
+			RepoID:      repoID,
+			SHA:         sha2,
+			State:       commitstatus.CommitStatusSuccess,
+			Context:     "ci/awesomeness",
+			ContextHash: "c65f4d64a3b14a3eced0c9b36799e66e1bd5ced7",
+			CreatorID:   2,
+		}))
+		assert.NoError(t, git_model.UpdateCommitStatusSummary(t.Context(), repoID, sha2))
+	}
+	assert.NoError(t, git_model.UpdateCommitStatusSummary(t.Context(), 1, sha1))
+
+	statuses, err := git_model.GetLatestCommitStatusForRepoAndSHAs(t.Context(), []git_model.RepoSHA{
+		{RepoID: 1, SHA: sha1},
+		{RepoID: 2, SHA: sha2},
+		{RepoID: 2, SHA: sha1}, // a repository asked for with two SHAs must still be matched by both
+	})
+	assert.NoError(t, err)
+
+	pairs := make([]git_model.RepoSHA, 0, len(statuses))
+	for _, status := range statuses {
+		pairs = append(pairs, git_model.RepoSHA{RepoID: status.RepoID, SHA: status.SHA})
+		if status.RepoID == 2 {
+			assert.Equal(t, commitstatus.CommitStatusSuccess, status.State)
+		}
+	}
+	assert.ElementsMatch(t, []git_model.RepoSHA{{RepoID: 1, SHA: sha1}, {RepoID: 2, SHA: sha2}}, pairs)
+
+	statuses, err = git_model.GetLatestCommitStatusForRepoAndSHAs(t.Context(), nil)
+	assert.NoError(t, err)
+	assert.Empty(t, statuses)
 }
