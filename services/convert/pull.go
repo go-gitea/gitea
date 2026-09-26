@@ -22,10 +22,15 @@ import (
 	"gitea.dev/services/gitdiff"
 )
 
+// ToAPIPullRequestForEvent keeps the head repo in webhook and Actions payloads, like GitHub's events
+func ToAPIPullRequestForEvent(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
+	return ToAPIPullRequest(ctx, pr, doer, nil)
+}
+
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
+func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, canAccessRepo func(*repo_model.Repository) bool) *api.PullRequest {
 	var (
 		baseBranch string
 		headBranch string
@@ -181,15 +186,11 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			p.AccessMode = perm.AccessModeNone
 		}
 
-		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
-
-		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
-		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
-			return nil
+		headVisible := canAccessRepo == nil || pr.HeadRepoID == pr.BaseRepoID || p.HasAnyUnitAccessOrPublicAccess() && canAccessRepo(pr.HeadRepo)
+		if headVisible {
+			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
+			apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 		}
-		defer headGitRepo.Close()
 
 		exist, err = git_model.IsBranchExist(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
@@ -203,17 +204,14 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 			endCommitID   string
 		)
 
-		if !exist {
-			headCommitID, err := headGitRepo.GetRefCommitID(ctx, apiPullRequest.Head.Ref)
-			if err != nil && !git.IsErrNotExist(err) {
-				log.Error("GetCommit[%s]: %v", pr.HeadBranch, err)
+		if exist && headVisible {
+			headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
+			if err != nil {
+				log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
 				return nil
 			}
-			if err == nil {
-				apiPullRequest.Head.Sha = headCommitID
-				endCommitID = headCommitID
-			}
-		} else {
+			defer headGitRepo.Close()
+
 			commit, err := headGitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 			if err != nil && !git.IsErrNotExist(err) {
 				log.Error("GetCommit[%s]: %v", headBranch, err)
@@ -223,6 +221,19 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 				apiPullRequest.Head.Ref = pr.HeadBranch
 				apiPullRequest.Head.Sha = commit.ID.String()
 				endCommitID = commit.ID.String()
+			}
+		} else {
+			if exist {
+				apiPullRequest.Head.Ref = pr.HeadBranch
+			}
+			headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
+			if err != nil && !git.IsErrNotExist(err) {
+				log.Error("GetCommit[%s]: %v", pr.HeadBranch, err)
+				return nil
+			}
+			if err == nil {
+				apiPullRequest.Head.Sha = headCommitID
+				endCommitID = headCommitID
 			}
 		}
 
@@ -266,7 +277,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	return apiPullRequest
 }
 
-func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs issues_model.PullRequestList, doer *user_model.User) ([]*api.PullRequest, error) {
+func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs issues_model.PullRequestList, doer *user_model.User, canAccessRepo func(*repo_model.Repository) bool) ([]*api.PullRequest, error) {
 	for _, pr := range prs {
 		pr.BaseRepo = baseRepo
 		if pr.BaseRepoID == pr.HeadRepoID {
@@ -415,12 +426,12 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 			apiPullRequest.Base.Sha = baseBranch.CommitID
 		}
 		if pr.HeadRepoID == pr.BaseRepoID {
+			apiPullRequest.Head.RepoID = pr.BaseRepoID
 			apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
 		}
 
 		// pull request head branch, both repository and branch could not exist
 		if pr.HeadRepo != nil {
-			apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 			exist, err := git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch)
 			if err != nil {
 				log.Error("IsBranchExist[%d]: %v", pr.HeadRepo.ID, err)
@@ -435,7 +446,10 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 					log.Error("GetDoerRepoPermission[%d]: %v", pr.HeadRepoID, err)
 					p.AccessMode = perm.AccessModeNone
 				}
-				apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+				if p.HasAnyUnitAccessOrPublicAccess() && canAccessRepo(pr.HeadRepo) {
+					apiPullRequest.Head.RepoID = pr.HeadRepoID
+					apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
+				}
 			}
 		}
 		if apiPullRequest.Head.Ref == "" {

@@ -142,6 +142,35 @@ func TestAPIViewPulls(t *testing.T) {
 				assert.Len(t, files, 1)
 			}))
 	}
+
+	t.Run("HeadRepoHiddenWhenInaccessible", func(t *testing.T) {
+		session := loginUser(t, "user31")
+		forkToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{}).AddTokenAuth(forkToken), http.StatusAccepted)
+		visible := DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/pulls", &api.CreatePullRequestOption{
+			Head: "user31:branch2", Base: "master", Title: "pull from a private user's fork",
+		}).AddTokenAuth(forkToken), http.StatusCreated), &api.PullRequest{})
+		require.NotNil(t, visible.Head.Repository)
+		require.NotEmpty(t, visible.Head.Sha)
+
+		prURL := fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d", visible.Index)
+		var listed []*api.PullRequest
+		DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/pulls?poster=user31"), http.StatusOK), &listed)
+		require.Len(t, listed, 1)
+		for _, hidden := range []*api.PullRequest{
+			DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", prURL).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)), http.StatusOK), &api.PullRequest{}),
+			DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", prURL), http.StatusOK), &api.PullRequest{}),
+			listed[0],
+		} {
+			assert.Nil(t, hidden.Head.Repository)
+			assert.EqualValues(t, -1, hidden.Head.RepoID)
+			assert.Equal(t, visible.Head.Ref, hidden.Head.Ref)
+			assert.Equal(t, visible.Head.Sha, hidden.Head.Sha)
+		}
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Index: visible.Index})
+		assert.NotNil(t, convert.ToAPIPullRequestForEvent(t.Context(), pr, nil).Head.Repository)
+	})
 }
 
 func TestAPIViewPullsByBaseHead(t *testing.T) {
@@ -630,7 +659,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
-		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
+		pr := convert.ToAPIPullRequestForEvent(t.Context(), pullRequest, user1)
 
 		ctx = NewAPITestContext(t, "user2", baseRepo.Name, auth_model.AccessTokenScopeAll)
 		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {

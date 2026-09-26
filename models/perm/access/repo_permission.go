@@ -675,10 +675,14 @@ func PermissionNoAccess() Permission {
 // permission on a repository. Producers and consumers must agree on it, so it lives here.
 func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
 	var doerID int64
+	var doerExtData string
 	if doer != nil {
 		doerID = doer.ID
+		if doer.ExtDoerData != nil {
+			doerExtData = doer.ExtDoerData.EncodeToString()
+		}
 	}
-	return fmt.Sprintf("%d-%d", repoID, doerID)
+	return fmt.Sprintf("%d-%d-%s", repoID, doerID, doerExtData)
 }
 
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
