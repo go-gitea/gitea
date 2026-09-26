@@ -5,6 +5,7 @@ package actions
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -59,4 +60,43 @@ func TestIsArtifactPreviewSizeAllowed(t *testing.T) {
 	setting.Actions.ArtifactPreviewMaxSize = 10
 	assert.True(t, isArtifactPreviewSizeAllowed(10))
 	assert.False(t, isArtifactPreviewSizeAllowed(11))
+}
+
+func TestInsertArtifactPreviewHelperScript(t *testing.T) {
+	cases := []struct {
+		in            string
+		before, after string
+	}{
+		{
+			in:     "any",
+			before: "",
+			after:  "any",
+		},
+		{
+			in:     "<head>any</head>",
+			before: "<head>",
+			after:  "any</head>",
+		},
+		{
+			in:     "any<body>",
+			before: "any<head>",
+			after:  "</head><body>",
+		},
+		{
+			in:     "<html>any</html>",
+			before: "<html><head>",
+			after:  "</head>any</html>",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.in, func(t *testing.T) {
+			out := string(insertArtifactPreviewHelperScript([]byte(c.in)))
+			out, ok := strings.CutPrefix(out, c.before)
+			assert.True(t, ok, "expect prefix %q for input %q", c.before, c.in)
+			out, ok = strings.CutSuffix(out, c.after)
+			assert.True(t, ok, "expect suffix %q for input %q", c.after, c.in)
+			assert.True(t, strings.HasPrefix(out, "<script "))
+			assert.True(t, strings.HasSuffix(out, "</script>"))
+		})
+	}
 }

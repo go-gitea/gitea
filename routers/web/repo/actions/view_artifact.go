@@ -269,6 +269,9 @@ func insertArtifactPreviewHelperScript(buf []byte) []byte {
 	// try before "<body>"
 	if pos == -1 {
 		pos = bytes.Index(buf, []byte("<body>"))
+		if pos != -1 {
+			addHeadTag = true
+		}
 	}
 
 	// try after "<html>"
