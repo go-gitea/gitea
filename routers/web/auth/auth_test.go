@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/contexttest"
 
@@ -172,6 +173,148 @@ func TestWebAuthOAuth2(t *testing.T) {
 			assert.Equal(t, "https://example.com/oidc-logout", u.String())
 		})
 
+		t.Run("OAuth2SignInIncludesIDTokenHint", func(t *testing.T) {
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oauth-idtoken")}
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2))
+			require.NoError(t, ctx.Session.Set(session.KeyOIDCIDToken, "mock-id-token"))
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			expectedValues := url.Values{"oidc-key": []string{"oidc-val"}, "post_logout_redirect_uri": []string{setting.AppURL}, "client_id": []string{"mock-client-id"}, "id_token_hint": []string{"mock-id-token"}}
+			assert.Equal(t, expectedValues, u.Query())
+		})
+
+		t.Run("OAuth2CallbackStoresIDTokenForLogout", func(t *testing.T) {
+			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
+				return goth.User{Provider: "oidc-auth-source", UserID: "oidc-new-user", Email: "oidc-new-user@example.com", IDToken: "real-flow-id-token"}, nil
+			})()
+
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oidc-callback")}
+			ctx, resp := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+			ctx.SetPathParamRaw("provider", "oidc-auth-source")
+			SignInOAuthCallback(ctx)
+			require.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Equal(t, "real-flow-id-token", ctx.Session.Get(session.KeyOIDCIDToken))
+
+			// signing out the same session must carry the id_token through as id_token_hint
+			ctx, resp = contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			assert.Equal(t, "real-flow-id-token", u.Query().Get("id_token_hint"))
+		})
+
+		t.Run("OAuth2CallbackWithoutIDTokenOmitsHint", func(t *testing.T) {
+			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
+				return goth.User{Provider: "oidc-auth-source", UserID: "oidc-new-user-2", Email: "oidc-new-user-2@example.com"}, nil
+			})()
+
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oidc-callback-no-token")}
+			ctx, resp := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+			ctx.SetPathParamRaw("provider", "oidc-auth-source")
+			SignInOAuthCallback(ctx)
+			require.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Empty(t, ctx.Session.Get(session.KeyOIDCIDToken))
+
+			ctx, resp = contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			assert.Empty(t, u.Query().Get("id_token_hint"))
+		})
+
+		t.Run("OAuth2CallbackClearsStaleIDTokenOnRegen", func(t *testing.T) {
+			// simulates a user who signed in before with an id_token (stale value already
+			// in the session), then signs in again via a callback that yields no id_token
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oidc-stale-token")}
+			ctx, resp := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+			require.NoError(t, ctx.Session.Set(session.KeyOIDCIDToken, "stale-id-token-from-prior-login"))
+			ctx.Doer = oauthUser
+			handleOAuth2SignIn(ctx, authSource, oauthUser, goth.User{Provider: "oidc-auth-source", UserID: "oauth-user"})
+			require.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Empty(t, ctx.Session.Get(session.KeyOIDCIDToken), "stale id_token from a prior session must not survive regenerateSession")
+
+			ctx, resp = contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			assert.Empty(t, u.Query().Get("id_token_hint"), "logout must not reuse a stale id_token as id_token_hint")
+		})
+
+		t.Run("OAuth2CallbackClearsStaleIDTokenOnRegenWith2FA", func(t *testing.T) {
+			// same as OAuth2CallbackClearsStaleIDTokenOnRegen, but through the 2FA-required
+			// branch in handleOAuth2SignIn, a separate call site from the !needs2FA one
+			tfa := &auth_model.TwoFactor{UID: oauthUser.ID}
+			require.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
+			t.Cleanup(func() { _ = auth_model.DeleteTwoFactorByID(t.Context(), tfa.ID, oauthUser.ID) })
+
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oidc-stale-token-2fa")}
+			ctx, resp := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+			require.NoError(t, ctx.Session.Set(session.KeyOIDCIDToken, "stale-id-token-from-prior-login"))
+			ctx.Doer = oauthUser
+			handleOAuth2SignIn(ctx, authSource, oauthUser, goth.User{Provider: "oidc-auth-source", UserID: "oauth-user"})
+			require.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Equal(t, "/user/two_factor", test.RedirectURL(resp))
+			assert.Empty(t, ctx.Session.Get(session.KeyOIDCIDToken), "stale id_token must not survive the 2FA-required regeneration branch")
+		})
+
+		t.Run("PasswordSignInAfterOIDCClearsStaleIDTokenAndMethod", func(t *testing.T) {
+			// a session that previously authenticated via OIDC (KeySignInMethod + KeyOIDCIDToken
+			// set) must not keep redirecting to end_session_endpoint with a stale hint once the
+			// same browser session re-authenticates via password: handleSignInFull's regenerateSession
+			// call doesn't pass either key, so ClearSessionKeysForSignIn must be the one clearing them
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-password-after-oidc")}
+			ctx, _ := contexttest.MockContext(t, "/user/login", mockOpt)
+			require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2))
+			require.NoError(t, ctx.Session.Set(session.KeyOIDCIDToken, "stale-id-token-from-prior-oidc-login"))
+
+			handleSignInFull(ctx, oauthUser, false)
+			assert.NotEqual(t, session.SignInMethodOAuth2, ctx.Session.Get(session.KeySignInMethod), "password sign-in must not leave a stale OAuth2 sign-in method behind")
+			assert.Empty(t, ctx.Session.Get(session.KeyOIDCIDToken), "password sign-in must not leave a stale id_token behind")
+
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Equal(t, "/", test.RedirectURL(resp), "must not redirect to the OIDC end_session_endpoint after a password sign-in")
+		})
+
+		t.Run("OIDCIDTokenSurvives2FACompletion", func(t *testing.T) {
+			// counterpart to PasswordSignInAfterOIDCClearsStaleIDTokenAndMethod: an OIDC sign-in
+			// that required 2FA sets KeySignInMethod/KeyOIDCIDToken via handleTwoFactorRequired
+			// *before* the 2FA step; handleSignIn (called on successful 2FA) must preserve them,
+			// not just blindly clear on every sign-in completion
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oidc-2fa-completion")}
+			ctx, _ := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+			handleTwoFactorRequired(ctx, oauthUser, false, map[string]any{
+				session.KeySignInMethod: session.SignInMethodOAuth2,
+				session.KeyOIDCIDToken:  "real-id-token-pending-2fa",
+			})
+
+			// simulates what TwoFactorPost does on a correct passcode
+			ctx, _ = contexttest.MockContext(t, "/user/twofa", mockOpt)
+			handleSignIn(ctx, oauthUser, false)
+			assert.Equal(t, session.SignInMethodOAuth2, ctx.Session.Get(session.KeySignInMethod), "completing 2FA must not lose the OAuth2 sign-in method recorded before the 2FA step")
+			assert.Equal(t, "real-id-token-pending-2fa", ctx.Session.Get(session.KeyOIDCIDToken), "completing 2FA must not lose the id_token recorded before the 2FA step")
+
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			assert.Equal(t, "real-id-token-pending-2fa", u.Query().Get("id_token_hint"), "logout after 2FA completion must still include the id_token_hint from the original OIDC sign-in")
+		})
+
 		t.Run("PasswordSignInSkipsOIDC", func(t *testing.T) {
 			// OAuth2-linked account signed in via password form must not hit end_session_endpoint.
 			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-password")}
@@ -190,12 +333,36 @@ func TestOpenIDRequireTwoFactor(t *testing.T) {
 
 	user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32}) // has a webauthn credential
 	ctx, resp := contexttest.MockContext(t, "/user/openid/connect", mockOpt)
+	require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2))
+	require.NoError(t, ctx.Session.Set(session.KeyOIDCIDToken, "stale-id-token-from-prior-oidc-login"))
 	openIDRequireTwoFactor(ctx, user32, false, "https://example.com/id")
 	assert.Equal(t, "/user/webauthn", test.RedirectURL(resp))
 	unittest.AssertNotExistsBean(t, &user_model.UserOpenID{UID: user32.ID}) // not attached before the key answered
+	assert.Empty(t, ctx.Session.Get(session.KeyOIDCIDToken), "legacy OpenID 2FA flow must not carry forward a stale id_token from an earlier OIDC session")
+	assert.NotEqual(t, session.SignInMethodOAuth2, ctx.Session.Get(session.KeySignInMethod))
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	ctx, _ = contexttest.MockContext(t, "/user/openid/connect", mockOpt)
 	openIDRequireTwoFactor(ctx, user2, false, "https://example.com/id")
 	assert.False(t, ctx.Written())
+}
+
+func TestAutoSignInClearsStaleOIDCState(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	nt, token, err := auth_service.CreateAuthTokenForUserID(t.Context(), user2.ID)
+	require.NoError(t, err)
+
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-autologin")}
+	ctx, _ := contexttest.MockContext(t, "/user/login", mockOpt)
+	require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2))
+	require.NoError(t, ctx.Session.Set(session.KeyOIDCIDToken, "stale-id-token-from-prior-oidc-login"))
+	ctx.Req.AddCookie(&http.Cookie{Name: setting.CookieRememberName, Value: nt.ID + ":" + token})
+
+	succeeded, err := autoSignIn(ctx)
+	require.NoError(t, err)
+	require.True(t, succeeded)
+	assert.Empty(t, ctx.Session.Get(session.KeyOIDCIDToken), "auto sign-in via remember-me cookie must not carry forward a stale id_token")
+	assert.NotEqual(t, session.SignInMethodOAuth2, ctx.Session.Get(session.KeySignInMethod))
 }
