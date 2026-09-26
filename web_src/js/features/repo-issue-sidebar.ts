@@ -8,7 +8,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
 import type {FomanticApiResponse, Issue} from '../types.ts';
 
-const {appSubUrl} = window.config;
+const dependencyReferencePattern = /^\s*(?:[0-9a-zA-Z_.-]+\/[0-9a-zA-Z_.-]+)?[#!][0-9]+\s*$/;
 
 function initRepoIssueBranchSelector(elSidebar: HTMLElement) {
   // TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl"
@@ -55,16 +55,21 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
   if (!elDropdown) return;
 
   const issuePageInfo = parseIssuePageInfo();
-  const crossRepoSearch = elDropdown.getAttribute('data-issue-cross-repo-search');
-  let issueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}`;
-  if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${issuePageInfo.repoId}&type=${issuePageInfo.issueDependencySearchType}`;
-  }
+  const localIssueSearchUrl = `${issuePageInfo.repoLink}/issues/search?q={query}&type=${issuePageInfo.issueDependencySearchType}&state=open`;
+  const dependencyRefSearchUrl = `${issuePageInfo.repoLink}/issues/dependency-search?ref={query}&issue_id=${elDropdown.getAttribute('data-issue-id')}&type=${issuePageInfo.issueDependencySearchType}`;
   fomanticQuery(elDropdown).dropdown({
+    allowAdditions: true,
+    forceSelection: false,
     fullTextSearch: true,
     apiSettings: {
-      url: issueSearchUrl,
-      rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
+      cache: false,
+      rawResponse: true,
+      url: localIssueSearchUrl,
+      beforeSend(this: any, settings: any) {
+        const query = String(this.urlData.query || '');
+        settings.url = dependencyReferencePattern.test(query) ? dependencyRefSearchUrl : localIssueSearchUrl;
+        return settings;
+      },
       onResponse(response: Issue[]) {
         const filteredResponse: FomanticApiResponse<{value: number, name: string}> = {success: true, results: []};
         const currIssueId = elDropdown.getAttribute('data-issue-id');
