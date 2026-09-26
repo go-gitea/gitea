@@ -10,6 +10,7 @@ import (
 	"io"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -106,7 +107,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 // ParseChartFile parses a Chart.yaml file to retrieve the metadata of a Helm chart
 func ParseChartFile(r io.Reader) (*Metadata, error) {
 	var metadata *Metadata
-	if err := yaml.NewDecoder(r).Decode(&metadata); err != nil {
+	if err := yaml.NewDecoder(packages.NewLimitedReader(r, packages.MaxMetadataSize)).Decode(&metadata); err != nil {
 		return nil, err
 	}
 

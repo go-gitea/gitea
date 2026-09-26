@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/packages/container/helm"
 	"gitea.dev/modules/validation"
 
@@ -83,8 +84,11 @@ func IsMediaTypeImageIndex(mt string) bool {
 	return strings.EqualFold(mt, oci.MediaTypeImageIndex) || strings.EqualFold(mt, "application/vnd.docker.distribution.manifest.list.v2+json")
 }
 
+const maxImageConfigSize = 8 * 1024 * 1024
+
 // ParseImageConfig parses the metadata of an image config
 func ParseImageConfig(mediaType string, r io.Reader) (*Metadata, error) {
+	r = packages.NewLimitedReader(r, maxImageConfigSize)
 	if strings.EqualFold(mediaType, helm.ConfigMediaType) {
 		return parseHelmConfig(r)
 	}

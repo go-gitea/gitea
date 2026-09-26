@@ -16,8 +16,8 @@ import (
 	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
+	"gitea.dev/modules/zstd"
 
-	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 
@@ -34,6 +34,8 @@ const (
 	RepositoryVersion = "_repository"
 
 	AnyArch = "any"
+
+	maxPKGINFOSize = 1024 * 1024
 )
 
 var (
@@ -178,7 +180,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 func ParsePackageInfo(r io.Reader) (*Package, error) {
 	p := &Package{}
 
-	s := bufio.NewScanner(r)
+	s := bufio.NewScanner(packages.NewLimitedReader(r, maxPKGINFOSize))
 	for s.Scan() {
 		line := s.Text()
 

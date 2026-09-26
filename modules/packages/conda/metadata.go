@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/zstd"
@@ -147,7 +148,7 @@ func parsePackageTar(r io.Reader) (*Package, error) {
 		}
 
 		if hdr.Name == "info/index.json" {
-			if err := json.NewDecoder(tr).Decode(&i); err != nil {
+			if err := json.NewDecoder(packages.NewLimitedReader(tr, packages.MaxMetadataSize)).Decode(&i); err != nil {
 				return nil, err
 			}
 
@@ -163,7 +164,7 @@ func parsePackageTar(r io.Reader) (*Package, error) {
 				break // stop loop if both files were found
 			}
 		} else if hdr.Name == "info/about.json" {
-			if err := json.NewDecoder(tr).Decode(&a); err != nil {
+			if err := json.NewDecoder(packages.NewLimitedReader(tr, packages.MaxMetadataSize)).Decode(&a); err != nil {
 				return nil, err
 			}
 
