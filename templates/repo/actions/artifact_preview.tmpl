@@ -52,7 +52,7 @@
 					<div class="ui info message">{{ctx.Locale.Tr "actions.artifacts.preview_file_list_truncated"}}</div>
 				{{end}}
 				{{if $data.PreviewContentURL}}
-					<div class="ui segment">
+					<div class="ui fitted segment">
 						<iframe class="external-render-iframe" data-src="{{$data.PreviewContentURL}}" data-global-init="initExternalRenderIframe" referrerpolicy="no-referrer"></iframe>
 					</div>
 				{{end}}

@@ -36,10 +36,27 @@ var mockActionsArtifactFiles = map[string]map[string]string{
 	mockActionsArtifactNameHTMLReport: {
 		"report/index.html": `<html><head><link rel="stylesheet" href="style.css"></head><body>
 <a href="./style.css">link to style.css</a><br>
-<p>This line is red, next content is from JS:</p>
+<p>This line is red, next line is from JS:</p>
 <script>document.write('window origin: ' + window.origin)</script>
 </body></html>`,
-		"report/style.css": "p { color: red; }",
+		"report/style.css": "body {padding: 10px;} p {color: red;}",
+		"demo.svg": `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" x="10" y="10" rx="20" ry="20" fill="blue" />
+</svg>`,
+		"demo.pdf": `%PDF-1.0
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/MediaBox[0 0 3 3]>>endobj
+xref
+0 4
+0000000000 65535 f
+0000000009 00000 n
+0000000052 00000 n
+0000000101 00000 n
+trailer<</Size 4/Root 1 0 R>>
+startxref
+149
+%EOF`,
 	},
 	mockActionsArtifactNameReallyLong: {
 		"index.html":      "<html><body>mock preview</body></html>",
