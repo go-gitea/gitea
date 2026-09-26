@@ -50,12 +50,13 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 }
 
 // renderCommentMarkdown renders the comment markdown to html
-func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
+func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string, feedExcerpt bool) template.HTML {
 	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, act.Repo).WithUseAbsoluteLink(true)
+	rctx.RenderOptions.FeedExcerpt = feedExcerpt
 	rendered, err := markdown.RenderString(rctx, content)
 	if err != nil {
 		return ""
@@ -222,12 +223,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 
 			case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
+				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx), false)
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment))
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment, true))
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]

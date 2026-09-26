@@ -30,7 +30,7 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"unique(repo_index)"`
+	RepoID            int64                  `xorm:"unique(repo_index) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -47,7 +47,7 @@ type ActionRun struct {
 	Event             webhook_module.HookEventType // the webhook event that causes the workflow to run
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
-	Status            Status                       `xorm:"index"`
+	Status            Status                       `xorm:"index index(repo_status)"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
 
