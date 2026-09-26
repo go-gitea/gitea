@@ -8662,6 +8662,83 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/code/search": {
+      "get": {
+        "description": "The files of the ref are searched with git grep, which returns at most 50 files.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Search the code of a repository",
+        "operationId": "repoSearchCode",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "keywords to search for, with an optional \"path:DIR\" qualifier to only search the files in a directory",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "exact",
+              "words",
+              "regexp"
+            ],
+            "type": "string",
+            "default": "exact",
+            "description": "how to match the keywords",
+            "name": "search_mode",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/collaborators": {
       "get": {
         "produces": [
@@ -20718,6 +20795,65 @@
         }
       }
     },
+    "/search/code": {
+      "get": {
+        "description": "The default branches are searched with the code indexer.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Search the code of all repositories",
+        "operationId": "codeSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keywords to search for, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "enum": [
+              "exact",
+              "words"
+            ],
+            "type": "string",
+            "default": "exact",
+            "description": "how to match the keywords",
+            "name": "search_mode",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CodeSearchResults"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "503": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
     "/settings/api": {
       "get": {
         "produces": [
@@ -26251,6 +26387,139 @@
           "description": "The status of the file change (added, modified, deleted, etc.)",
           "type": "string",
           "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResultItem": {
+      "description": "CodeSearchResultItem represents a file matching a code search",
+      "type": "object",
+      "properties": {
+        "html_url": {
+          "description": "The web URL of the file at the searched commit",
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "language": {
+          "description": "The programming language of the file, if known",
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "line_numbers": {
+          "description": "The line numbers of the lines in the content fragment",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "LineNumbers"
+        },
+        "name": {
+          "description": "The name of the file",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "description": "The path of the file in the repository",
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "text_matches": {
+          "description": "The fragments of the file content that matched",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchTextMatch"
+          },
+          "x-go-name": "TextMatches"
+        },
+        "url": {
+          "description": "The API URL of the file contents at the searched commit",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchResults": {
+      "description": "CodeSearchResults represents the results of a code search",
+      "type": "object",
+      "properties": {
+        "incomplete_results": {
+          "description": "Whether the search stopped before finding all matching files",
+          "type": "boolean",
+          "x-go-name": "IncompleteResults"
+        },
+        "items": {
+          "description": "The matching files",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchResultItem"
+          },
+          "x-go-name": "Items"
+        },
+        "total_count": {
+          "description": "The total number of matching files",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchTextMatch": {
+      "description": "CodeSearchTextMatch represents a fragment of a property that matched a code search",
+      "type": "object",
+      "properties": {
+        "fragment": {
+          "description": "The part of the property value that matched",
+          "type": "string",
+          "x-go-name": "Fragment"
+        },
+        "matches": {
+          "description": "The matched terms in the fragment",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeSearchTextMatchTerm"
+          },
+          "x-go-name": "Matches"
+        },
+        "object_type": {
+          "description": "The type of the resource containing the property",
+          "type": "string",
+          "x-go-name": "ObjectType"
+        },
+        "object_url": {
+          "description": "The API URL of the resource containing the property",
+          "type": "string",
+          "x-go-name": "ObjectURL"
+        },
+        "property": {
+          "description": "The name of the matched property",
+          "type": "string",
+          "x-go-name": "Property"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CodeSearchTextMatchTerm": {
+      "description": "CodeSearchTextMatchTerm represents a matched term in a text match fragment",
+      "type": "object",
+      "properties": {
+        "indices": {
+          "description": "The start and end character offsets of the text in the fragment",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "Indices"
+        },
+        "text": {
+          "description": "The matched text",
+          "type": "string",
+          "x-go-name": "Text"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34235,6 +34504,12 @@
           "format": "int64",
           "description": "Total file count"
         }
+      }
+    },
+    "CodeSearchResults": {
+      "description": "CodeSearchResults",
+      "schema": {
+        "$ref": "#/definitions/CodeSearchResults"
       }
     },
     "CombinedStatus": {

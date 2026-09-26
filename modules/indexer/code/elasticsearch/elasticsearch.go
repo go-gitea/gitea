@@ -236,20 +236,26 @@ func (b *Indexer) doDelete(ctx context.Context, repoID int64) error {
 	return b.DeleteByQuery(ctx, es.TermsQuery("repo_id", repoID))
 }
 
-// contentMatchIndexPos find words positions for start and the following end on content. It will
-// return the beginning position of the first start and the ending position of the
-// first end following the start string.
-// If not found any of the positions, it will return -1, -1.
-func contentMatchIndexPos(content, start, end string) (int, int) {
-	startIdx := strings.Index(content, start)
-	if startIdx < 0 {
-		return -1, -1
+// highlightMatchRanges returns the ranges of the "<em>" highlighted terms as offsets into the original data
+func highlightMatchRanges(fragments []string) (ranges []internal.MatchRange) {
+	const startTag, endTag = "<em>", "</em>"
+	if len(fragments) == 0 {
+		return nil
 	}
-	endIdx := strings.Index(content[startIdx+len(start):], end)
-	if endIdx < 0 {
-		return -1, -1
+	highlighted, offset := fragments[0], 0 // number_of_fragments=0 returns a single fragment
+	for {
+		start := strings.Index(highlighted, startTag)
+		if start < 0 {
+			return ranges
+		}
+		length := strings.Index(highlighted[start+len(startTag):], endTag)
+		if length < 0 {
+			return ranges
+		}
+		ranges = append(ranges, internal.MatchRange{Start: offset + start, End: offset + start + length})
+		offset += start + length
+		highlighted = highlighted[start+len(startTag)+length+len(endTag):]
 	}
-	return startIdx, (startIdx + len(start) + endIdx + len(end)) - 9 // remove the length <em></em> since we give Content the original data
 }
 
 func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
@@ -273,17 +279,18 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
+		// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
+		// now we should find the positions. But how to avoid html content which contains the
+		// <em> and </em> tags? If elastic search has handled that?
+		contentMatches := highlightMatchRanges(hit.Highlight["content"])
 		var startIndex, endIndex int
 		if c, ok := hit.Highlight["filename"]; ok && len(c) > 0 {
 			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
 		} else if c, ok := hit.Highlight["content"]; ok && len(c) > 0 {
-			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
-			// now we should find the positions. But how to avoid html content which contains the
-			// <em> and </em> tags? If elastic search has handled that?
-			startIndex, endIndex = contentMatchIndexPos(c[0], "<em>", "</em>")
-			if startIndex == -1 {
+			if len(contentMatches) == 0 {
 				panic(fmt.Sprintf("1===%s,,,%#v,,,%s", kw, hit.Highlight, c[0]))
 			}
+			startIndex, endIndex = contentMatches[0].Start, contentMatches[0].End
 		} else {
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
@@ -298,6 +305,8 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,
 			Color:       enry.GetColor(language),
+
+			ContentMatches: contentMatches,
 		})
 	}
 
@@ -340,6 +349,10 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 	query := es.NewBoolQuery().Must(kwQuery)
 	if len(opts.RepoIDs) > 0 {
 		query.Must(es.TermsQuery("repo_id", es.ToAnySlice(opts.RepoIDs)...))
+	}
+	if opts.Path != "" {
+		// "filename.path_reversed" holds every leading part of the path: "a", "a/b", "a/b/c.go"
+		query.Must(es.PrefixQuery("filename.path_reversed", opts.Path+"/"))
 	}
 
 	start, pageSize := opts.GetSkipTake()

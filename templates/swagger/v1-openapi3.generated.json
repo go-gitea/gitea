@@ -228,6 +228,16 @@
           }
         }
       },
+      "CodeSearchResults": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CodeSearchResults"
+            }
+          }
+        },
+        "description": "CodeSearchResults"
+      },
       "CombinedStatus": {
         "content": {
           "application/json": {
@@ -3199,6 +3209,142 @@
             "description": "The status of the file change (added, modified, deleted, etc.)",
             "type": "string",
             "x-go-name": "Status"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchResultItem": {
+        "description": "CodeSearchResultItem represents a file matching a code search",
+        "properties": {
+          "html_url": {
+            "description": "The web URL of the file at the searched commit",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "HTMLURL"
+          },
+          "language": {
+            "description": "The programming language of the file, if known",
+            "type": "string",
+            "x-go-name": "Language"
+          },
+          "line_numbers": {
+            "description": "The line numbers of the lines in the content fragment",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "LineNumbers"
+          },
+          "name": {
+            "description": "The name of the file",
+            "type": "string",
+            "x-go-name": "Name"
+          },
+          "path": {
+            "description": "The path of the file in the repository",
+            "type": "string",
+            "x-go-name": "Path"
+          },
+          "repository": {
+            "$ref": "#/components/schemas/Repository"
+          },
+          "text_matches": {
+            "description": "The fragments of the file content that matched",
+            "items": {
+              "$ref": "#/components/schemas/CodeSearchTextMatch"
+            },
+            "type": "array",
+            "x-go-name": "TextMatches"
+          },
+          "url": {
+            "description": "The API URL of the file contents at the searched commit",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchResults": {
+        "description": "CodeSearchResults represents the results of a code search",
+        "properties": {
+          "incomplete_results": {
+            "description": "Whether the search stopped before finding all matching files",
+            "type": "boolean",
+            "x-go-name": "IncompleteResults"
+          },
+          "items": {
+            "description": "The matching files",
+            "items": {
+              "$ref": "#/components/schemas/CodeSearchResultItem"
+            },
+            "type": "array",
+            "x-go-name": "Items"
+          },
+          "total_count": {
+            "description": "The total number of matching files",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "TotalCount"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchTextMatch": {
+        "description": "CodeSearchTextMatch represents a fragment of a property that matched a code search",
+        "properties": {
+          "fragment": {
+            "description": "The part of the property value that matched",
+            "type": "string",
+            "x-go-name": "Fragment"
+          },
+          "matches": {
+            "description": "The matched terms in the fragment",
+            "items": {
+              "$ref": "#/components/schemas/CodeSearchTextMatchTerm"
+            },
+            "type": "array",
+            "x-go-name": "Matches"
+          },
+          "object_type": {
+            "description": "The type of the resource containing the property",
+            "type": "string",
+            "x-go-name": "ObjectType"
+          },
+          "object_url": {
+            "description": "The API URL of the resource containing the property",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "ObjectURL"
+          },
+          "property": {
+            "description": "The name of the matched property",
+            "type": "string",
+            "x-go-name": "Property"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "CodeSearchTextMatchTerm": {
+        "description": "CodeSearchTextMatchTerm represents a matched term in a text match fragment",
+        "properties": {
+          "indices": {
+            "description": "The start and end character offsets of the text in the fragment",
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array",
+            "x-go-name": "Indices"
+          },
+          "text": {
+            "description": "The matched text",
+            "type": "string",
+            "x-go-name": "Text"
           }
         },
         "type": "object",
@@ -20307,6 +20453,94 @@
         ]
       }
     },
+    "/repos/{owner}/{repo}/code/search": {
+      "get": {
+        "description": "The files of the ref are searched with git grep, which returns at most 50 files.",
+        "operationId": "repoSearchCode",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "keywords to search for, with an optional \"path:DIR\" qualifier to only search the files in a directory",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
+            "in": "query",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "how to match the keywords",
+            "in": "query",
+            "name": "search_mode",
+            "schema": {
+              "default": "exact",
+              "enum": [
+                "exact",
+                "words",
+                "regexp"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CodeSearchResults"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Search the code of a repository",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
     "/repos/{owner}/{repo}/collaborators": {
       "get": {
         "operationId": "repoListCollaborators",
@@ -33434,6 +33668,70 @@
           }
         },
         "summary": "Get a repository by id",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/search/code": {
+      "get": {
+        "description": "The default branches are searched with the code indexer.",
+        "operationId": "codeSearch",
+        "parameters": [
+          {
+            "description": "keywords to search for, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "how to match the keywords",
+            "in": "query",
+            "name": "search_mode",
+            "schema": {
+              "default": "exact",
+              "enum": [
+                "exact",
+                "words"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CodeSearchResults"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "503": {
+            "$ref": "#/components/responses/error"
+          }
+        },
+        "summary": "Search the code of all repositories",
         "tags": [
           "repository"
         ]

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/registry"
+	"github.com/blevesearch/bleve/v2/search"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/go-enry/go-enry/v2"
 )
@@ -253,6 +255,31 @@ func (b *Indexer) Delete(_ context.Context, repoID int64) error {
 	return batch.Flush()
 }
 
+func locationRanges(termLocations search.TermLocationMap) (ranges []internal.MatchRange) {
+	for _, locations := range termLocations {
+		for _, location := range locations {
+			ranges = append(ranges, internal.MatchRange{Start: int(location.Start), End: int(location.End)})
+		}
+	}
+	return ranges
+}
+
+// inDirectoryQuery matches the files in the directory by their document IDs, which start with the repo ID and the file path
+func inDirectoryQuery(repoIDs []int64, dir string) query.Query {
+	if len(repoIDs) == 0 {
+		q := bleve.NewRegexpQuery("[0-9a-z]+_" + regexp.QuoteMeta(dir+"/") + ".*")
+		q.SetField("_id")
+		return q
+	}
+	queries := make([]query.Query, 0, len(repoIDs))
+	for _, repoID := range repoIDs {
+		q := bleve.NewPrefixQuery(internal.FilenameIndexerID(repoID, dir+"/"))
+		q.SetField("_id")
+		queries = append(queries, q)
+	}
+	return bleve.NewDisjunctionQuery(queries...)
+}
+
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
 func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int64, []*internal.SearchResult, []*internal.SearchResultLanguages, error) {
@@ -300,6 +327,10 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		)
 	} else {
 		indexerQuery = keywordQuery
+	}
+
+	if opts.Path != "" {
+		indexerQuery = bleve.NewConjunctionQuery(indexerQuery, inDirectoryQuery(opts.RepoIDs, opts.Path))
 	}
 
 	// Save for reuse without language filter
@@ -376,6 +407,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			UpdatedUnix: updatedUnix,
 			Language:    language,
 			Color:       enry.GetColor(language),
+
+			ContentMatches: internal.MergeMatchRanges(locationRanges(hit.Locations["Content"])),
 		}
 	}
 
