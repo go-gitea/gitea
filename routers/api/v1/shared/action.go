@@ -119,10 +119,8 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 
 func convertToInternal(s string) ([]actions_model.Status, error) {
 	switch s {
-	case "pending", "waiting", "action_required":
-		return []actions_model.Status{actions_model.StatusBlocked}, nil
-	case "requested":
-		return []actions_model.Status{actions_model.StatusPending}, nil
+	case "pending", "waiting", "requested", "action_required":
+		return []actions_model.Status{actions_model.StatusBlocked, actions_model.StatusPending}, nil
 	case "queued":
 		return []actions_model.Status{actions_model.StatusWaiting}, nil
 	case "in_progress":

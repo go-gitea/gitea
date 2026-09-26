@@ -998,8 +998,13 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 }
 
 func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
-	if job.Status.IsPending() {
-		return // announce a job only once its needs finish
+	if err := job.LoadRun(ctx); err != nil {
+		log.Error("LoadRun: %v", err)
+		return
+	}
+	status, _ := convert.ToRunActionsStatus(job.Run, job.Status)
+	if status == "requested" || status == "pending" {
+		return // like GitHub, announce a job held back by needs or concurrency only once it is queued
 	}
 	source := EventSource{
 		Repository: repo,
@@ -1010,8 +1015,6 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 	if repo.Owner.IsOrganization() {
 		org = convert.ToOrganization(ctx, organization.OrgFromUser(repo.Owner))
 	}
-
-	status, _ := convert.ToActionsStatus(job.Status)
 
 	convertedJob, err := convert.ToActionWorkflowJob(ctx, repo, task, job)
 	if err != nil {

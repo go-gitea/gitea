@@ -273,7 +273,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 	}
 
 	runAttempt := int64(0)
-	status, conclusion := ToActionsStatus(run.Status)
+	status, conclusion := ToRunActionsStatus(run, run.Status)
 	startedAt := run.Started.AsLocalTime()
 	completedAt := run.Stopped.AsLocalTime()
 	actor := run.TriggerUser       // The username of the user that triggered the initial workflow run.
@@ -289,7 +289,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 			return nil, err
 		}
 		runAttempt = attempt.Attempt
-		status, conclusion = ToActionsStatus(attempt.Status)
+		status, conclusion = ToRunActionsStatus(run, attempt.Status)
 		startedAt = attempt.Started.AsLocalTime()
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
@@ -435,12 +435,19 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	return action
 }
 
+func ToRunActionsStatus(run *actions_model.ActionRun, status actions_model.Status) (action, conclusion string) {
+	if status.IsBlocked() && run.NeedApproval {
+		return "waiting", ""
+	}
+	return ToActionsStatus(status)
+}
+
 func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	switch status {
 	case actions_model.StatusWaiting:
-		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
+		action = "queued"
 	case actions_model.StatusBlocked:
-		action = "waiting" // naming conflict (as above)
+		action = "pending" // GitHub's status for jobs and runs held back by concurrency
 	case actions_model.StatusPending:
 		action = "requested"
 	case actions_model.StatusRunning, actions_model.StatusCancelling:
@@ -471,7 +478,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		return nil, err
 	}
 
-	status, conclusion := ToActionsStatus(job.Status)
+	status, conclusion := ToRunActionsStatus(job.Run, job.Status)
 	var runnerID int64
 	var runnerName string
 	var steps []*api.ActionWorkflowStep
