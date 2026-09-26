@@ -5,7 +5,7 @@ import {html, htmlRaw} from '../utils/html.ts';
 
 const {svgOuter, svgInnerHtml: giteaFaviconInner} = svgParseOuterInner('gitea-favicon');
 const faviconViewBox = svgOuter.getAttribute('viewBox')!;
-const [, , faviconViewBoxWidth, faviconViewBoxHeight] = faviconViewBox.split(/\s+/).map(Number);
+const [faviconViewBoxWidth, faviconViewBoxHeight] = faviconViewBox.split(/\s+/).slice(2).map(Number);
 
 // the status badge is rendered in the bottom-right corner, following GitHub Actions favicon proportions
 const badgeIconSize = 16;
@@ -45,7 +45,7 @@ function buildStatusIconMarkup(status: ActionsStatus): string {
   const {name, colorClass} = getActionStatusIcon(status, 'circle-fill');
   const color = resolveTailwindTextColor(colorClass);
   const {svgInnerHtml} = svgParseOuterInner(name);
-  const coloredInner = svgInnerHtml.replaceAll('currentColor', color);
+  const coloredInner = svgInnerHtml.replaceAll('currentColor', () => color);
   const ring = html`<circle cx="${badgeX + badgeCenter}" cy="${badgeY + badgeCenter}" r="${badgeRingRadius}" fill="#ffffff"/>`;
   const badge = html`<g data-actions-status-name="${status}" transform="translate(${badgeX}, ${badgeY}) scale(${badgeScale})" fill="${color}" color="${color}">${htmlRaw(coloredInner)}</g>`;
   return html`${htmlRaw(ring)}${htmlRaw(badge)}`;

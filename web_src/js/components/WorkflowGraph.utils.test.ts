@@ -179,7 +179,7 @@ test('matrix legs that call a reusable workflow are folded into a single matrix 
   const matrixNodes = graph.nodes.filter((n) => n.type === 'matrix');
   expect(matrixNodes).toHaveLength(1);
   expect(matrixNodes[0].name).toBe('build-call');
-  expect(matrixNodes[0].jobs.map((j) => j.id).sort()).toEqual([2, 3, 4]);
+  expect(matrixNodes[0].jobs.map((j) => j.id).sort((a, b) => a - b)).toEqual([2, 3, 4]);
 });
 
 test('directed highlight state covers ancestors and descendants of the hovered node', () => {

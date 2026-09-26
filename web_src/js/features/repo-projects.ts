@@ -39,7 +39,7 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
   }
 }
 
-async function initRepoProjectSortable(): Promise<void> {
+function initRepoProjectSortable(): void {
   // the HTML layout is: #project-board.board > .project-column .cards > .issue-card
   const mainBoard = document.querySelector<HTMLElement>('#project-board')!;
   let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
@@ -182,7 +182,7 @@ export function initRepoProjectsView(): void {
     const writableProjectBoard = document.querySelector('#project-board[data-project-board-writable="true"]');
     if (!writableProjectBoard) return;
 
-    initRepoProjectSortable(); // no await
+    initRepoProjectSortable();
     initRepoProjectColumnEdit(writableProjectBoard);
   });
 }
