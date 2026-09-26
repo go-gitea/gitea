@@ -56,6 +56,7 @@ var (
 		PrefixArchiveFiles                      bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
+		DisableLanguageStats                    bool
 		DefaultBranch                           string
 		DefaultObjectFormat                     string
 		AllowAdoptionOfUnadoptedRepositories    bool
@@ -152,6 +153,7 @@ var (
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
+		DisableLanguageStats:                    false,
 		DefaultBranch:                           "main",
 		DefaultObjectFormat:                     "sha1",
 		AllowForkWithoutMaximumLimit:            true,
