@@ -34,8 +34,12 @@ const (
 var mockActionsArtifactFiles = map[string]map[string]string{
 	mockActionsArtifactNameB: {"report.txt": "artifact-b report"},
 	mockActionsArtifactNameHTMLReport: {
-		"report/index.html": `<html><head><link rel="stylesheet" href="style.css"></head><body><a href="./style.css">style.css</a> Next line is from JS. <script>document.write('window origin: ' + window.origin)</script></body></html>`,
-		"report/style.css":  "body { color: red; }\n",
+		"report/index.html": `<html><head><link rel="stylesheet" href="style.css"></head><body>
+<a href="./style.css">link to style.css</a><br>
+<p>This line is red, next content is from JS:</p>
+<script>document.write('window origin: ' + window.origin)</script>
+</body></html>`,
+		"report/style.css": "p { color: red; }",
 	},
 	mockActionsArtifactNameReallyLong: {
 		"index.html":      "<html><body>mock preview</body></html>",
