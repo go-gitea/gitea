@@ -60,6 +60,11 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				}
 			}
 
+			vars, err := actions_model.GetVariablesOfRun(ctx, run)
+			if err != nil {
+				return err
+			}
+
 			// approval unblocks every job at once, so max-parallel has to cap them here too
 			slots := maxParallelSlots{}
 			for _, job := range jobs {
@@ -73,6 +78,22 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				}
 				if slices.ContainsFunc(cancelledConcurrencyJobs, func(cancelled *actions_model.ActionRunJob) bool { return cancelled.ID == job.ID }) {
 					continue // cancelled by a sibling's concurrency in this loop
+				}
+				// a skipped job must neither cancel its group peers nor take a slot
+				shouldStart, err := evaluateJobIf(ctx, run, nil, job, vars, true)
+				if err != nil {
+					return fmt.Errorf("evaluate job %d if on approval: %w", job.ID, err)
+				}
+				if !shouldStart {
+					job.Status = actions_model.StatusSkipped
+					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+					if err != nil {
+						return err
+					}
+					if n > 0 {
+						updatedJobs = append(updatedJobs, job)
+					}
+					continue
 				}
 				// A slot-starved job cannot start, skip the following checks.
 				if !slots.available(job) {
@@ -102,15 +123,8 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					if !hasAttempt {
 						return errors.New("run has no attempt")
 					}
-					vars, err := actions_model.GetVariablesOfRun(ctx, run)
-					if err != nil {
+					if err := expandInlineReusableCaller(ctx, run, attempt, job, vars); err != nil {
 						return err
-					}
-					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
-						return fmt.Errorf("expand caller %d on approval: %w", job.ID, err)
-					}
-					if err := actions_model.RefreshReusableCallerStatus(ctx, job); err != nil {
-						return fmt.Errorf("refresh caller %d status after approval-time expansion: %w", job.ID, err)
 					}
 				}
 			}
