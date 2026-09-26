@@ -16,7 +16,7 @@ import (
 func TestVerifyCommits(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	gitRepo, err := git.OpenRepositoryLocal("tests/repos/repo1_hook_verification")
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "tests/repos/repo1_hook_verification")
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

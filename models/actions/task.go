@@ -5,13 +5,12 @@ package actions
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
@@ -22,8 +21,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	lru "github.com/hashicorp/golang-lru/v2"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
 
@@ -60,36 +57,29 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
-var successfulTokenTaskCache *lru.Cache[string, any]
+// taskReportTimeout is how long a task may go without contact from its runner before the
+// runner is assumed gone. Runners report state and stream logs every few seconds, both of
+// which refresh ActionTask.Updated. Shorter than setting.Actions.ZombieTaskTimeout because
+// it only decides whether the runner is reachable, not whether the task should be killed.
+const taskReportTimeout = time.Minute
 
 func init() {
-	db.RegisterModel(new(ActionTask), func() error {
-		if setting.SuccessfulTokensCacheSize > 0 {
-			var err error
-			successfulTokenTaskCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
-			if err != nil {
-				return fmt.Errorf("unable to allocate Task cache: %v", err)
-			}
-		} else {
-			successfulTokenTaskCache = nil
-		}
-		return nil
-	})
-}
-
-func (task *ActionTask) Duration() time.Duration {
-	return calculateDuration(task.Started, task.Stopped, task.Status, task.Updated)
+	db.RegisterModel(new(ActionTask))
 }
 
 func (task *ActionTask) IsStopped() bool {
 	return task.Stopped > 0
 }
 
-func (task *ActionTask) GetRunLink() string {
-	if task.Job == nil || task.Job.Run == nil {
+func (task *ActionTask) GetRunJobLink() string {
+	// Run.Repo can be nil when the repository was deleted while task/run rows remain
+	// (TaskList.LoadAttributes copies job.Repo into run.Repo, leaving it nil on a miss).
+	// Run.Link() already returns "" in that case, so guard here to avoid emitting a
+	// broken relative "/jobs/N" link from the Sprintf below.
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
-	return task.Job.Run.Link()
+	return fmt.Sprintf("%s/jobs/%d", task.Job.Run.Link(), task.Job.ID)
 }
 
 func (task *ActionTask) GetCommitLink() string {
@@ -161,6 +151,38 @@ func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
 	return &task, nil
 }
 
+// GetTasksMapByIDs returns the found tasks keyed by ID, silently omitting IDs that no longer exist.
+func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, error) {
+	tasks := make(map[int64]*ActionTask, len(ids))
+	if len(ids) == 0 {
+		return tasks, nil
+	}
+	return tasks, db.GetEngine(ctx).In("id", ids).Find(&tasks)
+}
+
+// GetTaskRunnerNames returns runner names keyed by task ID without loading task logs.
+func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string, error) {
+	names := make(map[int64]string, len(taskIDs))
+	if len(taskIDs) == 0 {
+		return names, nil
+	}
+	var rows []struct {
+		ID   int64
+		Name string
+	}
+	err := db.GetEngine(ctx).Table("action_task").
+		Join("INNER", "action_runner", "action_runner.id = action_task.runner_id").
+		In("action_task.id", taskIDs).
+		Select("action_task.id, action_runner.name").Find(&rows)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		names[row.ID] = row.Name
+	}
+	return names, nil
+}
+
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
 	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
 	if token == "" {
@@ -176,21 +198,21 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 		}
 	}
 
+	cacheKey := "actions:" + token
 	lastEight := token[len(token)-8:]
-
-	if id := getTaskIDFromCache(token); id > 0 {
+	if cached, _ := auth_model.TokenCache().Get(cacheKey); cached != nil {
 		task := &ActionTask{
 			TokenLastEight: lastEight,
 		}
 		// Re-get the task from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(ctx).ID(id).Get(task)
+		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(task)
 		if err != nil {
 			return nil, err
 		}
-		if has {
+		if has && util.CryptoConstTimeEqual(task.TokenHash, cached.TokenHash) {
 			return task, nil
 		}
-		successfulTokenTaskCache.Remove(token)
+		auth_model.TokenCache().Remove(cacheKey)
 	}
 
 	var tasks []*ActionTask
@@ -204,10 +226,8 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 	for _, t := range tasks {
 		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
-			if successfulTokenTaskCache != nil {
-				successfulTokenTaskCache.Add(token, t.ID)
-			}
+		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
+			auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return t, nil
 		}
 	}
@@ -216,13 +236,13 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	if step.Name != "" {
-		name = step.Name // the step has an explicit name
+		name = string(step.Name) // the step has an explicit name
 	} else {
 		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses",
 		// "run" or "id" (last fallback), we add the "Run " prefix for unnamed steps for better display
 		// for multi-line "run" scripts, only use the first line to match GitHub's behavior
 		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
-		runStr, _, _ := strings.Cut(strings.TrimSpace(step.Run), "\n")
+		runStr, _, _ := strings.Cut(strings.TrimSpace(string(step.Run)), "\n")
 		name = "Run " + util.IfZero(strings.TrimSpace(runStr), step.String())
 	}
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
@@ -468,7 +488,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		return nil, err
 	}
 	task := &ActionTask{}
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+	applyState := func(ctx context.Context) error {
 		if has, err := db.GetEngine(ctx).ID(taskID).Get(task); err != nil {
 			return err
 		} else if !has {
@@ -482,6 +502,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return nil
 		}
 
+		now := timeutil.TimeStampNow()
 		// state.Result is not unspecified means the task is finished
 		if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 			if task.Status == StatusCancelling {
@@ -490,7 +511,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			} else {
 				task.Status = StatusFromResult(state.Result)
 			}
-			task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+			task.Stopped = now
 			if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
 				return err
 			}
@@ -504,7 +525,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 		} else {
 			// Force update ActionTask.Updated to avoid the task being judged as a zombie task
-			task.Updated = timeutil.TimeStampNow()
+			task.Updated = now
 			if err := UpdateTask(ctx, task, "updated"); err != nil {
 				return err
 			}
@@ -520,11 +541,13 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 				result = v.Result
 				step.LogIndex = v.LogIndex
 				step.LogLength = v.LogLength
-				step.Started = convertTimestamp(v.StartedAt)
-				step.Stopped = convertTimestamp(v.StoppedAt)
+				if step.Started == 0 && v.StartedAt != nil {
+					step.Started = now
+				}
 			}
 			if result != runnerv1.Result_RESULT_UNSPECIFIED {
 				step.Status = StatusFromResult(result)
+				step.Stopped = util.IfZero(step.Stopped, now)
 			} else if step.Started != 0 {
 				step.Status = StatusRunning
 			}
@@ -533,6 +556,10 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 		}
 		return nil
+	}
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+		// A half-written report leaves the task done with a running job, which no retry repairs.
+		return db.WithTx(ctx, applyState)
 	})
 	return task, err
 }
@@ -563,6 +590,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			status = StatusCancelled
 		} else if !runner.HasCancellingSupport {
 			status = StatusCancelled
+		} else if task.Updated.AddDuration(taskReportTimeout) < now {
+			// A runner that stopped reporting will never acknowledge the cancellation either,
+			// so skip the handshake instead of waiting for the zombie task cleanup.
+			status = StatusCancelled
 		}
 	}
 
@@ -577,7 +608,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			return err
 		}
 
-		return UpdateTask(ctx, task, "status")
+		// NoAutoTime keeps "updated" at the runner's last contact: re-cancelling an already
+		// cancelling task must not defer the timeout above or the zombie task cleanup.
+		_, err := e.ID(task.ID).Cols("status").NoAutoTime().Update(task)
+		return err
 	}
 
 	task.Status = status
@@ -625,13 +659,6 @@ func FindOldTasksToExpire(ctx context.Context, olderThan timeutil.TimeStamp, lim
 		Find(&tasks)
 }
 
-func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
-	if timestamp.GetSeconds() == 0 && timestamp.GetNanos() == 0 {
-		return timeutil.TimeStamp(0)
-	}
-	return timeutil.TimeStamp(timestamp.AsTime().Unix())
-}
-
 func logFileName(repoFullName string, taskID int64) string {
 	ret := fmt.Sprintf("%s/%02x/%d.log", repoFullName, taskID%256, taskID)
 
@@ -640,19 +667,4 @@ func logFileName(repoFullName string, taskID int64) string {
 	}
 
 	return ret
-}
-
-func getTaskIDFromCache(token string) int64 {
-	if successfulTokenTaskCache == nil {
-		return 0
-	}
-	tInterface, ok := successfulTokenTaskCache.Get(token)
-	if !ok {
-		return 0
-	}
-	t, ok := tInterface.(int64)
-	if !ok {
-		return 0
-	}
-	return t
 }

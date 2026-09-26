@@ -2,7 +2,7 @@ import {
   createElementFromAttrs, createElementFromHTML,
   queryElemChildren, querySingleVisibleElem,
   protectMorphElements, recoverMorphElements,
-  toggleElem,
+  toggleElem, morphElementWithProtection,
 } from './dom.ts';
 
 test('createElementFromHTML', () => {
@@ -26,15 +26,16 @@ test('createElementFromAttrs', () => {
 });
 
 test('querySingleVisibleElem', () => {
-  let el = createElementFromHTML('<div></div>');
+  const el = document.createElement('div');
+  document.body.append(el); // layout, and thus visibility, is only computed in the document
   expect(querySingleVisibleElem(el, 'span')).toBeNull();
-  el = createElementFromHTML('<div><span>foo</span></div>');
+  el.innerHTML = '<span>foo</span>';
   expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('foo');
-  el = createElementFromHTML('<div><span style="display: none;">foo</span><span>bar</span></div>');
+  el.innerHTML = '<span style="display: none;">foo</span><span>bar</span>';
   expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('bar');
-  el = createElementFromHTML('<div><span class="some-class tw-hidden">foo</span><span>bar</span></div>');
+  el.innerHTML = '<span class="some-class tw-hidden">foo</span><span>bar</span>';
   expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('bar');
-  el = createElementFromHTML('<div><span>foo</span><span>bar</span></div>');
+  el.innerHTML = '<span>foo</span><span>bar</span>';
   expect(() => querySingleVisibleElem(el, 'span')).toThrow('Expected exactly one visible element');
 });
 
@@ -68,4 +69,34 @@ test('protectMorphElements', () => {
 
   recoverMorphElements(el, protectedElems);
   expect(el.outerHTML).toEqual('<div><span data-morph-protect="">foo</span></div>');
+});
+
+describe('morphElementWithProtection', () => {
+  const newElHtml = '<div><div><span>new</span><div class="ui dropdown">changed</div></div></div>';
+  it('morph normal', () => {
+    const el = createElementFromHTML('<div><div><span>old</span><div class="ui dropdown active"></div></div></div>');
+    const newEl = createElementFromHTML(newElHtml);
+    morphElementWithProtection(el, newEl, {morphStyle: 'outerHTML'});
+    // span is changed, but dropdown is skipped because it is active
+    expect(el.outerHTML).toEqual('<div><div><span>new</span><div class="ui dropdown active"></div></div></div>');
+  });
+  it('morph whole', () => {
+    const el = createElementFromHTML('<div><div data-morph-whole><span>old</span><div class="ui dropdown active"></div></div></div>');
+    const newEl = createElementFromHTML(newElHtml);
+    morphElementWithProtection(el, newEl, {morphStyle: 'outerHTML'});
+    // span is not changed, because the parent div is marked as data-morph-whole and there is an active dropdown, so it is skipped
+    expect(el.outerHTML).toEqual('<div><div data-morph-whole=""><span>old</span><div class="ui dropdown active"></div></div></div>');
+  });
+  it('morph protection', () => {
+    const el = createElementFromHTML('<div><span></span><div class="ui dropdown"></div></div>');
+    const newEl = createElementFromHTML('<div><span>new</span><div class="ui dropdown">changed</div></div>');
+    const elSpanOld = el.querySelector('span');
+    const elDropdownOld = el.querySelector('.ui.dropdown');
+    const morphedEl = morphElementWithProtection(el, newEl, {morphStyle: 'outerHTML'});
+    expect(el.outerHTML).toEqual('<div><span>new</span><div class="ui dropdown">changed</div></div>');
+    const elSpanNew = morphedEl.querySelector('span');
+    const elDropdownNew = morphedEl.querySelector('.ui.dropdown');
+    expect(elSpanNew).toBe(elSpanOld); // span is morphed in place, so it is the same element
+    expect(elDropdownNew).not.toBe(elDropdownOld); // dropdown is protected and fully replaced, so it is a new element
+  });
 });

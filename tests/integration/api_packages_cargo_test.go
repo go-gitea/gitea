@@ -76,7 +76,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	assert.NoError(t, err)
 
 	readGitContent := func(t *testing.T, path string) string {
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 

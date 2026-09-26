@@ -190,11 +190,7 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 
 			// * if the doer tries to "Force Merge", check whether it is really allowed
 			if forceMerge {
-				isRepoAdmin, errForceMerge := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
-				if errForceMerge != nil {
-					return fmt.Errorf("IsUserRepoAdmin failed, repo: %v, doer: %v, err: %w", pr.BaseRepoID, doer.ID, errForceMerge)
-				}
-
+				isRepoAdmin := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
 				protectedBranchRule, errForceMerge := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 				if errForceMerge != nil {
 					return fmt.Errorf("GetFirstMatchProtectedBranchRule failed, repo: %v, base branch: %v, err: %w", pr.BaseRepoID, pr.BaseBranch, errForceMerge)
@@ -301,7 +297,7 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 	} else if !exist {
 		return
 	}
-	automergequeue.StartPRCheckAndAutoMerge(ctx, pr)
+	automergequeue.StartAutoMergeCheckByPullHead(ctx, pr)
 }
 
 // getMergeCommit checks if a pull request has been merged
@@ -332,7 +328,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("%-v OpenRepository: %w", pr.BaseRepo, err)
 	}
@@ -368,7 +364,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 func getMergerForManuallyMergedPullRequest(ctx context.Context, pr *issues_model.PullRequest) (*user_model.User, error) {
 	var errs []error
-	if branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
+	if branch, err := git_model.GetBranchExisting(ctx, pr.BaseRepoID, pr.BaseBranch); err != nil {
 		errs = append(errs, err)
 	} else {
 		err := branch.LoadPusher(ctx) // LoadPusher uses ghost for non-existing user

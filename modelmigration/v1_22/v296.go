@@ -3,9 +3,13 @@
 
 package v1_22
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddCommitStatusSummary2(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddCommitStatusSummary2(_ context.Context, x base.EngineMigration) error {
 	type CommitStatusSummary struct {
 		ID        int64  `xorm:"pk autoincr"`
 		TargetURL string `xorm:"TEXT"`

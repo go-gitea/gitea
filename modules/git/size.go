@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 )
 
 const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
@@ -15,7 +15,7 @@ const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | o
 // CalcRepositorySize returns the disk consumption for a given path
 func CalcRepositorySize(repo RepositoryFacade) (int64, error) {
 	var size int64
-	err := filepath.WalkDir(gitcmd.RepoLocalPath(repo), func(_ string, entry os.DirEntry, err error) error {
+	err := filepath.WalkDir(gitrepo.RepoLocalPath(repo), func(_ string, entry os.DirEntry, err error) error {
 		if os.IsNotExist(err) { // ignore the error because some files (like temp/lock file) may be deleted during traversing.
 			return nil
 		} else if err != nil {

@@ -1,7 +1,7 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
   initRepoCommentFormAndSidebar,
-  initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
+  initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
 } from './repo-issue.ts';
@@ -20,7 +20,7 @@ import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
 
 function initRepoBranchTagSelector() {
-  registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
+  registerGlobalInitFunc('initRepoBranchTagSelector', (elRoot: HTMLInputElement) => {
     createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
   });
 }
@@ -61,7 +61,6 @@ export function initRepository() {
   if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueCommentEdit();
 
-    initRepoIssueBranchSelect();
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueComments();

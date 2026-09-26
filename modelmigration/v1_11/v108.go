@@ -3,9 +3,13 @@
 
 package v1_11
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddCommentIDOnNotification(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddCommentIDOnNotification(_ context.Context, x base.EngineMigration) error {
 	type Notification struct {
 		ID        int64 `xorm:"pk autoincr"`
 		CommentID int64

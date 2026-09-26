@@ -24,5 +24,5 @@ func Test_AddCombinedIndexToIssueUser(t *testing.T) {
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(IssueUser))
 	defer deferable()
 
-	assert.NoError(t, AddCombinedIndexToIssueUser(x))
+	assert.NoError(t, AddCombinedIndexToIssueUser(t.Context(), x))
 }

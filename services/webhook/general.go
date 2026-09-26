@@ -293,6 +293,13 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	return text, issueTitle, color
 }
 
+func getRepoRenamedFrom(p *api.RepositoryPayload) string {
+	if p.Changes == nil || p.Changes.Name == nil {
+		return ""
+	}
+	return p.Changes.Name.From
+}
+
 func getPackagePayloadInfo(p *api.PackagePayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	refLink := linkFormatter(p.Package.HTMLURL, p.Package.Name+":"+p.Package.Version)
 

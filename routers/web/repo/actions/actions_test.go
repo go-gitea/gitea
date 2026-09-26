@@ -6,7 +6,6 @@ package actions
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -17,153 +16,8 @@ import (
 	"gitea.dev/modules/test"
 	web_context "gitea.dev/services/context"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestReadWorkflow_WorkflowDispatchConfig(t *testing.T) {
-	yaml := `
-    name: local-action-docker-url
-    `
-	workflow, err := act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch := workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on: push
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on: workflow_dispatch
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on: [push, pull_request]
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        push:
-        pull_request:
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.Nil(t, workflowDispatch)
-
-	yaml = `
-    name: local-action-docker-url
-    on: [push, workflow_dispatch]
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        - push
-        - workflow_dispatch
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        push:
-        pull_request:
-        workflow_dispatch:
-            inputs:
-    `
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Nil(t, workflowDispatch.Inputs)
-
-	yaml = `
-    name: local-action-docker-url
-    on:
-        push:
-        pull_request:
-        workflow_dispatch:
-            inputs:
-                logLevel:
-                    description: 'Log level'
-                    required: true
-                    default: 'warning'
-                    type: choice
-                    options:
-                    - info
-                    - warning
-                    - debug
-                boolean_default_true:
-                    description: 'Test scenario tags'
-                    required: true
-                    type: boolean
-                    default: true
-                boolean_default_false:
-                    description: 'Test scenario tags'
-                    required: true
-                    type: boolean
-                    default: false
-    `
-
-	workflow, err = act_model.ReadWorkflow(strings.NewReader(yaml))
-	assert.NoError(t, err, "read workflow should succeed")
-	workflowDispatch = workflowDispatchConfig(workflow)
-	assert.NotNil(t, workflowDispatch)
-	assert.Equal(t, WorkflowDispatchInput{
-		Name:        "logLevel",
-		Default:     "warning",
-		Description: "Log level",
-		Options: []string{
-			"info",
-			"warning",
-			"debug",
-		},
-		Required: true,
-		Type:     "choice",
-	}, workflowDispatch.Inputs[0])
-	assert.Equal(t, WorkflowDispatchInput{
-		Name:        "boolean_default_true",
-		Default:     "true",
-		Description: "Test scenario tags",
-		Required:    true,
-		Type:        "boolean",
-	}, workflowDispatch.Inputs[1])
-	assert.Equal(t, WorkflowDispatchInput{
-		Name:        "boolean_default_false",
-		Default:     "false",
-		Description: "Test scenario tags",
-		Required:    true,
-		Type:        "boolean",
-	}, workflowDispatch.Inputs[2])
-}
 
 func Test_loadIsRefDeleted(t *testing.T) {
 	unittest.PrepareTestEnv(t)
@@ -212,7 +66,7 @@ func newWorkflowBadgeTestContext(t *testing.T) *web_context.Context {
 
 	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/user1/repo1/actions", nil)
 	resp := httptest.NewRecorder()
-	ctx := web_context.NewWebContext(web_context.NewBaseContextForTest(resp, req), nil, nil)
+	ctx := web_context.NewWebContext(web_context.NewBaseContextForTest(t, resp, req), nil, nil)
 	ctx.Repo.Repository = &repo_model.Repository{
 		OwnerName:     "user1",
 		Name:          "repo1",

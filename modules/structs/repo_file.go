@@ -139,6 +139,8 @@ type ContentsResponse struct {
 
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
+	// `mode` is the Git file mode as an octal string, e.g. `100644` (regular), `100755` (executable), `120000` (symlink), `160000` (submodule)
+	Mode string `json:"mode"`
 	// Size is the file size in bytes
 	Size int64 `json:"size"`
 	// `encoding` is populated when `type` is `file`, otherwise null

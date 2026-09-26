@@ -11,7 +11,6 @@ type CreateUserOption struct {
 	// The authentication source ID to associate with the user
 	SourceID int64 `json:"source_id"`
 	// identifier of the user, provided by the external authenticator (if configured)
-	// default: empty
 	LoginName string `json:"login_name"`
 	// username of the user
 	// required: true
@@ -43,9 +42,7 @@ type EditUserOption struct {
 	// The authentication source ID to associate with the user
 	SourceID int64 `json:"source_id"`
 	// identifier of the user, provided by the external authenticator (if configured)
-	// default: empty
-	// required: true
-	LoginName string `json:"login_name" binding:"Required"`
+	LoginName *string `json:"login_name"`
 	// swagger:strfmt email
 	// The email address of the user
 	Email *string `json:"email" binding:"MaxSize(254)"`
@@ -79,4 +76,6 @@ type EditUserOption struct {
 	Restricted *bool `json:"restricted"`
 	// User visibility level: public, limited, or private
 	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
+	// The user type
+	Type UserTypeString `json:"type" binding:"In(User,Organization,Bot)"`
 }

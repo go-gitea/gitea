@@ -56,7 +56,7 @@ func Test_AddUniqueIndexForUserBadge(t *testing.T) {
 	assert.Equal(t, int64(6), totalCount)
 
 	// run the migration
-	if err := AddUniqueIndexForUserBadge(x); err != nil {
+	if err := AddUniqueIndexForUserBadge(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

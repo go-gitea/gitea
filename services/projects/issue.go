@@ -5,7 +5,6 @@ package project
 
 import (
 	"context"
-	"errors"
 	"slices"
 	"strings"
 
@@ -14,9 +13,68 @@ import (
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
+
+// ErrIssueNotInProject unwraps as ErrUnprocessableContent, not ErrNotExist: ctx.ServerError
+// diverts ErrNotExist to a 404, which would hide this from the web caller's logs.
+var ErrIssueNotInProject = util.ErrorWrap(util.ErrUnprocessableContent, "all issues have to be added to a project first")
+
+// AddIssueToColumn assigns the issue to the column's project if needed, then places it in
+// the column. One transaction, so a failure cannot strand it in the default column.
+func AddIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		projectIDs, err := issue.ProjectIDs(ctx)
+		if err != nil {
+			return err
+		}
+		if !slices.Contains(projectIDs, column.ProjectID) {
+			// lands in the default column, the move below puts it in the requested one
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, append(projectIDs, column.ProjectID)); err != nil {
+				return err
+			}
+		}
+		return MoveIssueToColumn(ctx, doer, issue, column, optional.None[int64]())
+	})
+}
+
+// MoveIssueToColumn places an issue already in the project into a column, appending it
+// when sorting is absent.
+func MoveIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column, sorting optional.Option[int64]) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		position := sorting.Value()
+		if !sorting.Has() {
+			next, err := project_model.GetColumnIssueNextSorting(ctx, column)
+			if err != nil {
+				return err
+			}
+			position = next
+		}
+		return MoveIssuesOnProjectColumn(ctx, doer, column, map[int64]int64{position: issue.ID})
+	})
+}
+
+// RemoveIssueFromColumn detaches the issue from the column's project, reporting a
+// not-exist error when it is not in that column.
+func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return util.NewNotExistErrorf("issue %d is not in column %d", issue.ID, column.ID)
+		}
+		projectIDs, err := issue.ProjectIDs(ctx)
+		if err != nil {
+			return err
+		}
+		remaining := util.SliceRemoveAll(projectIDs, column.ProjectID)
+		return issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, remaining)
+	})
+}
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
@@ -33,7 +91,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			return err
 		}
 		if int(count) != len(sortedIssueIDs) {
-			return errors.New("all issues have to be added to a project first")
+			return ErrIssueNotInProject
 		}
 
 		issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
@@ -87,12 +145,8 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			// IMPORTANT: The WHERE clause must include both issue_id AND project_id to ensure
 			// that moving an issue's column in one project doesn't affect its column in other
 			// projects when the issue is assigned to multiple projects.
-			_, err = db.GetEngine(ctx).Table("project_issue").
-				Where("issue_id = ? AND project_id = ?", issueID, column.ProjectID).
-				Update(map[string]any{
-					"project_board_id": column.ID,
-					"sorting":          sorting,
-				})
+			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=? AND project_id=?",
+				column.ID, sorting, issueID, column.ProjectID)
 			if err != nil {
 				return err
 			}

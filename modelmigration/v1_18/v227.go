@@ -4,6 +4,8 @@
 package v1_18
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
@@ -17,6 +19,6 @@ type SystemSetting struct {
 	Updated      timeutil.TimeStamp `xorm:"updated"`
 }
 
-func CreateSystemSettingsTable(x base.EngineMigration) error {
+func CreateSystemSettingsTable(_ context.Context, x base.EngineMigration) error {
 	return x.Sync(new(SystemSetting))
 }

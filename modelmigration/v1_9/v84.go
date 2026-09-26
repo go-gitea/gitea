@@ -3,9 +3,13 @@
 
 package v1_9
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddGPGKeyImport(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddGPGKeyImport(_ context.Context, x base.EngineMigration) error {
 	type GPGKeyImport struct {
 		KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
 		Content string `xorm:"TEXT NOT NULL"`

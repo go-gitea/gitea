@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
+	"strconv"
 	"time"
 
 	"gitea.dev/models/db"
@@ -30,7 +30,7 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"unique(repo_index)"`
+	RepoID            int64                  `xorm:"unique(repo_index) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -47,7 +47,7 @@ type ActionRun struct {
 	Event             webhook_module.HookEventType // the webhook event that causes the workflow to run
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
-	Status            Status                       `xorm:"index"`
+	Status            Status                       `xorm:"index index(repo_status)"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
 
@@ -92,6 +92,13 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.ID)
 }
 
+func (run *ActionRun) APIURL(ctx context.Context) string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID)
+}
+
 func (run *ActionRun) WorkflowLink() string {
 	if run.Repo == nil {
 		return ""
@@ -116,7 +123,9 @@ func (run *ActionRun) RefLink() string {
 func (run *ActionRun) PrettyRef() string {
 	refName := git.RefName(run.Ref)
 	if refName.IsPull() {
-		return "#" + strings.TrimSuffix(strings.TrimPrefix(run.Ref, git.PullPrefix), "/head")
+		if pullIndex, ok := refName.PullIndex(); ok {
+			return "#" + strconv.FormatInt(pullIndex, 10)
+		}
 	}
 	return refName.ShortName()
 }
@@ -165,7 +174,10 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated)
+	if run.LatestAttemptID == 0 {
+		d += run.PreviousDuration
+	}
 	if d < 0 {
 		return 0
 	}
@@ -397,5 +409,5 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return CancelJobs(ctx, jobsToCancel)
+	return CancelJobs(ctx, jobsToCancel, false)
 }

@@ -3,9 +3,13 @@
 
 package v1_8
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIsLockedToIssues(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIsLockedToIssues(_ context.Context, x base.EngineMigration) error {
 	// Issue see models/issue.go
 	type Issue struct {
 		ID       int64 `xorm:"pk autoincr"`

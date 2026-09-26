@@ -16,7 +16,7 @@
 		<div class="ui secondary segment tw-font-mono">
 			{{$gitRemoteName := ctx.RootData.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
 			{{if eq $pull.Flow 0}}
-			<div>git fetch -u {{if ne $pull.HeadRepo.ID $pull.BaseRepo.ID}}{{ctx.AppFullLink $pull.HeadRepo.Link}}{{else}}{{$gitRemoteName}}{{end}} {{$pull.HeadBranch}}:{{$localBranch}}</div>
+			<div>git fetch -u {{if ne $pull.HeadRepo.ID $pull.BaseRepo.ID}}{{$pull.HeadRepo.HTMLURL ctx}}{{else}}{{$gitRemoteName}}{{end}} {{$pull.HeadBranch}}:{{$localBranch}}</div>
 			{{else}}
 			<div>git fetch -u {{$gitRemoteName}} {{$pull.GetGitHeadRefName}}:{{$localBranch}}</div>
 			{{end}}

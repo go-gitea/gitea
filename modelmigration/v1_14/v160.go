@@ -3,9 +3,13 @@
 
 package v1_14
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddBlockOnOfficialReviewRequests(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddBlockOnOfficialReviewRequests(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		BlockOnOfficialReviewRequests bool `xorm:"NOT NULL DEFAULT false"`
 	}

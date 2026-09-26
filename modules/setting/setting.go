@@ -7,6 +7,7 @@ package setting
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -17,7 +18,8 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// settings
+const IsWindows = runtime.GOOS == "windows"
+
 var (
 	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
 	AppVer string
@@ -27,7 +29,6 @@ var (
 	AppStartTime time.Time
 
 	CfgProvider ConfigProvider
-	IsWindows   bool
 
 	// IsInTesting indicates whether the testing is running (unit test or integration test). It can be used for:
 	// * Skip nonsense error logs during testing caused by unreliable code (TODO: this is only a temporary solution, we should make the test code more reliable)
@@ -37,7 +38,6 @@ var (
 )
 
 func init() {
-	IsWindows = runtime.GOOS == "windows"
 	if AppVer == "" {
 		AppVer = "dev"
 	}
@@ -72,22 +72,24 @@ func PrepareAppDataPath() error {
 	// The correct behavior should be: creating parent directories is end users' duty. We only create sub-directories in existing parent directories.
 	// For quickstart, the parent directories should be created automatically for first startup (eg: a flag or a check of INSTALL_LOCK).
 	// Now we can take the first step to do correctly (using Mkdir) in other packages, and prepare the AppDataPath here, then make a refactor in future.
-
+	if !filepath.IsAbs(AppDataPath) {
+		return fmt.Errorf("app data path %q must be an absolute path", AppDataPath)
+	}
 	st, err := os.Stat(AppDataPath)
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(AppDataPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("unable to create the APP_DATA_PATH directory: %q, Error: %w", AppDataPath, err)
+			return fmt.Errorf("unable to create the app data path directory: %q, Error: %w", AppDataPath, err)
 		}
 		return nil
 	}
 
 	if err != nil {
-		return fmt.Errorf("unable to use APP_DATA_PATH %q. Error: %w", AppDataPath, err)
+		return fmt.Errorf("unable to use app data path %q. Error: %w", AppDataPath, err)
 	}
 
 	if !st.IsDir() /* also works for symlink */ {
-		return fmt.Errorf("the APP_DATA_PATH %q is not a directory (or symlink to a directory) and can't be used", AppDataPath)
+		return fmt.Errorf("the app data path %q is not a directory (or symlink to a directory) and can't be used", AppDataPath)
 	}
 
 	return nil
@@ -121,6 +123,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	// WARNING: don't change the sequence except you know what you are doing.
 	loadRunModeFrom(cfg)
 	loadLogGlobalFrom(cfg)
+	loadAuditFrom(cfg)
 	loadServerFrom(cfg)
 	loadSSHFrom(cfg)
 
@@ -157,6 +160,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadGitFrom(cfg)
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
+	loadRedisFrom(cfg)
 	loadGlobalLockFrom(cfg)
 	loadOtherFrom(cfg)
 	return nil
@@ -221,6 +225,7 @@ func LoadSettings() {
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	loadCacheFrom(CfgProvider)
+	loadWebsocketFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)
 	loadMailsFrom(CfgProvider)
@@ -256,5 +261,5 @@ func PanicInDevOrTesting(msg string, a ...any) {
 	if !IsProd || IsInTesting {
 		panic(fmt.Sprintf(msg, a...))
 	}
-	log.Error(msg, a...)
+	log.ErrorWithSkip(1, msg, a...)
 }

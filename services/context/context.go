@@ -17,12 +17,15 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	web_types "gitea.dev/modules/web/types"
@@ -43,8 +46,11 @@ type Context struct {
 
 	TemplateContext TemplateContext
 
-	Render   Render
-	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render Render
+
+	// PageData is used by JavaScript modules, it is `window.config.pageData`.
+	// Deprecated: it was introduced for refactoring some legacy JS code, it should not be used in new code anymore.
+	PageData map[string]any
 
 	Cache   cache.StringCache
 	Flash   *middleware.Flash
@@ -65,10 +71,10 @@ type Context struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(BaseContextKey).(*Base)
+		return reqctx.MustContextValue[*Base](req.Context(), BaseContextKey)
 	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(WebContextKey).(*Context)
+		return reqctx.MustContextValue[*Context](req.Context(), WebContextKey)
 	})
 }
 
@@ -79,23 +85,6 @@ var WebContextKey = webContextKeyType{}
 func GetWebContext(ctx context.Context) *Context {
 	webCtx, _ := ctx.Value(WebContextKey).(*Context)
 	return webCtx
-}
-
-// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
-type ValidateContext struct {
-	*Base
-}
-
-// GetValidateContext gets a context for middleware form validation
-func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
-	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
-		ctx = &ValidateContext{Base: ctxAPI.Base}
-	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
-		ctx = &ValidateContext{Base: ctxWeb.Base}
-	} else {
-		panic("invalid context, expect either APIContext or Context")
-	}
-	return ctx
 }
 
 func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, locale translation.Locale) TemplateContext {
@@ -135,6 +124,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx, ctx.Base.Req, ctx.Base.Locale)
 	ctx.Flash = &middleware.Flash{DataStore: ctx, Values: url.Values{}}
 	ctx.SetContextValue(WebContextKey, ctx)
+	httplib.MarkRequestSupportPublicURL(ctx)
 	return ctx
 }
 
@@ -221,6 +211,11 @@ func (ctx *Context) DoerNeedTwoFactorAuth() bool {
 	return ctx.Session.Get(session.KeyUserHasTwoFactorAuth) == false
 }
 
+// DoerIsImpersonated returns true if the current session is an admin impersonating the doer
+func (ctx *Context) DoerIsImpersonated() bool {
+	return ctx.Session.Get(session.KeyImpersonatorData) != nil
+}
+
 // HasError returns true if error occurs in form validation.
 // Attention: this function changes ctx.Data and ctx.Flash
 // If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.
@@ -254,15 +249,43 @@ func (ctx *Context) JSONOK() {
 	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
 }
 
-func (ctx *Context) JSONError(msg any) {
-	switch v := msg.(type) {
+func buildJsonErrorMap[T string | template.HTML](msg T) map[string]any {
+	switch v := any(msg).(type) {
 	case string:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "text"})
+		return map[string]any{"errorMessage": v, "renderFormat": "text"}
 	case template.HTML:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "html"})
-	default:
-		panic(fmt.Sprintf("unsupported type: %T", msg))
+		return map[string]any{"errorMessage": v, "renderFormat": "html"}
 	}
+	panic(fmt.Sprintf("unsupported type: %T", msg))
+}
+
+func (ctx *Context) JSONErrorAuto(err error) {
+	if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+		msg := errTr.Translate(ctx.Locale)
+		ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
+		return
+	}
+	errMsg, httpCode := util.ErrorUnwrapForUser(err)
+	if errMsg != "" {
+		ctx.JSON(httpCode, buildJsonErrorMap(errMsg))
+		return
+	}
+
+	logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, err), log.DEBUG, log.ERROR)
+	log.Log(1, logLevel, "JSONErrorAuto: server internal error: %v", err)
+
+	userErrorMsg := ctx.buildUserErrorMessage("internal server error", err)
+	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
+}
+
+func (ctx *Context) JSONError[T string | template.HTML](msg T) {
+	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
+}
+
+func (ctx *Context) JSONErrorWithField[T string | template.HTML](msg T, field string) {
+	m := buildJsonErrorMap(msg)
+	m["errorFields"] = []string{field}
+	ctx.JSON(http.StatusBadRequest, m)
 }
 
 func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
@@ -270,5 +293,19 @@ func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
 	if msg == "" {
 		msg = ctx.Locale.TrString("error.not_found")
 	}
-	ctx.JSON(http.StatusNotFound, map[string]any{"errorMessage": msg, "renderFormat": "text"})
+	ctx.JSON(http.StatusNotFound, buildJsonErrorMap(msg))
+}
+
+func GetFetchActionForm[T middleware.Form](ctx *Context) (ret T) {
+	if web.IsFormSet(ctx) {
+		panic("don't mix fetch-action form validation with template-based form validation")
+	}
+	form, errs := middleware.BindFormValidate[T](ctx.Req, validation.Binder())
+	errorMessage, fieldName, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
+	if errorMessage != "" {
+		ctx.Resp.Header().Set("Content-Type", "application/json")
+		ctx.JSONErrorWithField(errorMessage, fieldName)
+		return ret
+	}
+	return form
 }

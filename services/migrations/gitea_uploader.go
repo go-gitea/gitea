@@ -12,11 +12,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
-	"gitea.dev/models"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/repostats"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -32,8 +33,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-
-	"github.com/google/uuid"
 )
 
 var _ base.Uploader = &GiteaLocalUploader{}
@@ -138,7 +137,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(g.repo)
+	g.gitRepo, err = git.OpenRepository(ctx, g.repo)
 	if err != nil {
 		return err
 	}
@@ -278,17 +277,20 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			release.TargetCommitish = ""
 		}
 
+		publishedAt := util.Iif(release.Published.IsZero(), release.Created, release.Published)
+
 		rel := repo_model.Release{
-			RepoID:       g.repo.ID,
-			TagName:      release.TagName,
-			LowerTagName: strings.ToLower(release.TagName),
-			Target:       release.TargetCommitish,
-			Title:        release.Name,
-			Note:         release.Body,
-			IsDraft:      release.Draft,
-			IsPrerelease: release.Prerelease,
-			IsTag:        false,
-			CreatedUnix:  timeutil.TimeStamp(release.Created.Unix()),
+			RepoID:        g.repo.ID,
+			TagName:       release.TagName,
+			LowerTagName:  strings.ToLower(release.TagName),
+			Target:        release.TargetCommitish,
+			Title:         release.Name,
+			Note:          release.Body,
+			IsDraft:       release.Draft,
+			IsPrerelease:  release.Prerelease,
+			IsTag:         false,
+			CreatedUnix:   timeutil.TimeStamp(release.Created.Unix()),
+			PublishedUnix: util.Iif(release.Draft, 0, timeutil.TimeStamp(publishedAt.Unix())),
 		}
 
 		if err := g.remapUser(ctx, release, &rel); err != nil {
@@ -916,7 +918,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			}
 
 			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
-			if !objectFormat.IsValid(comment.CommitID) {
+			if !git.IsStringValidObjectID(objectFormat, comment.CommitID) {
 				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
 				comment.CommitID = headCommitID
 			}
@@ -965,7 +967,7 @@ func (g *GiteaLocalUploader) Finish(ctx context.Context) error {
 		return err
 	}
 
-	if err := models.UpdateRepoStats(ctx, g.repo.ID); err != nil {
+	if err := repostats.UpdateRepoStats(ctx, g.repo.ID); err != nil {
 		return err
 	}
 

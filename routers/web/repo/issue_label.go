@@ -11,7 +11,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/modules/label"
-	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -37,16 +36,15 @@ func Labels(ctx *context.Context) {
 
 // InitializeLabels init labels for a repository
 func InitializeLabels(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
+	form := web.GetForm[*forms.InitializeLabelsForm](ctx)
 	if ctx.HasError() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 		return
 	}
 
 	if err := repo_module.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
-		if label.IsErrTemplateLoad(err) {
-			originalErr := err.(label.ErrTemplateLoad).OriginalError
-			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
+		if errTemplateLoad, ok := err.(label.ErrTemplateLoad); ok {
+			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, errTemplateLoad.OriginalError))
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
 		}
@@ -224,8 +222,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			}
 		}
 	default:
-		log.Warn("Unrecognized action: %s", action)
-		ctx.HTTPError(http.StatusInternalServerError)
+		ctx.JSONError("invalid action: " + action)
 		return
 	}
 

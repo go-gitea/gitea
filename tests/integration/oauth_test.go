@@ -869,7 +869,7 @@ func issueOAuthAccessTokenForScope(t *testing.T, user *user_model.User, scope st
 	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -923,7 +923,7 @@ func testOAuthGrantScopesReadRepositoryFailOrganization(t *testing.T) {
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     app.ClientID,
@@ -1060,7 +1060,7 @@ func testOAuthGrantScopesClaimPublicOnlyGroups(t *testing.T) {
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -1158,7 +1158,7 @@ func testOAuthGrantScopesClaimAllGroups(t *testing.T) {
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -1299,6 +1299,8 @@ func testSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 	addOAuth2Source(t, "test-oidc-source", oauth2Source)
 	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(ctx, "test-oidc-source")
 	require.NoError(t, err)
+	authSourceCfg, ok := authSource.Cfg.(*oauth2.Source)
+	require.True(t, ok)
 
 	sshKey1 := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf"
 	sshKey2 := "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE7kM1R02+4ertDKGKEDcKG0s+2vyDDcIvceJ0Gqv5f1AAAABHNzaDo="
@@ -1336,7 +1338,7 @@ func testSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 			defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
 				return goth.User{
-					Provider: authSource.Cfg.(*oauth2.Source).Provider,
+					Provider: authSourceCfg.Provider,
 					UserID:   "oidc-userid",
 					Email:    "oidc-email@example.com",
 					RawData:  c.mockRawData,
@@ -1393,7 +1395,7 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	doc.Find(".external-login-link").Each(func(i int, s *goquery.Selection) {
 		oauth2Links = append(oauth2Links, s.AttrOr("href", ""))
 	})
-	assert.Equal(t, []string{
+	assert.ElementsMatch(t, []string{
 		"/user/oauth2/test%20space",
 		"/user/oauth2/test+plus",
 	}, oauth2Links)

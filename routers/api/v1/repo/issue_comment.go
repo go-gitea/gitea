@@ -379,7 +379,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
+	form := web.GetForm[*api.CreateIssueCommentOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -511,7 +511,7 @@ func EditIssueComment(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
+	form := web.GetForm[*api.EditIssueCommentOption](ctx)
 	editIssueComment(ctx, *form)
 }
 
@@ -561,7 +561,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
+	form := web.GetForm[*api.EditIssueCommentOption](ctx)
 	editIssueComment(ctx, *form)
 }
 

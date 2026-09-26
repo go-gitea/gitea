@@ -13,7 +13,8 @@ runs:
   using: composite
   steps:
     - uses: ./.github/actions/free-disk-space
-    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      id: setup-go
       with:
         go-version-file: go.mod
         check-latest: true
@@ -21,4 +22,5 @@ runs:
     - if: ${{ inputs.cache == 'true' }}
       uses: ./.github/actions/go-cache
       with:
+        go-version: ${{ steps.setup-go.outputs.go-version }}
         lint-cache: ${{ inputs.lint-cache }}

@@ -427,8 +427,8 @@ func TestPackageContainer(t *testing.T) {
 						assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
 						assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
-						assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
-						metadata := pd.Metadata.(*container_module.Metadata)
+						metadata, ok := pd.Metadata.(*container_module.Metadata)
+						require.True(t, ok)
 						assert.Equal(t, container_module.TypeOCI, metadata.Type)
 						assert.Len(t, metadata.ImageLayers, 2)
 						assert.Empty(t, metadata.Manifests)
@@ -570,8 +570,8 @@ func TestPackageContainer(t *testing.T) {
 
 				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.VersionProperties, container_module.PropertyManifestReference))
 
-				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
-				metadata := pd.Metadata.(*container_module.Metadata)
+				metadata, ok := pd.Metadata.(*container_module.Metadata)
+				require.True(t, ok)
 				assert.Equal(t, container_module.TypeOCI, metadata.Type)
 				assert.Len(t, metadata.Manifests, 2)
 				assert.Condition(t, func() bool {
@@ -610,33 +610,28 @@ func TestPackageContainer(t *testing.T) {
 			t.Run("HeadBlob", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).
-					AddTokenAuth(userToken)
+				req := NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).AddTokenAuth(userToken)
 				MakeRequest(t, req, http.StatusNotFound)
 
-				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(userToken)
+				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
-
+				assert.Equal(t, "application/octet-stream", resp.Header().Get("Content-Type"))
 				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 
-				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(anonymousToken)
+				req = NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(anonymousToken)
 				MakeRequest(t, req, http.StatusOK)
 			})
 
 			t.Run("GetBlob", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).
-					AddTokenAuth(userToken)
+				req := NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, unknownDigest)).AddTokenAuth(userToken)
 				MakeRequest(t, req, http.StatusNotFound)
 
-				req = NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).
-					AddTokenAuth(userToken)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, blobDigest)).AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusOK)
-
+				assert.Equal(t, "application/octet-stream", resp.Header().Get("Content-Type"))
 				assert.Equal(t, strconv.Itoa(len(blobContent)), resp.Header().Get("Content-Length"))
 				assert.Equal(t, blobDigest, resp.Header().Get("Docker-Content-Digest"))
 				assert.Equal(t, blobContent, resp.Body.Bytes())

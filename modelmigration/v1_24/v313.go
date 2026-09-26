@@ -4,10 +4,12 @@
 package v1_24
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 )
 
-func MovePinOrderToTableIssuePin(x base.EngineMigration) error {
+func MovePinOrderToTableIssuePin(_ context.Context, x base.EngineMigration) error {
 	type IssuePin struct {
 		ID       int64 `xorm:"pk autoincr"`
 		RepoID   int64 `xorm:"UNIQUE(s) NOT NULL"`

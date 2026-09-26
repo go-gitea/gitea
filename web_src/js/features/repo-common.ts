@@ -49,7 +49,7 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
   if (pos === -1) return tmpl;
   const posQuestionMark = tmpl.indexOf('?');
   const needEncode = posQuestionMark >= 0 && posQuestionMark < pos;
-  return tmpl.replace('{url}', needEncode ? encodeURIComponent(url) : url);
+  return tmpl.replace('{url}', () => needEncode ? encodeURIComponent(url) : url);
 }
 
 function initRepoCloneButtonsCombo(parent: Element) {
@@ -144,17 +144,6 @@ function initRepoClonePanel(btn: HTMLButtonElement) {
 export function initRepoCloneButtons() {
   registerGlobalInitFunc('initRepoClonePanel', initRepoClonePanel);
   registerGlobalInitFunc('initRepoCloneButtonsCombo', initRepoCloneButtonsCombo);
-}
-
-export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string) {
-  try {
-    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
-    if (!response.ok) {
-      throw new Error('Failed to update issues meta');
-    }
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 export function sanitizeRepoName(name: string): string {

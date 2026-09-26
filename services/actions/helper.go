@@ -5,15 +5,20 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
-func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]any, error) {
+// dispatchInputsForJob types a top-level job's `inputs.*` from EventPayload, empty for other events.
+func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if run.Event != "workflow_dispatch" {
 		return map[string]any{}, nil
 	}
@@ -21,7 +26,29 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
 	}
+	if payload.Inputs == nil {
+		payload.Inputs = map[string]any{} // nil reads as "unresolved" in EvaluateRunConcurrencyFillModel
+	}
+	swf, _, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return nil, util.NewInvalidArgumentErrorf("parse job %d workflow payload: %v", job.ID, err)
+	}
+	dispatch := swf.WorkflowDispatchConfig()
+	if dispatch == nil { // without it the values would silently stay untyped
+		return nil, util.NewInvalidArgumentErrorf("job %d payload declares no workflow_dispatch", job.ID)
+	}
+	coerceDispatchInputTypes(dispatch, payload.Inputs)
 	return payload.Inputs, nil
+}
+
+// dispatchInputsForRunJobs answers for the whole run, off any top-level job's workflow header.
+func dispatchInputsForRunJobs(run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (map[string]any, error) {
+	for _, job := range jobs {
+		if job.ParentJobID == 0 {
+			return dispatchInputsForJob(run, job)
+		}
+	}
+	return nil, fmt.Errorf("run %d: no top-level job to read the workflow_dispatch declaration from", run.ID)
 }
 
 // getInputsForJob returns the `inputs.*` top-level expression context for a job's evaluation.
@@ -29,7 +56,7 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]
 //   - For reusable workflow children (and nested callers), this is the direct parent caller's CallPayload.Inputs
 func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if job.ParentJobID == 0 {
-		return getWorkflowDispatchInputsFromRun(run)
+		return dispatchInputsForJob(run, job)
 	}
 
 	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
@@ -42,7 +69,7 @@ func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *act
 	}
 	var p api.WorkflowCallPayload
 	if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
-		return nil, fmt.Errorf("decode caller %d payload: %w", caller.ID, err)
+		return nil, util.NewInvalidArgumentErrorf("decode caller %d payload: %v", caller.ID, err)
 	}
 	if p.Inputs == nil {
 		return map[string]any{}, nil
@@ -50,11 +77,51 @@ func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *act
 	return p.Inputs, nil
 }
 
-// evaluateJobIf evaluates a job's `if:`
+// pullRequestTargetBaseSHA returns the base branch commit of a pull_request_target run, and whether the run is one.
+func pullRequestTargetBaseSHA(run *actions_model.ActionRun) (string, bool) {
+	if run.TriggerEvent != actions_module.GithubEventPullRequestTarget {
+		return "", false
+	}
+	payload, err := run.GetPullRequestEventPayload()
+	if err != nil {
+		log.Error("run %d: get pull request event payload: %v", run.ID, err)
+		return "", false
+	}
+	if payload.PullRequest == nil || payload.PullRequest.Base == nil || payload.PullRequest.Base.Sha == "" {
+		return "", false
+	}
+	return payload.PullRequest.Base.Sha, true
+}
+
+// evaluateJobIf evaluates a job's `if:`. An invalid `if:` skips the job and is reported in its summary.
 func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
+	shouldStart, err := resolveJobIf(ctx, run, attempt, job, vars, allNeedsSucceed)
+	if errors.Is(err, util.ErrInvalidArgument) {
+		return false, upsertJobErrorSummary(ctx, job, "if", err)
+	}
+	return shouldStart, err
+}
+
+// decideJobIf skips a waiting job whose `if:` is false before its insertion, an invalid `if:` is returned for the job's summary.
+func decideJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string) (invalidIf, err error) {
+	if job.Status != actions_model.StatusWaiting {
+		return nil, nil
+	}
+	shouldStart, err := resolveJobIf(ctx, run, attempt, job, vars, true)
+	if errors.Is(err, util.ErrInvalidArgument) {
+		invalidIf, err = err, nil
+	}
+	if !shouldStart {
+		job.Status = actions_model.StatusSkipped
+	}
+	return invalidIf, err
+}
+
+// resolveJobIf evaluates a job's `if:` and returns an invalid `if:` as util.ErrInvalidArgument.
+func resolveJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, job *actions_model.ActionRunJob, vars map[string]string, allNeedsSucceed bool) (bool, error) {
 	parsedJob, err := job.ParseJob()
 	if err != nil {
-		return false, err
+		return false, util.NewInvalidArgumentErrorf("%v", err)
 	}
 	// Empty `if:` reduces to implicit `success()` - true iff every need finished as Success.
 	if len(parsedJob.If.Value) == 0 {
@@ -68,25 +135,62 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 	if err != nil {
 		return false, err
 	}
+	// GenerateGiteaContext dereferences the run's repo and trigger user, so load them here instead of
+	// relying on whatever the caller happened to load before.
+	if err := run.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+	if err := run.LoadTriggerUser(ctx); err != nil {
+		return false, err
+	}
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
-	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
+	gitCtx["job"] = "" // github.com decides a job's `if:` before the job exists
+	shouldStart, err := jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
+	if err != nil {
+		return false, util.NewInvalidArgumentErrorf("%v", err)
+	}
+	return shouldStart, nil
+}
+
+func upsertJobErrorSummary(ctx context.Context, job *actions_model.ActionRunJob, key string, err error) error {
+	content := fmt.Sprintf("Error when evaluating `%s` for job `%s`.\n\n```\n%v\n```\n", key, job.JobID, err)
+	return actions_model.UpsertActionRunJobSummary(ctx, job.RepoID, job.RunID, job.RunAttemptID, job.ID, 0, actions_model.JobSummaryContentTypeMarkdown, []byte(content))
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {
-	taskNeeds, err := FindTaskNeeds(ctx, job)
+	taskNeeds, jobsByID, err := FindTaskNeeds(ctx, job)
 	if err != nil {
 		return nil, fmt.Errorf("find task needs: %w", err)
 	}
-	jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds))
+	jobResults := make(map[string]*jobparser.JobResult, len(taskNeeds)+1)
 	for jobID, taskNeed := range taskNeeds {
-		jobResult := &jobparser.JobResult{
+		jobResults[jobID] = &jobparser.JobResult{
 			Result:  taskNeed.Result.String(),
 			Outputs: taskNeed.Outputs,
 		}
-		jobResults[jobID] = jobResult
 	}
 	jobResults[job.JobID] = &jobparser.JobResult{
 		Needs: job.Needs,
+	}
+	if len(job.Needs) == 0 {
+		return jobResults, nil
+	}
+
+	queue := append([]string(nil), job.Needs...)
+	for len(queue) > 0 {
+		jobID := queue[0]
+		queue = queue[1:]
+		if len(jobsByID[jobID]) == 0 {
+			continue
+		}
+		if jobResults[jobID] == nil {
+			jobResults[jobID] = &jobparser.JobResult{Result: actions_model.AggregateJobStatus(jobsByID[jobID]).String()}
+		}
+		if jobResults[jobID].Needs != nil {
+			continue
+		}
+		jobResults[jobID].Needs = jobsByID[jobID][0].Needs
+		queue = append(queue, jobResults[jobID].Needs...)
 	}
 	return jobResults, nil
 }

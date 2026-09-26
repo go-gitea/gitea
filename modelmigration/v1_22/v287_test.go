@@ -37,7 +37,7 @@ func Test_UpdateBadgeColName(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	if err := UseSlugInsteadOfIDForBadges(x); err != nil {
+	if err := UseSlugInsteadOfIDForBadges(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

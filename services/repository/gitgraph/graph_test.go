@@ -16,7 +16,7 @@ import (
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {
-	currentRepo, err := git.OpenRepositoryLocal(".")
+	currentRepo, err := git.OpenRepositoryLocal(b.Context(), ".")
 	if err != nil || currentRepo == nil {
 		b.Error("Could not open repository")
 	}

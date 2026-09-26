@@ -4,13 +4,14 @@
 package v1_13
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddCreatedAndUpdatedToMilestones(x base.EngineMigration) error {
+func AddCreatedAndUpdatedToMilestones(_ context.Context, x base.EngineMigration) error {
 	type Milestone struct {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

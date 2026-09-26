@@ -3,9 +3,13 @@
 
 package v1_19
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIndexForAccessToken(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIndexForAccessToken(_ context.Context, x base.EngineMigration) error {
 	type AccessToken struct {
 		TokenLastEight string `xorm:"INDEX token_last_eight"`
 	}

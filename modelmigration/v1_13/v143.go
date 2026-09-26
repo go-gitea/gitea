@@ -4,11 +4,13 @@
 package v1_13
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/log"
 )
 
-func RecalculateStars(x base.EngineMigration) (err error) {
+func RecalculateStars(_ context.Context, x base.EngineMigration) (err error) {
 	// because of issue https://github.com/go-gitea/gitea/issues/11949,
 	// recalculate Stars number for all users to fully fix it.
 

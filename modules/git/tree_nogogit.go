@@ -26,7 +26,7 @@ func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, e
 		return t.entries, nil
 	}
 
-	batch, cancel, err := gitRepo.CatFileBatch(ctx)
+	batch, cancel, err := gitRepo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,153 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.27.3](https://github.com/go-gitea/gitea/releases/tag/v1.27.3) - 2026-08-29
+
+* SECURITY
+  * fix(packages): restrict/limited/token-scope access (#39041, #39043, #39044, #39047, #39046) (#39058)
+  * fix(attachments): enforce owning repository path (#39048) (#39077)
+  * fix(markup): enforce same-repository issue access (#39045) (#39054)
+  * fix(actions): verify raw artifact signatures first (#39049) (#39053)
+  * fix(api): hide limited users from restricted viewers (#39004) (#39039)
+  * fix(repo): limit gitignore template selections (#39027) (#39040)
+  * fix(migrations): cancel GitLab version probes (#39023) (#39035)
+  * fix(packages): limit Swift package manifests (#39025) (#39032)
+  * fix(migrations): bound OneDev version responses (#39024) (#39033)
+  * fix(packages): limit Maven checksum uploads (#39028) (#39031)
+  * fix(packages): bound Alpine metadata entries (#39026) (#39029)
+  * fix(actions): enforce fork pull request trust boundaries (#39005) (#39018)
+  * fix(git): restrict hook permissions (#39008) (#39016)
+  * fix(api): enforce repository creation token authorization (#39007) (#39014)
+  * fix(api): enforce public-only scope for compare heads (#39006) (#39013)
+  * fix(repo): hide repositories of hidden owners (#39009) (#39012)
+  * fix: avoid enumerating every public repository in issue search (#38992) (#39000)
+  * refactor: private endpoints (#38964) (#38965)
+* ENHANCEMENTS
+  * enhance: add permalinks to pull request reviews (#38849) (#39036)
+* BUGFIXES
+  * fix: add missing query parameters on runner list page (#39163)
+  * fix(actions): keep step-level continue-on-error expressions unevaluated (#39141) (#39148)
+  * fix(packages): preserve SemVer prerelease identifiers in Swift Registry (#39156) (#39158)
+  * fix(repo): prevent MarkAsBrokenEmpty when repository is being migrated (#39091) (#39092)
+  * fix(asymkey): do not verify OpenPGP signatures with an SSH instance key (#39073) (#39086)
+  * fix(pull): keep the merged state in sync with git (#39062) (#39118)
+  * fix(pull): name the head repository in default compare links (#39075) (#39079)
+  * fix(git): parse co-author trailers that are not RFC 5322 addresses (#39076) (#39081)
+  * fix(actions): show "Complete job" logs when the last step is skipped (#38939) (#39003)
+  * fix(actions): Fix how jobs in matrixes are grouped (#38980) (#38998)
+  * fix: resolve YAML anchors and aliases in Actions workflows (#38984) (#38996)
+  * fix: honor environment variables during install (#38974) (#38976)
+  * fix: grant limited-org unit read access to authenticated non-members (#38871) (#38963)
+  * fix: allow anonymous theme switching when REQUIRE_SIGNIN_VIEW is set (#38956) (#38961)
+  * fix(actions): drop wrapper span around the action status icon (#38957) (#38959)
+  * fix(issues): sort scoped labels by exclusive order in dropdowns (#38893) (#38954)
+  * fix(indexer): correct bleve indexer token filters (#38853) (#38951)
+  * fix: make "login_name" field optional for API edit user (#38917) (#38945)
+  * fix(actions): reject non-mapping matrix include/exclude (#38933)
+  * fix(ui): respect FEED_PAGING_NUM on the dashboard feed (#38935) (#38936)
+* MISC
+  * chore: repo compare link (#39088) (#39119)
+  * ci: remove AWS S3 uploads from release workflows (#38928) (#38929)
+  * chore: Pre-register a builtin OAuth2 application for the official Gitea mobile app (#38880) (#38922)
+
+## [1.27.2](https://github.com/go-gitea/gitea/releases/tag/v1.27.2) - 2026-08-14
+
+* SECURITY
+  * Fix: update collaborator access mode and httpsign (#38894, #38862) (#38895)
+  * Refactor: external render (#38885) (#38898)
+  * Fix(actions): resolve pull_request_target reusable workflows at the base commit (#38886) (#38897)
+  * Refactor: markup render (#38864) (#38869)
+  * Fix(deps): update dependency mermaid to v11.16.1 (#38816)
+  * Fix(auth): set WebAuthn user verification per request (#38805) (#38810)
+  * Fix: render highlight language (#38793) (#38795)
+
+* ENHANCEMENTS
+  * enhance: add missing npm package metadata properties (#38826) (#38831)
+
+* BUGFIXES
+  * fix(actions): keep github.event.inputs as strings for workflow_dispatch (#38899) (#38908)
+  * fix(actions): let a rerun of selected jobs read the previous attempt's artifacts (#38857) (#38901)
+  * fix(lfs): accept successful transfer responses (#38866) (#38875)
+  * fix(packages): ignore nested Package.swift (#38788) (#38836)
+  * fix: drop newline-bearing member names in arch ParsePackage (#38102) (#38830)
+  * fix(storage): fix Azure Blob dump failing with file does not exist (#38814) (#38828)
+  * fix(migration): migration deletion returned json redirection (#38796) (#38825)
+  * fix(ui): change underlines to default browser style (#38819) (#38823)
+  * fix(actions): allow cancelling runs without running jobs (#35842) (#38812)
+  * fix(actions): evaluate each `${{ }}` part on its own (#38754) (#38797)
+  * fix(actions): write an action task report in one transaction (#38792) (#38794)
+  * fix: markup link (#38764) (#38765)
+  * fix: set a minio part size when the content size is unknown (#38753) (#38755)
+  * fix: bad path escape in subpath archive download (#38749) (#38750)
+  * fix: remove the pull merge box from UI when the refreshed page doesn't contain it (#38742) (#38744)
+  * fix(markdown): fix double strikethough on code (#38707) (#38729)
+  * fix(lfs): failed upload deletes a concurrent upload's meta object (#38693) (#38722)
+  * fix: correct full url when using sub-path (#38712) (#38716)
+  * fix: avoid markup render panic (#38698) (#38703)
+  * fix(ui): too many participants shown in commit avatar stacks (#38689) (#38700)
+  * fix: support HEAD requests on Alpine registry APKINDEX.tar.gz (#38686) (#38688)
+  * fix(migrations): use all configured GitHub tokens (#38841) (#38846)
+
+## [1.27.1](https://github.com/go-gitea/gitea/releases/tag/v1.27.1) - 2026-07-27
+
+* SECURITY
+  * Fix: orgmode render include path (#38642) (#38645)
+  * Fix: git patch apply (#38637) (#38638)
+  * Fix(oauth2): enforce mandatory 2FA policy on OAuth2 authorize/grant endpoints (#38591) (#38606)
+
+* API
+  * fix(api): align Swagger schemas for UserSettings and TopicListResponse (#38590) (#38592)
+
+* ENHANCEMENTS
+  * enhance: improve diff contrast in light and dark themes (#37477) (#38574)
+
+* BUGFIXES
+  * fix: skip OIDC end-session after password login for OAuth2 users (#38439) (#38666)
+  * fix: make Actions log parser support multiple line message encoding (#38659) (#38664)
+  * fix(actions): use base branch ref for pull_request_target context (#38636) (#38657)
+  * fix(actions): skip already-approved runs in `ApproveRuns` (#38653) (#38654)
+  * fix: orgmode render include path (#38642) (#38645)
+  * fix(actions): cancel tasks immediately when the runner stopped reporting (#38616) (#38644)
+  * fix(issues): fix label bulk-load key and reduce log noise in LoadLabel (#38632) (#38643)
+  * fix(actions): improve runner list status sorting, labels and task job links (#38586) (#38633)
+  * fix(actions): correctness and hardening fixes (#38518) (#38631)
+  * fix(repo): prevent double-write redirect collisions on dependency errors, fix ui (#38627) (#38628)
+  * fix: delete repo-scoped rows of seven more tables when deleting a repository (#38534) (#38618)
+  * fix(webhook): remove slack channel name check (#38608) (#38612)
+  * fix: download dropdown menu clipped on the branches page (#38604) (#38609)
+  * fix(project): prevent database mutations on invalid MoveIssues payload (#38600) (#38602)
+  * fix(actions): make SingleWorkflow.Marshal round-trip multi-line run blocks (stop silent job stranding) (#38520) (#38599)
+  * fix(file-tree): handle submodule links and missing view container (#38033) (#38589)
+  * fix(actions): fail unexpandable reusable workflow callers and decouple the job emitter's cross-run processing (#38565) (#38587)
+  * fix: keep serving valid ACME cert when renewal fails at startup (#38554) (#38583)
+  * fix: branch protection user list (#38570) (#38584)
+  * fix(pulls): respect diff.orderFile in diff file tree (#38566) (#38578)
+  * fix(issue): make issue action (issue list batch operation) elements have correct attributes (#38575) (#38580)
+  * fix(actions): support `matrix` when evaluating workflow `if` expression (#38474) (#38557)
+  * fix(actions): align status icon span for Safari rendering (#38558) (#38562)
+  * fix: revert git clone http redirection forbidden (#38530) (#38545)
+  * fix: clean up orphaned user-keyed tables in deleteUser (#38511) (#38514)
+  * fix(actions): coerce workflow_dispatch boolean inputs to native types (#38472) (#38521)
+  * fix: make the merge box button red if some checks fail (#38508) (#38516)
+  * fix(pull): sign the commit when updating a branch by merge (#38441) (#38499)
+  * fix: make commit message merge correctly (#38490) (#38502)
+  * fix(actions): explain why a blocked or waiting job has not started (#38476) (#38498)
+  * fix(actions): make `cancelled()` work in job `if` evaluation (#38495) (#38497)
+  * fix(actions): show retention info on hover for expired artifacts (#38477) (#38493)
+  * fix(actions): group reusable-workflow matrix legs in the workflow graph (#38475) (#38492)
+  * fix: full file highlighting for git diff with CR char (#38484) (#38491)
+  * fix(packages): serve noarch Alpine index for any requested architecture (#38479) (#38486)
+  * fix: 500 error when updating user visibility (#38480) (#38483)
+  * fix(actions): make job list item fully clickable (#38462) (#38471)
+  * fix: mail template for push event (#38467) (#38468)
+  * fix: make "test push webhook" always work (#38425) (#38455)
+  * fix(actions): prevent bulk actions from affecting all runners (#38453) (#38457)
+  * fix(org): align follow button and wrap description (#38448) (#38454)
+  * fix(actions): populate `github.event` for scheduled runs (#38446) (#38452)
+
+* MISC
+  * refactor: git patch apply (#38637) (#38638)
+
 ## [1.27.0](https://github.com/go-gitea/gitea/releases/tag/v1.27.0) - 2026-07-13
 
 * BREAKING

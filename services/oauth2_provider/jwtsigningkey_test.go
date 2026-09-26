@@ -53,7 +53,8 @@ func TestECDSASigningKeyToJWK(t *testing.T) {
 			assert.Len(t, yBytes, tc.coordLen)
 
 			// Verify the decoded coordinates reconstruct the original public key point
-			pubKey := privKey.Public().(*ecdsa.PublicKey)
+			pubKey, ok := privKey.Public().(*ecdsa.PublicKey)
+			require.True(t, ok)
 			assert.Equal(t, 0, new(big.Int).SetBytes(xBytes).Cmp(pubKey.X))
 			assert.Equal(t, 0, new(big.Int).SetBytes(yBytes).Cmp(pubKey.Y))
 		})

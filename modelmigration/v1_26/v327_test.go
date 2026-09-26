@@ -23,7 +23,7 @@ func Test_AddDisabledToActionRunner(t *testing.T) {
 	_, err := x.Insert(&ActionRunner{Name: "runner"})
 	require.NoError(t, err)
 
-	require.NoError(t, AddDisabledToActionRunner(x))
+	require.NoError(t, AddDisabledToActionRunner(t.Context(), x))
 
 	var isDisabled bool
 	has, err := x.SQL("SELECT is_disabled FROM action_runner WHERE id = ?", 1).Get(&isDisabled)

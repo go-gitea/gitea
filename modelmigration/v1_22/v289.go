@@ -4,12 +4,14 @@
 package v1_22
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddDefaultWikiBranch(x base.EngineMigration) error {
+func AddDefaultWikiBranch(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID                int64
 		DefaultWikiBranch string

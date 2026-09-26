@@ -5,21 +5,18 @@ package avatars
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/avatar"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
-	"strk.kbt.io/projects/go/libravatar"
 	"xorm.io/builder"
 )
 
@@ -30,77 +27,38 @@ const (
 	DefaultAvatarPixelSize = 28
 )
 
-// EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
+const emailHashType = "sha256" // so a later algorithm change can tell old rows apart
+
+// EmailHash keeps the email out of the rendered page
 type EmailHash struct {
-	Hash  string `xorm:"pk varchar(32)"`
-	Email string `xorm:"UNIQUE NOT NULL"`
+	Hash     string `xorm:"pk varchar(64)"`
+	Email    string `xorm:"UNIQUE(email_hashtype) NOT NULL"`
+	HashType string `xorm:"UNIQUE(email_hashtype) NOT NULL varchar(16)"`
 }
 
 func init() {
 	db.RegisterModel(new(EmailHash))
 }
 
-type avatarSettingStruct struct {
-	defaultAvatarLink string
-	gravatarSource    string
-	gravatarSourceURL *url.URL
-	libravatar        *libravatar.Libravatar
-}
-
-var avatarSettingAtomic atomic.Pointer[avatarSettingStruct]
-
-func loadAvatarSetting() (*avatarSettingStruct, error) {
-	s := avatarSettingAtomic.Load()
-	if s == nil || s.gravatarSource != setting.GravatarSource {
-		s = &avatarSettingStruct{}
-		u, err := url.Parse(setting.AppSubURL)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse AppSubURL: %w", err)
-		}
-
-		u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
-		s.defaultAvatarLink = u.String()
-
-		s.gravatarSourceURL, err = url.Parse(setting.GravatarSource)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse GravatarSource %q: %w", setting.GravatarSource, err)
-		}
-
-		s.libravatar = libravatar.New()
-		if s.gravatarSourceURL.Scheme == "https" {
-			s.libravatar.SetUseHTTPS(true)
-			s.libravatar.SetSecureFallbackHost(s.gravatarSourceURL.Host)
-		} else {
-			s.libravatar.SetUseHTTPS(false)
-			s.libravatar.SetFallbackHost(s.gravatarSourceURL.Host)
-		}
-
-		avatarSettingAtomic.Store(s)
-	}
-	return s, nil
-}
-
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
-	a, err := loadAvatarSetting()
-	if err != nil {
-		log.Error("Failed to loadAvatarSetting: %v", err)
-		return ""
-	}
-	return a.defaultAvatarLink
+	return setting.AppSubURL + "/assets/img/avatar_default.png"
 }
 
-// HashEmail hashes email address to MD5 string. https://en.gravatar.com/site/implement/hash/
+// HashEmail hashes an email address the way avatar services address it. https://docs.gravatar.com/api/avatars/images/
 func HashEmail(email string) string {
-	m := md5.New()
-	_, _ = m.Write([]byte(strings.ToLower(strings.TrimSpace(email))))
-	return hex.EncodeToString(m.Sum(nil))
+	return base.EncodeSha256(strings.ToLower(strings.TrimSpace(email)))
 }
 
-// GetEmailForHash converts a provided md5sum to the email
-func GetEmailForHash(ctx context.Context, md5Sum string) (string, error) {
-	return cache.GetString("Avatar:"+md5Sum, func() (string, error) {
-		emailHash, has, err := db.Get[EmailHash](ctx, builder.Eq{"`hash`": strings.ToLower(strings.TrimSpace(md5Sum))})
+func emailHashCacheKey(hash string) string {
+	return cache.SafeCacheKey("Avatar", hash)
+}
+
+// GetEmailForHash converts a provided hash to the email
+func GetEmailForHash(ctx context.Context, hash string) (string, error) {
+	hash = strings.ToLower(strings.TrimSpace(hash))
+	return cache.GetString(emailHashCacheKey(hash), func() (string, error) {
+		emailHash, has, err := db.Get[EmailHash](ctx, builder.Eq{"`hash`": hash})
 		if err != nil {
 			return "", err
 		} else if !has {
@@ -110,50 +68,19 @@ func GetEmailForHash(ctx context.Context, md5Sum string) (string, error) {
 	})
 }
 
-// LibravatarURL returns the URL for the given email. Slow due to the DNS lookup.
-// This function should only be called if a federated avatar service is enabled.
-func LibravatarURL(email string) (*url.URL, error) {
-	a, err := loadAvatarSetting()
-	if err != nil {
-		return nil, err
-	}
-	urlStr, err := a.libravatar.FromEmail(email)
-	if err != nil {
-		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
-		return nil, err
-	}
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		log.Error("Failed to parse libravatar url(%s): error %v", urlStr, err)
-		return nil, err
-	}
-	return u, nil
-}
-
-// saveEmailHash returns an avatar link for a provided email,
-// the email and hash are saved into database, which will be used by GetEmailForHash later
+// saveEmailHash returns the hash and stores the pair for GetEmailForHash
 func saveEmailHash(ctx context.Context, email string) string {
 	lowerEmail := strings.ToLower(strings.TrimSpace(email))
 	emailHash := HashEmail(lowerEmail)
-	_, _ = cache.GetString("Avatar:"+emailHash, func() (string, error) {
-		emailHash := &EmailHash{
-			Email: lowerEmail,
-			Hash:  emailHash,
+	// a key of its own, GetEmailForHash caches an unknown hash as empty
+	_, _ = cache.GetString(cache.SafeCacheKey("AvatarStored", emailHash), func() (string, error) {
+		// the check keeps a duplicate key error out of a transaction the caller may hold
+		has, err := db.Exist[EmailHash](ctx, builder.Eq{"`hash`": emailHash})
+		if err == nil && !has {
+			_, err = db.GetEngine(ctx).Insert(&EmailHash{Email: lowerEmail, Hash: emailHash, HashType: emailHashType})
+			cache.Remove(emailHashCacheKey(emailHash)) // a lookup may have cached it as unknown
 		}
-		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
-		if err := db.WithTx(ctx, func(ctx context.Context) error {
-			has, err := db.GetEngine(ctx).Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
-			if has || err != nil {
-				// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
-				return nil
-			}
-			_, _ = db.GetEngine(ctx).Insert(emailHash)
-			return nil
-		}); err != nil {
-			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
-			return lowerEmail, nil
-		}
-		return lowerEmail, nil
+		return lowerEmail, err // an error must leave the hash unmarked
 	})
 	return emailHash
 }
@@ -174,59 +101,48 @@ func GenerateUserAvatarImageLink(userAvatar string, size int) string {
 	return setting.AppSubURL + "/avatars/" + url.PathEscape(userAvatar)
 }
 
-// generateRecognizedAvatarURL generate a recognized avatar (Gravatar/Libravatar) URL, it modifies the URL so the parameter is passed by a copy
-func generateRecognizedAvatarURL(u url.URL, size int) string {
-	urlQuery := u.Query()
+func generateSourceAvatarURL(source url.URL, email string, size int) string {
+	source.Path = path.Join(source.Path, HashEmail(email))
+	urlQuery := source.Query()
 	urlQuery.Set("d", "identicon")
 	if size > 0 {
 		urlQuery.Set("s", strconv.Itoa(size))
 	}
-	u.RawQuery = urlQuery.Encode()
-	return u.String()
+	source.RawQuery = urlQuery.Encode()
+	return source.String()
 }
 
-// generateEmailAvatarLink returns a email avatar link.
-// if final is true, it may use a slow path (eg: query DNS).
-// if final is false, it always uses a fast path.
+// generateEmailAvatarLink returns a email avatar link, a final link may query DNS
 func generateEmailAvatarLink(ctx context.Context, email string, size int, final bool) string {
 	email = strings.TrimSpace(email)
 	if email == "" {
 		return DefaultAvatarLink()
 	}
 
-	avatarSetting, err := loadAvatarSetting()
-	if err != nil {
+	federated := setting.Config().Picture.EnableFederatedAvatar.Value(ctx)
+	if federated && !final {
+		// return a 302 link, so page rendering never waits for the DNS query
+		link := setting.AppSubURL + "/avatar/" + url.PathEscape(saveEmailHash(ctx, email))
+		if size > 0 {
+			link += "?size=" + strconv.Itoa(size)
+		}
+		return link
+	}
+	if !federated && setting.Config().Picture.DisableGravatar.Value(ctx) {
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatar := setting.Config().Picture.EnableFederatedAvatar.Value(ctx)
-	if enableFederatedAvatar {
-		emailHash := saveEmailHash(ctx, email)
-		if final {
-			// for final link, we can spend more time on slow external query
-			var avatarURL *url.URL
-			if avatarURL, err = LibravatarURL(email); err != nil {
-				return DefaultAvatarLink()
-			}
-			return generateRecognizedAvatarURL(*avatarURL, size)
-		}
-		// for non-final link, we should return fast (use a 302 redirection link)
-		urlStr := setting.AppSubURL + "/avatar/" + url.PathEscape(emailHash)
-		if size > 0 {
-			urlStr += "?size=" + strconv.Itoa(size)
-		}
-		return urlStr
+	source, err := url.Parse(setting.GravatarSource)
+	if err != nil {
+		log.Error("unable to parse GravatarSource %q: %v", setting.GravatarSource, err)
+		return DefaultAvatarLink()
 	}
-
-	disableGravatar := setting.Config().Picture.DisableGravatar.Value(ctx)
-	if !disableGravatar {
-		// copy GravatarSourceURL, because we will modify its Path.
-		avatarURLCopy := *avatarSetting.gravatarSourceURL
-		avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))
-		return generateRecognizedAvatarURL(avatarURLCopy, size)
+	if federated {
+		if host := avatar.LookupFederatedHost(ctx, email, source.Scheme == "https"); host != "" {
+			source.Host, source.Path = host, "/avatar"
+		}
 	}
-
-	return DefaultAvatarLink()
+	return generateSourceAvatarURL(*source, email, size)
 }
 
 // GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")

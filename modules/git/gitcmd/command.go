@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
 	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/log"
@@ -35,18 +35,32 @@ type Command struct {
 	args       []string
 	preErrors  []error
 	configArgs []string
-	opts       runOpts
 
-	cmd *exec.Cmd
+	// Dir is the working dir for the git command, however:
+	// FIXME: GIT-DIR-ARGUMENT: this could be incorrect in many cases, for example:
+	// * /some/path/.git
+	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
+	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
+	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
+	// Actually, when working with a bare repo, the current directory should not be the git dir,
+	// otherwise some git commands might overwrite git dir internal files by a repo file.
+	gitDir string
+
+	cmd *process.Cmd
 
 	cmdCtx       context.Context
 	cmdCancel    process.CancelCauseFunc
 	cmdFinished  process.FinishedFunc
 	cmdStartTime time.Time
 
+	pipelineFunc func(Context) error
+
 	parentPipeFiles   []*os.File
 	parentPipeReaders []*os.File
 	childrenPipeFiles []*os.File
+
+	cmdEnv     []string
+	cmdTimeout time.Duration
 
 	// only os.Pipe and in-memory buffers can work with Stdin safely, see https://github.com/golang/go/issues/77227 if the command would exit unexpectedly
 	cmdStdin  io.Reader
@@ -158,6 +172,16 @@ func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
 	return c
 }
 
+func (c *Command) AddOptionGrepExpr(s string) *Command {
+	if len(c.args) == 0 || c.args[0] != "grep" {
+		c.handlePreErrorBrokenCommand("(not grep command)")
+		return c
+	}
+	// man git-grep: -e: This option has to be used for patterns starting with "-"
+	c.args = append(c.args, "-e", s)
+	return c
+}
+
 // AddDynamicArguments adds new dynamic argument values to the command.
 // The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options.
 // TODO: in the future, this function can be renamed to AddArgumentValues
@@ -204,23 +228,6 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	return ret
 }
 
-type runOpts struct {
-	// TODO: this struct should be removed, the fields can be just merged into the command
-
-	Env     []string
-	Timeout time.Duration
-
-	// Dir is the working dir for the git command, however:
-	// FIXME: this could be incorrect in many cases, for example:
-	// * /some/path/.git
-	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
-	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
-	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
-	Dir string
-
-	PipelineFunc func(Context) error
-}
-
 func commonBaseEnvs() []string {
 	envs := []string{
 		// Make Gitea use internal git config only, to prevent conflicts with user's git config
@@ -262,17 +269,22 @@ func CommonCmdServEnvs() []string {
 var ErrBrokenCommand = errors.New("git command is broken")
 
 func (c *Command) WithDir(dir string) *Command {
-	c.opts.Dir = dir
+	c.gitDir = dir
+	return c
+}
+
+func (c *Command) WithRepo(repo gitrepo.RepositoryFacade) *Command {
+	c.gitDir = gitrepo.RepoLocalPath(repo)
 	return c
 }
 
 func (c *Command) WithEnv(env []string) *Command {
-	c.opts.Env = env
+	c.cmdEnv = env
 	return c
 }
 
 func (c *Command) WithTimeout(timeout time.Duration) *Command {
-	c.opts.Timeout = timeout
+	c.cmdTimeout = timeout
 	return c
 }
 
@@ -361,7 +373,7 @@ func (c *Command) WithStdoutCopy(w io.Writer) *Command {
 // The returned error of Run / Wait can be joined errors from the pipeline function, context cause, and command exit error.
 // Caller can get the pipeline function's error (if any) by UnwrapPipelineError.
 func (c *Command) WithPipelineFunc(f func(ctx Context) error) *Command {
-	c.opts.PipelineFunc = f
+	c.pipelineFunc = f
 	return c
 }
 
@@ -379,12 +391,7 @@ func (c *Command) WithParentCallerInfo(optInfo ...string) *Command {
 		return c
 	}
 	skip := 1 /*parent "wrap/run" functions*/ + 1 /*this function*/
-	callerFuncName := util.CallerFuncName(skip)
-	callerInfo := callerFuncName
-	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
-		callerInfo = callerInfo[pos+1:]
-	}
-	c.callerInfo = callerInfo
+	c.callerInfo = util.CallerFuncName(skip)
 	return c
 }
 
@@ -418,7 +425,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 		c.WithParentCallerInfo()
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
-	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.opts.Dir), cmdLogString)
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.gitDir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
@@ -426,38 +433,32 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
-	if c.opts.Timeout <= 0 {
+	if c.cmdTimeout <= 0 {
 		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.opts.Timeout, desc)
+		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
 	}
 
 	c.cmdStartTime = time.Now()
 
-	c.cmd = exec.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
-	if c.opts.Env == nil {
+	c.cmd = process.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
+	if c.cmdEnv == nil {
 		c.cmd.Env = os.Environ()
 	} else {
-		c.cmd.Env = c.opts.Env
+		c.cmd.Env = c.cmdEnv
 	}
 
-	process.SetSysProcAttribute(c.cmd)
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
-	c.cmd.Dir = c.opts.Dir
+	c.cmd.Dir = c.gitDir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin
 	c.cmd.Stderr = c.cmdStderr
-	c.cmd.Cancel = func() error {
-		// Golang's default cmd.Cancel only calls Process.Kill(), but here we need to close the parent pipes together:
-		// * for some commands like "git --batch-xxx", Windows git might have 2 processes (a wrapper and a real git process)
-		// * on Windows, if parent process is killed (context canceled), the children process won't be killed, and the pipe handles are still open.
-		// * if we don't close the parent pipes here, the children process won't exit.
-		//
-		// There is no such problem on POSIX, while it won't make things worse by closing the parent pipes also on POSIX.
-		err := c.cmd.Process.Kill()
+	c.cmd.WithOnCancelGracefully(func() error {
+		// Need to close the pipes to notify all sub processes to exit.
+		// Especially on Windows: there is no process group, and we didn't implement process job object (like process group).
 		c.closePipeFiles(c.parentPipeFiles)
-		return err
-	}
+		return nil
+	})
 	return c.cmd.Start()
 }
 
@@ -481,8 +482,8 @@ func (c *Command) Wait() error {
 		c.cmdFinished()
 	}()
 
-	if c.opts.PipelineFunc != nil {
-		errPipeline := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
+	if c.pipelineFunc != nil {
+		errPipeline := c.pipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
 
 		if context.Cause(c.cmdCtx) == nil {
 			// if the context is not canceled explicitly, we need to discard the unread data,
@@ -532,7 +533,7 @@ func (c *Command) StartWithStderr(ctx context.Context) RunStdError {
 	}
 	c.cmdManagedStderr = &bytes.Buffer{}
 	c.cmdStderr = c.cmdManagedStderr
-	err := c.Start(ctx)
+	err := c.WithParentCallerInfo().Start(ctx)
 	if err != nil {
 		return &runStdError{err: err}
 	}
@@ -548,18 +549,18 @@ func (c *Command) WaitWithStderr() RunStdError {
 		// if no exec error but only stderr output, the stderr output is still saved in "c.cmdManagedStderr" and can be read later
 		return nil
 	}
-	return &runStdError{err: errWait, stderr: util.UnsafeBytesToString(c.cmdManagedStderr.Bytes())}
+	return NewRunStdError(errWait, util.UnsafeBytesToString(c.cmdManagedStderr.Bytes()))
 }
 
 func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
-	if err := c.StartWithStderr(ctx); err != nil {
+	if err := c.WithParentCallerInfo().StartWithStderr(ctx); err != nil {
 		return &runStdError{err: err}
 	}
 	return c.WaitWithStderr()
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
-	if err = c.Start(ctx); err != nil {
+	if err = c.WithParentCallerInfo().Start(ctx); err != nil {
 		return err
 	}
 	return c.Wait()
@@ -582,7 +583,7 @@ func (c *Command) runStdBytes(ctx context.Context) ([]byte, []byte, RunStdError)
 		panic("stdout and stderr field must be nil when using RunStdBytes")
 	}
 	stdoutBuf := &bytes.Buffer{}
-	err := c.WithParentCallerInfo().WithStdoutBuffer(stdoutBuf).RunWithStderr(ctx)
+	err := c.WithStdoutBuffer(stdoutBuf).RunWithStderr(ctx)
 	return stdoutBuf.Bytes(), c.cmdManagedStderr.Bytes(), err
 }
 

@@ -69,7 +69,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
 	canAssignProject := canCreate
 	if !canCreate {
-		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
+		canCreate, err := repo_model.HasAccessToRepoCodeUnit(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
 		}
@@ -364,7 +364,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
 	}
@@ -536,7 +536,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	if err := cmd.WithDir(prCtx.tmpBasePath).
+	if err := cmd.WithRepo(prCtx.tmpRepo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			return util.IsEmptyReader(stdoutReader)
 		}).
@@ -559,59 +559,34 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 // PushToBaseRepo pushes commits from branches of head repository to
 // corresponding branches of base repository.
 // FIXME: Only push branches that are actually updates?
-func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) (err error) {
-	return pushToBaseRepoHelper(ctx, pr, "")
-}
-
-func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, prefixHeadBranch string) (err error) {
+func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitHeadRefName())
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
+		return err
+	}
+	if err := pr.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if err := pr.Issue.LoadPoster(ctx); err != nil {
 		return err
 	}
 
-	if err = pr.LoadIssue(ctx); err != nil {
-		return fmt.Errorf("unable to load issue %d for pr %d: %w", pr.IssueID, pr.ID, err)
-	}
-	if err = pr.Issue.LoadPoster(ctx); err != nil {
-		return fmt.Errorf("unable to load poster %d for pr %d: %w", pr.Issue.PosterID, pr.ID, err)
-	}
-
-	gitRefName := pr.GetGitHeadRefName()
-
+	baseRepoHeadRefName := pr.GetGitHeadRefName()
 	if err := git.PushManaged(ctx, pr.HeadRepo, pr.BaseRepo, git.PushOptions{
-		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
+		Branch: git.BranchPrefix + pr.HeadBranch + ":" + baseRepoHeadRefName,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: repo_module.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
-		if git.IsErrPushOutOfDate(err) {
-			// This should not happen as we're using force!
-			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
-			return err
-		} else if git.IsErrPushRejected(err) {
-			rejectErr := err.(*git.ErrPushRejected)
-			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
-			return err
-		} else if git.IsErrMoreThanOne(err) {
-			if prefixHeadBranch != "" {
-				log.Info("Can't push with %s%s", prefixHeadBranch, pr.HeadBranch)
-				return err
-			}
-			log.Info("Retrying to push with %s%s", git.BranchPrefix, pr.HeadBranch)
-			err = pushToBaseRepoHelper(ctx, pr, git.BranchPrefix)
-			return err
-		}
-		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
-		return fmt.Errorf("Push: %s:%s %s:%s %w", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), gitRefName, err)
+		// Since we use internal force-push, there should be no git error.
+		// If any error happens, it must be an internal error (e.g.: broken git hooks) but not user error.
+		return fmt.Errorf("unable to push from head branch %s:%s to base repo %s:%s, err: %w",
+			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), baseRepoHeadRefName, err)
 	}
-
 	return nil
 }
 
@@ -932,8 +907,9 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 	return util.UnsafeBytesToString(buf)
 }
 
-// GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
-func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
+// GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status.
+// The returned statuses are redacted for doer.
+func GetIssuesAllCommitStatus(ctx context.Context, doer *user_model.User, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
 	if err := issues.LoadPullRequests(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -959,7 +935,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = git.OpenRepository(issue.Repo)
+			gitRepo, err = git.OpenRepository(ctx, issue.Repo)
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue
@@ -967,7 +943,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 			gitRepos[issue.RepoID] = gitRepo
 		}
 
-		statuses, lastStatus, err := getAllCommitStatus(ctx, gitRepo, issue.PullRequest)
+		statuses, lastStatus, err := getAllCommitStatus(ctx, doer, gitRepo, issue.PullRequest)
 		if err != nil {
 			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
 			continue
@@ -979,13 +955,18 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 }
 
 // getAllCommitStatus get pr's commit statuses.
-func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
+func getAllCommitStatus(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
 	sha, shaErr := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
 
 	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	for _, status := range statuses {
+		status.Repo = pr.BaseRepo // the repo is already loaded, spare the permission lookup a query
+	}
+	// CalcCommitStatus copies a TargetURL out of the statuses, so hide before combining
+	git_model.CommitStatusesApplyDoerPermission(ctx, doer, statuses)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

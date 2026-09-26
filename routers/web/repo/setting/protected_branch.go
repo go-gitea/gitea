@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -24,6 +25,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	pull_service "gitea.dev/services/pull"
@@ -74,7 +76,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	c.Data["PageIsSettingsBranches"] = true
 	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
-	users, err := access_model.GetUsersWithUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypePullRequests)
+	users, err := access_model.GetUsersWithAnyUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		c.ServerError("GetUsersWithUnitAccess", err)
 		return
@@ -109,7 +111,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 // SettingsProtectedBranchPost updates the protected branch settings
 func SettingsProtectedBranchPost(ctx *context.Context) {
-	f := web.GetForm(ctx).(*forms.ProtectBranchForm)
+	f := web.GetForm[*forms.ProtectBranchForm](ctx)
 	var protectBranch *git_model.ProtectedBranch
 	if f.RuleName == "" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
@@ -149,8 +151,10 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 			return
 		}
 	}
+	isNewProtectedBranch := false
 	if protectBranch == nil {
 		// No options found, create defaults.
+		isNewProtectedBranch = true
 		protectBranch = &git_model.ProtectedBranch{
 			RepoID:   ctx.Repo.Repository.ID,
 			RuleName: f.RuleName,
@@ -266,6 +270,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 	protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
 	protectBranch.BlockOnOfficialReviewRequests = f.BlockOnOfficialReviewRequests
+	protectBranch.BlockOnCodeownerReviews = f.BlockOnCodeownerReviews
 	protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
 	protectBranch.IgnoreStaleApprovals = f.IgnoreStaleApprovals
 	protectBranch.RequireSignedCommits = f.RequireSignedCommits
@@ -288,6 +293,12 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}); err != nil {
 		ctx.ServerError("CreateOrUpdateProtectedBranch", err)
 		return
+	}
+
+	if isNewProtectedBranch {
+		audit.Record(ctx, audit_model.RepositoryBranchProtectionAdd, ctx.Repo.Repository, "rule", protectBranch.RuleName)
+	} else {
+		audit.Record(ctx, audit_model.RepositoryBranchProtectionUpdate, ctx.Repo.Repository, "rule", protectBranch.RuleName)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.RuleName))
@@ -322,6 +333,8 @@ func DeleteProtectedBranchRulePost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.RepositoryBranchProtectionRemove, ctx.Repo.Repository, "rule", rule.RuleName)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_protected_branch_success", rule.RuleName))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/branches")
 }
@@ -342,7 +355,7 @@ func UpdateBranchProtectionPriories(ctx *context.Context) {
 
 // RenameBranchPost responses for rename a branch
 func RenameBranchPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RenameBranchForm)
+	form := web.GetForm[*forms.RenameBranchForm](ctx)
 
 	if !ctx.Repo.CanCreateBranch() {
 		ctx.NotFound(nil)

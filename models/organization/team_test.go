@@ -8,7 +8,9 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/structs"
@@ -290,4 +292,29 @@ func TestUsersInTeamsCount(t *testing.T) {
 func TestIsUsableTeamName(t *testing.T) {
 	assert.NoError(t, organization.IsUsableTeamName("usable"))
 	assert.True(t, db.IsErrNameReserved(organization.IsUsableTeamName("new")))
+}
+
+func TestTeam_UnitAccessModeEx(t *testing.T) {
+	team := &organization.Team{
+		AccessMode: perm.AccessModeWrite, Units: []*organization.TeamUnit{
+			{Type: unit.TypeIssues, AccessMode: perm.AccessModeRead}, // team mode wins
+			{Type: unit.TypeWiki, AccessMode: perm.AccessModeAdmin},  // unit mode wins
+		},
+	}
+	mode, exist := team.UnitAccessModeEx(t.Context(), unit.TypeActions)
+	assert.True(t, exist)
+	assert.Equal(t, perm.AccessModeWrite, mode)
+	assert.Equal(t, perm.AccessModeWrite, team.UnitAccessMode(t.Context(), unit.TypeIssues))
+	assert.Equal(t, perm.AccessModeAdmin, team.UnitAccessMode(t.Context(), unit.TypeWiki))
+	assert.Equal(t, perm.AccessModeRead, team.UnitAccessMode(t.Context(), unit.TypeExternalWiki)) // limited by unit definition
+
+	team = &organization.Team{AccessMode: perm.AccessModeOwner, Units: []*organization.TeamUnit{}}
+	mode, exist = team.UnitAccessModeEx(t.Context(), unit.TypePackages)
+	assert.True(t, exist)
+	assert.Equal(t, perm.AccessModeAdmin, mode)
+
+	team = &organization.Team{AccessMode: perm.AccessModeNone, Units: []*organization.TeamUnit{}}
+	mode, exist = team.UnitAccessModeEx(t.Context(), unit.TypeActions)
+	assert.False(t, exist)
+	assert.Equal(t, perm.AccessModeNone, mode)
 }

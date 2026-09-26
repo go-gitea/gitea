@@ -6,6 +6,7 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -14,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -31,25 +33,22 @@ func TestAPIGitTags(t *testing.T) {
 	_ = git.ManagedConfigSet(t.Context(), repo, "user.name", user.Name)
 	_ = git.ManagedConfigSet(t.Context(), repo, "user.email", user.Email)
 
-	gitRepo, _ := git.OpenRepository(repo)
+	gitRepo, _ := git.OpenRepository(t.Context(), repo)
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit(t.Context(), "master")
 	lTagName := "lightweightTag"
-	gitRepo.CreateTag(t.Context(), lTagName, commit.ID.String())
+	_ = gitRepo.CreateTag(t.Context(), lTagName, commit.ID.String())
 
 	aTagName := "annotatedTag"
-	aTagMessage := "my annotated message"
-	gitRepo.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, commit.ID.String())
+	aTagMessage := strings.Repeat("very long " /*10bytes*/, 20*1024) + "annotated message"
+	_ = gitRepo.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, commit.ID.String())
 	aTag, _ := gitRepo.GetTag(t.Context(), aTagName)
 
 	// SHOULD work for annotated tags
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, aTag.ID.String()).
-		AddTokenAuth(token)
-	res := MakeRequest(t, req, http.StatusOK)
-
-	tag := DecodeJSON(t, res, &api.AnnotatedTag{})
-
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, aTag.ID.String()).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	tag := DecodeJSON(t, resp, &api.AnnotatedTag{})
 	assert.Equal(t, aTagName, tag.Tag)
 	assert.Equal(t, aTag.ID.String(), tag.SHA)
 	assert.Equal(t, commit.ID.String(), tag.Object.SHA)
@@ -57,6 +56,16 @@ func TestAPIGitTags(t *testing.T) {
 	assert.Equal(t, user.Name, tag.Tagger.Name)
 	assert.Equal(t, user.Email, tag.Tagger.Email)
 	assert.Equal(t, repo.APIURL()+"/git/tags/"+aTag.ID.String(), tag.URL)
+
+	if !git.DefaultFeatures().UsingGogit {
+		defer test.MockVariableValue(&git.MaxGitObjectSize, 1024)()
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, aTag.ID.String()).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		tag = DecodeJSON(t, resp, &api.AnnotatedTag{})
+		assert.True(t, strings.HasPrefix(aTagMessage, tag.Message))
+		assert.Less(t, len(tag.Message), len(aTagMessage))
+		assert.Less(t, len(tag.Message), 1024)
+	}
 
 	// Should NOT work for lightweight tags
 	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, commit.ID.String()).

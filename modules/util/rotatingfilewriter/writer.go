@@ -152,7 +152,7 @@ func (rfw *RotatingFileWriter) DoRotate() error {
 		return err
 	}
 
-	if err := util.Rename(fd.Name(), fname); err != nil {
+	if err := util.RenameWithRetry(fd.Name(), fname); err != nil {
 		return err
 	}
 
@@ -203,12 +203,12 @@ func compressOldFile(fname string, compressionLevel int) error {
 	if err != nil {
 		_ = zw.Close()
 		_ = fw.Close()
-		_ = util.Remove(fname + ".gz")
+		_ = util.RemoveWithRetry(fname + ".gz")
 		return fmt.Errorf("compressOldFile: failed to write to gz file: %w", err)
 	}
 	_ = reader.Close()
 
-	err = util.Remove(fname)
+	err = util.RemoveWithRetry(fname)
 	if err != nil {
 		return fmt.Errorf("compressOldFile: failed to delete old file: %w", err)
 	}
@@ -235,7 +235,9 @@ func deleteOldFiles(dir, prefix string, removeBefore time.Time) {
 		}
 		if info.ModTime().Before(removeBefore) {
 			if strings.HasPrefix(filepath.Base(path), prefix) {
-				return util.Remove(path)
+				if err = util.RemoveWithRetry(path); err != nil && !os.IsNotExist(err) {
+					errorf("deleteOldFiles: failed to delete old file %s: %v", path, err)
+				}
 			}
 		}
 		return nil

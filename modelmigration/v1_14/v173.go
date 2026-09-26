@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddTimeIDCommentColumn(x base.EngineMigration) error {
+func AddTimeIDCommentColumn(_ context.Context, x base.EngineMigration) error {
 	type Comment struct {
 		TimeID int64
 	}

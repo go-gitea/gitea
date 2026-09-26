@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 )
 
@@ -19,6 +19,6 @@ func CreateTemporaryGitRepo(prefix string) (tmpPath string, tmpRepo git.Reposito
 	if err != nil {
 		return "", nil, nil, fmt.Errorf("failed to create temp dir with prefix %s: %w", tmpNamePrefix, err)
 	}
-	tmpRepo = gitcmd.RepositoryUnmanaged(tmpPath)
+	tmpRepo = gitrepo.RepositoryUnmanaged(tmpPath)
 	return tmpPath, tmpRepo, cancel, nil
 }

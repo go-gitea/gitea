@@ -4,18 +4,20 @@
 package v1_25
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm/schemas"
 )
 
-func ExtendCommentTreePathLength(x base.EngineMigration) error {
+func ExtendCommentTreePathLength(ctx context.Context, x base.EngineMigration) error {
 	dbType := x.Dialect().URI().DBType
 	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
 		return nil
 	}
 
-	return base.ModifyColumn(x, "comment", &schemas.Column{
+	return base.ModifyColumn(ctx, x, "comment", &schemas.Column{
 		Name: "tree_path",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",

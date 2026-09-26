@@ -20,4 +20,4 @@ type sourceInterface interface {
 	auth_model.UseTLSer
 }
 
-var _ (sourceInterface) = &smtp.Source{}
+var _ sourceInterface = &smtp.Source{}

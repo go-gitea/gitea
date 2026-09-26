@@ -25,7 +25,7 @@ func (repo *Repository) IsTagExist(ctx context.Context, name string) bool {
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(ctx context.Context, id ObjectID) (string, error) {
-	batch, cancel, err := repo.CatFileBatch(ctx)
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +85,7 @@ func (repo *Repository) getTag(ctx context.Context, tagID ObjectID, name string)
 	}
 
 	// The tag is an annotated tag with a message.
-	batch, cancel, err := repo.CatFileBatch(ctx)
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}
@@ -106,10 +106,13 @@ func (repo *Repository) getTag(ctx context.Context, tagID ObjectID, name string)
 		return nil, ErrNotExist{ID: tagID.String()}
 	}
 
-	// then we need to parse the tag
-	// and load the commit
-	data, err := io.ReadAll(io.LimitReader(rd, size))
+	// then we need to parse the tag and load the commit
+	limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+	data, err := io.ReadAll(limitReader)
 	if err != nil {
+		return nil, err
+	}
+	if err = limitDiscard(); err != nil {
 		return nil, err
 	}
 	_, err = rd.Discard(1)

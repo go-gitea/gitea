@@ -4,11 +4,13 @@ export const urlRawRegex = () => /\bhttps?:\/\/[^\s<>[\]]+/gi; // JS regexp has 
 /** Strip trailing punctuation that is likely not part of the URL. */
 export function trimUrlPunctuation(url: string): string {
   url = url.replace(/[.,;:'"]+$/, '');
-  // Strip trailing closing parens only if unbalanced (not part of the URL like Wikipedia links)
-  while (url.endsWith(')') && (url.match(/\(/g) || []).length < (url.match(/\)/g) || []).length) {
-    url = url.slice(0, -1);
-  }
-  return url;
+  // Strip trailing closing parens only if unbalanced (not part of the URL like Wikipedia links),
+  // counted once as a URL can carry as many parens as the text it was found in is long
+  let unbalanced = 0;
+  for (const char of url) unbalanced += char === ')' ? 1 : char === '(' ? -1 : 0;
+  let strip = 0;
+  while (strip < unbalanced && url[url.length - 1 - strip] === ')') strip++;
+  return strip ? url.slice(0, -strip) : url;
 }
 
 export function urlQueryEscape(s: string) {

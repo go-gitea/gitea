@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	repo_module "gitea.dev/modules/repository"
 )
 
@@ -40,7 +41,7 @@ type prTmpRepoContext struct {
 // Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
 func (ctx *prTmpRepoContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
-	return cmd.WithDir(ctx.tmpBasePath).WithStdoutBuffer(ctx.outbuf)
+	return cmd.WithRepo(ctx.tmpRepo).WithStdoutBuffer(ctx.outbuf)
 }
 
 // createTemporaryRepoForPR creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
@@ -80,8 +81,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		outbuf:      &bytes.Buffer{},
 	}
 
-	baseRepoPath := pr.BaseRepo.RepoPath()
-	headRepoPath := pr.HeadRepo.RepoPath()
+	baseRepoPath := gitrepo.RepoLocalPath(pr.BaseRepo.CodeStorageRepo())
+	headRepoPath := gitrepo.RepoLocalPath(pr.HeadRepo.CodeStorageRepo())
 
 	if err := git.InitRepositoryLocal(ctx, tmpBasePath, false, pr.BaseRepo.ObjectFormatName); err != nil {
 		return nil, nil, fmt.Errorf("InitRepository[PR:%d]: %w", pr.ID, err)
@@ -89,11 +90,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 
 	remoteRepoName := "head_repo"
 
-	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags"}
-	if git.DefaultFeatures().CheckVersionAtLeast("2.25.0") {
-		// Writing the commit graph can be slow and is not needed here
-		fetchArgs = append(fetchArgs, "--no-write-commit-graph")
-	}
+	// writing the commit graph can be slow and is not needed here
+	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags", "--no-write-commit-graph"}
 
 	// addCacheRepo adds git alternatives for the cacheRepoPath in the repoPath
 	addCacheRepo := func(repoPath, cacheRepoPath string) error {

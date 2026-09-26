@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
@@ -26,6 +27,7 @@ import (
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/api/v1/utils"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/mailer"
@@ -72,10 +74,12 @@ func CreateUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateUserOption)
+	form := web.GetForm[*api.CreateUserOption](ctx)
 
 	u := &user_model.User{
 		Name:               form.Username,
@@ -134,23 +138,15 @@ func CreateUser(ctx *context.APIContext) {
 	}
 
 	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
-		if user_model.IsErrUserAlreadyExist(err) ||
-			user_model.IsErrEmailAlreadyUsed(err) ||
-			db.IsErrNameReserved(err) ||
-			db.IsErrNameCharsNotAllowed(err) ||
-			user_model.IsErrEmailCharIsNotSupported(err) ||
-			user_model.IsErrEmailInvalid(err) ||
-			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	if !user_model.IsEmailDomainAllowed(u.Email) {
 		ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", u.Email))
 	}
+
+	audit.Record(ctx, audit_model.UserCreate, u)
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
@@ -187,17 +183,33 @@ func EditUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.EditUserOption)
+	form := web.GetForm[*api.EditUserOption](ctx)
+
+	var userType optional.Option[user_model.UserType]
+	if form.Type != "" && form.Type != convert.UserTypeToString(ctx.ContextUser.Type) {
+		newType, err := convert.UserTypeFromString(form.Type)
+		if err != nil {
+			ctx.APIErrorAuto(err)
+			return
+		}
+		userType = optional.Some(newType)
+	}
 
 	authOpts := &user_service.UpdateAuthOptions{
 		LoginSource:        optional.FromNonDefault(form.SourceID),
-		LoginName:          optional.Some(form.LoginName),
+		LoginName:          optional.FromPtr(form.LoginName),
 		Password:           optional.FromNonDefault(form.Password),
 		MustChangePassword: optional.FromPtr(form.MustChangePassword),
 		ProhibitLogin:      optional.FromPtr(form.ProhibitLogin),
+	}
+	if userType.Value() == user_model.UserTypeBot && (authOpts.Password.Has() || authOpts.LoginSource.Value() != 0 || authOpts.LoginName.Value() != "") {
+		ctx.APIError(http.StatusBadRequest, "a bot account cannot have a password or authentication source")
+		return
 	}
 	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
 		switch {
@@ -208,24 +220,14 @@ func EditUser(ctx *context.APIContext) {
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		default:
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
 
 	if form.Email != nil {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
-			switch {
-			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
-				if !user_model.IsEmailDomainAllowed(*form.Email) {
-					err = fmt.Errorf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email)
-				}
-				ctx.APIError(http.StatusBadRequest, err.Error())
-			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.APIError(http.StatusBadRequest, err.Error())
-			default:
-				ctx.APIErrorInternal(err)
-			}
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}
@@ -243,13 +245,14 @@ func EditUser(ctx *context.APIContext) {
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
 		AllowCreateOrganization: optional.FromPtr(form.AllowCreateOrganization),
 		IsRestricted:            optional.FromPtr(form.Restricted),
+		UserType:                userType,
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
 		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -340,7 +343,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	form := web.GetForm[*api.CreateKeyOption](ctx)
 
 	user.CreateUserPublicKey(ctx, *form, ctx.ContextUser.ID)
 }
@@ -551,7 +554,7 @@ func RenameUser(ctx *context.APIContext) {
 		return
 	}
 
-	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
+	newName := web.GetForm[*api.RenameUserOption](ctx).NewName
 
 	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, ctx.Doer); err != nil {

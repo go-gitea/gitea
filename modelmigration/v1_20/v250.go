@@ -4,13 +4,14 @@
 package v1_20
 
 import (
+	"context"
 	"strings"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/json"
 )
 
-func ChangeContainerMetadataMultiArch(x base.EngineMigration) error {
+func ChangeContainerMetadataMultiArch(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 

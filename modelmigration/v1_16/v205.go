@@ -4,19 +4,21 @@
 package v1_16
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm/schemas"
 )
 
-func MigrateUserPasswordSalt(x base.EngineMigration) error {
+func MigrateUserPasswordSalt(ctx context.Context, x base.EngineMigration) error {
 	dbType := x.Dialect().URI().DBType
 	// For SQLITE, the max length doesn't matter.
 	if dbType == schemas.SQLITE {
 		return nil
 	}
 
-	if err := base.ModifyColumn(x, "user", &schemas.Column{
+	if err := base.ModifyColumn(ctx, x, "user", &schemas.Column{
 		Name: "rands",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
@@ -29,7 +31,7 @@ func MigrateUserPasswordSalt(x base.EngineMigration) error {
 		return err
 	}
 
-	return base.ModifyColumn(x, "user", &schemas.Column{
+	return base.ModifyColumn(ctx, x, "user", &schemas.Column{
 		Name: "salt",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",

@@ -32,7 +32,7 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 	results := make([]*LFSResult, 0)
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batch, cancel, err := repo.CatFileBatch(ctx)
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
@@ -154,16 +155,47 @@ func TestWebAuthOAuth2(t *testing.T) {
 		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "oidc-auth-source")
 		require.NoError(t, err)
 
-		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")}
-		ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
-		ctx.Doer = &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
-		SignOut(ctx)
-		assert.Equal(t, http.StatusSeeOther, resp.Code)
-		u, err := url.Parse(test.RedirectURL(resp))
-		require.NoError(t, err)
-		expectedValues := url.Values{"oidc-key": []string{"oidc-val"}, "post_logout_redirect_uri": []string{setting.AppURL}, "client_id": []string{"mock-client-id"}}
-		assert.Equal(t, expectedValues, u.Query())
-		u.RawQuery = ""
-		assert.Equal(t, "https://example.com/oidc-logout", u.String())
+		oauthUser := &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
+
+		t.Run("OAuth2SignInRedirectsToOIDC", func(t *testing.T) {
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oauth")}
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2))
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			expectedValues := url.Values{"oidc-key": []string{"oidc-val"}, "post_logout_redirect_uri": []string{setting.AppURL}, "client_id": []string{"mock-client-id"}}
+			assert.Equal(t, expectedValues, u.Query())
+			u.RawQuery = ""
+			assert.Equal(t, "https://example.com/oidc-logout", u.String())
+		})
+
+		t.Run("PasswordSignInSkipsOIDC", func(t *testing.T) {
+			// OAuth2-linked account signed in via password form must not hit end_session_endpoint.
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-password")}
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Equal(t, "/", test.RedirectURL(resp))
+		})
 	})
+}
+
+func TestOpenIDRequireTwoFactor(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-openid")}
+
+	user32 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 32}) // has a webauthn credential
+	ctx, resp := contexttest.MockContext(t, "/user/openid/connect", mockOpt)
+	openIDRequireTwoFactor(ctx, user32, false, "https://example.com/id")
+	assert.Equal(t, "/user/webauthn", test.RedirectURL(resp))
+	unittest.AssertNotExistsBean(t, &user_model.UserOpenID{UID: user32.ID}) // not attached before the key answered
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	ctx, _ = contexttest.MockContext(t, "/user/openid/connect", mockOpt)
+	openIDRequireTwoFactor(ctx, user2, false, "https://example.com/id")
+	assert.False(t, ctx.Written())
 }

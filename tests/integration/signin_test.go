@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers"
 	"gitea.dev/routers/web/auth"
 	"gitea.dev/services/context"
@@ -177,15 +178,23 @@ func TestRequireSignInView(t *testing.T) {
 		require.False(t, setting.Service.BlockAnonymousAccessExpensive)
 		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", "/user/events")
-		MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/-/ws")
+		MakeRequest(t, req, http.StatusUpgradeRequired)
 	})
 	t.Run("RequireSignInView", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
-		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
-		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
+		t.Run("AccessPublicRepo", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
+			resp := MakeRequest(t, req, http.StatusSeeOther)
+			assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
+		})
+		t.Run("UpdateTheme", func(t *testing.T) {
+			session := emptyTestSession(t)
+			req := NewRequest(t, "POST", "/-/web-theme/apply?theme=gitea-dark")
+			session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "gitea-dark", session.GetSiteCookie(middleware.CookieTheme))
+		})
 	})
 	t.Run("BlockAnonymousAccessExpensive", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, false)()
@@ -194,7 +203,7 @@ func TestRequireSignInView(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user2/repo1")
 		MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", "/user/events")
+		req = NewRequest(t, "GET", "/-/ws")
 		MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master")

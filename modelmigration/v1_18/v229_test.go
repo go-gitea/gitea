@@ -7,22 +7,40 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
-	"gitea.dev/models/issues"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_UpdateOpenMilestoneCounts(t *testing.T) {
-	type ExpectedMilestone issues.Milestone
+	type Issue struct {
+		ID          int64
+		RepoID      int64
+		Index       int64
+		MilestoneID int64
+		IsClosed    bool
+		UpdatedUnix timeutil.TimeStamp
+	}
+
+	type Milestone struct {
+		ID              int64
+		IsClosed        bool
+		NumIssues       int
+		NumClosedIssues int
+		Completeness    int
+		UpdatedUnix     timeutil.TimeStamp
+	}
+
+	type ExpectedMilestone Milestone
 
 	// Prepare and load the testing database
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(issues.Milestone), new(ExpectedMilestone), new(issues.Issue))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(Milestone), new(ExpectedMilestone), new(Issue))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	if err := UpdateOpenMilestoneCounts(x); err != nil {
+	if err := UpdateOpenMilestoneCounts(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}
@@ -32,7 +50,7 @@ func Test_UpdateOpenMilestoneCounts(t *testing.T) {
 		return
 	}
 
-	got := []issues.Milestone{}
+	got := []Milestone{}
 	if err := x.Table("milestone").Asc("id").Find(&got); !assert.NoError(t, err) {
 		return
 	}

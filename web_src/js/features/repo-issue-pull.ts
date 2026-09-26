@@ -3,6 +3,7 @@ import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
+import type {JQueryElem} from '../types.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
   const elDropdown = el.querySelector(':scope > .ui.dropdown');
@@ -10,10 +11,10 @@ export function initRepoPullRequestUpdate(el: HTMLElement) {
   const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
 
   fomanticQuery(elDropdown).dropdown({
-    onChange(_text: string, _value: string, $choice: any) {
+    onChange(_text: string, _value: string, $choice: JQueryElem) {
       const choiceEl = $choice[0];
       elButton.textContent = choiceEl.textContent;
-      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url'));
+      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url')!);
     },
   });
 }
@@ -52,8 +53,15 @@ function initRepoPullMergeBoxRefresh(el: Element) {
       const pullLink = el.getAttribute('data-pull-link')!;
       const resp = await GET(`${pullLink}/merge_box`);
       if (!resp.ok) return;
-      const newEl = createElementFromHTML(await resp.text());
+      const respText = (await resp.text()).trim();
+      if (!respText) {
+        el.remove(); // merge box might not exist if the PR has changed (e.g.: merged and the head branch has been deleted)
+        return;
+      }
+      const newEl = createElementFromHTML(respText);
+      const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
       el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
+      if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
     },
   });
 }

@@ -7,12 +7,11 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 )
 
-func AddRemoteAddressToMirrors(x base.EngineMigration) error {
+func AddRemoteAddressToMirrors(ctx context.Context, x base.EngineMigration) error {
 	type Mirror struct {
 		RemoteAddress string `xorm:"VARCHAR(2048)"`
 	}
@@ -25,14 +24,14 @@ func AddRemoteAddressToMirrors(x base.EngineMigration) error {
 		return err
 	}
 
-	if err := migratePullMirrors(x); err != nil {
+	if err := migratePullMirrors(ctx, x); err != nil {
 		return err
 	}
 
-	return migratePushMirrors(x)
+	return migratePushMirrors(ctx, x)
 }
 
-func migratePullMirrors(x base.EngineMigration) error {
+func migratePullMirrors(ctx context.Context, x base.EngineMigration) error {
 	type Mirror struct {
 		ID            int64  `xorm:"pk autoincr"`
 		RepoID        int64  `xorm:"INDEX"`
@@ -69,7 +68,7 @@ func migratePullMirrors(x base.EngineMigration) error {
 		start += len(mirrors)
 
 		for _, m := range mirrors {
-			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, "origin")
+			remoteAddress, err := getRemoteAddress(ctx, m.RepoOwner, m.RepoName, "origin")
 			if err != nil {
 				return err
 			}
@@ -94,7 +93,7 @@ func migratePullMirrors(x base.EngineMigration) error {
 	return sess.Commit()
 }
 
-func migratePushMirrors(x base.EngineMigration) error {
+func migratePushMirrors(ctx context.Context, x base.EngineMigration) error {
 	type PushMirror struct {
 		ID            int64 `xorm:"pk autoincr"`
 		RepoID        int64 `xorm:"INDEX"`
@@ -132,7 +131,7 @@ func migratePushMirrors(x base.EngineMigration) error {
 		start += len(mirrors)
 
 		for _, m := range mirrors {
-			remoteAddress, err := getRemoteAddress(m.RepoOwner, m.RepoName, m.RemoteName)
+			remoteAddress, err := getRemoteAddress(ctx, m.RepoOwner, m.RepoName, m.RemoteName)
 			if err != nil {
 				return err
 			}
@@ -157,9 +156,8 @@ func migratePushMirrors(x base.EngineMigration) error {
 	return sess.Commit()
 }
 
-func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
-	ctx := context.Background()
-	repo := repo_model.CodeRepoByName(ownerName, repoName)
+func getRemoteAddress(ctx context.Context, ownerName, repoName, remoteName string) (string, error) {
+	repo := base.LocalCodeGitRepo(ownerName, repoName)
 	if exist, _ := git.IsRepositoryExist(ctx, repo); !exist {
 		return "", nil
 	}

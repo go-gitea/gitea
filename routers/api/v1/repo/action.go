@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -29,11 +30,10 @@ import (
 	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	secret_service "gitea.dev/services/secrets"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 // ListActionsSecrets list a repo's actions secrets
@@ -136,19 +136,19 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
+	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
+
+	actions := audit.SecretUpdate
+	if created {
+		actions = audit.SecretAdd
+	}
+	audit.RecordScoped(ctx, nil, repo, actions, "secret", s.Name)
 
 	if created {
 		ctx.Status(http.StatusCreated)
@@ -192,17 +192,13 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
+
+	audit.RecordScoped(ctx, nil, repo, audit.SecretRemove, "secret", s.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -297,13 +293,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParam("variablename")); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -347,7 +337,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//   "500":
 	//     "$ref": "#/responses/error"
 
-	opt := web.GetForm(ctx).(*api.CreateVariableOption)
+	opt := web.GetForm[*api.CreateVariableOption](ctx)
 
 	repoID := ctx.Repo.Repository.ID
 	variableName := ctx.PathParam("variablename")
@@ -366,11 +356,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	}
 
 	if _, err := actions_service.CreateVariable(ctx, 0, repoID, variableName, opt.Value, opt.Description); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -414,18 +400,14 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
+	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: ctx.Repo.Repository.ID,
 		Name:   ctx.PathParam("variablename"),
 	})
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -438,11 +420,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	v.Description = opt.Description
 
 	if _, err := actions_service.UpdateVariableNameData(ctx, v); err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -1171,7 +1149,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
+	opt := web.GetForm[*api.CreateActionWorkflowDispatch](ctx)
 	if opt.Ref == "" {
 		ctx.APIError(http.StatusUnprocessableEntity, "ref is required parameter")
 		return
@@ -1291,7 +1269,7 @@ func getCurrentRepoActionRunJobsByID(ctx *context.APIContext) (*actions_model.Ac
 		return nil, nil
 	}
 
-	jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
+	jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1313,6 +1291,16 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 		return nil, nil
 	}
 	return run, attempt
+}
+
+func respondRepoActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
+	run.Repo = ctx.Repo.Repository
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
 }
 
 // GetWorkflowRun Gets a specific workflow run.
@@ -1351,12 +1339,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, convertedRun)
+	respondRepoActionWorkflowRun(ctx, run)
 }
 
 // GetWorkflowRunAttempt Gets a specific workflow run attempt.
@@ -1503,7 +1486,14 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, actions_service.GetFailedJobsForRerun(jobs)); err != nil {
+	failedJobs := actions_service.GetFailedJobsForRerun(jobs)
+	// Empty failedJobs means no failed jobs to re-run
+	if len(failedJobs) == 0 {
+		ctx.APIError(http.StatusBadRequest, "this workflow run has no failed jobs to re-run")
+		return
+	}
+
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, failedJobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
@@ -2066,8 +2056,8 @@ func buildSignature(endp string, expires, artifactID int64) []byte {
 	return actions.BuildSignature("api", endp, strconv.FormatInt(expires, 10), strconv.FormatInt(artifactID, 10))
 }
 
-func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {
-	return fmt.Sprintf("api/v1/repos/%s/%s/actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), artifactID)
+func buildDownloadRawEndpoint(ownerName, repoName string, artifactID int64) string {
+	return fmt.Sprintf("api/v1/repos/%s/%s/actions/artifacts/%d/zip/raw", url.PathEscape(ownerName), url.PathEscape(repoName), artifactID)
 }
 
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
@@ -2128,7 +2118,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 
 		// @actions/toolkit asserts a 302 for the artifact download, so we have to build a signed URL and redirect to it
 		// TODO: a perma link to the code for reference
-		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository, art.ID), art.ID)
+		redirectURL := buildSigURL(ctx, buildDownloadRawEndpoint(ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, art.ID), art.ID)
 		ctx.Redirect(redirectURL, http.StatusFound)
 		return
 	}
@@ -2139,7 +2129,22 @@ func DownloadArtifact(ctx *context.APIContext) {
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
 	// it doesn't use repoAssignment middleware, so it needs to prepare the repo and check permission (sig) by itself
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"))
+	ownerName, repoName := ctx.PathParam("username"), ctx.PathParam("reponame")
+	query := ctx.Req.URL.Query()
+	sigBytes, _ := base64.RawURLEncoding.DecodeString(query.Get("sig"))
+	expires, _ := strconv.ParseInt(query.Get("expires"), 10, 64)
+	artifactID := ctx.PathParamInt64("artifact_id")
+
+	if !hmac.Equal(sigBytes, buildSignature(buildDownloadRawEndpoint(ownerName, repoName, artifactID), expires, artifactID)) {
+		ctx.APIErrorNotFound()
+		return
+	}
+	if time.Unix(expires, 0).Before(time.Now()) {
+		ctx.APIError(http.StatusUnauthorized, "Error link expired")
+		return
+	}
+
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ownerName, repoName)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIErrorNotFound()
@@ -2150,22 +2155,6 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	}
 	art := getArtifactByPathParam(ctx, repo)
 	if ctx.Written() {
-		return
-	}
-
-	sigStr := ctx.Req.URL.Query().Get("sig")
-	expiresStr := ctx.Req.URL.Query().Get("expires")
-	sigBytes, _ := base64.RawURLEncoding.DecodeString(sigStr)
-	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
-
-	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
-	if !hmac.Equal(sigBytes, expectedSig) {
-		ctx.APIError(http.StatusUnauthorized, "Error unauthorized")
-		return
-	}
-	t := time.Unix(expires, 0)
-	if t.Before(time.Now()) {
-		ctx.APIError(http.StatusUnauthorized, "Error link expired")
 		return
 	}
 

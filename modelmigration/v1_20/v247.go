@@ -4,12 +4,14 @@
 package v1_20
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/log"
 )
 
 // FixIncorrectProjectType: set individual project's type from 3(TypeOrganization) to 1(TypeIndividual)
-func FixIncorrectProjectType(x base.EngineMigration) error {
+func FixIncorrectProjectType(_ context.Context, x base.EngineMigration) error {
 	type User struct {
 		ID   int64 `xorm:"pk autoincr"`
 		Type int

@@ -64,6 +64,9 @@ func RenderFile(ctx *context.Context) {
 	extRendererOpts := extRenderer.GetExternalRendererOptions()
 	if extRendererOpts.ContentSandbox != "" {
 		ctx.Resp.Header().Add("Content-Security-Policy", "sandbox "+extRendererOpts.ContentSandbox)
+	} else {
+		// if no sandbox, just apply the same CSP as a general Gitea web page
+		ctx.SetHeaderContentSecurityPolicyGeneral()
 	}
 
 	err = markup.RenderWithRenderer(rctx, renderer, rendererInput, ctx.Resp)

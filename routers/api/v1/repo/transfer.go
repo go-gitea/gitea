@@ -56,7 +56,7 @@ func Transfer(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := web.GetForm(ctx).(*api.TransferRepoOption)
+	opts := web.GetForm[*api.TransferRepoOption](ctx)
 
 	newOwner, err := user_model.GetUserByName(ctx, opts.NewOwner)
 	if err != nil {

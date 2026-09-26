@@ -162,7 +162,7 @@ func BuildPackageIndex(ctx context.Context, p *packages_model.Package) (*bytes.B
 
 	var b bytes.Buffer
 	for _, pd := range pds {
-		metadata := pd.Metadata.(*cargo_module.Metadata)
+		metadata := packages_model.DescriptorMetadata[*cargo_module.Metadata](pd)
 
 		dependencies := metadata.Dependencies
 		if dependencies == nil {

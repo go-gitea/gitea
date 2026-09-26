@@ -3,9 +3,13 @@
 
 package v1_10
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func ChangeSomeColumnsLengthOfRepo(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func ChangeSomeColumnsLengthOfRepo(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID          int64  `xorm:"pk autoincr"`
 		Description string `xorm:"TEXT"`

@@ -52,8 +52,9 @@ type CreateTeamOption struct {
 	// The description of the team
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the team has access to all repositories in the organization
-	IncludesAllRepositories bool                `json:"includes_all_repositories"`
-	Permission              RepoWritePermission `json:"permission"`
+	IncludesAllRepositories bool `json:"includes_all_repositories"`
+	// All units have this permission (read/write/admin)
+	Permission RepoWritePermission `json:"permission"`
 	// example: ["repo.actions","repo.packages","repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`
@@ -72,8 +73,9 @@ type EditTeamOption struct {
 	// The description of the team
 	Description *string `json:"description" binding:"MaxSize(255)"`
 	// Whether the team has access to all repositories in the organization
-	IncludesAllRepositories *bool               `json:"includes_all_repositories"`
-	Permission              RepoWritePermission `json:"permission"`
+	IncludesAllRepositories *bool `json:"includes_all_repositories"`
+	// All units have this permission (read/write/admin)
+	Permission RepoWritePermission `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`

@@ -4,12 +4,14 @@
 package v1_19
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 )
 
 // AlterPublicGPGKeyImportContentFieldToMediumText: set GPGKeyImport Content field to MEDIUMTEXT
-func AlterPublicGPGKeyImportContentFieldToMediumText(x base.EngineMigration) error {
+func AlterPublicGPGKeyImportContentFieldToMediumText(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

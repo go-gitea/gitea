@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddAuthorizeColForTeamUnit(x base.EngineMigration) error {
+func AddAuthorizeColForTeamUnit(_ context.Context, x base.EngineMigration) error {
 	type TeamUnit struct {
 		ID         int64 `xorm:"pk autoincr"`
 		OrgID      int64 `xorm:"INDEX"`

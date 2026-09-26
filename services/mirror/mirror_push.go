@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -102,6 +103,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Running Sync", m.ID, m.Repo)
 	err = runPushSync(ctx, m)
 	if err != nil {
+		err = util.SanitizeErrorCredentialURLs(err)
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
 		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
 	}
@@ -110,7 +112,6 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	if err := repo_model.UpdatePushMirror(ctx, m); err != nil {
 		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
-
 		return false
 	}
 
@@ -122,38 +123,38 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
-	performPush := func(repo *repo_model.Repository, isWiki bool) error {
-		storageRepo := repo.CodeStorageRepo()
-		if isWiki {
-			storageRepo = repo.WikiStorageRepo()
-		}
-		mirrorLogName := fmt.Sprintf("%s%s[mirror=%d]", m.Repo.FullName(), util.Iif(isWiki, ".wiki", ""), m.ID)
+	performPush := func(storageRepo gitrepo.RepositoryFacade) error {
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
-			log.Error("GetRemoteURL %s failed, error %v", mirrorLogName, err)
-			return errors.New("GitRemoteGetURL failed")
+			return fmt.Errorf("ParseRemoteAddressURL failed: %w", err)
+		}
+		// re-validate every sync, the allow/block lists may have changed since the mirror was added
+		switch remoteURL.URL.Scheme {
+		case "http", "https", "git":
+			if err := migrations.IsMigrateURLAllowed(remoteURL.String(), nil); err != nil {
+				return fmt.Errorf("remote address is not allowed: %w", err)
+			}
 		}
 
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := git.OpenRepository(storageRepo)
+			gitRepo, err := git.OpenRepository(ctx, storageRepo)
 			if err != nil {
-				log.Error("OpenRepository %s failed: %v", mirrorLogName, err)
-				return errors.New("OpenRepository failed")
+				return fmt.Errorf("OpenRepository failed: %w", err)
 			}
 			defer gitRepo.Close()
 
 			lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), "", migrations.NewMigrationHTTPTransport())
 			if err != nil {
-				return err
+				return fmt.Errorf("NewClientFromEndpoint failed: %w", err)
 			}
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
-				return util.SanitizeErrorCredentialURLs(err)
+				return fmt.Errorf("pushAllLFSObjects failed: %w", err)
 			}
 		}
 
-		log.Trace("Pushing %s remote %s", mirrorLogName, m.ID, m.RemoteName)
+		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
@@ -163,26 +164,21 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Timeout: timeout,
 			Env:     envs,
 		}); err != nil {
-			log.Error("Error pushing %s remote %s: %v", mirrorLogName, m.RemoteName, err)
-			return util.SanitizeErrorCredentialURLs(err)
+			return fmt.Errorf("PushToExternal failed: %w", err)
 		}
 
 		return nil
 	}
 
-	err := performPush(m.Repo, false)
+	err := performPush(m.Repo.CodeStorageRepo())
 	if err != nil {
-		return err
+		return fmt.Errorf("performPush(code) failed: %w", err)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		if _, err := git.ParseRemoteAddressURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err == nil {
-			err := performPush(m.Repo, true)
-			if err != nil {
-				return err
-			}
-		} else if !errors.Is(err, util.ErrNotExist) {
-			log.Error("GetRemote of wiki failed: %v", err)
+		err := performPush(m.Repo.WikiStorageRepo())
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			return fmt.Errorf("performPush(wiki) failed: %w", err)
 		}
 	}
 

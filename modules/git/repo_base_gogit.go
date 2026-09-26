@@ -9,7 +9,7 @@ package git
 import (
 	"path/filepath"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 
 	"github.com/go-git/go-billy/v5"
@@ -30,7 +30,7 @@ type Repository struct {
 }
 
 func openRepositoryInternal(gitRepo *Repository) error {
-	repoPath := gitcmd.RepoLocalPath(gitRepo)
+	repoPath := gitrepo.RepoLocalPath(gitRepo)
 	fs := osfs.New(repoPath)
 	_, err := fs.Stat(".git")
 	if err == nil {
