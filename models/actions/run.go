@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -76,6 +77,11 @@ type ActionRun struct {
 func init() {
 	db.RegisterModel(new(ActionRun))
 	db.RegisterModel(new(ActionRunIndex))
+}
+
+// IsAwaitingApproval reports whether approval can still release the run
+func (run *ActionRun) IsAwaitingApproval() bool {
+	return run.NeedApproval && !run.Status.IsDone()
 }
 
 func (run *ActionRun) HTMLURL(ctxOpt ...context.Context) string {
@@ -395,6 +401,7 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
+	jobs = slices.DeleteFunc(jobs, func(job *ActionRunJob) bool { return job.RunID == attempt.RunID })
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group

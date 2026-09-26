@@ -594,7 +594,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 
 	// Hide the Cancel button once a cancel is already in cancelling progress
 	resp.State.Run.CanCancel = isLatestAttempt && !resp.State.Run.Done && !effectiveStatus.IsCancelling() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
-	resp.State.Run.CanApprove = isLatestAttempt && run.NeedApproval && ctx.Repo.Permission.CanWrite(unit.TypeActions)
+	resp.State.Run.CanApprove = isLatestAttempt && run.IsAwaitingApproval() && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanRerun = isLatestAttempt && resp.State.Run.Done && len(jobs) > 0 && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	resp.State.Run.CanDeleteArtifact = resp.State.Run.Done && ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	if resp.State.Run.CanRerun {
@@ -748,7 +748,7 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 
 	resp.State.CurrentJob.Title = current.Name
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
-	if run.NeedApproval {
+	if run.IsAwaitingApproval() {
 		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
 	} else if detail := describePendingJobDetail(ctx, current, jobs); detail != "" {
 		resp.State.CurrentJob.Detail = detail
@@ -1320,7 +1320,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 
 	runIDs := make([]int64, 0, len(runs))
 	for _, run := range runs {
-		if run.NeedApproval {
+		if run.IsAwaitingApproval() {
 			runIDs = append(runIDs, run.ID)
 		}
 	}

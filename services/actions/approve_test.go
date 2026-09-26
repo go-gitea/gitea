@@ -22,6 +22,11 @@ func TestApproveRuns(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	var emittedRunIDs []int64
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(runID int64) error {
+		emittedRunIDs = append(emittedRunIDs, runID)
+		return nil
+	})()
 
 	insertRun := func(index int64, status actions_model.Status, needApproval bool, approvedBy int64) *actions_model.ActionRun {
 		run := &actions_model.ActionRun{
@@ -59,7 +64,7 @@ func TestApproveRuns(t *testing.T) {
 
 	t.Run("approve skips a job whose if is false", func(t *testing.T) {
 		defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
-		run := insertRun(1006, actions_model.StatusBlocked, true, 0)
+		run := insertRun(1009, actions_model.StatusBlocked, true, 0)
 		job := insertJob(run, actions_model.StatusBlocked)
 		job.WorkflowPayload = []byte("jobs:\n  job1:\n    if: false\n")
 		_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "workflow_payload")
@@ -81,6 +86,80 @@ func TestApproveRuns(t *testing.T) {
 		assert.False(t, approved[0].NeedApproval)
 
 		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+	})
+
+	t.Run("approval never revives cancelled runs or jobs and re-emits approved runs", func(t *testing.T) {
+		cancelledRun := insertRun(1006, actions_model.StatusCancelled, true, 0)
+		cancelledRunJob := insertJob(cancelledRun, actions_model.StatusCancelled)
+		blockedRun := insertRun(1007, actions_model.StatusBlocked, true, 0)
+		cancelledJob := insertJob(blockedRun, actions_model.StatusCancelled)
+		emittedRunIDs = nil
+
+		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{cancelledRun.ID, blockedRun.ID})
+		require.NoError(t, err)
+		require.Len(t, approved, 2)
+		assert.True(t, approved[0].NeedApproval)
+		assert.Zero(t, approved[0].ApprovedBy)
+		assert.False(t, approved[1].NeedApproval)
+		assert.Equal(t, []int64{blockedRun.ID}, emittedRunIDs)
+
+		assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: cancelledRunJob.ID}).Status)
+		assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: cancelledJob.ID}).Status)
+	})
+
+	t.Run("approval starts one of two blocked jobs sharing a concurrency group", func(t *testing.T) {
+		run := insertRun(1008, actions_model.StatusBlocked, true, 0)
+		jobs := []*actions_model.ActionRunJob{insertJob(run, actions_model.StatusBlocked), insertJob(run, actions_model.StatusBlocked)}
+		for _, job := range jobs {
+			job.RawConcurrency, job.ConcurrencyGroup, job.IsConcurrencyEvaluated = "group: siblings", "siblings", true
+			_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "raw_concurrency", "concurrency_group", "is_concurrency_evaluated")
+			require.NoError(t, err)
+		}
+
+		_, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusCancelled}, []actions_model.Status{
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobs[0].ID}).Status,
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobs[1].ID}).Status,
+		})
+	})
+
+	t.Run("workflow concurrency cancels peers on approval, not on insertion", func(t *testing.T) {
+		previousRun := &actions_model.ActionRun{RepoID: 4, OwnerID: 1, Index: 9001, TriggerUserID: 1, TriggerEvent: "push", EventPayload: "{}", Status: actions_model.StatusWaiting}
+		require.NoError(t, db.Insert(t.Context(), previousRun))
+		previousAttempt := &actions_model.ActionRunAttempt{RepoID: 4, RunID: previousRun.ID, Attempt: 1, Status: actions_model.StatusWaiting, ConcurrencyGroup: "shared", ConcurrencyCancel: true}
+		require.NoError(t, db.Insert(t.Context(), previousAttempt))
+		previousJob := &actions_model.ActionRunJob{RunID: previousRun.ID, RunAttemptID: previousAttempt.ID, RepoID: 4, OwnerID: 1, JobID: "deploy", AttemptJobID: 1, Status: actions_model.StatusWaiting}
+		require.NoError(t, db.Insert(t.Context(), previousJob))
+
+		content := []byte(`on: pull_request
+concurrency:
+  group: shared
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: shared
+      cancel-in-progress: true
+    steps:
+      - run: echo hi
+`)
+		run := &actions_model.ActionRun{
+			RepoID: 4, OwnerID: 1, WorkflowID: "test.yaml", TriggerUserID: 2,
+			Ref: "refs/pull/1/head", CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event: "pull_request", TriggerEvent: "pull_request", EventPayload: "{}", NeedApproval: true,
+			WorkflowRepoID: 4, WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		}
+		require.NoError(t, PrepareRunAndInsert(t.Context(), content, run, nil))
+		assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: previousJob.ID}).Status)
+
+		_, err := ApproveRuns(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}), doer, []int64{run.ID})
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusCancelled, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: previousJob.ID}).Status)
+		jobs := runJobs(t, run.ID, run.LatestAttemptID)
+		require.Len(t, jobs, 1)
+		assert.Equal(t, actions_model.StatusWaiting, jobs[0].Status)
 	})
 
 	t.Run("re-approving an approved run is a no-op", func(t *testing.T) {
