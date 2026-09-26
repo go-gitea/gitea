@@ -283,3 +283,19 @@ func TestGetCountLatestCommitStatus(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, count)
 }
+
+func TestGetLatestCommitStatusForRepoCommitIDs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	sha := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
+
+	commitStatuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(t.Context(), repo1.ID, []string{
+		sha,
+		"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	})
+	assert.NoError(t, err)
+	assert.Len(t, commitStatuses, 1)
+	assert.Len(t, commitStatuses[sha], 3)
+	assert.NotContains(t, commitStatuses, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+}
