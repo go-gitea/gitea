@@ -38,6 +38,18 @@ func TestActionTask_GetRunJobLink(t *testing.T) {
 	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42, Run: &ActionRun{ID: 10}}}).GetRunJobLink())
 }
 
+func TestGetTaskRunnerNames(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	runner := &ActionRunner{Name: "queue-runner"}
+	require.NoError(t, db.Insert(ctx, runner))
+	task := &ActionTask{RunnerID: runner.ID, TokenHash: "queue-test-task"}
+	require.NoError(t, db.Insert(ctx, task))
+	names, err := GetTaskRunnerNames(ctx, []int64{task.ID, 987654321})
+	require.NoError(t, err)
+	assert.Equal(t, map[int64]string{task.ID: runner.Name}, names)
+}
+
 func TestMakeTaskStepDisplayName(t *testing.T) {
 	tests := []struct {
 		name     string

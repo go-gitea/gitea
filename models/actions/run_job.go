@@ -33,7 +33,7 @@ type ActionRunJob struct {
 	ID                int64
 	RunID             int64                  `xorm:"index"`
 	Run               *ActionRun             `xorm:"-"`
-	RepoID            int64                  `xorm:"index(repo_concurrency)"`
+	RepoID            int64                  `xorm:"index(repo_concurrency) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	CommitSHA         string                 `xorm:"index"`
@@ -52,10 +52,10 @@ type ActionRunJob struct {
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
 
-	TaskID       int64 // the task created by this job in its own attempt
+	TaskID       int64 `xorm:"index(pickup)"`      // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 
-	Status Status `xorm:"index"`
+	Status Status `xorm:"index index(pickup) index(repo_status)"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
@@ -131,7 +131,7 @@ type ActionRunJob struct {
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
-	Updated timeutil.TimeStamp `xorm:"updated index"`
+	Updated timeutil.TimeStamp `xorm:"updated index index(pickup)"`
 }
 
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.
@@ -545,13 +545,7 @@ func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64, no
 		if len(jobs) == 0 {
 			attempt.Status = noJobsStatus
 		}
-		if attempt.Started.IsZero() && attempt.Status.IsRunning() {
-			attempt.Started = timeutil.TimeStampNow()
-		}
-		if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
-			attempt.Stopped = timeutil.TimeStampNow()
-		}
-		if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
+		if err := UpdateRunAttempt(ctx, attempt, "status"); err != nil {
 			return fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
 		}
 		return nil
