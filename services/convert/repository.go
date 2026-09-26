@@ -200,6 +200,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Description:                   repo.Description,
 		Private:                       repo.IsPrivate,
 		Template:                      repo.IsTemplate,
+		ImmutableReleases:             repo.IsImmutableReleasesEnabled(ctx),
 		Empty:                         repo.IsEmpty,
 		Archived:                      repo.IsArchived,
 		Size:                          int(repo.Size / 1024),

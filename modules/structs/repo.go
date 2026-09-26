@@ -66,6 +66,8 @@ type Repository struct {
 	Private     bool   `json:"private"`
 	Fork        bool   `json:"fork"`
 	Template    bool   `json:"template"`
+	// Whether newly published releases are immutable
+	ImmutableReleases bool `json:"immutable_releases"`
 	// the original repository if this repository is a fork, otherwise null
 	Parent              *Repository `json:"parent,omitempty"`
 	Mirror              bool        `json:"mirror"`
@@ -184,6 +186,8 @@ type EditRepoOption struct {
 	Private *bool `json:"private,omitempty"`
 	// either `true` to make this repository a template or `false` to make it a normal repository
 	Template *bool `json:"template,omitempty"`
+	// Whether published releases become immutable, existing releases lock when they are next edited
+	ImmutableReleases *bool `json:"immutable_releases,omitempty"`
 	// either `true` to enable code for this repository or `false` to disable it.
 	HasCode *bool `json:"has_code,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.

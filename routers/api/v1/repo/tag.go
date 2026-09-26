@@ -217,7 +217,7 @@ func CreateTag(ctx *context.APIContext) {
 			return
 		}
 
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 
