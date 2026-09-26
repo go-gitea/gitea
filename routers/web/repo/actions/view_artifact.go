@@ -260,15 +260,20 @@ func artifactPreviewContentType(filename string, st typesniffer.SniffedType) str
 
 func insertArtifactPreviewHelperScript(buf []byte) []byte {
 	addHeadTag := false
+	lowerBuf := bytes.ToLower(buf)
+
 	// try after "<head>"
-	pos := bytes.Index(buf, []byte("<head>"))
+	pos := bytes.Index(lowerBuf, []byte("<head"))
 	if pos != -1 {
-		pos += len("<head>")
+		pos1 := bytes.Index(lowerBuf[pos:], []byte(">"))
+		if pos1 != -1 {
+			pos += pos1 + 1
+		}
 	}
 
 	// try before "<body>"
 	if pos == -1 {
-		pos = bytes.Index(buf, []byte("<body>"))
+		pos = bytes.Index(lowerBuf, []byte("<body"))
 		if pos != -1 {
 			addHeadTag = true
 		}
@@ -276,10 +281,13 @@ func insertArtifactPreviewHelperScript(buf []byte) []byte {
 
 	// try after "<html>"
 	if pos == -1 {
-		pos = bytes.Index(buf, []byte("<html>"))
+		pos = bytes.Index(lowerBuf, []byte("<html"))
 		if pos != -1 {
-			pos += len("<html>")
-			addHeadTag = true
+			pos1 := bytes.Index(lowerBuf[pos:], []byte(">"))
+			if pos1 != -1 {
+				pos += pos1 + 1
+				addHeadTag = true
+			}
 		}
 	}
 
@@ -289,6 +297,7 @@ func insertArtifactPreviewHelperScript(buf []byte) []byte {
 	}
 
 	if pos == -1 {
+		// if no valid insertion point was found, prepend the script to the content
 		return append([]byte(helperScript), buf...)
 	}
 	ret := append(append([]byte(nil), buf[:pos]...), []byte(helperScript)...)

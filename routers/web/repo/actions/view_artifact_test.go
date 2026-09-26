@@ -73,18 +73,18 @@ func TestInsertArtifactPreviewHelperScript(t *testing.T) {
 			after:  "any",
 		},
 		{
-			in:     "<head>any</head>",
-			before: "<head>",
+			in:     "<Head >any</head>",
+			before: "<Head >",
 			after:  "any</head>",
 		},
 		{
-			in:     "any<body>",
+			in:     "any<Body >",
 			before: "any<head>",
-			after:  "</head><body>",
+			after:  "</head><Body >",
 		},
 		{
-			in:     "<html>any</html>",
-			before: "<html><head>",
+			in:     "<Html >any</html>",
+			before: "<Html ><head>",
 			after:  "</head>any</html>",
 		},
 	}
