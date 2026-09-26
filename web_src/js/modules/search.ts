@@ -74,7 +74,7 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     if (query.length < minCharacters) return hide();
     const ctrl = (fetchController = new AbortController());
     try {
-      const response = await GET(url.replaceAll('{query}', urlQueryEscape(query)), {signal: ctrl.signal});
+      const response = await GET(url.replaceAll('{query}', () => urlQueryEscape(query)), {signal: ctrl.signal});
       if (!response.ok) return hide();
       const results = parse(await response.json(), query);
       // only render if the fetch wasn't aborted (e.g. by hide()) and the input still matches
