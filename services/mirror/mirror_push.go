@@ -157,9 +157,9 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
-		// push to the address, never to the remote name: a named remote makes git write the pushed
-		// value back into the local refs its fetch refspec maps to, silently rolling back concurrent
-		// pushes. See https://github.com/go-gitea/gitea/issues/28986
+		// Push to the address, never the remote name: git writes pushed values back into the local refs
+		// a named remote's fetch refspec maps to (e.g. "+refs/*:refs/*"), rolling back concurrent pushes.
+		// An anonymous remote has no refspec, so leftover ones are harmless. https://github.com/go-gitea/gitea/issues/28986
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  remoteAddr,
 			Force:   true,
