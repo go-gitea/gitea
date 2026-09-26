@@ -356,4 +356,8 @@ func TestGetLatestCommitStatusForRepoAndSHAs(t *testing.T) {
 		}
 	}
 	assert.ElementsMatch(t, []git_model.RepoSHA{{RepoID: 1, SHA: sha1}, {RepoID: 2, SHA: sha2}}, pairs)
+
+	statuses, err = git_model.GetLatestCommitStatusForRepoAndSHAs(t.Context(), nil)
+	assert.NoError(t, err)
+	assert.Empty(t, statuses)
 }
