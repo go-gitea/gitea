@@ -25,13 +25,19 @@ import (
 	"gitea.dev/services/context"
 )
 
+const (
+	mockActionsArtifactNameB          = "artifact-b"
+	mockActionsArtifactNameHTMLReport = "artifact-html-report"
+	mockActionsArtifactNameReallyLong = "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong"
+)
+
 var mockActionsArtifactFiles = map[string]map[string]string{
-	"artifact-b": {"report.txt": "artifact-b report"},
-	"artifact-html-report": {
+	mockActionsArtifactNameB: {"report.txt": "artifact-b report"},
+	mockActionsArtifactNameHTMLReport: {
 		"report/index.html": `<html><head><link rel="stylesheet" href="style.css"></head><body><a href="./style.css">style.css</a> Next line is from JS. <script>document.write('window origin: ' + window.origin)</script></body></html>`,
 		"report/style.css":  "body { color: red; }\n",
 	},
-	"artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong": {
+	mockActionsArtifactNameReallyLong: {
 		"index.html":      "<html><body>mock preview</body></html>",
 		"logs/output.txt": "mock logs",
 	},
@@ -240,11 +246,11 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-b",
+		Name:        mockActionsArtifactNameB,
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
-		PreviewLink: mockArtifactPreviewLink("artifact-b") + "/preview",
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameB) + "/preview",
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
@@ -253,18 +259,18 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-html-report",
+		Name:        mockActionsArtifactNameHTMLReport,
 		Size:        256 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
-		PreviewLink: mockArtifactPreviewLink("artifact-html-report") + "/preview",
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameHTMLReport) + "/preview",
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Name:        mockActionsArtifactNameReallyLong,
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: 0,
-		PreviewLink: mockArtifactPreviewLink("artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong") + "/preview",
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameReallyLong) + "/preview",
 	})
 
 	jobLink := func(jobID int64) string {
@@ -606,11 +612,7 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 
 func MockActionsArtifactPreview(ctx *context.Context) {
 	artifactName := ctx.PathParam("artifact_name")
-	files, ok := mockActionsArtifactFiles[artifactName]
-	if !ok {
-		ctx.NotFound(nil)
-		return
-	}
+	files := mockActionsArtifactFiles[artifactName]
 	runURL := setting.AppSubURL + "/devtest/repo-action-view/runs/10"
 	data := &actions.ArtifactPreviewTemplateData{RunURL: runURL, RunIndex: 10, ArtifactName: artifactName, DownloadURL: runURL + "/artifacts/" + url.PathEscape(artifactName)}
 	link := mockArtifactPreviewLink(artifactName)
@@ -619,10 +621,6 @@ func MockActionsArtifactPreview(ctx *context.Context) {
 
 func MockActionsArtifactPreviewRaw(ctx *context.Context) {
 	filePath := ctx.PathParam("*")
-	content, ok := mockActionsArtifactFiles[ctx.PathParam("artifact_name")][filePath]
-	if !ok {
-		ctx.HTTPError(http.StatusNotFound)
-		return
-	}
+	content := mockActionsArtifactFiles[ctx.PathParam("artifact_name")][filePath]
 	actions.ServeArtifactPreviewContent(ctx.Base, filePath, strings.NewReader(content), int64(len(content)))
 }
