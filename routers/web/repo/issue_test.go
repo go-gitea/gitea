@@ -14,24 +14,24 @@ import (
 
 func TestCombineXRefComments(t *testing.T) {
 	none, closes, neutered := references.XRefActionNone, references.XRefActionCloses, references.XRefActionNeutered
-	xref := func(id, refIssueID int64, action references.XRefAction) *issues_model.Comment {
-		return &issues_model.Comment{ID: id, Type: issues_model.CommentTypeIssueRef, RefIssueID: refIssueID, RefAction: action}
+	xref := func(id, refIssueID, refCommentID int64, action references.XRefAction) *issues_model.Comment {
+		return &issues_model.Comment{ID: id, Type: issues_model.CommentTypeIssueRef, RefIssueID: refIssueID, RefCommentID: refCommentID, RefAction: action}
 	}
 	issue := issues_model.Issue{Comments: issues_model.CommentList{
-		xref(1, 10, neutered),
-		xref(2, 11, none),
-		xref(3, 10, none),
-		xref(4, 11, closes),
-		xref(5, 11, neutered),
-		xref(6, 0, none),
-		xref(7, 0, none),
+		xref(1, 10, 1, neutered),
+		xref(2, 11, 2, none),
+		xref(3, 10, 3, none),
+		xref(4, 11, 4, closes),
+		xref(5, 11, 5, neutered),
+		xref(6, 0, 0, none),
+		xref(7, 0, 0, none),
 	}}
 	combineXRefComments(&issue)
 	assert.Equal(t, issues_model.CommentList{
-		xref(1, 10, none),
-		xref(2, 11, closes),
-		xref(6, 0, none),
-		xref(7, 0, none),
+		xref(1, 10, 3, none),
+		xref(2, 11, 2, closes),
+		xref(6, 0, 0, none),
+		xref(7, 0, 0, none),
 	}, issue.Comments)
 }
 

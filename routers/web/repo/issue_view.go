@@ -205,10 +205,12 @@ func combineXRefComments(issue *issues_model.Issue) {
 			i++
 			continue
 		}
-		if c.RefAction != references.XRefActionNeutered { // a removed mention never overrides a live one
-			if prev.RefAction == references.XRefActionNeutered || c.RefAction != references.XRefActionNone {
-				prev.RefAction = c.RefAction
-			}
+		switch {
+		case c.RefAction == references.XRefActionNeutered: // a removed mention never overrides a live one
+		case prev.RefAction == references.XRefActionNeutered:
+			prev.RefAction, prev.RefCommentID = c.RefAction, c.RefCommentID
+		case c.RefAction != references.XRefActionNone:
+			prev.RefAction = c.RefAction
 		}
 		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 	}
