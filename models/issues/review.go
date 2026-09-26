@@ -636,6 +636,12 @@ func MarkReviewsAsNotStale(ctx context.Context, issueID int64, commitID string) 
 	return err
 }
 
+// UpdateReviewStale updates the stale flag for a single review by ID
+func UpdateReviewStale(ctx context.Context, reviewID int64, stale bool) error {
+	_, err := db.GetEngine(ctx).ID(reviewID).Cols("stale").Update(&Review{Stale: stale})
+	return err
+}
+
 // DismissReview change the dismiss status of a review
 func DismissReview(ctx context.Context, review *Review, isDismiss bool) (err error) {
 	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
