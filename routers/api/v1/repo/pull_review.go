@@ -6,12 +6,14 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"strings"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
@@ -204,6 +206,326 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiComments)
 }
 
+// EditPullReview edits the body of a review without submitting it.
+func EditPullReview(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/{index}/reviews/{id} repository repoEditPullReview
+	// ---
+	// summary: Edit a pull request review's body
+	// description: The reviewer or a user with write access to pull requests may edit the body. Pending reviews are only visible to the reviewer and admins. Review requests cannot be edited. Omitting body leaves it unchanged; an empty body clears it. The review state is not changed. Archived repositories return HTTP 404.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditPullReviewOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	opts := web.GetForm[*api.EditPullReviewOptions](ctx)
+	review, _, statusSet := prepareSingleReview(ctx)
+	if statusSet {
+		return
+	}
+	if ctx.Doer.ID != review.ReviewerID && !ctx.Repo.Permission.CanWrite(unit.TypePullRequests) {
+		ctx.APIError(http.StatusForbidden, "no permission to edit review")
+		return
+	}
+	if review.Type == issues_model.ReviewTypeRequest {
+		ctx.APIError(http.StatusUnprocessableEntity, "review requests cannot be edited")
+		return
+	}
+	if opts.Body != nil {
+		if err := issue_service.UpdateReviewContent(ctx, review, ctx.Doer, *opts.Body); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.APIError(http.StatusForbidden, err.Error())
+			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
+				ctx.APIError(http.StatusConflict, err.Error())
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+	}
+	apiReview, err := convert.ToPullReview(ctx, review, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiReview)
+}
+
+// EditPullReviewComment edits an individual code review comment.
+func EditPullReviewComment(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/comments/{id} repository repoEditPullReviewComment
+	// ---
+	// summary: Edit a pull request review comment
+	// description: The comment author or a user with write access to pull requests may edit the body. Comments on pending reviews are only visible to the reviewer and admins. Omitting body leaves it unchanged; an empty body clears it. Archived repositories return HTTP 404.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditPullReviewCommentOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReviewComment"
+	//   "400":
+	//     "$ref": "#/responses/validationError"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	opts := web.GetForm[*api.EditPullReviewCommentOptions](ctx)
+	comment := getPullReviewComment(ctx)
+	if comment == nil {
+		return
+	}
+	if ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWrite(unit.TypePullRequests) {
+		ctx.APIError(http.StatusForbidden, "no permission to edit comment")
+		return
+	}
+	if opts.Body != nil && *opts.Body != comment.Content {
+		oldContent := comment.Content
+		comment.Content = *opts.Body
+		if err := issue_service.UpdateComment(ctx, comment, comment.ContentVersion, ctx.Doer, oldContent); err != nil {
+			if errors.Is(err, user_model.ErrBlockedUser) {
+				ctx.APIError(http.StatusForbidden, err.Error())
+			} else if errors.Is(err, issues_model.ErrCommentAlreadyChanged) {
+				ctx.APIError(http.StatusConflict, err.Error())
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+	}
+	if err := comment.LoadPoster(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if err := comment.LoadResolveDoer(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToPullReviewComment(ctx, comment, ctx.Doer))
+}
+
+// DeletePullReviewComment deletes an individual code review comment.
+func DeletePullReviewComment(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/comments/{id} repository repoDeletePullReviewComment
+	// ---
+	// summary: Delete a pull request review comment
+	// description: The comment author or a user with write access to pull requests may delete the comment. Comments on pending reviews are only visible to the reviewer and admins. The review itself is retained. Archived repositories return HTTP 404.
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/validationError"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	comment := getPullReviewComment(ctx)
+	if comment == nil {
+		return
+	}
+	if ctx.Doer.ID != comment.PosterID && !ctx.Repo.Permission.CanWrite(unit.TypePullRequests) {
+		ctx.APIError(http.StatusForbidden, "no permission to delete comment")
+		return
+	}
+	if err := issue_service.DeleteComment(ctx, ctx.Doer, comment); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// CreatePullReviewComment adds a code comment to an existing review.
+func CreatePullReviewComment(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/comments repository repoCreatePullReviewComment
+	// ---
+	// summary: Add a comment to a pull request review
+	// description: Only the reviewer may add a comment. Pending reviews remain pending and submitted reviews are not resubmitted. Specify a nonempty body and path, and exactly one positive old_position or new_position in the review's commit snapshot. Review requests cannot receive comments. Archived repositories return HTTP 404.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/CreatePullReviewComment"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/PullReviewComment"
+	//   "401":
+	//     "$ref": "#/responses/unauthorized"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "500":
+	//     "$ref": "#/responses/error"
+
+	opts := web.GetForm[*api.CreatePullReviewComment](ctx)
+	review, _, statusSet := prepareSingleReview(ctx)
+	if statusSet {
+		return
+	}
+	if ctx.Doer.ID != review.ReviewerID {
+		ctx.APIError(http.StatusForbidden, "only the reviewer can add comments to a review")
+		return
+	}
+	if review.Type == issues_model.ReviewTypeRequest {
+		ctx.APIError(http.StatusUnprocessableEntity, "review requests cannot receive comments")
+		return
+	}
+	if review.Issue.IsLocked && !ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && !ctx.Doer.IsAdmin {
+		ctx.APIError(http.StatusForbidden, ctx.Locale.TrString("repo.issues.comment_on_locked"))
+		return
+	}
+	if user_model.IsUserBlockedBy(ctx, ctx.Doer, review.Issue.PosterID, ctx.Repo.Repository.OwnerID) && !ctx.Repo.Permission.IsAdmin() {
+		ctx.APIError(http.StatusForbidden, user_model.ErrBlockedUser.Error())
+		return
+	}
+	if strings.TrimSpace(opts.Body) == "" || !fs.ValidPath(opts.Path) || opts.Path == "." || strings.ContainsRune(opts.Path, '\x00') {
+		ctx.APIError(http.StatusUnprocessableEntity, "body and a repository-relative file path are required")
+		return
+	}
+	if !((opts.OldLineNum > 0 && opts.NewLineNum == 0) || (opts.NewLineNum > 0 && opts.OldLineNum == 0)) {
+		ctx.APIError(http.StatusUnprocessableEntity, "specify exactly one positive old_position or new_position")
+		return
+	}
+	line := opts.NewLineNum
+	if opts.OldLineNum > 0 {
+		line = -opts.OldLineNum
+	}
+	comment, err := pull_service.CreateReviewComment(ctx, ctx.Doer, ctx.Repo.GitRepo, review, opts.Body, opts.Path, line)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+	if err := comment.LoadPoster(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, convert.ToPullReviewComment(ctx, comment, ctx.Doer))
+}
+
 // CreatePullReviewCommentReply replies to a pull request review comment.
 // The URL mirrors GitHub's endpoint, {index} is verified against the parent comment's pull request.
 func CreatePullReviewCommentReply(ctx *context.APIContext) {
@@ -254,7 +576,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 
 	opts := web.GetForm[*api.CreatePullReviewCommentReplyOptions](ctx)
 
-	parent := getPullReviewCommentToResolve(ctx)
+	parent := getPullReviewComment(ctx)
 	if parent == nil {
 		return
 	}
@@ -359,7 +681,7 @@ func UnresolvePullReviewComment(ctx *context.APIContext) {
 }
 
 func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
-	comment := getPullReviewCommentToResolve(ctx)
+	comment := getPullReviewComment(ctx)
 	if comment == nil {
 		return
 	}
@@ -382,7 +704,7 @@ func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func getPullReviewCommentToResolve(ctx *context.APIContext) *issues_model.Comment {
+func getPullReviewComment(ctx *context.APIContext) *issues_model.Comment {
 	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -396,6 +718,16 @@ func getPullReviewCommentToResolve(ctx *context.APIContext) *issues_model.Commen
 
 	if comment.Type != issues_model.CommentTypeCode {
 		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
+		return nil
+	}
+
+	if err := comment.LoadReview(ctx); err != nil {
+		ctx.APIErrorAuto(err)
+		return nil
+	}
+	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending &&
+		(ctx.Doer == nil || (comment.Review.ReviewerID != ctx.Doer.ID && !ctx.Doer.IsAdmin)) {
+		ctx.APIErrorNotFound()
 		return nil
 	}
 
@@ -742,7 +1074,7 @@ func prepareSingleReview(ctx *context.APIContext) (*issues_model.Review, *issues
 	}
 
 	// make sure that the user has access to this review if it is pending
-	if review.Type == issues_model.ReviewTypePending && review.ReviewerID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
+	if review.Type == issues_model.ReviewTypePending && (ctx.Doer == nil || (review.ReviewerID != ctx.Doer.ID && !ctx.Doer.IsAdmin)) {
 		ctx.APIErrorNotFound()
 		return nil, nil, true
 	}

@@ -1515,6 +1515,9 @@ func Routes() *web.Router {
 					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Get("/pinned", repo.ListPinnedPullRequests)
+					m.Combo("/comments/{id}", reqToken(), mustNotBeArchived).
+						Patch(bind(api.EditPullReviewCommentOptions{}), repo.EditPullReviewComment).
+						Delete(repo.DeletePullReviewComment)
 					m.Post("/comments/{id}/resolve", reqToken(), mustNotBeArchived, repo.ResolvePullReviewComment)
 					m.Post("/comments/{id}/unresolve", reqToken(), mustNotBeArchived, repo.UnresolvePullReviewComment)
 					m.Group("/{index}", func() {
@@ -1524,6 +1527,8 @@ func Routes() *web.Router {
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Get("/files", repo.GetPullRequestFiles)
+						m.Post("/files/viewed", reqToken(), mustNotBeArchived, bind(api.MarkPullReviewFileOptions{}), repo.MarkPullReviewFileViewed)
+						m.Post("/files/unviewed", reqToken(), mustNotBeArchived, bind(api.MarkPullReviewFileOptions{}), repo.MarkPullReviewFileUnviewed)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)
@@ -1534,10 +1539,12 @@ func Routes() *web.Router {
 							m.Group("/{id}", func() {
 								m.Combo("").
 									Get(repo.GetPullReview).
+									Patch(reqToken(), mustNotBeArchived, bind(api.EditPullReviewOptions{}), repo.EditPullReview).
 									Delete(reqToken(), repo.DeletePullReview).
 									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
 								m.Combo("/comments").
-									Get(repo.GetPullReviewComments)
+									Get(repo.GetPullReviewComments).
+									Post(reqToken(), mustNotBeArchived, bind(api.CreatePullReviewComment{}), repo.CreatePullReviewComment)
 								m.Post("/dismissals", reqToken(), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
 								m.Post("/undismissals", reqToken(), repo.UnDismissPullReview)
 							})
