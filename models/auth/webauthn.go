@@ -195,6 +195,18 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 	return c, nil
 }
 
+// RenameCredential renames the user's WebAuthnCredential, names are unique per user regardless of letter case
+func RenameCredential(ctx context.Context, id, userID int64, name string) (bool, error) {
+	used, err := db.GetEngine(ctx).Where("user_id = ? AND lower_name = ? AND id != ?", userID, strings.ToLower(name), id).Exist(&WebAuthnCredential{})
+	if err != nil {
+		return false, err
+	} else if used {
+		return false, util.NewAlreadyExistErrorf("WebAuthn credential name already exists [uid: %d, name: %s]", userID, name)
+	}
+	updated, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Cols("name", "lower_name").Update(&WebAuthnCredential{Name: name})
+	return updated > 0, err
+}
+
 // DeleteCredential will delete WebAuthnCredential
 func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})
