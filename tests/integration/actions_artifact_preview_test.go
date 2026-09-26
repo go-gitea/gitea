@@ -77,19 +77,19 @@ func TestActionsArtifactPreview(t *testing.T) {
 			path, content, contentType, csp string
 		}{
 			{"report.pdf", "%PDF-1.7\n", "application/pdf", "default-src 'none'; style-src 'unsafe-inline'"},
-			{"image.png", "\x89PNG\r\n\x1a\n\x00\x00\x00\x0d", "image/png", "default-src 'none'; style-src 'unsafe-inline'; sandbox"},
-			{"index.html", "<!DOCTYPE html><html>artifact</html>", "text/html; charset=utf-8", "sandbox allow-scripts"},
+			{"image.png", "\x89PNG\r\n\x1a\n\x00\x00\x00\x0d", "image/png", "sandbox"},
+			{"index.html", "<!DOCTYPE html><html>artifact</html>", "text/html; charset=utf-8", "sandbox"},
 		} {
 			setArtifactFile(t, 1, file.path, []byte(file.content))
 			resp := session.MakeRequest(t, NewRequest(t, "GET", "/user5/repo4/actions/artifacts/1/preview/"+file.path), http.StatusOK)
 			rawLink = NewHTMLParser(t, resp.Body).Find("iframe").AttrOr("data-src", "")
 			resp = MakeRequest(t, NewRequest(t, "GET", rawLink), http.StatusOK)
 			assert.Equal(t, file.contentType, resp.Header().Get("Content-Type"))
-			assert.Equal(t, file.csp, resp.Header().Get("Content-Security-Policy"))
+			assert.Contains(t, resp.Header().Get("Content-Security-Policy"), file.csp) // CSP is from httplib package, we don't need to test the exact value here
 		}
 
 		resp := MakeRequest(t, NewRequest(t, "GET", rawLink), http.StatusOK)
-		assert.Regexp(t, `^<!DOCTYPE html><script crossorigin src="[^"]+/external-render-helper[^"]*"></script><html>artifact</html>$`, resp.Body.String())
+		assert.Regexp(t, `^<!DOCTYPE html><html><head><script crossorigin src="[^"]+/external-render-helper[^"]*"></script></head>artifact</html>$`, resp.Body.String())
 	})
 
 	t.Run("V4Zip", func(t *testing.T) {
