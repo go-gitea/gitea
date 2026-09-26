@@ -111,7 +111,7 @@ func runDumpRepository(ctx context.Context, cmd *cli.Command) error {
 		serviceStr = "github"
 	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitlab.com/") {
 		serviceStr = "gitlab"
-	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitea.com/") {
+	} else if strings.HasPrefix(strings.ToLower(cloneAddr), "https://gitea.com/") || strings.HasPrefix(strings.ToLower(cloneAddr), "https://codeberg.org/") {
 		serviceStr = "gitea"
 	}
 	if serviceStr == "" {

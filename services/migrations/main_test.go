@@ -52,6 +52,7 @@ func assertCommentsEqual(t *testing.T, expected, actual []*base.Comment) {
 func assertLabelEqual(t *testing.T, expected, actual *base.Label) {
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.Exclusive, actual.Exclusive)
+	assert.Equal(t, expected.Archived, actual.Archived)
 	assert.Equal(t, expected.Color, actual.Color)
 	assert.Equal(t, expected.Description, actual.Description)
 }
@@ -226,6 +227,7 @@ func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.Content, actual.Content, "Content")
 	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, 10*time.Second)
 	assert.Equal(t, expected.State, actual.State, "State")
+	assert.Equal(t, expected.Dismissed, actual.Dismissed, "Dismissed")
 	assertReviewCommentsEqual(t, expected.Comments, actual.Comments)
 }
 

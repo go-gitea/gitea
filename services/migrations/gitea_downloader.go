@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -17,7 +18,10 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	gitea_sdk "gitea.dev/sdk"
+
+	"github.com/hashicorp/go-version"
 )
 
 var (
@@ -72,6 +76,7 @@ type GiteaDownloader struct {
 	baseURL    string
 	repoOwner  string
 	repoName   string
+	httpClient *http.Client
 	pagination bool
 	maxPerPage int
 }
@@ -81,14 +86,13 @@ type GiteaDownloader struct {
 //	Use either a username/password or personal token. token is preferred
 //	Note: Public access only allows very basic access
 func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GiteaDownloader, error) {
-	giteaClient, err := gitea_sdk.NewClient(
-		baseURL,
-		gitea_sdk.SetToken(token),
-		gitea_sdk.SetBasicAuth(username, password),
-		gitea_sdk.SetHTTPClient(newMigrationHTTPClient()),
-	)
+	httpClient := newMigrationHTTPClient(baseURL, util.Iif(token != "", "token "+token, basicAuthorization(username, password)))
+	giteaClient, err := gitea_sdk.NewClient(baseURL, gitea_sdk.SetHTTPClient(httpClient))
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %v", baseURL, err))
+		return nil, err
+	}
+	if err = pinGiteaVersion(ctx, giteaClient); err != nil {
 		return nil, err
 	}
 
@@ -108,7 +112,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		log.Info("Unable to get global API settings. Ignoring these.")
 		log.Debug("giteaClient.GetGlobalAPISettings. Error: %v", err)
 	}
-	if apiConf != nil {
+	if apiConf != nil && apiConf.MaxResponseItems > 0 {
 		maxPerPage = apiConf.MaxResponseItems
 	}
 
@@ -118,9 +122,34 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		baseURL:    baseURL,
 		repoOwner:  path[0],
 		repoName:   path[1],
+		httpClient: httpClient,
 		pagination: paginationSupport,
 		maxPerPage: maxPerPage,
 	}, nil
+}
+
+func pinGiteaVersion(ctx context.Context, client *gitea_sdk.Client) error { // the SDK's checks reject pre-releases and its lazy lookup drops errors: https://gitea.com/gitea/go-sdk/pulls/855
+	rawVersion, _, err := client.Meta.ServerVersion(ctx)
+	if err != nil {
+		return err
+	}
+	if serverVersion, err := version.NewVersion(rawVersion); err == nil {
+		if giteaVersion, ok := strings.CutPrefix(serverVersion.Metadata(), "gitea-"); ok { // Forgejo
+			if serverVersion, err = version.NewVersion(giteaVersion); err != nil {
+				return err
+			}
+		}
+		return gitea_sdk.SetGiteaVersion(serverVersion.Core().String())(client)
+	}
+	return nil
+}
+
+func (g *GiteaDownloader) unitDisabled(resp *gitea_sdk.Response, hasUnit func(*gitea_sdk.Repository) bool) bool { // Gitea answers a disabled unit and missing access alike with 403 or 404, Forgejo with 404
+	if resp == nil || (resp.StatusCode != http.StatusNotFound && resp.StatusCode != http.StatusForbidden) {
+		return false
+	}
+	repo, _, err := g.client.Repositories.GetRepo(g.ctx, g.repoOwner, g.repoName)
+	return err == nil && !hasUnit(repo)
 }
 
 // String implements Stringer
@@ -226,6 +255,8 @@ func (g *GiteaDownloader) convertGiteaLabel(label *gitea_sdk.Label) *base.Label 
 		Name:        label.Name,
 		Color:       label.Color,
 		Description: label.Description,
+		Exclusive:   label.Exclusive,
+		Archived:    label.IsArchived,
 	}
 }
 
@@ -274,11 +305,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 		Created:         rel.CreatedAt,
 	}
 
-	httpClient := newMigrationHTTPClient()
-
 	for _, asset := range rel.Attachments {
-		assetID := asset.ID // Don't optimize this, for closure we need a local variable
-		assetDownloadURL := asset.DownloadURL
 		size := int(asset.Size)
 		dlCount := int(asset.DownloadCount)
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
@@ -287,30 +314,8 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 			Size:          &size,
 			DownloadCount: &dlCount,
 			Created:       asset.Created,
-			DownloadURL:   &asset.DownloadURL,
 			DownloadFunc: func() (io.ReadCloser, error) {
-				asset, _, err := g.client.Releases.GetReleaseAttachment(g.ctx, g.repoOwner, g.repoName, rel.ID, assetID)
-				if err != nil {
-					return nil, err
-				}
-
-				if !hasBaseURL(assetDownloadURL, g.baseURL) {
-					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", assetID, g, assetDownloadURL)
-					return io.NopCloser(strings.NewReader(asset.DownloadURL)), nil
-				}
-
-				// FIXME: for a private download?
-				req, err := http.NewRequest(http.MethodGet, assetDownloadURL, nil)
-				if err != nil {
-					return nil, err
-				}
-				resp, err := httpClient.Do(req)
-				if err != nil {
-					return nil, err
-				}
-
-				// resp.Body is closed by the uploader
-				return resp.Body, nil
+				return downloadAsset(g.ctx, g.httpClient, g.baseURL+"/attachments/"+url.PathEscape(asset.UUID))
 			},
 		})
 	}
@@ -329,10 +334,13 @@ func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, err
 		default:
 		}
 
-		rl, _, err := g.client.Releases.ListReleases(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListReleasesOptions{ListOptions: gitea_sdk.ListOptions{
+		rl, resp, err := g.client.Releases.ListReleases(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListReleasesOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
+		if g.unitDisabled(resp, func(repo *gitea_sdk.Repository) bool { return repo.HasReleases }) {
+			return releases, nil
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -414,11 +422,14 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 	}
 	allIssues := make([]*base.Issue, 0, perPage)
 
-	issues, _, err := g.client.Issues.ListRepoIssues(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListIssueOption{
+	issues, resp, err := g.client.Issues.ListRepoIssues(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListIssueOption{
 		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: perPage},
 		State:       gitea_sdk.StateAll,
 		Type:        gitea_sdk.IssueTypeIssue,
 	})
+	if g.unitDisabled(resp, func(repo *gitea_sdk.Repository) bool { return repo.HasIssues }) {
+		return nil, true, nil
+	}
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing issues: %w", err)
 	}
@@ -460,6 +471,7 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 			Assignees:    assignees,
 			IsLocked:     issue.IsLocked,
 			ForeignIndex: issue.Index,
+			Context:      issue.Comments,
 		})
 	}
 
@@ -472,6 +484,9 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
+	if commentable.GetContext() == 0 {
+		return nil, true, nil
+	}
 	allComments := make([]*base.Comment, 0, g.maxPerPage)
 	seenIDs := container.Set[int64]{}
 
@@ -528,13 +543,16 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 	}
 	allPRs := make([]*base.PullRequest, 0, perPage)
 
-	prs, _, err := g.client.PullRequests.ListRepoPullRequests(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListPullRequestsOptions{
+	prs, resp, err := g.client.PullRequests.ListRepoPullRequests(g.ctx, g.repoOwner, g.repoName, gitea_sdk.ListPullRequestsOptions{
 		ListOptions: gitea_sdk.ListOptions{
 			Page:     page,
 			PageSize: perPage,
 		},
 		State: gitea_sdk.StateAll,
 	})
+	if g.unitDisabled(resp, func(repo *gitea_sdk.Repository) bool { return repo.HasPullRequests }) {
+		return nil, true, nil
+	}
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing pull requests (page: %d, pagesize: %d). Error: %w", page, perPage, err)
 	}
@@ -586,7 +604,7 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 			createdAt = *pr.Created
 		}
 		updatedAt := time.Time{}
-		if pr.Created != nil {
+		if pr.Updated != nil {
 			updatedAt = *pr.Updated
 		}
 
@@ -614,7 +632,6 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 			MergedTime:     pr.Merged,
 			MergeCommitSHA: mergeCommitSHA,
 			IsLocked:       pr.IsLocked,
-			PatchURL:       pr.PatchURL,
 			Head: base.PullRequestBranch{
 				Ref:       headRef,
 				SHA:       headSHA,
@@ -624,11 +641,12 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 			},
 			Base: base.PullRequestBranch{
 				Ref:       pr.Base.Ref,
-				SHA:       pr.Base.Sha,
+				SHA:       cmp.Or(pr.MergeBase, pr.Base.Sha), // base.sha is the base branch head, which contains the changes once merged
 				RepoName:  g.repoName,
 				OwnerName: g.repoOwner,
 			},
 			ForeignIndex: pr.Index,
+			Context:      pr.Comments,
 		})
 		// SECURITY: Ensure that the PR is safe
 		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
@@ -639,6 +657,17 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 		isEnd = len(prs) == 0
 	}
 	return allPRs, isEnd, nil
+}
+
+func convertGiteaReviewState(state gitea_sdk.ReviewStateType) string {
+	switch state {
+	case gitea_sdk.ReviewStateComment:
+		return base.ReviewStateCommented
+	case gitea_sdk.ReviewStateRequestChanges:
+		return base.ReviewStateChangesRequested
+	default:
+		return string(state)
+	}
 }
 
 // GetReviews returns pull requests review
@@ -673,9 +702,11 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 				continue
 			}
 
-			rcl, _, err := g.client.PullRequests.ListPullReviewComments(g.ctx, g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
-			if err != nil {
-				return nil, err
+			var rcl []*gitea_sdk.PullReviewComment
+			if pr.CodeCommentsCount > 0 {
+				if rcl, _, err = g.client.PullRequests.ListPullReviewComments(g.ctx, g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID); err != nil {
+					return nil, err
+				}
 			}
 			var reviewComments []*base.ReviewComment
 			for i := range rcl {
@@ -706,7 +737,8 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 				CommitID:     pr.CommitID,
 				Content:      pr.Body,
 				CreatedAt:    pr.Submitted,
-				State:        string(pr.State),
+				State:        convertGiteaReviewState(pr.State),
+				Dismissed:    pr.Dismissed,
 				Comments:     reviewComments,
 			}
 

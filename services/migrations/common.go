@@ -4,7 +4,10 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	system_model "gitea.dev/models/system"
@@ -19,6 +22,22 @@ func WarnAndNotice(fmtStr string, args ...any) {
 	if err := system_model.CreateRepositoryNotice(fmt.Sprintf(fmtStr, args...)); err != nil {
 		log.Error("create repository notice failed: ", err)
 	}
+}
+
+func downloadAsset(ctx context.Context, client *http.Client, assetURL string) (io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, assetURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("unexpected status %s", resp.Status)
+	}
+	return resp.Body, nil
 }
 
 func hasBaseURL(toCheck, baseURL string) bool {

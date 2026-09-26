@@ -246,7 +246,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Base: base.PullRequestBranch{
 			CloneURL:  "",
 			Ref:       "master",
-			SHA:       "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
+			SHA:       "d9e165e4c7ab6b701f0205d0ffb637e5d2856297",
 			RepoName:  "test_repo",
 			OwnerName: "gitea",
 		},
@@ -260,7 +260,6 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		Merged:         true,
 		MergedTime:     new(time.Unix(1598982934, 0)),
 		MergeCommitSHA: "827aa28a907853e5ddfa40c8f9bc52471a2685fd",
-		PatchURL:       mockServer.URL + "/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
 
 	reviews, err := downloader.GetReviews(ctx, &base.Issue{Number: 7, ForeignIndex: 7})
@@ -273,7 +272,8 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			ReviewerName: "6543",
 			CommitID:     "187ece0cb6631e2858a6872e5733433bb3ca3b03",
 			CreatedAt:    time.Date(2020, 9, 1, 16, 12, 58, 0, time.UTC),
-			State:        "COMMENT", // TODO
+			State:        base.ReviewStateCommented,
+			Dismissed:    true,
 			Comments: []*base.ReviewComment{
 				{
 					ID:        116561,
@@ -298,7 +298,8 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			ReviewerName: "techknowlogick",
 			CommitID:     "187ece0cb6631e2858a6872e5733433bb3ca3b03",
 			CreatedAt:    time.Date(2020, 9, 1, 17, 6, 47, 0, time.UTC),
-			State:        "REQUEST_CHANGES", // TODO
+			State:        base.ReviewStateChangesRequested,
+			Dismissed:    true,
 			Content:      "I think this needs some changes",
 		},
 		{
@@ -309,6 +310,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 			CommitID:     "187ece0cb6631e2858a6872e5733433bb3ca3b03",
 			CreatedAt:    time.Date(2020, 9, 1, 17, 19, 51, 0, time.UTC),
 			State:        base.ReviewStateApproved,
+			Dismissed:    true,
 			Official:     true,
 			Content:      "looks good",
 		},

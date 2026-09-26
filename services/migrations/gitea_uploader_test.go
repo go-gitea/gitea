@@ -5,7 +5,10 @@
 package migrations
 
 import (
+	"errors"
+	"io"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -119,6 +122,31 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, pulls[0].LoadIssue(t.Context()))
 	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(t.Context()))
 	assert.Len(t, pulls[0].Issue.Comments, 2)
+}
+
+func TestCreateReleasesSkipsUnavailableAssets(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	newRelease := func() *base.Release {
+		return &base.Release{Name: "assets", Assets: []*base.ReleaseAsset{
+			{Name: "gone", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return nil, errors.New("gone") }},
+			{Name: "kept", Size: new(0), DownloadCount: new(0), DownloadFunc: func() (io.ReadCloser, error) { return io.NopCloser(strings.NewReader("data")), nil }},
+		}}
+	}
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	uploader := NewGiteaLocalUploader(t.Context(), doer, doer.Name, "repo1")
+	uploader.repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, uploader.CreateReleases(t.Context(), newRelease()))
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{RepoID: 1, Title: "assets"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "kept", Size: 4})
+	unittest.AssertNotExistsBean(t, &repo_model.Attachment{ReleaseID: release.ID, Name: "gone"})
+
+	dumper := &RepositoryDumper{baseDir: t.TempDir(), opts: base.MigrateOptions{ReleaseAssets: true}}
+	defer dumper.Close()
+	dumpedRelease := newRelease()
+	require.NoError(t, dumper.CreateReleases(t.Context(), dumpedRelease))
+	require.Len(t, dumpedRelease.Assets, 1)
+	assert.Equal(t, "kept", dumpedRelease.Assets[0].Name)
 }
 
 func TestGiteaUploadRemapLocalUser(t *testing.T) {

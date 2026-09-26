@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 )
@@ -94,7 +95,7 @@ type GitlabDownloader struct {
 //	Use either a username/password, personal token entered into the username field, or anonymous/public access
 //	Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, token string) (*GitlabDownloader, error) {
-	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(newMigrationHTTPClient()))
+	gitlabClient, err := gitlab.NewAuthSourceClient(gitlab.Unauthenticated{}, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(newMigrationHTTPClient(baseURL, util.Iif(token != "", "Bearer "+token, "")))) // the transport adds the token for the source host only
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
 		return nil, err
@@ -314,8 +315,6 @@ func (g *GitlabDownloader) convertGitlabRelease(ctx context.Context, rel *gitlab
 		PublisherName:   rel.Author.Username,
 	}
 
-	httpClient := newMigrationHTTPClient()
-
 	for _, asset := range rel.Assets.Links {
 		assetID := asset.ID // Don't optimize this, for closure we need a local variable
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
@@ -334,18 +333,7 @@ func (g *GitlabDownloader) convertGitlabRelease(ctx context.Context, rel *gitlab
 					return io.NopCloser(strings.NewReader(link.URL)), nil
 				}
 
-				req, err := http.NewRequest(http.MethodGet, link.URL, nil)
-				if err != nil {
-					return nil, err
-				}
-				req = req.WithContext(ctx)
-				resp, err := httpClient.Do(req)
-				if err != nil {
-					return nil, err
-				}
-
-				// resp.Body is closed by the uploader
-				return resp.Body, nil
+				return downloadAsset(ctx, g.client.HTTPClient(), link.URL)
 			},
 		})
 	}
@@ -408,6 +396,12 @@ func (g *GitlabDownloader) GetIssues(ctx context.Context, page, perPage int) ([]
 		return nil, false, fmt.Errorf("error while listing issues: %w", err)
 	}
 	for _, issue := range issues {
+		// record the issue IID, to be used in GetPullRequests()
+		g.iidResolver.recordIssueIID(issue.IID)
+		if issue.Confidential { // Gitea can't restrict an issue to project members
+			continue
+		}
+
 		labels := make([]*base.Label, 0, len(issue.Labels))
 		for _, l := range issue.Labels {
 			labels = append(labels, &base.Label{
@@ -454,9 +448,6 @@ func (g *GitlabDownloader) GetIssues(ctx context.Context, page, perPage int) ([]
 			ForeignIndex: issue.IID,
 			Context:      gitlabIssueContext{IsMergeRequest: false},
 		})
-
-		// record the issue IID, to be used in GetPullRequests()
-		g.iidResolver.recordIssueIID(issue.IID)
 	}
 
 	return allIssues, len(issues) < perPage, nil
@@ -499,7 +490,9 @@ func (g *GitlabDownloader) GetComments(ctx context.Context, commentable base.Com
 		}
 		for _, comment := range comments {
 			for _, note := range comment.Notes {
-				allComments = append(allComments, g.convertNoteToComment(commentable.GetLocalIndex(), note))
+				if !note.Internal { // Gitea can't restrict a comment to project members
+					allComments = append(allComments, g.convertNoteToComment(commentable.GetLocalIndex(), note))
+				}
 			}
 		}
 		if resp.NextPage == 0 {
@@ -748,11 +741,14 @@ func (g *GitlabDownloader) GetReviews(ctx context.Context, reviewable base.Revie
 	}
 
 	reviews := make([]*base.Review, 0, len(approvals.ApprovedBy))
-	for _, user := range approvals.ApprovedBy {
+	for _, approver := range approvals.ApprovedBy {
+		if approver.User == nil {
+			continue
+		}
 		reviews = append(reviews, &base.Review{
 			IssueIndex:   reviewable.GetLocalIndex(),
-			ReviewerID:   user.User.ID,
-			ReviewerName: user.User.Username,
+			ReviewerID:   approver.User.ID,
+			ReviewerName: approver.User.Username,
 			CreatedAt:    createdAt,
 			// All we get are approvals
 			State: base.ReviewStateApproved,
