@@ -17,28 +17,33 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// HasDeferredMatrix reports whether the job's matrix can only be expanded once its needs finish:
-// it reads the needs context and the job has needs to resolve that context against.
-// Parse emits such a job as a single placeholder rather than one job per combination, so every
-// caller that persists a job must agree with Parse on this condition.
+// HasDeferredMatrix reports whether the job's strategy, name, runs-on or continue-on-error need outputs before they can be resolved.
 func HasDeferredMatrix(job *Job) bool {
-	return len(job.Needs()) > 0 && rawMatrixReadsNeeds(&job.Strategy.RawMatrix)
+	return len(job.Needs()) > 0 && (nodeMatches(&job.Strategy.RawMatrix, expressionReadsNeeds) || expressionReadsNeeds(job.Strategy.RawExpression.Value) ||
+		expressionReadsNeeds(job.Strategy.MaxParallelString) || expressionReadsNeeds(job.Strategy.FailFastString) ||
+		expressionReadsNeeds(job.Name) || nodeMatches(&job.RawRunsOn, expressionReadsNeeds) || nodeMatches(&job.RawContinueOnError, expressionReadsNeeds))
 }
 
-func rawMatrixReadsNeeds(node *yaml.Node) bool {
+func nodeMatches(node *yaml.Node, match func(string) bool) bool {
 	if node.Kind == yaml.ScalarNode {
-		return expressionReadsNeeds(node.Value)
+		return match(node.Value)
 	}
-	return slices.ContainsFunc(node.Content, rawMatrixReadsNeeds)
+	return slices.ContainsFunc(node.Content, func(child *yaml.Node) bool { return nodeMatches(child, match) })
 }
 
-// ParseRawSingleWorkflow decodes a SingleWorkflow payload into the workflow and its single job
-// without expanding `strategy.matrix`.
-//
-// A deferred-matrix placeholder's payload still carries the raw, unevaluated matrix, which Parse
-// would try to expand: depending on the matrix's shape that yields several workflows (a static
-// vector crossed with the unevaluated expression) or an error (an `include`/`exclude` that is still
-// a scalar), neither of which describes the one job the payload stands for.
+func hasExpression(value string) bool {
+	return strings.Contains(value, "${{")
+}
+
+// IfExpression wraps an `if:` that omits the `${{ }}`, which github.com evaluates as one expression anyway.
+func IfExpression(value string) string {
+	if hasExpression(value) {
+		return value
+	}
+	return "${{ " + value + " }}"
+}
+
+// ParseRawSingleWorkflow decodes a stored SingleWorkflow payload into the workflow and its single job as stored, without expanding or evaluating it again.
 func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, *Job, error) {
 	swf := &SingleWorkflow{}
 	if err := decodeResolved(payload, swf); err != nil {
@@ -60,29 +65,6 @@ func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, *Job, error) {
 // contexts the run publishes, which a repository's required checks are configured against.
 func expressionReadsNeeds(value string) bool {
 	return expreval.ReadsContext(value, "needs")
-}
-
-// ExpressionReadsMatrix reports whether a job's `if:` reads the matrix context.
-// A deferred-matrix placeholder has no combination yet, so such an expression cannot be decided.
-func ExpressionReadsMatrix(ifValue string) bool {
-	return expreval.ReadsContext(asIfExpression(ifValue), "matrix")
-}
-
-// ExpressionIgnoresNeedResults reports whether a job's `if:` calls always(), failure() or cancelled(),
-// the status functions that run a job whatever its needs did rather than under the implicit success().
-// Keep in sync with act's exprparser, which owns the same list for the evaluation itself.
-func ExpressionIgnoresNeedResults(ifValue string) bool {
-	return expreval.CallsFunction(asIfExpression(ifValue), "always", "failure", "cancelled")
-}
-
-// asIfExpression wraps an `if:` that omits the `${{ }}`, which GitHub evaluates as one expression anyway.
-// `if:` is the only field with that exception: every other value is interpolated, so a bare matrix or
-// `runs-on` is a literal there and must not be parsed as an expression.
-func asIfExpression(ifValue string) string {
-	if ifValue == "" || strings.Contains(ifValue, "${{") {
-		return ifValue
-	}
-	return "${{ " + ifValue + " }}"
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
@@ -132,28 +114,25 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 
 	for i, id := range ids {
 		job := jobs[i]
-		originJob := origin.GetJob(id)
-
-		if originJob == nil {
-			return nil, fmt.Errorf("job %s not found in origin workflow", id)
-		}
-
 		var combos []*Job
-		if HasDeferredMatrix(job) {
-			// The matrix reads values that do not exist yet (a needs output), so emit a single
-			// placeholder keeping it raw. Re-parsing that placeholder's payload yields it again,
-			// and the server expands it once the needs finish.
+		if HasDeferredMatrix(job) || pc.gitContext == nil && (job.Strategy.RawExpression.Kind != 0 || nodeMatches(&job.Strategy.RawMatrix, hasExpression)) {
 			placeholder := job.Clone()
 			if placeholder.Name == "" {
 				placeholder.Name = id
 			}
 			combos = []*Job{placeholder}
 		} else {
-			matricxes, err := getMatrixes(originJob)
+			if pc.gitContext != nil { // callers without one, like commit status, only read the literal workflow
+				if err := job.Strategy.resolve(evaluator); err != nil {
+					return nil, fmt.Errorf("job %q: %w", id, err)
+				}
+			}
+			// Keep accepting empty exclude mappings for workflow compatibility, although GitHub rejects them.
+			matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).GetMatrixes()
 			if err != nil {
 				return nil, fmt.Errorf("getMatrixes: %w", err)
 			}
-			if combos, err = buildMatrixCombos(id, job, matricxes, originJob, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
+			if combos, err = buildMatrixCombos(id, job, matrixes, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
 				return nil, err
 			}
 		}
@@ -186,98 +165,119 @@ func (w *SingleWorkflow) CloneHeader() *SingleWorkflow {
 // maxCombinations caps how many combinations may be built: the values come from a needs output at
 // runtime, so the cap has to be enforced before one Job is materialized per combination.
 func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any, maxCombinations int) ([]*Job, error) {
-	actJob := &model.Job{Strategy: &model.Strategy{
-		FailFastString:    job.Strategy.FailFastString,
-		MaxParallelString: job.Strategy.MaxParallelString,
-		RawMatrix:         job.Strategy.RawMatrix,
-	}}
-
-	// Resolve fromJson(needs.*.outputs.*) and friends into concrete matrix values.
-	if err := expreval.New(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs).Evaluate).
-		EvaluateYamlNode(&actJob.Strategy.RawMatrix); err != nil {
-		return nil, fmt.Errorf("evaluate matrix: %w", err)
+	job = job.Clone()
+	if err := job.Strategy.resolve(expreval.New(NewInterpeter(jobID, nil, nil, gitCtx, results, vars, inputs).Evaluate)); err != nil {
+		return nil, err
 	}
-	matrixes, err := getMatrixes(actJob)
+	matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).GetMatrixes()
 	if err != nil {
 		return nil, fmt.Errorf("getMatrixes: %w", err)
-	}
-	// act collapses a matrix that yields no combination (an empty vector or include, everything
-	// excluded, a whole-matrix expression that is not a mapping) into one empty combination, which
-	// would run the job once unparameterized. GitHub rejects such a matrix, so reject it too.
-	if len(matrixes) == 1 && len(matrixes[0]) == 0 {
-		return nil, errors.New("matrix must define at least one vector")
 	}
 	if len(matrixes) > maxCombinations {
 		return nil, fmt.Errorf("matrix expands to %d combinations, exceeding the limit of %d", len(matrixes), maxCombinations)
 	}
-	return buildMatrixCombos(jobID, job, matrixes, actJob, gitCtx, results, vars, inputs)
+	return buildMatrixCombos(jobID, job, matrixes, gitCtx, results, vars, inputs)
 }
 
-// matrixesOf is this package's only entry to act's GetMatrixes, so that every caller is covered by
-// the filter check below. A deferred placeholder is the first thing carrying a raw matrix this far,
-// and the emitter reads its `if:` before expanding it.
-func matrixesOf(job *model.Job) ([]map[string]any, error) {
-	if err := validateMatrixFilters(job); err != nil {
-		return nil, err
-	}
-	matrixes, err := job.GetMatrixes()
-	if err != nil {
-		return nil, fmt.Errorf("GetMatrixes: %w", err)
-	}
-	return matrixes, nil
-}
-
-// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings, so that the
-// usual way to get there, an unevaluated ${{ }} expression that is still a scalar, is named as such
-// instead of surfacing from the middle of the expansion.
-func validateMatrixFilters(job *model.Job) error {
-	if job.Strategy == nil || job.Strategy.RawMatrix.Kind != yaml.MappingNode {
-		return nil
-	}
-	content := job.Strategy.RawMatrix.Content
-	for i := 0; i+1 < len(content); i += 2 {
-		name, value := content[i].Value, content[i+1]
-		if name != "include" && name != "exclude" {
-			continue
+// resolve evaluates strategy values once and escapes expression-like results for the runner.
+func (s *Strategy) resolve(evaluator expreval.Evaluator) error {
+	if s.RawExpression.Kind != 0 {
+		if err := model.DecodeEvaluated("strategy", s.RawExpression, evaluator.EvaluateYamlNode, s); err != nil {
+			return err
 		}
-		entries := []*yaml.Node{value}
-		if value.Kind == yaml.SequenceNode {
-			entries = value.Content
+		if s.RawExpression.Kind != 0 {
+			return errors.New("strategy is not a map of strategy keys to values")
 		}
-		for _, entry := range entries {
-			if entry.Kind != yaml.MappingNode {
-				return fmt.Errorf("matrix %s must be a list of mappings", name)
+	} else {
+		for _, value := range []*string{&s.FailFastString, &s.MaxParallelString} {
+			evaluated, err := evaluator.Interpolate(*value)
+			if err != nil {
+				return fmt.Errorf("evaluate strategy: %w", err)
 			}
+			*value = evaluated
+		}
+		if err := evaluator.EvaluateYamlNode(&s.RawMatrix); err != nil {
+			return fmt.Errorf("evaluate matrix: %w", err)
 		}
 	}
+	s.FailFastString, s.MaxParallelString = escapeExpressions(s.FailFastString), escapeExpressions(s.MaxParallelString)
 	return nil
+}
+
+const escapedExpression = "${{ '$' }}{{"
+
+// escapeExpressions returns a template interpolating to value, since GitHub never evaluates the result of an evaluation again.
+func escapeExpressions(value string) string {
+	return strings.ReplaceAll(value, "${{", escapedExpression)
+}
+
+func unescapeExpressions(value string) string {
+	return strings.ReplaceAll(value, escapedExpression, "${{")
+}
+
+func replaceScalars(node *yaml.Node, replace func(string) string) {
+	node.Value = replace(node.Value)
+	for _, child := range node.Content {
+		replaceScalars(child, replace)
+	}
 }
 
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
 // strategy and interpolating the name, runs-on and continue-on-error with it.
-func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
-	srcRunsOn := src.RunsOn()
+func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
+	srcRunsOn := model.RunsOnFromNode(src.RawRunsOn)
+	order, names := make([]int, len(matrixes)), make([]string, len(matrixes))
+	for index, matrix := range matrixes {
+		order[index], names[index] = index, matrixName(matrix)
+	}
+	slices.SortStableFunc(order, func(a, b int) int { return strings.Compare(names[a], names[b]) })
 	combos := make([]*Job, 0, len(matrixes))
 	var err error
-	for _, matrix := range matrixes {
+	for _, index := range order {
+		matrix := matrixes[index]
 		combo := src.Clone()
 		if combo.Name == "" {
 			combo.Name = jobID
 		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
-		evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs).Evaluate)
-		if combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator); err != nil {
+		replaceScalars(&combo.Strategy.RawMatrix, escapeExpressions)
+		if src.Strategy.RawMatrix.Kind != 0 {
+			combo.Strategy.JobIndex, combo.Strategy.JobTotal = index, len(matrixes)
+		}
+		evaluator := expreval.New(NewInterpeter(jobID, &combo.Strategy, matrix, gitCtx, results, vars, inputs).Evaluate)
+		if len(matrix) == 0 && gitCtx != nil {
+			combo.Name, err = evaluator.Interpolate(combo.Name)
+			combo.Name = escapeExpressions(combo.Name)
+		} else {
+			combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator)
+		}
+		if err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
-		runsOn := slices.Clone(srcRunsOn)
-		for i := range runsOn {
-			if runsOn[i], err = evaluator.Interpolate(runsOn[i]); err != nil {
+		if gitCtx != nil { // callers without one don't read runs-on
+			rawRunsOn := model.CloneYamlNode(src.RawRunsOn)
+			if err := evaluator.EvaluateYamlNode(&rawRunsOn); err != nil {
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
+			runsOn := model.RunsOnFromNode(rawRunsOn)
+			if len(runsOn) == 0 && len(srcRunsOn) > 0 { // match no runner rather than every runner
+				runsOn = []string{""}
+			}
+			for i := range runsOn {
+				runsOn[i] = escapeExpressions(runsOn[i])
+			}
+			combo.RawRunsOn = model.RunsOnNode(runsOn, "")
 		}
-		combo.RawRunsOn = encodeRunsOn(runsOn)
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
+		}
+		if combo.RawContinueOnError.Kind != 0 {
+			var continueOnError bool
+			if err := combo.RawContinueOnError.Decode(&continueOnError); err == nil {
+				_ = combo.RawContinueOnError.Encode(continueOnError)
+			} else {
+				replaceScalars(&combo.RawContinueOnError, escapeExpressions)
+			}
 		}
 		combos = append(combos, combo)
 	}
@@ -311,17 +311,6 @@ type parseContext struct {
 
 type ParseOption func(c *parseContext)
 
-func getMatrixes(job *model.Job) ([]map[string]any, error) {
-	ret, err := matrixesOf(job)
-	if err != nil {
-		return nil, err
-	}
-	sort.Slice(ret, func(i, j int) bool {
-		return matrixName(ret[i]) < matrixName(ret[j])
-	})
-	return ret, nil
-}
-
 func encodeMatrix(matrix map[string]any) yaml.Node {
 	if len(matrix) == 0 {
 		return yaml.Node{}
@@ -335,26 +324,17 @@ func encodeMatrix(matrix map[string]any) yaml.Node {
 	return node
 }
 
-func encodeRunsOn(runsOn []string) yaml.Node {
-	node := yaml.Node{}
-	if len(runsOn) == 1 {
-		_ = node.Encode(runsOn[0])
-	} else {
-		_ = node.Encode(runsOn)
-	}
-	return node
-}
-
 func nameWithMatrix(name string, m map[string]any, evaluator expreval.Evaluator) (string, error) {
 	if len(m) == 0 {
 		return name, nil
 	}
 
 	if !strings.Contains(name, "${{") || !strings.Contains(name, "}}") {
-		return name + " " + matrixName(m), nil
+		return escapeExpressions(name + " " + matrixName(m)), nil
 	}
 
-	return evaluator.Interpolate(name)
+	name, err := evaluator.Interpolate(name)
+	return escapeExpressions(name), err
 }
 
 func matrixName(m map[string]any) string {

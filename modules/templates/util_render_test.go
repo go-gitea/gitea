@@ -38,9 +38,9 @@ https://example.com/file.bin
 ![remote image](https://example.com/image.jpg)
 [[local image|image.jpg]]
 [[remote link|https://example.com/image.jpg]]
-https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash
+http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
+http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 :+1:
 mail@domain.com
@@ -52,6 +52,7 @@ mail@domain.com
 }
 
 func TestMain(m *testing.M) {
+	setting.SetupGiteaTestEnv()
 	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {
@@ -123,11 +124,11 @@ func TestRenderRepoComment(t *testing.T) {
 ![remote image](<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>)
 [[local image|image.jpg]]
 [[remote link|<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>]]
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code>88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
-<span class="emoji" aria-label="thumbs up">👍</span>
+<span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com">mail@domain.com</a>
 <a href="/mention-user">@mention-user</a> test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
@@ -170,11 +171,11 @@ https://example.com/file.bin
 ![remote image](https://example.com/image.jpg)
 [[local image|image.jpg]]
 [[remote link|https://example.com/image.jpg]]
-https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash
+http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
+http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
-<span class="emoji" aria-label="thumbs up">👍</span>
+<span class="emoji" data-alias="+1">👍</span>
 mail@domain.com
 @mention-user test
 <a href="/user13/repo11/issues/123" class="ref-issue">#123</a>
@@ -203,10 +204,10 @@ func TestRenderIssueTitleCodeSpan(t *testing.T) {
 		{"`#123`", `<code class="inline-code-block">#123</code>`, false},
 		{"`88fc37a3c0a4dda553bdcfc80c178a58247f42fb`", `<code class="inline-code-block">88fc37a3c0a4dda553bdcfc80c178a58247f42fb</code>`, false},
 		{"foo `:100:", "foo `:100:", true},
-		{"foo ` :100:", `foo ` + "`" + ` <span class="emoji" aria-label="hundred points">💯</span>`, true},
-		{":100:", `<span class="emoji" aria-label="hundred points">💯</span>`, true},
+		{"foo ` :100:", `foo ` + "`" + ` <span class="emoji" data-alias="100">💯</span>`, true},
+		{":100:", `<span class="emoji" data-alias="100">💯</span>`, true},
 		{"#123", `<a href="/user13/repo11/issues/123" class="ref-issue">#123</a>`, false},
-		{"`x`:100:", `<code class="inline-code-block">x</code><span class="emoji" aria-label="hundred points">💯</span>`, true},
+		{"`x`:100:", `<code class="inline-code-block">x</code><span class="emoji" data-alias="100">💯</span>`, true},
 		{"a `:100:` b `:+1:` c", `a <code class="inline-code-block">:100:</code> b <code class="inline-code-block">:+1:</code> c`, true},
 	}
 	for _, c := range cases {
@@ -230,17 +231,36 @@ func TestRenderMarkdownToHtml(t *testing.T) {
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
 <a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
-<span class="emoji" aria-label="thumbs up">👍</span>
+<span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
 <a href="/mention-user" rel="nofollow">@mention-user</a> test
 #123
 space</p>
 `
 	assert.Equal(t, expected, string(newTestRenderUtils(t).MarkdownToHtml(testInput())))
+
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions, setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true})()
+	for _, tc := range []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "code", input: "```suggestion\nreplacement\n```\n\nexplanation", expected: "<p>explanation</p>\n"},
+		{name: "unclosed code", input: "```suggestion"},
+		{name: "table", input: "| a | b |\n|---|---|\n| 1 | 2 |"},
+		{name: "math", input: "$$\nx\n$$\nafter", expected: "<p>after</p>\n"},
+		{name: "image", input: "![img](https://x/y.png)\n\ncaption", expected: "<p>caption</p>\n"},
+		{name: "linked image", input: "[![img](https://x/y.png)](https://example.com)"},
+		{name: "html", input: "<details>\n<summary>x</summary>\n\nbody\n</details>", expected: "<p>body</p>\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, string(newTestRenderUtils(t).FeedExcerptToHtml(tc.input)))
+		})
+	}
 }
 
 func TestRenderPackageMarkdown(t *testing.T) {

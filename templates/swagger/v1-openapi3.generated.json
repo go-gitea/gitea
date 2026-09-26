@@ -6389,6 +6389,14 @@
             "type": "integer",
             "x-go-name": "SourceID"
           },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserTypeString"
+              }
+            ],
+            "description": "The user type"
+          },
           "visibility": {
             "allOf": [
               {
@@ -10800,6 +10808,14 @@
             "type": "integer",
             "x-go-name": "StarredRepos"
           },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserTypeString"
+              }
+            ],
+            "description": "the user type"
+          },
           "visibility": {
             "allOf": [
               {
@@ -10955,6 +10971,14 @@
         },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
+      },
+      "UserTypeString": {
+        "enum": [
+          "User",
+          "Organization",
+          "Bot"
+        ],
+        "type": "string"
       },
       "VisibilityString": {
         "enum": [
@@ -11891,9 +11915,9 @@
             }
           },
           {
-            "description": "pattern of repositories to search for",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
             "in": "query",
-            "name": "pattern",
+            "name": "query",
             "schema": {
               "type": "string"
             }

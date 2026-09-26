@@ -12,40 +12,40 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type protectedBranchBeforeV354 struct {
-	ID         int64  `xorm:"pk autoincr"`
-	RepoID     int64  `xorm:"UNIQUE(s)"`
-	BranchName string `xorm:"UNIQUE(s)"`
-}
+func TestAddActionQueueIndexes(t *testing.T) {
+	type ActionRunJob struct {
+		ID      int64 `xorm:"pk autoincr"`
+		RepoID  int64
+		TaskID  int64
+		Status  int
+		Updated int64 `xorm:"updated"`
+	}
+	type ActionRun struct {
+		ID     int64 `xorm:"pk autoincr"`
+		RepoID int64
+		Status int
+	}
 
-func (protectedBranchBeforeV354) TableName() string { return "protected_branch" }
-
-func TestAddDeletionAllowlistToBranchProtection(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(protectedBranchBeforeV354))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionRunJob), new(ActionRun))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	_, err := x.Insert(&protectedBranchBeforeV354{RepoID: 1, BranchName: "release/*"})
-	require.NoError(t, err)
-	require.NoError(t, AddDeletionAllowlistToBranchProtection(t.Context(), x))
+	require.NoError(t, AddActionQueueIndexes(t.Context(), x))
 
-	type protectedBranchAfterV354 struct {
-		CanDelete                   bool
-		EnableDeletionAllowlist     bool
-		DeletionAllowlistUserIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistTeamIDs    []int64 `xorm:"JSON TEXT"`
-		DeletionAllowlistDeployKeys bool
+	tables := migrationtest.LoadTableSchemasMap(t, x)
+	indexCols := func(table string) [][]string {
+		schema, ok := tables[table]
+		require.True(t, ok)
+		var cols [][]string
+		for _, idx := range schema.Indexes {
+			cols = append(cols, idx.Cols)
+		}
+		return cols
 	}
 
-	var branch protectedBranchAfterV354
-	has, err := x.Table("protected_branch").Where("repo_id = ? AND branch_name = ?", 1, "release/*").Get(&branch)
-	require.NoError(t, err)
-	require.True(t, has)
-	assert.False(t, branch.CanDelete)
-	assert.False(t, branch.EnableDeletionAllowlist)
-	assert.Nil(t, branch.DeletionAllowlistUserIDs)
-	assert.Nil(t, branch.DeletionAllowlistTeamIDs)
-	assert.False(t, branch.DeletionAllowlistDeployKeys)
+	assert.Contains(t, indexCols("action_run_job"), []string{"task_id", "status", "updated"})
+	assert.Contains(t, indexCols("action_run_job"), []string{"repo_id", "status"})
+	assert.Contains(t, indexCols("action_run"), []string{"repo_id", "status"})
 }

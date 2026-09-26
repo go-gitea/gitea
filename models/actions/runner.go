@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -200,8 +200,7 @@ func (r *ActionRunner) GenerateAndFillToken() {
 // CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
 func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
-	runnerLabelSet := container.SetOf(r.AgentLabels...)
-	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
+	return !slices.ContainsFunc(jobRunsOn, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
 }
 
 func init() {
