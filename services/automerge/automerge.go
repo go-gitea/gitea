@@ -90,10 +90,11 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
 func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
+		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
+		} else if n == 0 {
+			return nil
 		}
-
 		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer)
 		return err
 	})
@@ -132,7 +133,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 	_ = pr.LoadIssue(ctx)
 	if (pr.Issue != nil && pr.Issue.IsClosed) || pr.HasMerged {
 		// if the PR has been closed or merged, delete the automerge record and skip
-		err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
+		_, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
 		if err != nil {
 			return errors.Join(errSkipAutoMerge, err)
 		}
@@ -223,7 +224,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 
 	// although expectedHeadCommitID is checked before, we should pass it to the Merge function to
 	// make it be checked again in case the head commit id changed after the previous check.
-	if err := pull_service.Merge(pr, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
+	if err := pull_service.Merge(pr.ID, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
 		if pull_service.IsErrSHADoesNotMatch(err) {
 			return errors.Join(errSkipAutoMerge, err)
 		}
