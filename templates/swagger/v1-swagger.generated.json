@@ -16841,6 +16841,9 @@
           "201": {
             "$ref": "#/responses/PullRequest"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
