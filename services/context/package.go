@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
@@ -28,10 +29,23 @@ type packageAssignmentCtx struct {
 	*Base
 	Doer        *user_model.User
 	ContextUser *user_model.User
+	Package     *packages_model.Package
+	Repository  *repo_model.Repository
+}
+
+// privatablePackages is the single point-of-truth list of package types that support being
+// attached to a repository for private access checks, and how to fetch each one.
+var privatablePackages = map[string]func(ctx *packageAssignmentCtx) (*packages_model.Package, error){
+	"container": func(ctx *packageAssignmentCtx) (*packages_model.Package, error) {
+		return packages_model.GetPackageByName(ctx, ctx.ContextUser.ID, packages_model.TypeContainer, ctx.PathParam("image"))
+	},
+	"terraform": func(ctx *packageAssignmentCtx) (*packages_model.Package, error) {
+		return packages_model.GetPackageByName(ctx, ctx.ContextUser.ID, packages_model.TypeTerraformState, ctx.PathParam("name"))
+	},
 }
 
 // PackageAssignment returns a middleware to handle Context.Package assignment
-func PackageAssignment() func(ctx *Context) {
+func PackageAssignment(pType string) func(ctx *Context) {
 	return func(ctx *Context) {
 		errorFn := func(status int, msg string) {
 			err := fmt.Errorf("%s", msg)
@@ -42,7 +56,7 @@ func PackageAssignment() func(ctx *Context) {
 			}
 		}
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, errorFn)
+		ctx.Package = packageAssignment(paCtx, pType, errorFn)
 	}
 }
 
@@ -50,20 +64,40 @@ func PackageAssignment() func(ctx *Context) {
 func PackageAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, ctx.APIError)
+		ctx.Package = packageAssignment(paCtx, "api", ctx.APIError)
 	}
 }
 
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Package {
-	pkgOwner := ctx.ContextUser
-	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, ctx.Doer)
+func packageAssignment(ctx *packageAssignmentCtx, pType string, errCb func(int, string)) *Package {
+	var dbPkg *packages_model.Package
+	var err error
+	// Add package repository if package type supports being private
+	if pType == "web" || pType == "api" {
+		if _, ok := privatablePackages[ctx.PathParam("type")]; ok {
+			dbPkg, err = packages_model.GetPackageByName(ctx, ctx.ContextUser.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
+		}
+	}
+	if lookup, ok := privatablePackages[pType]; ok {
+		dbPkg, err = lookup(ctx)
+	}
+	if err == nil && dbPkg != nil {
+		ctx.Package = dbPkg
+		if dbPkg.RepoID != 0 {
+			repo, err := repo_model.GetRepositoryByID(ctx, dbPkg.RepoID)
+			if err == nil {
+				ctx.Repository = repo
+			}
+		}
+	}
+
+	accessMode, err := determineAccessMode(ctx)
 	if err != nil {
 		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
 		return nil
 	}
 
 	pkg := &Package{
-		Owner:      pkgOwner,
+		Owner:      ctx.ContextUser,
 		AccessMode: accessMode,
 	}
 	packageType := ctx.PathParam("type")
@@ -109,7 +143,10 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Pack
 	return pkg
 }
 
-func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.AccessMode, error) {
+func determineAccessMode(ctx *packageAssignmentCtx) (perm.AccessMode, error) {
+	doer := ctx.Doer
+	pkgOwner := ctx.ContextUser
+	repo := ctx.Repository
 	if setting.Service.RequireSignInViewStrict && (doer == nil || doer.IsGhost()) {
 		return perm.AccessModeNone, nil
 	}
@@ -147,7 +184,14 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 		}
 		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkgOwner, doer) {
 			// 2. If user is unauthorized or no org member, check if org is visible
-			accessMode = perm.AccessModeRead
+			if repo != nil {
+				// 3. If package is associated with a repository, check if repository is visible
+				if !repo.IsPrivate {
+					accessMode = perm.AccessModeRead
+				}
+			} else {
+				accessMode = perm.AccessModeRead
+			}
 		}
 	} else {
 		if doer != nil && !doer.IsGhost() {
@@ -155,10 +199,24 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 			if doer.ID == pkgOwner.ID {
 				accessMode = perm.AccessModeOwner
 			} else if pkgOwner.Visibility.IsPublic() || (pkgOwner.Visibility.IsLimited() && !doer.IsRestricted) { // 2. Check if package owner is visible to the doer
-				accessMode = perm.AccessModeRead
+				if repo != nil {
+					// 3. If package is associated with a repository, check if repository is visible
+					if !repo.IsPrivate {
+						accessMode = perm.AccessModeRead
+					}
+				} else {
+					accessMode = perm.AccessModeRead
+				}
 			}
 		} else if pkgOwner.Visibility.IsPublic() { // 3. Check if package owner is public
-			accessMode = perm.AccessModeRead
+			if repo != nil {
+				// 3. If package is associated with a repository, check if repository is visible
+				if !repo.IsPrivate {
+					accessMode = perm.AccessModeRead
+				}
+			} else {
+				accessMode = perm.AccessModeRead
+			}
 		}
 	}
 
