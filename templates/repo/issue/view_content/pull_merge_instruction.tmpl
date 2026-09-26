@@ -1,10 +1,8 @@
 {{$data := $.MergeBoxData}}
 {{$pull := $.PullRequest}}
-<details>
-	<summary class="tw-pl-1">{{/* align with other item icon & text */}}
-		<span class="tw-pl-2">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</span>
-	</summary>
-	<div class="tw-my-[5px]">
+<div class="ui small modal" id="pull-merge-cmd-modal">
+	<div class="header">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_title"}}</div>
+	<div class="content">
 		<div>
 			<h3 class="tw-m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>
 			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}
@@ -61,4 +59,4 @@
 		</div>
 		{{end}}
 	</div>
-</details>
+</div>

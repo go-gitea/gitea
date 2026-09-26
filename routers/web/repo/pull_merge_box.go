@@ -19,11 +19,17 @@ type pullMergeBoxInfoItem struct {
 }
 
 type pullMergeBoxInfoItemCollection struct {
-	items []*pullMergeBoxInfoItem
+	items     []*pullMergeBoxInfoItem
+	hasErrors bool
 }
 
 type pullInfoSection struct {
 	InfoItems []*pullMergeBoxInfoItem
+	IsBlocked bool
+}
+
+func (c *pullMergeBoxInfoItemCollection) toSection() *pullInfoSection {
+	return &pullInfoSection{InfoItems: c.items, IsBlocked: c.hasErrors}
 }
 
 func escapeStringSliceToHTML(s []string) (ret []template.HTML) {
@@ -42,8 +48,9 @@ func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, op
 }
 
 func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
+	c.hasErrors = true
 	c.items = append(c.items, &pullMergeBoxInfoItem{
-		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
+		SvgIconHTML: svg.RenderHTML("octicon-dot-fill", 16, "tw-text-text-light"),
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
 	})
@@ -164,28 +171,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	if data.canMergeNow {
-		if data.hasOverridableBlockers {
-			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
-			if data.canBypassProtectionAsAdmin {
-				prompt = ctx.Locale.Tr("repo.pulls.required_status_check_administrator")
-			}
-			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
-				svg.RenderHTML("octicon-dot-fill"),
-				prompt,
-			)
-		} else if pull.IsStatusMergeable() || pull.IsEmpty() {
-			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
-				svg.RenderHTML("octicon-check"),
-				ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"),
-			)
-		}
+	if data.canMergeNow && !data.hasOverridableBlockers && (pull.IsStatusMergeable() || pull.IsEmpty()) {
+		prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
+			svg.RenderHTML("octicon-check"),
+			ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"),
+		)
 	}
 
 	if len(data.infoCommitBlockers.items) > 0 {
-		data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoCommitBlockers.items})
+		data.InfoSections = append(data.InfoSections, data.infoCommitBlockers.toSection())
 	} else {
-		data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoProtectionBlockers.items})
+		data.InfoSections = append(data.InfoSections, data.infoProtectionBlockers.toSection())
 	}
-	data.InfoSections = append(data.InfoSections, &pullInfoSection{data.infoMergePrompts.items})
+	data.InfoSections = append(data.InfoSections, data.infoMergePrompts.toSection())
 }
