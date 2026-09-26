@@ -35,7 +35,7 @@ func loadWebhookFrom(rootCfg ConfigProvider) {
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
 
-	deprecatedSetting(rootCfg, "webhook", "ALLOWED_HOST_LIST", "security", "ALLOWED_HOST_LIST", "v28.0.0")
+	deprecatedSetting(rootCfg, "webhook", "ALLOWED_HOST_LIST", "security", "ALLOWED_HOST_LIST", "v1.28.0")
 	Webhook.AllowedHostList = sec.Key("ALLOWED_HOST_LIST").MustString(Security.AllowedHostList)
 
 	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams", "feishu", "matrix", "wechatwork", "packagist"}
