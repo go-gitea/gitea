@@ -210,9 +210,11 @@ func keepLatestAttemptArtifacts(arts []*ActionArtifact) []*ActionArtifact {
 	})
 }
 
-// ActionArtifactMeta is the meta-data of an artifact
+// ActionArtifactMeta is the metadata of an artifact
 type ActionArtifactMeta struct {
-	ID           int64 // lowest row ID, legacy artifacts have one row per file
+	// The ID identifies the artifact group. The preview handler loads all files with the same run, attempt, and artifact name, then selects the requested file by path.
+	// It is the lowest row ID in the group query, legacy artifacts have one row per file.
+	ID           int64
 	ArtifactName string
 	FileSize     int64
 	Status       ArtifactStatus
