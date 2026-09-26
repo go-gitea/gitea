@@ -42,7 +42,7 @@ function getRealBackgroundColor(el: HTMLElement) {
   return '';
 }
 
-export async function initExternalRenderIframe(iframe: HTMLIFrameElement) {
+export function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 

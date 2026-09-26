@@ -56,7 +56,7 @@ class TextareaEditor {
       editor.value = editor.value.substring(0, startPos) + newVal + editor.value.substring(endPos);
       editor.selectionEnd = startPos + newVal.length;
     } else {
-      editor.value = editor.value.replace(oldVal, newVal);
+      editor.value = editor.value.replace(oldVal, () => newVal);
       editor.selectionEnd -= oldVal.length;
       editor.selectionEnd += newVal.length;
     }
@@ -90,7 +90,7 @@ class CodeMirrorEditor {
     if (editor.getSelection() === oldVal) {
       editor.replaceSelection(newVal);
     } else {
-      editor.setValue(editor.getValue().replace(oldVal, newVal));
+      editor.setValue(editor.getValue().replace(oldVal, () => newVal));
     }
     endPoint.ch -= oldVal.length;
     endPoint.ch += newVal.length;
