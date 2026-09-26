@@ -983,7 +983,7 @@ export default defineConfig([
       'unicorn/prefer-json-import': [0],
       'unicorn/prefer-keyboard-event-key': [2],
       'unicorn/prefer-location-assign': [2],
-      'unicorn/prefer-logical-operator-over-ternary': [2],
+      'unicorn/prefer-logical-operator-over-ternary': [0],
       'unicorn/prefer-map-from-entries': [0],
       'unicorn/prefer-math-abs': [2],
       'unicorn/prefer-math-constants': [2],

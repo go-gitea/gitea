@@ -97,7 +97,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   const {onHide, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
   // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
   const resolvedTheme = theme || role || 'default';
-  const resolvedArrow = arrow ?? (resolvedTheme !== 'bare' && arrowSvg);
+  const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 
   const instance: Instance = tippy(target, {
     appendTo: document.body,
