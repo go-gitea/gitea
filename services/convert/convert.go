@@ -447,7 +447,7 @@ func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 	case actions_model.StatusWaiting:
 		action = "queued"
 	case actions_model.StatusBlocked:
-		action = "pending" // GitHub's status for jobs and runs held back by concurrency
+		action = "pending"
 	case actions_model.StatusPending:
 		action = "requested"
 	case actions_model.StatusRunning, actions_model.StatusCancelling:
