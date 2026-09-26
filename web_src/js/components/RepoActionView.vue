@@ -35,6 +35,7 @@ type RepoActionViewLocale = ActionRunSummaryViewLocale & ActionRunJobViewLocale 
   artifactExpiresAt: string,
   artifactExpiredAt: string,
   confirmDeleteArtifact: string,
+  downloadFile: string,
   workflowFile: string,
   workflowFileNoPermission: string,
   runDetails: string,
@@ -287,14 +288,17 @@ onBeforeUnmount(() => {
             <div class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
-                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
-                  :href="buildArtifactLink(artifact.name)"
+                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced"
+                  :href="artifact.previewLink"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
                   data-tooltip-placement="top-end"
                 >
                   <SvgIcon name="octicon-file" class="tw-text-text-light"/>
                   <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                </a>
+                <a download class="silenced" :href="buildArtifactLink(artifact.name)" :data-tooltip-content="locale.downloadFile">
+                  <SvgIcon name="octicon-download"/>
                 </a>
                 <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
                   <SvgIcon name="octicon-trash"/>
@@ -371,62 +375,6 @@ onBeforeUnmount(() => {
   padding-bottom: 12px;
   display: flex;
   gap: 12px;
-}
-
-/* ================ */
-/* action view header */
-
-.action-view-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-  min-height: 50px; /* reserve the back link and title height so the body does not shift when the run data arrives */
-}
-
-.action-view-back {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--color-text-light-1);
-  text-decoration: none;
-}
-
-.action-view-back:hover {
-  color: var(--color-text);
-}
-
-.action-info-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.action-info-summary-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-}
-
-.action-info-summary-title-text {
-  font-size: 20px;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.action-info-summary-title-index {
-  font-size: 20px;
-  color: var(--color-text-light-2);
-  flex: 1;
-}
-
-.action-info-summary .ui.button {
-  margin: 0;
-  white-space: nowrap;
 }
 
 /* ================ */

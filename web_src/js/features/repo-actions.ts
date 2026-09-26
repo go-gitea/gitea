@@ -3,8 +3,7 @@ import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
 import {GET} from '../modules/fetch.ts';
-import {activePageTimerRefresh, createElementFromHTML, protectMorphElements, recoverMorphElements} from '../utils/dom.ts';
-import {Idiomorph} from 'idiomorph';
+import {activePageTimerRefresh, createElementFromHTML, morphElementWithProtection} from '../utils/dom.ts';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -31,6 +30,7 @@ export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
   registerGlobalInitFunc('initActionRunsList', initActionRunsList);
+  registerGlobalInitFunc('initActionJobQueueList', initActionJobQueueList);
 }
 
 function initRepositoryActionsView() {
@@ -77,6 +77,7 @@ function initRepositoryActionsView() {
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
       showFullScreen: el.getAttribute('data-locale-show-full-screen'),
       downloadLogs: el.getAttribute('data-locale-download-logs'),
+      downloadFile: el.getAttribute('data-locale-download-file'),
       copyOutput: el.getAttribute('data-locale-copy-output'),
       status: {
         unknown: el.getAttribute('data-locale-status-unknown'),
@@ -115,22 +116,19 @@ function initActionRunsList(el: HTMLElement) {
     interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
     async callback() {
       const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
-      if (!resp.ok || resp.status !== 200) return;
+      if (!resp.ok) return;
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
+    },
+  });
+}
 
-      const newEl = createElementFromHTML(await resp.text());
-      for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
-      for (const newItem of newEl.querySelectorAll(':scope > .item')) {
-        const oldItem = el.querySelector(`#${newItem.id}`);
-        if (!oldItem) continue;
-
-        // If the end user is operating the row, then don't refresh its content.
-        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
-        if (oldItem.querySelector('.ui.dropdown.active')) continue;
-
-        const protectedElems = protectMorphElements(newItem);
-        Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
-        recoverMorphElements(el.querySelector(`#${newItem.id}`)!, protectedElems);
-      }
+function initActionJobQueueList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-job-queue-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-job-queue-refresh-link')!);
+      if (!resp.ok) return;
+      morphElementWithProtection(el, createElementFromHTML(await resp.text()), {morphStyle: 'outerHTML'});
     },
   });
 }
