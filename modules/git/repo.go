@@ -246,11 +246,13 @@ type PushOptions struct {
 	Mirror         bool
 	Env            []string
 	Timeout        time.Duration
+
+	CredentialsAddress string // an address with credentials for the remote, see gitcmd.Command.WithRemoteCredentials
 }
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
-	cmd := gitcmd.NewCommand("push")
+	cmd := gitcmd.NewCommand("push").WithRemoteCredentials(opts.CredentialsAddress)
 	if opts.ForceWithLease != "" {
 		cmd.AddOptionFormat("--force-with-lease=%s", opts.ForceWithLease)
 	} else if opts.Force {

@@ -429,6 +429,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
 		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
+		newMigration(356, "Move mirror credentials from git config to database", v28.MoveMirrorCredentialsToDatabase),
 	}
 	return preparedMigrations
 }

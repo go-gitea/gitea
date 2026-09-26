@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
@@ -274,6 +275,11 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
 
 	remoteURL, err := git.ParseRemoteAddressURL(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
+	require.NoError(t, err)
+	assert.Nil(t, remoteURL.User, "credentials must not be kept in the git config")
+	remoteAddr, err := updatedMirror.GetRemoteAddressWithCredentials(t.Context())
+	require.NoError(t, err)
+	remoteURL, err = giturl.ParseGitURL(remoteAddr)
 	require.NoError(t, err)
 	require.NotNil(t, remoteURL.User)
 	assert.Equal(t, "existing-user", remoteURL.User.Username())

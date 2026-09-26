@@ -45,6 +45,22 @@ func ManagedRemoteRemove(ctx context.Context, repo RepositoryFacade, remoteName 
 	})
 }
 
+// ManagedRemoteStripCredentials removes the credentials from the address of a remote, they are provided when running git commands instead.
+func ManagedRemoteStripCredentials(ctx context.Context, repo RepositoryFacade, remoteName string) error {
+	return LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
+		addr, err := GetRemoteAddress(ctx, repo, remoteName)
+		if err != nil {
+			return err
+		}
+		stripped := RemoteAddressWithoutCredentials(addr)
+		if stripped == addr {
+			return nil
+		}
+		_, _, err = gitcmd.NewCommand("remote", "set-url").AddDynamicArguments(remoteName, stripped).WithRepo(repo).RunStdString(ctx)
+		return err
+	})
+}
+
 func ParseRemoteAddressURL(ctx context.Context, repo RepositoryFacade, remoteName string) (*giturl.GitURL, error) {
 	addr, err := GetRemoteAddress(ctx, repo, remoteName)
 	if (addr == "" && err == nil) || IsRemoteNotExistError(err) {

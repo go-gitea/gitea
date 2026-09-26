@@ -19,6 +19,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/indexer/code"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/indexer/stats"
@@ -310,7 +311,11 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		return
 	}
 
-	u, err := git.ParseRemoteAddressURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
+	oldAddress, err := pullMirror.GetRemoteAddressWithCredentials(ctx)
+	var u *giturl.GitURL
+	if err == nil {
+		u, err = giturl.ParseGitURL(oldAddress)
+	}
 	if err != nil {
 		ctx.Data["Err_MirrorAddress"] = true
 		handleSettingRemoteAddrError(ctx, err, form)

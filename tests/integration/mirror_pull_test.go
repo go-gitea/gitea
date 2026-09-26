@@ -6,6 +6,7 @@ package integration
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"sync/atomic"
 	"testing"
@@ -130,6 +131,40 @@ func TestMirrorPull(t *testing.T) {
 
 	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
+}
+
+func TestMirrorPullWithCredentials(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+		require.NoError(t, migrations.Init())
+		t.Cleanup(func() { _ = migrations.Init() })
+
+		ctx := t.Context()
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, IsPrivate: true})
+		remoteURL := u.JoinPath(user.Name, privateRepo.Name+".git")
+		remoteURL.User = url.UserPassword(user.Name, userPassword)
+
+		mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
+			Name:     "auth_mirror",
+			IsMirror: true,
+			Status:   repo_model.RepositoryBeingMigrated,
+		}, false)
+		require.NoError(t, err)
+		_, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, migration.MigrateOptions{
+			RepoName:  "auth_mirror",
+			Mirror:    true,
+			CloneAddr: remoteURL.String(),
+		}, nil)
+		require.NoError(t, err)
+
+		addr, err := git.GetRemoteAddress(ctx, mirrorRepo, "origin")
+		require.NoError(t, err)
+		assert.Equal(t, git.RemoteAddressWithoutCredentials(remoteURL.String()), addr)
+
+		// the private repository can only be fetched if git gets the credentials from the database
+		assert.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+	})
 }
 
 // TestMirrorPullSSRFRevalidation ensures a pull mirror re-validates its remote URL against

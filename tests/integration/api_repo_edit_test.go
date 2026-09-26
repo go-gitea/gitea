@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -481,6 +482,11 @@ func TestAPIRepoEdit(t *testing.T) {
 
 		remoteURL, err := git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
 		require.NoError(t, err)
+		assert.Nil(t, remoteURL.User, "credentials must not be kept in the git config")
+		remoteAddr, err := updatedMirror.GetRemoteAddressWithCredentials(ctx)
+		require.NoError(t, err)
+		remoteURL, err = giturl.ParseGitURL(remoteAddr)
+		require.NoError(t, err)
 		require.NotNil(t, remoteURL.User)
 		assert.Equal(t, "existing-user", remoteURL.User.Username())
 		password, ok := remoteURL.User.Password()
@@ -503,7 +509,9 @@ func TestAPIRepoEdit(t *testing.T) {
 		updatedRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 		assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
 
-		remoteURL, err = git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		remoteAddr, err = updatedMirror.GetRemoteAddressWithCredentials(ctx)
+		require.NoError(t, err)
+		remoteURL, err = giturl.ParseGitURL(remoteAddr)
 		require.NoError(t, err)
 		require.NotNil(t, remoteURL.User)
 		assert.Empty(t, remoteURL.User.Username())

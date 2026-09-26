@@ -9,7 +9,10 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/secret"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -34,7 +37,8 @@ type Mirror struct {
 	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
 	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 
-	RemoteAddress string `xorm:"VARCHAR(2048)"`
+	RemoteAddress          string `xorm:"VARCHAR(2048)"`
+	RemoteAddressEncrypted string `xorm:"TEXT"` // only set when the address has credentials, they are kept out of the git config
 }
 
 func init() {
@@ -87,9 +91,44 @@ func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 	return m, nil
 }
 
+// SetRemoteAddressWithCredentials stores the address including its credentials, encrypted
+func (m *Mirror) SetRemoteAddressWithCredentials(addr string) (err error) {
+	m.RemoteAddressEncrypted, err = encryptRemoteAddress(addr)
+	return err
+}
+
+// GetRemoteAddressWithCredentials returns the address including its credentials
+func (m *Mirror) GetRemoteAddressWithCredentials(ctx context.Context) (string, error) {
+	return decryptRemoteAddress(ctx, m.RemoteAddressEncrypted, m.GetRepository(ctx), m.GetRemoteName())
+}
+
+func encryptRemoteAddress(addr string) (string, error) {
+	if git.RemoteAddressWithoutCredentials(addr) == addr {
+		return "", nil
+	}
+	return secret.EncryptSecret(setting.SecretKey, addr)
+}
+
+func decryptRemoteAddress(ctx context.Context, encrypted string, repo *Repository, remoteName string) (string, error) {
+	if encrypted != "" {
+		return secret.DecryptSecret(setting.SecretKey, encrypted)
+	}
+	if repo == nil {
+		return "", ErrMirrorNotExist
+	}
+	// the address has no credentials, or they have not been moved out of the git config yet
+	return git.GetRemoteAddress(ctx, repo, remoteName)
+}
+
 // UpdateMirror updates the mirror
 func UpdateMirror(ctx context.Context, m *Mirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	return err
+}
+
+// UpdateMirrorRemoteAddressEncrypted updates the encrypted remote address of the mirror
+func UpdateMirrorRemoteAddressEncrypted(ctx context.Context, m *Mirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("remote_address_encrypted").Update(m)
 	return err
 }
 

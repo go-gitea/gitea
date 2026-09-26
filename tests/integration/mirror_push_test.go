@@ -56,6 +56,9 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 1)
+	remoteAddr, err := git.GetRemoteAddress(t.Context(), srcRepo, mirrors[0].RemoteName)
+	assert.NoError(t, err)
+	assert.Equal(t, pushMirrorURL, remoteAddr, "credentials must not be kept in the git config")
 
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
