@@ -92,10 +92,10 @@
 							{{$commitLink := printf "%s/commit/%s" $repoLink $pushCommit.Sha1}}
 							<div class="flex-text-block">
 								{{ctx.RenderUtils.AvatarStackPushCommit $pushCommit}}
-								<a class="ui sha label" href="{{$commitLink}}">{{ShortSha $pushCommit.Sha1}}</a>
-								<span class="tw-inline-block tw-truncate">
+								<span class="tw-inline-block tw-truncate tw-flex-1">
 									{{ctx.RenderUtils.RenderCommitMessage $pushCommit.Message $repo}}
 								</span>
+								<a class="ui sha label tw-shrink-0" href="{{$commitLink}}">{{ShortSha $pushCommit.Sha1}}</a>
 							</div>
 						{{end}}
 					</div>
