@@ -201,6 +201,13 @@ func TestGetLabelsByRepoID(t *testing.T) {
 	}
 	testSuccess(1, "leastissues", []int64{2, 1})
 	testSuccess(1, "mostissues", []int64{1, 2})
+
+	// Sorting by issue count follows the open issue count shown in the UI,
+	// rather than the total number of issues ever assigned to the label.
+	_, err := db.GetEngine(t.Context()).ID(2).Cols("num_issues", "num_closed_issues").Update(&issues_model.Label{NumIssues: 4, NumClosedIssues: 1})
+	assert.NoError(t, err)
+	testSuccess(1, "leastissues", []int64{1, 2})
+	testSuccess(1, "mostissues", []int64{2, 1})
 	testSuccess(1, "reversealphabetically", []int64{2, 1})
 	testSuccess(1, "default", []int64{1, 2})
 }
