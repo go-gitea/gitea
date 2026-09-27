@@ -9,6 +9,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: Cloudflare
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
