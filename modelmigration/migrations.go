@@ -427,7 +427,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
 		newMigration(352, "Add token columns to deploy_key", v28.AddTokenToDeployKey),
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
-		newMigration(354, "Add release.is_immutable column and immutable_tag table", v28.AddImmutableReleases),
+		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
+		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
+		newMigration(356, "Add release.is_immutable column and immutable_tag table", v28.AddImmutableReleases),
 	}
 	return preparedMigrations
 }

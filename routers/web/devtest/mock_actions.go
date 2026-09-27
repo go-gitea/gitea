@@ -5,8 +5,10 @@ package devtest
 
 import (
 	"fmt"
+	"maps"
 	mathRand "math/rand/v2"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,6 +24,49 @@ import (
 	"gitea.dev/routers/web/repo/actions"
 	"gitea.dev/services/context"
 )
+
+const (
+	mockActionsArtifactNameB          = "artifact-b"
+	mockActionsArtifactNameHTMLReport = "artifact-html-report"
+	mockActionsArtifactNameReallyLong = "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong"
+)
+
+var mockActionsArtifactFiles = map[string]map[string]string{
+	mockActionsArtifactNameB: {"report.txt": "artifact-b report"},
+	mockActionsArtifactNameHTMLReport: {
+		"report/index.html": `<html><head><link rel="stylesheet" href="style.css"></head><body>
+<a href="./style.css">link to style.css</a><br>
+<p>This line is red, next line is from JS:</p>
+<script>document.write('window origin: ' + window.origin)</script>
+</body></html>`,
+		"report/style.css": "body {padding: 10px;} p {color: red;}",
+		"demo.svg": `<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" x="10" y="10" rx="20" ry="20" fill="blue" />
+</svg>`,
+		"demo.pdf": `%PDF-1.0
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/MediaBox[0 0 3 3]>>endobj
+xref
+0 4
+0000000000 65535 f
+0000000009 00000 n
+0000000052 00000 n
+0000000101 00000 n
+trailer<</Size 4/Root 1 0 R>>
+startxref
+149
+%EOF`,
+	},
+	mockActionsArtifactNameReallyLong: {
+		"index.html":      "<html><body>mock preview</body></html>",
+		"logs/output.txt": "mock logs",
+	},
+}
+
+func mockArtifactPreviewLink(artifactName string) string {
+	return setting.AppSubURL + "/devtest/repo-action-view/artifacts/" + url.PathEscape(artifactName)
+}
 
 type generateMockStepsLogOptions struct {
 	mockCountFirst   int
@@ -222,10 +267,11 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-b",
+		Name:        mockActionsArtifactNameB,
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameB) + "/preview",
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-very-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
@@ -234,10 +280,18 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		ExpiresUnix: alignTime(time.Now().Add(-24*time.Hour).Unix(), 3600),
 	})
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
-		Name:        "artifact-really-loooooooooooooooooooooooooooooooooooooooooooooooooooooooong",
+		Name:        mockActionsArtifactNameHTMLReport,
+		Size:        256 * 1024,
+		Status:      "completed",
+		ExpiresUnix: alignTime(time.Now().Add(24*time.Hour).Unix(), 3600),
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameHTMLReport) + "/preview",
+	})
+	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
+		Name:        mockActionsArtifactNameReallyLong,
 		Size:        1024 * 1024,
 		Status:      "completed",
 		ExpiresUnix: 0,
+		PreviewLink: mockArtifactPreviewLink(mockActionsArtifactNameReallyLong) + "/preview",
 	})
 
 	jobLink := func(jobID int64) string {
@@ -575,4 +629,19 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 	} else {
 		time.Sleep(time.Duration(100) * time.Millisecond) // actually, frontend reload every 1 second, any smaller delay is fine
 	}
+}
+
+func MockActionsArtifactPreview(ctx *context.Context) {
+	artifactName := ctx.PathParam("artifact_name")
+	files := mockActionsArtifactFiles[artifactName]
+	runURL := setting.AppSubURL + "/devtest/repo-action-view/runs/10"
+	data := &actions.ArtifactPreviewTemplateData{RunURL: runURL, RunIndex: 10, ArtifactName: artifactName, DownloadURL: runURL + "/artifacts/" + url.PathEscape(artifactName)}
+	link := mockArtifactPreviewLink(artifactName)
+	actions.RenderArtifactPreview(ctx, data, slices.Sorted(maps.Keys(files)), ctx.PathParam("*"), link+"/preview/", link+"/raw/")
+}
+
+func MockActionsArtifactPreviewRaw(ctx *context.Context) {
+	filePath := ctx.PathParam("*")
+	content := mockActionsArtifactFiles[ctx.PathParam("artifact_name")][filePath]
+	actions.ServeArtifactPreviewContent(ctx.Base, filePath, strings.NewReader(content), int64(len(content)))
 }

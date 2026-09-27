@@ -56,6 +56,9 @@ func renderCodeBlock(ctx *RenderContext, node *html.Node) (urlPosStart, urlPosSt
 }
 
 func codePreviewPatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.RenderOptions.FeedExcerpt {
+		return
+	}
 	nodeStop := node.NextSibling
 	for node != nodeStop {
 		if node.Type != html.TextNode {

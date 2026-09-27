@@ -17,6 +17,7 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +96,47 @@ jobs:
 	// Rerun reads raw_concurrency from the DB to re-evaluate the group;
 	// see services/actions/rerun.go. Must survive the insert.
 	assert.NotEmpty(t, persisted.RawConcurrency)
+}
+
+func TestPrepareRunAndInsert_JobIf(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+
+	run := insertMaxParallelRun(t, `on: push
+jobs:
+  start:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+  skip:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    concurrency: skip
+    steps:
+      - run: echo
+  skip-caller:
+    if: false
+    uses: ./.gitea/workflows/callee.yml
+  invalid:
+    if: fromJSON('{')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`, false)
+
+	jobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
+		jobs[job.JobID] = job
+	}
+	assert.Equal(t, actions_model.StatusWaiting, jobs["start"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip"].Status)
+	assert.False(t, jobs["skip"].IsConcurrencyEvaluated)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["skip-caller"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, jobs["invalid"].Status)
+	summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs["invalid"].ID, 0)
+	require.NoError(t, err)
+	assert.Contains(t, summary.Content, "Error when evaluating `if` for job `invalid`")
 }
 
 func TestComputeReusableCallerOutputs(t *testing.T) {
@@ -293,20 +335,24 @@ func TestComputeReusableCallerOutputs(t *testing.T) {
 		assert.Equal(t, map[string]string{"bubbled": "bubble-value"}, out)
 	})
 
-	t.Run("matrix children with same JobID prefer non-empty values", func(t *testing.T) {
+	t.Run("matrix children combine outputs by completion order while ignoring empty values", func(t *testing.T) {
 		run := insertRun(t, "matrix-out.yaml")
 		caller := insertCaller(t, run, "caller", 0, `on:
   workflow_call:
     outputs:
       foo:
         value: ${{ jobs.matrix.outputs.foo }}
+      bar:
+        value: ${{ jobs.matrix.outputs.bar }}
 `, "")
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
-		insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "filled"})
+		later := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "latest", "bar": "kept"})
+		earlier := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": "earlier"})
+		empty := insertChildJobAndTask(t, run, "matrix", caller.ID, map[string]string{"foo": ""})
+		later.Stopped, earlier.Stopped, empty.Stopped = 200, 100, 300
 
-		out, err := computeReusableCallerOutputs(ctx, caller, childrenByParentOfRun(t, run.ID))
+		out, err := computeReusableCallerOutputs(ctx, caller, map[int64][]*actions_model.ActionRunJob{caller.ID: {later, earlier, empty}})
 		require.NoError(t, err)
-		assert.Equal(t, map[string]string{"foo": "filled"}, out)
+		assert.Equal(t, map[string]string{"foo": "latest", "bar": "kept"}, out)
 	})
 }
 
@@ -316,7 +362,7 @@ func TestFindTaskNeeds(t *testing.T) {
 	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 51})
 	job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: task.JobID})
 
-	ret, err := FindTaskNeeds(t.Context(), job)
+	ret, _, err := FindTaskNeeds(t.Context(), job)
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Contains(t, ret, "job1")

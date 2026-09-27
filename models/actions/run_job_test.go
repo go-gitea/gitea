@@ -308,8 +308,6 @@ jobs:
 `, matrix)
 	}
 
-	// The shape Parse happens to survive, so only the name tells the two paths apart. What Parse makes
-	// of every other shape is asserted in TestParseRawSingleWorkflowRoundTripsDeferredPlaceholder.
 	t.Run("a placeholder is read back, not re-expanded", func(t *testing.T) {
 		job := &ActionRunJob{ID: 1, JobID: "build", IsMatrixDeferred: true, WorkflowPayload: payload("version: ${{ fromJson(needs.setup.outputs.m) }}")}
 		parsed, err := job.ParseJob()
@@ -318,13 +316,11 @@ jobs:
 		assert.Equal(t, "build", parsed.Name)
 	})
 
-	t.Run("an expanded job still goes through the full parse", func(t *testing.T) {
-		job := &ActionRunJob{ID: 1, JobID: "build", WorkflowPayload: payload("version: [1]")}
+	t.Run("an expanded job keeps its stored job-index", func(t *testing.T) {
+		job := &ActionRunJob{ID: 1, JobID: "build", WorkflowPayload: payload("version: [1]\n      job-index: 1\n      job-total: 2")}
 		parsed, err := job.ParseJob()
 		require.NoError(t, err)
-		require.NotNil(t, parsed)
-		// Parse bakes the combination into the name, ParseRawSingleWorkflow would not.
-		assert.Equal(t, "build (1)", parsed.Name)
+		assert.Equal(t, []any{"build", 1, 2}, []any{parsed.Name, parsed.Strategy.JobIndex, parsed.Strategy.JobTotal})
 	})
 }
 

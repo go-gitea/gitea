@@ -236,7 +236,7 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 		if job == nil {
 			continue
 		}
-		jobName := util.EllipsisDisplayString(job.Name, 255) // run creation truncates job names the same way
+		jobName := job.DisplayName()
 		ctxName := actions_module.WorkflowStatusContextName(displayName, jobName, statusEvent)
 		if scopedPrefix != "" {
 			ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, jobName, statusEvent)

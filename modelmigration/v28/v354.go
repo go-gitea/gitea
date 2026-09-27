@@ -7,38 +7,28 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddImmutableReleases(ctx context.Context, x base.EngineMigration) error {
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
+// AddActionQueueIndexes indexes the runner pickup query and repository-scoped status lookups.
+func AddActionQueueIndexes(_ context.Context, x base.EngineMigration) error {
+	type ActionRunJob struct {
+		RepoID  int64              `xorm:"index(repo_status)"`
+		TaskID  int64              `xorm:"index(pickup)"`
+		Status  int                `xorm:"index(pickup) index(repo_status)"`
+		Updated timeutil.TimeStamp `xorm:"index(pickup)"`
 	}
 
-	type ImmutableTag struct {
-		ID             int64  `xorm:"pk autoincr"`
-		LowerOwnerName string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName  string `xorm:"UNIQUE(s) NOT NULL"`
-		TagName        string `xorm:"UNIQUE(s) NOT NULL"`
+	type ActionRun struct {
+		RepoID int64 `xorm:"index(repo_status)"`
+		Status int   `xorm:"index(repo_status)"`
 	}
 
-	if err := x.Sync(new(ImmutableTag)); err != nil {
-		return err
-	}
-
-	if _, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
-	}, new(Release)); err != nil {
-		return err
-	}
-
-	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "release", "lower_tag_name")
-	if err != nil || !exist { // dropping an absent column fails outside sqlite
-		return err
-	}
-	sess := x.NewSession()
-	defer sess.Close()
-	return base.DropTableColumns(sess, "release", "lower_tag_name")
+		IgnoreConstrains:  true,
+	}, new(ActionRunJob), new(ActionRun))
+	return err
 }

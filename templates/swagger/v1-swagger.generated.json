@@ -723,8 +723,8 @@
           },
           {
             "type": "string",
-            "description": "pattern of repositories to search for",
-            "name": "pattern",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
+            "name": "query",
             "in": "query"
           }
         ],
@@ -9228,6 +9228,18 @@
             "type": "string",
             "description": "return the raw comparison as `diff` or `patch` instead of JSON",
             "name": "output",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
             "in": "query"
           }
         ],

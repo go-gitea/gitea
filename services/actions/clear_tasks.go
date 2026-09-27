@@ -67,7 +67,7 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 		return true, nil
 	}
 
-	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
+	if job.ConcurrencyGroup == "" {
 		return false, nil
 	}
 
@@ -97,7 +97,7 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 }
 
 func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (bool, error) {
-	if attempt.ConcurrencyGroup == "" || attempt.ConcurrencyCancel {
+	if attempt.ConcurrencyGroup == "" {
 		return false, nil
 	}
 

@@ -28,15 +28,12 @@ type InstallForm struct {
 	DbPath   string `binding:"TrimSpace"`
 	DbSchema string `binding:"TrimSpace"`
 
-	AppName      string `binding:"TrimSpace;Required" locale:"install.app_name"`
-	RepoRootPath string `binding:"TrimSpace;Required"`
-	LFSRootPath  string `binding:"TrimSpace"`
-	RunUser      string `binding:"TrimSpace;Required"`
-	Domain       string `binding:"TrimSpace;Required"`
-	SSHPort      int
-	HTTPPort     string `binding:"TrimSpace;Required"`
-	AppURL       string `binding:"TrimSpace;Required"`
-	LogRootPath  string `binding:"TrimSpace;Required"`
+	AppName     string `binding:"TrimSpace;Required" locale:"install.app_name"`
+	AppDataPath string `binding:"TrimSpace;Required"`
+	RunUser     string `binding:"TrimSpace;Required"`
+	SSHPort     int
+	HTTPPort    string `binding:"TrimSpace;Required"`
+	AppURL      string `binding:"TrimSpace;Required"`
 
 	SMTPAddr        string `binding:"TrimSpace"`
 	SMTPPort        string `binding:"TrimSpace"`
@@ -46,24 +43,18 @@ type InstallForm struct {
 	RegisterConfirm bool
 	MailNotify      bool
 
-	EnableOpenIDSignIn             bool
-	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
-	AllowOnlyExternalRegistration  bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
-	DefaultEnableTimetracking      bool
 	EnableUpdateChecker            bool
 	NoReplyAddress                 string `binding:"TrimSpace"`
 
-	PasswordAlgorithm string `binding:"TrimSpace"`
-
-	AdminName          string `binding:"TrimSpace;OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
-	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
+	AdminName          string `binding:"TrimSpace;Username;MaxSize(30)" locale:"install.admin_name"`
+	AdminPasswd        string `binding:"MaxSize(255)" locale:"install.admin_password"`
 	AdminConfirmPasswd string
-	AdminEmail         string `binding:"TrimSpace;OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
+	AdminEmail         string `binding:"TrimSpace;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
 
 	// ReinstallConfirmFirst we can not use 1/2/3 or A/B/C here, there is a framework bug, can not parse "reinstall_confirm_1" or "reinstall_confirm_a"
 	ReinstallConfirmFirst  bool
