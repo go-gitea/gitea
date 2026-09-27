@@ -265,12 +265,12 @@ type pullMergeBoxData struct {
 
 	StatusCheckData *pullCommitStatusCheckData
 
-	hasOverridableBlockers  bool
-	isMergeBlocked          bool
-	canMergeNow             bool // PR is mergeable, either no blocker, or doer can bypass the blockers
-	hasPermToMerge          bool
-	requireSigned, willSign bool
-	mergeBlockers           []template.HTML
+	hasOverridableBlockers bool
+	isMergeBlocked         bool // only marking as manually merged is possible, e.g. for WIP or open dependencies
+	canMergeNow            bool // PR is mergeable, either no blocker, or doer can bypass the blockers
+	hasPermToMerge         bool
+	unsignable             bool // signed commits are required but Gitea can't sign the merge commit
+	mergeBlockers          []template.HTML
 
 	ShowUpdatePullInfo  bool
 	UpdatePrimaryAction *pullUpdateAction
@@ -408,8 +408,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, commitStatuses)
 
 	// Required scoped workflow checks gate the merge even when the branch protection's own status check is disabled
-	checksRequired := (pb != nil && pb.EnableStatusCheck) || len(requiredContexts) > 0
-	if state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts); checksRequired && !state.IsSuccess() {
+	if state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts); ((pb != nil && pb.EnableStatusCheck) || len(requiredContexts) > 0) && !state.IsSuccess() {
 		prInfo.MergeBoxData.addOverridableBlocker(ctx.Locale.Tr(util.Iif(state.IsPending(), "repo.pulls.required_status_check_missing", "repo.pulls.required_status_check_failed")))
 	}
 	if len(commitStatuses) == 0 && len(requiredContexts) == 0 {
@@ -519,7 +518,7 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 func createRequiredContextMatcher(requiredContext string) func(string) bool {
 	if gp, err := glob.Compile(requiredContext); err == nil {
 		return func(contextToCheck string) bool {
-			return requiredContext == contextToCheck || gp.Match(contextToCheck)
+			return gp.Match(contextToCheck)
 		}
 	}
 
@@ -1064,6 +1063,7 @@ func MergePullRequest(ctx *context.Context) {
 	deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).Value()
 
 	if form.MergeWhenChecksSucceed {
+		// schedule auto merge
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.auto_merge_already_enabled"))
@@ -1185,40 +1185,16 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, issue.PullRequest.ID)
-	if err != nil {
-		ctx.ServerError("GetScheduledMergeByPullID", err)
-		return
-	}
-	if !exist {
+	switch err := automerge.CancelScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest, ctx.Repo.Permission); {
+	case errors.Is(err, automerge.ErrAutoMergeNotScheduled):
 		ctx.Flash.Error(ctx.Tr("repo.pulls.auto_merge_not_scheduled"))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+	case err != nil:
+		ctx.JSONErrorAuto(err)
 		return
+	default:
+		ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_canceled_schedule"))
 	}
-
-	if ctx.Doer.ID != autoMerge.DoerID && !issue.IsPoster(ctx.Doer.ID) {
-		allowed, err := pull_service.IsUserAllowedToMerge(ctx, issue.PullRequest, ctx.Repo.Permission, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("IsUserAllowedToMerge", err)
-			return
-		}
-		if !allowed {
-			ctx.HTTPError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
-			return
-		}
-	}
-
-	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest, ""); err != nil {
-		if db.IsErrNotExist(err) {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.auto_merge_not_scheduled"))
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
-			return
-		}
-		ctx.ServerError("RemoveScheduledAutoMerge", err)
-		return
-	}
-	ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_canceled_schedule"))
-	ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+	ctx.JSONRedirect(issue.Link())
 }
 
 func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *issues_model.Issue) error {

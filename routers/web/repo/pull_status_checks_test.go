@@ -28,11 +28,12 @@ func TestGroupStatusChecks(t *testing.T) {
 
 	var kinds []statusCheckKind
 	for _, group := range checkData.Groups {
-		kinds = append(kinds, group.Kind)
+		kinds = append(kinds, group.kind)
 	}
 	assert.Equal(t, statusCheckKinds, kinds)
 	assert.Len(t, checkData.Groups[0].CommitStatuses, 2)
-	assert.True(t, checkData.HasPending())
+	assert.Equal(t, "audit", checkData.Groups[0].CommitStatuses[0].Context)
+	assert.True(t, checkData.hasPending())
 	section := checkData.Section(translation.MockLocale{})
 	assert.EqualValues(t, "repo.pulls.status_checks_failure", section.Title)
 	assert.Len(t, section.Ring, 4)

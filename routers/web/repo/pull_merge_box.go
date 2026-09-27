@@ -19,8 +19,6 @@ type pullMergeBoxSection struct {
 	Ring      []statusCheckRingSegment
 }
 
-const branchNameFormat = `<code class="tw-text-primary tw-bg-primary-alpha-10 tw-leading-none">%s</code>`
-
 const (
 	sectionColorSuccess = "green"
 	sectionColorDanger  = "red"
@@ -30,8 +28,8 @@ const (
 func (prInfo *pullRequestViewInfo) prepareMergeBoxClosedSection(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
-	headTarget := htmlutil.HTMLFormat(branchNameFormat, prInfo.headTarget)
-	title, detail := ctx.Locale.Tr("repo.pulls.closed_with_unmerged_commits"), ctx.Locale.Tr("repo.pulls.closed_desc")
+	headTarget := htmlutil.HTMLFormat("<code>%s</code>", prInfo.headTarget)
+	title, detail := ctx.Locale.Tr("repo.pulls.closed_with_unmerged_commits"), ctx.Locale.Tr("repo.pulls.is_closed")
 	switch {
 	case pull.HasMerged:
 		title, detail = ctx.Locale.Tr("repo.pulls.merged_success"), ctx.Locale.Tr("repo.pulls.merged_info_text", headTarget)
@@ -54,6 +52,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 	case pull.IsFilesConflicted():
 		section.Title, section.Details = ctx.Locale.Tr("repo.pulls.files_conflicted"), []template.HTML{ctx.Locale.Tr("repo.pulls.files_conflicted_desc")}
 		section.Files = pull.ConflictedFiles
+		if len(section.Files) > 10 {
+			section.Files = append(section.Files[:10:10], "…")
+		}
 	case pull.IsChecking():
 		section.Icon, section.Title, section.Details = "octicon-sync", ctx.Locale.Tr("repo.pulls.is_checking"), []template.HTML{ctx.Locale.Tr("repo.pulls.is_checking_desc")}
 	case pull.IsAncestor():
@@ -65,7 +66,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.cannot_auto_merge_helper")}
 	case data.ShowUpdatePullInfo:
 		section.Title = ctx.Locale.Tr("repo.pulls.outdated_with_base_branch")
-		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.outdated_with_base_branch_desc", htmlutil.HTMLFormat(branchNameFormat, pull.BaseBranch))}
+		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.outdated_with_base_branch_desc", htmlutil.HTMLFormat("<code>%s</code>", pull.BaseBranch))}
 	default:
 		section.Icon, section.IconClass, section.Title = "octicon-check", sectionColorSuccess, ctx.Locale.Tr("repo.pulls.no_conflicts")
 		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -22,7 +23,7 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
-func TestAutoMergeDisabledByCloseWIPOrNonWriterPush(t *testing.T) {
+func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&automergequeue.AddToQueue, func(automergequeue.AutoMergeItem) {})()
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -33,15 +34,14 @@ func TestAutoMergeDisabledByCloseWIPOrNonWriterPush(t *testing.T) {
 	require.NoError(t, samePull.LoadIssue(t.Context()))
 	_, err := ScheduleAutoMerge(t.Context(), admin, samePull, repo_model.MergeStyleSquash, "title", false)
 	require.NoError(t, err)
-	enabled := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRScheduledToAutoMerge})
-	assert.Equal(t, repo_model.MergeStyleSquash, enabled.CommentMetaData.MergeStyle)
+	assert.Equal(t, repo_model.MergeStyleSquash, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRScheduledToAutoMerge}).CommentMetaData.MergeStyle)
 
 	notifier.PullRequestPushCommits(t.Context(), nonWriter, samePull, nil)
+	notifier.PullRequestChangeTargetBranch(t.Context(), admin, samePull, "")
 	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
 	notifier.IssueChangeStatus(t.Context(), admin, "", samePull.Issue, nil, true)
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
-	disabled := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge})
-	assert.Equal(t, "closed", disabled.CommentMetaData.AutoMergeDisabledReason)
+	assert.Equal(t, "closed", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge}).CommentMetaData.AutoMergeDisabledReason)
 
 	samePull.Flow = issues_model.PullRequestFlowAGit
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, samePull.ID, repo_model.MergeStyleMerge, "title", false))
@@ -52,5 +52,10 @@ func TestAutoMergeDisabledByCloseWIPOrNonWriterPush(t *testing.T) {
 	oldTitle := samePull.Issue.Title
 	samePull.Issue.Title = "WIP: " + oldTitle
 	notifier.IssueChangeTitle(t.Context(), admin, samePull.Issue, oldTitle)
+	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
+
+	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, samePull.ID, repo_model.MergeStyleMerge, "title", false))
+	samePull.Issue.PosterID = nonWriter.ID
+	require.NoError(t, CancelScheduledAutoMerge(t.Context(), nonWriter, samePull, access_model.Permission{}))
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
 }

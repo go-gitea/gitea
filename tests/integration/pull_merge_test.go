@@ -343,6 +343,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		wipToggleButtonCount := htmlDoc.Find(`.merge-section > .item button[data-global-init="initPullRequestWipToggle"]`).Length()
 		assert.Equal(t, 1, wipToggleButtonCount)
+		assert.Zero(t, htmlDoc.Find("#pull-request-merge-form").Length())
 	})
 }
 
@@ -1146,7 +1147,6 @@ func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
 
 		resp = bypassSession.MakeRequest(t, NewRequest(t, "GET", pullURL), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		assert.Contains(t, htmlDoc.doc.Find(".merge-box-checks").Text(), "gitea/actions")
 		mergeFormProps, exists := htmlDoc.doc.Find("#pull-request-merge-form").Attr("data-merge-form-props")
 		require.True(t, exists)
 		var mergeForm map[string]any

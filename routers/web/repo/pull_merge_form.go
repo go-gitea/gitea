@@ -6,7 +6,6 @@ package repo
 import (
 	"errors"
 	"maps"
-	"slices"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -18,19 +17,37 @@ import (
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context, prConfig *repo_model.PullRequestsConfig) {
 	pull := prInfo.issue.PullRequest
+	if pull.HasMerged || prInfo.issue.IsClosed {
+		return
+	}
 	if !prInfo.MergeBoxData.hasPermToMerge || prInfo.MergeBoxData.AutoMerge != nil {
 		return
 	}
+	prInfo.MergeBoxData.ShowPullCommands = pull.HeadRepo != nil
 
-	defaultStyles := []repo_model.MergeStyle{prConfig.DefaultMergeStyle, repo_model.MergeStyleMerge, repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge, repo_model.MergeStyleSquash, repo_model.MergeStyleFastForwardOnly, repo_model.MergeStyleManuallyMerged}
-	idx := slices.IndexFunc(defaultStyles, prConfig.IsMergeStyleAllowed)
-	if idx == -1 {
+	// Check correct values and select default
+	var mergeStyle repo_model.MergeStyle
+	if prConfig.IsMergeStyleAllowed(prConfig.DefaultMergeStyle) {
+		mergeStyle = prConfig.DefaultMergeStyle
+	} else if prConfig.AllowMerge {
+		mergeStyle = repo_model.MergeStyleMerge
+	} else if prConfig.AllowRebase {
+		mergeStyle = repo_model.MergeStyleRebase
+	} else if prConfig.AllowRebaseMerge {
+		mergeStyle = repo_model.MergeStyleRebaseMerge
+	} else if prConfig.AllowSquash {
+		mergeStyle = repo_model.MergeStyleSquash
+	} else if prConfig.AllowFastForwardOnly {
+		mergeStyle = repo_model.MergeStyleFastForwardOnly
+	} else if prConfig.AllowManualMerge {
+		mergeStyle = repo_model.MergeStyleManuallyMerged
+	}
+	if mergeStyle == "" {
 		if pull.IsStatusMergeable() {
 			prInfo.MergeBoxData.mergeBlockers = append(prInfo.MergeBoxData.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
 		}
 		return
 	}
-	mergeStyle := defaultStyles[idx]
 
 	var defaultMergeTitle, defaultMergeBody string
 	var defaultSquashMergeTitle, defaultSquashMergeBody string
@@ -76,11 +93,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	// if this pr can be merged now, then hide the auto merge
 	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
-	// fast-forward-only is the only style that creates no commit which Gitea would need to sign
-	unsignable := prInfo.MergeBoxData.requireSigned && !prInfo.MergeBoxData.willSign
 	var mergeStyles []map[string]any
 	addMergeStyle := func(style repo_model.MergeStyle, allowed bool, textKey string, fields map[string]any) {
-		if !allowed || prInfo.MergeBoxData.isMergeBlocked || unsignable && style != repo_model.MergeStyleFastForwardOnly {
+		if !allowed || prInfo.MergeBoxData.unsignable && style != repo_model.MergeStyleFastForwardOnly { // fast-forward-only creates no commit to sign
 			return
 		}
 		short := ctx.Locale.Tr("repo.pulls.merge_style_short." + string(style))
@@ -88,7 +103,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 			"name":                   style,
 			"textDoMerge":            ctx.Locale.Tr("repo.pulls." + textKey),
 			"textConfirmMerge":       ctx.Locale.Tr("repo.pulls.confirm_merge", short),
-			"textDescription":        ctx.Locale.Tr("repo.pulls.merge_style_desc_" + textKey),
+			"textDescription":        ctx.Locale.Tr("repo.pulls.merge_style_desc." + string(style)),
 			"textAutoMerge":          ctx.Locale.Tr("repo.pulls.enable_auto_merge", short),
 			"textConfirmAutoMerge":   ctx.Locale.Tr("repo.pulls.confirm_auto_merge", short),
 			"textBypassMerge":        ctx.Locale.Tr("repo.pulls.bypass_rules_and_merge", short),
@@ -97,7 +112,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		})
 		mergeStyles = append(mergeStyles, fields)
 	}
-	if pull.IsStatusMergeable() || pull.IsEmpty() {
+	if (pull.IsStatusMergeable() || pull.IsEmpty()) && !prInfo.MergeBoxData.isMergeBlocked {
 		addMergeStyle(repo_model.MergeStyleMerge, prConfig.AllowMerge, "merge_pull_request", map[string]any{
 			"mergeTitleFieldText":   defaultMergeTitle,
 			"mergeMessageFieldText": defaultMergeBody,
@@ -130,7 +145,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		mergeStyles = append(mergeStyles, map[string]any{
 			"name":                  "manually-merged",
 			"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_manually"),
-			"textDescription":       ctx.Locale.Tr("repo.pulls.merge_style_desc_merge_manually"),
+			"textDescription":       ctx.Locale.Tr("repo.pulls.merge_style_desc.manually-merged"),
 			"hideMergeMessageTexts": true,
 			"hideAutoMerge":         true,
 		})

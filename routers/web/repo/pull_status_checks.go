@@ -41,12 +41,12 @@ func (k statusCheckKind) ringColorClass() string {
 }
 
 type statusCheckGroup struct {
-	Kind           statusCheckKind
+	kind           statusCheckKind
 	CommitStatuses []*git_model.CommitStatus
 }
 
 func (g *statusCheckGroup) text(locale translation.Locale) template.HTML {
-	return locale.Tr("repo.pulls.status_checks_"+string(g.Kind), len(g.CommitStatuses))
+	return locale.Tr("repo.pulls.status_checks_"+string(g.kind), len(g.CommitStatuses))
 }
 
 func (g *statusCheckGroup) Title(locale translation.Locale) template.HTML {
@@ -72,7 +72,7 @@ func statusCheckKindOf(cs *git_model.CommitStatus, actionsStatuses actions_modul
 
 func groupStatusChecks(commitStatuses []*git_model.CommitStatus, actionsStatuses actions_module.CommitActionsStatusMap) (groups []*statusCheckGroup) {
 	for _, kind := range statusCheckKinds {
-		group := &statusCheckGroup{Kind: kind}
+		group := &statusCheckGroup{kind: kind}
 		for _, cs := range commitStatuses {
 			if statusCheckKindOf(cs, actionsStatuses) == kind {
 				group.CommitStatuses = append(group.CommitStatuses, cs)
@@ -88,7 +88,7 @@ func groupStatusChecks(commitStatuses []*git_model.CommitStatus, actionsStatuses
 
 func (d *pullCommitStatusCheckData) count(kinds ...statusCheckKind) (count int) {
 	for _, group := range d.Groups {
-		if slices.Contains(kinds, group.Kind) {
+		if slices.Contains(kinds, group.kind) {
 			count += len(group.CommitStatuses)
 		}
 	}
@@ -99,11 +99,11 @@ func (d *pullCommitStatusCheckData) AllPassed() bool {
 	return d.count(statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected) == 0
 }
 
-func (d *pullCommitStatusCheckData) AllFailed() bool {
-	return len(d.Groups) == 1 && d.Groups[0].Kind == statusCheckFailing
+func (d *pullCommitStatusCheckData) allFailed() bool {
+	return len(d.Groups) == 1 && d.Groups[0].kind == statusCheckFailing
 }
 
-func (d *pullCommitStatusCheckData) HasPending() bool {
+func (d *pullCommitStatusCheckData) hasPending() bool {
 	return d.count(statusCheckPending, statusCheckInProgress) > 0
 }
 
@@ -118,7 +118,7 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 		Details: []template.HTML{locale.TrN(d.count(statusCheckKinds...), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
 	}
 	switch {
-	case d.AllFailed():
+	case d.allFailed():
 		section.Icon, section.IconClass, section.Title = "octicon-x", sectionColorDanger, locale.Tr("repo.pulls.status_checks_all_failed")
 	case d.count(statusCheckFailing) > 0:
 		section.Title = locale.Tr("repo.pulls.status_checks_failure")
@@ -127,7 +127,7 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 	case !d.AllPassed():
 		section.Title = locale.Tr("repo.pulls.status_checking")
 	}
-	if !d.AllPassed() && !d.AllFailed() {
+	if !d.AllPassed() && !d.allFailed() {
 		section.Ring = d.ringSegments()
 	}
 	return section
@@ -144,10 +144,10 @@ func (d *pullCommitStatusCheckData) ringSegments() (segments []statusCheckRingSe
 	total, start := float64(d.count(statusCheckKinds...)), gap/2.0
 	for _, group := range slices.Backward(d.Groups) {
 		length := 100 * float64(len(group.CommitStatuses)) / total
-		if last := len(segments) - 1; last >= 0 && segments[last].ColorClass == group.Kind.ringColorClass() {
+		if last := len(segments) - 1; last >= 0 && segments[last].ColorClass == group.kind.ringColorClass() {
 			segments[last].Dash += length
 		} else {
-			segments = append(segments, statusCheckRingSegment{ColorClass: group.Kind.ringColorClass(), Dash: max(length-gap, 0.01), Offset: -start})
+			segments = append(segments, statusCheckRingSegment{ColorClass: group.kind.ringColorClass(), Dash: max(length-gap, 0.01), Offset: -start})
 		}
 		start += length
 	}

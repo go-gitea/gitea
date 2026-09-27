@@ -1,18 +1,37 @@
-import {createApp} from 'vue';
+import {createApp, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
+let chosenUpdateUrl = ''; // survives the merge box refresh
+let mergeFormComponent: Component | undefined; // cached so a refresh remounts the form before the next paint
+
 export function initRepoPullRequestUpdate(el: HTMLElement) {
   const [elButton, elTrigger] = el.querySelectorAll<HTMLButtonElement>(':scope > button');
   const menu = el.nextElementSibling!;
-  const menuTippy = createTippy(elTrigger, {content: menu, getReferenceClientRect: () => el.getBoundingClientRect(), theme: 'menu', arrow: false, maxWidth: 320, placement: 'bottom-end', trigger: 'click', interactive: true, hideOnClick: true});
-  addDelegatedEventListener(menu, 'click', '.item', (choice) => {
+  const menuTippy = createTippy(elTrigger, {
+    content: menu,
+    getReferenceClientRect: () => el.getBoundingClientRect(),
+    theme: 'menu',
+    arrow: false,
+    maxWidth: 400,
+    placement: 'bottom-end',
+    trigger: 'click',
+    interactive: true,
+    hideOnClick: true,
+  });
+  const choose = (choice: Element) => {
+    chosenUpdateUrl = choice.getAttribute('data-update-url')!;
     for (const item of menu.querySelectorAll('.item')) item.setAttribute('aria-checked', String(item === choice));
     elButton.textContent = choice.getAttribute('data-update-text');
-    elButton.setAttribute('data-url', choice.getAttribute('data-update-url')!);
+    elButton.setAttribute('data-url', chosenUpdateUrl);
+  };
+  addDelegatedEventListener(menu, 'click', '.item', (choice) => {
+    choose(choice);
     menuTippy.hide();
   });
+  const chosen = [...menu.querySelectorAll('.item')].find((item) => item.getAttribute('data-update-url') === chosenUpdateUrl);
+  if (chosen) choose(chosen);
 }
 
 async function initRepoPullRequestMergeForm(box: HTMLElement) {
@@ -20,39 +39,32 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   if (!el) return;
 
   const data = JSON.parse(el.getAttribute('data-merge-form-props')!);
-  const {default: PullRequestMergeForm} = await import('../components/PullRequestMergeForm.vue');
-  const view = createApp(PullRequestMergeForm, {mergeFormProps: data});
+  mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default;
+  const view = createApp(mergeFormComponent, {mergeFormProps: data});
   view.mount(el); // TODO: can unmount when reloaded?
-  el.style.removeProperty('min-height');
 }
 
 function initRepoPullMergeBoxRefresh(el: Element) {
-  // The merge box has complex buttons & form, if the user has interacted with any element, don't refresh.
-  // Otherwise, the user won't be able to merge or schedule a merge (auto-merge) when the PR status is not ready.
-  let interacted = false;
-  const interactionEvents = ['focusin', 'mousedown', 'click', 'keydown', 'input'];
-  for (const event of interactionEvents) {
-    el.addEventListener(event, () => { interacted = true }, {capture: true});
-  }
-
+  // like GitHub, skip the refresh while a menu or the merge form is open or rules are being bypassed
+  const isBusy = () => Boolean(el.querySelector('[aria-expanded="true"], #pull-request-merge-form form, #merge-bypass-rules:checked'));
   activePageTimerRefresh({
-    once: true, // on successful refresh, the data-global-init will re-initialize the element
-    interval: () => interacted ? 0 : Number(el.getAttribute('data-pull-merge-box-reloading-interval')),
+    interval: () => el.isConnected ? Number(el.getAttribute('data-pull-merge-box-reloading-interval')) : 0,
     async callback() {
-      if (interacted) return;
+      if (isBusy()) return;
       const pullLink = el.getAttribute('data-pull-link')!;
       const resp = await GET(`${pullLink}/merge_box`);
       if (!resp.ok) return;
       const respText = (await resp.text()).trim();
-      if (interacted) return;
+      if (isBusy()) return;
       if (!respText) {
         el.remove(); // merge box might not exist if the PR has changed (e.g.: merged and the head branch has been deleted)
         return;
       }
       const newEl = createElementFromHTML(respText);
+      const checks = el.querySelector<HTMLDetailsElement>('.merge-box-checks');
+      const newChecks = newEl.querySelector<HTMLDetailsElement>('.merge-box-checks');
+      if (checks && newChecks) newChecks.open = checks.open;
       const scrollTop = el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
-      const formHeight = el.querySelector<HTMLElement>('#pull-request-merge-form')?.offsetHeight;
-      if (formHeight) newEl.querySelector<HTMLElement>('#pull-request-merge-form')?.style.setProperty('min-height', `${formHeight}px`, 'important'); // keep the height until Vue remounts
       el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
       if (scrollTop) newEl.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
     },

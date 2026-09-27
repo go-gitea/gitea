@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -87,8 +88,31 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 	return scheduled, err
 }
 
-// RemoveScheduledAutoMerge removes the auto merge, a non-empty disabledReason marks it as disabled automatically
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, disabledReason string) error {
+var ErrAutoMergeNotScheduled = util.NewNotExistErrorf("auto merge is not scheduled")
+
+// CancelScheduledAutoMerge cancels the auto merge on behalf of its enabler, the pull request author or a user who can merge
+func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, perm access_model.Permission) error {
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	if err != nil {
+		return err
+	} else if !exist {
+		return ErrAutoMergeNotScheduled
+	}
+	if err := pull.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(doer.ID) {
+		if allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, perm, doer); err != nil {
+			return err
+		} else if !allowed {
+			return util.NewPermissionDeniedErrorf("user has no permission to cancel the scheduled auto merge")
+		}
+	}
+	return removeScheduledAutoMerge(ctx, doer, pull, "")
+}
+
+// removeScheduledAutoMerge removes the auto merge, a non-empty disabledReason marks it as disabled automatically
+func removeScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, disabledReason string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err

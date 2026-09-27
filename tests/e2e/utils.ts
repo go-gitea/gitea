@@ -120,8 +120,8 @@ export async function apiCreateBranchProtection(requestContext: APIRequestContex
   }), 'apiCreateBranchProtection');
 }
 
-export async function apiCreateCommitStatus(requestContext: APIRequestContext, owner: string, repo: string, sha: string, data: {context: string; state: string}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/statuses/${sha}`, {
+export async function apiCreateCommitStatus(requestContext: APIRequestContext, owner: string, repo: string, ref: string, data: {context: string; state: string}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/statuses/${ref}`, {
     headers: apiHeaders(),
     data,
   }), 'apiCreateCommitStatus');

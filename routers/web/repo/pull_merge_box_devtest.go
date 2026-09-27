@@ -53,12 +53,6 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 			status("security/codeql", commitstatus.CommitStatusSuccess, "No new alerts"),
 		)
 	}
-	reviewRequired := func(data *pullMergeBoxData) {
-		line := ctx.Locale.TrN(1, "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n", 1)
-		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-x", IconClass: sectionColorDanger, Title: ctx.Locale.Tr("repo.pulls.review_required"), Details: []template.HTML{line}}
-		data.addOverridableBlocker(line)
-	}
-
 	add := func(title string, setup func(prInfo *pullRequestViewInfo)) {
 		pull := &issues_model.PullRequest{Index: 1, Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
 		issue := &issues_model.Issue{Index: 1, IsPull: true, Title: "Add feature", Repo: repo, PullRequest: pull}
@@ -69,7 +63,6 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 		if issue.IsClosed {
 			prInfo.prepareMergeBoxClosedSection(ctx)
 		} else {
-			data.ShowPullCommands = data.AutoMerge == nil
 			prInfo.prepareMergeBoxFormProps(ctx, prConfig)
 			prInfo.prepareMergeBoxInfoItems(ctx)
 		}
@@ -88,7 +81,9 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	})
 	add("Review required, checks in progress", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
-		reviewRequired(data)
+		line := ctx.Locale.TrN(1, "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n", 1)
+		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-x", IconClass: sectionColorDanger, Title: ctx.Locale.Tr("repo.pulls.review_required"), Details: []template.HTML{line}}
+		data.addOverridableBlocker(line)
 		data.StatusCheckData = checks("ci/test",
 			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"),
 			status("ci/test", commitstatus.CommitStatusPending, "Running"),

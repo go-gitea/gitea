@@ -7,9 +7,7 @@
 		data-pull-link="{{$.Issue.Link}}"
 	{{end}}
 >
-	<div class="timeline-avatar">
-		<div class="merge-box-icon">{{svg "octicon-git-merge" 24}}</div>
-	</div>
+	<div class="timeline-avatar merge-box-icon">{{svg "octicon-git-merge" 24}}</div>
 	<div class="content">
 		<div class="ui segment fitted">
 			<div class="merge-section flex-divided-list items-with-main">
@@ -50,7 +48,7 @@
 				<div class="item merge-box-footer">
 					{{if $data.AutoMerge}}
 						{{if $data.CanCancelAutoMerge}}
-							<form action="{{$.Issue.Link}}/cancel_auto_merge" method="post"><button type="submit" class="ui button">{{ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule"}}</button></form>
+							<button type="button" class="ui button link-action" data-url="{{$.Issue.Link}}/cancel_auto_merge">{{ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule"}}</button>
 						{{end}}
 						<span class="merge-box-auto-merge-text">{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $data.AutoMerge.Doer.GetDisplayName (ctx.Locale.Tr (print "repo.pulls.merge_style_short." $data.AutoMerge.MergeStyle))}}</span>
 					{{else if $data.MergeFormProps}}

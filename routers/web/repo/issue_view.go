@@ -467,7 +467,6 @@ func ViewPullMergeBox(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
@@ -515,16 +514,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 	data := prInfo.MergeBoxData
 
 	pb := prInfo.ProtectedBranchRule
-	data.requireSigned = pb != nil && pb.RequireSignedCommits
-	if !data.requireSigned || ctx.Doer == nil {
+	if pb == nil || !pb.RequireSignedCommits || ctx.Doer == nil {
 		return
 	}
 
-	var err error
-	data.willSign, _, _, err = asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
-	if data.willSign {
+	willSign, _, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
+	if willSign {
 		return
 	}
+	data.unsignable = true
 	data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.require_signed_wont_sign"))
 	if errWontSign, ok := err.(*asymkey_service.ErrWontSign); ok {
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.signing.wont_sign."+string(errWontSign.Reason)))
@@ -852,6 +850,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	pull_service.StartPullRequestCheckOnView(ctx, pull)
 
+	if !prInfo.IsPullRequestBroken {
+		data.ShowUpdatePullInfo = pull.CommitsBehind > 0 && !issue.IsClosed && !pull.IsChecking() && !pull.IsFilesConflicted() && !prInfo.IsPullRequestBroken
+		prInfo.preparePullUpdateActions(ctx)
+		if ctx.Written() {
+			return
+		}
+	}
+
 	if ctx.IsSigned {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			log.Error("LoadHeadRepo: %v", err)
@@ -911,26 +917,18 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 
-	if !prInfo.IsPullRequestBroken {
-		data.ShowUpdatePullInfo = pull.CommitsBehind > 0 && !pull.IsChecking() && !pull.IsFilesConflicted()
-		prInfo.preparePullUpdateActions(ctx)
-		if ctx.Written() {
-			return
-		}
-	}
-
 	prInfo.prepareMergeBoxProtectionChecks(ctx)
 	if ctx.Written() {
 		return
 	}
 
 	prInfo.prepareMergeBoxCommitSigning(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	prConfig := issue.Repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
 	data.AutodetectManualMerge = prConfig.AutodetectManualMerge
-
-	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.HasPending())
-	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
 	noDeps, err := issues_model.IssueNoDependenciesLeft(ctx, issue)
 	if err != nil {
@@ -950,8 +948,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
 	}
 
-	// isMergeBlocked means neither a bypass nor waiting for checks and reviews allows a merge other than marking it manually merged
 	data.isMergeBlocked = prInfo.workInProgressPrefix != "" || !noDeps
+	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
 	data.canMergeNow = (!data.hasOverridableBlockers || canBypassProtection) && !data.isMergeBlocked
 
 	if _, data.AutoMerge, err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID); err != nil {
@@ -959,7 +957,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 	data.CanCancelAutoMerge = data.AutoMerge != nil && ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
-	data.ShowPullCommands = data.hasPermToMerge && pull.HeadRepo != nil && data.AutoMerge == nil
+
+	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.hasPending()) ||
+		(data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && len(data.mergeBlockers) == 0) // an unblocked auto merge is about to run
+	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
 	prInfo.prepareMergeBoxFormProps(ctx, prConfig)
 	prInfo.prepareMergeBoxInfoItems(ctx)

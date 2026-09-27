@@ -363,8 +363,10 @@ export function initRepoIssueWipToggle() {
 
     const params = new URLSearchParams();
     params.append('title', title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`);
+    toggleWip.classList.add('disabled');
     const response = await POST(updateUrl, {data: params});
     if (!response.ok) {
+      toggleWip.classList.remove('disabled');
       showErrorToast(`Failed to toggle 'work in progress' status`);
       return;
     }

@@ -91,16 +91,16 @@ func GetScheduledMergeByPullIDs(ctx context.Context, pullIDs []int64) (map[int64
 	if err := db.GetEngine(ctx).In("pull_id", pullIDs).Find(&merges); err != nil {
 		return nil, err
 	}
-	doers, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(merges, func(m *AutoMerge) (int64, bool) {
-		return m.DoerID, true
+	doers, err := user_model.GetUsersMapByIDs(ctx, container.FilterSlice(merges, func(autoMerge *AutoMerge) (int64, bool) {
+		return autoMerge.DoerID, true
 	}))
 	if err != nil {
 		return nil, err
 	}
 	result := make(map[int64]*AutoMerge, len(merges))
-	for _, m := range merges {
-		m.Doer = user_model.GetPossibleUserFromMap(m.DoerID, doers)
-		result[m.PullID] = m
+	for _, autoMerge := range merges {
+		autoMerge.Doer = user_model.GetPossibleUserFromMap(autoMerge.DoerID, doers)
+		result[autoMerge.PullID] = autoMerge
 	}
 	return result, nil
 }

@@ -1,8 +1,8 @@
 {{/* Template Attributes: see backend pullMergeBoxSection struct */}}
 {{if .Ring}}
-	<svg class="merge-box-status merge-box-ring" viewBox="0 0 100 100" aria-hidden="true">
+	<svg class="merge-box-status merge-box-ring" viewBox="0 0 100 100" fill="none" stroke-width="12" stroke-linecap="round" aria-hidden="true">
 		{{range .Ring}}
-			<circle class="{{.ColorClass}}" cx="50" cy="50" r="44" pathLength="100" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="{{.Dash}} 100" stroke-dashoffset="{{.Offset}}" transform="rotate(-90 50 50)"/>
+			<circle class="{{.ColorClass}}" cx="50" cy="50" r="44" pathLength="100" stroke-dasharray="{{.Dash}} 100" stroke-dashoffset="{{.Offset}}" transform="rotate(-90 50 50)"/>
 		{{end}}
 	</svg>
 {{else if .Icon}}

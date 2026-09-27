@@ -9,6 +9,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -66,13 +67,19 @@ func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_m
 }
 
 func disableAutoMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) {
-	if err := RemoveScheduledAutoMerge(ctx, doer, pr, reason); err != nil {
-		log.Error("RemoveScheduledAutoMerge[%d]: %v", pr.ID, err)
+	if err := removeScheduledAutoMerge(ctx, doer, pr, reason); err != nil {
+		log.Error("removeScheduledAutoMerge[%d]: %v", pr.ID, err)
 	}
 }
 
 // disableAutoMergeIfNotWriter disables auto merge when a user without write access changes the pull request, like GitHub
 func disableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) {
+	if exist, _, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); !exist {
+		if err != nil {
+			log.Error("GetScheduledMergeByPullID: %v", err)
+		}
+		return
+	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return
