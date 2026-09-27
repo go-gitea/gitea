@@ -24,6 +24,10 @@ func (*CommitComment) TableName() string {
 	return "commit_comment"
 }
 
+func init() {
+	db.RegisterModel(new(CommitComment))
+}
+
 type CreateCommitCommentOptions struct {
 	Doer      *user_model.User
 	RepoID    int64
