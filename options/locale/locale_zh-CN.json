@@ -3896,6 +3896,7 @@
   "actions.workflow.has_no_workflow_dispatch": "工作流「%s」没有 workflow_dispatch 事件触发器。",
   "actions.need_approval_desc": "该工作流由派生仓库的合并请求所触发，需要批准方可运行。",
   "actions.approve_all_success": "所有工作流运行已成功批准。",
+  "actions.job_queue.filter_repo_no_select": "所有仓库",
   "actions.variables": "变量",
   "actions.variables.management": "变量管理",
   "actions.variables.creation": "添加变量",

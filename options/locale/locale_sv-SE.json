@@ -1672,5 +1672,6 @@
   "actions.runners.task_list.repository": "Utvecklingskatalog",
   "actions.runners.status.active": "Aktiv",
   "actions.runs.summary": "Översikt",
-  "actions.workflow.scope_owner": "Ägare"
+  "actions.workflow.scope_owner": "Ägare",
+  "actions.job_queue.filter_repo_no_select": "Alla utvecklingskataloger"
 }

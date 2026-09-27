@@ -1084,5 +1084,6 @@
   "actions.runs.branch": "Grein",
   "actions.runs.summary": "Yfirlit",
   "actions.workflow.scope_owner": "Eigandi",
-  "actions.workflow.required": "Nauðsynlegt"
+  "actions.workflow.required": "Nauðsynlegt",
+  "actions.job_queue.filter_repo_no_select": "Öll hugbúnaðarsöfn"
 }

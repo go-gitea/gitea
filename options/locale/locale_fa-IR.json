@@ -2133,5 +2133,6 @@
   "actions.runs.summary": "چکیده",
   "actions.workflow.scope_owner": "مالک",
   "actions.workflow.required": "الزامی",
+  "actions.job_queue.filter_repo_no_select": "همه مخازن",
   "actions.general.token_permissions.mode.restricted": "محصور"
 }

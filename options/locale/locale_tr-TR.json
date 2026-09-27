@@ -3607,6 +3607,7 @@
   "actions.workflow.has_no_workflow_dispatch": "'%s' iş akışının workflow_dispatch olay tetikleyicisi yok.",
   "actions.need_approval_desc": "Değişiklik isteği çatalında iş akışı çalıştırmak için onay gerekiyor.",
   "actions.approve_all_success": "Tüm iş akışı çalıştırmaları başarıyla onaylandı.",
+  "actions.job_queue.filter_repo_no_select": "Tüm depolar",
   "actions.variables": "Değişkenler",
   "actions.variables.management": "Değişken Yönetimi",
   "actions.variables.creation": "Değişken Ekle",

@@ -3900,6 +3900,7 @@
   "actions.workflow.has_no_workflow_dispatch": "Níl aon truicear teagmhais workflow_dispatch ag sreabhadh oibre '%s'.",
   "actions.need_approval_desc": "Teastaíonn faomhadh chun sreafaí oibre a rith le haghaidh iarratas tarraingt forc.",
   "actions.approve_all_success": "Tá gach rith sreabha oibre ceadaithe go rathúil.",
+  "actions.job_queue.filter_repo_no_select": "Gach stórais",
   "actions.variables": "Athróga",
   "actions.variables.management": "Bainistíocht Athróg",
   "actions.variables.creation": "Cuir Athróg leis",

@@ -3147,6 +3147,7 @@
   "actions.workflow.scope_owner": "Proprietário",
   "actions.workflow.required": "Obrigatário",
   "actions.need_approval_desc": "Precisa de aprovação para executar workflows para pull request do fork.",
+  "actions.job_queue.filter_repo_no_select": "Todos os repositórios",
   "actions.variables": "Variáveis",
   "actions.variables.management": "Gerenciamento de Variáveis",
   "actions.variables.creation": "Adicionar Variável",

@@ -2875,6 +2875,7 @@
   "actions.workflow.scope_global": "Γενικό",
   "actions.workflow.required": "Απαιτείται",
   "actions.need_approval_desc": "Πρέπει να εγκριθεί η εκτέλεση ροών εργασίας για pull request από fork.",
+  "actions.job_queue.filter_repo_no_select": "Όλα τα αποθετήρια",
   "actions.variables": "Μεταβλητές",
   "actions.variables.management": "Διαχείριση Μεταβλητών",
   "actions.variables.creation": "Προσθήκη Μεταβλητής",
