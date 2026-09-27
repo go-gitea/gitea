@@ -1053,11 +1053,11 @@ jobs:
 		assert.Equal(t, "repo1", payloads[0].Repo.Name)
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 
-		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/jobs?status=waiting").AddTokenAuth(token)
-		waitingFilterJobs := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJobsResponse{})
-		require.Len(t, waitingFilterJobs.Entries, 1)
-		assert.Equal(t, "wf2-job", waitingFilterJobs.Entries[0].Name)
-		assert.Equal(t, "requested", waitingFilterJobs.Entries[0].Status)
+		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/actions/jobs?status=requested").AddTokenAuth(token)
+		requestedJobs := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJobsResponse{})
+		require.Len(t, requestedJobs.Entries, 1)
+		assert.Equal(t, "wf2-job", requestedJobs.Entries[0].Name)
+		assert.Equal(t, "requested", requestedJobs.Entries[0].Status)
 
 		// 4. Execute a single Job
 		task := runner.fetchTask(t)

@@ -101,7 +101,7 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
 }
 
-func TestCreateCommitStatus_HidesPendingJobs(t *testing.T) {
+func TestCreateCommitStatus_HidesOptionalPendingJobs(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})

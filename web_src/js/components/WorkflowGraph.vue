@@ -229,7 +229,7 @@ const nodesWithIncomingEdge = computed(() => new Set(graphModel.value.adjacency.
 const nodesWithOutgoingEdge = computed(() => new Set(graphModel.value.adjacency.outgoingByNodeId.keys()));
 
 function isJobLinked(job: ActionsJob) {
-  return !job.isReusableCaller && job.status !== 'pending'; // callers have no detail page, pending jobs nothing to show yet
+  return !job.isReusableCaller && job.status !== 'pending'; // callers have no detail page, pending jobs have nothing to show yet
 }
 
 function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
@@ -344,6 +344,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
                     v-for="ch in job.jobs"
                     :key="ch.id"
                     class="graph-list-row"
+                    :class="{ 'unlinked-node': !isJobLinked(ch) }"
                     @mouseenter="handleNodeMouseEnter(job.id)"
                     @click.stop="onNodeClick(ch, $event)"
                   >
@@ -375,6 +376,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
                   v-for="ch in job.jobs"
                   :key="ch.id"
                   class="graph-list-row"
+                  :class="{ 'unlinked-node': !isJobLinked(ch) }"
                   @mouseenter="handleNodeMouseEnter(job.id)"
                   @click="onNodeClick(ch, $event)"
                 >
@@ -525,8 +527,13 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
   transition: opacity 0.15s ease;
 }
 
-.job-node-group.unlinked-node {
+.job-node-group.unlinked-node,
+.graph-list-row.unlinked-node {
   cursor: default;
+}
+
+.graph-list-row.unlinked-node:hover {
+  background: none;
 }
 
 .job-node-group:hover .job-rect,

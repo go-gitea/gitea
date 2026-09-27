@@ -1004,7 +1004,7 @@ func (*webhookNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_
 	}
 	status, _ := convert.ToRunActionsStatus(job.Run, job.Status)
 	if status == "requested" || status == "pending" {
-		return // like GitHub, announce a job held back by needs or concurrency only once it is queued
+		return // announce a job only once it is queued
 	}
 	source := EventSource{
 		Repository: repo,

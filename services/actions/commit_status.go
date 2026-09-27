@@ -53,9 +53,9 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		scopedPrefix = actions_model.ScopedStatusContextPrefix(ctx, run.WorkflowRepoID)
 	}
 
-	var pending *pendingJobFilter
+	var pendingFilter *pendingJobFilter
 	if slices.ContainsFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.Status.IsPending() && !job.IsMatrixDeferred }) {
-		pending = newPendingJobFilter(ctx, run)
+		pendingFilter = newPendingJobFilter(ctx, run)
 	}
 	for _, job := range jobs {
 		// A deferred-matrix placeholder's name changes when it expands, so a status created while it
@@ -65,7 +65,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		if job.IsMatrixDeferred && !job.Status.IsDone() {
 			continue
 		}
-		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job, pending); err != nil {
+		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job, pendingFilter); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
@@ -155,7 +155,7 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	return event, commitID, nil
 }
 
-func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, pending *pendingJobFilter) error {
+func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event, commitID, scopedPrefix string, run *actions_model.ActionRun, job *actions_model.ActionRunJob, pendingFilter *pendingJobFilter) error {
 	displayName := actions_module.WorkflowDisplayName(run.WorkflowID, job.WorkflowPayload)
 	ctxName := actions_module.WorkflowStatusContextName(displayName, job.Name, event) // git_model.NewCommitStatus also trims spaces
 	if run.IsScopedRun {
@@ -164,7 +164,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, job.Name, event)
 	}
 	targetURL := fmt.Sprintf("%s/jobs/%d", run.Link(), job.ID)
-	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), pending.onlyReplace(job, ctxName))
+	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job), pendingFilter.onlyReplace(job, ctxName))
 }
 
 // pendingJobFilter keeps optional Pending jobs from posting new statuses

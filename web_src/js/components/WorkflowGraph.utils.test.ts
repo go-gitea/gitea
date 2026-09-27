@@ -160,7 +160,7 @@ test('reusable callers with identical dependency signature are kept as separate 
     {id: 1, link: '', jobId: 'prepare', name: 'prepare', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '30s'},
     {id: 2, link: '', jobId: 'local_caller', name: 'local caller', status: 'running', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '5m', needs: ['prepare'], callUses: './.gitea/workflows/lib.yml'},
     {id: 3, link: '', jobId: 'cross_caller', name: 'cross-repo caller', status: 'waiting', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '0s', needs: ['prepare'], callUses: 'user2/lib/.gitea/workflows/ext.yml@main'},
-    {id: 4, link: '', jobId: 'final', name: 'final', status: 'blocked', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '0s', needs: ['local_caller', 'cross_caller']},
+    {id: 4, link: '', jobId: 'final', name: 'final', status: 'pending', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '0s', needs: ['local_caller', 'cross_caller']},
   ];
   const graph = createWorkflowGraphModel(jobs);
   expect(graph.nodes.find((n) => n.type === 'group')).toBeUndefined();
