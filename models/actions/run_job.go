@@ -735,8 +735,10 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		return nil, nil
 	}
 
-	statusFindOption := []Status{StatusWaiting, StatusBlocked}
+	// Waiting jobs have already passed the concurrency gate; only the blocked queue entry is replaceable by default.
+	statusFindOption := []Status{StatusBlocked}
 	if job.ConcurrencyCancel {
+		statusFindOption = append(statusFindOption, StatusWaiting)
 		statusFindOption = append(statusFindOption, StatusRunning)
 		statusFindOption = append(statusFindOption, StatusCancelling)
 	}

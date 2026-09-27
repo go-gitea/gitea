@@ -71,7 +71,7 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 		return false, nil
 	}
 
-	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusRunning, actions_model.StatusCancelling})
+	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusCancelling})
 	if err != nil {
 		return false, fmt.Errorf("GetConcurrentRunAttemptsAndJobs: %w", err)
 	}
