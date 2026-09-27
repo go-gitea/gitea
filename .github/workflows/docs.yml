@@ -23,7 +23,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: .
+          workingDirectory: ./docs
           wranglerVersion: '4'
           packageManager: pnpm
-          command: wrangler deploy --name=teabag
+          command: deploy
