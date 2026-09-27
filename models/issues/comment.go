@@ -120,6 +120,8 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeCommitComment // 39 A comment on a line of a commit, not part of a pull request
 )
 
 var commentStrings = []string{
@@ -162,6 +164,7 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"commit_comment",
 }
 
 func (t CommentType) String() string {

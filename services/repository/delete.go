@@ -200,6 +200,11 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return err
 	}
 
+	// Delete commit comments, they are not bound to an issue so the issue cleanup does not reach them
+	if err := issues_model.DeleteCommitCommentsByRepoID(ctx, repoID); err != nil {
+		return fmt.Errorf("deleteCommitComments: %w", err)
+	}
+
 	// Delete Pulls and related objects
 	if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
 		return err
