@@ -82,17 +82,11 @@ func TestImmutableRelease(t *testing.T) {
 			pushed := publish("imm-push")
 
 			dstPath := t.TempDir()
-			u.Path = NewAPITestContext(t, owner.Name, repo.Name).GitPath()
+			u.Path = repo.FullName() + ".git"
 			u.User = url.UserPassword(owner.Name, userPassword)
 			doGitClone(dstPath, u)(t)
-			doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
-				LocalRepoPath:   dstPath,
-				CheckoutBranch:  "master",
-				TreeFilePath:    "immutable.txt",
-				TreeFileContent: "content",
-			})(t)
 
-			_, _, err := gitcmd.NewCommand("tag", "imm-push", "--force").WithDir(dstPath).RunStdString(t.Context())
+			_, _, err := gitcmd.NewCommand("tag", "--force", "imm-push", "origin/DefaultBranch").WithDir(dstPath).RunStdString(t.Context())
 			require.NoError(t, err)
 			_, _, err = gitcmd.NewCommand("push", "--force", "origin", "refs/tags/imm-push").WithDir(dstPath).RunStdString(t.Context())
 			assert.ErrorContains(t, err, "Tag imm-push is immutable")

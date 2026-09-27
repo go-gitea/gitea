@@ -9,7 +9,6 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
-	"gitea.dev/modules/util"
 )
 
 // a pull mirror follows upstream refs, so it cannot promise a tag will never move
@@ -44,12 +43,8 @@ func LockRelease(ctx context.Context, repo *Repository, rel *Release) error {
 	}
 	rel.IsImmutable = true
 	if rel.ID != 0 { // UpdateRelease never writes the flag
-		affected, err := db.GetEngine(ctx).ID(rel.ID).Cols("is_immutable").Update(rel)
-		if err != nil {
+		if _, err := db.GetEngine(ctx).ID(rel.ID).Cols("is_immutable").Update(rel); err != nil {
 			return err
-		}
-		if affected == 0 {
-			return util.NewNotExistErrorf("release does not exist [id: %d]", rel.ID)
 		}
 	}
 	return db.Insert(ctx, newImmutableTag(repo, rel.TagName))

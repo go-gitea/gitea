@@ -212,13 +212,9 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
 		}
 
-		// an issue or comment keeps its own mutation routes
-		if attachments[i].ReleaseID != 0 || attachments[i].IssueID != 0 || attachments[i].CommentID != 0 {
-			return util.NewPermissionDeniedErrorf("release permission denied")
-		}
 		attachments[i].ReleaseID = releaseID
 		affected, err := db.GetEngine(ctx).ID(attachments[i].ID).
-			Where("release_id = 0 AND issue_id = 0 AND comment_id = 0").
+			Where("release_id = 0 AND issue_id = 0 AND comment_id = 0"). // an issue or comment keeps its own mutation routes
 			Cols("release_id").Update(attachments[i])
 		if err != nil {
 			return fmt.Errorf("update attachment [%d]: %w", attachments[i].ID, err)
