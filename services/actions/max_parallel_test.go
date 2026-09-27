@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"slices"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -101,6 +102,52 @@ func TestPrepareRunAndInsert_MaxParallel(t *testing.T) {
 	for _, job := range jobs {
 		assert.Equal(t, 2, job.MaxParallel, "every matrix sibling carries the limit")
 	}
+}
+
+func TestCheckJobs_ApprovedRunWaitsOnNeedsThenMaxParallel(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+
+	run := insertMaxParallelRun(t, `name: max-parallel
+on: push
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 2
+      matrix:
+        version: [1, 2, 3]
+    steps:
+      - run: echo hi
+`, true)
+	assert.Equal(t, map[actions_model.Status]int{actions_model.StatusBlocked: 4}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	_, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+	require.NoError(t, err)
+	checkJobs := func() actions_model.ActionJobList {
+		_, err := checkJobsOfCurrentRunAttempt(t.Context(), unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID}))
+		require.NoError(t, err)
+		return runJobs(t, run.ID, run.LatestAttemptID)
+	}
+	jobs := checkJobs()
+	assert.Equal(t, map[actions_model.Status]int{actions_model.StatusWaiting: 1, actions_model.StatusPending: 3}, statusCounts(jobs))
+
+	setup := jobs[slices.IndexFunc(jobs, func(job *actions_model.ActionRunJob) bool { return job.JobID == "setup" })]
+	setup.Status = actions_model.StatusSuccess
+	_, err = actions_model.UpdateRunJob(t.Context(), setup, nil, "status")
+	require.NoError(t, err)
+	assert.Equal(t, map[actions_model.Status]int{
+		actions_model.StatusSuccess: 1,
+		actions_model.StatusWaiting: 2,
+		actions_model.StatusBlocked: 1,
+	}, statusCounts(checkJobs()))
 }
 
 // A reusable workflow declares its own strategy, so the limit must reach the child jobs.
