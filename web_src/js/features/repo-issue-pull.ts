@@ -4,6 +4,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
 let chosenUpdateUrl = ''; // survives the merge box refresh
+let chosenMergeStyle = ''; // survives the merge box refresh, which remounts the form
 let mergeFormComponent: Component | undefined; // cached so a refresh remounts the form before the next paint
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
@@ -39,8 +40,9 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   if (!el) return;
 
   const data = JSON.parse(el.getAttribute('data-merge-form-props')!);
+  if (data.mergeStyles.some((style: {name: string}) => style.name === chosenMergeStyle)) data.defaultMergeStyle = chosenMergeStyle;
   mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default;
-  const view = createApp(mergeFormComponent, {mergeFormProps: data});
+  const view = createApp(mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { chosenMergeStyle = style }});
   view.mount(el); // TODO: can unmount when reloaded?
 }
 

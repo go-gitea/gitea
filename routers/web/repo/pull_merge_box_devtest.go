@@ -77,7 +77,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	add("Review required, checks in progress", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
 		line := ctx.Locale.TrN(1, "repo.pulls.approvals_required_1", "repo.pulls.approvals_required_n", 1)
-		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-x", IconClass: "red", Title: ctx.Locale.Tr("repo.pulls.review_required"), Details: []template.HTML{line}}
+		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-x", IconClass: "tw-bg-red", Title: ctx.Locale.Tr("repo.pulls.review_required"), Details: []template.HTML{line}}
 		data.addOverridableBlocker(line)
 		data.StatusCheckData = checks("ci/test",
 			status("ci/lint", commitstatus.CommitStatusSuccess, "Successful in 32s"),
@@ -122,7 +122,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	add("Changes approved, out of date", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
 		data.ReviewSection = &pullMergeBoxSection{
-			Icon: "octicon-check", IconClass: "green", Title: ctx.Locale.Tr("repo.pulls.changes_approved"),
+			Icon: "octicon-check", IconClass: "tw-bg-green", Title: ctx.Locale.Tr("repo.pulls.changes_approved"),
 			Details: []template.HTML{ctx.Locale.TrN(2, "repo.pulls.approvals_granted_1", "repo.pulls.approvals_granted_n", 2)},
 		}
 		data.StatusCheckData = passed
@@ -136,7 +136,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	add("Changes requested, auto-merge enabled", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
 		line := ctx.Locale.Tr("repo.pulls.blocked_by_rejection")
-		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-file-diff", IconClass: "red", Title: ctx.Locale.Tr("repo.pulls.changes_requested"), Details: []template.HTML{line}}
+		data.ReviewSection = &pullMergeBoxSection{Icon: "octicon-file-diff", IconClass: "tw-bg-red", Title: ctx.Locale.Tr("repo.pulls.changes_requested"), Details: []template.HTML{line}}
 		data.addOverridableBlocker(line)
 		data.AutoMerge = &pull_model.AutoMerge{Doer: &user_model.User{Name: "user2"}, MergeStyle: repo_model.MergeStyleSquash}
 		data.CanCancelAutoMerge = true

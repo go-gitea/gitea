@@ -18,7 +18,3 @@ h1, h2 {
 .fetch-action-demo-forms .form-fetch-action {
   border: 1px red dashed; /* show the border for demo purpose */
 }
-
-.devtest.repository.view.issue .comment-list::before {
-  display: none;
-}

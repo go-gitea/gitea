@@ -17,12 +17,12 @@ import (
 type statusCheckKind struct{ name, ringColor string }
 
 var (
-	statusCheckFailing    = statusCheckKind{"failing", "red"}
-	statusCheckPending    = statusCheckKind{"pending", "yellow"}
-	statusCheckInProgress = statusCheckKind{"in_progress", "yellow"}
-	statusCheckExpected   = statusCheckKind{"expected", "yellow"}
-	statusCheckSkipped    = statusCheckKind{"skipped", "grey"}
-	statusCheckSuccessful = statusCheckKind{"successful", "green"}
+	statusCheckFailing    = statusCheckKind{"failing", "tw-stroke-red"}
+	statusCheckPending    = statusCheckKind{"pending", "tw-stroke-yellow"}
+	statusCheckInProgress = statusCheckKind{"in_progress", "tw-stroke-yellow"}
+	statusCheckExpected   = statusCheckKind{"expected", "tw-stroke-yellow"}
+	statusCheckSkipped    = statusCheckKind{"skipped", "tw-stroke-grey-light"}
+	statusCheckSuccessful = statusCheckKind{"successful", "tw-stroke-green"}
 )
 
 var statusCheckKinds = []statusCheckKind{statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected, statusCheckSkipped, statusCheckSuccessful}
@@ -97,13 +97,13 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 		parts = append(parts, string(group.text(locale)))
 	}
 	section := &pullMergeBoxSection{
-		Icon: "octicon-check", IconClass: "green", Title: locale.Tr("repo.pulls.status_checks_success"),
+		Icon: "octicon-check", IconClass: "tw-bg-green", Title: locale.Tr("repo.pulls.status_checks_success"),
 		Details: []template.HTML{locale.TrN(d.count(statusCheckKinds...), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
 	}
 	allFailed := len(d.Groups) == 1 && d.Groups[0].kind == statusCheckFailing
 	switch {
 	case allFailed:
-		section.Icon, section.IconClass, section.Title = "octicon-x", "red", locale.Tr("repo.pulls.status_checks_all_failed")
+		section.Icon, section.IconClass, section.Title = "octicon-x", "tw-bg-red", locale.Tr("repo.pulls.status_checks_all_failed")
 	case d.count(statusCheckFailing) > 0:
 		section.Title = locale.Tr("repo.pulls.status_checks_failure")
 	case d.RequireApprovalRunCount > 0:

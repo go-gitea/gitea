@@ -1,15 +1,15 @@
 {{$data := $.PullMergeBoxData}}
 {{if $data.ShowMergeBox}}
-<div class="timeline-item comment pull-merge-box{{if .Issue.PullRequest.HasMerged}} merged{{else if $data.IsReady}} ready{{end}}"
+<div class="timeline-item comment pull-merge-box"
 	data-global-init="initRepoPullMergeBox"
 	{{if $data.ReloadingInterval}}
 		data-pull-merge-box-reloading-interval="{{$data.ReloadingInterval}}"
 		data-pull-link="{{$.Issue.Link}}"
 	{{end}}
 >
-	<div class="timeline-avatar merge-box-icon">{{svg "octicon-git-merge" 24}}</div>
+	<div class="timeline-avatar merge-box-icon{{if .Issue.PullRequest.HasMerged}} tw-bg-purple{{else if $data.IsReady}} tw-bg-green{{end}}">{{svg "octicon-git-merge" 24}}</div>
 	<div class="content">
-		<div class="ui segment fitted">
+		<div class="ui segment fitted{{if .Issue.PullRequest.HasMerged}} tw-border-purple{{else if $data.IsReady}} tw-border-green{{end}}">
 			<div class="merge-section flex-divided-list items-with-main">
 			{{with $data.ReviewSection}}
 				<div class="item">{{template "repo/issue/view_content/pull_merge_section" .}}</div>

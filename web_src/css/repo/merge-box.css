@@ -6,19 +6,7 @@
   height: 40px;
   border-radius: var(--border-radius-medium);
   color: var(--color-white);
-  background: var(--merge-box-color, var(--color-grey-light));
-}
-
-.pull-merge-box.ready {
-  --merge-box-color: var(--color-green);
-}
-
-.pull-merge-box.merged {
-  --merge-box-color: var(--color-purple);
-}
-
-.pull-merge-box:is(.ready, .merged) > .content > .ui.segment {
-  border-color: var(--merge-box-color);
+  background: var(--color-grey-light);
 }
 
 .pull-merge-box .merge-section > .item {
@@ -48,34 +36,6 @@
   height: 32px;
   border-radius: 50%;
   color: var(--color-white);
-}
-
-.merge-box-status.green {
-  background: var(--color-green);
-}
-
-.merge-box-status.red {
-  background: var(--color-red);
-}
-
-.merge-box-status.grey {
-  background: var(--color-grey-light);
-}
-
-.merge-box-ring .green {
-  stroke: var(--color-green);
-}
-
-.merge-box-ring .yellow {
-  stroke: var(--color-yellow);
-}
-
-.merge-box-ring .red {
-  stroke: var(--color-red);
-}
-
-.merge-box-ring .grey {
-  stroke: var(--color-grey-light);
 }
 
 .merge-box-detail {
@@ -145,9 +105,6 @@ details[open] > summary > .merge-box-chevron {
 }
 
 .merge-box-checks-group > summary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-inline);
   padding: 0.25rem 16px;
   font-size: 12px;
   font-weight: var(--font-weight-medium);
@@ -191,23 +148,6 @@ details[open] > summary > .merge-box-chevron {
   flex: 1;
   min-width: 0;
   min-height: 38px;
-}
-
-.merge-box-bypass.ui.checkbox {
-  display: flex;
-  margin-bottom: 16px;
-}
-
-.merge-box-bypass.ui.checkbox label {
-  color: var(--color-red);
-}
-
-#pull-request-merge-form .ui.checkbox label {
-  cursor: pointer;
-}
-
-.merge-box-actions {
-  flex-wrap: wrap;
 }
 
 .merge-box-cmd-hint {

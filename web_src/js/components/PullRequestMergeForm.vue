@@ -1,7 +1,3 @@
-<script lang="ts">
-let chosenMergeStyle = ''; // survives the merge box refresh, which remounts the form
-</script>
-
 <script lang="ts" setup>
 import {computed, nextTick, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
@@ -48,6 +44,7 @@ type MergeForm = {
 const props = defineProps<{
   mergeFormProps: MergeForm,
 }>();
+const emit = defineEmits<{mergeStyleChange: [style: string]}>();
 
 const mergeStyleManuallyMerged = 'manually-merged';
 
@@ -59,7 +56,7 @@ const deleteBranchAfterMerge = shallowRef(false);
 const forceMerge = shallowRef(false);
 
 const findMergeStyle = (name: string) => mergeForm.mergeStyles.find((msd) => msd.name === name);
-const mergeStyle = shallowRef((findMergeStyle(chosenMergeStyle) ?? findMergeStyle(mergeForm.defaultMergeStyle) ?? mergeForm.mergeStyles[0]).name);
+const mergeStyle = shallowRef((findMergeStyle(mergeForm.defaultMergeStyle) ?? mergeForm.mergeStyles[0]).name);
 const mergeStyleDetail = computed(() => findMergeStyle(mergeStyle.value)!);
 
 const showActionForm = shallowRef(false);
@@ -84,7 +81,7 @@ watch(mergeStyle, (val) => {
     toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
   }
 }, {immediate: true});
-watch(mergeStyle, (val) => { chosenMergeStyle = val });
+watch(mergeStyle, (val) => emit('mergeStyleChange', val));
 
 onMounted(() => {
   if (!menuTrigger.value) return;
@@ -179,3 +176,22 @@ async function toggleActionForm(show: boolean) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.ui.checkbox label {
+  cursor: pointer;
+}
+
+.merge-box-bypass.ui.checkbox {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.merge-box-bypass.ui.checkbox label {
+  color: var(--color-red);
+}
+
+.merge-box-actions {
+  flex-wrap: wrap;
+}
+</style>

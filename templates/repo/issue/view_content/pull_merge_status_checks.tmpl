@@ -23,7 +23,7 @@
 		{{end}}
 		{{range $group := $statusCheckData.Groups}}
 		<details class="merge-box-checks-group" open>
-			<summary>{{$group.Title ctx.Locale}}{{svg "octicon-chevron-right" 12 "merge-box-chevron"}}</summary>
+			<summary class="flex-text-inline">{{$group.Title ctx.Locale}}{{svg "octicon-chevron-right" 12 "merge-box-chevron"}}</summary>
 			<div class="flex-divided-list">
 				{{range $cs := $group.CommitStatuses}}
 				<div class="item commit-status-item">
