@@ -1,0 +1,20 @@
+{{/* HardByte: the signed-out start page, overriding templates/home.tmpl (checked against 1.27.2).
+     The product's one brand surface: the lockup, the spectral line, the app name, one line, and
+     the way in. Laid out by public/assets/css/hardbyte.css (linked from custom/header.tmpl for
+     every theme), so it holds under Gitea's own themes too; on a light theme the mark stands in
+     for the dark lockup. Signed in, "/" is the dashboard and this template is not used.
+     Only Gitea's own locale keys: a custom locale file would replace Gitea's whole translation. */}}
+{{template "base/head" .}}
+<div role="main" aria-label="{{ctx.Locale.Tr "home_title"}}" class="page-content hb-home">
+	<div class="hb-home-column">
+		<img class="hb-home-lockup" width="240" height="44" src="{{AssetUrlPrefix}}/img/lockup-dark.png" alt="HardByte">
+		<img class="hb-home-mark" width="64" height="64" src="{{AssetUrlPrefix}}/img/logo.svg" alt="HardByte">
+		<h1 class="hb-home-title">{{AppName}}</h1>
+		<p class="hb-home-lead">{{ctx.Locale.Tr "startpage.app_desc"}}</p>
+		<div class="hb-home-actions">
+			<a class="ui primary button" href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "sign_in"}}</a>
+			<a class="ui button" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore_title"}}</a>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

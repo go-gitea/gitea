@@ -1,0 +1,56 @@
+/* ============================================================================
+   HardByte additions that every theme loads (templates/custom/header.tmpl links
+   this file after the theme's stylesheet). Only what the HardByte templates
+   need — today the signed-out start page, templates/home.tmpl — and only
+   through Gitea's own theme variables, so the page holds under the HardByte
+   theme and under Gitea's light, dark and auto themes alike. The look of Gitea
+   itself is theme-hardbyte-dark.css; nothing here restyles Gitea's own pages.
+   ========================================================================== */
+
+/* ── The start page: the product's one brand surface ────────────────────── */
+/* The spectral line takes the navbar's hairline, once, here. Below it one
+   narrow, quiet column: the lockup, the app name, one line, the way in. */
+body:has(.hb-home) #navbar { position: relative; border-bottom-color: transparent; }
+body:has(.hb-home) #navbar::after {
+  content: ""; position: absolute; inset: auto 0 -1px 0; height: 2px; pointer-events: none;
+  background: linear-gradient(115deg, #CB3137 0%, #7A6E2A 36%, #4E9450 64%, #4389B8 100%);
+}
+.page-content.hb-home {
+  display: flex; flex-direction: column; align-items: center;
+  padding: max(72px, 12vh) 16px 112px;
+}
+.hb-home-column {
+  width: 100%; max-width: 392px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  animation: hb-arrive 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes hb-arrive { from { opacity: 0; } }
+.hb-home-lockup { display: block; width: 240px; height: auto; margin: 0 0 56px; }
+.hb-home-mark { display: none; width: 64px; height: 64px; margin: 0 0 40px; }
+.hb-home .hb-home-title {
+  margin: 0 0 12px; font-size: 26px; line-height: 1.22; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--color-text-dark);
+}
+.hb-home .hb-home-lead { margin: 0 0 40px; font-size: 15px; line-height: 1.5; color: var(--color-text-light); }
+.hb-home-actions { display: flex; gap: 12px; width: 100%; }
+.hb-home-actions .ui.button {
+  flex: 1 1 0; min-height: 48px; margin: 0; justify-content: center;
+  font-size: 15px; font-weight: 600; border-radius: 8px;
+}
+
+/* On a light theme the lockup's white name would vanish: the mark reads the
+   same on black and white, so it stands in. Gitea names its light themes
+   gitea-light*, its auto themes follow the system, and its script marks every
+   page with data-gitea-theme-dark once it runs. */
+html[data-theme^="gitea-light"] .hb-home-lockup,
+html[data-gitea-theme-dark="false"] .hb-home-lockup { display: none; }
+html[data-theme^="gitea-light"] .hb-home-mark,
+html[data-gitea-theme-dark="false"] .hb-home-mark { display: block; }
+@media (prefers-color-scheme: light) {
+  html[data-theme^="gitea-auto"] .hb-home-lockup { display: none; }
+  html[data-theme^="gitea-auto"] .hb-home-mark { display: block; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-home-column { animation: none; }
+}

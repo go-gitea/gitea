@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- HardByte default avatar (source of custom/public/assets/img/avatar_default.png, 200 x 200):
+       the ink-800 ground with Lucide's "user" glyph in ink-400. Gitea shows it for commit authors
+       without an account, where it would otherwise show its tea cup. -->
+  <rect width="200" height="200" fill="#1E2935"/>
+  <g transform="translate(40 40) scale(5)" fill="none" stroke="#7A8896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </g>
+</svg>

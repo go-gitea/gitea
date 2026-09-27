@@ -1,0 +1,33 @@
+# A local Gitea to look at the HardByte UI — NOT production. Plain HTTP on
+# http://gitea.localhost:8960, SQLite, no SSH, no mail. The image is the version production
+# runs. hardbyte/custom is mounted read-only where $GITEA_CUSTOM (/data/gitea) expects it, so a
+# CSS edit shows on the next reload; templates and new theme files need a restart.
+#
+#   docker compose -f hardbyte/preview/compose.yml up -d
+#   docker exec -u git hb-gitea-preview gitea admin user create --admin \
+#     --username <name> --email <name>@example.test --random-password --must-change-password=false
+name: hb-gitea-preview
+
+services:
+  gitea:
+    image: gitea/gitea:1.27.2
+    container_name: hb-gitea-preview
+    restart: unless-stopped
+    environment:
+      GITEA____APP_NAME: HardByte Git            # four underscores: the ini file's root section
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__server__DOMAIN: gitea.localhost
+      GITEA__server__ROOT_URL: http://gitea.localhost:8960/
+      GITEA__server__HTTP_PORT: "3000"
+      GITEA__server__DISABLE_SSH: "true"
+      GITEA__server__STATIC_CACHE_TIME: 0s      # preview only: revalidate the theme on every load
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__ui__DEFAULT_THEME: hardbyte-dark
+      GITEA__mailer__ENABLED: "false"
+    volumes:
+      - ./data:/data
+      - ../custom/public:/data/gitea/public:ro
+      - ../custom/templates:/data/gitea/templates:ro
+    ports:
+      - "127.0.0.1:8960:3000"

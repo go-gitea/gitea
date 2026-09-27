@@ -1,0 +1,571 @@
+/* ============================================================================
+   HardByte theme for Gitea — written against 1.27.2, the version production runs.
+
+   A Gitea theme is a set of CSS custom properties that Gitea's own components
+   read, so almost the whole look changes here, in one place, and survives
+   upgrades. Gitea lists the file by its name (theme-<name>.css in
+   $GITEA_CUSTOM/public/assets/css/); [ui] THEMES and DEFAULT_THEME pick it.
+
+   What it may rely on, in this order — and nothing else:
+     1. Gitea's theme variables (the list in web_src/css/themes/theme-gitea-dark.css);
+     2. where no variable reaches, a few stable component classes, grouped at
+        the end of this file;
+     3. never layout: sizes, spacing and markup stay Gitea's.
+   After every Gitea upgrade, diff theme-gitea-dark.css against the tag this file
+   was written for, and look at the screens.
+
+   Values are the HardByte design system's dark theme (tokens/colors.css,
+   typography.css, effects.css), restated literally: Gitea does not load the
+   design system's stylesheet, and a token changed there is changed here.
+   Gitea is a tool, so the PRODUCT UI rules apply: the black ground, ink cards
+   with hairlines, Inter only, blue acts and selects, green reports state, red
+   is danger, no spectral line in the chrome.
+   ========================================================================== */
+
+gitea-theme-meta-info {
+  --theme-display-name: "HardByte";
+  --theme-color-scheme: "dark";
+}
+
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("../fonts/inter-400.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("../fonts/inter-500.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/inter-600.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/inter-700.woff2") format("woff2"); }
+
+:root {
+  --is-dark-theme: true;
+
+  /* ── Type and shape ─────────────────────────────────────────────────── */
+  /* Inter only. Code keeps Gitea's monospace stack: the design system has no
+     monospace, but a code view without one is unreadable. */
+  --fonts-proportional: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  /* Restrained corners: chips 5px (Gitea's small radius), controls and boxes 8px. */
+  --border-radius: 5px;
+  --border-radius-medium: 8px;
+
+  /* ── Primary: blue acts and selects ─────────────────────────────────── */
+  /* --color-primary is Gitea's action FILL (buttons, checked controls, badges):
+     blue-600, white on it 5.5:1. Links and focus lines take blue-400 instead
+     (the block "Links" at the end), because blue-600 text on black is 3.8:1.
+     In a dark theme Gitea's "dark-N" steps are the LIGHTER ones. Hover and press
+     go darker (light-1, light-2), never lighter: white on blue-500 fails AA. */
+  --color-primary: #336E97;
+  --color-primary-contrast: #FFFFFF;
+  --color-primary-dark-1: #4389B8;
+  --color-primary-dark-2: #5B99C2;
+  --color-primary-dark-3: #74A9CC;
+  --color-primary-dark-4: #8DB8D5;
+  --color-primary-dark-5: #B0CDE1;
+  --color-primary-dark-6: #D5E5F0;
+  --color-primary-dark-7: #F1F7FB;
+  --color-primary-light-1: #28567A;
+  --color-primary-light-2: #21486A;
+  --color-primary-light-3: #1C3C58;
+  --color-primary-light-4: #183248;
+  --color-primary-light-5: #142838;
+  --color-primary-light-6: #0F1C28;
+  --color-primary-light-7: #080F16;
+  /* Soft grounds from the mark blue, as --color-action-soft (0.16) does. */
+  --color-primary-alpha-10: #4389B81A;
+  --color-primary-alpha-20: #4389B833;
+  --color-primary-alpha-30: #4389B84D;
+  --color-primary-alpha-40: #4389B866;
+  --color-primary-alpha-50: #4389B880;
+  --color-primary-alpha-60: #4389B899;
+  --color-primary-alpha-70: #4389B8B3;
+  --color-primary-alpha-80: #4389B8CC;
+  --color-primary-alpha-90: #4389B8E6;
+  --color-primary-hover: var(--color-primary-light-1);
+  --color-primary-active: var(--color-primary-light-2);
+
+  /* ── Secondary: the ink ramp — borders, neutral fills ───────────────── */
+  /* Gitea draws most edges in --color-secondary: that is the ink-800 hairline. */
+  --color-secondary: #1E2935;          /* ink-800, hairline */
+  --color-secondary-dark-1: #2A3744;   /* ink-700, control border */
+  --color-secondary-dark-2: #3B4A59;   /* ink-600 */
+  --color-secondary-dark-3: #566472;   /* ink-500, a field's 3:1 edge */
+  --color-secondary-dark-4: #7A8896;   /* ink-400 */
+  --color-secondary-dark-5: #8794A1;
+  --color-secondary-dark-6: #95A2AE;
+  --color-secondary-dark-7: #A4B0BC;   /* ink-300 */
+  --color-secondary-dark-8: #B8C2CC;
+  --color-secondary-dark-9: #CBD3DB;   /* ink-200 */
+  --color-secondary-dark-10: #D4DBE2;
+  --color-secondary-dark-11: #DDE3E9;  /* ink-150 */
+  --color-secondary-dark-12: #ECEFF2;  /* ink-100 */
+  --color-secondary-dark-13: #F5F7F9;  /* ink-50 */
+  --color-secondary-light-1: #18212C;  /* ink-850 */
+  --color-secondary-light-2: #121922;  /* ink-900 */
+  --color-secondary-light-3: #0D1219;  /* ink-925 */
+  --color-secondary-light-4: #0C1116;  /* ink-950 */
+  --color-secondary-alpha-10: #2A374419;
+  --color-secondary-alpha-20: #2A374433;
+  --color-secondary-alpha-30: #2A37444B;
+  --color-secondary-alpha-40: #2A374466;
+  --color-secondary-alpha-50: #2A374480;
+  --color-secondary-alpha-60: #2A374499;
+  --color-secondary-alpha-70: #2A3744B3;
+  --color-secondary-alpha-80: #2A3744CC;
+  --color-secondary-alpha-90: #2A3744E1;
+  --color-secondary-button: #2A3744;
+  --color-secondary-hover: #3B4A59;
+  --color-secondary-active: #566472;
+
+  /* ── Console (Actions logs, console files) ──────────────────────────── */
+  --color-console-fg: #F3F6F9;
+  --color-console-fg-subtle: #A4B0BC;
+  --color-console-bg: #0C1116;
+  --color-console-border: #1E2935;
+  --color-console-hover-bg: #18212C;
+  --color-console-active-bg: #1E2935;
+  --color-console-menu-bg: #121922;
+  --color-console-menu-border: #2A3744;
+  --color-console-link: #7A8896;
+
+  /* ── Named colours ──────────────────────────────────────────────────── */
+  /* The mark's hues where the design system has them (red, green, blue, amber,
+     olive); the rest (orange, teal, violet, purple, pink, brown) only appear
+     in charts and content, so they are muted steps that sit beside them. */
+  --color-red: #CB3137;
+  --color-orange: #C9772E;
+  --color-yellow: #E0B83A;
+  --color-olive: #7A6E2A;
+  --color-green: #4E9450;
+  --color-teal: #3F8F88;
+  --color-blue: #4389B8;
+  --color-violet: #7C74C9;
+  /* Gitea's only purple is "merged". Merged is done and integrated, which the
+     design system says with the info tone, blue — so purple is blue here. */
+  --color-purple: #74A9CC;
+  --color-pink: #C25A8E;
+  --color-brown: #9C7456;
+  --color-black: #18212C;
+  --color-red-light: #DA5A60;
+  --color-orange-light: #D98C4A;
+  --color-yellow-light: #E8C55E;
+  --color-olive-light: #948639;
+  --color-green-light: #76AE79;
+  --color-teal-light: #52A39B;
+  --color-blue-light: #74A9CC;
+  --color-violet-light: #9C90D2;
+  --color-purple-light: #9EC4DD;
+  --color-pink-light: #CF73A1;
+  --color-brown-light: #AE8568;
+  --color-black-light: #2A3744;
+  --color-red-dark-1: #A82930;
+  --color-orange-dark-1: #B0621F;
+  --color-yellow-dark-1: #C9A12C;
+  --color-olive-dark-1: #665C22;
+  --color-green-dark-1: #3E7B40;
+  --color-teal-dark-1: #317A73;
+  --color-blue-dark-1: #336E97;
+  --color-violet-dark-1: #6A61B8;
+  --color-purple-dark-1: #4389B8;
+  --color-pink-dark-1: #A84877;
+  --color-brown-dark-1: #86624A;
+  --color-black-dark-1: #121922;
+  --color-red-dark-2: #8E2329;
+  --color-orange-dark-2: #97531A;
+  --color-yellow-dark-2: #A98727;
+  --color-olive-dark-2: #544C1C;
+  --color-green-dark-2: #2F5F31;
+  --color-teal-dark-2: #276861;
+  --color-blue-dark-2: #28567A;
+  --color-violet-dark-2: #5A52A0;
+  --color-purple-dark-2: #336E97;
+  --color-pink-dark-2: #8F3C65;
+  --color-brown-dark-2: #70523E;
+  --color-black-dark-2: #0D1219;
+
+  /* ── ANSI (Actions logs) ────────────────────────────────────────────── */
+  --color-ansi-black: #18212C;
+  --color-ansi-red: #DA5A60;
+  --color-ansi-green: #76AE79;
+  --color-ansi-yellow: #E0B83A;
+  --color-ansi-blue: #74A9CC;
+  --color-ansi-magenta: #C77DB0;
+  --color-ansi-cyan: #5FB3AA;
+  --color-ansi-white: var(--color-console-fg-subtle);
+  --color-ansi-bright-black: #566472;
+  --color-ansi-bright-red: #E5736F;
+  --color-ansi-bright-green: #A7CDA9;
+  --color-ansi-bright-yellow: #EBCB6B;
+  --color-ansi-bright-blue: #9EC4DD;
+  --color-ansi-bright-magenta: #D69BC4;
+  --color-ansi-bright-cyan: #86C8C0;
+  --color-ansi-bright-white: var(--color-console-fg);
+
+  /* ── Chart series: the brand hues first, then their steps ───────────── */
+  --color-series-16-0: #4389B8;
+  --color-series-16-1: #4E9450;
+  --color-series-16-2: #CB3137;
+  --color-series-16-3: #E0B83A;
+  --color-series-16-4: #7A6E2A;
+  --color-series-16-5: #74A9CC;
+  --color-series-16-6: #76AE79;
+  --color-series-16-7: #DA5A60;
+  --color-series-16-8: #A7CDA9;
+  --color-series-16-9: #28567A;
+  --color-series-16-10: #A82930;
+  --color-series-16-11: #8A6D12;
+  --color-series-16-12: #3E7B40;
+  --color-series-16-13: #E5736F;
+  --color-series-16-14: #336E97;
+  --color-series-16-15: #A4B0BC;
+
+  /* ── Other colours ──────────────────────────────────────────────────── */
+  --color-grey: #3B4A59;
+  --color-grey-light: #7A8896;
+  --color-gold: #E0B83A;
+  --color-white: #FFFFFF;
+
+  /* Diffs keep the convention — green added, red removed — because everyone
+     reads them that way; in a diff they report state, not danger. They are the
+     design system's soft status grounds, so a diff stays quiet. */
+  --color-diff-added-fg: #76AE79;
+  --color-diff-added-linenum-bg: rgba(78, 148, 80, 0.20);
+  --color-diff-added-row-bg: rgba(78, 148, 80, 0.11);
+  --color-diff-added-row-border: rgba(78, 148, 80, 0.30);
+  --color-diff-added-word-bg: rgba(78, 148, 80, 0.32);
+  --color-diff-moved-row-bg: rgba(224, 184, 58, 0.10);
+  --color-diff-moved-row-border: rgba(224, 184, 58, 0.36);
+  --color-diff-removed-fg: #E5736F;
+  --color-diff-removed-linenum-bg: rgba(203, 49, 55, 0.20);
+  --color-diff-removed-row-bg: rgba(203, 49, 55, 0.11);
+  --color-diff-removed-row-border: rgba(203, 49, 55, 0.32);
+  --color-diff-removed-word-bg: rgba(203, 49, 55, 0.34);
+  --color-diff-inactive: #121922;
+
+  /* Messages: the status pairs (text 4.5:1 on the card, soft ground). */
+  --color-error-border: rgba(203, 49, 55, 0.44);
+  --color-error-bg: rgba(203, 49, 55, 0.16);
+  --color-error-bg-active: rgba(203, 49, 55, 0.28);
+  --color-error-bg-hover: rgba(203, 49, 55, 0.22);
+  --color-error-text: #E5736F;
+  --color-success-border: rgba(78, 148, 80, 0.44);
+  --color-success-bg: rgba(78, 148, 80, 0.16);
+  --color-success-text: #76AE79;
+  --color-warning-border: rgba(224, 184, 58, 0.40);
+  --color-warning-bg: rgba(224, 184, 58, 0.12);
+  --color-warning-text: #E0B83A;
+  --color-info-border: rgba(67, 137, 184, 0.44);
+  --color-info-bg: rgba(67, 137, 184, 0.16);
+  --color-info-text: #74A9CC;
+  --color-priority-border: rgba(124, 116, 201, 0.44);
+  --color-priority-bg: rgba(124, 116, 201, 0.16);
+  --color-priority-text: #A99FDD;
+  --color-red-badge: #DA5A60;
+  --color-red-badge-bg: rgba(203, 49, 55, 0.12);
+  --color-red-badge-hover-bg: rgba(203, 49, 55, 0.30);
+  --color-green-badge: #76AE79;
+  --color-green-badge-bg: rgba(78, 148, 80, 0.12);
+  --color-green-badge-hover-bg: rgba(78, 148, 80, 0.30);
+  --color-yellow-badge: #E0B83A;
+  --color-yellow-badge-bg: rgba(224, 184, 58, 0.12);
+  --color-yellow-badge-hover-bg: rgba(224, 184, 58, 0.30);
+  --color-orange-badge: #D98C4A;
+  --color-orange-badge-bg: rgba(201, 119, 46, 0.12);
+  --color-orange-badge-hover-bg: rgba(201, 119, 46, 0.30);
+  --color-git: #F05133;
+  --color-logo: #4E9450;
+
+  /* ── Surfaces: black ground → ink-925 card → ink-900 raised ─────────── */
+  --color-body: #000000;
+  --color-box-header: #121922;
+  --color-box-body: #0D1219;
+  --color-box-body-highlight: #121922;
+  --color-text-dark: #F3F6F9;          /* --text-strong */
+  --color-text: #CBD3DB;               /* --text-body, ink-200 */
+  --color-text-light: #A4B0BC;         /* ink-300, secondary */
+  --color-text-light-1: #8F9CA9;
+  --color-text-light-2: #7A8896;       /* ink-400, muted: 5.2:1 on the card */
+  --color-text-light-3: #7A8896;
+  --color-footer: var(--color-nav-bg);
+  --color-timeline: #1E2935;
+  --color-input-text: #F3F6F9;
+  --color-input-background: #0C1116;  /* ink-950, the field well */
+  --color-input-toggle-background: #2A3744;
+  --color-input-border: #566472;       /* ink-500: a field's edge, 3:1 on black */
+  --color-light: rgba(0, 0, 0, 0.20);
+  --color-light-border: #2A3744;       /* ink-700, a control's edge */
+  --color-hover: rgba(122, 136, 150, 0.14);
+  --color-hover-opaque: #18212C;
+  --color-active: rgba(122, 136, 150, 0.20);
+  --color-menu: #121922;               /* raised: menus and popovers */
+  --color-card: #0D1219;
+  --color-markup-table-row: transparent;   /* hairline rows, no zebra */
+  --color-markup-code-block: rgba(122, 136, 150, 0.10);
+  --color-markup-code-inline: rgba(122, 136, 150, 0.16);
+  --color-button: transparent;         /* a secondary button is its edge */
+  --color-code-bg: #0D1219;
+  --color-shadow: rgba(0, 0, 0, 0.50);
+  --color-shadow-opaque: #000000;
+  --color-secondary-bg: #18212C;
+  --color-expand-button: #1E2935;
+  --color-placeholder-text: #7A8896;
+  --color-editor-line-highlight: rgba(122, 136, 150, 0.10);
+  --color-editor-selection: rgba(67, 137, 184, 0.32);
+  --color-project-column-bg: #0D1219;
+  --color-caret: #F3F6F9;
+  --color-reaction-bg: rgba(122, 136, 150, 0.10);
+  --color-reaction-hover-bg: rgba(67, 137, 184, 0.20);
+  --color-reaction-active-bg: rgba(67, 137, 184, 0.28);
+  --color-tooltip-text: #F3F6F9;
+  --color-tooltip-bg: #1E2935;
+  --color-nav-bg: #000000;             /* the app bar: the opaque black ground */
+  --color-nav-hover-bg: #121922;
+  --color-nav-text: #CBD3DB;
+  --color-secondary-nav-bg: #000000;
+  --color-label-text: #CBD3DB;
+  --color-label-bg: rgba(122, 136, 150, 0.16);
+  --color-label-hover-bg: rgba(122, 136, 150, 0.28);
+  --color-label-active-bg: rgba(122, 136, 150, 0.40);
+  --color-accent: #336E97;             /* native checkboxes, progress: blue-600 */
+  --color-small-accent: var(--color-primary-light-5);
+  /* A selected line, a search hit: blue selects. */
+  --color-highlight-fg: #74A9CC;
+  --color-highlight-bg: rgba(67, 137, 184, 0.18);
+  --color-overlay-backdrop: rgba(0, 0, 0, 0.72);   /* --scrim on dark */
+  --color-danger: var(--color-red);
+  --color-transparency-grid-light: #1E2935;
+  --color-transparency-grid-dark: #121922;
+  --color-workflow-edge-hover: #7A8896;
+
+  /* ── Syntax: few hues, quiet ────────────────────────────────────────── */
+  /* Blue for structure (keywords, tags, keys), green for literal strings,
+     amber for numbers and constants, red only for what is invalid; names and
+     punctuation stay in the ink ramp, comments recede. */
+  --color-syntax-keyword: #74A9CC;
+  --color-syntax-bool: #E0B83A;
+  --color-syntax-control: #74A9CC;
+  --color-syntax-name: #F3F6F9;
+  --color-syntax-type: #A7CDA9;
+  --color-syntax-number: #E0B83A;
+  --color-syntax-operator: #A4B0BC;
+  --color-syntax-regexp: #76AE79;
+  --color-syntax-string: #76AE79;
+  --color-syntax-comment: #7A8896;
+  --color-syntax-invalid: #E5736F;
+  --color-syntax-link: #74A9CC;
+  --color-syntax-tag: #74A9CC;
+  --color-syntax-attribute: #A4B0BC;
+  --color-syntax-property: #DDE3E9;
+  --color-syntax-variable: #DDE3E9;
+  --color-syntax-string-special: #A7CDA9;
+  --color-syntax-escape: #E0B83A;
+  --color-syntax-entity: #A4B0BC;
+  --color-syntax-preproc: #74A9CC;
+  --color-syntax-preproc-file: #76AE79;
+  --color-syntax-decorator: #E0B83A;
+  --color-syntax-namespace: #CBD3DB;
+  --color-syntax-name-pseudo: #A4B0BC;
+  --color-syntax-comment-special: #A4B0BC;
+  --color-syntax-text: #CBD3DB;
+  --color-syntax-text-alt: #A4B0BC;
+  --color-syntax-punctuation: #A4B0BC;
+  --color-syntax-whitespace: #3B4A59;
+  --color-syntax-diff-fg: #F3F6F9;
+  --color-syntax-deleted-bg: rgba(203, 49, 55, 0.24);
+  --color-syntax-inserted-bg: rgba(78, 148, 80, 0.24);
+  --color-syntax-emph: #DDE3E9;
+  --color-syntax-strong: #F3F6F9;
+  --color-syntax-heading: #74A9CC;
+  --color-syntax-subheading: #A4B0BC;
+  --color-syntax-output: #7A8896;
+  --color-syntax-prompt: #A4B0BC;
+  --color-syntax-traceback: #E5736F;
+  --color-syntax-matching-bracket-bg: rgba(67, 137, 184, 0.30);
+  --color-syntax-nonmatching-bracket-bg: rgba(203, 49, 55, 0.30);
+
+  accent-color: var(--color-accent);
+  color-scheme: dark;
+}
+
+/* Emoji drawn dark on dark, turned light — as in Gitea's own dark theme
+   (theme-gitea-dark.css), which a custom theme cannot import. */
+.emoji[aria-label="check mark"],
+.emoji[aria-label="currency exchange"],
+.emoji[aria-label="TOP arrow"],
+.emoji[aria-label="END arrow"],
+.emoji[aria-label="ON! arrow"],
+.emoji[aria-label="SOON arrow"],
+.emoji[aria-label="heavy dollar sign"],
+.emoji[aria-label="copyright"],
+.emoji[aria-label="registered"],
+.emoji[aria-label="trade mark"],
+.emoji[aria-label="multiply"],
+.emoji[aria-label="plus"],
+.emoji[aria-label="minus"],
+.emoji[aria-label="divide"],
+.emoji[aria-label="curly loop"],
+.emoji[aria-label="double curly loop"],
+.emoji[aria-label="wavy dash"],
+.emoji[aria-label="paw prints"],
+.emoji[aria-label="musical note"],
+.emoji[aria-label="musical notes"] {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
+/* ============================================================================
+   Where no variable reaches. Keep this short; every rule names why.
+   ========================================================================== */
+
+/* ── Links: blue-400 on dark (8.3:1 on black) ───────────────────────────── */
+/* Gitea colours links with --color-primary, which here is the action fill.
+   Inside a link the variable is blue-400; below it (a badge, a label, a
+   button inside a link) it is the fill again. Buttons and labels that are
+   themselves links keep the fill. */
+a:not(.ui.button, .button, .ui.label) { --color-primary: #74A9CC; }
+a:not(.ui.button, .button, .ui.label) * { --color-primary: #336E97; }
+a:not(.ui.button, .button, .ui.label):hover [class*="color-text"] { --color-primary: #74A9CC; }
+
+/* ── Focus: blue-400 on every control ───────────────────────────────────── */
+button:focus-visible,
+.ui.button:focus-visible,
+[role="button"]:focus-visible { outline-color: #74A9CC; }
+/* A focused field takes the blue-400 edge (Gitea: --color-primary). */
+input:not([type="checkbox"], [type="radio"]):focus,
+textarea:focus,
+.ui.input input:focus,
+.ui.form input:not([type="checkbox"], [type="radio"]):focus,
+.ui.form select:focus,
+.ui.form textarea:focus,
+.ui.search > .prompt:focus { border-color: #74A9CC; }
+
+::selection,
+relative-time::part(root)::selection { background: rgba(67, 137, 184, 0.32); color: #F3F6F9; }
+
+/* A search hit or marked text: the soft blue of a selection, not the
+   browser's yellow (Gitea has no rule for <mark>). */
+mark { background: rgba(67, 137, 184, 0.28); color: inherit; border-radius: 3px; }
+
+/* ── The one filled button: hover glows (mouse only), press goes darker ── */
+@media (hover: hover) {
+  .ui.primary.button:hover { box-shadow: 0 6px 16px rgba(67, 137, 184, 0.34); }
+}
+.ui.primary.button:active { box-shadow: none; }
+
+/* Green is never a button. Gitea's one green button ("Compare & pull request"
+   after a push) is an action, so it takes the action blue. */
+.ui.green.button { background: #336E97; color: #FFFFFF; }
+.ui.green.button:hover { background: #28567A; color: #FFFFFF; }
+.ui.green.button:active { background: #21486A; color: #FFFFFF; }
+.ui.basic.green.button { background: transparent; border-color: #74A9CC; color: #74A9CC; }
+
+/* The notification count: white on the action blue (Gitea sets the navbar's
+   ground as the text colour, which is black here: 3.8:1). */
+#navbar a.item .notification_count,
+#navbar a.item .header-stopwatch-dot,
+#navbar .item .navbar-admin-badge { color: #FFFFFF; }
+
+/* ── Status labels: the design system's Badge — tone text on its soft ground ─ */
+/* Gitea fills them solid with white text (green-500 under white is 3.7:1). */
+.ui.ui.ui.green.label  { background: rgba(78, 148, 80, 0.16);  border-color: transparent; color: #76AE79; }
+.ui.ui.ui.red.label    { background: rgba(203, 49, 55, 0.16);  border-color: transparent; color: #E5736F; }
+.ui.ui.ui.yellow.label { background: rgba(224, 184, 58, 0.12); border-color: transparent; color: #E0B83A; }
+.ui.ui.ui.orange.label { background: rgba(201, 119, 46, 0.14); border-color: transparent; color: #D98C4A; }
+.ui.ui.ui.purple.label { background: rgba(67, 137, 184, 0.16); border-color: transparent; color: #74A9CC; }
+a.ui.ui.ui.green.label:hover  { background: rgba(78, 148, 80, 0.26);  border-color: transparent; color: #A7CDA9; }
+a.ui.ui.ui.red.label:hover    { background: rgba(203, 49, 55, 0.26);  border-color: transparent; color: #E5736F; }
+a.ui.ui.ui.yellow.label:hover { background: rgba(224, 184, 58, 0.22); border-color: transparent; color: #EBCB6B; }
+a.ui.ui.ui.orange.label:hover { background: rgba(201, 119, 46, 0.24); border-color: transparent; color: #D98C4A; }
+a.ui.ui.ui.purple.label:hover { background: rgba(67, 137, 184, 0.26); border-color: transparent; color: #9EC4DD; }
+
+/* ── Issue and pull request states ──────────────────────────────────────── */
+/* Open is live: green. Merged is done and integrated: blue (--color-purple).
+   Closed is over, not an error: it drops to the ink ramp, so red stays for
+   danger and failure alone. */
+.issue-state-label.ui.ui.ui.red.label { background: rgba(122, 136, 150, 0.16); color: #A4B0BC; }
+.svg.octicon-issue-closed.tw-text-red,
+.svg.octicon-git-pull-request-closed.tw-text-red { color: #7A8896 !important; }
+
+/* ── Tabs: the current one is white with a blue edge — blue selects ─────── */
+.ui.secondary.pointing.menu .active.item,
+.ui.secondary.pointing.menu .active.item:hover { border-color: #74A9CC; }
+
+/* ── Footer: quiet corner text ──────────────────────────────────────────── */
+.page-footer { color: #566472; font-size: 12px; }
+.page-footer strong { font-weight: 500; }
+.page-footer a,
+.page-footer .ui.dropdown { color: #7A8896; }
+@media (hover: hover) {
+  .page-footer a:hover,
+  .page-footer .ui.dropdown:hover { color: #CBD3DB; text-decoration-line: none; }
+}
+
+/* ── Sign-in: the brand surface, as on the Authelia login ───────────────── */
+/* Signed out is where a product shows the lockup and the spectral line (the
+   start page does the same in hardbyte.css, for every theme). The line takes
+   the navbar's hairline; below it no card, one narrow, quiet column on the
+   black ground: the lockup, the title, the house labels above 48px fields. */
+body:has(.page-content.user.signin) #navbar { position: relative; border-bottom-color: transparent; }
+body:has(.page-content.user.signin) #navbar::after {
+  content: ""; position: absolute; inset: auto 0 -1px 0; height: 2px; pointer-events: none;
+  background: linear-gradient(115deg, #CB3137 0%, #7A6E2A 36%, #4E9450 64%, #4389B8 100%);
+}
+@keyframes hb-arrive { from { opacity: 0; } }
+.page-content.user.signin > .ui.grid > .column {
+  max-width: 392px !important; padding: max(56px, 9vh) 16px 112px !important; gap: 0 !important;
+  animation: hb-arrive 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.page-content.user.signin > .ui.grid > .column::before {
+  content: ""; display: block; width: 200px; height: 37px; margin: 0 auto 48px;
+  background: url("../img/lockup-dark.png") center / contain no-repeat;
+}
+.page-content.user.signin h4.ui.top.attached.header {
+  margin: 0 0 32px; padding: 0; border: 0; background: transparent;
+  font-size: 26px; line-height: 1.22; font-weight: 700; letter-spacing: -0.02em; color: #F3F6F9;
+}
+.page-content.user.signin .ui.attached.segment { margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.page-content.user.signin .ui.form .field { margin-bottom: 20px; }
+.page-content.user.signin .ui.form .field > label,
+.page-content.user.signin .ui.form .field > .tw-flex > label {
+  margin-bottom: 8px; font-size: 12px; line-height: 1.2; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: #7A8896;
+}
+.page-content.user.signin .ui.form .required.field > label::after { content: none; }
+.page-content.user.signin .ui.form .field > .tw-flex { align-items: baseline; margin-bottom: 8px !important; }
+.page-content.user.signin .ui.form .field > .tw-flex > label { margin-bottom: 0; }
+.page-content.user.signin .ui.form .field > .tw-flex a { font-size: 13px; font-weight: 500; }
+.page-content.user.signin .ui.form input:not([type="checkbox"]) {
+  height: 48px; padding: 0 16px; border-radius: 8px; font-size: 16px;
+}
+.page-content.user.signin .ui.form .inline.field { display: flex; align-items: center; min-height: 48px; margin-bottom: 8px; }
+.page-content.user.signin .ui.checkbox label { font-size: 14px; font-weight: 500; color: #CBD3DB; }
+.page-content.user.signin .ui.form .ui.primary.button { min-height: 48px; font-size: 15px; font-weight: 600; border-radius: 8px; }
+/* With an identity provider (production: Authelia, Gitea's own label), that is
+   the way in for everyone but the break-glass admin: its button comes first
+   and is the one filled button; the password form moves below the "or" and
+   its button becomes the secondary edge. */
+.page-content.user.signin .ui.attached.segment:has(#external-login-navigator) { display: flex; flex-direction: column; }
+.page-content.user.signin .ui.attached.segment:has(#external-login-navigator) > #external-login-navigator { order: -2; padding: 0; }
+.page-content.user.signin .ui.attached.segment:has(#external-login-navigator) > .divider { order: -1; margin: 24px 0; }
+.page-content.user.signin .external-login-link {
+  min-height: 48px; margin: 0; justify-content: center; border: 0; border-radius: 8px;
+  background: #336E97; color: #FFFFFF; font-size: 15px; font-weight: 600;
+}
+@media (hover: hover) {
+  .page-content.user.signin .external-login-link:hover { background: #28567A; color: #FFFFFF; box-shadow: 0 6px 16px rgba(67, 137, 184, 0.34); }
+}
+.page-content.user.signin .external-login-link:active { background: #21486A; box-shadow: none; }
+/* The provider's icon in the button's white, not its own orange and grey. */
+.page-content.user.signin .external-login-link .svg path { fill: currentColor; }
+.page-content.user.signin .ui.attached.segment:has(#external-login-navigator) .ui.form .ui.primary.button {
+  background: transparent; color: #CBD3DB; border: 1px solid #566472; box-shadow: none;
+}
+@media (hover: hover) {
+  .page-content.user.signin .ui.attached.segment:has(#external-login-navigator) .ui.form .ui.primary.button:hover {
+    background: transparent; color: #F3F6F9; border-color: #7A8896; box-shadow: none;
+  }
+}
+.page-content.user.signin .divider.divider-text { color: #7A8896; font-size: 13px; }
+
+/* Other ways in (passkey): below a hairline, quiet. */
+.page-content.user.signin .ui.container.fluid + .ui.container.fluid {
+  margin-top: 32px; padding-top: 24px; border-top: 1px solid #1E2935;
+}
+.page-content.user.signin .signin-passkey { font-size: 14px; font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
