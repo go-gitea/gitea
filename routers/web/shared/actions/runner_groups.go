@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	actions_model "gitea.dev/models/actions"
@@ -26,7 +24,6 @@ func getRunnerGroupsCtx(ctx *context.Context) *runnersCtx {
 		ctx.ServerError("getRunnersCtx", err)
 		return nil
 	}
-	rCtx.RedirectLink = strings.TrimSuffix(rCtx.RedirectLink, "runners/") + "runner-groups"
 	return rCtx
 }
 
@@ -52,7 +49,6 @@ func RunnerGroups(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.groups")
 	ctx.Data["PageType"] = "runner-groups"
 	ctx.Data["PageIsSharedSettingsRunnerGroups"] = true
-	ctx.Data["Link"] = rCtx.RedirectLink
 	ctx.Data["RunnerGroups"] = groups
 	ctx.Data["RunnerGroupRunnerCounts"] = runners
 	ctx.Data["RunnerGroupRepoCounts"] = repos
@@ -79,7 +75,7 @@ func RunnerGroupCreate(ctx *context.Context) {
 		ctx.ServerError("CreateRunnerGroup", err)
 		return
 	}
-	ctx.JSONRedirect(fmt.Sprintf("%s/%d", rCtx.RedirectLink, group.ID))
+	ctx.JSONRedirect(fmt.Sprintf("%s/%d", rCtx.RunnerGroupsLink, group.ID))
 }
 
 func RunnerGroupEdit(ctx *context.Context) {
@@ -102,7 +98,6 @@ func RunnerGroupEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.runners.groups")
 	ctx.Data["PageType"] = "runner-group-edit"
 	ctx.Data["PageIsSharedSettingsRunnerGroups"] = true
-	ctx.Data["Link"] = fmt.Sprintf("%s/%d", rCtx.RedirectLink, group.ID)
 	ctx.Data["RunnerGroup"] = group
 	ctx.Data["RunnerGroupRepos"] = repos
 	ctx.Data["RunnerGroupCandidates"] = candidates
@@ -117,27 +112,25 @@ func RunnerGroupEditPost(ctx *context.Context) {
 	if group == nil {
 		return
 	}
-	repoIDs, err := base.StringsToInt64s(util.SplitTrimSpace(ctx.FormString("repos"), ","))
-	runnerIDs, errRunners := base.StringsToInt64s(util.SplitTrimSpace(ctx.FormString("runners"), ","))
-	err = errors.Join(err, errRunners)
-	if err == nil {
-		err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
-			if err := actions_model.SetRunnerAccess(txCtx, group, ctx.FormString("repo_access") == "all", repoIDs); err != nil {
-				return err
-			}
-			return actions_model.SetRunnerGroupMembers(txCtx, group, runnerIDs)
-		})
-	}
+	err := db.WithTx(ctx, func(txCtx stdctx.Context) error {
+		if err := actions_model.SetRunnerAccess(txCtx, group, ctx.FormString("repo_access") == "all", ctx.FormStringInt64s("repos")); err != nil {
+			return err
+		}
+		return actions_model.SetRunnerGroupMembers(txCtx, group, ctx.FormStringInt64s("runners"))
+	})
 	switch {
 	case err == nil:
 		ctx.Flash.Success(ctx.Tr("actions.runners.groups.update_success"))
-	case errors.Is(err, util.ErrPermissionDenied), errors.Is(err, strconv.ErrSyntax), errors.Is(err, strconv.ErrRange):
+	case errors.Is(err, util.ErrPermissionDenied):
 		ctx.Flash.Error(ctx.Tr("actions.runners.groups.target_invalid"))
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.NotFound(err)
+		return
 	default:
 		ctx.ServerError("RunnerGroupEditPost", err)
 		return
 	}
-	ctx.Redirect(fmt.Sprintf("%s/%d", rCtx.RedirectLink, group.ID))
+	ctx.Redirect(fmt.Sprintf("%s/%d", rCtx.RunnerGroupsLink, group.ID))
 }
 
 func RunnerGroupDelete(ctx *context.Context) {
@@ -155,7 +148,7 @@ func RunnerGroupDelete(ctx *context.Context) {
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.runners.groups.delete_success"))
-	ctx.JSONRedirect(rCtx.RedirectLink)
+	ctx.JSONRedirect(rCtx.RunnerGroupsLink)
 }
 
 func runnerGroupInScope(ctx *context.Context) (*runnersCtx, *actions_model.ActionRunnerGroup) {

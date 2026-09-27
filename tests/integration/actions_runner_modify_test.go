@@ -258,7 +258,7 @@ func TestActionsRunnerModify(t *testing.T) {
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d", adminGroupsURL, group.ID), map[string]string{
 				"repos": strconv.FormatInt(repo1.ID, 10), "runners": runners,
 			})
-			sessionAdmin.MakeRequest(t, req, http.StatusSeeOther)
+			assert.Equal(t, fmt.Sprintf("%s/%d", adminGroupsURL, group.ID), sessionAdmin.MakeRequest(t, req, http.StatusSeeOther).Header().Get("Location"))
 		}
 		assign(t, strconv.FormatInt(runner.ID, 10))
 		assert.Equal(t, group.ID, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: runner.ID}).GroupID)

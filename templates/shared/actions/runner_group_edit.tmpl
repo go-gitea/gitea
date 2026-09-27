@@ -27,7 +27,7 @@
 				<div class="field">
 					<div class="ui radio checkbox">
 						<input type="radio" name="repo_access" value="selected" {{if not .RunnerGroup.IncludesAllRepositories}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "actions.general.cross_repo_selected"}}</label>
+						<label>{{ctx.Locale.Tr "org.teams.specific_repositories"}}</label>
 					</div>
 				</div>
 				<div class="ui fluid multiple search selection dropdown custom {{if .RunnerGroup.IncludesAllRepositories}}tw-hidden{{end}}" aria-label="{{ctx.Locale.Tr "settings.repos"}}" data-uid="{{.RunnerGroup.OwnerID}}">
