@@ -1,7 +1,7 @@
 {{$file := .file}}
 {{/* "expandable" offers the arrows, "expanded" means these rows came from them, and neither is
 what the PR conversation snippet and the editor preview get */}}
-{{$expandMode := or $.root.DiffExpandMode ""}}
+{{$expandMode := or $.expandMode ""}}
 <colgroup>
 	<col width="50">
 	<col width="50">

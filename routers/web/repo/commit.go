@@ -367,7 +367,6 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Title"] = commit.MessageTitle() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
-	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpandable
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	if !fileOnly {
