@@ -13,14 +13,14 @@ permissions: {}
 
 jobs:
   binary:
-    runs-on: namespace-profile-gitea-release-binary
+    runs-on: namespace-profile-teabag-release-binary
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
-      # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
+      # fetch all tags to ensure that "git describe" reports expected Teabag version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
@@ -65,7 +65,7 @@ jobs:
           CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
           BRANCH: ${{ steps.clean_name.outputs.branch }}
         run: |
-          aws s3 sync dist/release "s3://$CLOUDFLARE_R2_BUCKET/gitea/$BRANCH" --endpoint-url "https://$CLOUDFLARE_R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
+          aws s3 sync dist/release "s3://$CLOUDFLARE_R2_BUCKET/teabag/$BRANCH" --endpoint-url "https://$CLOUDFLARE_R2_ACCOUNT_ID.r2.cloudflarestorage.com" --no-progress
       - name: Install GH CLI
         uses: dev-hanz-ops/install-gh-cli-action@6089bdde54118ad7ca3d22053eb2d69387fd2779 # v0.3.0
         with:
@@ -78,14 +78,14 @@ jobs:
           gh release create "$TAG" --title "$TAG" --draft --notes-from-tag dist/release/*
 
   container:
-    runs-on: namespace-profile-gitea-release-docker
+    runs-on: namespace-profile-teabag-release-docker
     permissions:
       contents: read
       packages: write # to publish to ghcr.io
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
-      # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
+      # fetch all tags to ensure that "git describe" reports expected Teabag version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
@@ -95,21 +95,19 @@ jobs:
         id: meta
         with:
           images: |-
-            gitea/gitea
-            ghcr.io/go-gitea/gitea
+            ghcr.io/italiatroller-1990/teabag
           flavor: |
             latest=false
           # 1.2.3-rc0
           tags: |
             type=semver,pattern={{version}}
           annotations: |
-            org.opencontainers.image.authors="maintainers@gitea.io"
+            org.opencontainers.image.authors="maintainers@teabag.local"
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta_rootless
         with:
           images: |-
-            gitea/gitea
-            ghcr.io/go-gitea/gitea
+            ghcr.io/italiatroller-1990/teabag
           # each tag below will have the suffix of -rootless
           flavor: |
             latest=false
@@ -118,12 +116,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
           annotations: |
-            org.opencontainers.image.authors="maintainers@gitea.io"
-      - name: Login to Docker Hub
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+            org.opencontainers.image.authors="maintainers@teabag.local"
       - name: Login to GHCR using PAT
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:

@@ -10,7 +10,7 @@ permissions: {}
 jobs:
   crowdin-pull:
     runs-on: ubuntu-latest
-    if: github.repository == 'go-gitea/gitea'
+    if: github.repository == 'italiatroller-1990/Teabag'
     permissions:
       contents: write
     steps:
@@ -33,10 +33,10 @@ jobs:
       - name: push translations to repo
         uses: appleboy/git-push-action@3b2c8661652360dbf1afe1b319a49dbb739c39f1 # v1.2.0
         with:
-          author_email: "teabot@gitea.io"
-          author_name: GiteaBot
+          author_email: "teabot@teabag.local"
+          author_name: TeabagBot
           branch: main
           commit: true
           commit_message: "[skip ci] Updated translations via Crowdin"
-          remote: "git@github.com:go-gitea/gitea.git"
+          remote: "git@github.com:italiatroller-1990/Teabag.git"
           ssh_key: ${{ secrets.DEPLOY_KEY }}

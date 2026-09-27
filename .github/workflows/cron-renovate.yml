@@ -17,7 +17,7 @@ permissions:
 jobs:
   cron-renovate:
     runs-on: ubuntu-latest
-    if: github.repository == 'go-gitea/gitea' # prevent running on forks
+    if: github.repository == 'italiatroller-1990/Teabag' # prevent running on forks
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -29,4 +29,4 @@ jobs:
         env:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
           RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg|generate-codemirror-languages)$"]'
-          RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'
+          RENOVATE_REPOSITORIES: '["italiatroller-1990/Teabag"]'

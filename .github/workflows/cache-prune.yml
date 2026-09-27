@@ -17,7 +17,7 @@ concurrency:
 jobs:
   prune:
     runs-on: ubuntu-latest
-    if: github.repository == 'go-gitea/gitea'
+    if: github.repository == 'italiatroller-1990/Teabag'
     permissions:
       actions: write # to delete caches
     env:
