@@ -81,3 +81,9 @@ func TestShouldPersistLastActive(t *testing.T) {
 		})
 	}
 }
+
+func TestCanRunJobLabelsCaseInsensitive(t *testing.T) {
+	runner := &ActionRunner{AgentLabels: []string{"self-hosted", "Linux", "X64"}}
+	assert.True(t, runner.CanRunJob("", []string{"SELF-HOSTED", "linux"}))
+	assert.False(t, runner.CanRunJob("", []string{"linux", "arm64"}))
+}

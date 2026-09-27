@@ -119,9 +119,10 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		if err != nil {
 			return fmt.Errorf("marshal expanded job: %w", err)
 		}
-		dst.Name = util.EllipsisDisplayString(combo.Name, 255)
-		dst.WorkflowPayload, dst.RunsOn, dst.RunsOnGroup = payload, combo.RunsOnLabels(), util.EllipsisDisplayString(combo.RunsOnGroup(), 255)
+		dst.Name = combo.DisplayName()
+		dst.WorkflowPayload, dst.RunsOn, dst.RunsOnGroup = payload, combo.RunsOn(), combo.RunsOnGroup()
 		dst.ContinueOnError = combo.GetContinueOnError()
+		dst.MaxParallel = parseMaxParallel(job.JobID, combo.Strategy.MaxParallelString)
 		return nil
 	}
 
@@ -174,7 +175,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	job.IsMatrixDeferred = false
 	affected, err := actions_model.UpdateRunJob(ctx, job,
 		builder.Eq{"is_matrix_deferred": true, "status": actions_model.StatusBlocked},
-		"name", "workflow_payload", "runs_on", "runs_on_group", "continue_on_error", "is_matrix_deferred")
+		"name", "workflow_payload", "runs_on", "runs_on_group", "continue_on_error", "max_parallel", "is_matrix_deferred")
 	if err != nil {
 		return nil, fmt.Errorf("claim placeholder of job %d: %w", job.ID, err)
 	}
@@ -208,10 +209,11 @@ func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
 	if err != nil {
 		return fmt.Errorf("parse deferred matrix payload: %w", err)
 	}
-	clone.Name = util.EllipsisDisplayString(parsed.Name, 255)
+	clone.Name = parsed.DisplayName()
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
-	clone.RunsOn, clone.RunsOnGroup = parsed.RunsOnLabels(), util.EllipsisDisplayString(parsed.RunsOnGroup(), 255)
+	clone.RunsOn, clone.RunsOnGroup = parsed.RunsOn(), parsed.RunsOnGroup()
 	clone.ContinueOnError = parsed.GetContinueOnError()
+	clone.MaxParallel = parseMaxParallel(clone.JobID, parsed.Strategy.MaxParallelString)
 	clone.IsMatrixDeferred = true
 	return nil
 }

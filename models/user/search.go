@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -55,7 +54,6 @@ type SearchUserOptions struct {
 	IsRestricted       optional.Option[bool]
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
-	IncludeReserved    bool
 }
 
 func (opts *SearchUserOptions) ToOrders() string {
@@ -71,18 +69,6 @@ func (opts *SearchUserOptions) ApplyPublicOnly(publicOnly bool) {
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) db.Session {
 	var cond builder.Cond
 	cond = builder.In("type", opts.Types)
-	if opts.IncludeReserved {
-		switch {
-		case slices.Contains(opts.Types, UserTypeIndividual):
-			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
-				builder.Eq{"type": UserTypeBot},
-			).Or(
-				builder.Eq{"type": UserTypeRemoteUser},
-			)
-		case slices.Contains(opts.Types, UserTypeOrganization):
-			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
-		}
-	}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)

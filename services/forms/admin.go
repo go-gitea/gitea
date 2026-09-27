@@ -13,9 +13,10 @@ type AdminCreateUserForm struct {
 	middleware.FormDefaultValidator
 	LoginType          string `binding:"Required"`
 	LoginName          string
-	UserName           string `binding:"Required;Username;MaxSize(40)"`
-	Email              string `binding:"Required;Email;MaxSize(254)"`
-	Password           string `binding:"MaxSize(255)"`
+	UserName           string                 `binding:"Required;Username;MaxSize(40)"`
+	UserType           structs.UserTypeString `binding:"In(,User,Bot)"`
+	Email              string                 `binding:"Required;Email;MaxSize(254)"`
+	Password           string                 `binding:"MaxSize(255)"`
 	SendNotify         bool
 	MustChangePassword bool
 	Visibility         structs.VisibleType
@@ -39,8 +40,9 @@ type AdminEditBadgeForm struct {
 // AdminEditUserForm form for admin to create user
 type AdminEditUserForm struct {
 	middleware.FormDefaultValidator
-	LoginType               string `binding:"Required"`
-	UserName                string `binding:"Username;MaxSize(40)"`
+	LoginType               string                 `binding:"Required"`
+	UserType                structs.UserTypeString `binding:"In(,User,Bot)"`
+	UserName                string                 `binding:"Username;MaxSize(40)"`
 	LoginName               string
 	FullName                string `binding:"MaxSize(100)"`
 	Email                   string `binding:"Required;Email;MaxSize(254)"`

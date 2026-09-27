@@ -135,9 +135,9 @@
 				<span class="flex-text-inline tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_at" $authors $committedAt}}</span>
 			{{else}}
 				{{$committerAvatar := ""}}{{$committerDisplayName := ""}}
-				{{if .Verification.CommittingUser}}
+				{{if and .Verification .Verification.CommittingUser}}
 					{{$committerAvatar = ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
-					{{$committerDisplayName = .Verification.CommittingUser.GetShortDisplayNameLinkHTML}}
+					{{$committerDisplayName = HTMLFormat `%s%s` .Verification.CommittingUser.GetShortDisplayNameLinkHTML (ctx.RenderUtils.UserTypeLabel .Verification.CommittingUser)}}
 				{{else}}
 					{{$committerAvatar = ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20}}
 					{{$committerDisplayName = .Commit.Committer.Name}}

@@ -270,8 +270,12 @@ func (ctx *Context) JSONErrorAuto(err error) {
 		ctx.JSON(httpCode, buildJsonErrorMap(errMsg))
 		return
 	}
-	log.ErrorWithSkip(1, "JSONErrorAuto: server internal error: %v", err)
-	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(ctx.Locale.TrString("error.occurred")))
+
+	logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, err), log.DEBUG, log.ERROR)
+	log.Log(1, logLevel, "JSONErrorAuto: server internal error: %v", err)
+
+	userErrorMsg := ctx.buildUserErrorMessage("internal server error", err)
+	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
 }
 
 func (ctx *Context) JSONError[T string | template.HTML](msg T) {

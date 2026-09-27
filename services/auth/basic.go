@@ -82,6 +82,9 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 			log.Error("GetUserByID:  %v", err)
 			return nil, err
 		}
+		if !u.IsIndividual() {
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
 
 		store.GetData()["LoginMethod"] = OAuth2TokenMethodName
 		store.GetData()["ApiTokenScope"] = accessTokenScope

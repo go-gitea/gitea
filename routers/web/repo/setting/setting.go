@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/indexer/stats"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
@@ -570,10 +571,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	var units []repo_model.RepoUnit
 	var deleteUnitTypes []unit_model.Type
 
-	// This section doesn't require repo_name/RepoName to be set in the form, don't show it
-	// as an error on the UI for this action
-	ctx.Data["Err_RepoName"] = nil
-
 	if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
 		repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
 		repoChanged = true
@@ -587,8 +584,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 
 	if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 		if !validation.IsValidURL(form.ExternalWikiURL) {
-			ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
-			ctx.Redirect(repo.Link() + "/settings")
+			ctx.JSONError(ctx.Tr("repo.settings.external_wiki_url_error"))
 			return
 		}
 
@@ -611,19 +607,21 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	if form.DefaultWikiBranch != "" {
 		if err := wiki_service.ChangeDefaultWikiBranch(ctx, repo, form.DefaultWikiBranch); err != nil {
 			log.Error("ChangeDefaultWikiBranch failed, err: %v", err)
-			ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch"))
+			ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch")) // skip the error, continue, and reload page
 		}
 	}
 
-	if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-		if !validation.IsValidURL(form.ExternalTrackerURL) {
-			ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
-			ctx.Redirect(repo.Link() + "/settings")
+	if form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+		if (!form.EnableInternalTracker || form.ExternalTrackerURL != "") && !validation.IsValidURL(form.ExternalTrackerURL) {
+			ctx.JSONError(ctx.Tr("repo.settings.external_tracker_url_error"))
 			return
 		}
-		if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
-			ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
-			ctx.Redirect(repo.Link() + "/settings")
+		if form.TrackerURLFormat != "" && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
+			ctx.JSONError(ctx.Tr("repo.settings.tracker_url_format_error"))
+			return
+		}
+		if form.EnableInternalTracker && (form.TrackerIssueStyle == "" || form.TrackerIssueStyle == markup.IssueNameStyleNumeric) {
+			ctx.JSONError(ctx.Tr("repo.settings.tracker_issue_style_desc"))
 			return
 		}
 		units = append(units, newRepoUnit(repo, unit_model.TypeExternalTracker, &repo_model.ExternalTrackerConfig{
@@ -632,21 +630,18 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			ExternalTrackerStyle:         form.TrackerIssueStyle,
 			ExternalTrackerRegexpPattern: form.ExternalTrackerRegexpPattern,
 		}))
-		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-	} else if form.EnableIssues && !form.EnableExternalTracker && !unit_model.TypeIssues.UnitGlobalDisabled() {
+	} else {
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
+	}
+
+	if form.EnableInternalTracker && !unit_model.TypeIssues.UnitGlobalDisabled() {
 		units = append(units, newRepoUnit(repo, unit_model.TypeIssues, &repo_model.IssuesConfig{
 			EnableTimetracker:                form.EnableTimetracker,
 			AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 			EnableDependencies:               form.EnableIssueDependencies,
 		}))
-		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 	} else {
-		if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
-		}
-		if !unit_model.TypeIssues.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
-		}
+		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 	}
 
 	if form.EnableProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
@@ -689,8 +684,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}
 		if err := prConfig.ValidateUpdateSettings(); err != nil {
-			ctx.Flash.Error(err.Error())
-			ctx.Redirect(repo.Link() + "/settings")
+			ctx.JSONErrorAuto(err)
 			return
 		}
 		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, prConfig))
@@ -699,8 +693,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if len(units) == 0 {
-		ctx.Flash.Error(ctx.Tr("repo.settings.update_settings_no_unit"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+		ctx.JSONError(ctx.Tr("repo.settings.update_settings_no_unit"))
 		return
 	}
 
@@ -714,10 +707,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			return
 		}
 	}
-	log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	ctx.JSONRedirect("")
 }
 
 func handleSettingsPostSigning(ctx *context.Context) {

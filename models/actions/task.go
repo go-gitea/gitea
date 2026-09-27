@@ -21,7 +21,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
 
@@ -66,10 +65,6 @@ const taskReportTimeout = time.Minute
 
 func init() {
 	db.RegisterModel(new(ActionTask))
-}
-
-func (task *ActionTask) Duration() time.Duration {
-	return calculateDuration(task.Started, task.Stopped, task.Status, task.Updated)
 }
 
 func (task *ActionTask) IsStopped() bool {
@@ -163,6 +158,29 @@ func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, 
 		return tasks, nil
 	}
 	return tasks, db.GetEngine(ctx).In("id", ids).Find(&tasks)
+}
+
+// GetTaskRunnerNames returns runner names keyed by task ID without loading task logs.
+func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string, error) {
+	names := make(map[int64]string, len(taskIDs))
+	if len(taskIDs) == 0 {
+		return names, nil
+	}
+	var rows []struct {
+		ID   int64
+		Name string
+	}
+	err := db.GetEngine(ctx).Table("action_task").
+		Join("INNER", "action_runner", "action_runner.id = action_task.runner_id").
+		In("action_task.id", taskIDs).
+		Select("action_task.id, action_runner.name").Find(&rows)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		names[row.ID] = row.Name
+	}
+	return names, nil
 }
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
@@ -491,6 +509,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			return nil
 		}
 
+		now := timeutil.TimeStampNow()
 		// state.Result is not unspecified means the task is finished
 		if state.Result != runnerv1.Result_RESULT_UNSPECIFIED {
 			if task.Status == StatusCancelling {
@@ -499,7 +518,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			} else {
 				task.Status = StatusFromResult(state.Result)
 			}
-			task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+			task.Stopped = now
 			if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
 				return err
 			}
@@ -513,7 +532,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 		} else {
 			// Force update ActionTask.Updated to avoid the task being judged as a zombie task
-			task.Updated = timeutil.TimeStampNow()
+			task.Updated = now
 			if err := UpdateTask(ctx, task, "updated"); err != nil {
 				return err
 			}
@@ -529,11 +548,13 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 				result = v.Result
 				step.LogIndex = v.LogIndex
 				step.LogLength = v.LogLength
-				step.Started = convertTimestamp(v.StartedAt)
-				step.Stopped = convertTimestamp(v.StoppedAt)
+				if step.Started == 0 && v.StartedAt != nil {
+					step.Started = now
+				}
 			}
 			if result != runnerv1.Result_RESULT_UNSPECIFIED {
 				step.Status = StatusFromResult(result)
+				step.Stopped = util.IfZero(step.Stopped, now)
 			} else if step.Started != 0 {
 				step.Status = StatusRunning
 			}
@@ -643,13 +664,6 @@ func FindOldTasksToExpire(ctx context.Context, olderThan timeutil.TimeStamp, lim
 	return tasks, e.Where("stopped > 0 AND stopped < ? AND log_expired = ?", olderThan, false).
 		Limit(limit).
 		Find(&tasks)
-}
-
-func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {
-	if timestamp.GetSeconds() == 0 && timestamp.GetNanos() == 0 {
-		return timeutil.TimeStamp(0)
-	}
-	return timeutil.TimeStamp(timestamp.AsTime().Unix())
 }
 
 func logFileName(repoFullName string, taskID int64) string {

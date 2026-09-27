@@ -7,8 +7,11 @@ import (
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -452,4 +455,53 @@ func TestCollectMatrixCollapse(t *testing.T) {
 		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
 		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
 	})
+}
+
+func TestRerunDecidesJobIf(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
+	ctx := t.Context()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	variable, err := actions_model.InsertVariable(ctx, 0, repo.ID, "DEPLOY", "yes", "")
+	require.NoError(t, err)
+
+	run := insertMaxParallelRun(t, `on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+  deploy:
+    if: vars.DEPLOY == 'yes'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`, false)
+	jobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, run.LatestAttemptID) {
+		require.Equal(t, actions_model.StatusWaiting, job.Status)
+		job.Status = actions_model.StatusSuccess
+		_, err = actions_model.UpdateRunJob(ctx, job, nil, "status")
+		require.NoError(t, err)
+		jobs[job.JobID] = job
+	}
+	run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+
+	variable.Data = "no"
+	_, err = actions_model.UpdateVariableCols(ctx, variable, "data")
+	require.NoError(t, err)
+	attempt, err := RerunWorkflowRunJobs(ctx, repo, run, &user_model.User{ID: 1}, []*actions_model.ActionRunJob{jobs["deploy"]})
+	require.NoError(t, err)
+	rerunJobs := map[string]*actions_model.ActionRunJob{}
+	for _, job := range runJobs(t, run.ID, attempt.ID) {
+		rerunJobs[job.JobID] = job
+	}
+	assert.Equal(t, actions_model.StatusSuccess, rerunJobs["build"].Status)
+	assert.Equal(t, actions_model.StatusSkipped, rerunJobs["deploy"].Status)
+
+	attempt = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: attempt.ID})
+	assert.Equal(t, actions_model.StatusSuccess, attempt.Status)
+	assert.NotZero(t, attempt.Stopped)
+	assert.Equal(t, actions_model.StatusSuccess, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID}).Status)
 }

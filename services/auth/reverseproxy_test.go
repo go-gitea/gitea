@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"net/http"
 	"testing"
 
 	"gitea.dev/models/unittest"
@@ -16,6 +17,22 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestReverseProxyIgnoresBot(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.ReverseProxyAuthUser, "X-WEBAUTH-USER")()
+	defer test.MockVariableValue(&setting.ReverseProxyAuthEmail, "X-WEBAUTH-EMAIL")()
+	defer test.MockVariableValue(&setting.Service.EnableReverseProxyEmail, true)()
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: 2, Type: user_model.UserTypeBot}, "type"))
+
+	req, err := http.NewRequest(http.MethodGet, "/", nil)
+	require.NoError(t, err)
+	req.Header.Set(setting.ReverseProxyAuthUser, "user2")
+	req.Header.Set(setting.ReverseProxyAuthEmail, "user2@example.com")
+	user, err := (&ReverseProxy{}).Verify(req, nil, nil, nil)
+	require.NoError(t, err)
+	assert.Nil(t, user)
+}
 
 func TestReverseProxyLastLogin(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())

@@ -132,9 +132,17 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		ctx.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
 	}
 
+	var unreadNotificationIDs []int64
+	for _, n := range notifications {
+		if n.Status == activities_model.NotificationStatusUnread {
+			unreadNotificationIDs = append(unreadNotificationIDs, n.ID)
+		}
+	}
+
 	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageType"] = pageType
 	ctx.Data["Notifications"] = notifications
+	ctx.Data["CurUnreadNotificationIDs"] = strings.Join(base.Int64sToStrings(unreadNotificationIDs), ",")
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 
@@ -192,8 +200,22 @@ func NotificationPurgePost(ctx *context.Context) {
 		ctx.ServerError("MarkAllRead", err)
 		return
 	}
+	ctx.JSONRedirect(setting.AppSubURL + "/notifications")
+}
 
-	ctx.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
+// NotificationPurgePagePost is a route for marking only the notifications on the current page as read
+func NotificationPurgePagePost(ctx *context.Context) {
+	nl, err := activities_model.GetNotificationsByIDs(ctx, ctx.FormStringInt64s("ids"), ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetNotificationsByIDs", err)
+		return
+	}
+	_, err = notifications.SetManyNotificationStatuses(ctx, nl, ctx.Doer, activities_model.NotificationStatusRead)
+	if err != nil {
+		ctx.ServerError("SetManyNotificationStatuses", err)
+		return
+	}
+	ctx.JSONRedirect("")
 }
 
 // NotificationSubscriptions returns the list of subscribed issues
