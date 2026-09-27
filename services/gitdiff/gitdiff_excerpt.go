@@ -5,9 +5,11 @@ package gitdiff
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -79,6 +81,33 @@ func DeserializeGapRequest(gapRequest string) (BlobExcerptOptions, error) {
 		}
 	}
 	return DeserializeGapNumbers(gapRequest)
+}
+
+// maxExcerptGaps rejects absurd input rather than bounding the work: the gaps of a file are read in
+// one pass over it and cannot overlap, so naming more of them costs little. A file heavily rewritten
+// in many places still has far fewer hunks than this.
+const maxExcerptGaps = 1000
+
+// DeserializeGapRequests reads every gap a request names, in the order they appear in the file
+func DeserializeGapRequests(gapRequests []string, language string) ([]BlobExcerptOptions, error) {
+	if len(gapRequests) == 0 {
+		return nil, errors.New("no gap requested")
+	}
+	if len(gapRequests) > maxExcerptGaps {
+		return nil, errors.New("too many gaps requested")
+	}
+	gapOpts := make([]BlobExcerptOptions, 0, len(gapRequests))
+	for _, gapRequest := range gapRequests {
+		opts, err := DeserializeGapRequest(gapRequest)
+		if err != nil {
+			return nil, err
+		}
+		opts.Language = language
+		gapOpts = append(gapOpts, opts)
+	}
+	// expanded in one pass over the file, so the gaps have to be in the order they appear in it
+	slices.SortFunc(gapOpts, func(a, b BlobExcerptOptions) int { return a.LastRight - b.LastRight })
+	return gapOpts, nil
 }
 
 // a gap with no hunk on either side runs to the end of the file, so nothing follows it

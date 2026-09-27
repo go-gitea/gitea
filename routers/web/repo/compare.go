@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -695,37 +694,10 @@ func attachCommentsToLines(sections []*gitdiff.DiffSection, lineComments map[int
 	}
 }
 
-// maxExcerptGaps rejects absurd input rather than bounding the work: the gaps of a file are read in
-// one pass over it and cannot overlap, so naming more of them costs little. A file heavily rewritten
-// in many places still has far fewer hunks than this.
-const maxExcerptGaps = 1000
-
-// deserializeExcerptGaps reads the gaps a request names, in the order they appear in the file
-func deserializeExcerptGaps(gapRequests []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
-	if len(gapRequests) == 0 {
-		return nil, errors.New("no gap requested")
-	}
-	if len(gapRequests) > maxExcerptGaps {
-		return nil, errors.New("too many gaps requested")
-	}
-	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapRequests))
-	for _, gapRequest := range gapRequests {
-		opts, err := gitdiff.DeserializeGapRequest(gapRequest)
-		if err != nil {
-			return nil, err
-		}
-		opts.Language = language
-		gapOpts = append(gapOpts, opts)
-	}
-	// expanded in one pass over the file, so the gaps have to be in the order they appear in it
-	slices.SortFunc(gapOpts, func(a, b gitdiff.BlobExcerptOptions) int { return a.LastRight - b.LastRight })
-	return gapOpts, nil
-}
-
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
-	gapOpts, err := deserializeExcerptGaps(ctx.FormStrings("gap"), ctx.FormString("filelang"))
+	gapOpts, err := gitdiff.DeserializeGapRequests(ctx.FormStrings("gap"), ctx.FormString("filelang"))
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return

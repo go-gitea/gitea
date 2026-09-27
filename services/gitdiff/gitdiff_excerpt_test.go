@@ -5,6 +5,7 @@ package gitdiff
 
 import (
 	"bytes"
+	"slices"
 	"strconv"
 	"testing"
 
@@ -88,4 +89,19 @@ func TestDeserializeGapRequest(t *testing.T) {
 		_, err := DeserializeGapRequest(bad)
 		require.Error(t, err, bad)
 	}
+}
+
+func TestDeserializeGapRequests(t *testing.T) {
+	// one pass over the blob expands them all, so they come back in the order they appear in it
+	gapOpts, err := DeserializeGapRequests([]string{"80,80,100,100,0,0", "0,0,13,13,6,7"}, "python")
+	require.NoError(t, err)
+	require.Len(t, gapOpts, 2)
+	assert.Equal(t, 0, gapOpts[0].LastRight)
+	assert.Equal(t, 80, gapOpts[1].LastRight)
+	assert.Equal(t, "python", gapOpts[0].Language)
+
+	_, err = DeserializeGapRequests(nil, "")
+	require.Error(t, err)
+	_, err = DeserializeGapRequests(slices.Repeat([]string{"0,0,13,13,6,7"}, maxExcerptGaps+1), "")
+	require.Error(t, err)
 }
