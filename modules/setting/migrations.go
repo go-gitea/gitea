@@ -7,13 +7,14 @@ package setting
 var Migrations = struct {
 	MaxAttempts     int
 	RetryBackoff    int
+	Mode            string
 	AllowedHostList string
 	BlockedHostList string
 	SkipTLSVerify   bool
 }{
-	MaxAttempts:     3,
-	RetryBackoff:    3,
-	AllowedHostList: "external",
+	MaxAttempts:  3,
+	RetryBackoff: 3,
+	Mode:         "lax",
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -21,12 +22,14 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	Migrations.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(Migrations.MaxAttempts)
 	Migrations.RetryBackoff = sec.Key("RETRY_BACKOFF").MustInt(Migrations.RetryBackoff)
 
+	Migrations.Mode = normalizePolicyMode(sec.Key("MODE").String())
+
 	deprecatedSetting(rootCfg, "migrations", "ALLOWED_DOMAINS", "migrations", "ALLOWED_HOST_LIST", "v28.0.0")
 	deprecatedSetting(rootCfg, "migrations", "BLOCKED_DOMAINS", "migrations", "BLOCKED_HOST_LIST", "v28.0.0")
 	deprecatedSetting(rootCfg, "migrations", "ALLOW_LOCALNETWORKS", "migrations", "ALLOWED_HOST_LIST", "v28.0.0")
 	Migrations.AllowedHostList = ConfigSectionKeyString(sec, "ALLOWED_HOST_LIST")
 	if Migrations.AllowedHostList == "" {
-		Migrations.AllowedHostList = ConfigSectionKeyString(sec, "ALLOWED_DOMAINS", "external")
+		Migrations.AllowedHostList = ConfigSectionKeyString(sec, "ALLOWED_DOMAINS")
 		if ConfigSectionKeyBool(sec, "ALLOW_LOCALNETWORKS") {
 			Migrations.AllowedHostList += ",private,loopback"
 		}

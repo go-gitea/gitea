@@ -21,9 +21,9 @@ import (
 type Mode uint8
 
 const (
-	// Lax mode allows outbound connections by default, unless they are restricted or on denylist
+	// Lax mode allows public and unresolved targets by default, restricted ones need an allow entry
 	Lax Mode = iota
-	// Strict mode requires all addresses to be explicitly allowed
+	// Strict mode requires every target to match an allow entry
 	Strict
 )
 
@@ -43,7 +43,7 @@ type Policy struct {
 
 type Option func(*Policy)
 
-// WithAllow sets the allow list from the setting named by key, an empty list allows every target.
+// WithAllow sets the allow list from the setting named by key
 func WithAllow(hostList, key string) Option {
 	return func(p *Policy) {
 		p.allow, p.allowKey = NewAllowList(hostList), key
@@ -56,7 +56,7 @@ func WithBlock(hostList, key string) Option {
 	}
 }
 
-// WithLocalNeedsIPAllow requires private, loopback and CGNAT targets to match a builtin or CIDR allow entry, a host name match is not enough.
+// WithLocalNeedsIPAllow requires private, loopback and CGNAT targets to match an IP allow entry (CIDR or named range), a host name match is not enough.
 func WithLocalNeedsIPAllow() Option {
 	return func(p *Policy) {
 		p.localNeedsIPAllow = true
@@ -66,6 +66,13 @@ func WithLocalNeedsIPAllow() Option {
 func WithProxy(proxyFunc func(*http.Request) (*url.URL, error)) Option {
 	return func(p *Policy) {
 		p.proxyFunc = proxyFunc
+	}
+}
+
+// WithMode sets the policy mode, default is Lax
+func WithMode(mode Mode) Option {
+	return func(p *Policy) {
+		p.mode = mode
 	}
 }
 
@@ -108,49 +115,58 @@ func (p *Policy) notAllowedError(target string) error {
 func (p *Policy) checkAddr(host string, ip netip.AddrPort) error {
 	ip = netip.AddrPortFrom(ip.Addr().Unmap(), ip.Port())
 	class := classifyAddr(ip.Addr())
-	target := fmt.Sprintf("%s(%s)", host, ip)
 	if class == classReserved {
-		return fmt.Errorf("%s can not call reserved addresses, deny '%s'", p.usage, target)
+		return fmt.Errorf("%s can not call reserved addresses, deny '%s'", p.usage, denyTarget(host, ip))
 	}
-	if p.mode == Strict {
-		return p.strictGate(host, ip)
-	}
-	return p.laxGate(host, ip, class)
+	return p.gate(host, ip, class)
 }
 
-// laxGate asserts that host and ip aren't on denylist and if the target is restricted that it is allowed explictly
-func (p *Policy) laxGate(host string, ip netip.AddrPort, class addrClass) error {
+// gate enforces the deny list, then the allow list, lax mode exempts public and unresolved targets, the dial-time check classifies the resolved address
+func (p *Policy) gate(host string, ip netip.AddrPort, class addrClass) error {
 	if err := p.blockReason(host, ip); err != nil {
 		return err
 	}
-	if class == classPublic {
+	if p.mode == Lax && (class == classPublic) {
 		return nil
 	}
-	if p.allow.MatchIPAddr(ip) || p.allow.MatchHostname(host, ip.Port()) {
-		return nil
-	}
-	if host == "" {
-		return fmt.Errorf("%s needs an explicit allow entry (private/loopback/CGNAT)", ip)
-	}
-	return fmt.Errorf("host %q and IP %s need an explicit allow entry (private/loopback/CGNAT)", host, ip)
+	return p.allowCheck(host, ip, class)
 }
 
-// strictGate asserts that host and ip are on the allow list and not on the block list
-func (p *Policy) strictGate(host string, ip netip.AddrPort) error {
-	if !p.allow.MatchIPAddr(ip) && !p.allow.MatchHostname(host, ip.Port()) {
-		return fmt.Errorf("host %q and IP %s are not matched by the allow list", host, ip)
+// allowCheck returns nil when the allow list names the target, else an error naming the allow entry it needs
+func (p *Policy) allowCheck(host string, ip netip.AddrPort, class addrClass) error {
+	if p.allow.MatchIPAddr(ip) {
+		return nil
 	}
-	return p.blockReason(host, ip)
+	// with localNeedsIPAllow a restricted target needs an IP entry, a hostname match is not enough
+	hostnameOk := !p.localNeedsIPAllow || class != classRestricted
+	if hostnameOk && p.allow.MatchHostname(host, ip.Port()) {
+		return nil
+	}
+	if p.mode == Strict {
+		return p.notAllowedError(denyTarget(host, ip))
+	}
+	if !hostnameOk {
+		return fmt.Errorf("%s needs an explicit IP allow entry (private/loopback/CGNAT)", denyTarget(host, ip))
+	}
+	return fmt.Errorf("%s needs an explicit allow entry (private/loopback/CGNAT)", denyTarget(host, ip))
 }
 
 func (p *Policy) blockReason(host string, ip netip.AddrPort) error {
-	if p.block.MatchHostname(host, ip.Port()) {
-		return fmt.Errorf("host %q matches the deny list", host)
-	}
-	if p.block.MatchIPAddr(ip) {
-		return fmt.Errorf("%s matches the deny list", ip)
+	if p.block.MatchHostname(host, ip.Port()) || p.block.MatchIPAddr(ip) {
+		return p.blockedError(denyTarget(host, ip))
 	}
 	return nil
+}
+
+// denyTarget renders the checked address for denial messages, host is empty for an IP literal, ip is invalid for an unresolved host name
+func denyTarget(host string, ip netip.AddrPort) string {
+	if !ip.Addr().IsValid() {
+		return host
+	}
+	if host == "" {
+		return ip.Addr().String()
+	}
+	return fmt.Sprintf("%s(%s)", host, ip.Addr())
 }
 
 // CheckHost pre-screens a target URL whose host name may be unresolved or an IP literal.

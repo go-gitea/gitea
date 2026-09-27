@@ -25,14 +25,16 @@ func mustURL(t *testing.T, raw string) *url.URL {
 func TestNewMigrationPolicy(t *testing.T) {
 	defer test.MockVariableValue(&setting.Migrations)()
 	for _, tc := range []struct {
-		allow, block, target string
-		want                 bool
+		allow, block, mode, target string
+		want                       bool
 	}{
 		{allow: "external", target: "https://1.2.3.4", want: true},
-		{allow: "github.com", target: "https://10.0.0.1"}, // a hostname allow doesn't cover a private IP
+		{allow: "github.com", target: "https://10.0.0.1"},            // a hostname allow doesn't cover a private IP
+		{allow: "github.com", target: "https://8.8.8.8", want: true}, // lax exempts public targets
+		{allow: "github.com", mode: "strict", target: "https://8.8.8.8"},
 		{allow: "external", block: "10.0.0.0/8", target: "https://10.0.0.1"},
 	} {
-		setting.Migrations.AllowedHostList, setting.Migrations.BlockedHostList = tc.allow, tc.block
+		setting.Migrations.AllowedHostList, setting.Migrations.BlockedHostList, setting.Migrations.Mode = tc.allow, tc.block, tc.mode
 		u, err := url.Parse(tc.target)
 		require.NoError(t, err)
 		err = NewMigrationPolicy().CheckHostIPs(u)
@@ -52,7 +54,7 @@ func TestWebhookPolicyProxy(t *testing.T) {
 		"https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx": proxyURL.String(),
 		"http://s.discordapp.com/assets/xxxxxx":                             proxyURL.String(),
 		"http://github.com/a/b":                                             "",
-		"http://www.discordapp.com/assets/xxxxxx":                           "error",
+		"http://www.discordapp.com/assets/xxxxxx":                           proxyURL.String(),
 	} {
 		req, err := http.NewRequest(http.MethodPost, target, nil)
 		require.NoError(t, err)
@@ -73,9 +75,16 @@ func TestWebhookPolicyProxy(t *testing.T) {
 
 func TestSecurityPolicy(t *testing.T) {
 	defer test.MockVariableValue(&setting.Security.AllowedHostList, "avatars.example.com")()
-	securityPolicy := NewSecurityPolicy("test")
-	assert.NoError(t, securityPolicy.CheckHost(mustURL(t, "https://avatars.example.com")))
-	assert.Error(t, securityPolicy.CheckHost(mustURL(t, "https://8.8.8.8")))
+	defer test.MockVariableValue(&setting.Security.Mode, "lax")()
+	lax := NewSecurityPolicy("test")
+	assert.NoError(t, lax.CheckHost(mustURL(t, "https://avatars.example.com")))
+	assert.NoError(t, lax.CheckHost(mustURL(t, "https://8.8.8.8"))) // lax exempts public targets
+	assert.Error(t, lax.CheckHost(mustURL(t, "https://10.0.0.1")))  // restricted targets still need an allow entry
+
+	setting.Security.Mode = "strict"
+	strict := NewSecurityPolicy("test")
+	assert.NoError(t, strict.CheckHost(mustURL(t, "https://avatars.example.com")))
+	assert.Error(t, strict.CheckHost(mustURL(t, "https://8.8.8.8")))
 }
 
 func TestNewGitPolicy(t *testing.T) {

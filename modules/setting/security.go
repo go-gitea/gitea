@@ -20,11 +20,26 @@ var Security = struct {
 	XContentTypeOptions string
 
 	ContentSecurityPolicyGeneral string // it only supports empty (default policy) or "unset", maybe it can support more in the future
+	Mode                         string
 	AllowedHostList              string
 }{
 	XFrameOptions:       "SAMEORIGIN",
 	XContentTypeOptions: "nosniff",
-	AllowedHostList:     "external",
+	Mode:                "lax",
+}
+
+// normalizePolicyMode validates a lax/strict egress policy MODE value, empty defaults to lax
+func normalizePolicyMode(mode string) string {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	switch mode {
+	case "":
+		return "lax"
+	case "lax", "strict":
+		return mode
+	default:
+		log.Fatal("Invalid egress policy MODE %q, use lax or strict", mode)
+		return ""
+	}
 }
 
 var (
@@ -160,6 +175,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	if err := sec.MapTo(&Security); err != nil {
 		log.Fatal("Failed to map security settings: %v", err)
 	}
+	Security.Mode = normalizePolicyMode(Security.Mode)
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
 	switch twoFactorAuth {

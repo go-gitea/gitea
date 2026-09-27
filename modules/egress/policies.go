@@ -77,6 +77,7 @@ func normalizeGitProxy(rawURL string) (string, error) {
 
 func newMigrationPolicy(selectProxy func(*http.Request) (*url.URL, error)) *policy.Policy {
 	return policy.NewPolicy("migrations",
+		policy.WithMode(policyMode(setting.Migrations.Mode)),
 		policy.WithAllow(setting.Migrations.AllowedHostList, "migrations.ALLOWED_HOST_LIST"),
 		policy.WithBlock(setting.Migrations.BlockedHostList, "migrations.BLOCKED_HOST_LIST"),
 		policy.WithLocalNeedsIPAllow(),
@@ -104,6 +105,14 @@ func NewWebhookPolicy() *policy.Policy {
 
 func NewSecurityPolicy(usage string) *policy.Policy {
 	return policy.NewPolicy(usage,
+		policy.WithMode(policyMode(setting.Security.Mode)),
 		policy.WithAllow(setting.Security.AllowedHostList, "security.ALLOWED_HOST_LIST"),
 		policy.WithProxy(proxy.Proxy()))
+}
+
+func policyMode(mode string) policy.Mode {
+	if mode == "strict" {
+		return policy.Strict
+	}
+	return policy.Lax
 }
