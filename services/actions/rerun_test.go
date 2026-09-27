@@ -98,6 +98,7 @@ func TestCloneRunJobForAttempt(t *testing.T) {
 		assert.False(t, clone.ContinueOnError)
 	})
 
+	// without this the rerun of a capped matrix would run unlimited
 	t.Run("preserves max-parallel and runs-on group", func(t *testing.T) {
 		template := &actions_model.ActionRunJob{MaxParallel: 3, RunsOnGroup: "gpu"}
 		clone := cloneRunJobForAttempt(template, attempt)

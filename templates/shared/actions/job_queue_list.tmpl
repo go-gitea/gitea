@@ -76,7 +76,7 @@
 					</td>
 					{{if $.ShowRepoColumn}}<td>{{if $job.Repo}}<a href="{{$job.Repo.Link}}">{{$job.Repo.FullName}}</a>{{end}}</td>{{end}}
 					<td>{{if $job.Run}}<a href="{{$job.Run.Link}}">{{$job.Name}} <span class="text grey">#{{$job.Run.Index}}</span></a>{{else}}{{$job.Name}}{{end}}</td>
-					<td><span class="flex-text-inline tw-flex-wrap">{{range $job.RunsOn}}<span class="ui label">{{.}}</span>{{end}}</span></td>
+					<td><span class="flex-text-inline tw-flex-wrap">{{range $job.RunsOnDisplay}}<span class="ui label">{{.}}</span>{{end}}</span></td>
 					<td>{{index $.JobQueueRunners $job.TaskID}}</td>
 					<td>{{if and $job.Run $job.Repo}}<a href="{{$job.Repo.Link}}/commit/{{$job.Run.CommitSHA}}">{{ShortSha $job.Run.CommitSHA}}</a>{{end}}</td>
 					<td>{{if $job.Started}}{{DateUtils.TimeSince $job.Started}}{{else}}{{DateUtils.TimeSince $job.Updated}}{{end}}</td>

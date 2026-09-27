@@ -195,15 +195,6 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
-func (r *ActionRunner) LoadGroup(ctx context.Context) error {
-	if r.GroupID == 0 || r.Group != nil {
-		return nil
-	}
-	group, _, err := db.GetByID[ActionRunnerGroup](ctx, r.GroupID)
-	r.Group = group
-	return err
-}
-
 func (r *ActionRunner) GenerateAndFillToken() {
 	r.Token, r.TokenSalt, r.TokenHash, _ = generateSaltedToken()
 }
@@ -211,10 +202,18 @@ func (r *ActionRunner) GenerateAndFillToken() {
 // CanRunJob requires Group to be loaded.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
 func (r *ActionRunner) CanRunJob(runsOnGroup string, runsOnLabels []string) bool {
-	if runsOnGroup != "" && (r.Group == nil || r.Group.Name != runsOnGroup) {
+	if runsOnGroup != "" && (r.Group == nil || !strings.EqualFold(r.Group.Name, runsOnGroup)) {
 		return false
 	}
 	return !slices.ContainsFunc(runsOnLabels, func(label string) bool { return !util.SliceContainsString(r.AgentLabels, label, true) })
+}
+
+func runnerGroupGrantsCond(repoCond builder.Cond) builder.Cond {
+	return builder.Or(
+		builder.Eq{"group_id": 0},
+		builder.In("group_id", builder.Select("id").From("action_runner_group").Where(builder.Eq{"includes_all_repositories": true})),
+		builder.In("group_id", builder.Select("group_id").From("action_runner_access").Where(repoCond)),
+	)
 }
 
 func init() {
@@ -255,12 +254,14 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 		if opts.WithAvailable {
 			c = c.Or(builder.Eq{"owner_id": builder.Select("owner_id").From("repository").Where(builder.Eq{"id": opts.RepoID})})
 			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+			c = builder.And(c, runnerGroupGrantsCond(builder.Eq{"repo_id": opts.RepoID}))
 		}
 		cond = cond.And(c)
 	} else if opts.OwnerID > 0 { // OwnerID is ignored if RepoID is set
 		c := builder.NewCond().And(builder.Eq{"owner_id": opts.OwnerID})
 		if opts.WithAvailable {
-			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+			ownerRepos := builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": opts.OwnerID}))
+			c = c.Or(builder.Eq{"repo_id": 0, "owner_id": 0}.And(runnerGroupGrantsCond(ownerRepos)))
 		}
 		cond = cond.And(c)
 	}

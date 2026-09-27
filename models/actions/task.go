@@ -275,13 +275,17 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			Join("INNER", "repo_unit", "`repository`.id = `repo_unit`.repo_id").
 			Where(builder.Eq{"`repository`.owner_id": runner.OwnerID, "`repo_unit`.type": unit.TypeActions}))
 	}
+	var groupCond builder.Cond = builder.Eq{"runs_on_group": ""}
+	accessCond := builder.NewCond()
 	if runner.GroupID != 0 {
-		jobCond = jobCond.And(builder.Exists(builder.Select("1").From("action_runner_group").
+		groupCond = groupCond.Or(builder.In("LOWER(runs_on_group)",
+			builder.Select("LOWER(name)").From("action_runner_group").Where(builder.Eq{"id": runner.GroupID})))
+		accessCond = builder.Exists(builder.Select("1").From("action_runner_group").
 			Where(builder.Eq{"id": runner.GroupID, "includes_all_repositories": true})).
 			Or(builder.In("repo_id", builder.Select("repo_id").From("action_runner_access").
-				Where(builder.Eq{"group_id": runner.GroupID}))))
+				Where(builder.Eq{"group_id": runner.GroupID})))
 	}
-	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond)
+	baseCond := builder.Eq{"task_id": 0, "status": StatusWaiting, "is_reusable_caller": false}.And(jobCond, accessCond, groupCond)
 
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
@@ -304,17 +308,12 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, false, err
 		}
-		if len(jobs) > 0 {
-			if err := runner.LoadGroup(ctx); err != nil {
-				return nil, false, err
-			}
-		}
 
 		for _, v := range jobs {
-			if !runner.CanRunJob(v.RunsOnGroup, v.RunsOn) {
+			if !runner.CanRunJob("", v.RunsOn) { // the runs-on group is already matched in SQL
 				continue
 			}
-			task, ok, err := claimJobForRunner(ctx, runner, v, jobCond)
+			task, ok, err := claimJobForRunner(ctx, runner, v, accessCond)
 			if err != nil {
 				return nil, false, err
 			}
@@ -333,7 +332,11 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 }
 
-func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, jobCond builder.Cond) (*ActionTask, bool, error) {
+// claimJobForRunner attempts to atomically claim job for runner inside its own
+// transaction. Returns (task, true, nil) on success, or (nil, false, nil) when
+// another runner wins the optimistic-lock race (the caller should try the next
+// candidate job).
+func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRunJob, accessCond builder.Cond) (*ActionTask, bool, error) {
 	var resultTask *ActionTask
 
 	err := db.WithTx(ctx, func(ctx context.Context) error {
@@ -394,11 +397,13 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 		job.TaskID = task.ID
 		stillInGroup := builder.Exists(builder.Select("1").From("action_runner").
 			Where(builder.Eq{"id": runner.ID, "group_id": runner.GroupID}))
-		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}, jobCond, stillInGroup))
+		n, err := UpdateRunJob(ctx, job, builder.And(builder.Eq{"task_id": 0}, builder.Eq{"status": StatusWaiting}, accessCond, stillInGroup))
 		if err != nil {
 			return err
 		}
 		if n != 1 {
+			// Another runner claimed this job between our scan and this update;
+			// signal the outer loop to move on without treating this as an error.
 			return errJobAlreadyClaimed
 		}
 

@@ -20,20 +20,10 @@ import (
 	"gitea.dev/services/context"
 )
 
-type runnerGroupView struct {
-	*actions_model.ActionRunnerGroup
-	Repos   int64
-	Runners int64
-}
-
 func getRunnerGroupsCtx(ctx *context.Context) *runnersCtx {
 	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getRunnersCtx", err)
-		return nil
-	}
-	if rCtx.IsRepo {
-		ctx.NotFound(errors.New("runner groups are not available for repositories"))
 		return nil
 	}
 	rCtx.RedirectLink = strings.TrimSuffix(rCtx.RedirectLink, "runners/") + "runner-groups"
@@ -58,16 +48,14 @@ func RunnerGroups(ctx *context.Context) {
 		ctx.ServerError("CountRunnerGroupUsage", err)
 		return
 	}
-	views := make([]*runnerGroupView, 0, len(groups))
-	for _, group := range groups {
-		views = append(views, &runnerGroupView{ActionRunnerGroup: group, Runners: runners[group.ID], Repos: repos[group.ID]})
-	}
 
 	ctx.Data["Title"] = ctx.Tr("actions.runners.groups")
 	ctx.Data["PageType"] = "runner-groups"
 	ctx.Data["PageIsSharedSettingsRunnerGroups"] = true
 	ctx.Data["Link"] = rCtx.RedirectLink
-	ctx.Data["RunnerGroups"] = views
+	ctx.Data["RunnerGroups"] = groups
+	ctx.Data["RunnerGroupRunnerCounts"] = runners
+	ctx.Data["RunnerGroupRepoCounts"] = repos
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
 }
 
@@ -121,7 +109,6 @@ func RunnerGroupEdit(ctx *context.Context) {
 	ctx.Data["RunnerGroupMemberIDs"] = base.Int64sToStrings(container.FilterSlice(candidates, func(runner *actions_model.ActionRunner) (int64, bool) {
 		return runner.ID, runner.GroupID == group.ID
 	}))
-	ctx.Data["RunnerLink"] = strings.TrimSuffix(rCtx.RedirectLink, "runner-groups") + "runners"
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
 }
 

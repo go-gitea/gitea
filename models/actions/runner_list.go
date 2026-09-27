@@ -60,14 +60,15 @@ func (runners RunnerList) LoadGroups(ctx context.Context) error {
 	groupIDs := container.FilterSlice(runners, func(runner *ActionRunner) (int64, bool) {
 		return runner.GroupID, runner.GroupID > 0
 	})
+	if len(groupIDs) == 0 {
+		return nil
+	}
 	groups := make(map[int64]*ActionRunnerGroup, len(groupIDs))
 	if err := db.GetEngine(ctx).In("id", groupIDs).Find(&groups); err != nil {
 		return err
 	}
 	for _, runner := range runners {
-		if runner.GroupID > 0 && runner.Group == nil {
-			runner.Group = groups[runner.GroupID]
-		}
+		runner.Group = groups[runner.GroupID]
 	}
 	return nil
 }

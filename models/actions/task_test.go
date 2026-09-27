@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -384,27 +385,40 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 		RepoID:          run.RepoID,
 		Status:          StatusWaiting,
 		RunsOn:          []string{"ubuntu-latest"},
-		RunsOnGroup:     "gpu",
+		RunsOnGroup:     "GPU",
 		WorkflowPayload: []byte("on: push\njobs:\n  job:\n    runs-on:\n      labels: ubuntu-latest\n      group: gpu\n    steps:\n      - run: echo hi\n"),
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
 
-	ungrouped := &ActionRunner{AgentLabels: []string{"ubuntu-latest", "gpu"}}
-	assert.False(t, ungrouped.CanRunJob(job.RunsOnGroup, job.RunsOn), "a label named like the group must not satisfy runs-on.group")
+	ungrouped := &ActionRunner{UUID: "ungrouped", AgentLabels: []string{"ubuntu-latest", "gpu"}, TokenHash: "ungrouped"}
+	require.NoError(t, db.Insert(t.Context(), ungrouped))
+	_, ok, err := CreateTaskForRunner(t.Context(), ungrouped)
+	require.NoError(t, err)
+	require.False(t, ok, "a label named like the group must not satisfy runs-on.group")
 
 	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.NoError(t, err)
 	runner := &ActionRunner{UUID: "grouped", AgentLabels: []string{"ubuntu-latest"}, GroupID: group.ID, TokenHash: "grouped"}
 	require.NoError(t, db.Insert(t.Context(), runner))
 
-	_, ok, err := CreateTaskForRunner(t.Context(), runner)
+	_, ok, err = CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
 	require.False(t, ok, "a group without granted repositories serves nothing")
 
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID}).OwnerID
+	available := func(opts FindRunnerOptions) bool {
+		opts.WithAvailable = true
+		runners, err := db.Find[ActionRunner](t.Context(), opts)
+		require.NoError(t, err)
+		return slices.ContainsFunc(runners, func(r *ActionRunner) bool { return r.ID == runner.ID })
+	}
+	assert.False(t, available(FindRunnerOptions{OwnerID: repoOwner}))
 	require.NoError(t, SetRunnerAccess(t.Context(), group, false, []int64{2}))
 	_, ok, err = CreateTaskForRunner(t.Context(), runner)
 	require.NoError(t, err)
 	require.False(t, ok)
+	assert.False(t, available(FindRunnerOptions{RepoID: run.RepoID}))
+	assert.True(t, available(FindRunnerOptions{OwnerID: repoOwner}))
 
 	beforeVersion, err := GetTasksVersionByScope(t.Context(), 0, 0)
 	require.NoError(t, err)
@@ -425,9 +439,7 @@ func TestCreateTaskForRunnerGroupAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok, "a group including all repositories serves unlisted ones")
 	assert.Equal(t, job.ID, task.JobID)
-	allowed, err := RunnerGroupsAllowingRepo(t.Context(), run.RepoID)
-	require.NoError(t, err)
-	assert.Contains(t, allowed, group.ID)
+	assert.True(t, available(FindRunnerOptions{RepoID: run.RepoID}))
 }
 
 func TestRunnerGroupMembership(t *testing.T) {
@@ -438,7 +450,7 @@ func TestRunnerGroupMembership(t *testing.T) {
 	group, err := CreateRunnerGroup(t.Context(), 0, "gpu")
 	require.NoError(t, err)
 	assert.NotEqual(t, orgGroup.ID, group.ID)
-	_, err = CreateRunnerGroup(t.Context(), 0, "gpu")
+	_, err = CreateRunnerGroup(t.Context(), 0, "GPU")
 	require.Error(t, err)
 
 	member := &ActionRunner{UUID: "member", Name: "member", TokenHash: "m"}

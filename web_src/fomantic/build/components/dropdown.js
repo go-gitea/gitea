@@ -2788,9 +2788,6 @@ $.fn.dropdown = function(parameters) {
               })
             ;
             module.remove.searchTerm();
-            if(module.is.allFiltered()) {
-              module.hideMenu(); // GITEA-PATCH: keep this consistent with show()
-            }
           }
         },
 
@@ -2809,7 +2806,7 @@ $.fn.dropdown = function(parameters) {
             $label =  $('<a />')
               .addClass(className.label)
               .attr('data-' + metadata.value, escapedValue)
-              .html(templates.label(escapedValue, text, settings.preserveHTML, settings.className, settings.labelHref)) // GITEA-PATCH
+              .html(templates.label(escapedValue, text, settings.preserveHTML, settings.className))
             ;
             $label = settings.onLabelCreate.call($label, escapedValue, text);
 
@@ -3970,7 +3967,6 @@ $.fn.dropdown.settings = {
 
   allowAdditions         : false,      // whether multiple select should allow user added values
   ignoreCase             : false,      // whether to consider case sensitivity when creating labels
-  labelHref              : null,       // GITEA-PATCH: link target for each label
   ignoreSearchCase       : true,       // whether to consider case sensitivity when filtering items
   hideAdditions          : true,       // whether or not to hide special message prompting a user they can enter a value
 

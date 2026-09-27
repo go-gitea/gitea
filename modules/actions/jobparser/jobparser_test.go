@@ -533,17 +533,22 @@ jobs:
       labels: [ubuntu-latest]
       group: gpu-${{ matrix.v }}
     steps: [{run: echo}]
+  unset:
+    runs-on:
+      group: ${{ vars.UNSET }}
+    steps: [{run: echo}]
 `), WithGitContext(&model.GithubContext{}))
 	require.NoError(t, err)
 
-	got := map[string][]string{}
+	got := map[string][]any{}
 	for _, sw := range jobs {
 		_, job := sw.Job()
-		got[job.RunsOnGroup()] = job.RunsOn()
+		got[job.DisplayName()] = []any{job.RunsOnGroup(), job.RunsOn()}
 	}
-	assert.Equal(t, map[string][]string{
-		"":      {"ubuntu-latest"},
-		"gpu-1": {"ubuntu-latest"},
-		"gpu-2": {"ubuntu-latest"},
+	assert.Equal(t, map[string][]any{
+		"plain":       {"", []string{"ubuntu-latest"}},
+		"grouped (1)": {"gpu-1", []string{"ubuntu-latest"}},
+		"grouped (2)": {"gpu-2", []string{"ubuntu-latest"}},
+		"unset":       {"", []string{""}},
 	}, got)
 }

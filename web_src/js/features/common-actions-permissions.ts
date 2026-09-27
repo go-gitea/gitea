@@ -6,11 +6,10 @@ const {appSubUrl} = window.config;
 
 type RepoSearchResponse = {data: Array<{repository: {id: number; full_name: string}}>};
 
-export function initActionsSettings(): void {
+export function initActionsPermissionsForm(): void {
   registerGlobalInitFunc('initRepoActionsPermissionsForm', initRepoActionsPermissionsForm);
   registerGlobalInitFunc('initOwnerActionsPermissionsForm', initOwnerActionsPermissionsForm);
   registerGlobalInitFunc('initRunnerRepoAccess', initRunnerRepoAccess);
-  registerGlobalInitFunc('initRunnerGroupMembersInput', initRunnerGroupMembersInput);
 }
 
 function initRunnerRepoAccess(section: HTMLElement) {
@@ -21,18 +20,12 @@ function initRunnerRepoAccess(section: HTMLElement) {
   });
   fomanticQuery(dropdown).dropdown({
     preserveHTML: false,
-    labelHref: (_value: string, text: string) => `${appSubUrl}/${text}`,
     apiSettings: {
       url: `${appSubUrl}/repo/search?q={query}&uid=${uid}&exclusive=${uid !== '0'}`,
       throttle: 500,
       onResponse: (res: RepoSearchResponse) => ({success: true, results: res.data.map((item) => ({value: String(item.repository.id), name: item.repository.full_name}))}),
     },
   });
-}
-
-function initRunnerGroupMembersInput(el: HTMLElement) {
-  const runnerLink = el.getAttribute('data-runner-link')!;
-  fomanticQuery(el).dropdown({preserveHTML: false, labelHref: (value: string) => `${runnerLink}/${value}`});
 }
 
 function initRepoActionsPermissionsForm(form: HTMLFormElement) {

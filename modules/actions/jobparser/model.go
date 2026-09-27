@@ -184,7 +184,7 @@ func (j *Job) RunsOn() []string {
 }
 
 func (j *Job) RunsOnGroup() string {
-	return util.EllipsisDisplayString(unescapeExpressions(model.RunsOnGroupFromNode(j.RawRunsOn)), 255)
+	return util.TruncateRunes(unescapeExpressions(model.RunsOnGroupFromNode(j.RawRunsOn)), 255)
 }
 
 // DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.

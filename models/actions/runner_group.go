@@ -40,20 +40,19 @@ func FindRunnerGroups(ctx context.Context, ownerID int64) ([]*ActionRunnerGroup,
 
 func FindRunnerGroupCandidates(ctx context.Context, ownerID int64) ([]*ActionRunner, error) {
 	var runners []*ActionRunner
-	err := db.GetEngine(ctx).Where("owner_id = ? AND repo_id = 0", ownerID).Asc("name").Find(&runners)
+	err := db.GetEngine(ctx).Cols("id", "name", "group_id").Where("owner_id = ? AND repo_id = 0", ownerID).Asc("name").Find(&runners)
 	return runners, err
 }
 
 func SetRunnerGroupMembers(ctx context.Context, group *ActionRunnerGroup, runnerIDs []int64) error {
-	candidates, err := FindRunnerGroupCandidates(ctx, group.OwnerID)
-	if err != nil {
-		return err
-	}
-	inScope := container.SetOf(container.FilterSlice(candidates, func(r *ActionRunner) (int64, bool) {
-		return r.ID, true
-	})...)
-	if !inScope.Contains(runnerIDs...) {
-		return util.NewPermissionDeniedErrorf("runner is outside the group's scope")
+	if len(runnerIDs) > 0 {
+		n, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": group.OwnerID, "repo_id": 0}.And(builder.In("id", runnerIDs))).Count(new(ActionRunner))
+		if err != nil {
+			return err
+		}
+		if n != int64(len(container.SetOf(runnerIDs...))) {
+			return util.NewPermissionDeniedErrorf("runner is outside the group's scope")
+		}
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		released := builder.Eq{"group_id": group.ID}.And(builder.NotIn("id", runnerIDs))
@@ -81,9 +80,8 @@ func SetRunnerGroupMembers(ctx context.Context, group *ActionRunnerGroup, runner
 	})
 }
 
-func PruneRunnerAccessOutsideOwner(ctx context.Context, repoID, ownerID int64) error {
-	stale := builder.Select("id").From("action_runner_group").
-		Where(builder.Neq{"owner_id": 0}).And(builder.Neq{"owner_id": ownerID})
+func PruneRunnerAccessOutsideOwner(ctx context.Context, repoID int64) error {
+	stale := builder.Select("id").From("action_runner_group").Where(builder.Neq{"owner_id": 0})
 	_, err := db.GetEngine(ctx).Where(builder.Eq{"repo_id": repoID}).And(builder.In("group_id", stale)).
 		Delete(new(ActionRunnerAccess))
 	return err
@@ -115,16 +113,10 @@ func CountRunnerGroupUsage(ctx context.Context, groupIDs []int64) (runners, repo
 	return runners, repos, err
 }
 
-func RunnerGroupsAllowingRepo(ctx context.Context, repoID int64) (container.Set[int64], error) {
-	granted := builder.Select("group_id").From("action_runner_access").Where(builder.Eq{"repo_id": repoID})
-	groupIDs, err := db.FindIDs(ctx, "action_runner_group", "id", builder.In("id", granted).Or(builder.Eq{"includes_all_repositories": true}))
-	return container.SetOf(groupIDs...), err
-}
-
 func CreateRunnerGroup(ctx context.Context, ownerID int64, name string) (*ActionRunnerGroup, error) {
 	group := &ActionRunnerGroup{OwnerID: ownerID, Name: name}
 	return group, db.WithTx(ctx, func(ctx context.Context) error {
-		exists, err := db.GetEngine(ctx).Where("owner_id = ? AND name = ?", ownerID, name).Exist(new(ActionRunnerGroup))
+		exists, err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}.And(db.BuildCaseInsensitiveIn("name", []string{name}))).Exist(new(ActionRunnerGroup))
 		if err != nil {
 			return err
 		}
@@ -150,18 +142,9 @@ func DeleteRunnerGroup(ctx context.Context, group *ActionRunnerGroup) error {
 	})
 }
 
-func DeleteRunnerGroupsByOwner(ctx context.Context, ownerID int64) error {
-	groupIDs := builder.Select("id").From("action_runner_group").Where(builder.Eq{"owner_id": ownerID})
-	if _, err := db.GetEngine(ctx).Where(builder.In("group_id", groupIDs)).Delete(new(ActionRunnerAccess)); err != nil {
-		return err
-	}
-	_, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Delete(new(ActionRunnerGroup))
-	return err
-}
-
 func FindRunnerGroupRepos(ctx context.Context, groupID int64) ([]*repo_model.Repository, error) {
 	var repos []*repo_model.Repository
-	err := db.GetEngine(ctx).
+	err := db.GetEngine(ctx).Cols("repository.id", "repository.owner_name", "repository.name").
 		Join("INNER", "action_runner_access", "action_runner_access.repo_id = repository.id").
 		Where("action_runner_access.group_id = ?", groupID).Asc("repository.lower_name").Find(&repos)
 	return repos, err
@@ -171,25 +154,37 @@ func SetRunnerAccess(ctx context.Context, group *ActionRunnerGroup, includesAllR
 	if includesAllRepositories {
 		repoIDs = nil
 	}
-	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
-	if err != nil {
-		return err
-	}
-	rows := make([]*ActionRunnerAccess, 0, len(repoIDs))
-	for _, repoID := range repoIDs {
-		repo, ok := repos[repoID]
-		if !ok || (group.OwnerID != 0 && repo.OwnerID != group.OwnerID) {
-			return util.NewPermissionDeniedErrorf("repository is outside the group's scope")
-		}
-		rows = append(rows, &ActionRunnerAccess{GroupID: group.ID, RepoID: repoID})
-	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		if len(repoIDs) > 0 {
+			inScope := builder.In("id", repoIDs)
+			if group.OwnerID != 0 {
+				inScope = inScope.And(builder.Eq{"owner_id": group.OwnerID})
+			}
+			n, err := db.GetEngine(ctx).Where(inScope).Count(new(repo_model.Repository))
+			if err != nil {
+				return err
+			}
+			if n != int64(len(repoIDs)) {
+				return util.NewPermissionDeniedErrorf("repository is outside the group's scope")
+			}
+		}
 		group.IncludesAllRepositories = includesAllRepositories
 		if _, err := db.GetEngine(ctx).ID(group.ID).Cols("includes_all_repositories").Update(group); err != nil {
 			return err
 		}
+		exists, err := db.ExistByID[ActionRunnerGroup](ctx, group.ID)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return util.NewInvalidArgumentErrorf("the runner group no longer exists")
+		}
 		if err := db.DeleteBeans(ctx, &ActionRunnerAccess{GroupID: group.ID}); err != nil {
 			return err
+		}
+		rows := make([]*ActionRunnerAccess, 0, len(repoIDs))
+		for _, repoID := range repoIDs {
+			rows = append(rows, &ActionRunnerAccess{GroupID: group.ID, RepoID: repoID})
 		}
 		if len(rows) > 0 {
 			if err := db.Insert(ctx, rows); err != nil {

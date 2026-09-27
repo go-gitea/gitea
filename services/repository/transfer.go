@@ -179,7 +179,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("update owner: %w", err)
 	}
 
-	if err := actions_model.PruneRunnerAccessOutsideOwner(ctx, repo.ID, newOwner.ID); err != nil {
+	if err := actions_model.PruneRunnerAccessOutsideOwner(ctx, repo.ID); err != nil {
 		return fmt.Errorf("PruneRunnerAccessOutsideOwner: %w", err)
 	}
 

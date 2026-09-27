@@ -135,6 +135,13 @@ type ActionRunJob struct {
 	Updated timeutil.TimeStamp `xorm:"updated index index(pickup)"`
 }
 
+func (job *ActionRunJob) RunsOnDisplay() []string {
+	if job.RunsOnGroup == "" {
+		return job.RunsOn
+	}
+	return append(slices.Clone(job.RunsOn), "group: "+job.RunsOnGroup)
+}
+
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.
 // Use GetNextAttemptJobID to allocate the next ID for a run.
 type ActionRunAttemptJobIDIndex db.ResourceIndex
