@@ -287,17 +287,7 @@ func DeleteKey(ctx *context.Context) {
 			return
 		}
 
-		keyID := ctx.FormInt64("id")
-		external, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, keyID)
-		if err != nil {
-			ctx.ServerError("sshKeysExternalManaged", err)
-			return
-		}
-		if external {
-			ctx.JSONError(ctx.Tr("settings.ssh_externally_managed"))
-			return
-		}
-		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, keyID); err != nil {
+		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
 			ctx.JSONError("Failed to delete SSH key")
 			return
 		}
@@ -325,13 +315,6 @@ func loadKeysData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Keys"] = keys
-
-	externalKeys, err := asymkey_model.PublicKeysAreExternallyManaged(ctx, keys)
-	if err != nil {
-		ctx.ServerError("ListPublicKeys", err)
-		return
-	}
-	ctx.Data["ExternalKeys"] = externalKeys
 
 	gpgkeys, err := db.Find[asymkey_model.GPGKey](ctx, asymkey_model.FindGPGKeyOptions{
 		ListOptions: db.ListOptionsAll,

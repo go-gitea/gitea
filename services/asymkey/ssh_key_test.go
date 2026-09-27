@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddLdapSSHPublicKeys(t *testing.T) {
+func TestAddSSHPublicKeysBySource(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

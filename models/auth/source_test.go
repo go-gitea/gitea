@@ -22,12 +22,12 @@ type TestSource struct {
 	TestField string
 }
 
-// FromDB fills up a LDAPConfig from serialized format.
+// FromDB fills the test config from serialized data.
 func (source *TestSource) FromDB(bs []byte) error {
 	return json.Unmarshal(bs, &source)
 }
 
-// ToDB exports a LDAPConfig to a serialized format.
+// ToDB exports the test config as serialized data.
 func (source *TestSource) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }

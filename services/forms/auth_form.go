@@ -8,48 +8,17 @@ import "gitea.dev/modules/web/middleware"
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
 	middleware.FormDefaultValidator
-	Type            int    `binding:"Range(2,7)"`
+	Type            int    `binding:"In(3,4,6,7)"`
 	Name            string `binding:"Required;MaxSize(30)"`
 	TwoFactorPolicy string
 	IsActive        bool
 	IsSyncEnabled   bool
-
-	// LDAP
-	Host                  string
-	Port                  int
-	BindDN                string
-	BindPassword          string
-	UserBase              string
-	UserDN                string
-	AttributeUsername     string
-	AttributeName         string
-	AttributeSurname      string
-	AttributeMail         string
-	AttributeSSHPublicKey string
-	AttributeAvatar       string
-	SSHKeysAreVerified    bool
-	AttributesInBind      bool
-	UsePagedSearch        bool
-	SearchPageSize        int
-	Filter                string
-	AdminFilter           string
-	GroupsEnabled         bool
-	GroupDN               string
-	GroupFilter           string
-	GroupMemberUID        string
-	UserUID               string
-	RestrictedFilter      string
-	AllowDeactivateAll    bool
-	GroupTeamMap          string `binding:"ValidGroupTeamMap"`
-	GroupTeamMapRemoval   bool
 
 	// SMTP
 	SMTPAuth         string
 	SMTPHost         string
 	SMTPPort         int
 	AllowedDomains   string
-	SecurityProtocol int `binding:"Range(0,2)"`
-	TLS              bool
 	SkipVerify       bool
 	HeloHostname     string
 	DisableHelo      bool

@@ -520,7 +520,7 @@ func (u *User) GitName() string {
 		return gitName
 	}
 	// Although u.Name should be safe if created in our system
-	// LDAP users may have bad names
+	// External identity providers may supply unsafe names.
 	gitName = gitSafeName(u.Name)
 	if len(gitName) > 0 {
 		return gitName

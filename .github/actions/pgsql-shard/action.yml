@@ -17,7 +17,7 @@ runs:
   steps:
     - name: Add hosts to /etc/hosts
       shell: bash
-      run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
+      run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql minio" | sudo tee -a /etc/hosts'
     - shell: bash
       run: make deps-backend
     - shell: bash
@@ -35,6 +35,5 @@ runs:
         # pgsql is chosen to be the unlucky one to run with the slow "race detector", it is about 60% slower.
         GOTEST_FLAGS: -race -timeout=40m
         TAGS: bindata gogit
-        TEST_LDAP: 1
         TEST_SHARD: ${{ inputs.shard }}
         TEST_TOTAL_SHARDS: ${{ inputs.total-shards }}

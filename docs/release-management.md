@@ -1,6 +1,6 @@
 # Release management
 
-This document describes the release cycle, backports, versioning, and the release manager checklist. For everyday contribution workflow, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+This document describes the release cycle, backports, versioning, and the release manager checklist. For everyday contribution workflow, see [CONTRIBUTING.md](contributing.md).
 
 ## Backports and Frontports
 

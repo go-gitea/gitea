@@ -27,11 +27,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
         ports:
           - "5432:5432"
-      ldap:
-        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
-        ports:
-          - "389:389"
-          - "636:636"
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
@@ -63,11 +58,6 @@ jobs:
           POSTGRES_PASSWORD: postgres
         ports:
           - "5432:5432"
-      ldap:
-        image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
-        ports:
-          - "389:389"
-          - "636:636"
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"

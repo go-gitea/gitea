@@ -28,12 +28,10 @@ type Type int
 const (
 	NoType Type = iota
 	Plain       // 1
-	LDAP        // 2
-	SMTP        // 3
-	PAM         // 4
-	DLDAP       // 5
-	OAuth2      // 6
-	SSPI        // 7
+	SMTP        // 2
+	PAM         // 3
+	OAuth2      // 4
+	SSPI        // 5
 )
 
 // String returns the string name of the LoginType
@@ -48,8 +46,6 @@ func (typ Type) Int() int {
 
 // Names contains the name of LoginType values.
 var Names = map[Type]string{
-	LDAP:   "LDAP (via BindDN)",
-	DLDAP:  "LDAP (simple auth)", // Via direct bind
 	SMTP:   "SMTP",
 	PAM:    "PAM",
 	OAuth2: "OAuth2",
@@ -83,11 +79,6 @@ type HasTLSer interface {
 // UseTLSer configurations provide a HasTLS to check if TLS is enabled
 type UseTLSer interface {
 	UseTLS() bool
-}
-
-// SSHKeyProvider configurations provide ProvidesSSHKeys to check if they provide SSHKeys
-type SSHKeyProvider interface {
-	ProvidesSSHKeys() bool
 }
 
 // RegisterableSource configurations provide RegisterSource which needs to be run on creation
@@ -147,17 +138,10 @@ func (source *Source) BeforeSet(colName string, val xorm.Cell) {
 
 // TypeName return name of this login source type.
 func (source *Source) TypeName() string {
-	return Names[source.Type]
-}
-
-// IsLDAP returns true of this source is of the LDAP type.
-func (source *Source) IsLDAP() bool {
-	return source.Type == LDAP
-}
-
-// IsDLDAP returns true of this source is of the DLDAP type.
-func (source *Source) IsDLDAP() bool {
-	return source.Type == DLDAP
+	if name, ok := Names[source.Type]; ok {
+		return name
+	}
+	return fmt.Sprintf("Unsupported (%d)", source.Type)
 }
 
 // IsSMTP returns true of this source is of the SMTP type.
@@ -165,19 +149,9 @@ func (source *Source) IsSMTP() bool {
 	return source.Type == SMTP
 }
 
-// IsPAM returns true of this source is of the PAM type.
-func (source *Source) IsPAM() bool {
-	return source.Type == PAM
-}
-
 // IsOAuth2 returns true of this source is of the OAuth2 type.
 func (source *Source) IsOAuth2() bool {
 	return source.Type == OAuth2
-}
-
-// IsSSPI returns true of this source is of the SSPI type.
-func (source *Source) IsSSPI() bool {
-	return source.Type == SSPI
 }
 
 // MustSourceCfg returns the source's config as T. The registry populates Cfg from the
@@ -222,8 +196,7 @@ func CreateSource(ctx context.Context, source *Source) error {
 	} else if has {
 		return ErrSourceAlreadyExist{source.Name}
 	}
-	// Synchronization is only available with LDAP for now
-	if !source.IsLDAP() && !source.IsOAuth2() {
+	if !source.IsOAuth2() {
 		source.IsSyncEnabled = false
 	}
 
@@ -255,8 +228,9 @@ func CreateSource(ctx context.Context, source *Source) error {
 
 type FindSourcesOptions struct {
 	db.ListOptions
-	IsActive  optional.Option[bool]
-	LoginType Type
+	IsActive      optional.Option[bool]
+	IsSyncEnabled optional.Option[bool]
+	LoginType     Type
 }
 
 func (opts FindSourcesOptions) ToOrders() string {
@@ -268,24 +242,13 @@ func (opts FindSourcesOptions) ToConds() builder.Cond {
 	if opts.IsActive.Has() {
 		conds = conds.And(builder.Eq{"is_active": opts.IsActive.Value()})
 	}
+	if opts.IsSyncEnabled.Has() {
+		conds = conds.And(builder.Eq{"is_sync_enabled": opts.IsSyncEnabled.Value()})
+	}
 	if opts.LoginType != NoType {
 		conds = conds.And(builder.Eq{"`type`": opts.LoginType})
 	}
 	return conds
-}
-
-// IsSSPIEnabled returns true if there is at least one activated login
-// source of type LoginSSPI
-func IsSSPIEnabled(ctx context.Context) bool {
-	exist, err := db.Exist[Source](ctx, FindSourcesOptions{
-		IsActive:  optional.Some(true),
-		LoginType: SSPI,
-	}.ToConds())
-	if err != nil {
-		log.Error("IsSSPIEnabled: failed to query active SSPI sources: %v", err)
-		return false
-	}
-	return exist
 }
 
 // GetSourceByID returns login source by given ID.

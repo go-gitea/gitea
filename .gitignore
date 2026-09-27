@@ -84,6 +84,7 @@ cpu.out
 /vendor
 /VERSION
 /.air
+/site/
 
 
 # Snapcraft

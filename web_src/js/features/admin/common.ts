@@ -7,14 +7,6 @@ import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
-function onSecurityProtocolChange(): void {
-  if (Number(document.querySelector<HTMLInputElement>('#security_protocol')?.value) > 0) {
-    showElem('.has-tls');
-  } else {
-    hideElem('.has-tls');
-  }
-}
-
 export function initAdminCommon(): void {
   if (!document.querySelector('.page-content.admin')) return;
 
@@ -93,21 +85,6 @@ function initAdminAuthentication() {
   const isEditPage = pageContent.classList.contains('edit');
   if (!isNewPage && !isEditPage) return;
 
-  function onUsePagedSearchChange() {
-    const searchPageSizeElements = document.querySelectorAll<HTMLDivElement>('.search-page-size');
-    if (document.querySelector<HTMLInputElement>('#use_paged_search')!.checked) {
-      showElem('.search-page-size');
-      for (const el of searchPageSizeElements) {
-        el.querySelector('input')?.setAttribute('required', 'required');
-      }
-    } else {
-      hideElem('.search-page-size');
-      for (const el of searchPageSizeElements) {
-        el.querySelector('input')?.removeAttribute('required');
-      }
-    }
-  }
-
   function onOAuth2Change(applyDefaultValues: boolean) {
     hideElem('.open_id_connect_auto_discovery_url, .open_id_connect_external_id_claim, .oauth2_use_custom_url');
     for (const input of document.querySelectorAll<HTMLInputElement>('.open_id_connect_auto_discovery_url input[required]')) {
@@ -166,33 +143,20 @@ function initAdminAuthentication() {
     }
   }
 
-  function onEnableLdapGroupsChange() {
-    const checked = document.querySelector<HTMLInputElement>('.js-ldap-group-toggle')?.checked;
-    toggleElem(document.querySelector('#ldap-group-options')!, checked);
-  }
-
   const elAuthType = document.querySelector<HTMLInputElement>('#auth_type')!;
 
   // New authentication
   if (isNewPage) {
     const onAuthTypeChange = function () {
-      hideElem('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi');
+      hideElem('.smtp, .pam, .oauth2, .has-tls, .sspi');
 
-      for (const input of document.querySelectorAll<HTMLInputElement>('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]')) {
+      for (const input of document.querySelectorAll<HTMLInputElement>('.smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]')) {
         input.removeAttribute('required');
       }
 
-      document.querySelector<HTMLDivElement>('.binddnrequired')?.classList.remove('required');
 
       const authType = elAuthType.value;
       switch (authType) {
-        case '2': // LDAP
-          showElem('.ldap');
-          for (const input of document.querySelectorAll<HTMLInputElement>('.binddnrequired input, .ldap div.required:not(.dldap) input')) {
-            input.setAttribute('required', 'required');
-          }
-          document.querySelector('.binddnrequired')?.classList.add('required');
-          break;
         case '3': // SMTP
           showElem('.smtp');
           showElem('.has-tls');
@@ -203,12 +167,6 @@ function initAdminAuthentication() {
         case '4': // PAM
           showElem('.pam');
           for (const input of document.querySelectorAll<HTMLInputElement>('.pam input')) {
-            input.setAttribute('required', 'required');
-          }
-          break;
-        case '5': // LDAP
-          showElem('.dldap');
-          for (const input of document.querySelectorAll<HTMLInputElement>('.dldap div.required:not(.ldap) input')) {
             input.setAttribute('required', 'required');
           }
           break;
@@ -226,35 +184,18 @@ function initAdminAuthentication() {
           }
           break;
       }
-      if (authType === '2' || authType === '5') {
-        onSecurityProtocolChange();
-        onEnableLdapGroupsChange();
-      }
-      if (authType === '2') {
-        onUsePagedSearchChange();
-      }
     };
     elAuthType.addEventListener('change', onAuthTypeChange);
     onAuthTypeChange();
 
-    document.querySelector<HTMLInputElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
-    document.querySelector<HTMLInputElement>('#use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
     document.querySelector<HTMLInputElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
     document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(true));
 
-    document.querySelector('.js-ldap-group-toggle')!.addEventListener('change', onEnableLdapGroupsChange);
   }
   // Edit authentication
   if (isEditPage) {
     const authType = elAuthType.value;
-    if (authType === '2' || authType === '5') {
-      document.querySelector<HTMLInputElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
-      document.querySelector('.js-ldap-group-toggle')!.addEventListener('change', onEnableLdapGroupsChange);
-      onEnableLdapGroupsChange();
-      if (authType === '2') {
-        document.querySelector<HTMLInputElement>('#use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
-      }
-    } else if (authType === '6') {
+    if (authType === '6') {
       document.querySelector<HTMLInputElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
       document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(false));
       onOAuth2Change(false);

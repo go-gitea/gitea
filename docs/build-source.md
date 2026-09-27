@@ -21,11 +21,15 @@ Various [make tasks](https://github.com/go-gitea/gitea/blob/main/Makefile)
 are provided to keep the build process as simple as possible.
 
 Depending on requirements, the following build tags can be included.
+Depending on requirements, the following build tags can be included:
 
 - `bindata`: Build a single monolithic binary, with all assets included. Required for distribution and production build.
 - `pam`: Enable support for PAM (Linux Pluggable Authentication Modules).
   Can be used to authenticate local users or extend authentication to methods available to PAM.
+- `bindata`: Build a single monolithic binary, with all assets included. Required for distribution and production builds.
 - `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
+
+SQLite is compiled using pure Go (`modernc.org/sqlite`) by default without requiring CGO or native SQLite libraries.
 
 To include all assets, use the `bindata` tag:
 
@@ -62,14 +66,18 @@ Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable a
 with the appropriate `TAGS` as above.
 
 Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.
+Running `./teabag help` will allow you to review what the computed settings will be for your `teabag`.
 
 ## Cross Build
 
 Gitea use's Golang's toolchain variables for cross-building.
+Teabag uses Go toolchain environment variables for cross-building.
 
 For example, to cross build for Linux ARM64:
+For example, to cross-build for Linux ARM64:
 
 ```
+```bash
 GOOS=linux GOARCH=arm64 TAGS="bindata" make build
 ```
 
@@ -78,6 +86,8 @@ GOOS=linux GOARCH=arm64 TAGS="bindata" make build
 Shell completion can be generated directly from binary with:
 ```sh
 gitea completion <shell>
+```bash
+./teabag completion <shell>
 ```
 
 Supported values for `<shell>` are `bash`, `fish`, `pwsh` and `zsh`.

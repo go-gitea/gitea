@@ -2,6 +2,7 @@
 
 This document covers expectations for refactoring work. For the general workflow see
 [CONTRIBUTING.md](../CONTRIBUTING.md).
+[CONTRIBUTING.md](contributing.md).
 
 ## Background
 

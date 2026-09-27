@@ -4,6 +4,7 @@ This document describes how to build Gitea from source and the day-to-day
 development workflow. For prerequisites and how to obtain the code, see
 [build-setup.md](build-setup.md). For running tests, see [testing.md](testing.md). For the
 contribution workflow and review process, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+contribution workflow and review process, see [CONTRIBUTING.md](contributing.md).
 
 Area-specific guidelines:
 
@@ -123,6 +124,9 @@ For unit, integration, end-to-end, and migration tests, see [testing.md](testing
 A `launch.json` and `tasks.json` are provided in
 [`contrib/development/vscode`](../contrib/development/vscode). See
 [`contrib/development/README.md`](../contrib/development/README.md) for details.
+A `launch.json` and `tasks.json` are provided in the repository's
+[`contrib/development/vscode`](https://github.com/italiatroller-1990/Teabag/tree/main/contrib/development/vscode) directory. See
+[`contrib/development/README.md`](https://github.com/italiatroller-1990/Teabag/tree/main/contrib/development/README.md) for details.
 
 ### GoLand
 
@@ -137,5 +141,6 @@ resources (such as templates) in development.
 ## Submitting your changes
 
 Push your branch and open a pull request. See [CONTRIBUTING.md](../CONTRIBUTING.md)
+Push your branch and open a pull request. See [CONTRIBUTING.md](contributing.md)
 for the review process and PR requirements. For help, join the `#Develop` channel on
 [Discord](https://discord.gg/gitea).

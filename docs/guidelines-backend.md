@@ -2,6 +2,7 @@
 
 This document covers backend-specific architecture and contribution expectations.
 For the general workflow see [CONTRIBUTING.md](../CONTRIBUTING.md), and for building
+For the general workflow see [CONTRIBUTING.md](contributing.md), and for building
 and testing see [development.md](development.md) and [testing.md](testing.md).
 
 ## Background

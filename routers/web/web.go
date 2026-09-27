@@ -8,11 +8,9 @@ import (
 	"strings"
 
 	audit_model "gitea.dev/models/audit"
-	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/metrics"
 	"gitea.dev/modules/public"
@@ -120,7 +118,6 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
 	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
-	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
@@ -151,11 +148,6 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 		// The Session plugin will skip authentication for users that have already signed in.
 		group.Add(&auth_service.Session{})
-
-		if enableSSPI {
-			// it MUST be the last, see the comment of SSPI
-			group.Add(&auth_service.SSPI{CreateSession: !isSessionless})
-		}
 
 		ar, err := common.AuthShared(ctx.Base, ctx.Session, group)
 		if err != nil {

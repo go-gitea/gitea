@@ -155,7 +155,7 @@ func TestRenameUser(t *testing.T) {
 		externalUser := &user_model.User{
 			Name:      "external_user",
 			Email:     "external_user@gitea.io",
-			LoginType: auth.LDAP,
+			LoginType: auth.OAuth2,
 		}
 		require.NoError(t, user_model.CreateUser(t.Context(), externalUser, &user_model.Meta{}))
 

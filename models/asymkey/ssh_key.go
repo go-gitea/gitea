@@ -261,65 +261,6 @@ func UpdatePublicKeyUpdated(ctx context.Context, id int64) error {
 	return nil
 }
 
-// PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
-func PublicKeysAreExternallyManaged(ctx context.Context, keys []*PublicKey) ([]bool, error) {
-	sourceCache := make(map[int64]*auth.Source, len(keys))
-	externals := make([]bool, len(keys))
-
-	for i, key := range keys {
-		if key.LoginSourceID == 0 {
-			externals[i] = false
-			continue
-		}
-
-		source, ok := sourceCache[key.LoginSourceID]
-		if !ok {
-			var err error
-			source, err = auth.GetSourceByID(ctx, key.LoginSourceID)
-			if err != nil {
-				if auth.IsErrSourceNotExist(err) {
-					externals[i] = false
-					sourceCache[key.LoginSourceID] = &auth.Source{
-						ID: key.LoginSourceID,
-					}
-					continue
-				}
-				return nil, err
-			}
-		}
-
-		if sshKeyProvider, ok := source.Cfg.(auth.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
-			// Disable setting SSH keys for this user
-			externals[i] = true
-		}
-	}
-
-	return externals, nil
-}
-
-// PublicKeyIsExternallyManaged returns whether the provided KeyID represents an externally managed Key
-func PublicKeyIsExternallyManaged(ctx context.Context, id int64) (bool, error) {
-	key, err := GetPublicKeyByID(ctx, id)
-	if err != nil {
-		return false, err
-	}
-	if key.LoginSourceID == 0 {
-		return false, nil
-	}
-	source, err := auth.GetSourceByID(ctx, key.LoginSourceID)
-	if err != nil {
-		if auth.IsErrSourceNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	if sshKeyProvider, ok := source.Cfg.(auth.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
-		// Disable setting SSH keys for this user
-		return true, nil
-	}
-	return false, nil
-}
-
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {

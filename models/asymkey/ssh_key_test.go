@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 
 	"github.com/42wim/sshsig"
@@ -471,14 +470,6 @@ func runErr(t *testing.T, stdin []byte, args ...string) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-}
-
-func TestPublicKeysAreExternallyManaged(t *testing.T) {
-	key1 := unittest.AssertExistsAndLoadBean(t, &PublicKey{ID: 1})
-	externals, err := PublicKeysAreExternallyManaged(t.Context(), []*PublicKey{key1})
-	assert.NoError(t, err)
-	assert.Len(t, externals, 1)
-	assert.False(t, externals[0])
 }
 
 // TestCheckPublicKeyStringOversized tests if oversized SSH2 public key strings are rejected before triggering costly operations.

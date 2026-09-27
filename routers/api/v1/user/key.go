@@ -288,23 +288,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 		return
 	}
 
-	id := ctx.PathParamInt64("id")
-	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
-	if err != nil {
-		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
-	if externallyManaged {
-		ctx.APIError(http.StatusForbidden, "SSH Key is externally managed for this user")
-		return
-	}
-
-	if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, id); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {

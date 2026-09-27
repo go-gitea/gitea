@@ -1,0 +1,116 @@
+[project]
+site_url = "https://italiatroller-1990.github.io/Teabag/"
+site_name = "Teabag"
+site_description = "Lightweight, non-enterprise Git forge documentation"
+site_author = "Teabag Maintainers"
+
+copyright = "Copyright &copy; 2026 Teabag Maintainers"
+
+repo_url = "https://github.com/italiatroller-1990/Teabag"
+repo_name = "italiatroller-1990/Teabag"
+edit_uri = "edit/main/docs/"
+
+nav = [
+  { "Welcome" = [
+      { "Overview" = "index.md" },
+      { "Philosophy & Architecture" = "philosophy.md" },
+  ]},
+  { "Hosting & Setup" = [
+      { "Prerequisites & Setup" = "build-setup.md" },
+      { "Build from Source" = "build-source.md" },
+      { "External CI Integration" = "ci-integration.md" },
+      { "ActivityPub Federation" = "federation-groundwork.md" },
+  ]},
+  { "Development" = [
+      { "Development Workflow" = "development.md" },
+      { "Backend Guidelines" = "guidelines-backend.md" },
+      { "Frontend Guidelines" = "guidelines-frontend.md" },
+      { "Refactoring Guidelines" = "guidelines-refactoring.md" },
+      { "Testing Guide" = "testing.md" },
+      { "Release Management" = "release-management.md" },
+  ]},
+  { "Optimization & Audits" = [
+      { "Optimization Baseline" = "optimization-baseline.md" },
+      { "Backend & Auth Audit" = "optimization-audit.md" },
+      { "Frontend Optimization Audit" = "frontend-optimization-audit.md" },
+  ]},
+  { "Community" = [
+      { "Contributing Guidelines" = "contributing.md" },
+      { "Community Governance" = "community-governance.md" },
+      { "Markdown Reference" = "markdown.md" },
+  ]},
+]
+
+[project.theme]
+language = "en"
+features = [
+  "announce.dismiss",
+  "content.action.edit",
+  "content.action.view",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/italiatroller-1990/Teabag"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+toc.permalink = true
+pymdownx.arithmatex.generic = true
+pymdownx.betterem = {}
+pymdownx.caret = {}
+pymdownx.details = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.magiclink = {}
+pymdownx.mark = {}
+pymdownx.smartsymbols = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+pymdownx.tasklist.custom_checkbox = true
+pymdownx.tilde = {}

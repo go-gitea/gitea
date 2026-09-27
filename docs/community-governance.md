@@ -1,6 +1,7 @@
 # Community governance and review process
 
 This document describes maintainer expectations, project governance, and the detailed pull request review workflow (labels, merge queue, commit message format for mergers). For what contributors should do when opening and updating a PR, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+This document describes maintainer expectations, project governance, and the detailed pull request review workflow (labels, merge queue, commit message format for mergers). For what contributors should do when opening and updating a PR, see [CONTRIBUTING.md](contributing.md).
 
 ## Table of contents
 

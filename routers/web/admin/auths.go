@@ -8,23 +8,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/auth/pam"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	auth_service "gitea.dev/services/auth"
-	"gitea.dev/services/auth/source/ldap"
 	"gitea.dev/services/auth/source/oauth2"
-	pam_service "gitea.dev/services/auth/source/pam"
 	"gitea.dev/services/auth/source/smtp"
-	"gitea.dev/services/auth/source/sspi"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -35,10 +30,7 @@ const (
 	tplAuthEdit templates.TplName = "admin/auth/edit"
 )
 
-var (
-	separatorAntiPattern = regexp.MustCompile(`[^\w-\.]`)
-	langCodePattern      = regexp.MustCompile(`^[a-z]{2}-[A-Z]{2}$`)
-)
+var ()
 
 // Authentications show authentication config page
 func Authentications(ctx *context.Context) {
@@ -63,23 +55,11 @@ type dropdownItem struct {
 var (
 	authSources = func() []dropdownItem {
 		items := []dropdownItem{
-			{auth.LDAP.String(), auth.LDAP},
-			{auth.DLDAP.String(), auth.DLDAP},
 			{auth.SMTP.String(), auth.SMTP},
 			{auth.OAuth2.String(), auth.OAuth2},
-			{auth.SSPI.String(), auth.SSPI},
-		}
-		if pam.Supported {
-			items = append(items, dropdownItem{auth.Names[auth.PAM], auth.PAM})
 		}
 		return items
 	}()
-
-	securityProtocols = []dropdownItem{
-		{ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
-		{ldap.SecurityProtocolNames[ldap.SecurityProtocolLDAPS], ldap.SecurityProtocolLDAPS},
-		{ldap.SecurityProtocolNames[ldap.SecurityProtocolStartTLS], ldap.SecurityProtocolStartTLS},
-	}
 )
 
 // NewAuthSource render adding a new auth source page
@@ -87,23 +67,15 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = auth.LDAP.Int()
-	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
-	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
+	ctx.Data["type"] = auth.SMTP.Int()
+	ctx.Data["CurrentTypeName"] = auth.Names[auth.SMTP]
 	ctx.Data["smtp_auth"] = "PLAIN"
 	ctx.Data["is_active"] = true
 	ctx.Data["is_sync_enabled"] = true
 	ctx.Data["AuthSources"] = authSources
-	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
-
-	ctx.Data["SSPIAutoCreateUsers"] = true
-	ctx.Data["SSPIAutoActivateUsers"] = true
-	ctx.Data["SSPIStripDomainNames"] = true
-	ctx.Data["SSPISeparatorReplacement"] = "_"
-	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
 	if len(oauth2providers) > 0 {
@@ -111,45 +83,6 @@ func NewAuthSource(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
-}
-
-func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
-	var pageSize uint32
-	if form.UsePagedSearch {
-		pageSize = uint32(form.SearchPageSize)
-	}
-	return &ldap.Source{
-		Name:                  form.Name,
-		Host:                  form.Host,
-		Port:                  form.Port,
-		SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
-		SkipVerify:            form.SkipVerify,
-		BindDN:                form.BindDN,
-		UserDN:                form.UserDN,
-		BindPassword:          form.BindPassword,
-		UserBase:              form.UserBase,
-		AttributeUsername:     form.AttributeUsername,
-		AttributeName:         form.AttributeName,
-		AttributeSurname:      form.AttributeSurname,
-		AttributeMail:         form.AttributeMail,
-		AttributesInBind:      form.AttributesInBind,
-		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
-		AttributeAvatar:       form.AttributeAvatar,
-		SSHKeysAreVerified:    form.SSHKeysAreVerified,
-		SearchPageSize:        pageSize,
-		Filter:                form.Filter,
-		GroupsEnabled:         form.GroupsEnabled,
-		GroupDN:               form.GroupDN,
-		GroupFilter:           form.GroupFilter,
-		GroupMemberUID:        form.GroupMemberUID,
-		GroupTeamMap:          form.GroupTeamMap,
-		GroupTeamMapRemoval:   form.GroupTeamMapRemoval,
-		UserUID:               form.UserUID,
-		AdminFilter:           form.AdminFilter,
-		RestrictedFilter:      form.RestrictedFilter,
-		AllowDeactivateAll:    form.AllowDeactivateAll,
-		Enabled:               true,
-	}
 }
 
 func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
@@ -208,30 +141,6 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 	}
 }
 
-func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi.Source, error) {
-	if form.SSPISeparatorReplacement == "" {
-		ctx.Data["Err_SSPISeparatorReplacement"] = true
-		return nil, errors.New(ctx.Locale.TrString("form.require_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
-	}
-	if separatorAntiPattern.MatchString(form.SSPISeparatorReplacement) {
-		ctx.Data["Err_SSPISeparatorReplacement"] = true
-		return nil, errors.New(ctx.Locale.TrString("form.alpha_dash_dot_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
-	}
-
-	if form.SSPIDefaultLanguage != "" && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
-		ctx.Data["Err_SSPIDefaultLanguage"] = true
-		return nil, errors.New(ctx.Locale.TrString("form.lang_select_error"))
-	}
-
-	return &sspi.Source{
-		AutoCreateUsers:      form.SSPIAutoCreateUsers,
-		AutoActivateUsers:    form.SSPIAutoActivateUsers,
-		StripDomainNames:     form.SSPIStripDomainNames,
-		SeparatorReplacement: form.SSPISeparatorReplacement,
-		DefaultLanguage:      form.SSPIDefaultLanguage,
-	}, nil
-}
-
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context) {
 	form := *web.GetForm[*forms.AuthenticationForm](ctx)
@@ -239,33 +148,17 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["CurrentTypeName"] = auth.Type(form.Type).String()
-	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocol(form.SecurityProtocol)]
 	ctx.Data["AuthSources"] = authSources
-	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	ctx.Data["SSPIAutoCreateUsers"] = true
-	ctx.Data["SSPIAutoActivateUsers"] = true
-	ctx.Data["SSPIStripDomainNames"] = true
-	ctx.Data["SSPISeparatorReplacement"] = "_"
-	ctx.Data["SSPIDefaultLanguage"] = ""
-
 	hasTLS := false
 	var config auth.Config
 	switch auth.Type(form.Type) {
-	case auth.LDAP, auth.DLDAP:
-		config = parseLDAPConfig(form)
-		hasTLS = ldap.SecurityProtocol(form.SecurityProtocol) > ldap.SecurityProtocolUnencrypted
 	case auth.SMTP:
 		config = parseSMTPConfig(form)
 		hasTLS = true
-	case auth.PAM:
-		config = &pam_service.Source{
-			ServiceName: form.PAMServiceName,
-			EmailDomain: form.PAMEmailDomain,
-		}
 	case auth.OAuth2:
 		oauth2Config := parseOAuth2Config(form)
 		config = oauth2Config
@@ -276,19 +169,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 				ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthNew, form)
 				return
 			}
-		}
-	case auth.SSPI:
-		var err error
-		config, err = parseSSPIConfig(ctx, form)
-		if err != nil {
-			ctx.RenderWithErrDeprecated(err.Error(), tplAuthNew, form)
-			return
-		}
-		existing, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{LoginType: auth.SSPI})
-		if err != nil || len(existing) > 0 {
-			ctx.Data["Err_Type"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
-			return
 		}
 	default:
 		ctx.HTTPError(http.StatusBadRequest)
@@ -332,7 +212,6 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetSupportedOAuth2Providers(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
@@ -383,15 +262,8 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 	var config auth.Config
 	switch auth.Type(form.Type) {
-	case auth.LDAP, auth.DLDAP:
-		config = parseLDAPConfig(form)
 	case auth.SMTP:
 		config = parseSMTPConfig(form)
-	case auth.PAM:
-		config = &pam_service.Source{
-			ServiceName: form.PAMServiceName,
-			EmailDomain: form.PAMEmailDomain,
-		}
 	case auth.OAuth2:
 		oauth2Config := parseOAuth2Config(form)
 		config = oauth2Config
@@ -402,12 +274,6 @@ func EditAuthSourcePost(ctx *context.Context) {
 				ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.invalid_openIdConnectAutoDiscoveryURL"), tplAuthEdit, form)
 				return
 			}
-		}
-	case auth.SSPI:
-		config, err = parseSSPIConfig(ctx, form)
-		if err != nil {
-			ctx.RenderWithErrDeprecated(err.Error(), tplAuthEdit, form)
-			return
 		}
 	default:
 		ctx.HTTPError(http.StatusBadRequest)

@@ -60,10 +60,6 @@ func newAuthCommand() *cli.Command {
 		Commands: []*cli.Command{
 			microcmdAuthAddOauth(),
 			microcmdAuthUpdateOauth(),
-			microcmdAuthAddLdapBindDn(),
-			microcmdAuthUpdateLdapBindDn(),
-			microcmdAuthAddLdapSimpleAuth(),
-			microcmdAuthUpdateLdapSimpleAuth(),
 			microcmdAuthAddSMTP(),
 			microcmdAuthUpdateSMTP(),
 			newAuthListCommand(),

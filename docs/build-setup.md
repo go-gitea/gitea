@@ -4,7 +4,7 @@ This document lists the tools you need to build Gitea from source and how to get
 the code. Once your environment is ready, see [development.md](development.md) for
 the build and development workflow, and [testing.md](testing.md) for running tests.
 
-For the contribution workflow and review process, see [CONTRIBUTING.md](../CONTRIBUTING.md).
+For the contribution workflow and review process, see [CONTRIBUTING.md](contributing.md).
 
 ## Requirements
 

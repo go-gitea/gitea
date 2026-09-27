@@ -25,45 +25,12 @@
 					<input id="auth_name" name="name" value="{{.name}}" autofocus required>
 				</div>
 
-				<!-- LDAP and DLDAP -->
-				{{template "admin/auth/source/ldap" .}}
-
 				<!-- SMTP -->
 				{{template "admin/auth/source/smtp" .}}
-
-				<!-- PAM -->
-				<div class="pam required field {{if not (eq .type 4)}}tw-hidden{{end}}">
-					<label for="pam_service_name">{{ctx.Locale.Tr "admin.auths.pam_service_name"}}</label>
-					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}">
-					<label for="pam_email_domain">{{ctx.Locale.Tr "admin.auths.pam_email_domain"}}</label>
-					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
-				</div>
-				<div class="pam optional field {{if not (eq .type 4)}}tw-hidden{{end}}">
-					<div class="ui checkbox">
-						<label for="skip_local_two_fa"><strong>{{ctx.Locale.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
-						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
-						<p class="help">{{ctx.Locale.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
-					</div>
-				</div>
 
 				<!-- OAuth2 -->
 				{{template "admin/auth/source/oauth" .}}
 
-				<!-- SSPI -->
-				{{template "admin/auth/source/sspi" .}}
-
-				<div class="ldap field">
-					<div class="ui checkbox">
-						<label><strong>{{ctx.Locale.Tr "admin.auths.attributes_in_bind"}}</strong></label>
-						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
-					</div>
-				</div>
-				<div class="oauth2 ldap inline field {{if not (or (eq .type 2) (eq .type 6))}}tw-hidden{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{ctx.Locale.Tr "admin.auths.syncenabled"}}</strong></label>
-						<input name="is_sync_enabled" type="checkbox" {{if .is_sync_enabled}}checked{{end}}>
-					</div>
-				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.auths.activated"}}</strong></label>

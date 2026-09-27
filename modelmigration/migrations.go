@@ -228,8 +228,7 @@ func prepareMigrationTasks() []*migration {
 
 		// Gitea 1.15.0 ends at database version 189
 
-		newMigration(189, "Unwrap ldap.Sources", v1_16.UnwrapLDAPSourceCfg),
-		newMigration(190, "Add agit flow pull request support", v1_16.AddAgitFlowPullRequest),
+		newMigration(189, "Add agit flow pull request support", v1_16.AddAgitFlowPullRequest),
 		newMigration(191, "Alter issue/comment table TEXT fields to LONGTEXT", v1_16.AlterIssueAndCommentTextFieldsToLongText),
 		newMigration(192, "RecreateIssueResourceIndexTable to have a primary key instead of an unique index", v1_16.RecreateIssueResourceIndexTable),
 		newMigration(193, "Add repo id column for attachment table", v1_16.AddRepoIDForAttachment),

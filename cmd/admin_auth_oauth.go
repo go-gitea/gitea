@@ -221,9 +221,12 @@ func (a *authService) runUpdateOauth(ctx context.Context, c *cli.Command) error 
 		return err
 	}
 
-	source, err := a.getAuthSourceOfType(ctx, c.Int64("id"), auth_model.OAuth2)
+	source, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
+	}
+	if source.Type != auth_model.OAuth2 {
+		return ErrAuthSourceTypeMismatch{c.Int64("id"), source.Type, auth_model.OAuth2}
 	}
 	oAuth2Config := auth_model.MustSourceCfg[*oauth2.Source](source)
 

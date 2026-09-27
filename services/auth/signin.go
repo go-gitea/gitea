@@ -15,10 +15,7 @@ import (
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/auth/source/smtp"
 
-	_ "gitea.dev/services/auth/source/db"   // register the sources (and below)
-	_ "gitea.dev/services/auth/source/ldap" // register the ldap source
-	_ "gitea.dev/services/auth/source/pam"  // register the pam source
-	_ "gitea.dev/services/auth/source/sspi" // register the sspi source
+	_ "gitea.dev/services/auth/source/db" // register the sources (and below)
 
 	"xorm.io/builder"
 )

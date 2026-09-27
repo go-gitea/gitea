@@ -9,22 +9,23 @@ import (
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 )
 
 // SyncExternalUsers is used to synchronize users with external authorization source
 func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers")
 
-	ls, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
+	ls, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
+		IsActive:      optional.Some(true),
+		IsSyncEnabled: optional.Some(true),
+	})
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err
 	}
 
 	for _, s := range ls {
-		if !s.IsActive || !s.IsSyncEnabled {
-			continue
-		}
 		select {
 		case <-ctx.Done():
 			log.Warn("SyncExternalUsers: Cancelled before update of %s", s.Name)
