@@ -3,7 +3,7 @@ let chosenMergeStyle = ''; // survives the merge box refresh, which remounts the
 </script>
 
 <script lang="ts" setup>
-import {computed, nextTick, onMounted, onUnmounted, shallowRef, useTemplateRef, watch} from 'vue';
+import {computed, nextTick, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
@@ -103,8 +103,6 @@ onMounted(() => {
     hideOnClick: true,
   });
 });
-
-onUnmounted(() => menuTippy?.destroy());
 
 async function toggleActionForm(show: boolean) {
   showActionForm.value = show;

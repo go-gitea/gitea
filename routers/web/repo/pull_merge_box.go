@@ -19,12 +19,6 @@ type pullMergeBoxSection struct {
 	Ring      []statusCheckRingSegment
 }
 
-const (
-	sectionColorSuccess = "green"
-	sectionColorDanger  = "red"
-	sectionColorNeutral = "grey"
-)
-
 func (prInfo *pullRequestViewInfo) prepareMergeBoxClosedSection(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
@@ -45,10 +39,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
 
-	section := &pullMergeBoxSection{Icon: "octicon-alert-fill", IconClass: sectionColorNeutral}
+	section := &pullMergeBoxSection{Icon: "octicon-alert-fill", IconClass: "grey"}
 	switch {
 	case prInfo.IsPullRequestBroken:
-		section.Icon, section.IconClass, section.Title = "octicon-x", sectionColorDanger, ctx.Locale.Tr("repo.pulls.data_broken")
+		section.Icon, section.IconClass, section.Title = "octicon-x", "red", ctx.Locale.Tr("repo.pulls.data_broken")
 	case pull.IsFilesConflicted():
 		section.Title, section.Details = ctx.Locale.Tr("repo.pulls.files_conflicted"), []template.HTML{ctx.Locale.Tr("repo.pulls.files_conflicted_desc")}
 		section.Files = pull.ConflictedFiles
@@ -62,26 +56,26 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 	case pull.IsEmpty():
 		section.Title, section.Details = ctx.Locale.Tr("repo.pulls.is_empty"), []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
 	case !pull.IsStatusMergeable():
-		section.Icon, section.IconClass, section.Title = "octicon-x", sectionColorDanger, ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc")
+		section.Icon, section.IconClass, section.Title = "octicon-x", "red", ctx.Locale.Tr("repo.pulls.cannot_auto_merge_desc")
 		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.cannot_auto_merge_helper")}
 	case data.ShowUpdatePullInfo:
 		section.Title = ctx.Locale.Tr("repo.pulls.outdated_with_base_branch")
 		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.outdated_with_base_branch_desc", htmlutil.HTMLFormat("<code>%s</code>", pull.BaseBranch))}
 	default:
-		section.Icon, section.IconClass, section.Title = "octicon-check", sectionColorSuccess, ctx.Locale.Tr("repo.pulls.no_conflicts")
+		section.Icon, section.IconClass, section.Title = "octicon-check", "green", ctx.Locale.Tr("repo.pulls.no_conflicts")
 		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
 	}
 	data.MergeSection = section
 
 	if prInfo.workInProgressPrefix != "" {
 		data.WorkInProgressSection = &pullMergeBoxSection{
-			Icon: "octicon-git-pull-request-draft", IconClass: sectionColorNeutral, Title: ctx.Locale.Tr("repo.pulls.cannot_merge_work_in_progress"),
+			Icon: "octicon-git-pull-request-draft", IconClass: "grey", Title: ctx.Locale.Tr("repo.pulls.cannot_merge_work_in_progress"),
 			Details: []template.HTML{ctx.Locale.Tr("repo.pulls.work_in_progress_desc")},
 		}
 	}
 	if len(data.mergeBlockers) > 0 {
 		data.BlockedSection = &pullMergeBoxSection{
-			Icon: "octicon-alert-fill", IconClass: sectionColorDanger, Title: ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
+			Icon: "octicon-alert-fill", IconClass: "red", Title: ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
 			Details: data.mergeBlockers, Files: pull.ChangedProtectedFiles,
 		}
 	}

@@ -1073,12 +1073,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 	if len(reviewBlockers) == 0 && pb.RequiredApprovals == 0 {
 		return
 	}
-	review := &pullMergeBoxSection{Icon: "octicon-check", IconClass: sectionColorSuccess, Title: ctx.Locale.Tr("repo.pulls.changes_approved"), Details: reviewBlockers}
+	review := &pullMergeBoxSection{Icon: "octicon-check", IconClass: "green", Title: ctx.Locale.Tr("repo.pulls.changes_approved"), Details: reviewBlockers}
 	if approvals > 0 {
 		review.Details = append(review.Details, ctx.Locale.TrN(approvals, "repo.pulls.approvals_granted"+allowlistKey+"1", "repo.pulls.approvals_granted"+allowlistKey+"n", approvals))
 	}
 	if len(reviewBlockers) > 0 {
-		review.Icon, review.IconClass = util.Iif(isBlockedByRejection, "octicon-file-diff", "octicon-x"), sectionColorDanger
+		review.Icon, review.IconClass = util.Iif(isBlockedByRejection, "octicon-file-diff", "octicon-x"), "red"
 		review.Title = ctx.Locale.Tr(util.Iif(isBlockedByRejection, "repo.pulls.changes_requested", "repo.pulls.review_required"))
 	}
 	data.ReviewSection = review

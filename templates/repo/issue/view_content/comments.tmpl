@@ -664,13 +664,12 @@
 				</span>
 			</div>
 		{{else if or (eq .Type 34) (eq .Type 35)}}
-			{{$disabledReason := and .CommentMetaData .CommentMetaData.AutoMergeDisabledReason}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
-				{{if $disabledReason}}
+				{{with and .CommentMetaData .CommentMetaData.AutoMergeDisabledReason}}
 					<span class="comment-text-line">{{ctx.Locale.Tr "repo.pulls.auto_merge_automatically_disabled_comment" $createdStr}}</span>
 					<div class="detail flex-text-block">
-						<span class="comment-text-line">{{ctx.Locale.Tr (print "repo.pulls.auto_merge_disabled_reason." $disabledReason)}}</span>
+						<span class="comment-text-line">{{ctx.Locale.Tr (print "repo.pulls.auto_merge_disabled_reason." .)}}</span>
 					</div>
 				{{else}}
 					{{if not .OriginalAuthor}}

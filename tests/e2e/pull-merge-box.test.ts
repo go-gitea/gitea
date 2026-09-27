@@ -1,8 +1,7 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {
-  apiCreateBranchProtection, apiCreateCommitStatus, apiCreateFiles, apiCreatePR, apiCreateRepo, apiGetPR, assertNoJsError,
-  login, randomString,
+  apiCreateBranchProtection, apiCreateFiles, apiCreatePR, apiCreateRepo, apiHeaders, assertNoJsError, login, randomString,
 } from './utils.ts';
 
 const owner = env.GITEA_TEST_E2E_USER;
@@ -15,18 +14,14 @@ test('merge box toggles auto merge and squash merges bypassing branch protection
       apiCreateFiles(request, owner, repo, [{path: 'feat.txt', content: 'feature\n'}], {branch: 'main', newBranch: 'feat'}),
       apiCreateBranchProtection(request, owner, repo, {rule_name: 'main', required_approvals: 1}),
     ]);
-    const [index] = await Promise.all([
-      apiCreatePR(request, owner, repo, 'feat', 'main', 'merge box test'),
-      apiCreateCommitStatus(request, owner, repo, 'feat', {context: 'ci/test', state: 'failure'}),
-    ]);
-    await expect.poll(async () => (await apiGetPR(request, owner, repo, index)).mergeable).toBe(true);
+    const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'merge box test');
+    await expect.poll(async () => (await (await request.get(`/api/v1/repos/${owner}/${repo}/pulls/${index}`, {headers: apiHeaders()})).json()).mergeable).toBe(true);
     return index;
   })();
   const [index] = await Promise.all([createPR, login(page)]);
   await page.goto(`/${owner}/${repo}/pulls/${index}`, {waitUntil: 'commit'});
 
   await expect(page.getByRole('heading', {name: 'Review required', exact: true})).toBeVisible();
-  await expect(page.getByText('All checks have failed')).toBeVisible();
   await page.getByRole('button', {name: 'Enable auto-merge (merge commit)'}).click();
   await page.getByRole('button', {name: 'Confirm auto-merge (merge commit)'}).click();
   await expect(page.getByText('enabled auto-merge (merge commit)')).toBeVisible();

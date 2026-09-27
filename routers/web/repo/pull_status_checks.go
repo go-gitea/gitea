@@ -14,31 +14,18 @@ import (
 	"gitea.dev/modules/translation"
 )
 
-type statusCheckKind string
+type statusCheckKind struct{ name, ringColor string }
 
-const (
-	statusCheckFailing    statusCheckKind = "failing"
-	statusCheckPending    statusCheckKind = "pending"
-	statusCheckInProgress statusCheckKind = "in_progress"
-	statusCheckExpected   statusCheckKind = "expected"
-	statusCheckSkipped    statusCheckKind = "skipped"
-	statusCheckSuccessful statusCheckKind = "successful"
+var (
+	statusCheckFailing    = statusCheckKind{"failing", "red"}
+	statusCheckPending    = statusCheckKind{"pending", "yellow"}
+	statusCheckInProgress = statusCheckKind{"in_progress", "yellow"}
+	statusCheckExpected   = statusCheckKind{"expected", "yellow"}
+	statusCheckSkipped    = statusCheckKind{"skipped", "grey"}
+	statusCheckSuccessful = statusCheckKind{"successful", "green"}
 )
 
 var statusCheckKinds = []statusCheckKind{statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected, statusCheckSkipped, statusCheckSuccessful}
-
-func (k statusCheckKind) ringColorClass() string {
-	switch k {
-	case statusCheckFailing:
-		return "red"
-	case statusCheckPending, statusCheckInProgress, statusCheckExpected:
-		return "yellow"
-	case statusCheckSuccessful:
-		return "green"
-	default:
-		return "grey"
-	}
-}
 
 type statusCheckGroup struct {
 	kind           statusCheckKind
@@ -46,7 +33,7 @@ type statusCheckGroup struct {
 }
 
 func (g *statusCheckGroup) text(locale translation.Locale) template.HTML {
-	return locale.Tr("repo.pulls.status_checks_"+string(g.kind), len(g.CommitStatuses))
+	return locale.Tr("repo.pulls.status_checks_"+g.kind.name, len(g.CommitStatuses))
 }
 
 func (g *statusCheckGroup) Title(locale translation.Locale) template.HTML {
@@ -99,10 +86,6 @@ func (d *pullCommitStatusCheckData) AllPassed() bool {
 	return d.count(statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected) == 0
 }
 
-func (d *pullCommitStatusCheckData) allFailed() bool {
-	return len(d.Groups) == 1 && d.Groups[0].kind == statusCheckFailing
-}
-
 func (d *pullCommitStatusCheckData) hasPending() bool {
 	return d.count(statusCheckPending, statusCheckInProgress) > 0
 }
@@ -114,12 +97,13 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 		parts = append(parts, string(group.text(locale)))
 	}
 	section := &pullMergeBoxSection{
-		Icon: "octicon-check", IconClass: sectionColorSuccess, Title: locale.Tr("repo.pulls.status_checks_success"),
+		Icon: "octicon-check", IconClass: "green", Title: locale.Tr("repo.pulls.status_checks_success"),
 		Details: []template.HTML{locale.TrN(d.count(statusCheckKinds...), "repo.pulls.status_checks_count_1", "repo.pulls.status_checks_count_n", template.HTML(strings.Join(parts, ", ")))},
 	}
+	allFailed := len(d.Groups) == 1 && d.Groups[0].kind == statusCheckFailing
 	switch {
-	case d.allFailed():
-		section.Icon, section.IconClass, section.Title = "octicon-x", sectionColorDanger, locale.Tr("repo.pulls.status_checks_all_failed")
+	case allFailed:
+		section.Icon, section.IconClass, section.Title = "octicon-x", "red", locale.Tr("repo.pulls.status_checks_all_failed")
 	case d.count(statusCheckFailing) > 0:
 		section.Title = locale.Tr("repo.pulls.status_checks_failure")
 	case d.RequireApprovalRunCount > 0:
@@ -127,7 +111,7 @@ func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMerg
 	case !d.AllPassed():
 		section.Title = locale.Tr("repo.pulls.status_checking")
 	}
-	if !d.AllPassed() && !d.allFailed() {
+	if !d.AllPassed() && !allFailed {
 		section.Ring = d.ringSegments()
 	}
 	return section
@@ -144,10 +128,10 @@ func (d *pullCommitStatusCheckData) ringSegments() (segments []statusCheckRingSe
 	total, start := float64(d.count(statusCheckKinds...)), gap/2.0
 	for _, group := range slices.Backward(d.Groups) {
 		length := 100 * float64(len(group.CommitStatuses)) / total
-		if last := len(segments) - 1; last >= 0 && segments[last].ColorClass == group.kind.ringColorClass() {
+		if last := len(segments) - 1; last >= 0 && segments[last].ColorClass == group.kind.ringColor {
 			segments[last].Dash += length
 		} else {
-			segments = append(segments, statusCheckRingSegment{ColorClass: group.kind.ringColorClass(), Dash: max(length-gap, 0.01), Offset: -start})
+			segments = append(segments, statusCheckRingSegment{ColorClass: group.kind.ringColor, Dash: max(length-gap, 0.01), Offset: -start})
 		}
 		start += length
 	}

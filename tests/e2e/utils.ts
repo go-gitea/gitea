@@ -106,25 +106,11 @@ export async function apiCreatePR(requestContext: APIRequestContext, owner: stri
   return (await response.json()).number;
 }
 
-export async function apiGetPR(requestContext: APIRequestContext, owner: string, repo: string, index: number) {
-  const response = await apiRetry(() => requestContext.get(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}`, {
-    headers: apiHeaders(),
-  }), 'apiGetPR');
-  return response.json();
-}
-
 export async function apiCreateBranchProtection(requestContext: APIRequestContext, owner: string, repo: string, data: Record<string, unknown>) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branch_protections`, {
     headers: apiHeaders(),
     data,
   }), 'apiCreateBranchProtection');
-}
-
-export async function apiCreateCommitStatus(requestContext: APIRequestContext, owner: string, repo: string, ref: string, data: {context: string; state: string}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/statuses/${ref}`, {
-    headers: apiHeaders(),
-    data,
-  }), 'apiCreateCommitStatus');
 }
 
 /** Create a review on a PR. `event: "COMMENT"` submits immediately without a pending review. */

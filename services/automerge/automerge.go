@@ -74,7 +74,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, style, "")
+		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, &issues_model.CommentMetaData{MergeStyle: style})
 		return err
 	})
 	// Old code made "scheduled" to be true after "ScheduleAutoMerge", but it's not right:
@@ -108,18 +108,18 @@ func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 			return util.NewPermissionDeniedErrorf("user has no permission to cancel the scheduled auto merge")
 		}
 	}
-	return removeScheduledAutoMerge(ctx, doer, pull, "")
+	return removeScheduledAutoMerge(ctx, doer, pull, nil)
 }
 
-// removeScheduledAutoMerge removes the auto merge, a non-empty disabledReason marks it as disabled automatically
-func removeScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, disabledReason string) error {
+// removeScheduledAutoMerge removes the auto merge, metaData carries the reason when it was disabled automatically
+func removeScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, metaData *issues_model.CommentMetaData) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		} else if n == 0 {
 			return nil
 		}
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, "", disabledReason)
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, metaData)
 		return err
 	})
 }

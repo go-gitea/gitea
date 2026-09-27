@@ -35,7 +35,7 @@ export function initRepoPullRequestUpdate(el: HTMLElement) {
 }
 
 async function initRepoPullRequestMergeForm(box: HTMLElement) {
-  const el = box.querySelector<HTMLElement>('#pull-request-merge-form');
+  const el = box.querySelector('#pull-request-merge-form');
   if (!el) return;
 
   const data = JSON.parse(el.getAttribute('data-merge-form-props')!);

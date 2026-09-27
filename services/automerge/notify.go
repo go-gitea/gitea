@@ -67,8 +67,16 @@ func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_m
 }
 
 func disableAutoMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) {
-	if err := removeScheduledAutoMerge(ctx, doer, pr, reason); err != nil {
+	if err := removeScheduledAutoMerge(ctx, doer, pr, &issues_model.CommentMetaData{AutoMergeDisabledReason: reason}); err != nil {
 		log.Error("removeScheduledAutoMerge[%d]: %v", pr.ID, err)
+	}
+}
+
+func disableIssueAutoMerge(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reason string) {
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest: %v", err)
+	} else {
+		disableAutoMerge(ctx, doer, issue.PullRequest, reason)
 	}
 }
 
@@ -95,26 +103,16 @@ func disableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr 
 }
 
 func (n *automergeNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, _ string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
-	if !isClosed || !issue.IsPull {
-		return
+	if isClosed && issue.IsPull {
+		disableIssueAutoMerge(ctx, doer, issue, "closed")
 	}
-	if err := issue.LoadPullRequest(ctx); err != nil {
-		log.Error("LoadPullRequest: %v", err)
-		return
-	}
-	disableAutoMerge(ctx, doer, issue.PullRequest, "closed")
 }
 
 // IssueChangeTitle disables auto merge when a WIP prefix is added, like GitHub does when converting to draft
 func (n *automergeNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
-	if !issue.IsPull || issues_model.HasWorkInProgressPrefix(oldTitle) || !issues_model.HasWorkInProgressPrefix(issue.Title) {
-		return
+	if issue.IsPull && !issues_model.HasWorkInProgressPrefix(oldTitle) && issues_model.HasWorkInProgressPrefix(issue.Title) {
+		disableIssueAutoMerge(ctx, doer, issue, "work_in_progress")
 	}
-	if err := issue.LoadPullRequest(ctx); err != nil {
-		log.Error("LoadPullRequest: %v", err)
-		return
-	}
-	disableAutoMerge(ctx, doer, issue.PullRequest, "work_in_progress")
 }
 
 func (n *automergeNotifier) PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, _ *issues_model.Comment) {

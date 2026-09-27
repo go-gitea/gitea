@@ -6,23 +6,19 @@
   height: 40px;
   border-radius: var(--border-radius-medium);
   color: var(--color-white);
-  background: var(--color-grey-light);
+  background: var(--merge-box-color, var(--color-grey-light));
 }
 
-.pull-merge-box.ready .merge-box-icon {
-  background: var(--color-green);
+.pull-merge-box.ready {
+  --merge-box-color: var(--color-green);
 }
 
-.pull-merge-box.merged .merge-box-icon {
-  background: var(--color-purple);
+.pull-merge-box.merged {
+  --merge-box-color: var(--color-purple);
 }
 
-.pull-merge-box.ready > .content > .ui.segment {
-  border-color: var(--color-green);
-}
-
-.pull-merge-box.merged > .content > .ui.segment {
-  border-color: var(--color-purple);
+.pull-merge-box:is(.ready, .merged) > .content > .ui.segment {
+  border-color: var(--merge-box-color);
 }
 
 .pull-merge-box .merge-section > .item {
@@ -126,7 +122,6 @@
 }
 
 .merge-box-chevron {
-  flex-shrink: 0;
   color: var(--color-text-light-2);
   transition: transform 0.15s;
 }
