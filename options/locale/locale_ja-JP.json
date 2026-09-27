@@ -3890,6 +3890,7 @@
   "actions.workflow.has_no_workflow_dispatch": "ワークフロー '%s' には workflow_dispatch イベントトリガーがありません。",
   "actions.need_approval_desc": "フォークプルリクエストのワークフローを実行するには承認が必要です。",
   "actions.approve_all_success": "すべてのワークフローの実行が正常に承認されました。",
+  "actions.job_queue.filter_repo_no_select": "すべてのリポジトリ",
   "actions.variables": "変数",
   "actions.variables.management": "変数の管理",
   "actions.variables.creation": "変数の追加",

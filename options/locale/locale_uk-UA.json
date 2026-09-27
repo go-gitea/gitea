@@ -3044,6 +3044,7 @@
   "actions.workflow.from_ref": "Використати робочий процес з",
   "actions.workflow.has_workflow_dispatch": "Цей робочий процес має тригер події workflow_dispatch.",
   "actions.workflow.has_no_workflow_dispatch": "Робочий процес “%s” не має тригера події workflow_dispatch.",
+  "actions.job_queue.filter_repo_no_select": "Всі репозиторії",
   "actions.variables": "Змінні",
   "actions.variables.management": "Керування змінними",
   "actions.variables.creation": "Додати змінну",

@@ -2915,6 +2915,7 @@
   "actions.workflow.scope_global": "Globāls",
   "actions.workflow.required": "Obligāts",
   "actions.need_approval_desc": "Nepieciešams apstiprinājums, lai izpildītu izmaiņu pieprasījumu darbaplūsmas no atdalītiem repozitorijiem.",
+  "actions.job_queue.filter_repo_no_select": "Visi repozitoriji",
   "actions.variables": "Mainīgie",
   "actions.variables.management": "Mainīgo pārvaldība",
   "actions.variables.creation": "Pievienot mainīgo",
