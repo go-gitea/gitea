@@ -25,7 +25,6 @@ import (
 	"gitea.dev/services/gitdiff"
 )
 
-// toAPIAutoMerge converts a scheduled auto merge into the GitHub-compatible "auto_merge" object
 func toAPIAutoMerge(ctx context.Context, autoMerge *pull_model.AutoMerge) *api.PullRequestAutoMerge {
 	commitTitle, commitMessage, _ := strings.Cut(autoMerge.Message, "\n\n")
 	return &api.PullRequestAutoMerge{

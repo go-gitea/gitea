@@ -15,6 +15,18 @@ import (
 	pull_service "gitea.dev/services/pull"
 )
 
+func defaultMergeStyle(prConfig *repo_model.PullRequestsConfig) repo_model.MergeStyle {
+	for _, style := range []repo_model.MergeStyle{
+		prConfig.DefaultMergeStyle, repo_model.MergeStyleMerge, repo_model.MergeStyleRebase, repo_model.MergeStyleRebaseMerge,
+		repo_model.MergeStyleSquash, repo_model.MergeStyleFastForwardOnly, repo_model.MergeStyleManuallyMerged,
+	} {
+		if prConfig.IsMergeStyleAllowed(style) {
+			return style
+		}
+	}
+	return ""
+}
+
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context, prConfig *repo_model.PullRequestsConfig) {
 	pull := prInfo.issue.PullRequest
 	if pull.HasMerged || prInfo.issue.IsClosed {
@@ -25,27 +37,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 	prInfo.MergeBoxData.ShowPullCommands = pull.HeadRepo != nil
 
-	// Check correct values and select default
-	var mergeStyle repo_model.MergeStyle
-	if prConfig.IsMergeStyleAllowed(prConfig.DefaultMergeStyle) {
-		mergeStyle = prConfig.DefaultMergeStyle
-	} else if prConfig.AllowMerge {
-		mergeStyle = repo_model.MergeStyleMerge
-	} else if prConfig.AllowRebase {
-		mergeStyle = repo_model.MergeStyleRebase
-	} else if prConfig.AllowRebaseMerge {
-		mergeStyle = repo_model.MergeStyleRebaseMerge
-	} else if prConfig.AllowSquash {
-		mergeStyle = repo_model.MergeStyleSquash
-	} else if prConfig.AllowFastForwardOnly {
-		mergeStyle = repo_model.MergeStyleFastForwardOnly
-	} else if prConfig.AllowManualMerge {
-		mergeStyle = repo_model.MergeStyleManuallyMerged
-	}
+	mergeStyle := defaultMergeStyle(prConfig)
 	if mergeStyle == "" {
-		if pull.IsStatusMergeable() {
-			prInfo.MergeBoxData.mergeBlockers = append(prInfo.MergeBoxData.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
-		}
 		return
 	}
 
@@ -77,6 +70,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"textSelectMergeStyle": ctx.Locale.Tr("repo.pulls.select_merge_style"),
 		"textMergeTitle":       ctx.Locale.Tr("repo.pulls.merge_commit_title"),
 
+		"isReady":                       prInfo.MergeBoxData.IsReady,
 		"canMergeNow":                   prInfo.MergeBoxData.canMergeNow,
 		"allOverridableChecksOk":        allOverridableChecksOk,
 		"textBypassRules":               ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),

@@ -249,9 +249,6 @@ type CommentMetaData struct {
 	ProjectTitle       string `json:"project_title,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
-
-	MergeStyle              repo_model.MergeStyle `json:"merge_style,omitempty"`
-	AutoMergeDisabledReason string                `json:"auto_merge_disabled_reason,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -824,7 +821,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			LabelID = opts.Label.ID
 		}
 
-		commentMetaData := opts.CommentMetaData
+		var commentMetaData *CommentMetaData
 		if opts.ProjectColumnTitle != "" {
 			commentMetaData = &CommentMetaData{
 				ProjectColumnID:    opts.ProjectColumnID,
@@ -1034,7 +1031,6 @@ type CreateCommentOptions struct {
 	IsForcePush        bool
 	Invalidated        bool
 	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
-	CommentMetaData    *CommentMetaData
 }
 
 // GetCommentByID returns the comment by given ID.
@@ -1224,7 +1220,7 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, metaData *CommentMetaData) (comment *Comment, err error) {
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
 	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
@@ -1237,12 +1233,11 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 	}
 
 	comment, err = CreateComment(ctx, &CreateCommentOptions{
-		Type:  typ,
-		Doer:  doer,
-		Repo:  pr.BaseRepo,
-		Issue: pr.Issue,
-
-		CommentMetaData: metaData,
+		Type:    typ,
+		Doer:    doer,
+		Repo:    pr.BaseRepo,
+		Issue:   pr.Issue,
+		Content: content,
 	})
 	return comment, err
 }

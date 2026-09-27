@@ -74,7 +74,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, &issues_model.CommentMetaData{MergeStyle: style})
+		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, string(style))
 		return err
 	})
 	// Old code made "scheduled" to be true after "ScheduleAutoMerge", but it's not right:
@@ -88,6 +88,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 	return scheduled, err
 }
 
+// ErrAutoMergeNotScheduled is returned when canceling an auto merge that does not exist
 var ErrAutoMergeNotScheduled = util.NewNotExistErrorf("auto merge is not scheduled")
 
 // CancelScheduledAutoMerge cancels the auto merge on behalf of its enabler, the pull request author or a user who can merge
@@ -108,18 +109,17 @@ func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 			return util.NewPermissionDeniedErrorf("user has no permission to cancel the scheduled auto merge")
 		}
 	}
-	return removeScheduledAutoMerge(ctx, doer, pull, nil)
+	return removeScheduledAutoMerge(ctx, doer, pull, "")
 }
 
-// removeScheduledAutoMerge removes the auto merge, metaData carries the reason when it was disabled automatically
-func removeScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, metaData *issues_model.CommentMetaData) error {
+func removeScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, reason string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		} else if n == 0 {
 			return nil
 		}
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, metaData)
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
 		return err
 	})
 }

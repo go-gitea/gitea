@@ -17,18 +17,13 @@
 			{{with $data.StatusCheckData}}
 				{{template "repo/issue/view_content/pull_merge_status_checks" (dict "StatusCheckData" $data.StatusCheckData)}}
 			{{end}}
-			{{with $data.ClosedSection}}
-				<div class="item">
-					{{template "repo/issue/view_content/pull_merge_section" .}}
-					{{if $data.IsPullBranchDeletable}}
-						<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{$.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
-					{{end}}
-				</div>
-			{{end}}
 			{{with $data.MergeSection}}
 				<div class="item">
 					{{template "repo/issue/view_content/pull_merge_section" .}}
 					{{if $data.ShowUpdatePullInfo}}{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data)}}{{end}}
+					{{if and $.Issue.IsClosed $data.IsPullBranchDeletable}}
+						<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{$.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
+					{{end}}
 				</div>
 			{{end}}
 			{{with $data.BlockedSection}}

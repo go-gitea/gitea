@@ -957,13 +957,16 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 	data.CanCancelAutoMerge = data.AutoMerge != nil && ctx.IsSigned && (data.hasPermToMerge || ctx.Doer.ID == data.AutoMerge.DoerID || issue.IsPoster(ctx.Doer.ID))
+	if data.hasPermToMerge && data.AutoMerge == nil && pull.IsStatusMergeable() && defaultMergeStyle(prConfig) == "" {
+		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
+	}
 
 	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.hasPending()) ||
 		(data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && len(data.mergeBlockers) == 0) // an unblocked auto merge is about to run
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
+	prInfo.prepareMergeBoxSections(ctx)
 	prInfo.prepareMergeBoxFormProps(ctx, prConfig)
-	prInfo.prepareMergeBoxInfoItems(ctx)
 }
 
 func (prInfo *pullRequestViewInfo) preparePullUpdateActions(ctx *context.Context) {

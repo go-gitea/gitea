@@ -284,7 +284,6 @@ type pullMergeBoxData struct {
 	AutodetectManualMerge bool
 	IsPullBranchDeletable bool
 
-	ClosedSection         *pullMergeBoxSection
 	ReviewSection         *pullMergeBoxSection
 	MergeSection          *pullMergeBoxSection
 	BlockedSection        *pullMergeBoxSection

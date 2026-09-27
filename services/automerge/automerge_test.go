@@ -34,14 +34,14 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	require.NoError(t, samePull.LoadIssue(t.Context()))
 	_, err := ScheduleAutoMerge(t.Context(), admin, samePull, repo_model.MergeStyleSquash, "title", false)
 	require.NoError(t, err)
-	assert.Equal(t, repo_model.MergeStyleSquash, unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRScheduledToAutoMerge}).CommentMetaData.MergeStyle)
+	assert.Equal(t, "squash", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRScheduledToAutoMerge}).Content)
 
 	notifier.PullRequestPushCommits(t.Context(), nonWriter, samePull, nil)
 	notifier.PullRequestChangeTargetBranch(t.Context(), admin, samePull, "")
 	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
 	notifier.IssueChangeStatus(t.Context(), admin, "", samePull.Issue, nil, true)
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
-	assert.Equal(t, "closed", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge}).CommentMetaData.AutoMergeDisabledReason)
+	assert.Equal(t, "closed", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge}).Content)
 
 	samePull.Flow = issues_model.PullRequestFlowAGit
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, samePull.ID, repo_model.MergeStyleMerge, "title", false))

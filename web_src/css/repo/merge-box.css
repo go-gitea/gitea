@@ -206,6 +206,10 @@ details[open] > summary > .merge-box-chevron {
   cursor: pointer;
 }
 
+.merge-box-actions {
+  flex-wrap: wrap;
+}
+
 .merge-box-cmd-hint {
   font-size: 12px;
   color: var(--color-text-light-2);

@@ -32,10 +32,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxClosedSection(ctx *context.Con
 	case data.IsPullBranchDeletable:
 		detail = ctx.Locale.Tr("repo.pulls.closed_with_unmerged_commits_desc", headTarget)
 	}
-	data.ClosedSection = &pullMergeBoxSection{Title: title, Details: []template.HTML{detail}}
+	data.MergeSection = &pullMergeBoxSection{Title: title, Details: []template.HTML{detail}}
 }
 
-func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context) {
+func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
 
@@ -82,7 +82,4 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 
 	data.IsReady = data.hasPermToMerge && !prInfo.IsPullRequestBroken && pull.IsStatusMergeable() && data.WorkInProgressSection == nil && len(data.mergeBlockers) == 0 &&
 		(data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
-	if data.MergeFormProps != nil {
-		data.MergeFormProps["isReady"] = data.IsReady
-	}
 }

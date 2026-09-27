@@ -666,10 +666,10 @@
 		{{else if or (eq .Type 34) (eq .Type 35)}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
-				{{with and .CommentMetaData .CommentMetaData.AutoMergeDisabledReason}}
+				{{if and (eq .Type 35) .Content}}
 					<span class="comment-text-line">{{ctx.Locale.Tr "repo.pulls.auto_merge_automatically_disabled_comment" $createdStr}}</span>
 					<div class="detail flex-text-block">
-						<span class="comment-text-line">{{ctx.Locale.Tr (print "repo.pulls.auto_merge_disabled_reason." .)}}</span>
+						<span class="comment-text-line">{{ctx.Locale.Tr (print "repo.pulls.auto_merge_disabled_reason." .Content)}}</span>
 					</div>
 				{{else}}
 					{{if not .OriginalAuthor}}
@@ -677,7 +677,7 @@
 					{{end}}
 					<span class="comment-text-line">
 						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
-						{{if and .CommentMetaData .CommentMetaData.MergeStyle}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_style_comment" (ctx.Locale.Tr (print "repo.pulls.merge_style_short." .CommentMetaData.MergeStyle)) $createdStr}}
+						{{if .Content}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_style_comment" (ctx.Locale.Tr (print "repo.pulls.merge_style_short." .Content)) $createdStr}}
 						{{else if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
 						{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
 					</span>

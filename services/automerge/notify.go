@@ -66,52 +66,41 @@ func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_m
 	}
 }
 
-func disableAutoMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) {
-	if err := removeScheduledAutoMerge(ctx, doer, pr, &issues_model.CommentMetaData{AutoMergeDisabledReason: reason}); err != nil {
-		log.Error("removeScheduledAutoMerge[%d]: %v", pr.ID, err)
-	}
-}
-
-func disableIssueAutoMerge(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reason string) {
+func disableIssueAutoMerge(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reason string) error {
 	if err := issue.LoadPullRequest(ctx); err != nil {
-		log.Error("LoadPullRequest: %v", err)
-	} else {
-		disableAutoMerge(ctx, doer, issue.PullRequest, reason)
+		return err
 	}
+	return removeScheduledAutoMerge(ctx, doer, issue.PullRequest, reason)
 }
 
 // disableAutoMergeIfNotWriter disables auto merge when a user without write access changes the pull request, like GitHub
-func disableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) {
-	if exist, _, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); !exist {
-		if err != nil {
-			log.Error("GetScheduledMergeByPullID: %v", err)
-		}
-		return
+func disableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) error {
+	if exist, _, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); err != nil || !exist {
+		return err
 	}
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return
+		return err
 	}
-	perm, err := access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
-	if err != nil {
-		log.Error("GetDoerRepoPermission: %v", err)
-		return
+	if perm, err := access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer); err != nil || perm.CanWrite(unit.TypeCode) {
+		return err
 	}
-	if !perm.CanWrite(unit.TypeCode) {
-		disableAutoMerge(ctx, doer, pr, reason)
-	}
+	return removeScheduledAutoMerge(ctx, doer, pr, reason)
 }
 
 func (n *automergeNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, _ string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
 	if isClosed && issue.IsPull {
-		disableIssueAutoMerge(ctx, doer, issue, "closed")
+		if err := disableIssueAutoMerge(ctx, doer, issue, "closed"); err != nil {
+			log.Error("disableIssueAutoMerge[%d]: %v", issue.ID, err)
+		}
 	}
 }
 
 // IssueChangeTitle disables auto merge when a WIP prefix is added, like GitHub does when converting to draft
 func (n *automergeNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	if issue.IsPull && !issues_model.HasWorkInProgressPrefix(oldTitle) && issues_model.HasWorkInProgressPrefix(issue.Title) {
-		disableIssueAutoMerge(ctx, doer, issue, "work_in_progress")
+		if err := disableIssueAutoMerge(ctx, doer, issue, "work_in_progress"); err != nil {
+			log.Error("disableIssueAutoMerge[%d]: %v", issue.ID, err)
+		}
 	}
 }
 
@@ -120,9 +109,13 @@ func (n *automergeNotifier) PullRequestPushCommits(ctx context.Context, doer *us
 	if pr.Flow == issues_model.PullRequestFlowGithub && pr.HeadRepoID == pr.BaseRepoID {
 		return
 	}
-	disableAutoMergeIfNotWriter(ctx, doer, pr, "pushed_by_non_writer")
+	if err := disableAutoMergeIfNotWriter(ctx, doer, pr, "pushed_by_non_writer"); err != nil {
+		log.Error("disableAutoMergeIfNotWriter[%d]: %v", pr.ID, err)
+	}
 }
 
 func (n *automergeNotifier) PullRequestChangeTargetBranch(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, _ string) {
-	disableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed")
+	if err := disableAutoMergeIfNotWriter(ctx, doer, pr, "base_changed"); err != nil {
+		log.Error("disableAutoMergeIfNotWriter[%d]: %v", pr.ID, err)
+	}
 }

@@ -7,7 +7,6 @@ import {computed, nextTick, onMounted, shallowRef, useTemplateRef, watch} from '
 import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
 import {toggleElem} from '../utils/dom.ts';
-import type {Instance} from 'tippy.js';
 
 type MergeStyle = {
   name: string,
@@ -68,7 +67,6 @@ const actionForm = useTemplateRef<HTMLFormElement>('actionForm');
 const mergeButton = useTemplateRef<HTMLButtonElement>('mergeButton');
 const menuTrigger = useTemplateRef<HTMLButtonElement>('menuTrigger');
 const menuPanel = useTemplateRef<HTMLDivElement>('menuPanel');
-let menuTippy: Instance | undefined;
 
 const autoMergeWhenSucceed = computed(() => !mergeStyleDetail.value.hideAutoMerge && !forceMerge.value);
 
@@ -82,15 +80,15 @@ const buttonTexts = computed(() => {
 const mergeButtonStyleClass = computed(() => mergeForm.isReady && mergeStyle.value !== mergeStyleManuallyMerged ? 'green' : '');
 
 watch(mergeStyle, (val) => {
-  chosenMergeStyle = val;
   for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
     toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
   }
 }, {immediate: true});
+watch(mergeStyle, (val) => { chosenMergeStyle = val });
 
 onMounted(() => {
   if (!menuTrigger.value) return;
-  menuTippy = createTippy(menuTrigger.value, {
+  const menuTippy = createTippy(menuTrigger.value, {
     content: menuPanel.value!,
     getReferenceClientRect: () => menuTrigger.value!.parentElement!.getBoundingClientRect(),
     theme: 'menu',
@@ -102,6 +100,7 @@ onMounted(() => {
     interactive: true,
     hideOnClick: true,
   });
+  menuPanel.value!.addEventListener('click', () => menuTippy.hide());
 });
 
 async function toggleActionForm(show: boolean) {
@@ -114,7 +113,6 @@ async function toggleActionForm(show: boolean) {
   await nextTick();
   (show ? actionForm.value!.querySelector<HTMLElement>('input:not([type="hidden"]), button[type="submit"]')! : mergeButton.value!).focus();
 }
-
 </script>
 
 <template>
@@ -142,7 +140,7 @@ async function toggleActionForm(show: boolean) {
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId" required>
       </div>
 
-      <div class="flex-text-block tw-flex-wrap">
+      <div class="flex-text-block merge-box-actions">
         <button class="ui button" :class="forceMerge ? 'red' : mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ buttonTexts.confirm }}
         </button>
@@ -158,7 +156,7 @@ async function toggleActionForm(show: boolean) {
       </div>
     </form>
 
-    <div v-show="!showActionForm" class="flex-text-block tw-flex-wrap">
+    <div v-show="!showActionForm" class="flex-text-block merge-box-actions">
       <div class="ui buttons" :class="mergeButtonStyleClass">
         <button ref="mergeButton" class="ui button" type="button" @click="toggleActionForm(true)">
           {{ buttonTexts.button }}
@@ -173,7 +171,7 @@ async function toggleActionForm(show: boolean) {
         <a class="show-modal" href="" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
       </span>
     </div>
-    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="menuTippy!.hide()">
+    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu">
       <a v-for="msd in mergeForm.mergeStyles" :key="msd.name" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">
         <svg-icon name="octicon-check"/>
         <div><strong>{{ msd.textDoMerge }}</strong><small>{{ msd.textDescription }}</small></div>

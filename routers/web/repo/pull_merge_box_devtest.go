@@ -58,8 +58,8 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 		if issue.IsClosed {
 			prInfo.prepareMergeBoxClosedSection(ctx)
 		} else {
+			prInfo.prepareMergeBoxSections(ctx)
 			prInfo.prepareMergeBoxFormProps(ctx, prConfig)
-			prInfo.prepareMergeBoxInfoItems(ctx)
 		}
 		scenarios = append(scenarios, map[string]any{
 			"Title":                           title,

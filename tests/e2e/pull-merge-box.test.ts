@@ -21,7 +21,6 @@ test('merge box toggles auto merge and squash merges bypassing branch protection
   const [index] = await Promise.all([createPR, login(page)]);
   await page.goto(`/${owner}/${repo}/pulls/${index}`, {waitUntil: 'commit'});
 
-  await expect(page.getByRole('heading', {name: 'Review required', exact: true})).toBeVisible();
   await page.getByRole('button', {name: 'Enable auto-merge (merge commit)'}).click();
   await page.getByRole('button', {name: 'Confirm auto-merge (merge commit)'}).click();
   await expect(page.getByText('enabled auto-merge (merge commit)')).toBeVisible();
