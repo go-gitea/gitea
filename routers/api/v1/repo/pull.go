@@ -910,6 +910,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "201":
+	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -975,6 +977,8 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
+			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+		} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -1344,7 +1348,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Doer.ID != autoMerge.DoerID {
+	if ctx.Doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(ctx.Doer.ID) {
 		allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -1356,7 +1360,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 		}
 	}
 
-	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull); err != nil {
+	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull, ""); err != nil {
 		ctx.APIErrorInternal(err)
 	} else {
 		ctx.Status(http.StatusNoContent)

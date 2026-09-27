@@ -1,24 +1,22 @@
 {{$data := $.MergeBoxData}}
-<div class="tw-w-full flex-left-right">
-	<div class="flex-text-block">
-		{{svg "octicon-alert"}}
-		{{ctx.Locale.Tr "repo.pulls.outdated_with_base_branch"}}
-	</div>
-	{{if $data.UpdatePrimaryAction}}
-	<div class="ui buttons"{{if $data.UpdateStyleOptions}} data-global-init="initRepoPullRequestUpdate"{{end}}>
-		<button type="button" class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
-			{{$data.UpdatePrimaryAction.Text}}
-		</button>
-		{{if gt (len $data.UpdateStyleOptions) 1}}
-		<div class="ui dropdown icon button">
-			{{svg "octicon-triangle-down"}}
-			<div class="menu">
-				{{range $data.UpdateStyleOptions}}
-					<a class="item {{if .Selected}}selected{{end}}" data-update-url="{{.URL}}">{{.Text}}</a>
-				{{end}}
-			</div>
-		</div>
-		{{end}}
-	</div>
+{{if $data.UpdatePrimaryAction}}
+{{$hasStyleMenu := gt (len $data.UpdateStyleOptions) 1}}
+<div class="ui buttons"{{if $hasStyleMenu}} data-global-init="initRepoPullRequestUpdate"{{end}}>
+	<button type="button" class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
+		{{$data.UpdatePrimaryAction.ButtonText}}
+	</button>
+	{{if $hasStyleMenu}}
+	<button type="button" class="ui icon button" aria-label="{{ctx.Locale.Tr "repo.pulls.select_update_style"}}">{{svg "octicon-triangle-down" 14}}</button>
 	{{end}}
 </div>
+{{if $hasStyleMenu}}
+<div class="tippy-target merge-box-menu">
+	{{range $data.UpdateStyleOptions}}
+		<a class="item" role="menuitemradio" aria-checked="{{.Selected}}" data-update-url="{{.URL}}" data-update-text="{{.ButtonText}}">
+			{{svg "octicon-check"}}
+			<div><strong>{{.Text}}</strong><small>{{.Description}}</small></div>
+		</a>
+	{{end}}
+</div>
+{{end}}
+{{end}}

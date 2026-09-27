@@ -1,79 +1,62 @@
 {{$data := $.PullMergeBoxData}}
 {{if $data.ShowMergeBox}}
-<div class="timeline-item comment pull-merge-box"
+<div class="timeline-item comment pull-merge-box{{if .Issue.PullRequest.HasMerged}} merged{{else if $data.IsReady}} ready{{end}}"
 	data-global-init="initRepoPullMergeBox"
 	{{if $data.ReloadingInterval}}
 		data-pull-merge-box-reloading-interval="{{$data.ReloadingInterval}}"
 		data-pull-link="{{$.Issue.Link}}"
 	{{end}}
 >
-	<div class="timeline-avatar {{$data.TimelineIconClass}}">{{svg "octicon-git-merge" 40}}</div>
+	<div class="timeline-avatar">
+		<div class="merge-box-icon">{{svg "octicon-git-merge" 24}}</div>
+	</div>
 	<div class="content">
-		<div class="ui segment fitted avatar-content-left-arrow">
-			<div class="merge-section flex-divided-list items-px-default">
-			{{if $data.ShowStatusCheck}}
+		<div class="ui segment fitted">
+			<div class="merge-section flex-divided-list items-with-main">
+			{{with $data.ReviewSection}}
+				<div class="item">{{template "repo/issue/view_content/pull_merge_section" .}}</div>
+			{{end}}
+			{{with $data.StatusCheckData}}
 				{{template "repo/issue/view_content/pull_merge_status_checks" (dict "StatusCheckData" $data.StatusCheckData)}}
 			{{end}}
-
-			{{if $data.ClosedInfoTitle}}
-				<div class="item flex-left-right">
-					<div>
-						<h3 class="tw-mb-2">{{$data.ClosedInfoTitle}}</h3>
-						<div>{{$data.ClosedInfoBody}}</div>
-					</div>
+			{{with $data.ClosedSection}}
+				<div class="item">
+					{{template "repo/issue/view_content/pull_merge_section" .}}
 					{{if $data.IsPullBranchDeletable}}
-						<div>
-							<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
-						</div>
+						<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{$.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 					{{end}}
 				</div>
 			{{end}}
-			{{range $infoSection := $data.InfoSections}}
-				{{if $infoSection.InfoItems}}
+			{{with $data.MergeSection}}
 				<div class="item">
-					{{if $infoSection.IsBlocked}}
-						<div class="flex-text-block tw-font-semibold">{{svg "octicon-x" 16 "tw-text-red"}} {{ctx.Locale.Tr "repo.pulls.merging_is_blocked"}}</div>
+					{{template "repo/issue/view_content/pull_merge_section" .}}
+					{{if $data.ShowUpdatePullInfo}}{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data)}}{{end}}
+				</div>
+			{{end}}
+			{{with $data.BlockedSection}}
+				<div class="item">{{template "repo/issue/view_content/pull_merge_section" .}}</div>
+			{{end}}
+			{{with $data.WorkInProgressSection}}
+				<div class="item">
+					{{template "repo/issue/view_content/pull_merge_section" .}}
+					{{if or $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}
+						<button type="button" class="ui button" data-global-init="initPullRequestWipToggle" data-title="{{$.Issue.Title}}" data-wip-prefix="{{$.WorkInProgressPrefix}}" data-update-url="{{$.Issue.Link}}/title">
+							<span>{{ctx.Locale.Tr "repo.pulls.remove_prefix" $.WorkInProgressPrefix}}</span>
+						</button>
 					{{end}}
-					<div class="{{if $infoSection.IsBlocked}}tw-pl-6 tw-text-text-light{{end}}">
-					{{range $infoItem := $infoSection.InfoItems}}
-						<div class="flex-text-block">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
-						{{if $infoItem.ListItems}}
-							<ul class="tw-pl-[36px]">{{/* align with the info icon and text */}}
-								{{range $listItem := $infoItem.ListItems}}
-									<li>{{$listItem}}</li>
-								{{end}}
-							</ul>
+				</div>
+			{{end}}
+			{{if or $data.AutoMerge $data.MergeFormProps $data.ShowPullCommands}}
+				<div class="item merge-box-footer">
+					{{if $data.AutoMerge}}
+						{{if $data.CanCancelAutoMerge}}
+							<form action="{{$.Issue.Link}}/cancel_auto_merge" method="post"><button type="submit" class="ui button">{{ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule"}}</button></form>
 						{{end}}
-					{{end}}
-					</div>
-				</div>
-				{{end}}
-			{{end}}
-			{{if $data.ShowUpdatePullInfo}}
-				<div class="item">
-					{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data "IssueLink" $.Issue.Link)}}
-				</div>
-			{{end}}
-
-			{{if $.IsPullWorkInProgress}}
-				<div class="item flex-left-right">
-					<div class="flex-text-block">
-						{{svg "octicon-x"}} {{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
-					</div>
-					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
-					<button type="button" class="ui compact button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
-						{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
-					</button>
-					{{end}}
-				</div>
-			{{end}}
-
-			{{if or $data.MergeFormProps $data.ShowPullCommands}}
-				<div class="item tw-bg-box-header tw-rounded-b">
-					{{if $data.MergeFormProps}}
-						<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
+						<span class="merge-box-auto-merge-text">{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_desc" $data.AutoMerge.Doer.GetDisplayName (ctx.Locale.Tr (print "repo.pulls.merge_style_short." $data.AutoMerge.MergeStyle))}}</span>
+					{{else if $data.MergeFormProps}}
+						<div id="pull-request-merge-form" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
 					{{else}}
-						<a class="show-modal" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a>
+						<span class="merge-box-cmd-hint">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_hint"}} <a class="show-modal" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a></span>
 					{{end}}
 				</div>
 			{{end}}

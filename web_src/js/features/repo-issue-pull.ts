@@ -1,39 +1,29 @@
 import {createApp} from 'vue';
 import {GET} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
-import {registerGlobalEventFunc} from '../modules/observer.ts';
-import type {JQueryElem} from '../types.ts';
+import {createTippy} from '../modules/tippy.ts';
+import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
-  const elDropdown = el.querySelector(':scope > .ui.dropdown');
-  if (!elDropdown) return;
-  const elButton = el.querySelector<HTMLButtonElement>(':scope > button')!;
-
-  fomanticQuery(elDropdown).dropdown({
-    onChange(_text: string, _value: string, $choice: JQueryElem) {
-      const choiceEl = $choice[0];
-      elButton.textContent = choiceEl.textContent;
-      elButton.setAttribute('data-url', choiceEl.getAttribute('data-update-url')!);
-    },
+  const [elButton, elTrigger] = el.querySelectorAll<HTMLButtonElement>(':scope > button');
+  const menu = el.nextElementSibling!;
+  const menuTippy = createTippy(elTrigger, {content: menu, getReferenceClientRect: () => el.getBoundingClientRect(), theme: 'menu', arrow: false, maxWidth: 320, placement: 'bottom-end', trigger: 'click', interactive: true, hideOnClick: true});
+  addDelegatedEventListener(menu, 'click', '.item', (choice) => {
+    for (const item of menu.querySelectorAll('.item')) item.setAttribute('aria-checked', String(item === choice));
+    elButton.textContent = choice.getAttribute('data-update-text');
+    elButton.setAttribute('data-url', choice.getAttribute('data-update-url')!);
+    menuTippy.hide();
   });
 }
 
-function onCommitStatusChecksToggle(btn: HTMLElement) {
-  const panel = btn.closest('.commit-status-toggle')!.parentElement!;
-  const list = panel.querySelector<HTMLElement>('.commit-status-list')!;
-  list.style.maxHeight = list.style.maxHeight ? '' : '0px'; // toggle
-  btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
-}
-
 async function initRepoPullRequestMergeForm(box: HTMLElement) {
-  const el = box.querySelector('#pull-request-merge-form');
+  const el = box.querySelector<HTMLElement>('#pull-request-merge-form');
   if (!el) return;
 
   const data = JSON.parse(el.getAttribute('data-merge-form-props')!);
   const {default: PullRequestMergeForm} = await import('../components/PullRequestMergeForm.vue');
   const view = createApp(PullRequestMergeForm, {mergeFormProps: data});
   view.mount(el); // TODO: can unmount when reloaded?
+  el.style.removeProperty('min-height');
 }
 
 function initRepoPullMergeBoxRefresh(el: Element) {
@@ -54,20 +44,22 @@ function initRepoPullMergeBoxRefresh(el: Element) {
       const resp = await GET(`${pullLink}/merge_box`);
       if (!resp.ok) return;
       const respText = (await resp.text()).trim();
+      if (interacted) return;
       if (!respText) {
         el.remove(); // merge box might not exist if the PR has changed (e.g.: merged and the head branch has been deleted)
         return;
       }
       const newEl = createElementFromHTML(respText);
-      const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
+      const scrollTop = el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
+      const formHeight = el.querySelector<HTMLElement>('#pull-request-merge-form')?.offsetHeight;
+      if (formHeight) newEl.querySelector<HTMLElement>('#pull-request-merge-form')?.style.setProperty('min-height', `${formHeight}px`, 'important'); // keep the height until Vue remounts
       el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
-      if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
+      if (scrollTop) newEl.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
     },
   });
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
-  registerGlobalEventFunc('click', 'onCommitStatusChecksToggle', onCommitStatusChecksToggle);
   initRepoPullRequestMergeForm(el);
   initRepoPullMergeBoxRefresh(el);
 }

@@ -249,6 +249,9 @@ type CommentMetaData struct {
 	ProjectTitle       string `json:"project_title,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	MergeStyle              repo_model.MergeStyle `json:"merge_style,omitempty"`
+	AutoMergeDisabledReason string                `json:"auto_merge_disabled_reason,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -834,6 +837,9 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 				SpecialDoerName: opts.SpecialDoerName,
 			}
 		}
+		if opts.MergeStyle != "" || opts.AutoMergeDisabledReason != "" {
+			commentMetaData = &CommentMetaData{MergeStyle: opts.MergeStyle, AutoMergeDisabledReason: opts.AutoMergeDisabledReason}
+		}
 
 		comment := &Comment{
 			Type:             opts.Type,
@@ -1031,6 +1037,9 @@ type CreateCommentOptions struct {
 	IsForcePush        bool
 	Invalidated        bool
 	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	MergeStyle              repo_model.MergeStyle
+	AutoMergeDisabledReason string
 }
 
 // GetCommentByID returns the comment by given ID.
@@ -1220,7 +1229,7 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, disabledReason string) (comment *Comment, err error) {
 	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
@@ -1237,6 +1246,9 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		Doer:  doer,
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,
+
+		MergeStyle:              mergeStyle,
+		AutoMergeDisabledReason: disabledReason,
 	})
 	return comment, err
 }

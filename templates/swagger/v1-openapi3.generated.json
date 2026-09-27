@@ -29695,6 +29695,9 @@
           "200": {
             "$ref": "#/components/responses/empty"
           },
+          "201": {
+            "$ref": "#/components/responses/empty"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },

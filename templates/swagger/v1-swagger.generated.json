@@ -17218,6 +17218,9 @@
           "200": {
             "$ref": "#/responses/empty"
           },
+          "201": {
+            "$ref": "#/responses/empty"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },

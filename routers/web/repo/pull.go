@@ -11,6 +11,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/fileicon"
@@ -34,7 +36,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/utils"
@@ -260,58 +261,48 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 type pullMergeBoxData struct {
 	ShowMergeBox      bool
 	ReloadingInterval int
+	IsReady           bool
 
-	TimelineIconClass string
+	StatusCheckData *pullCommitStatusCheckData
 
-	ClosedInfoTitle template.HTML
-	ClosedInfoBody  template.HTML
-
-	enableStatusCheck bool
-	StatusCheckData   *pullCommitStatusCheckData
-	ShowStatusCheck   bool
-	// hasRequiredStatusContexts is true when at least one required status-check context must be satisfied:
-	// the branch protection's own contexts and/or required scoped workflow checks.
-	// The latter gate the merge even when the rule's own status check is disabled.
-	hasRequiredStatusContexts bool
-
-	hasOverridableBlockers bool
-	canMergeNow            bool // PR is mergeable, either no blocker, or doer can bypass the blockers
-	hasPermToMerge         bool // doer has permission to merge
-	canBypassProtection    bool
+	hasOverridableBlockers  bool
+	isMergeBlocked          bool
+	canMergeNow             bool // PR is mergeable, either no blocker, or doer can bypass the blockers
+	hasPermToMerge          bool
+	requireSigned, willSign bool
+	mergeBlockers           []template.HTML
 
 	ShowUpdatePullInfo  bool
 	UpdatePrimaryAction *pullUpdateAction
 	UpdateStyleOptions  []*pullUpdateAction
 
+	AutoMerge          *pull_model.AutoMerge
+	CanCancelAutoMerge bool
+
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
-	ShowMergeInstructions bool
 	AutodetectManualMerge bool
-
-	// don't expose unneeded fields to templates, need more refactoring changes
-	hasStatusCheckBlocker bool
 	IsPullBranchDeletable bool
 
-	isBlockedByApprovals              bool
-	isBlockedByRejection              bool
-	isBlockedByOfficialReviewRequests bool
-	isBlockedByCodeowners             bool
-	isBlockedByOutdatedBranch         bool
-	isBlockedByChangedProtectedFiles  bool
-	requireSigned, willSign           bool
-	signingKeyMergeDisplay            string
+	ClosedSection         *pullMergeBoxSection
+	ReviewSection         *pullMergeBoxSection
+	MergeSection          *pullMergeBoxSection
+	BlockedSection        *pullMergeBoxSection
+	WorkInProgressSection *pullMergeBoxSection
+}
 
-	infoCommitBlockers     pullMergeBoxInfoItemCollection
-	infoProtectionBlockers pullMergeBoxInfoItemCollection
-	infoMergePrompts       pullMergeBoxInfoItemCollection
-
-	InfoSections []*pullInfoSection
+func (d *pullMergeBoxData) addOverridableBlocker(info template.HTML) {
+	d.hasOverridableBlockers = true
+	d.mergeBlockers = append(d.mergeBlockers, info)
 }
 
 type pullUpdateAction struct {
 	URL      string
 	Text     template.HTML
 	Selected bool
+
+	Description template.HTML
+	ButtonText  template.HTML
 }
 
 // pullRequestViewInfo is a structured type for viewing pull request
@@ -396,20 +387,9 @@ func (prInfo *pullRequestViewInfo) prepareViewFillCompareInfo(ctx *context.Conte
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.Context) {
 	headCommitID := prInfo.CompareInfo.HeadCommitID
-	if headCommitID == "" || prInfo.issue.IsClosed {
+	if headCommitID == "" {
 		return
 	}
-
-	data := prInfo.MergeBoxData
-
-	var pbRequiredContexts []string
-	data.enableStatusCheck = prInfo.ProtectedBranchRule != nil && prInfo.ProtectedBranchRule.EnableStatusCheck
-	if prInfo.ProtectedBranchRule != nil {
-		pbRequiredContexts = prInfo.ProtectedBranchRule.StatusCheckContexts
-	}
-
-	statusCheckData := &pullCommitStatusCheckData{}
-	data.StatusCheckData = statusCheckData
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
 	if err != nil {
@@ -417,26 +397,38 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 
 	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
-	requiredContexts := pbRequiredContexts
-	if effective, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, prInfo.ProtectedBranchRule); err != nil {
+	pb := prInfo.ProtectedBranchRule
+	requiredContexts, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, pb)
+	if err != nil {
 		log.Error("EffectiveRequiredContexts: %v", err)
-	} else {
-		requiredContexts = effective
+		if pb != nil {
+			requiredContexts = pb.StatusCheckContexts
+		}
 	}
-	data.hasRequiredStatusContexts = len(requiredContexts) > 0
-
 	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, commitStatuses)
-	combinedCommitStatus := git_model.CalcCommitStatus(commitStatuses)
-	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
-	statusCheckData.PullCommitStatuses = commitStatuses
-	if combinedCommitStatus != nil {
-		statusCheckData.pullCommitStatusState = combinedCommitStatus.State
+
+	// Required scoped workflow checks gate the merge even when the branch protection's own status check is disabled
+	checksRequired := (pb != nil && pb.EnableStatusCheck) || len(requiredContexts) > 0
+	if state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts); checksRequired && !state.IsSuccess() {
+		prInfo.MergeBoxData.addOverridableBlocker(ctx.Locale.Tr(util.Iif(state.IsPending(), "repo.pulls.required_status_check_missing", "repo.pulls.required_status_check_failed")))
+	}
+	if len(commitStatuses) == 0 && len(requiredContexts) == 0 {
+		return
 	}
 
-	// Required scoped workflow checks gate the merge even when the branch protection's own status check is disabled,
-	// so the status-check section must render when there are any required contexts, not only when enableStatusCheck is on.
-	data.ShowStatusCheck = data.enableStatusCheck || data.hasRequiredStatusContexts || len(statusCheckData.PullCommitStatuses) > 0
+	requiredMatchers := make([]func(string) bool, len(requiredContexts))
+	for i, requiredContext := range requiredContexts {
+		requiredMatchers[i] = createRequiredContextMatcher(requiredContext)
+	}
+	statusCheckData := &pullCommitStatusCheckData{
+		ApproveLink: fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID),
+		IsContextRequired: func(context string) bool {
+			return slices.ContainsFunc(requiredMatchers, func(matches func(string) bool) bool { return matches(context) })
+		},
+	}
+	prInfo.MergeBoxData.StatusCheckData = statusCheckData
 
+	statusCheckData.ActionsStatuses = actions_module.GetCommitActionsStatusMap(ctx, commitStatuses) // fills status.Repo for GetRunsFromCommitStatuses below
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
 		log.Error("GetRunsFromCommitStatuses: %v", err)
@@ -450,48 +442,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		statusCheckData.CanApprove = ctx.Repo.Permission.CanWrite(unit.TypeActions)
 	}
 
-	var missingRequiredChecks []string
-	for _, requiredContext := range requiredContexts {
-		contextFound := false
-		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
-		for _, presentStatus := range commitStatuses {
-			if matchesRequiredContext(presentStatus.Context) {
-				contextFound = true
-				break
-			}
-		}
-
-		if !contextFound {
-			missingRequiredChecks = append(missingRequiredChecks, requiredContext)
+	for i, requiredContext := range requiredContexts {
+		if !slices.ContainsFunc(commitStatuses, func(cs *git_model.CommitStatus) bool { return requiredMatchers[i](cs.Context) }) {
+			commitStatuses = append(commitStatuses, &git_model.CommitStatus{Context: requiredContext, State: commitstatus.CommitStatusPending, Description: ctx.Locale.TrString("repo.pulls.status_checks_waiting")})
 		}
 	}
-	statusCheckData.MissingRequiredChecks = missingRequiredChecks
-
-	statusCheckData.IsContextRequired = func(context string) bool {
-		for _, c := range requiredContexts {
-			if c == context {
-				return true
-			}
-			if gp, err := glob.Compile(c); err != nil {
-				// All newly created status_check_contexts are checked to ensure they are valid glob expressions before being stored in the database.
-				// But some old status_check_context created before glob was introduced may be invalid glob expressions.
-				// So log the error here for debugging.
-				log.Error("compile glob %q: %v", c, err)
-			} else if gp.Match(context) {
-				return true
-			}
-		}
-		return false
-	}
-	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts)
-
-	if data.enableStatusCheck || data.hasRequiredStatusContexts {
-		if statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure() {
-			data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.required_status_check_failed"))
-		} else if !statusCheckData.RequiredChecksState.IsSuccess() {
-			data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.required_status_check_missing"))
-		}
-	}
+	statusCheckData.Groups = groupStatusChecks(commitStatuses, statusCheckData.ActionsStatuses)
 }
 
 // prepareViewMergedPullInfo show meta information for a merged pull request view page
@@ -502,33 +458,12 @@ func (prInfo *pullRequestViewInfo) prepareViewMergedPullInfo(ctx *context.Contex
 }
 
 type pullCommitStatusCheckData struct {
-	MissingRequiredChecks   []string          // list of missing required checks
 	IsContextRequired       func(string) bool // function to check whether a context is required
 	RequireApprovalRunCount int               // number of workflow runs that require approval
 	CanApprove              bool              // whether the user can approve workflow runs
 	ApproveLink             string            // link to approve all checks
-	RequiredChecksState     commitstatus.CommitStatusState
-
-	pullCommitStatusState commitstatus.CommitStatusState
-	PullCommitStatuses    []*git_model.CommitStatus
-}
-
-func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {
-	if d.RequiredChecksState.IsPending() || len(d.MissingRequiredChecks) > 0 {
-		return locale.TrString("repo.pulls.status_checking")
-	} else if d.RequiredChecksState.IsSuccess() {
-		if d.pullCommitStatusState.IsFailure() {
-			return locale.TrString("repo.pulls.status_checks_failure_optional")
-		}
-		return locale.TrString("repo.pulls.status_checks_success")
-	} else if d.RequiredChecksState.IsWarning() {
-		return locale.TrString("repo.pulls.status_checks_warning")
-	} else if d.RequiredChecksState.IsFailure() {
-		return locale.TrString("repo.pulls.status_checks_failure_required")
-	} else if d.RequiredChecksState.IsError() {
-		return locale.TrString("repo.pulls.status_checks_error")
-	}
-	return locale.TrString("repo.pulls.status_checking")
+	Groups                  []*statusCheckGroup
+	ActionsStatuses         actions_module.CommitActionsStatusMap
 }
 
 func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.PullRequest) (string, error) {
@@ -584,7 +519,7 @@ func (prInfo *pullRequestViewInfo) prepareViewOpenPullInfo(ctx *context.Context)
 func createRequiredContextMatcher(requiredContext string) func(string) bool {
 	if gp, err := glob.Compile(requiredContext); err == nil {
 		return func(contextToCheck string) bool {
-			return gp.Match(contextToCheck)
+			return requiredContext == contextToCheck || gp.Match(contextToCheck)
 		}
 	}
 
@@ -1068,7 +1003,7 @@ func MergePullRequest(ctx *context.Context) {
 				ctx.JSONError(ctx.Tr("repo.issues.closed_title"))
 			}
 		case errors.Is(err, pull_service.ErrNoPermissionToMerge):
-			ctx.JSONError(ctx.Tr("repo.pulls.update_not_allowed"))
+			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_access"))
 		case errors.Is(err, pull_service.ErrHasMerged):
 			ctx.JSONError(ctx.Tr("repo.pulls.has_merged"))
 		case errors.Is(err, pull_service.ErrIsWorkInProgress):
@@ -1129,11 +1064,11 @@ func MergePullRequest(ctx *context.Context) {
 	deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).Value()
 
 	if form.MergeWhenChecksSucceed {
-		// delete all scheduled auto merges
-		_ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
-		// schedule auto merge
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
-		if err != nil {
+		if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
+			ctx.JSONError(ctx.Tr("repo.pulls.auto_merge_already_enabled"))
+			return
+		} else if err != nil {
 			ctx.ServerError("ScheduleAutoMerge", err)
 			return
 		} else if scheduled {
@@ -1256,11 +1191,12 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		return
 	}
 	if !exist {
-		ctx.NotFound(nil)
+		ctx.Flash.Error(ctx.Tr("repo.pulls.auto_merge_not_scheduled"))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 		return
 	}
 
-	if ctx.Doer.ID != autoMerge.DoerID {
+	if ctx.Doer.ID != autoMerge.DoerID && !issue.IsPoster(ctx.Doer.ID) {
 		allowed, err := pull_service.IsUserAllowedToMerge(ctx, issue.PullRequest, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToMerge", err)
@@ -1272,7 +1208,7 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest); err != nil {
+	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest, ""); err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.auto_merge_not_scheduled"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))

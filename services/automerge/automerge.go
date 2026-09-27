@@ -73,7 +73,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
+		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, style, "")
 		return err
 	})
 	// Old code made "scheduled" to be true after "ScheduleAutoMerge", but it's not right:
@@ -87,14 +87,14 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 	return scheduled, err
 }
 
-// RemoveScheduledAutoMerge cancels a previously scheduled pull request
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
+// RemoveScheduledAutoMerge removes the auto merge, a non-empty disabledReason marks it as disabled automatically
+func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, disabledReason string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		}
 
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer)
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, "", disabledReason)
 		return err
 	})
 }
@@ -139,7 +139,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		return nil
 	}
 
-	if !pr.IsStatusMergeable() || pr.IsWorkInProgress(ctx) {
+	if (!pr.IsStatusMergeable() && !pr.IsEmpty()) || pr.IsWorkInProgress(ctx) {
 		// quick check: if the PR can't be merged, just skip
 		return errors.Join(errSkipAutoMerge, errors.New("pull request is not mergeable or is work in progress"))
 	}

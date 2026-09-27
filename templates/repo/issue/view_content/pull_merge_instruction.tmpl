@@ -1,6 +1,7 @@
 {{$data := $.MergeBoxData}}
 {{$pull := $.PullRequest}}
 <div class="ui small modal" id="pull-merge-cmd-modal">
+	{{svg "octicon-x" 16 "inside close"}}
 	<div class="header">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_title"}}</div>
 	<div class="content">
 		<div>
@@ -20,7 +21,6 @@
 			{{end}}
 			<div>git checkout {{$localBranch}}</div>
 		</div>
-		{{if $data.ShowMergeInstructions}}
 		<div>
 			<h3 class="tw-m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_title"}}</h3>
 			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_desc"}}
@@ -34,6 +34,8 @@
 				<div>git merge --no-ff {{$localBranch}}</div>
 			</div>
 			<div class="tw-hidden" data-pull-merge-style="rebase">
+				<div>git checkout {{$localBranch}}</div>
+				<div>git rebase {{$pull.BaseBranch}}</div>
 				<div>git checkout {{$pull.BaseBranch}}</div>
 				<div>git merge --ff-only {{$localBranch}}</div>
 			</div>
@@ -46,6 +48,7 @@
 			<div class="tw-hidden" data-pull-merge-style="squash">
 				<div>git checkout {{$pull.BaseBranch}}</div>
 				<div>git merge --squash {{$localBranch}}</div>
+				<div>git commit</div>
 			</div>
 			<div class="tw-hidden" data-pull-merge-style="fast-forward-only">
 				<div>git checkout {{$pull.BaseBranch}}</div>
@@ -57,6 +60,5 @@
 			</div>
 			<div>git push {{$gitRemoteName}} {{$pull.BaseBranch}}</div>
 		</div>
-		{{end}}
 	</div>
 </div>

@@ -56,7 +56,6 @@ func TestPullRequest_APIFormat(t *testing.T) {
 
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pr.LoadIssue(t.Context()))
-	assert.NoError(t, pr.LoadAttributes(t.Context()))
 	assert.Nil(t, ToAPIPullRequest(t.Context(), pr, nil).AutoMerge)
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

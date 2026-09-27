@@ -1,0 +1,241 @@
+.pull-merge-box .merge-box-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-medium);
+  color: var(--color-white);
+  background: var(--color-grey-light);
+}
+
+.pull-merge-box.ready .merge-box-icon {
+  background: var(--color-green);
+}
+
+.pull-merge-box.merged .merge-box-icon {
+  background: var(--color-purple);
+}
+
+.pull-merge-box.ready > .content > .ui.segment {
+  border-color: var(--color-green);
+}
+
+.pull-merge-box.merged > .content > .ui.segment {
+  border-color: var(--color-purple);
+}
+
+.pull-merge-box .merge-section > .item {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px;
+}
+
+.pull-merge-box .merge-section > .item > :is(.ui.button, .ui.buttons) {
+  flex-shrink: 0;
+}
+
+.pull-merge-box .merge-section .item-main {
+  gap: 0;
+}
+
+.pull-merge-box .merge-section .item-title {
+  line-height: 24px;
+}
+
+.merge-box-status {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--color-white);
+}
+
+.merge-box-status.green {
+  background: var(--color-green);
+}
+
+.merge-box-status.red {
+  background: var(--color-red);
+}
+
+.merge-box-status.grey {
+  background: var(--color-grey-light);
+}
+
+.merge-box-ring .green {
+  stroke: var(--color-green);
+}
+
+.merge-box-ring .yellow {
+  stroke: var(--color-yellow);
+}
+
+.merge-box-ring .red {
+  stroke: var(--color-red);
+}
+
+.merge-box-ring .grey {
+  stroke: var(--color-grey-light);
+}
+
+.merge-box-detail {
+  color: var(--color-text-light-2);
+}
+
+.merge-box-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-family: var(--fonts-monospace);
+  font-size: 12px;
+}
+
+.merge-box-file > .svg {
+  color: var(--color-text-light-2);
+}
+
+.pull-merge-box .merge-section > .merge-box-checks {
+  display: block;
+  padding: 0;
+}
+
+.merge-box-checks > summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  list-style: none;
+}
+
+.merge-box-checks > summary:hover {
+  background: var(--color-hover);
+}
+
+.merge-box-checks summary::-webkit-details-marker {
+  display: none;
+}
+
+.merge-box-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-light-2);
+  transition: transform 0.15s;
+}
+
+.merge-box-checks > summary > .merge-box-chevron {
+  margin: 0.5rem 8px 0 0;
+}
+
+details[open] > summary > .merge-box-chevron {
+  transform: rotate(90deg);
+}
+
+.merge-box-checks-body {
+  max-height: 300px;
+  overflow-y: auto;
+  border-top: 1px solid var(--color-secondary);
+}
+
+.merge-box-checks-body > #approve-status-checks {
+  padding: 0.5rem 16px;
+}
+
+.merge-box-checks-group > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-inline);
+  padding: 0.25rem 16px;
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-light-2);
+  list-style: none;
+}
+
+.merge-box-checks-group:only-of-type > summary {
+  display: none;
+}
+
+.merge-box-checks-group > .flex-divided-list {
+  padding: 0 16px;
+}
+
+.merge-box-checks .commit-status-item > .flex-text-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.merge-box-checks .check-description {
+  font-size: 12px;
+  color: var(--color-text-light-2);
+}
+
+.merge-box-checks .commit-status-item > .ui.label {
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 18px;
+}
+
+.pull-merge-box .merge-section > .merge-box-footer {
+  align-items: center;
+  background: var(--color-box-header);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.merge-box-footer > .merge-box-auto-merge-text {
+  flex: 1 1 240px;
+}
+
+#pull-request-merge-form {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+}
+
+.merge-box-bypass.ui.checkbox {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.merge-box-bypass.ui.checkbox label {
+  color: var(--color-red);
+  cursor: pointer;
+}
+
+.merge-box-cmd-hint {
+  font-size: 12px;
+  color: var(--color-text-light-2);
+}
+
+.merge-box-cmd-hint > a {
+  white-space: nowrap;
+}
+
+.merge-box-menu .item {
+  align-items: flex-start;
+}
+
+.merge-box-menu .item > .svg {
+  margin-top: 2px;
+  color: var(--color-text-light-2);
+}
+
+.merge-box-menu .item[aria-checked="false"] > .svg {
+  visibility: hidden;
+}
+
+.merge-box-menu .item small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-text-light-2);
+}
+
+#pull-merge-cmd-modal .segment {
+  overflow-x: auto;
+  white-space: nowrap;
+}
