@@ -43,9 +43,9 @@ import (
 )
 
 const (
-	tplCompare            templates.TplName = "repo/diff/compare"
-	tplDiffSectionExcerpt templates.TplName = "repo/diff/section_excerpt"
-	tplDiffBox            templates.TplName = "repo/diff/box"
+	tplCompare     templates.TplName = "repo/diff/compare"
+	tplDiffSection templates.TplName = "repo/diff/section"
+	tplDiffBox     templates.TplName = "repo/diff/box"
 )
 
 // setCompareContext sets context data.
@@ -435,6 +435,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
+	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpandable
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
@@ -776,5 +777,7 @@ func ExcerptBlob(ctx *context.Context) {
 		NameHash: git.HashFilePathForWebUI(filePath),
 		Sections: sections,
 	}
-	ctx.HTML(http.StatusOK, tplDiffSectionExcerpt)
+	ctx.Data["DiffExpandMode"] = gitdiff.DiffExpandModeExpanded
+
+	ctx.HTML(http.StatusOK, tplDiffSection)
 }
