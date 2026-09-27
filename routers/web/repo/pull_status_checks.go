@@ -86,10 +86,6 @@ func (d *pullCommitStatusCheckData) AllPassed() bool {
 	return d.count(statusCheckFailing, statusCheckPending, statusCheckInProgress, statusCheckExpected) == 0
 }
 
-func (d *pullCommitStatusCheckData) hasPending() bool {
-	return d.count(statusCheckPending, statusCheckInProgress) > 0
-}
-
 // Section is the collapsible header of the checks, a solid circle when all checks agree, otherwise a ring
 func (d *pullCommitStatusCheckData) Section(locale translation.Locale) *pullMergeBoxSection {
 	parts := make([]string, 0, len(d.Groups))

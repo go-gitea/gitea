@@ -6,7 +6,7 @@ import {
 
 const owner = env.GITEA_TEST_E2E_USER;
 
-test('merge box toggles auto merge and squash merges bypassing branch protection', async ({page, request}) => {
+test('merge box merges a pull request', async ({page, request}) => {
   const repo = `e2e-merge-box-${randomString(8)}`;
   const createPR = (async () => {
     await apiCreateRepo(request, {name: repo});

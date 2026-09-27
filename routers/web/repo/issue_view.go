@@ -943,14 +943,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
-	canBypassProtection := isRepoAdmin
+	data.canBypassProtection = isRepoAdmin
 	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
-		canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
+		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
 	}
 
 	data.isMergeBlocked = prInfo.workInProgressPrefix != "" || !noDeps
 	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
-	data.canMergeNow = (!data.hasOverridableBlockers || canBypassProtection) && !data.isMergeBlocked
+	data.canMergeNow = (!data.hasOverridableBlockers || data.canBypassProtection) && !data.isMergeBlocked
 
 	if _, data.AutoMerge, err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID); err != nil {
 		ctx.ServerError("GetScheduledMergeByPullID", err)
@@ -961,7 +961,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
 	}
 
-	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.hasPending()) ||
+	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0) ||
 		(data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && len(data.mergeBlockers) == 0) // an unblocked auto merge is about to run
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 

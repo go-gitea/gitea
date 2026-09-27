@@ -29,7 +29,6 @@ func TestGroupStatusChecks(t *testing.T) {
 	section := checkData.Section(translation.MockLocale{})
 	assert.EqualValues(t, "repo.pulls.status_checks_count_1:repo.pulls.status_checks_failing:2, repo.pulls.status_checks_pending:1, repo.pulls.status_checks_in_progress:1, repo.pulls.status_checks_expected:1, repo.pulls.status_checks_skipped:1, repo.pulls.status_checks_successful:1", section.Details[0])
 	assert.Equal(t, "audit", checkData.Groups[0].CommitStatuses[0].Context)
-	assert.True(t, checkData.hasPending())
 	assert.EqualValues(t, "repo.pulls.status_checks_failure", section.Title)
 	assert.Len(t, section.Ring, 4)
 }

@@ -20,7 +20,7 @@
 			{{with $data.MergeSection}}
 				<div class="item">
 					{{template "repo/issue/view_content/pull_merge_section" .}}
-					{{if $data.ShowUpdatePullInfo}}{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data)}}{{end}}
+					{{if and $data.ShowUpdatePullInfo $data.UpdatePrimaryAction}}{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data)}}{{end}}
 					{{if and $.Issue.IsClosed $data.IsPullBranchDeletable}}
 						<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{$.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 					{{end}}
@@ -29,13 +29,13 @@
 			{{with $data.BlockedSection}}
 				<div class="item">{{template "repo/issue/view_content/pull_merge_section" .}}</div>
 			{{end}}
-			{{with $data.WorkInProgressSection}}
+			{{if $data.WorkInProgressSection}}
 				<div class="item">
-					{{template "repo/issue/view_content/pull_merge_section" .}}
-					{{if or $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}
-						<button type="button" class="ui button" data-global-init="initPullRequestWipToggle" data-title="{{$.Issue.Title}}" data-wip-prefix="{{$.WorkInProgressPrefix}}" data-update-url="{{$.Issue.Link}}/title">
-							<span>{{ctx.Locale.Tr "repo.pulls.remove_prefix" $.WorkInProgressPrefix}}</span>
-						</button>
+					{{template "repo/issue/view_content/pull_merge_section" $data.WorkInProgressSection}}
+					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
+					<button type="button" class="ui button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
+						<span>{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}</span>
+					</button>
 					{{end}}
 				</div>
 			{{end}}
@@ -53,10 +53,11 @@
 					{{end}}
 				</div>
 			{{end}}
-			</div>
+
 			{{if $data.ShowPullCommands}}
 				{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
 			{{end}}
+			</div>
 		</div>
 	</div>
 </div>

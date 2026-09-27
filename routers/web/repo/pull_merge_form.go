@@ -5,7 +5,6 @@ package repo
 
 import (
 	"errors"
-	"maps"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -88,12 +87,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	// if this pr can be merged now, then hide the auto merge
 	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
 	var mergeStyles []map[string]any
-	addMergeStyle := func(style repo_model.MergeStyle, allowed bool, textKey string, fields map[string]any) {
+	addMergeStyle := func(style repo_model.MergeStyle, allowed bool, textKey, mergeTitle, mergeMessage string) {
 		if !allowed || prInfo.MergeBoxData.unsignable && style != repo_model.MergeStyleFastForwardOnly { // fast-forward-only creates no commit to sign
 			return
 		}
 		short := ctx.Locale.Tr("repo.pulls.merge_style_short." + string(style))
-		maps.Copy(fields, map[string]any{
+		mergeStyles = append(mergeStyles, map[string]any{
 			"name":                   style,
 			"textDoMerge":            ctx.Locale.Tr("repo.pulls." + textKey),
 			"textConfirmMerge":       ctx.Locale.Tr("repo.pulls.confirm_merge", short),
@@ -103,28 +102,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 			"textBypassMerge":        ctx.Locale.Tr("repo.pulls.bypass_rules_and_merge", short),
 			"textConfirmBypassMerge": ctx.Locale.Tr("repo.pulls.confirm_bypass_rules_and_merge", short),
 			"hideAutoMerge":          generalHideAutoMerge,
+			"mergeTitleFieldText":    mergeTitle,
+			"mergeMessageFieldText":  mergeMessage,
+			"hideMergeMessageTexts":  style == repo_model.MergeStyleRebase || style == repo_model.MergeStyleFastForwardOnly,
 		})
-		mergeStyles = append(mergeStyles, fields)
 	}
 	if (pull.IsStatusMergeable() || pull.IsEmpty()) && !prInfo.MergeBoxData.isMergeBlocked {
-		addMergeStyle(repo_model.MergeStyleMerge, prConfig.AllowMerge, "merge_pull_request", map[string]any{
-			"mergeTitleFieldText":   defaultMergeTitle,
-			"mergeMessageFieldText": defaultMergeBody,
-		})
-		addMergeStyle(repo_model.MergeStyleRebase, prConfig.AllowRebase, "rebase_merge_pull_request", map[string]any{
-			"hideMergeMessageTexts": true,
-		})
-		addMergeStyle(repo_model.MergeStyleRebaseMerge, prConfig.AllowRebaseMerge, "rebase_merge_commit_pull_request", map[string]any{
-			"mergeTitleFieldText":   defaultMergeTitle,
-			"mergeMessageFieldText": defaultMergeBody,
-		})
-		addMergeStyle(repo_model.MergeStyleSquash, prConfig.AllowSquash, "squash_merge_pull_request", map[string]any{
-			"mergeTitleFieldText":   defaultSquashMergeTitle,
-			"mergeMessageFieldText": git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody),
-		})
-		addMergeStyle(repo_model.MergeStyleFastForwardOnly, prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0, "fast_forward_only_merge_pull_request", map[string]any{
-			"hideMergeMessageTexts": true,
-		})
+		addMergeStyle(repo_model.MergeStyleMerge, prConfig.AllowMerge, "merge_pull_request", defaultMergeTitle, defaultMergeBody)
+		addMergeStyle(repo_model.MergeStyleRebase, prConfig.AllowRebase, "rebase_merge_pull_request", "", "")
+		addMergeStyle(repo_model.MergeStyleRebaseMerge, prConfig.AllowRebaseMerge, "rebase_merge_commit_pull_request", defaultMergeTitle, defaultMergeBody)
+		addMergeStyle(repo_model.MergeStyleSquash, prConfig.AllowSquash, "squash_merge_pull_request", defaultSquashMergeTitle, git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody))
+		addMergeStyle(repo_model.MergeStyleFastForwardOnly, prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0, "fast_forward_only_merge_pull_request", "", "")
 	}
 
 	// Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged

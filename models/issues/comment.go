@@ -1233,10 +1233,11 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 	}
 
 	comment, err = CreateComment(ctx, &CreateCommentOptions{
-		Type:    typ,
-		Doer:    doer,
-		Repo:    pr.BaseRepo,
-		Issue:   pr.Issue,
+		Type:  typ,
+		Doer:  doer,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
+
 		Content: content,
 	})
 	return comment, err

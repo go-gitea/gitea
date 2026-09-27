@@ -1,5 +1,4 @@
 {{$data := $.MergeBoxData}}
-{{if $data.UpdatePrimaryAction}}
 {{$hasStyleMenu := gt (len $data.UpdateStyleOptions) 1}}
 <div class="ui buttons"{{if $hasStyleMenu}} data-global-init="initRepoPullRequestUpdate"{{end}}>
 	<button type="button" class="ui button link-action" data-url="{{$data.UpdatePrimaryAction.URL}}">
@@ -18,5 +17,4 @@
 		</a>
 	{{end}}
 </div>
-{{end}}
 {{end}}
