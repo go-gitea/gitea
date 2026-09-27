@@ -10,6 +10,7 @@ import (
 	"slices"
 	"time"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions/jobparser"
@@ -32,7 +33,7 @@ type ActionRunJob struct {
 	ID                int64
 	RunID             int64                  `xorm:"index"`
 	Run               *ActionRun             `xorm:"-"`
-	RepoID            int64                  `xorm:"index(repo_concurrency)"`
+	RepoID            int64                  `xorm:"index(repo_concurrency) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	CommitSHA         string                 `xorm:"index"`
@@ -51,10 +52,10 @@ type ActionRunJob struct {
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
 
-	TaskID       int64 // the task created by this job in its own attempt
+	TaskID       int64 `xorm:"index(pickup)"`      // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 
-	Status Status `xorm:"index"`
+	Status Status `xorm:"index index(pickup) index(repo_status)"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
@@ -130,7 +131,7 @@ type ActionRunJob struct {
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
-	Updated timeutil.TimeStamp `xorm:"updated index"`
+	Updated timeutil.TimeStamp `xorm:"updated index index(pickup)"`
 }
 
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.
@@ -192,30 +193,24 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 
 // ParseJob parses the job structure from the ActionRunJob.WorkflowPayload
 func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
-	if job.IsMatrixDeferred {
-		// The needs were erased before the placeholder was persisted, so jobparser.Parse no longer
-		// recognises the raw matrix it still carries and would re-expand it: see ParseRawSingleWorkflow.
-		_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
-		if err != nil {
-			return nil, fmt.Errorf("job %d deferred matrix placeholder: unable to parse: %w", job.ID, err)
-		}
-		return workflowJob, nil
-	}
-
-	// job.WorkflowPayload is a SingleWorkflow created from an ActionRun's workflow, which exactly contains this job's YAML definition.
-	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
-	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	// read as stored, jobparser.Parse would evaluate the payload again and reset its strategy.job-index
+	_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
 		return nil, fmt.Errorf("job %d single workflow: unable to parse: %w", job.ID, err)
-	} else if len(parsedWorkflows) != 1 {
-		return nil, fmt.Errorf("job %d single workflow: not single workflow", job.ID)
-	}
-	_, workflowJob := parsedWorkflows[0].Job()
-	if workflowJob == nil {
-		// it shouldn't happen, and since the callers don't check nil, so return an error instead of nil
-		return nil, util.ErrorWrap(util.ErrNotExist, "job %d single workflow: payload doesn't contain a job", job.ID)
 	}
 	return workflowJob, nil
+}
+
+func (job *ActionRunJob) IsMatrixSiblingOf(other *ActionRunJob) bool {
+	return job.JobID == other.JobID && job.ParentJobID == other.ParentJobID && job.ID != other.ID
+}
+
+func (job *ActionRunJob) GetFailFast() (bool, error) {
+	parsed, err := job.ParseJob()
+	if err != nil {
+		return false, err
+	}
+	return (&act_model.Strategy{FailFastString: parsed.Strategy.FailFastString}).GetFailFast(), nil
 }
 
 func GetRunJobByRepoAndID(ctx context.Context, repoID, jobID int64) (*ActionRunJob, error) {
@@ -550,13 +545,7 @@ func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64, no
 		if len(jobs) == 0 {
 			attempt.Status = noJobsStatus
 		}
-		if attempt.Started.IsZero() && attempt.Status.IsRunning() {
-			attempt.Started = timeutil.TimeStampNow()
-		}
-		if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
-			attempt.Stopped = timeutil.TimeStampNow()
-		}
-		if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
+		if err := UpdateRunAttempt(ctx, attempt, "status"); err != nil {
 			return fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
 		}
 		return nil
@@ -663,12 +652,30 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		// statuses like cancelled/failure when no job is waiting or running.
 		return StatusBlocked
 	case hasCancelled:
+		if hasFailure && hasFailFastMatrixFailure(jobs) {
+			return StatusFailure
+		}
 		return StatusCancelled
 	case hasFailure:
 		return StatusFailure
 	default:
 		return StatusUnknown // it shouldn't happen
 	}
+}
+
+func hasFailFastMatrixFailure(jobs []*ActionRunJob) bool {
+	for _, failed := range jobs {
+		if failed.Status != StatusFailure || failed.ContinueOnError || !slices.ContainsFunc(jobs, func(sibling *ActionRunJob) bool {
+			return sibling.IsMatrixSiblingOf(failed) && sibling.Status == StatusCancelled
+		}) {
+			continue
+		}
+		failFast, err := failed.GetFailFast()
+		if err == nil && failFast {
+			return true
+		}
+	}
+	return false
 }
 
 // CancelPreviousJobs cancels all previous jobs of the same repository, reference, workflow, and event.

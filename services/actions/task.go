@@ -14,10 +14,12 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -156,14 +158,32 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
 	}
 
+	payload, err := runnerWorkflowPayload(job)
+	if err != nil {
+		return nil, nil, fmt.Errorf("runnerWorkflowPayload: %w", err)
+	}
+
 	return &runnerv1.Task{
 		Id:              t.ID,
-		WorkflowPayload: t.Job.WorkflowPayload,
+		WorkflowPayload: payload,
 		Context:         taskContext,
 		Secrets:         secrets,
 		Vars:            vars,
 		Needs:           needs,
 	}, job, nil
+}
+
+// runnerWorkflowPayload sets the job `if:` to `always()`, as Gitea has decided it and a runner must not re-evaluate it.
+func runnerWorkflowPayload(job *actions_model.ActionRunJob) ([]byte, error) {
+	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return nil, err
+	}
+	parsedJob.If = yaml.Node{Kind: yaml.ScalarNode, Value: "always()"}
+	if err := swf.SetJob(job.JobID, parsedJob); err != nil {
+		return nil, err
+	}
+	return swf.Marshal()
 }
 
 func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
@@ -180,7 +200,7 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 }
 
 func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (map[string]*runnerv1.TaskNeed, error) {
-	taskNeeds, err := FindTaskNeeds(ctx, taskJob)
+	taskNeeds, _, err := FindTaskNeeds(ctx, taskJob)
 	if err != nil {
 		return nil, err
 	}

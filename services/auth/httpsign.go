@@ -167,13 +167,13 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	// Now for each of the certificate valid principals
 	for _, principal := range cert.ValidPrincipals {
 		// Look in the db for the public key
-		publicKey, err := asymkey_model.SearchPublicKeyByContentExact(r.Context(), principal)
+		publicKey, err := asymkey_model.SearchPrincipalKey(r.Context(), principal)
 		if asymkey_model.IsErrKeyNotExist(err) {
 			// No public key matches this principal - try the next principal
 			continue
 		} else if err != nil {
 			// this error will be a db error therefore we can't solve this and we should abort
-			log.Error("SearchPublicKeyByContentExact: %v", err)
+			log.Error("SearchPrincipalKey: %v", err)
 			return nil, err
 		}
 

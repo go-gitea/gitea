@@ -62,6 +62,9 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Email"] = email
 
 	u, err := user_model.GetUserByEmail(ctx, email)
+	if err == nil && !u.IsIndividual() {
+		err = user_model.ErrUserNotExist{}
+	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)

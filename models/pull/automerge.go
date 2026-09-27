@@ -23,6 +23,7 @@ type AutoMerge struct {
 	Message                string                `xorm:"LONGTEXT"`
 	DeleteBranchAfterMerge bool
 	CreatedUnix            timeutil.TimeStamp `xorm:"created"`
+	MergedCommitID         string             `xorm:"VARCHAR(64)"`
 }
 
 // TableName return database table name for xorm
@@ -86,15 +87,6 @@ func GetScheduledMergePullIDsSince(ctx context.Context, since timeutil.TimeStamp
 	return pullIDs, err
 }
 
-// DeleteScheduledAutoMerge delete a scheduled pull request
-func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
-	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
-	if err != nil {
-		return err
-	} else if !exist {
-		return db.ErrNotExist{Resource: "auto_merge", ID: pullID}
-	}
-
-	_, err = db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{})
-	return err
+func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("pull_id = ?", pullID).Delete(&AutoMerge{})
 }

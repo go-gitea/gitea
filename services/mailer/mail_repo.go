@@ -38,8 +38,7 @@ func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.
 
 		langMap := make(map[string][]*user_model.User)
 		for _, user := range users {
-			if !user.IsActive {
-				// don't send emails to inactive users
+			if !user.IsMailable() {
 				continue
 			}
 			langMap[user.Language] = append(langMap[user.Language], user)
@@ -54,6 +53,9 @@ func SendRepoTransferNotifyMail(ctx context.Context, doer, newOwner *user_model.
 		return nil
 	}
 
+	if newOwner.IsTypeBot() {
+		return nil
+	}
 	return sendRepoTransferNotifyMailPerLang(newOwner.Language, newOwner, doer, []*user_model.User{newOwner}, repo)
 }
 
@@ -98,7 +100,7 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository) {
-	if setting.MailService == nil || !u.IsActive {
+	if setting.MailService == nil || !u.IsMailable() {
 		return
 	}
 	locale := translation.NewLocale(u.Language)

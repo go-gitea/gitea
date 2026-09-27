@@ -22,7 +22,7 @@ export function initAdminUserListSearchForm(): void {
     });
   }
 
-  const resetButtons = form.querySelectorAll<HTMLAnchorElement>('.j-reset-status-filter');
+  const resetButtons = form.querySelectorAll<HTMLAnchorElement>('.js-reset-status-filter');
   for (const button of resetButtons) {
     button.addEventListener('click', (e) => {
       e.preventDefault();

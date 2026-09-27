@@ -42,7 +42,7 @@ var SessionConfig = struct {
 
 func loadSessionFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("session")
-	SessionConfig.Provider = sec.Key("PROVIDER").In("memory", []string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
+	SessionConfig.Provider = sec.Key("PROVIDER").In("file", []string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
 
 	switch SessionConfig.Provider {
 	case "redis":

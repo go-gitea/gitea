@@ -119,6 +119,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 			log.Error("CreateUser: %v", err)
 			return nil, err
 		}
+	} else if !user.IsIndividual() {
+		log.Trace("SSPI Authorization: user %q is not an individual, ignoring", username)
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	if s.CreateSession {

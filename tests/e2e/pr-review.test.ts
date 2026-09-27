@@ -8,6 +8,7 @@ import {
   apiCreateUser,
   apiUserHeaders,
   loginUser,
+  logout,
   randomString,
 } from './utils.ts';
 
@@ -97,7 +98,7 @@ test('pr review flow', async ({page, request}) => {
   await replyForm.getByRole('button', {name: 'Reply', exact: true}).click();
   await expect(conversation.locator('.comment-body')).toContainText(['inline to reply to', 'my reply body']);
 
-  await page.context().clearCookies();
+  await logout(page);
   await loginUser(page, reviewer);
   await page.goto(`${pullUrl}/files`);
   await page.locator('#review-box .js-btn-review').click();
@@ -108,7 +109,7 @@ test('pr review flow', async ({page, request}) => {
 
   await reRequestAndApprove(reviewer, 'Uncounted approval', 'tw-text-text-light', false);
 
-  await page.context().clearCookies();
+  await logout(page);
   await loginUser(page, officialReviewer);
   await reRequestAndApprove(officialReviewer, 'Approved', 'tw-text-yellow', true);
 });

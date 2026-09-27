@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -30,7 +31,7 @@ import (
 type ActionRun struct {
 	ID                int64
 	Title             string
-	RepoID            int64                  `xorm:"unique(repo_index)"`
+	RepoID            int64                  `xorm:"unique(repo_index) index(repo_status)"`
 	Repo              *repo_model.Repository `xorm:"-"`
 	OwnerID           int64                  `xorm:"index"`
 	WorkflowID        string                 `xorm:"index"`                    // the name of workflow file
@@ -47,7 +48,7 @@ type ActionRun struct {
 	Event             webhook_module.HookEventType // the webhook event that causes the workflow to run
 	EventPayload      string                       `xorm:"LONGTEXT"`
 	TriggerEvent      string                       // the trigger event defined in the `on` configuration of the triggered workflow
-	Status            Status                       `xorm:"index"`
+	Status            Status                       `xorm:"index index(repo_status)"`
 	Version           int                          `xorm:"version default 0"` // Status could be updated concomitantly, so an optimistic lock is needed
 	RawConcurrency    string                       // raw concurrency
 
@@ -76,6 +77,11 @@ type ActionRun struct {
 func init() {
 	db.RegisterModel(new(ActionRun))
 	db.RegisterModel(new(ActionRunIndex))
+}
+
+// IsAwaitingApproval reports whether approval can still release the run
+func (run *ActionRun) IsAwaitingApproval() bool {
+	return run.NeedApproval && !run.Status.IsDone()
 }
 
 func (run *ActionRun) HTMLURL(ctxOpt ...context.Context) string {
@@ -174,7 +180,10 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 }
 
 func (run *ActionRun) Duration() time.Duration {
-	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated) + run.PreviousDuration
+	d := calculateDuration(run.Started, run.Stopped, run.Status, run.Updated)
+	if run.LatestAttemptID == 0 {
+		d += run.PreviousDuration
+	}
 	if d < 0 {
 		return 0
 	}
@@ -392,6 +401,7 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
+	jobs = slices.DeleteFunc(jobs, func(job *ActionRunJob) bool { return job.RunID == attempt.RunID })
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
