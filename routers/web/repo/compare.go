@@ -676,21 +676,24 @@ func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Contex
 	ctx.Data["AllowMaintainerEdit"] = prConfig.DefaultAllowMaintainerEdit
 }
 
-// attachCommentsToLines attaches comments to their corresponding diff lines, in every section a
-// request expanded rather than only its first gap
+// attachCommentsToLines attaches comments to their corresponding diff lines
 func attachCommentsToLines(sections []*gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
 	for _, section := range sections {
-		for _, line := range section.Lines {
-			if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
-				line.Comments = append(line.Comments, comments...)
-			}
-			if comments, ok := lineComments[int64(line.RightIdx)]; ok {
-				line.Comments = append(line.Comments, comments...)
-			}
-			sort.SliceStable(line.Comments, func(i, j int) bool {
-				return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-			})
+		attachCommentsToSection(section, lineComments)
+	}
+}
+
+func attachCommentsToSection(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+			line.Comments = append(line.Comments, comments...)
 		}
+		if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
 	}
 }
 
