@@ -6,7 +6,6 @@ package automerge
 import (
 	"context"
 
-	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
@@ -67,7 +66,7 @@ func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_m
 }
 
 func disableAutoMerge(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) {
-	if err := RemoveScheduledAutoMerge(ctx, doer, pr, reason); err != nil && !db.IsErrNotExist(err) {
+	if err := RemoveScheduledAutoMerge(ctx, doer, pr, reason); err != nil {
 		log.Error("RemoveScheduledAutoMerge[%d]: %v", pr.ID, err)
 	}
 }

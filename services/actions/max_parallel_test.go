@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -149,6 +150,7 @@ jobs:
 // An approval-gated run inserts every job as Blocked, so the cap has to be applied on approval.
 func TestApproveRuns_MaxParallel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 
 	run := insertMaxParallelRun(t, maxParallelWorkflow, true)
 	assert.Equal(t, map[actions_model.Status]int{actions_model.StatusBlocked: 5}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
@@ -199,6 +201,7 @@ func Test_jobStatusResolver_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
 
 func TestApproveRuns_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 
 	holder := insertConcurrencyHolder(t, 9704, "cluster-b")
 	run := insertMaxParallelRun(t, maxParallelConcurrencyWorkflow, true)
