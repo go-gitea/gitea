@@ -192,7 +192,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 
 	isReusableWorkflowCaller := job.Uses != ""
 	status := util.Iif(runAttempt.Status == actions_model.StatusBlocked || run.NeedApproval, actions_model.StatusBlocked, actions_model.StatusWaiting)
-	if len(needs) > 0 {
+	if status.IsWaiting() && len(needs) > 0 {
 		status = actions_model.StatusPending
 	}
 

@@ -47,7 +47,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			want: map[int64]actions_model.Status{},
 		},
 		{
-			name: "legacy blocked job with needs",
+			name: "single blocked",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusSuccess, Needs: []string{}},
 				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
@@ -765,34 +765,44 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 // dependents honest: a round resolved after an insert would judge them against a job set that is
 // missing the siblings. See Resolve for why that is wrong.
 func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// build (2) stands for the expanded anchor: it reaches a terminal status this round, which is
-	// what would let report (3) resolve in the next one.
-	newChain := func() actions_model.ActionJobList {
-		return actions_model.ActionJobList{
-			{ID: 1, JobID: "generate", Status: actions_model.StatusFailure, WorkflowPayload: minimalWorkflowPayload("generate")},
-			{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{"generate"}, WorkflowPayload: minimalWorkflowPayload("build")},
-			{ID: 3, JobID: "report", Status: actions_model.StatusBlocked, Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report")},
+	newChain := func(index int64) actions_model.ActionJobList {
+		run := &actions_model.ActionRun{Index: index}
+		require.NoError(t, db.Insert(ctx, run))
+		attempt := &actions_model.ActionRunAttempt{RunID: run.ID, Attempt: 1}
+		require.NoError(t, db.Insert(ctx, attempt))
+		jobs := actions_model.ActionJobList{
+			{JobID: "generate", Status: actions_model.StatusFailure, WorkflowPayload: minimalWorkflowPayload("generate")},
+			{JobID: "build", Status: actions_model.StatusPending, Needs: []string{"generate"}, WorkflowPayload: minimalWorkflowPayload("build")},
+			{JobID: "report", Status: actions_model.StatusPending, Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report")},
 		}
+		for _, job := range jobs {
+			job.RunID, job.RunAttemptID = run.ID, attempt.ID
+			require.NoError(t, db.Insert(ctx, job))
+		}
+		return jobs
 	}
 
 	t.Run("without an insert the whole chain resolves in one pass", func(t *testing.T) {
-		got, err := newJobStatusResolver(newChain(), nil).Resolve(ctx)
+		chain := newChain(9201)
+		got, err := newJobStatusResolver(chain, nil).Resolve(ctx)
 		require.NoError(t, err)
 		assert.Equal(t, map[int64]actions_model.Status{
-			2: actions_model.StatusSkipped,
-			3: actions_model.StatusSkipped,
+			chain[1].ID: actions_model.StatusSkipped,
+			chain[2].ID: actions_model.StatusSkipped,
 		}, got)
 	})
 
 	t.Run("an insert stops the pass before the dependents are resolved", func(t *testing.T) {
-		r := newJobStatusResolver(newChain(), nil)
+		chain := newChain(9202)
+		r := newJobStatusResolver(chain, nil)
 		r.matrixInserted = true // as resolve() sets it once expansion has inserted siblings
 
 		got, err := r.Resolve(ctx)
 		require.NoError(t, err)
-		assert.Equal(t, map[int64]actions_model.Status{2: actions_model.StatusSkipped}, got,
+		assert.Equal(t, map[int64]actions_model.Status{chain[1].ID: actions_model.StatusSkipped}, got,
 			"report must wait for the re-emit, which sees the sibling combinations too")
 	})
 }

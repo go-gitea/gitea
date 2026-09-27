@@ -766,13 +766,10 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	}
 }
 
-// describePendingJobDetail explains why a pending, blocked or waiting job has not started
-// yet, so the user can tell whether it is waiting on its dependencies or on an
-// available runner. It returns an empty string when the job is not pending or the
-// cause can't be determined (the caller keeps the generic status label then).
+// describePendingJobDetail explains why a pending or waiting job has not started, or returns an empty string when it can't tell
 func describePendingJobDetail(ctx *context_module.Context, current *actions_model.ActionRunJob, jobs []*actions_model.ActionRunJob) string {
 	switch {
-	case current.Status.In(actions_model.StatusPending, actions_model.StatusBlocked):
+	case current.Status.IsPending():
 		if pending := pendingNeeds(current, jobs); len(pending) > 0 {
 			return ctx.Locale.TrString("actions.runs.waiting_for_dependent_jobs", strings.Join(pending, ", "))
 		}
