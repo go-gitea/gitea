@@ -13,10 +13,10 @@ import (
 )
 
 func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Handler) http.Handler {
+	trustAll := slices.Contains(trustedProxies, "*")
 	var trusted []netip.Prefix
 	for _, s := range trustedProxies {
 		if s == "*" {
-			trusted = append(trusted, netip.MustParsePrefix("0.0.0.0/0"), netip.MustParsePrefix("::/0"))
 			continue
 		}
 		prefix, err := netip.ParsePrefix(s)
@@ -39,8 +39,8 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 				req.RemoteAddr = "127.0.0.1:0"
 			}
 			peer, _ := netip.ParseAddrPort(req.RemoteAddr)
-			if slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer.Addr().Unmap()) }) {
-				if addr, err := netip.ParseAddr(forwardedClientIP(req.Header, limit)); err == nil {
+			if trustAll || slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer.Addr().Unmap()) }) {
+				if addr, err := parseForwardedAddr(forwardedClientIP(req.Header, limit)); err == nil {
 					req.RemoteAddr = netip.AddrPortFrom(addr.Unmap().WithZone(""), 0).String()
 				}
 			}
@@ -53,15 +53,19 @@ func forwardedClientIP(header http.Header, limit int) string {
 	if realIPs := header.Values("X-Real-Ip"); len(realIPs) > 0 && realIPs[len(realIPs)-1] != "" {
 		return realIPs[len(realIPs)-1] // the closest hop wrote the last value
 	}
-	entry := ""
-	for _, value := range slices.Backward(header.Values("X-Forwarded-For")) {
-		for rest := value; rest != "" && limit > 0; {
-			comma := strings.LastIndexByte(rest, ',')
-			if field := strings.TrimSpace(rest[comma+1:]); field != "" {
-				entry, limit = field, limit-1
-			}
-			rest = rest[:max(comma, 0)]
+	xff := strings.Join(header.Values("X-Forwarded-For"), ",")
+	for range limit - 1 {
+		if comma := strings.LastIndexByte(xff, ','); comma >= 0 {
+			xff = xff[:comma]
 		}
 	}
-	return entry
+	return strings.TrimSpace(xff[strings.LastIndexByte(xff, ',')+1:])
+}
+
+func parseForwardedAddr(s string) (netip.Addr, error) {
+	if addr, err := netip.ParseAddr(s); err == nil {
+		return addr, nil
+	}
+	addrPort, err := netip.ParseAddrPort(s)
+	return addrPort.Addr(), err
 }
