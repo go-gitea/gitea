@@ -320,7 +320,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	return nil
 }
 
-// insertCallerChildren parses the called workflow with its `inputs` context and inserts each parsed job.
+// insertCallerChildren parses the called workflow with the caller's resolved inputs and inserts each parsed job.
 func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, content []byte, sourceRepoID int64, sourceCommitSHA string, vars map[string]string, inputs map[string]any) error {
 	callerPermissions := caller.TokenPermissions
 	if callerPermissions == nil {
@@ -339,7 +339,6 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 
-	// Parse the called workflow with its `inputs` context
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	childWorkflows, err := jobparser.Parse(content,
 		jobparser.WithVars(vars),

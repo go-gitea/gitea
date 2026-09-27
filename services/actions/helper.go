@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	actions_module "gitea.dev/modules/actions"
@@ -60,29 +61,18 @@ func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *act
 		return dispatchInputsForJob(run, job)
 	}
 
-	caller, workflowCallInputs, err := loadWorkflowCallInputs(ctx, run, job)
+	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
+	if err != nil {
+		return nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
+	}
+	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
 	if err != nil {
 		return nil, err
 	}
 	return calledWorkflowInputs(ctx, run, caller, workflowCallInputs)
 }
 
-// loadWorkflowCallInputs returns the direct caller of a reusable workflow child and the callee's resolved inputs.
-func loadWorkflowCallInputs(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (*actions_model.ActionRunJob, map[string]any, error) {
-	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
-	}
-	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
-	if err != nil {
-		return nil, nil, err
-	}
-	return caller, workflowCallInputs, nil
-}
-
-// decodeWorkflowCallInputs returns the callee's declared inputs that `caller` resolved, from its `with:` or their defaults.
 func decodeWorkflowCallInputs(caller *actions_model.ActionRunJob) (map[string]any, error) {
-	// an empty CallPayload should not happen - a child job cannot reach this point if its caller's CallPayload hasn't been evaluated
 	var p api.WorkflowCallPayload
 	if caller.CallPayload != "" {
 		if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
@@ -92,10 +82,10 @@ func decodeWorkflowCallInputs(caller *actions_model.ActionRunJob) (map[string]an
 	return p.Inputs, nil
 }
 
-// calledWorkflowInputs returns the `inputs` context of the workflow called by `caller`:
+// calledWorkflowInputs overlays the run's dispatch inputs with `workflowCallInputs`, as GitHub does.
 func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, workflowCallInputs map[string]any) (map[string]any, error) {
 	top := caller
-	for top.ParentJobID != 0 {
+	for run.Event == "workflow_dispatch" && top.ParentJobID != 0 {
 		parent, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, top.ParentJobID)
 		if err != nil {
 			return nil, fmt.Errorf("load caller job %d: %w", top.ParentJobID, err)
@@ -106,9 +96,10 @@ func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, cal
 	if err != nil {
 		return nil, err
 	}
-	// Like GitHub, the run's dispatch inputs overlaid with `workflowCallInputs`,
-	// and an intermediate caller's own inputs are not passed further down.
-	maps.Copy(inputs, workflowCallInputs)
+	for name, value := range workflowCallInputs {
+		maps.DeleteFunc(inputs, func(key string, _ any) bool { return strings.EqualFold(key, name) }) // input names are case-insensitive
+		inputs[name] = value
+	}
 	return inputs, nil
 }
 
