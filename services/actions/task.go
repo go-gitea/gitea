@@ -193,6 +193,11 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 	}
 
 	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
+	if t.Job.ParentJobID > 0 {
+		if err := setCalledWorkflowContext(ctx, t.Job, gitCtx); err != nil {
+			return nil, err
+		}
+	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 
@@ -212,4 +217,39 @@ func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (ma
 		}
 	}
 	return ret, nil
+}
+
+// setCalledWorkflowContext prepares the context of a called workflow's job for the runner.
+// It rewrites `event_name` and `event.inputs` into the form older runners read them from,
+// and adds `gitea_workflow_call`, from which newer runners take the job's `inputs` and restore the original event.
+func setCalledWorkflowContext(ctx context.Context, job *actions_model.ActionRunJob, gitCtx GiteaContext) error {
+	// workflowCallInputs are the callee's declared inputs, from the direct caller's `with:` or their defaults
+	caller, workflowCallInputs, err := loadWorkflowCallInputs(ctx, job.Run, job)
+	if err != nil {
+		return err
+	}
+	// jobInputs is the job's full `inputs` context: workflowCallInputs over the run's dispatch inputs, if it was triggered by workflow_dispatch
+	jobInputs, err := calledWorkflowInputs(ctx, job.Run, caller, workflowCallInputs)
+	if err != nil {
+		return err
+	}
+	// giteaWorkflowCallCtx is what newer runners read from `gitea_workflow_call`: the job's `inputs`, and the original event name and inputs to restore
+	giteaWorkflowCallCtx := map[string]any{
+		"original_event_name": gitCtx["event_name"],
+		"inputs":              jobInputs,
+	}
+	event, _ := gitCtx["event"].(map[string]any)
+	// originalEventInputs are the `inputs` of the original event (e.g. workflow_dispatch).
+	if originalEventInputs, ok := event["inputs"]; ok {
+		giteaWorkflowCallCtx["original_event_inputs"] = originalEventInputs
+	}
+	gitCtx["gitea_workflow_call"] = giteaWorkflowCallCtx
+
+	// For compatibility with older runners, which only read a called workflow's inputs from `event.inputs` while
+	// `event_name` is "workflow_call". Newer runners restore both from `gitea_workflow_call`.
+	gitCtx["event_name"] = "workflow_call"
+	if event != nil {
+		event["inputs"] = workflowCallInputs
+	}
+	return nil
 }
