@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/gitdiff"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -298,13 +299,13 @@ func TestCompareCodeExpand(t *testing.T) {
 		assert.NoError(t, err)
 
 		session := loginUser(t, user1.Name)
-		testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 30))
+		testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 60))
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session = loginUser(t, user2.Name)
 		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork", "")
 		testCreateBranch(t, session, user2.Name, "test_blob_excerpt-fork", "branch/main", "forked-branch", http.StatusSeeOther)
-		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 15)+"CHANGED\n"+strings.Repeat("a\n", 15))
+		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 30)+"CHANGED\n"+strings.Repeat("a\n", 30))
 
 		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -342,9 +343,26 @@ func TestCompareCodeExpand(t *testing.T) {
 			}
 		})
 
+		t.Run("ExpandGapChunk", func(t *testing.T) {
+			// an arrow asks the same way, naming the end it expands from in the gap itself
+			req := NewRequest(t, "GET", excerptURL+"&gap="+gapNumbers+",up")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, bytes.NewBufferString("<table>"+resp.Body.String()+"</table>"))
+
+			var rendered []string
+			htmlDoc.Find(`tr.line-expanded .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
+				rendered = append(rendered, el.AttrOr("data-line-num", ""))
+			})
+			// "up" takes the chunk nearest the hunk below the gap, so it stops where the diff starts
+			firstLineAfterGap, err := strconv.Atoi(strings.Split(gapNumbers, ",")[3])
+			require.NoError(t, err)
+			assert.Len(t, rendered, gitdiff.BlobExcerptChunkSize)
+			assert.Equal(t, strconv.Itoa(firstLineAfterGap-gitdiff.BlobExcerptChunkSize), rendered[0])
+		})
+
 		t.Run("ExpandGapsRejectsNonsense", func(t *testing.T) {
 			// the gap numbers come back from the browser, so they are checked rather than trusted
-			for _, gap := range []string{"1,2,3", "a,b,c,d,e,f", "-1,0,17,17,7,7"} {
+			for _, gap := range []string{"1,2,3", "a,b,c,d,e,f", "-1,0,17,17,7,7", gapNumbers + ",sideways"} {
 				req := NewRequest(t, "GET", excerptURL+"&gap="+gap)
 				session.MakeRequest(t, req, http.StatusBadRequest)
 			}

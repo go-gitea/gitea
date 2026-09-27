@@ -1,4 +1,4 @@
-import {excerptChunkUrl, excerptGapsUrl, gapExpandDirection, gapReachesFileEnd, parseTableRows, type DiffGap} from './repo-diff-gaps.ts';
+import {excerptGapsUrl, gapExpandDirection, gapExpandEnd, gapReachesFileEnd, parseTableRows, type DiffGap} from './repo-diff-gaps.ts';
 
 function gap(partial: Partial<DiffGap>): DiffGap {
   return {lastLeft: 0, lastRight: 0, left: 0, right: 0, leftHunk: 0, rightHunk: 0, hiddenCommentIds: [], ...partial};
@@ -23,19 +23,26 @@ test('gapReachesFileEnd', () => {
   expect(gapReachesFileEnd(gap({leftHunk: 7, rightHunk: 7}))).toBe(false);
 });
 
-test('excerptChunkUrl names the gap and which end to expand from', () => {
-  const url = new URL(excerptChunkUrl('/user/repo/blob_excerpt/sha?style=split&path=a.txt', gap({left: 17, right: 17, leftHunk: 7, rightHunk: 7}), 'up'));
+test('excerptGapsUrl asks for one chunk the same way it asks for whole gaps', () => {
+  const url = new URL(excerptGapsUrl('/user/repo/blob_excerpt/sha?style=split&path=a.txt', [{gap: gap({left: 17, right: 17, leftHunk: 7, rightHunk: 7}), direction: 'up'}]));
   expect(url.pathname).toEqual('/user/repo/blob_excerpt/sha');
-  expect(Object.fromEntries(url.searchParams)).toEqual({
-    style: 'split', path: 'a.txt', gap: '0,0,17,17,7,7', direction: 'up',
-  });
+  expect(Object.fromEntries(url.searchParams)).toEqual({style: 'split', path: 'a.txt', gap: '0,0,17,17,7,7,up'});
 });
 
 test('excerptGapsUrl names every gap and nothing else', () => {
   const gaps = [gap({lastLeft: 0, lastRight: 0, left: 17, right: 17, leftHunk: 7, rightHunk: 7}), gap({lastLeft: 23, lastRight: 23, left: 57, right: 57, leftHunk: 7, rightHunk: 7})];
-  const url = new URL(excerptGapsUrl('/user/repo/blob_excerpt/sha?path=a.txt', gaps));
+  const url = new URL(excerptGapsUrl('/user/repo/blob_excerpt/sha?path=a.txt', gaps.map((g) => ({gap: g}))));
   expect(url.searchParams.getAll('gap')).toEqual(['0,0,17,17,7,7', '23,23,57,57,7,7']);
-  expect(url.searchParams.has('direction')).toBe(false); // whole gaps, so no end to expand from
+  expect(url.searchParams.has('direction')).toBe(false); // a gap says for itself how much to expand
+});
+
+test('gapExpandEnd keeps the arrows that are not an end out of a request', () => {
+  expect(gapExpandEnd('up')).toEqual('up');
+  expect(gapExpandEnd('down')).toEqual('down');
+  // a gap that fits in one chunk is expanded whole, so its arrow names no end
+  expect(gapExpandEnd('single')).toBeUndefined();
+  const url = new URL(excerptGapsUrl('/user/repo/blob_excerpt/sha', [{gap: gap({lastLeft: 10, lastRight: 10, left: 20, right: 20, leftHunk: 5, rightHunk: 5}), direction: gapExpandEnd('single')}]));
+  expect(url.searchParams.getAll('gap')).toEqual(['10,10,20,20,5,5']);
 });
 
 test('parseTableRows takes the rows out of a response that starts with a colgroup', () => {

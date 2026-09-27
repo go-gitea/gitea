@@ -88,7 +88,7 @@ test('expanding all keeps an already expanded gap on screen while it loads', asy
   await expect(rows).toHaveCount(collapsedCount + 16);
 
   const held = Promise.withResolvers<void>();
-  // expanding all names the gaps it wants, which is what distinguishes it from a single arrow
+  // an arrow and expanding all ask the same way, and the arrow's request has already finished
   await page.route((url) => url.searchParams.has('gap'), async (route) => {
     await held.promise;
     await route.continue();

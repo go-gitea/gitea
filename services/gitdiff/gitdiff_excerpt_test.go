@@ -72,3 +72,20 @@ func TestSerializeGapNumbersRoundTrip(t *testing.T) {
 		require.Error(t, err, bad)
 	}
 }
+
+func TestDeserializeGapRequest(t *testing.T) {
+	// a request is the gap's numbers, and an arrow appends the end it expands from
+	opts, err := DeserializeGapRequest("17,31,40,54,23,7")
+	require.NoError(t, err)
+	assert.Empty(t, opts.Direction) // the whole gap
+
+	opts, err = DeserializeGapRequest("17,31,40,54,23,7,up")
+	require.NoError(t, err)
+	assert.Equal(t, "up", opts.Direction)
+	assert.Equal(t, 54, opts.RightIndex) // the numbers still read the same
+
+	for _, bad := range []string{"17,31,40,54,23,7,sideways", "17,31,40,54,23,up", "up", "17,31,40,54,23,7,up,up"} {
+		_, err := DeserializeGapRequest(bad)
+		require.Error(t, err, bad)
+	}
+}

@@ -80,18 +80,23 @@ export function gapAfterExpanding(gap: DiffGap, direction: string): DiffGap {
   return {...gap, left: 0, right: 0, leftHunk: 0, rightHunk: 0}; // fully expanded
 }
 
-// one arrow click: expand a chunk of this gap, from whichever end the arrow points at
-export function excerptChunkUrl(baseUrl: string, gap: DiffGap, direction: string): string {
-  const url = new URL(excerptGapsUrl(baseUrl, [gap]));
-  url.searchParams.set('direction', direction);
-  return url.href;
+// a gap, and how much of it to expand: one chunk from the end an arrow points at, or the whole gap
+export type DiffGapRequest = {gap: DiffGap; direction?: GapExpandEnd};
+
+// "single" and "updown" say which arrows a gap deserves, not an end to take a chunk from
+export type GapExpandEnd = 'up' | 'down';
+
+export function gapExpandEnd(direction: string): GapExpandEnd | undefined {
+  return direction === 'up' || direction === 'down' ? direction : undefined;
 }
 
-// one request expands all of every gap named here, so a partly expanded file does not re-fetch what
-// it already shows
-export function excerptGapsUrl(baseUrl: string, gaps: DiffGap[]): string {
+// one request expands every gap it names, so an arrow and expanding a whole file ask the same way
+// and a partly expanded file does not re-fetch what it already shows
+export function excerptGapsUrl(baseUrl: string, requests: DiffGapRequest[]): string {
   const url = new URL(baseUrl, window.location.href);
-  for (const gap of gaps) url.searchParams.append('gap', gapNumbers(gap));
+  for (const {gap, direction} of requests) {
+    url.searchParams.append('gap', direction ? `${gapNumbers(gap)},${direction}` : gapNumbers(gap));
+  }
   return url.href;
 }
 

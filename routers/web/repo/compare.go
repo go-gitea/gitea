@@ -701,16 +701,16 @@ func attachCommentsToLines(sections []*gitdiff.DiffSection, lineComments map[int
 const maxExcerptGaps = 1000
 
 // deserializeExcerptGaps reads the gaps a request names, in the order they appear in the file
-func deserializeExcerptGaps(gapSpecs []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
-	if len(gapSpecs) == 0 {
+func deserializeExcerptGaps(gapRequests []string, language string) ([]gitdiff.BlobExcerptOptions, error) {
+	if len(gapRequests) == 0 {
 		return nil, errors.New("no gap requested")
 	}
-	if len(gapSpecs) > maxExcerptGaps {
+	if len(gapRequests) > maxExcerptGaps {
 		return nil, errors.New("too many gaps requested")
 	}
-	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapSpecs))
-	for _, spec := range gapSpecs {
-		opts, err := gitdiff.DeserializeGapNumbers(spec)
+	gapOpts := make([]gitdiff.BlobExcerptOptions, 0, len(gapRequests))
+	for _, gapRequest := range gapRequests {
+		opts, err := gitdiff.DeserializeGapRequest(gapRequest)
 		if err != nil {
 			return nil, err
 		}
@@ -729,10 +729,6 @@ func ExcerptBlob(ctx *context.Context) {
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return
-	}
-	if len(gapOpts) == 1 {
-		// one gap may be expanded a chunk at a time, from whichever end its arrow points at
-		gapOpts[0].Direction = ctx.FormString("direction")
 	}
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo

@@ -64,6 +64,23 @@ func DeserializeGapNumbers(gapNumbers string) (BlobExcerptOptions, error) {
 	}, nil
 }
 
+// DeserializeGapRequest reads one gap of a request: the numbers SerializeGapNumbers wrote, plus the
+// end an arrow expands from when it wants a single chunk. Asking for one chunk and asking for whole
+// gaps are then the same request.
+func DeserializeGapRequest(gapRequest string) (BlobExcerptOptions, error) {
+	if i := strings.LastIndexByte(gapRequest, ','); i >= 0 {
+		if direction := gapRequest[i+1:]; direction == "up" || direction == "down" {
+			opts, err := DeserializeGapNumbers(gapRequest[:i])
+			if err != nil {
+				return BlobExcerptOptions{}, err
+			}
+			opts.Direction = direction
+			return opts, nil
+		}
+	}
+	return DeserializeGapNumbers(gapRequest)
+}
+
 // a gap with no hunk on either side runs to the end of the file, so nothing follows it
 func gapReachesFileEnd(leftHunkSize, rightHunkSize int) bool {
 	return leftHunkSize <= 0 && rightHunkSize <= 0
