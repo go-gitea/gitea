@@ -2000,5 +2000,6 @@
   "actions.runs.summary": "Overzicht",
   "actions.workflow.scope_owner": "Eigenaar",
   "actions.workflow.required": "Vereist",
+  "actions.job_queue.filter_repo_no_select": "Alle repositories",
   "actions.general.token_permissions.mode.restricted": "Beperkt"
 }

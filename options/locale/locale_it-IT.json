@@ -2284,5 +2284,6 @@
   "actions.runs.summary": "Riepilogo",
   "actions.workflow.scope_owner": "Proprietario",
   "actions.workflow.required": "Richiesto",
+  "actions.job_queue.filter_repo_no_select": "Tutte le repository",
   "actions.general.token_permissions.mode.restricted": "Limitato"
 }
