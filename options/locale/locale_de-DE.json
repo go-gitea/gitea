@@ -3908,6 +3908,7 @@
   "actions.workflow.has_no_workflow_dispatch": "Der Workflow '%s' hat keinen workflow_dispatch Event-Trigger.",
   "actions.need_approval_desc": "Um Workflows für den Pull-Request eines Forks auszuführen, ist eine Genehmigung erforderlich.",
   "actions.approve_all_success": "Alle Workflow-Abläufe wurden erfolgreich genehmigt.",
+  "actions.job_queue.filter_repo_no_select": "Alle Repositories",
   "actions.variables": "Variablen",
   "actions.variables.management": "Variablenverwaltung",
   "actions.variables.creation": "Variable hinzufügen",

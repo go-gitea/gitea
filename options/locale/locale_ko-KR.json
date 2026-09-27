@@ -3917,6 +3917,7 @@
   "actions.workflow.has_no_workflow_dispatch": "워크플로 '%s'에는 workflow_dispatch 이벤트 트리거가 없습니다.",
   "actions.need_approval_desc": "포크 풀 리퀘스트에 대한 워크플로를 실행하려면 승인이 필요합니다.",
   "actions.approve_all_success": "모든 워크플로 실행이 성공적으로 승인되었습니다.",
+  "actions.job_queue.filter_repo_no_select": "모든 리포지토리",
   "actions.variables": "변수",
   "actions.variables.management": "변수 관리",
   "actions.variables.creation": "변수 추가",

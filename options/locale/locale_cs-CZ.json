@@ -3166,6 +3166,7 @@
   "actions.workflow.has_workflow_dispatch": "Tento pracovní postup má spouštěč události workflow_dispatch.",
   "actions.workflow.has_no_workflow_dispatch": "Pracovní postup „%s“ memá workflow_dispatch spouštěč.",
   "actions.need_approval_desc": "Potřebujete schválení pro spuštění pracovních postupů pro rozštěpený pull request.",
+  "actions.job_queue.filter_repo_no_select": "Všechny repozitáře",
   "actions.variables": "Proměnné",
   "actions.variables.management": "Správa proměnných",
   "actions.variables.creation": "Přidat proměnnou",

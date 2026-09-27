@@ -3929,6 +3929,7 @@
   "actions.workflow.has_no_workflow_dispatch": "A sequência de trabalho '%s' não tem nenhum despoletador de eventos workflow_dispatch.",
   "actions.need_approval_desc": "É necessária aprovação para executar sequências de trabalho para a derivação do pedido de integração.",
   "actions.approve_all_success": "Todas as execuções de sequências de trabalho foram aprovadas com sucesso.",
+  "actions.job_queue.filter_repo_no_select": "Todos os repositórios",
   "actions.variables": "Variáveis",
   "actions.variables.management": "Gestão de variáveis",
   "actions.variables.creation": "Adicionar variável",

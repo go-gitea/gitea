@@ -55,8 +55,9 @@
   background: var(--color-secondary);
 }
 
-.ui.menu .item > .svg {
-  margin-right: 0.35em;
+/* TODO: MENU-ITEM-FLEX-MARGIN: need to refactor: flex menu items don't need svg margin */
+.ui.menu:not(.flex-items-block) .item:not(.flex-text-block, .flex-text-inline) > .svg {
+  margin-right: 5px;
 }
 
 .ui.menu .item > a:not(.ui) {

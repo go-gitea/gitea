@@ -3871,6 +3871,7 @@
   "actions.workflow.has_no_workflow_dispatch": "Ten przepływ pracy %s nie ma wyzwalacza zdarzenia workflow_dispatch.",
   "actions.need_approval_desc": "Wymaga zatwierdzenia do uruchomienia przepływu pracy dla propozycji zmian rozgałęzienia.",
   "actions.approve_all_success": "Wszystkie operacje przepływu pracy zostały pomyślnie zatwierdzone.",
+  "actions.job_queue.filter_repo_no_select": "Wszystkie repozytoria",
   "actions.variables": "Zmienne",
   "actions.variables.management": "Zarządzanie zmiennymi",
   "actions.variables.creation": "Dodaj zmienną",

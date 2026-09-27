@@ -11837,9 +11837,9 @@
             }
           },
           {
-            "description": "pattern of repositories to search for",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
             "in": "query",
-            "name": "pattern",
+            "name": "query",
             "schema": {
               "type": "string"
             }
@@ -20935,6 +20935,22 @@
                 "patch"
               ],
               "type": "string"
+            }
+          },
+          {
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "in": "query",
+            "name": "verification",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "in": "query",
+            "name": "files",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
