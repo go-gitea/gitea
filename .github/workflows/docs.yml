@@ -23,7 +23,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: ./site
           wranglerVersion: '4'
           packageManager: pnpm
           command: deploy
