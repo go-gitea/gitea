@@ -273,6 +273,10 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 			return fmt.Errorf("caller %q inputs: %w", caller.JobID, err)
 		}
 	}
+	jobInputs, err := calledWorkflowInputs(ctx, run, caller, workflowCallInputs)
+	if err != nil {
+		return err
+	}
 
 	// 7. Build CallPayload (persisted in step 9).
 	callPayload, err := (&api.WorkflowCallPayload{
@@ -304,7 +308,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 9. We own the expansion: insert the direct children.
-	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
+	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, jobInputs); err != nil {
 		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
 		return errors.Join(err, undoExpansion(ctx, caller))
 	}
@@ -336,13 +340,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 
-	// Parse the called workflow with the caller's `inputs`
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
-	if event, ok := gitCtx["event"].(map[string]any); ok {
-		event["inputs"] = inputs
-	}
-	gitCtx["event_name"] = "workflow_call"
-
 	childWorkflows, err := jobparser.Parse(content,
 		jobparser.WithVars(vars),
 		jobparser.WithGitContext(gitCtx.ToGitHubContext()),
