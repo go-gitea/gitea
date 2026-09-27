@@ -16,8 +16,10 @@ jobs:
           python-version: 3.x
       - run: pip install zensical
       - run: zensical build --clean
+      - run: corepack enable
       - name: Deploy to Cloudflare Workers (static assets)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          packageManager: pnpm
           command: pages deploy site --project-name=docs
