@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "packageManager": "pnpm@12.4.2",
+  "packageManager": "pnpm@12.6.0",
   "engines": {
     "node": ">= 22.18.0",
     "pnpm": ">= 11.0.0"
@@ -9,7 +9,7 @@
     "@citation-js/core": "0.7.21",
     "@citation-js/plugin-bibtex": "0.7.21",
     "@citation-js/plugin-csl": "0.7.22",
-    "@citation-js/plugin-software-formats": "0.6.2",
+    "@citation-js/plugin-software-formats": "0.7.2",
     "@codemirror/autocomplete": "6.20.3",
     "@codemirror/commands": "6.11.1",
     "@codemirror/lang-json": "6.0.2",
@@ -19,15 +19,15 @@
     "@codemirror/legacy-modes": "6.5.4",
     "@codemirror/lint": "6.9.7",
     "@codemirror/search": "6.7.2",
-    "@codemirror/state": "6.7.5",
-    "@codemirror/view": "6.43.12",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.13",
     "@deltablot/dropzone": "7.4.4",
     "@github/markdown-toolbar-element": "2.2.3",
     "@github/paste-markdown": "1.5.3",
     "@github/text-expander-element": "2.9.4",
     "@lezer/highlight": "1.2.3",
     "@mcaptcha/vanilla-glue": "0.1.0-rc2",
-    "@primer/octicons": "19.36.0",
+    "@primer/octicons": "19.38.0",
     "@replit/codemirror-indentation-markers": "6.5.3",
     "@replit/codemirror-lang-nix": "6.0.1",
     "@replit/codemirror-lang-svelte": "6.0.0",
@@ -64,7 +64,7 @@
     "vanilla-colorful": "0.7.2",
     "vite": "8.3.0",
     "vite-string-plugin": "2.0.5",
-    "vue": "3.5.42"
+    "vue": "3.5.43"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
@@ -75,7 +75,7 @@
     "@types/codemirror": "5.60.18",
     "@types/jquery": "4.0.1",
     "@types/katex": "0.16.8",
-    "@types/node": "26.6.1",
+    "@types/node": "26.6.2",
     "@types/pdfobject": "2.2.5",
     "@types/sortablejs": "1.15.9",
     "@types/swagger-ui-dist": "3.30.6",
@@ -99,7 +99,7 @@
     "markdownlint-cli": "0.49.1",
     "material-icon-theme": "5.38.1",
     "postcss-html": "2.0.0",
-    "spectral-cli-bundle": "1.0.12",
+    "spectral-cli-bundle": "1.0.13",
     "stylelint": "17.15.0",
     "stylelint-config-recommended": "18.0.0",
     "stylelint-declaration-block-no-ignored-properties": "3.0.0",
