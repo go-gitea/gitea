@@ -34,13 +34,13 @@ import (
 )
 
 // PIDFile could be set from build tag
-var PIDFile = "/run/gitea.pid"
+var PIDFile = "/run/teabag.pid"
 
 func newWebCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "web",
-		Usage: "Start Gitea web server",
-		Description: `Gitea web server is the only thing you need to run,
+		Usage: "Start Teabag web server",
+		Description: `Teabag web server is the only thing you need to run,
 and it takes care of all the other things for you`,
 		Before: PrepareConsoleLoggerLevel(log.INFO),
 		Action: runWeb,
@@ -114,7 +114,7 @@ func createPIDFile(pidPath string) {
 }
 
 func showWebStartupMessage(msg string) {
-	log.Info("Gitea version: %s%s", setting.AppVer, setting.AppBuiltWith)
+	log.Info("Teabag version: %s%s", setting.AppVer, setting.AppBuiltWith)
 	log.Info("* RunMode: %s", setting.RunMode)
 	log.Info("* AppPath: %s", setting.AppPath)
 	log.Info("* WorkPath: %s", setting.AppWorkPath)
@@ -152,13 +152,13 @@ func serveInstall(cmd *cli.Command) error {
 	c := install.Routes()
 	err := listen(c, false)
 	if err != nil {
-		log.Error("Unable to open listener for installer. Is Gitea already running?")
+		log.Error("Unable to open listener for installer. Is Teabag already running?")
 		graceful.GetManager().DoGracefulShutdown()
 	}
 	select {
 	case <-graceful.GetManager().IsShutdown():
 		<-graceful.GetManager().Done()
-		log.Info("PID: %d Gitea Web Finished", os.Getpid())
+		log.Info("PID: %d Teabag Web Finished", os.Getpid())
 		return err
 	default:
 	}
@@ -191,7 +191,7 @@ func serveInstalled(c *cli.Command) error {
 	}
 
 	// in old versions, user's custom web files are placed in "custom/public", and they were served as "http://domain.com/assets/xxx"
-	// now, Gitea only serves pre-defined files in the "custom/public" folder basing on the web root, the user should move their custom files to "custom/public/assets"
+	// now, Teabag only serves pre-defined files in the "custom/public" folder basing on the web root, the user should move their custom files to "custom/public/assets"
 	publicFiles, _ := public.AssetFS().ListFiles(".")
 	publicFilesSet := container.SetOf(publicFiles...)
 	publicFilesSet.Remove(".well-known")
@@ -237,7 +237,7 @@ func serveInstalled(c *cli.Command) error {
 
 	audit.Record(auditCtx, audit_model.SystemShutdown, nil)
 	<-graceful.GetManager().Done()
-	log.Info("PID: %d Gitea Web Finished", os.Getpid())
+	log.Info("PID: %d Teabag Web Finished", os.Getpid())
 	return err
 }
 
@@ -268,9 +268,9 @@ func runWeb(ctx context.Context, cmd *cli.Command) error {
 	defer cancel()
 
 	if os.Getppid() > 1 && len(os.Getenv("LISTEN_FDS")) > 0 {
-		log.Info("Restarting Gitea on PID: %d from parent PID: %d", os.Getpid(), os.Getppid())
+		log.Info("Restarting Teabag on PID: %d from parent PID: %d", os.Getpid(), os.Getppid())
 	} else {
-		log.Info("Starting Gitea on PID: %d", os.Getpid())
+		log.Info("Starting Teabag on PID: %d", os.Getpid())
 	}
 
 	// Set pid file setting
@@ -334,7 +334,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 	if setting.Protocol != setting.HTTPUnix && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
-	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: Gitea Server", process.SystemProcessType, true)
+	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: Teabag Server", process.SystemProcessType, true)
 	defer finished()
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 	// This can be useful for users, many users do wrong to their config and get strange behaviors behind a reverse-proxy.

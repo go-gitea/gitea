@@ -184,7 +184,7 @@ func buildCallerChain(t *testing.T, callerUses ...string) []*actions_model.Actio
 }
 
 func TestResolveUses(t *testing.T) {
-	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
+	defer test.MockVariableValue(&setting.AppURL, "https://teabag.example.com/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
 	defer test.MockVariableValue(&setting.Actions.WorkflowDirs, []string{".gitea/workflows", ".github/workflows"})()
 	defer test.MockVariableValue(&setting.Actions.ScopedWorkflowDirs, []string{".gitea/scoped_workflows"})()
@@ -237,16 +237,16 @@ func TestResolveUses(t *testing.T) {
 
 	t.Run("LocalInstanceURL", func(t *testing.T) {
 		// An absolute URL on this instance (incl. AppSubURL) resolves to the equivalent cross-repo ref.
-		ref, err := ResolveUses(ctx, "https://gitea.example.com/sub/owner/repo/.gitea/workflows/ci.yml@refs/heads/main")
+		ref, err := ResolveUses(ctx, "https://teabag.example.com/sub/owner/repo/.gitea/workflows/ci.yml@refs/heads/main")
 		require.NoError(t, err)
 		assert.Equal(t, model.ReusableWorkflowUses{Owner: "owner", Repo: "repo", Path: ".gitea/workflows/ci.yml", Ref: "refs/heads/main"}, *ref)
 	})
 
 	t.Run("InvalidSyntax", func(t *testing.T) {
 		for _, in := range []string{
-			"owner/.gitea/workflows/foo.yml",                                             // missing repo segment
-			"owner/repo/.gitea/workflows/foo.yml",                                        // missing @ref
-			"https://gitea.example.com/sub/repo/.gitea/workflows/ci.yml@refs/heads/main", // local absolute URL but missing owner
+			"owner/.gitea/workflows/foo.yml",                                              // missing repo segment
+			"owner/repo/.gitea/workflows/foo.yml",                                         // missing @ref
+			"https://teabag.example.com/sub/repo/.gitea/workflows/ci.yml@refs/heads/main", // local absolute URL but missing owner
 			"not a valid uses at all",
 		} {
 			_, err := ResolveUses(ctx, in)

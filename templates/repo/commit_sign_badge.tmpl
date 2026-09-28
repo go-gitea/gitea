@@ -63,14 +63,14 @@ so this template should be kept as small as possible, DO NOT put large component
 	<span class="ui label commit-sign-badge {{$extraClass}}">
 		{{- if $verified -}}
 			{{- if and $signingUser $signingUser.ID -}}
-				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock"}}</span>
+				<span data-tooltip-content="{{$msgReason}}">{{svg "teabag-lock"}}</span>
 				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.Avatar $signingUser 20}}</span>
 			{{- else -}}
-				<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-lock-cog"}}</span>
+				<span data-tooltip-content="{{$msgReason}}">{{svg "teabag-lock-cog"}}</span>
 				<span data-tooltip-content="{{$msgSigningKey}}">{{ctx.AvatarUtils.AvatarByEmail $signingEmail "" 20}}</span>
 			{{- end -}}
 		{{- else -}}
-			<span data-tooltip-content="{{$msgReason}}">{{svg "gitea-unlock"}}</span>
+			<span data-tooltip-content="{{$msgReason}}">{{svg "teabag-unlock"}}</span>
 		{{- end -}}
 	</span>
 {{- end -}}

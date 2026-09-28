@@ -6,7 +6,7 @@ import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-statu
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView, {type ActionRunSummaryViewLocale} from './ActionRunSummaryView.vue';
 import ActionRunJobView, {type ActionRunJobViewLocale} from './ActionRunJobView.vue';
-import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
+import type {ActionsJob, ActionsRunAttempt} from '../modules/teabag-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 import {trString} from '../modules/i18n.ts';

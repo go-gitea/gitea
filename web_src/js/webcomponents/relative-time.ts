@@ -245,7 +245,7 @@ class RelativeTime extends HTMLElement {
   #renderRoot: ShadowRoot | HTMLElement;
   #span = document.createElement('span');
 
-  constructor() { // eslint-disable-line wc/no-constructor -- shadow DOM setup requires constructor
+  constructor() {
     super();
     this.#renderRoot = this.shadowRoot || this.attachShadow?.({mode: 'open'}) || this;
     this.#span.setAttribute('part', 'root');

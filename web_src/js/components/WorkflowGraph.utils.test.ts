@@ -1,5 +1,5 @@
 import {computeGraphHighlightState, computeJobLevels, createWorkflowGraphModel} from './WorkflowGraph.utils.ts';
-import type {ActionsJob} from '../modules/gitea-actions.ts';
+import type {ActionsJob} from '../modules/teabag-actions.ts';
 
 const mockJobs: ActionsJob[] = [
   {id: 1, link: '', jobId: 'job-100', name: 'job-100', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s'},

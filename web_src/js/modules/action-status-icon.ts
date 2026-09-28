@@ -1,5 +1,5 @@
 import type {SvgName} from '../svg.ts';
-import type {ActionsStatus} from './gitea-actions.ts';
+import type {ActionsStatus} from './teabag-actions.ts';
 
 export type ActionStatusIconVariant = 'circle-fill' | '';
 
@@ -23,7 +23,7 @@ export function getActionStatusIcon(status: ActionsStatus, iconVariant: ActionSt
     case 'blocked':
       return {name: 'octicon-blocked', colorClass: 'tw-text-yellow'};
     case 'running':
-      return {name: 'gitea-running', colorClass: 'tw-text-yellow'};
+      return {name: 'teabag-running', colorClass: 'tw-text-yellow'};
     case 'cancelling':
       return {name: 'octicon-stop', colorClass: 'tw-text-yellow'};
     case 'failure':

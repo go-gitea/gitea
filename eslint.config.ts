@@ -34,6 +34,7 @@ export default defineConfig([
   globalIgnores([
     'web_src/fomantic',
     'public/assets/js',
+    'web_src/js/webcomponents',
   ]),
   {
     files: [`**/*.{${[...jsExts, ...tsExts].join(',')}}`],

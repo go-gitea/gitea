@@ -1,7 +1,7 @@
-# Gitea
+# Teabag
 
 [![](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main)](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain "Release Nightly")
-[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
+[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Teabag "Join the Discord chat at https://discord.gg/Teabag")
 [![](https://pkg.go.dev/badge/gitea.dev?status.svg)](https://pkg.go.dev/gitea.dev "GoDoc")
 [![](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest "GitHub release")
 [![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
@@ -15,13 +15,13 @@
 
 這個項目的目標是提供最簡單、最快速、最無痛的方式來設置自託管的 Git 服務。
 
-由於 Gitea 是用 Go 語言編寫的，它可以在 Go 支援的所有平台和架構上運行，包括 Linux、macOS 和 Windows 的 x86、amd64、ARM 和 PowerPC 架構。這個項目自 2016 年 11 月從 [Gogs](https://gogs.io) [分叉](https://blog.gitea.com/welcome-to-gitea/) 而來，但已經有了很多變化。
+由於 Teabag 是用 Go 語言編寫的，它可以在 Go 支援的所有平台和架構上運行，包括 Linux、macOS 和 Windows 的 x86、amd64、ARM 和 PowerPC 架構。這個項目自 2016 年 11 月從 [Gogs](https://gogs.io) [分叉](https://blog.gitea.com/welcome-to-gitea/) 而來，但已經有了很多變化。
 
 在線演示可以訪問 [demo.gitea.com](https://demo.gitea.com)。
 
-要訪問免費的 Gitea 服務（有一定數量的倉庫限制），可以訪問 [gitea.com](https://gitea.com/user/login)。
+要訪問免費的 Teabag 服務（有一定數量的倉庫限制），可以訪問 [gitea.com](https://gitea.com/user/login)。
 
-要快速部署您自己的專用 Gitea 實例，可以在 [cloud.gitea.com](https://cloud.gitea.com) 開始免費試用。
+要快速部署您自己的專用 Teabag 實例，可以在 [cloud.gitea.com](https://cloud.gitea.com) 開始免費試用。
 
 ## 文件
 
@@ -76,15 +76,15 @@
 
 ## 官方和第三方項目
 
-我們提供了一個官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一個名為 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一個 Gitea Action 的 [action runner](https://gitea.com/gitea/runner)。
+我們提供了一個官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一個名為 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一個 Teabag Action 的 [action runner](https://gitea.com/gitea/runner)。
 
-我們在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 維護了一個 Gitea 相關項目的列表，您可以在那裡發現更多的第三方項目，包括 SDK、插件、主題等。
+我們在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 維護了一個 Teabag 相關項目的列表，您可以在那裡發現更多的第三方項目，包括 SDK、插件、主題等。
 
 ## 通訊
 
-[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
+[![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Teabag "Join the Discord chat at https://discord.gg/Teabag")
 
-如果您有任何文件未涵蓋的問題，可以在我們的 [Discord 服務器](https://discord.gg/Gitea) 上與我們聯繫，或者在 [discourse 論壇](https://forum.gitea.com/) 上創建帖子。
+如果您有任何文件未涵蓋的問題，可以在我們的 [Discord 服務器](https://discord.gg/Teabag) 上與我們聯繫，或者在 [discourse 論壇](https://forum.gitea.com/) 上創建帖子。
 
 ## 作者
 
@@ -115,11 +115,11 @@
 
 ## 常見問題
 
-**Gitea 怎麼發音？**
+**Teabag 怎麼發音？**
 
-Gitea 的發音是 [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY)，就像 "gi-tea" 一樣，g 是硬音。
+Teabag 的發音是 [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY)，就像 "gi-tea" 一樣，g 是硬音。
 
-**為什麼這個項目沒有託管在 Gitea 實例上？**
+**為什麼這個項目沒有託管在 Teabag 實例上？**
 
 我們正在 [努力](https://github.com/go-gitea/gitea/issues/1029)。
 

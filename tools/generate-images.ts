@@ -53,6 +53,11 @@ async function main() {
   const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
   await initWasm(await readFile(new URL(import.meta.resolve('@resvg/resvg-wasm/index_bg.wasm'))));
   await mkdir(new URL('../services/mailer/icons/', import.meta.url), {recursive: true});
+  await mkdir(new URL('../public/assets/img/', import.meta.url), {recursive: true});
+
+  // Copy AVIF logo
+  const logoAvif = await readFile(new URL('../assets/logo.avif', import.meta.url));
+  await writeFile(new URL('../public/assets/img/logo.avif', import.meta.url), logoAvif);
 
   await Promise.all([
     generateMailIcon('octicon-check-circle-fill-16', 'status-success', '#2da44e'),

@@ -26,22 +26,22 @@ function isValidCssColor(s: string | null): boolean {
   return reHex.test(s) || reRgb.test(s);
 }
 
-const thisScriptElem = document.querySelector('script#gitea-external-render-helper');
+const thisScriptElem = document.querySelector('script#teabag-external-render-helper');
 const queryString = thisScriptElem?.getAttribute('data-render-query-string') ?? window.location.search.substring(1);
 const queryParams = new URLSearchParams(queryString);
 
-const isDarkTheme = queryParams.get('gitea-is-dark-theme') === 'true';
+const isDarkTheme = queryParams.get('teabag-is-dark-theme') === 'true';
 if (isDarkTheme) {
-  document.documentElement.setAttribute('data-gitea-theme-dark', String(isDarkTheme));
+  document.documentElement.setAttribute('data-teabag-theme-dark', String(isDarkTheme));
 }
 
-const backgroundColor = queryParams.get('gitea-iframe-bgcolor');
+const backgroundColor = queryParams.get('teabag-iframe-bgcolor');
 if (isValidCssColor(backgroundColor)) {
   // create a style element to set background color, then it can be overridden by the content page's own style if needed
   const style = document.createElement('style');
   style.textContent = `
 :root {
-  --gitea-iframe-bgcolor: ${backgroundColor};
+  --teabag-iframe-bgcolor: ${backgroundColor};
 }
 html, body { margin: 0; padding: 0 }
 body { background: ${backgroundColor}; }
@@ -49,10 +49,10 @@ body { background: ${backgroundColor}; }
   document.head.append(style);
 }
 
-const iframeId = queryParams.get('gitea-iframe-id');
+const iframeId = queryParams.get('teabag-iframe-id');
 // iframe is in different origin, so we need to use postMessage to communicate
 const postIframeMsg = (cmd: 'resize' | 'open-link', data: Record<string, string | number | null> = {}) => {
-  window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');
+  window.parent.postMessage({teabagIframeCmd: cmd, teabagIframeId: iframeId, ...data}, '*');
 };
 
 if (iframeId) {
@@ -90,4 +90,4 @@ if (iframeId) {
   });
 }
 
-window.giteaExternalRenderHelper = {isValidCssColor, queryParams, postIframeMsg};
+window.teabagExternalRenderHelper = {isValidCssColor, queryParams, postIframeMsg};

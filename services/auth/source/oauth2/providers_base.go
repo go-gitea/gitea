@@ -35,17 +35,17 @@ func (b *BaseProvider) DisplayName() string {
 
 // IconHTML returns icon HTML for this provider
 func (b *BaseProvider) IconHTML(size int) template.HTML {
-	svgName := "gitea-" + b.name
+	svgName := "teabag-" + b.name
 	switch b.name {
 	case "gplus":
-		svgName = "gitea-google"
+		svgName = "teabag-google"
 	case "github":
 		svgName = "octicon-mark-github"
 	}
 	svgHTML := svg.RenderHTML(svgName, size)
 	if svgHTML == "" {
 		log.Error("No SVG icon for oauth2 provider %q", b.name)
-		svgHTML = svg.RenderHTML("gitea-openid", size)
+		svgHTML = svg.RenderHTML("teabag-openid", size)
 	}
 	return svgHTML
 }

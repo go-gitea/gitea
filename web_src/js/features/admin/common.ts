@@ -154,7 +154,6 @@ function initAdminAuthentication() {
         input.removeAttribute('required');
       }
 
-
       const authType = elAuthType.value;
       switch (authType) {
         case '3': // SMTP
@@ -190,7 +189,6 @@ function initAdminAuthentication() {
 
     document.querySelector<HTMLInputElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
     document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(true));
-
   }
   // Edit authentication
   if (isEditPage) {

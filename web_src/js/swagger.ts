@@ -1,7 +1,7 @@
 import '../css/swagger-standalone.css';
 import {initSwaggerUI} from './render/swagger.ts';
 
-async function initGiteaAPIViewer() {
+async function initTeabagAPIViewer() {
   const elSwaggerUi = document.querySelector<HTMLElement>('#swagger-ui')!;
   const url = elSwaggerUi.getAttribute('data-source')!;
   const res = await fetch(url); // eslint-disable-line no-restricted-globals -- standalone entry, it must not pull in main site modules
@@ -9,4 +9,4 @@ async function initGiteaAPIViewer() {
   initSwaggerUI(elSwaggerUi, {specText: await res.text()});
 }
 
-initGiteaAPIViewer();
+initTeabagAPIViewer();

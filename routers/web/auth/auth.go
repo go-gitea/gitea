@@ -257,7 +257,6 @@ func prepareSignInPageData(ctx *context.Context) (ret preparedSignInData) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = false
 
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin,
@@ -498,7 +497,6 @@ func prepareSignUpPageData(ctx *context.Context) bool {
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 	ctx.Data["PageIsSignUp"] = true
-	ctx.Data["EnableSSPI"] = false
 
 	hasUsers, err := user_model.HasUsers(ctx)
 	if err != nil {

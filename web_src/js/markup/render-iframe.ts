@@ -44,12 +44,12 @@ function getRealBackgroundColor(el: HTMLElement) {
 
 export function initExternalRenderIframe(iframe: HTMLIFrameElement) {
   const iframeSrcUrl = iframe.getAttribute('data-src')!;
-  if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
+  if (!iframe.id) iframe.id = generateElemId('teabag-iframe-');
 
   window.addEventListener('message', (e) => {
     if (e.source !== iframe.contentWindow) return;
-    if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
-    const cmd = e.data.giteaIframeCmd;
+    if (!e.data?.teabagIframeCmd || e.data?.teabagIframeId !== iframe.id) return;
+    const cmd = e.data.teabagIframeCmd;
     if (cmd === 'resize') {
       iframe.style.height = `${e.data.iframeHeight}px`;
     } else if (cmd === 'open-link') {
@@ -59,14 +59,14 @@ export function initExternalRenderIframe(iframe: HTMLIFrameElement) {
       }
       navigateToIframeLink(e.data.openLink, e.data.anchorTarget);
     } else {
-      throw new Error(`Unknown gitea iframe cmd: ${cmd}`);
+      throw new Error(`Unknown teabag iframe cmd: ${cmd}`);
     }
   });
 
   const u = new URL(iframeSrcUrl, window.location.origin);
-  u.searchParams.set('gitea-is-dark-theme', String(isDarkTheme()));
-  u.searchParams.set('gitea-iframe-id', iframe.id);
-  u.searchParams.set('gitea-iframe-bgcolor', getRealBackgroundColor(iframe));
+  u.searchParams.set('teabag-is-dark-theme', String(isDarkTheme()));
+  u.searchParams.set('teabag-iframe-id', iframe.id);
+  u.searchParams.set('teabag-iframe-bgcolor', getRealBackgroundColor(iframe));
 
   // There are 3 kinds of external render modes:
   // * external frontend render:

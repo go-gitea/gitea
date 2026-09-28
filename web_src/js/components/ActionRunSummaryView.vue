@@ -3,7 +3,7 @@ import WorkflowGraph, {type WorkflowGraphLocale} from './WorkflowGraph.vue';
 import type {ActionRunViewStore} from './ActionRunView.ts';
 import {computed, onBeforeUnmount, onMounted, toRefs} from 'vue';
 import {trString} from '../modules/i18n.ts';
-import type {ActionsStatus} from '../modules/gitea-actions.ts';
+import type {ActionsStatus} from '../modules/teabag-actions.ts';
 
 defineOptions({
   name: 'ActionRunSummaryView',

@@ -70,12 +70,12 @@ func prepareClonePanel(ctx *context.Context) {
 		case "vscode":
 			iconName = "octicon-vscode"
 		case "vscodium":
-			iconName = "gitea-vscodium"
+			iconName = "teabag-vscodium"
 		case "jetbrains":
-			iconName = "gitea-jetbrains"
+			iconName = "teabag-jetbrains"
 		default:
 			// TODO: it could support user's customized icon in the future
-			iconName = "gitea-git"
+			iconName = "teabag-git"
 		}
 
 		tmplApps = append(tmplApps, map[string]any{

@@ -1,7 +1,0 @@
-@import "./theme-gitea-light.css" (prefers-color-scheme: light);
-@import "./theme-gitea-dark.css" (prefers-color-scheme: dark);
-
-gitea-theme-meta-info {
-  --theme-display-name: "Auto";
-  --theme-color-scheme: "auto";
-}

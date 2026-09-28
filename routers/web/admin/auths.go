@@ -30,8 +30,6 @@ const (
 	tplAuthEdit templates.TplName = "admin/auth/edit"
 )
 
-var ()
-
 // Authentications show authentication config page
 func Authentications(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.authentication")
@@ -52,15 +50,13 @@ type dropdownItem struct {
 	Type any
 }
 
-var (
-	authSources = func() []dropdownItem {
-		items := []dropdownItem{
-			{auth.SMTP.String(), auth.SMTP},
-			{auth.OAuth2.String(), auth.OAuth2},
-		}
-		return items
-	}()
-)
+var authSources = func() []dropdownItem {
+	items := []dropdownItem{
+		{auth.SMTP.String(), auth.SMTP},
+		{auth.OAuth2.String(), auth.OAuth2},
+	}
+	return items
+}()
 
 // NewAuthSource render adding a new auth source page
 func NewAuthSource(ctx *context.Context) {

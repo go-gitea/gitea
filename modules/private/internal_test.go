@@ -20,7 +20,7 @@ func TestInternalAPITLSConfig(t *testing.T) {
 		local    bool
 	}{
 		// HTTPUnix always dials the unix socket (a local target), whatever LOCAL_ROOT_URL says
-		{"unix socket", setting.HTTPUnix, "https://gitea.example.com/", true},
+		{"unix socket", setting.HTTPUnix, "https://teabag.example.com/", true},
 		{"localhost", setting.HTTP, "http://localhost:3000/", true},
 		{"loopback ipv4", setting.HTTPS, "https://127.0.0.1:3000/", true},
 		{"loopback ipv6", setting.HTTPS, "https://[::1]:3000/", true},

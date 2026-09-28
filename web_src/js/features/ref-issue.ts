@@ -1,9 +1,9 @@
 import {parseIssueHref} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
-import {createApp} from 'vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 import type {Issue, TimeoutId} from '../types.ts';
+import '../webcomponents/context-popup.ts';
 
 type IssueInfo = {
   convertedIssue: Issue,
@@ -22,16 +22,10 @@ async function getIssueInfo(url: string): Promise<IssueInfo> {
 }
 
 async function showRefIssuePopup(link: HTMLAnchorElement) {
-  const [data, {default: ContextPopup}] = await Promise.all([
-    getIssueInfo(`${link.pathname}/info`),
-    import('../components/ContextPopup.vue'),
-  ]);
-  const el = document.createElement('div');
-  const app = createApp(ContextPopup, {
-    issue: data.convertedIssue,
-    renderedLabels: data.renderedLabels,
-  });
-  app.mount(el);
+  const data = await getIssueInfo(`${link.pathname}/info`);
+  const el = document.createElement('context-popup');
+  el.setAttribute('data-issue', JSON.stringify(data.convertedIssue));
+  el.setAttribute('data-rendered-labels', data.renderedLabels);
   // suppress ancestor title like from .commit-summary to prevent double tooltip
   link.title = '';
   createTippy(link, {
@@ -42,7 +36,7 @@ async function showRefIssuePopup(link: HTMLAnchorElement) {
     interactive: true,
     role: 'dialog',
     interactiveBorder: 5,
-    onDestroy: () => app.unmount(),
+    onDestroy: () => el.remove(),
   }).show();
 }
 

@@ -1,0 +1,8 @@
+@import "./theme-teabag-light-tritanopia.css" (prefers-color-scheme: light);
+@import "./theme-teabag-dark-tritanopia.css" (prefers-color-scheme: dark);
+
+teabag-theme-meta-info {
+  --theme-display-name: "Auto";
+  --theme-colorblind-type: "blue-yellow";
+  --theme-color-scheme: "auto";
+}

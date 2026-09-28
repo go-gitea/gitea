@@ -26,11 +26,11 @@ const levels: ToastLevels = {
     duration: 5000,
   },
   warning: {
-    icon: 'gitea-exclamation',
+    icon: 'teabag-exclamation',
     duration: -1, // requires dismissal to hide
   },
   error: {
-    icon: 'gitea-exclamation',
+    icon: 'teabag-exclamation',
     duration: -1, // requires dismissal to hide
   },
 };
@@ -40,7 +40,7 @@ type ToastOpts = {
   preventDuplicates?: boolean | string,
 } & Options;
 
-type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast};
+type ToastifyElement = HTMLElement & {_teabagToastifyInstance?: Toast};
 
 /** See https://github.com/apvarun/toastify-js#api for options */
 function showToast(message: string, level: Intent = 'info', {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
@@ -80,7 +80,7 @@ function showToast(message: string, level: Intent = 'info', {gravity, position, 
   const el = toast.toastElement as ToastifyElement;
   el.querySelector('.toast-close')!.addEventListener('click', () => toast.hideToast());
   el.setAttribute('data-toast-unique-key', duplicateKey);
-  el._giteaToastifyInstance = toast;
+  el._teabagToastifyInstance = toast;
   return toast;
 }
 
@@ -101,7 +101,7 @@ export function showErrorToast(message: string, opts?: ToastOpts): Toast | null 
 }
 
 function hideToastByElement(el: Element): void {
-  (el as ToastifyElement)?._giteaToastifyInstance?.hideToast();
+  (el as ToastifyElement)?._teabagToastifyInstance?.hideToast();
 }
 
 export function hideToastsFrom(parent: Element): void {

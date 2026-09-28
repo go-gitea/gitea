@@ -9,11 +9,11 @@
 						{{if eq .Name "github"}}
 							{{svg "octicon-mark-github" 184 "tw-p-4"}}
 						{{else if eq .Name "gitlab"}}
-							{{svg "gitea-gitlab" 184 "tw-p-4"}}
+							{{svg "teabag-gitlab" 184 "tw-p-4"}}
 						{{else if eq .Name "gitbucket"}}
-							{{svg "gitea-gitbucket" 184 "tw-p-4"}}
+							{{svg "teabag-gitbucket" 184 "tw-p-4"}}
 						{{else}}
-							{{svg (printf "gitea-%s" .Name) 184}}
+							{{svg (printf "teabag-%s" .Name) 184}}
 						{{end}}
 						<div class="content">
 							<div class="header tw-text-center">

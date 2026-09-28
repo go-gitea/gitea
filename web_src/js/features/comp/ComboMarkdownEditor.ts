@@ -59,8 +59,8 @@ type ComboMarkdownEditorOptions = {
   easyMDEOptions?: Omit<EasyMDE.Options, 'toolbar'> & {toolbar?: ReadonlyArray<string>},
 };
 
-type ComboMarkdownEditorTextarea = HTMLTextAreaElement & {_giteaComboMarkdownEditor: ComboMarkdownEditor};
-type ComboMarkdownEditorContainer = HTMLElement & {_giteaComboMarkdownEditor?: ComboMarkdownEditor};
+type ComboMarkdownEditorTextarea = HTMLTextAreaElement & {_teabagComboMarkdownEditor: ComboMarkdownEditor};
+type ComboMarkdownEditorContainer = HTMLElement & {_teabagComboMarkdownEditor?: ComboMarkdownEditor};
 
 export class ComboMarkdownEditor {
   static EventEditorContentChanged = EventEditorContentChanged;
@@ -93,8 +93,8 @@ export class ComboMarkdownEditor {
   previewContext!: string;
 
   constructor(container: ComboMarkdownEditorContainer, options:ComboMarkdownEditorOptions = {}) {
-    if (container._giteaComboMarkdownEditor) throw new Error('ComboMarkdownEditor already initialized');
-    container._giteaComboMarkdownEditor = this;
+    if (container._teabagComboMarkdownEditor) throw new Error('ComboMarkdownEditor already initialized');
+    container._teabagComboMarkdownEditor = this;
     this.options = options;
     this.container = container;
   }
@@ -139,7 +139,7 @@ export class ComboMarkdownEditor {
 
   setupTextarea() {
     this.textarea = this.container.querySelector('.markdown-text-editor')!;
-    this.textarea._giteaComboMarkdownEditor = this;
+    this.textarea._teabagComboMarkdownEditor = this;
     this.textarea.id = generateElemId(`_combo_markdown_editor_`);
     this.textarea.addEventListener('input', () => triggerEditorContentChanged(this.container));
     this.applyEditorHeights(this.textarea, this.options.editorHeights);
@@ -312,9 +312,9 @@ export class ComboMarkdownEditor {
   prepareEasyMDEToolbarActions() {
     this.easyMDEToolbarDefault = [
       'bold', 'italic', 'strikethrough', '|', 'heading-1', 'heading-2', 'heading-3',
-      'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'gitea-checkbox-empty',
-      'gitea-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
-      'table', 'horizontal-rule', '|', 'gitea-switch-to-textarea',
+      'heading-bigger', 'heading-smaller', '|', 'code', 'quote', '|', 'teabag-checkbox-empty',
+      'teabag-checkbox-checked', '|', 'unordered-list', 'ordered-list', '|', 'link', 'image',
+      'table', 'horizontal-rule', '|', 'teabag-switch-to-textarea',
     ];
   }
 
@@ -455,7 +455,7 @@ function applyMonospaceToAllEditors() {
 
 export function getComboMarkdownEditor(el: Element | null): ComboMarkdownEditor | null {
   if (!el) return null;
-  return (el as ComboMarkdownEditorContainer)._giteaComboMarkdownEditor ?? null;
+  return (el as ComboMarkdownEditorContainer)._teabagComboMarkdownEditor ?? null;
 }
 
 export async function initComboMarkdownEditor(container: HTMLElement, options:ComboMarkdownEditorOptions = {}) {

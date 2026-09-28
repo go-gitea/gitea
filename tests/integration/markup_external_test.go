@@ -111,8 +111,8 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				assert.Equal(t, "sandbox allow-scripts allow-forms allow-modals allow-popups allow-downloads", respSub.Header().Get("Content-Security-Policy"))
 				// FIXME: actually here is a bug (legacy design problem), the "PostProcess" will escape "<script>" tag, but it indeed is the sanitizer's job
 				assert.Equal(t,
-					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="gitea-external-render-helper" data-render-query-string=""></script>`+
-						`<link rel="stylesheet" href="`+public.AssetURI("web_src/css/themes/theme-gitea-auto.css")+`">`+
+					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="teabag-external-render-helper" data-render-query-string=""></script>`+
+						`<link rel="stylesheet" href="`+public.AssetURI("web_src/css/themes/theme-teabag-auto.css")+`">`+
 						`<div><any attr="val">&lt;script&gt;&lt;/script&gt;</any></div>`,
 					respSub.Body.String(),
 				)
@@ -137,8 +137,8 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				req := NewRequest(t, "GET", "/user2/repo1/render/branch/master/html.no-sanitizer?a=1%2f2")
 				respSub := MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t,
-					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="gitea-external-render-helper" data-render-query-string="a=1%2f2"></script>`+
-						`<link rel="stylesheet" href="`+public.AssetURI("web_src/css/themes/theme-gitea-auto.css")+`">`+
+					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="teabag-external-render-helper" data-render-query-string="a=1%2f2"></script>`+
+						`<link rel="stylesheet" href="`+public.AssetURI("web_src/css/themes/theme-teabag-auto.css")+`">`+
 						`<script>foo("raw")</script>`,
 					respSub.Body.String(),
 				)

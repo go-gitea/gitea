@@ -129,7 +129,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 
 	if pull.IsChecking() {
 		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
-			svg.RenderHTML("gitea-running", 16, "rotate-clockwise"),
+			svg.RenderHTML("teabag-running", 16, "rotate-clockwise"),
 			ctx.Locale.Tr("repo.pulls.is_checking"),
 		)
 	}

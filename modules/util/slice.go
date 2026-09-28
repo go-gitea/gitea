@@ -5,6 +5,7 @@ package util
 
 import (
 	"cmp"
+	"maps"
 	"slices"
 	"strings"
 )
@@ -53,22 +54,12 @@ func Sorted[S ~[]E, E cmp.Ordered](values S) S {
 	return values
 }
 
-// TODO: Replace with "maps.Values" once available, current it only in golang.org/x/exp/maps but not in standard library
 func ValuesOfMap[K comparable, V any](m map[K]V) []V {
-	values := make([]V, 0, len(m))
-	for _, v := range m {
-		values = append(values, v)
-	}
-	return values
+	return slices.Collect(maps.Values(m))
 }
 
-// TODO: Replace with "maps.Keys" once available, current it only in golang.org/x/exp/maps but not in standard library
 func KeysOfMap[K comparable, V any](m map[K]V) []K {
-	keys := make([]K, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
+	return slices.Collect(maps.Keys(m))
 }
 
 func SliceNilAsEmpty[T any](a []T) []T {

@@ -2,7 +2,7 @@ import type {FomanticInitFunction, JQueryElem} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
 import {trString} from '../i18n.ts';
 
-const ariaPatchKey = '_giteaAriaPatchDropdown';
+const ariaPatchKey = '_teabagAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
 
 type AriaDropdownElement = HTMLElement & {
@@ -43,8 +43,8 @@ function ariaDropdownFn(this: any, ...args: Parameters<FomanticInitFunction>) {
     // then we need to re-delegate the callbacks.
     const $dropdown = $(el);
     const dropdownModule = $dropdown.data('module-dropdown');
-    if (!dropdownModule.giteaDelegated) {
-      dropdownModule.giteaDelegated = true;
+    if (!dropdownModule.teabagDelegated) {
+      dropdownModule.teabagDelegated = true;
       delegateDropdownModule($dropdown);
     }
   }

@@ -3,11 +3,10 @@ import {errorMessage} from '../modules/errors.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
-import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
-import {createApp} from 'vue';
 import {createTippy} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import '../webcomponents/repo-activity-top-authors.ts';
 
 async function onDownloadArchive(e: Event) {
   e.preventDefault();
@@ -40,7 +39,9 @@ export function initRepoArchiveLinks() {
 export function initRepoActivityTopAuthorsChart() {
   const el = document.querySelector('#repo-activity-top-authors-chart');
   if (el) {
-    createApp(RepoActivityTopAuthors).mount(el);
+    // The web component self-initializes when mounted
+    // Data should be passed via data-attributes by the server-side template
+    el.classList.remove('is-loading');
   }
 }
 

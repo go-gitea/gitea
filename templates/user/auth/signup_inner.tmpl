@@ -49,7 +49,7 @@
 					</button>
 				</div>
 			{{end}}
-			{{$showExternalAuthMethods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
+			{{$showExternalAuthMethods := or .OAuth2Providers .EnableOpenIDSignIn}}
 			{{if $showExternalAuthMethods}}
 				<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
 				{{template "user/auth/external_auth_methods" .}}

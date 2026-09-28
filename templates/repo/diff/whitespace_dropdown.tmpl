@@ -1,5 +1,5 @@
 <div class="ui dropdown tiny basic button" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.whitespace_button"}}">
-	{{svg "gitea-whitespace"}}
+	{{svg "teabag-whitespace"}}
 	<div class="menu">
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all&show-outdated={{$.ShowOutdatedComments}}">
 			<label class="tw-pointer-events-none">
@@ -27,4 +27,4 @@
 		</a>
 	</div>
 </div>
-<a class="ui tiny basic button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-tooltip-content="{{if .IsSplitStyle}}{{ctx.Locale.Tr "repo.diff.show_unified_view"}}{{else}}{{ctx.Locale.Tr "repo.diff.show_split_view"}}{{end}}">{{svg (Iif .IsSplitStyle "gitea-join" "gitea-split")}}</a>
+<a class="ui tiny basic button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated={{$.ShowOutdatedComments}}" data-tooltip-content="{{if .IsSplitStyle}}{{ctx.Locale.Tr "repo.diff.show_unified_view"}}{{else}}{{ctx.Locale.Tr "repo.diff.show_split_view"}}{{end}}">{{svg (Iif .IsSplitStyle "teabag-join" "teabag-split")}}</a>

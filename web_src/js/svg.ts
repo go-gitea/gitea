@@ -1,11 +1,11 @@
 import {parseDom, serializeXml} from './utils.ts';
 import {htmlRaw} from './utils/html.ts';
-import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
-import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
-import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
-import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
-import giteaFavicon from '../../public/assets/img/favicon.svg';
-import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
+import teabagDoubleChevronLeft from '../../public/assets/img/svg/teabag-double-chevron-left.svg';
+import teabagDoubleChevronRight from '../../public/assets/img/svg/teabag-double-chevron-right.svg';
+import teabagEmptyCheckbox from '../../public/assets/img/svg/teabag-empty-checkbox.svg';
+import teabagExclamation from '../../public/assets/img/svg/teabag-exclamation.svg';
+import teabagFavicon from '../../public/assets/img/favicon.svg';
+import teabagRunning from '../../public/assets/img/svg/teabag-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
 import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
@@ -93,12 +93,12 @@ import octiconZoomIn from '../../public/assets/img/svg/octicon-zoom-in.svg';
 import octiconZoomOut from '../../public/assets/img/svg/octicon-zoom-out.svg';
 
 const svgs = {
-  'gitea-double-chevron-left': giteaDoubleChevronLeft,
-  'gitea-double-chevron-right': giteaDoubleChevronRight,
-  'gitea-empty-checkbox': giteaEmptyCheckbox,
-  'gitea-exclamation': giteaExclamation,
-  'gitea-favicon': giteaFavicon,
-  'gitea-running': giteaRunning,
+  'teabag-double-chevron-left': teabagDoubleChevronLeft,
+  'teabag-double-chevron-right': teabagDoubleChevronRight,
+  'teabag-empty-checkbox': teabagEmptyCheckbox,
+  'teabag-exclamation': teabagExclamation,
+  'teabag-favicon': teabagFavicon,
+  'teabag-running': teabagRunning,
   'octicon-archive': octiconArchive,
   'octicon-arrow-left': octiconArrowLeft,
   'octicon-arrow-switch': octiconArrowSwitch,

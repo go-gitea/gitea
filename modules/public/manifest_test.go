@@ -31,10 +31,10 @@ func TestViteManifest(t *testing.T) {
 		"name": "shared",
 		"css": ["css/shared.BbBbBbBb.css"]
 	},
-	"web_src/css/themes/theme-gitea-dark.css": {
-		"file": "css/theme-gitea-dark.CyAaQnn5.css",
-		"name": "theme-gitea-dark",
-		"src": "web_src/css/themes/theme-gitea-dark.css",
+	"web_src/css/themes/theme-teabag-dark.css": {
+		"file": "css/theme-teabag-dark.CyAaQnn5.css",
+		"name": "theme-teabag-dark",
+		"src": "web_src/css/themes/theme-teabag-dark.css",
 		"isEntry": true
 	}
 }`
@@ -42,7 +42,7 @@ func TestViteManifest(t *testing.T) {
 	t.Run("EmptyManifest", func(t *testing.T) {
 		storeManifestFromBytes([]byte(``), 0, time.Now())
 		// not in manifest -> custom theme fallback
-		assert.Equal(t, "/assets/css/theme-gitea-dark.css", AssetURI("web_src/css/themes/theme-gitea-dark.css"))
+		assert.Equal(t, "/assets/css/theme-teabag-dark.css", AssetURI("web_src/css/themes/theme-teabag-dark.css"))
 		assert.Empty(t, entryStyleURLs("web_src/js/index.ts"))
 		assert.Empty(t, AssetNameFromHashedPath("css/no-such-file.css"))
 	})
@@ -52,7 +52,7 @@ func TestViteManifest(t *testing.T) {
 
 		// assets are addressed by their source path (the manifest key)
 		assert.Equal(t, "/assets/js/index.C6Z2MRVQ.js", AssetURI("web_src/js/index.ts"))
-		assert.Equal(t, "/assets/css/theme-gitea-dark.CyAaQnn5.css", AssetURI("web_src/css/themes/theme-gitea-dark.css"))
+		assert.Equal(t, "/assets/css/theme-teabag-dark.CyAaQnn5.css", AssetURI("web_src/css/themes/theme-teabag-dark.css"))
 
 		// custom theme not in the manifest falls back to the static asset location
 		assert.Equal(t, "/assets/css/theme-custom.css", AssetURI("web_src/css/themes/theme-custom.css"))
@@ -70,7 +70,7 @@ func TestViteManifest(t *testing.T) {
 		), AssetCSSLinks("web_src/js/index.ts", "web_src/css/index.css"))
 
 		// hashed output file -> entry name
-		assert.Equal(t, "theme-gitea-dark", AssetNameFromHashedPath("css/theme-gitea-dark.CyAaQnn5.css"))
+		assert.Equal(t, "theme-teabag-dark", AssetNameFromHashedPath("css/theme-teabag-dark.CyAaQnn5.css"))
 		assert.Empty(t, AssetNameFromHashedPath("css/no-such-file.css"))
 	})
 }

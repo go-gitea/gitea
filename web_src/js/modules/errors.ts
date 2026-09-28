@@ -54,7 +54,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
 // Detect whether an error originated from Gitea's own scripts, not from
 // browser extensions or other external scripts.
 const extensionRe = /(chrome|moz|safari(-web)?)-extension:\/\//;
-export function isGiteaError(filename: string, stack: string): boolean {
+export function isTeabagError(filename: string, stack: string): boolean {
   if (extensionRe.test(filename) || extensionRe.test(stack)) return false;
   const assetBaseUrl = new URL(`${windowConfig()?.assetUrlPrefix}/`, window.location.origin).href;
   if (filename && !filename.startsWith(assetBaseUrl) && !filename.startsWith(window.location.origin)) return false;
@@ -78,7 +78,7 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
   if (isNetworkError(err)) return;
 
   // Filter out errors from browser extensions or other non-Gitea scripts.
-  if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
+  if (!isTeabagError(filename ?? '', err?.stack ?? '')) return;
 
   const renderedType = type === 'unhandledrejection' ? 'promise rejection' : type;
   let msg = err?.message ?? message;

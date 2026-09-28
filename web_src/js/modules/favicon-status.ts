@@ -1,9 +1,9 @@
 import {getActionStatusIcon} from './action-status-icon.ts';
-import type {ActionsStatus} from './gitea-actions.ts';
+import type {ActionsStatus} from './teabag-actions.ts';
 import {svgParseOuterInner} from '../svg.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 
-const {svgOuter, svgInnerHtml: giteaFaviconInner} = svgParseOuterInner('gitea-favicon');
+const {svgOuter, svgInnerHtml: teabagFaviconInner} = svgParseOuterInner('teabag-favicon');
 const faviconViewBox = svgOuter.getAttribute('viewBox')!;
 const [faviconViewBoxWidth, faviconViewBoxHeight] = faviconViewBox.split(/\s+/).slice(2).map(Number);
 
@@ -52,7 +52,7 @@ function buildStatusIconMarkup(status: ActionsStatus): string {
 }
 
 export function buildStatusFaviconSvg(status: ActionsStatus): string {
-  return html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${faviconViewBox}">${htmlRaw(giteaFaviconInner)}${htmlRaw(buildStatusIconMarkup(status))}</svg>`;
+  return html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${faviconViewBox}">${htmlRaw(teabagFaviconInner)}${htmlRaw(buildStatusIconMarkup(status))}</svg>`;
 }
 
 function buildStatusFaviconDataUrl(status: ActionsStatus): string {

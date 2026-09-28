@@ -22,7 +22,7 @@ Keep this template in sync with web_src/js/components/ActionStatusIcon.vue.
 {{else if eq .Status "blocked"}}
 	{{svg "octicon-blocked" $size (printf "tw-text-yellow %s" $className)}}
 {{else if eq .Status "running"}}
-	{{svg "gitea-running" $size (printf "tw-text-yellow rotate-clockwise %s" $className)}}
+	{{svg "teabag-running" $size (printf "tw-text-yellow rotate-clockwise %s" $className)}}
 {{else if eq .Status "cancelling"}}
 	{{svg "octicon-stop" $size (printf "tw-text-yellow %s" $className)}}
 {{else}}{{/*failure, unknown*/}}

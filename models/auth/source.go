@@ -29,9 +29,7 @@ const (
 	NoType Type = iota
 	Plain       // 1
 	SMTP        // 2
-	PAM         // 3
-	OAuth2      // 4
-	SSPI        // 5
+	OAuth2      // 3
 )
 
 // String returns the string name of the LoginType
@@ -47,9 +45,7 @@ func (typ Type) Int() int {
 // Names contains the name of LoginType values.
 var Names = map[Type]string{
 	SMTP:   "SMTP",
-	PAM:    "PAM",
 	OAuth2: "OAuth2",
-	SSPI:   "SPNEGO with SSPI",
 }
 
 // Config represents login config as far as the db is concerned

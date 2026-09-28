@@ -8,6 +8,7 @@
     "${configDir}/tools/**/.*",
     "${configDir}/web_src/js/**/*",
     "${configDir}/web_src/js/**/.*",
+    "!${configDir}/web_src/js/webcomponents/**/*"
   ],
   "compilerOptions": {
     "target": "es2022",

@@ -12,7 +12,7 @@ import type Dropzone from '@deltablot/dropzone';
 
 let uploadIdCounter = 0;
 
-type UploadFile = File & {_giteaUploadId?: number, uuid?: string};
+type UploadFile = File & {_teabagUploadId?: number, uuid?: string};
 
 export const EventUploadStateChanged = 'ce-upload-state-changed';
 
@@ -23,10 +23,10 @@ export function triggerUploadStateChanged(target: HTMLElement) {
 function uploadFile(dropzoneEl: HTMLElement, file: UploadFile) {
   return new Promise<UploadFile>((resolve) => {
     const curUploadId = uploadIdCounter++;
-    file._giteaUploadId = curUploadId;
+    file._teabagUploadId = curUploadId;
     const dropzoneInst = dropzoneEl.dropzone;
     const onUploadDone = ({file}: {file: UploadFile}) => {
-      if (file._giteaUploadId === curUploadId) {
+      if (file._teabagUploadId === curUploadId) {
         dropzoneInst.off(DropzoneCustomEventUploadDone, onUploadDone);
         resolve(file);
       }

@@ -1,6 +1,6 @@
 # Web Components
 
-This `webcomponents` directory contains the source code for the web components used in the Gitea Web UI.
+This `webcomponents` directory contains the source code for the web components used in the Teabag Web UI.
 
 https://developer.mozilla.org/en-US/docs/Web/Web_Components
 

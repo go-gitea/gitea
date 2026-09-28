@@ -735,7 +735,7 @@ tr.top-line-blame:first-of-type {
   border-top: none; /* merge code lines belonging to the same commit into one block */
 }
 
-.migrate .svg.gitea-git {
+.migrate .svg.teabag-git {
   color: var(--color-git);
 }
 

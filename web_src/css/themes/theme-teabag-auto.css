@@ -1,0 +1,7 @@
+@import "./theme-teabag-light.css" (prefers-color-scheme: light);
+@import "./theme-teabag-dark.css" (prefers-color-scheme: dark);
+
+teabag-theme-meta-info {
+  --theme-display-name: "Auto";
+  --theme-color-scheme: "auto";
+}

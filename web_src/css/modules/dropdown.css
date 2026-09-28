@@ -824,7 +824,7 @@ select.ui.dropdown {
   margin-right: 0.78571429rem;
 }
 
-/* Gitea uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
+/* Teabag uses SVG images instead of Fomantic builtin "<i>" font icons, so we need to reset the icon styles */
 .ui.ui.dropdown > .icon.icon {
   position: initial;
   padding: 0;

@@ -130,7 +130,7 @@ func migrationIcon(hostname string) string {
 	case "github.com":
 		return "octicon-mark-github"
 	default:
-		return "gitea-git"
+		return "teabag-git"
 	}
 }
 

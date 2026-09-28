@@ -49,9 +49,9 @@ function callGlobalInitFunc(el: Element) {
   if (!func) throw new Error(`Global init function "${initFunc}" not found`);
 
   // when an element node is removed and added again, it should not be re-initialized again.
-  type GiteaGlobalInitElement = Partial<Element> & {_giteaGlobalInited: boolean};
-  if ((el as GiteaGlobalInitElement)._giteaGlobalInited) return;
-  (el as GiteaGlobalInitElement)._giteaGlobalInited = true;
+  type TeabagGlobalInitElement = Partial<Element> & {_teabagGlobalInited: boolean};
+  if ((el as TeabagGlobalInitElement)._teabagGlobalInited) return;
+  (el as TeabagGlobalInitElement)._teabagGlobalInited = true;
 
   func(el);
 }

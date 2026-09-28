@@ -49,9 +49,9 @@ type PrivateFilter = 'private' | 'public' | 'both';
 const commitStatus: CommitStatusMap = {
   pending: {name: 'octicon-dot-fill', color: 'tw-text-yellow'},
   success: {name: 'octicon-check', color: 'tw-text-green'},
-  error: {name: 'gitea-exclamation', color: 'tw-text-red'},
+  error: {name: 'teabag-exclamation', color: 'tw-text-red'},
   failure: {name: 'octicon-x', color: 'tw-text-red'},
-  warning: {name: 'gitea-exclamation', color: 'tw-text-yellow'},
+  warning: {name: 'teabag-exclamation', color: 'tw-text-yellow'},
   skipped: {name: 'octicon-skip', color: 'tw-text-text-light'},
 };
 
@@ -484,7 +484,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
               @click="changePage(1)" :title="textFirstPage"
             >
-              <svg-icon name="gitea-double-chevron-left" :size="16" class="tw-mr-1"/>
+              <svg-icon name="teabag-double-chevron-left" :size="16" class="tw-mr-1"/>
             </a>
             <a
               class="item navigation tw-py-1" :class="{'disabled': page === 1}"
@@ -503,7 +503,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
               class="item navigation tw-py-1" :class="{'disabled': page === finalPage}"
               @click="changePage(finalPage)" :title="textLastPage"
             >
-              <svg-icon name="gitea-double-chevron-right" :size="16" class="tw-ml-1"/>
+              <svg-icon name="teabag-double-chevron-right" :size="16" class="tw-ml-1"/>
             </a>
           </div>
         </div>

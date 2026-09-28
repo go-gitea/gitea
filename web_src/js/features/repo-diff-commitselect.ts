@@ -1,10 +1,10 @@
-import {createApp} from 'vue';
-import DiffCommitSelector from '../components/DiffCommitSelector.vue';
+import '../webcomponents/diff-commit-selector.ts';
 
 export function initDiffCommitSelect() {
   const el = document.querySelector('#diff-commit-select');
   if (!el) return;
 
-  const commitSelect = createApp(DiffCommitSelector);
-  commitSelect.mount(el);
+  // The web component self-initializes when mounted
+  // Just ensure the element exists and has the required attributes
+  el.classList.remove('is-loading');
 }

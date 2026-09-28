@@ -8,25 +8,21 @@ import "gitea.dev/modules/web/middleware"
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
 	middleware.FormDefaultValidator
-	Type            int    `binding:"In(3,4,6,7)"`
+	Type            int    `binding:"In(1,2)"`
 	Name            string `binding:"Required;MaxSize(30)"`
 	TwoFactorPolicy string
 	IsActive        bool
 	IsSyncEnabled   bool
 
 	// SMTP
-	SMTPAuth         string
-	SMTPHost         string
-	SMTPPort         int
-	AllowedDomains   string
-	SkipVerify       bool
-	HeloHostname     string
-	DisableHelo      bool
-	ForceSMTPS       bool
-
-	// PAM
-	PAMServiceName string
-	PAMEmailDomain string
+	SMTPAuth       string
+	SMTPHost       string
+	SMTPPort       int
+	AllowedDomains string
+	SkipVerify     bool
+	HeloHostname   string
+	DisableHelo    bool
+	ForceSMTPS     bool
 
 	// Oauth2 & OIDC
 	Oauth2Provider                string
@@ -51,11 +47,4 @@ type AuthenticationForm struct {
 	Oauth2SSHPublicKeyClaimName   string
 	Oauth2FullNameClaimName       string
 	OpenIDConnectExternalIDClaim  string
-
-	// SSPI
-	SSPIAutoCreateUsers      bool
-	SSPIAutoActivateUsers    bool
-	SSPIStripDomainNames     bool
-	SSPISeparatorReplacement string `binding:"TrimSpace;AlphaDashDot;MaxSize(5)"`
-	SSPIDefaultLanguage      string
 }

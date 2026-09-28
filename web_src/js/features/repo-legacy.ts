@@ -15,13 +15,14 @@ import {hideElem, queryElemChildren, queryElems, showElem} from '../utils/dom.ts
 import {initRepoIssueCommentEdit} from './repo-issue-edit.ts';
 import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
-import {createApp} from 'vue';
-import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
+import '../webcomponents/repo-branch-tag-selector.ts';
 
 function initRepoBranchTagSelector() {
   registerGlobalInitFunc('initRepoBranchTagSelector', (elRoot: HTMLInputElement) => {
-    createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
+    // The web component self-initializes when mounted
+    // Just ensure the element exists and has the required attributes
+    elRoot.classList.remove('is-loading');
   });
 }
 

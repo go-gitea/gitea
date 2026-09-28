@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Teabag Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package cmd
@@ -19,7 +19,7 @@ func cmdConfig() *cli.Command {
 		Name:  "edit-ini",
 		Usage: "Load an existing INI file, apply environment variables, keep specified keys, and output to a new INI file.",
 		Description: `
-Help users to edit the Gitea configuration INI file.
+Help users to edit the Teabag configuration INI file.
 
 # Keep Specified Keys
 
@@ -81,7 +81,7 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-keys.ini --app
 
 	return &cli.Command{
 		Name:  "config",
-		Usage: "Manage Gitea configuration",
+		Usage: "Manage Teabag configuration",
 		Commands: []*cli.Command{
 			subcmdConfigEditIni,
 		},

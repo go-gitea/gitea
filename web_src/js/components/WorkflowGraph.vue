@@ -6,7 +6,7 @@ import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {trN, trString} from '../modules/i18n.ts';
 import {debounce} from '../utils/func.ts';
-import type {ActionsJob} from '../modules/gitea-actions.ts';
+import type {ActionsJob} from '../modules/teabag-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
 import {
   boxBottom,

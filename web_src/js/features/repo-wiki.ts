@@ -51,10 +51,10 @@ async function initRepoWikiForm(form: HTMLFormElement) {
       previewRender: (_content, previewTarget) => previewTarget.innerHTML, // disable builtin preview render
       toolbar: ['bold', 'italic', 'strikethrough', '|',
         'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-        'gitea-code-inline', 'code', 'quote', '|', 'gitea-checkbox-empty', 'gitea-checkbox-checked', '|',
+        'teabag-code-inline', 'code', 'quote', '|', 'teabag-checkbox-empty', 'teabag-checkbox-checked', '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'preview', 'fullscreen', 'side-by-side', '|', 'gitea-switch-to-textarea',
+        'preview', 'fullscreen', 'side-by-side', '|', 'teabag-switch-to-textarea',
       ],
     },
   });

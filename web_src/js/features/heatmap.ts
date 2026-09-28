@@ -1,7 +1,7 @@
-import {createApp} from 'vue';
 import {translateMonth, translateDay} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 import {trString} from '../modules/i18n.ts';
+import '../webcomponents/activity-heatmap.ts';
 
 type HeatmapResponse = {
   heatmapData: Array<[number, number]>; // [[1617235200, 2]] = [unix timestamp, count]
@@ -18,16 +18,7 @@ export async function initHeatmap() {
     if (!resp.ok) throw new Error(`Failed to load heatmap data: ${resp.status} ${resp.statusText}`);
     const {heatmapData, totalContributions} = await resp.json() as HeatmapResponse;
 
-    const heatmap: Record<string, number> = {};
-    for (const [timestamp, contributions] of heatmapData) {
-      // Convert to user timezone and sum contributions by date
-      const dateStr = new Date(timestamp * 1000).toDateString();
-      heatmap[dateStr] = (heatmap[dateStr] || 0) + contributions;
-    }
-
-    const values = Object.entries(heatmap).map(([dateStr, count]) => {
-      return {date: new Date(dateStr), count};
-    });
+    const values = heatmapData.map(([timestamp, count]) => ({timestamp, count}));
 
     const totalFormatted = totalContributions.toLocaleString();
     const textTotalContributions = trString(el.getAttribute('data-locale-total-contributions')!, totalFormatted);
@@ -46,9 +37,8 @@ export async function initHeatmap() {
       noDataText: el.getAttribute('data-locale-no-contributions'),
     };
 
-    const {default: ActivityHeatmap} = await import('../components/ActivityHeatmap.vue');
-    const View = createApp(ActivityHeatmap, {values, locale});
-    View.mount(el);
+    el.setAttribute('data-values', JSON.stringify(values));
+    el.setAttribute('data-locale', JSON.stringify(locale));
     el.classList.remove('is-loading');
   } catch (err) {
     console.error('Heatmap failed to load', err);

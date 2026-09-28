@@ -1,4 +1,4 @@
-// Copyright 2023 The Gitea Authors. All rights reserved.
+// Copyright 2023 The Teabag Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package cmd
@@ -15,7 +15,7 @@ import (
 func newActionsCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "actions",
-		Usage: "Manage Gitea Actions",
+		Usage: "Manage Teabag Actions",
 		Commands: []*cli.Command{
 			newActionsGenerateRunnerTokenCommand(),
 		},

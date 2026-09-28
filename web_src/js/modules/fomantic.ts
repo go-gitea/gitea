@@ -6,7 +6,7 @@ import {svg} from '../svg.ts';
 
 export const fomanticMobileScreen = window.matchMedia('only screen and (max-width: 767.98px)');
 
-export function initGiteaFomantic() {
+export function initTeabagFomantic() {
   // our extensions
   $.fn.fomanticExt = {};
   // By default, use "exact match" for full text search

@@ -6,7 +6,7 @@ try {
   // in case some pages don't render the pageData, we make sure it is an object to prevent null access
   window.config.pageData ??= {};
 } catch {
-  showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
+  showGlobalErrorMessage(`Teabag JavaScript code couldn't run correctly, please check your custom templates`);
 }
 
 // A module should not be imported twice, otherwise there will be bugs when a module has its internal states.

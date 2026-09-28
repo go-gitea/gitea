@@ -1,23 +1,23 @@
-import {isGiteaError, processWindowErrorEvent, showGlobalErrorMessage} from './errors.ts';
+import {isTeabagError, processWindowErrorEvent, showGlobalErrorMessage} from './errors.ts';
 
 beforeEach(() => {
   document.body.innerHTML = '<div class="page-content"></div>';
 });
 
-test('isGiteaError', () => {
+test('isTeabagError', () => {
   const {origin} = window.location;
-  expect(isGiteaError('', '')).toBe(true);
-  expect(isGiteaError('moz-extension://abc/content.js', '')).toBe(false);
-  expect(isGiteaError('safari-extension://abc/content.js', '')).toBe(false);
-  expect(isGiteaError('safari-web-extension://abc/content.js', '')).toBe(false);
-  expect(isGiteaError('chrome-extension://abc/content.js', '')).toBe(false);
-  expect(isGiteaError('https://other-site.com/script.js', '')).toBe(false);
-  expect(isGiteaError(`${origin}/some/page`, '')).toBe(true);
-  expect(isGiteaError(`${origin}/assets/js/index.abc123.js`, '')).toBe(true);
-  expect(isGiteaError('', `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
-  expect(isGiteaError('', `Error\n    at https://other-site.com/script.js:1:1`)).toBe(false);
-  expect(isGiteaError('', `Error\n    at ${origin}/assets/js/index.abc123.js:1:1`)).toBe(true);
-  expect(isGiteaError(`${origin}/assets/js/index.js`, `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
+  expect(isTeabagError('', '')).toBe(true);
+  expect(isTeabagError('moz-extension://abc/content.js', '')).toBe(false);
+  expect(isTeabagError('safari-extension://abc/content.js', '')).toBe(false);
+  expect(isTeabagError('safari-web-extension://abc/content.js', '')).toBe(false);
+  expect(isTeabagError('chrome-extension://abc/content.js', '')).toBe(false);
+  expect(isTeabagError('https://other-site.com/script.js', '')).toBe(false);
+  expect(isTeabagError(`${origin}/some/page`, '')).toBe(true);
+  expect(isTeabagError(`${origin}/assets/js/index.abc123.js`, '')).toBe(true);
+  expect(isTeabagError('', `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
+  expect(isTeabagError('', `Error\n    at https://other-site.com/script.js:1:1`)).toBe(false);
+  expect(isTeabagError('', `Error\n    at ${origin}/assets/js/index.abc123.js:1:1`)).toBe(true);
+  expect(isTeabagError(`${origin}/assets/js/index.js`, `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
 });
 
 test('showGlobalErrorMessage', () => {

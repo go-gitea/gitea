@@ -1,5 +1,5 @@
 {
-  "name": "Gitea DevContainer",
+  "name": "Teabag DevContainer",
   "image": "mcr.microsoft.com/devcontainers/go:1.26-trixie",
   "containerEnv": {
     // override "local" from packaged version
@@ -37,7 +37,7 @@
   },
   "portsAttributes": {
     "3000": {
-      "label": "Gitea Web",
+      "label": "Teabag Web",
       "onAutoForward": "notify"
     }
   },

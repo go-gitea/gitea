@@ -56,7 +56,7 @@ const onItemClick = (e: MouseEvent) => {
     @click.stop="onItemClick"
   >
     <div v-if="item.entryMode === 'tree'" class="item-toggle">
-      <SvgIcon v-if="isLoading" name="gitea-running" class="rotate-clockwise"/>
+      <SvgIcon v-if="isLoading" name="teabag-running" class="rotate-clockwise"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop.prevent="doLoadChildren"/>
     </div>
     <div class="item-content">

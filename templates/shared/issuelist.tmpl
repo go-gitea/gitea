@@ -65,7 +65,7 @@
 									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.BaseBranch}}</span>
 								</a>
 							</div>
-							{{svg "gitea-double-chevron-left" 12}}
+							{{svg "teabag-double-chevron-left" 12}}
 							{{if .PullRequest.HeadRepo}}
 							<div class="branch">
 								<a href="{{.PullRequest.HeadRepo.Link}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">

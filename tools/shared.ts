@@ -7,6 +7,12 @@ const webComponents = new Set([
   // our own, in web_src/js/webcomponents
   'overflow-menu',
   'relative-time',
+  'activity-heatmap',
+  'diff-commit-selector',
+  'repo-file-search',
+  'repo-branch-tag-selector',
+  'repo-activity-top-authors',
+  'context-popup',
   // from dependencies
   'markdown-toolbar',
   'text-expander',

@@ -9,9 +9,9 @@ function syncDarkModeClass(): void {
   // if the viewer is embedded in an iframe (external render), use the parent's theme (passed via query param)
   // otherwise, if it is for Gitea's API, it is a standalone page, use the site's theme (detected from theme CSS variable)
   const url = new URL(window.location.href);
-  const giteaIsDarkTheme = url.searchParams.get('gitea-is-dark-theme') ??
+  const teabagIsDarkTheme = url.searchParams.get('teabag-is-dark-theme') ??
     window.getComputedStyle(document.documentElement).getPropertyValue('--is-dark-theme').trim();
-  const isDark = giteaIsDarkTheme ? giteaIsDarkTheme === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = teabagIsDarkTheme ? teabagIsDarkTheme === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
   document.documentElement.classList.toggle('dark-mode', isDark);
 }
 

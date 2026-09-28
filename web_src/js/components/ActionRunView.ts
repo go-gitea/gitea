@@ -1,7 +1,7 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
 import type {AnsiLineRenderer} from '../render/ansi.ts';
 import {reactive} from 'vue';
-import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/teabag-actions.ts';
 import type {IntervalId} from '../types.ts';
 import {POST} from '../modules/fetch.ts';
 

@@ -75,7 +75,7 @@ interface Window {
   // Make IIFE private functions can be managed by us in our scope, without exposing the IIFE module to global scope.
   // Otherwise, when using "export" in IIFE code, the compiled JS will inject global "var externalRenderHelper = ..."
   // which is not expected and may cause conflicts with other modules.
-  giteaExternalRenderHelper?: {
+  teabagExternalRenderHelper?: {
     isValidCssColor(s: string | null): boolean,
     queryParams: URLSearchParams,
     postIframeMsg(cmd: 'resize' | 'open-link', data: Record<string, string | number | null>): void,

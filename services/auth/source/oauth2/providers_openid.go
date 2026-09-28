@@ -33,7 +33,7 @@ func (o *OpenIDProvider) DisplayName() string {
 
 // IconHTML returns icon HTML for this provider
 func (o *OpenIDProvider) IconHTML(size int) template.HTML {
-	return svg.RenderHTML("gitea-openid", size)
+	return svg.RenderHTML("teabag-openid", size)
 }
 
 // CreateGothProvider creates a GothProvider from this Provider
