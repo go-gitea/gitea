@@ -433,9 +433,11 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		// The label list only shows open issues, so sort by the open-issue
+		// count (num_issues - num_closed_issues) rather than the total. See #39346.
+		sess.OrderBy("(num_issues - num_closed_issues) ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("(num_issues - num_closed_issues) DESC")
 	default:
 		sess.Asc("name")
 	}
@@ -508,9 +510,11 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	case "reversealphabetically":
 		sess.Desc("name")
 	case "leastissues":
-		sess.Asc("num_issues")
+		// The label list only shows open issues, so sort by the open-issue
+		// count (num_issues - num_closed_issues) rather than the total. See #39346.
+		sess.OrderBy("(num_issues - num_closed_issues) ASC")
 	case "mostissues":
-		sess.Desc("num_issues")
+		sess.OrderBy("(num_issues - num_closed_issues) DESC")
 	default:
 		sess.Asc("name")
 	}
