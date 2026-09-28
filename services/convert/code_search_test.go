@@ -15,8 +15,8 @@ import (
 func TestToCodeSearchTextMatch(t *testing.T) {
 	textMatch := toCodeSearchTextMatch("url", "héllo wörld", []code_indexer.MatchRange{{Start: 0, End: 6}, {Start: 7, End: 13}})
 	assert.Equal(t, []*api.CodeSearchTextMatchTerm{
-		{Text: "héllo", Indices: []int{0, 5}},
-		{Text: "wörld", Indices: []int{6, 11}},
+		{Text: "héllo", Indices: []int{0, 6}},
+		{Text: "wörld", Indices: []int{7, 13}},
 	}, textMatch.Matches)
 
 	assert.Empty(t, toCodeSearchTextMatch("url", "abc", nil).Matches)

@@ -51,6 +51,6 @@ type CodeSearchTextMatch struct {
 type CodeSearchTextMatchTerm struct {
 	// The matched text
 	Text string `json:"text"`
-	// The start and end character offsets of the text in the fragment
+	// The start and end UTF-8 byte offsets of the text in the fragment
 	Indices []int `json:"indices"`
 }

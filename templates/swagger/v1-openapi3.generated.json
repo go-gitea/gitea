@@ -3333,7 +3333,7 @@
         "description": "CodeSearchTextMatchTerm represents a matched term in a text match fragment",
         "properties": {
           "indices": {
-            "description": "The start and end character offsets of the text in the fragment",
+            "description": "The start and end UTF-8 byte offsets of the text in the fragment",
             "items": {
               "format": "int64",
               "type": "integer"
@@ -33679,24 +33679,11 @@
         "operationId": "codeSearch",
         "parameters": [
           {
-            "description": "keywords to search for, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
+            "description": "keywords that must all occur in a file, with optional qualifiers:\n\"repo:OWNER/NAME\", \"user:NAME\" and \"org:NAME\" to only search these repositories (each can be repeated),\n\"path:DIR\" to only search the files in a directory, \"language:NAME\" to only search the files of a language\n",
             "in": "query",
             "name": "q",
             "required": true,
             "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "how to match the keywords",
-            "in": "query",
-            "name": "search_mode",
-            "schema": {
-              "default": "exact",
-              "enum": [
-                "exact",
-                "words"
-              ],
               "type": "string"
             }
           },

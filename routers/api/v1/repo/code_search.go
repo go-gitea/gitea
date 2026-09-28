@@ -176,17 +176,11 @@ func SearchCode(ctx *context.APIContext) {
 	// - name: q
 	//   in: query
 	//   description: |
-	//     keywords to search for, with optional qualifiers:
+	//     keywords that must all occur in a file, with optional qualifiers:
 	//     "repo:OWNER/NAME", "user:NAME" and "org:NAME" to only search these repositories (each can be repeated),
 	//     "path:DIR" to only search the files in a directory, "language:NAME" to only search the files of a language
 	//   type: string
 	//   required: true
-	// - name: search_mode
-	//   in: query
-	//   description: how to match the keywords
-	//   type: string
-	//   enum: [exact, words]
-	//   default: exact
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -213,11 +207,6 @@ func SearchCode(ctx *context.APIContext) {
 		ctx.APIError(http.StatusServiceUnavailable, "code indexer is unavailable")
 		return
 	}
-	searchMode, ok := parseCodeSearchMode(ctx, code_indexer.SupportedSearchModes())
-	if !ok {
-		return
-	}
-
 	repoIDs, allRepos := codeSearchRepoIDs(ctx, query)
 	if ctx.Written() {
 		return
@@ -239,7 +228,7 @@ func SearchCode(ctx *context.APIContext) {
 		Keyword:    query.Keyword,
 		Language:   language,
 		Path:       firstQualifierPath(query),
-		SearchMode: searchMode,
+		SearchMode: indexer.SearchModeWords,
 		Paginator:  &listOptions,
 	})
 	if err != nil {

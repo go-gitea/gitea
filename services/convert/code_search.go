@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"path"
 	"strconv"
-	"unicode/utf8"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
@@ -47,7 +46,7 @@ func toCodeSearchTextMatch(objectURL, fragment string, ranges []code_indexer.Mat
 	for _, r := range ranges {
 		textMatch.Matches = append(textMatch.Matches, &api.CodeSearchTextMatchTerm{
 			Text:    fragment[r.Start:r.End],
-			Indices: []int{utf8.RuneCountInString(fragment[:r.Start]), utf8.RuneCountInString(fragment[:r.End])}, // characters, not bytes
+			Indices: []int{r.Start, r.End},
 		})
 	}
 	return textMatch

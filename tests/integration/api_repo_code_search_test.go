@@ -127,11 +127,12 @@ func TestAPISearchCode(t *testing.T) {
 		assert.Equal(t, []*api.CodeSearchTextMatchTerm{{Text: "Description", Indices: []int{1, 12}}}, item.TextMatches[0].Matches)
 	})
 
-	t.Run("Qualifiers", func(t *testing.T) {
+	t.Run("Query", func(t *testing.T) {
 		for _, c := range []struct {
 			query    string
 			expected []string
 		}{
+			{"q=repo1+Description", []string{"user2/repo1/README.md"}},
 			{"q=Description+repo:User2/Repo1", []string{"user2/repo1/README.md"}},
 			{"q=Description+org:org3", nil},
 			{"q=Description+path:docs", nil},
@@ -149,7 +150,7 @@ func TestAPISearchCode(t *testing.T) {
 	})
 
 	t.Run("Invalid", func(t *testing.T) {
-		for _, query := range []string{"q=repo:user2/repo1", "q=x+repo:noslash", "q=x+path:a+path:b", "q=x+-repo:user2/repo1", "q=x&search_mode=regexp"} {
+		for _, query := range []string{"q=repo:user2/repo1", "q=x+repo:noslash", "q=x+path:a+path:b", "q=x+-repo:user2/repo1"} {
 			MakeRequest(t, NewRequest(t, "GET", "/api/v1/search/code?"+query), http.StatusUnprocessableEntity)
 		}
 	})
