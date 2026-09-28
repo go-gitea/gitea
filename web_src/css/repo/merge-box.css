@@ -22,7 +22,7 @@
   flex-shrink: 0;
 }
 
-.pull-merge-box .merge-section:has(#pull-request-merge-form form) > .item:not(.merge-box-footer) {
+.merge-section:has(form) > .item:not(.merge-box-footer) {
   display: none;
 }
 
