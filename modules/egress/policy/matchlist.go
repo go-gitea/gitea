@@ -484,7 +484,7 @@ const (
 
 var cgnatRange = netip.MustParsePrefix("100.64.0.0/10") // RFC 6598
 
-// reservedRanges are never dialable unless an allow list names them by CIDR, based on https://microsoft.github.io/AntiSSRF/ipaddressranges.html
+// reservedRanges are never dialable, based on https://microsoft.github.io/AntiSSRF/ipaddressranges.html
 var reservedRanges = func() (ranges []netip.Prefix) {
 	for _, cidr := range []string{
 		"0.0.0.0/8",          // "this network"
