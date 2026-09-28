@@ -359,7 +359,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		return pr.ID, !pr.Issue.IsClosed
 	}))
 	if err != nil {
-		log.Error("GetScheduledMergeByPullIDs: %v", err)
+		return nil, err
 	}
 
 	baseBranchCache := make(map[string]*git_model.Branch)

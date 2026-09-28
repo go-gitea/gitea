@@ -2,27 +2,21 @@
 * StatusCheckData: see backend pullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := $.StatusCheckData}}
-<details class="item merge-box-checks"{{if not $statusCheckData.AllPassed}} open{{end}}>
+<details class="item merge-box-checks" data-kind="checks"{{if not $statusCheckData.AllPassed}} open{{end}}>
 	<summary>
 		{{template "repo/issue/view_content/pull_merge_section" ($statusCheckData.Section ctx.Locale)}}
 		{{svg "octicon-chevron-right" 16 "merge-box-chevron"}}
 	</summary>
 	<div class="merge-box-checks-body">
-		{{if $statusCheckData.RequireApprovalRunCount}}
-		<div class="flex-left-right" id="approve-status-checks">
-			<div>
-				<strong>{{ctx.Locale.TrN $statusCheckData.RequireApprovalRunCount "repo.pulls.status_checks_need_approvals_1" "repo.pulls.status_checks_need_approvals_n" $statusCheckData.RequireApprovalRunCount}}</strong>
-				<div class="tw-text-text-light-2">{{ctx.Locale.Tr "repo.pulls.status_checks_need_approvals_helper"}}</div>
+		{{if and $statusCheckData.RequireApprovalRunCount $statusCheckData.CanApprove}}
+			<div id="approve-status-checks">
+				<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
+					{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
+				</button>
 			</div>
-			{{if $statusCheckData.CanApprove}}
-			<button type="button" class="ui basic button link-action" data-url="{{$statusCheckData.ApproveLink}}">
-				{{ctx.Locale.Tr "repo.pulls.status_checks_approve_all"}}
-			</button>
-			{{end}}
-		</div>
 		{{end}}
 		{{range $group := $statusCheckData.Groups}}
-		<details class="merge-box-checks-group" open>
+		<details class="merge-box-checks-group" data-kind="{{$group.Kind.Name}}" open>
 			<summary class="flex-text-inline">{{$group.Title ctx.Locale}}{{svg "octicon-chevron-right" 12 "merge-box-chevron"}}</summary>
 			<div class="flex-divided-list">
 				{{range $cs := $group.CommitStatuses}}

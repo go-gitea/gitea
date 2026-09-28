@@ -236,6 +236,9 @@
 					{{$oldRef := HTMLFormat `<span class="tw-line-through">%s</span>` .OldRef}}
 					{{ctx.Locale.Tr "repo.issues.delete_branch_at" $oldRef $createdStr}}
 				</span>
+				{{if $.RestoreBranchLink}}
+					<button type="button" class="ui tiny basic button link-action tw-ml-auto" data-url="{{$.RestoreBranchLink}}">{{ctx.Locale.Tr "repo.pulls.restore_branch"}}</button>
+				{{end}}
 			</div>
 		{{else if eq .Type 12}}
 			<div class="timeline-item event" id="{{.HashTag}}">

@@ -26,7 +26,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxClosedSection(ctx *context.Con
 	title, detail := ctx.Locale.Tr("repo.pulls.closed_with_unmerged_commits"), ctx.Locale.Tr("repo.pulls.is_closed")
 	switch {
 	case pull.HasMerged:
-		title, detail = ctx.Locale.Tr("repo.pulls.merged_success"), ctx.Locale.Tr("repo.pulls.merged_info_text", headTarget)
+		title, detail = ctx.Locale.Tr("repo.pulls.merged_success"), ctx.Locale.Tr("repo.pulls.merged_info_desc")
+		if data.IsPullBranchDeletable {
+			detail = ctx.Locale.Tr("repo.pulls.merged_info_text", headTarget)
+		}
 	case prInfo.IsPullRequestBroken:
 		title, detail = ctx.Locale.Tr("repo.pulls.closed"), ctx.Locale.Tr("repo.pulls.cant_reopen_deleted_branch")
 	case data.IsPullBranchDeletable:
@@ -66,6 +69,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 		section.Details = []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
 	}
 	data.MergeSection = section
+	if pull.IsFilesConflicted() || pull.IsChecking() {
+		data.ReviewSection = nil
+	}
 
 	if prInfo.workInProgressPrefix != "" {
 		data.WorkInProgressSection = &pullMergeBoxSection{
@@ -73,13 +79,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 			Details: []template.HTML{ctx.Locale.Tr("repo.pulls.work_in_progress_desc")},
 		}
 	}
-	if len(data.mergeBlockers) > 0 {
+	if len(data.mergeBlockers) > 0 && data.WorkInProgressSection == nil && !pull.IsFilesConflicted() {
 		data.BlockedSection = &pullMergeBoxSection{
 			Icon: "octicon-alert-fill", IconClass: "tw-bg-red", Title: ctx.Locale.Tr("repo.pulls.merging_is_blocked"),
 			Details: data.mergeBlockers, Files: pull.ChangedProtectedFiles,
 		}
 	}
 
-	data.IsReady = data.hasPermToMerge && !prInfo.IsPullRequestBroken && pull.IsStatusMergeable() && data.WorkInProgressSection == nil && len(data.mergeBlockers) == 0 &&
+	data.IsReady = data.hasPermToMerge && !prInfo.IsPullRequestBroken && pull.IsStatusMergeable() && data.WorkInProgressSection == nil && len(data.mergeBlockers) == 0 && !data.hasOverridableBlockers &&
 		(data.StatusCheckData == nil || data.StatusCheckData.AllPassed())
 }

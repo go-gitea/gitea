@@ -2,7 +2,6 @@
 import {computed, nextTick, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
-import {toggleElem} from '../utils/dom.ts';
 
 type MergeStyle = {
   name: string,
@@ -23,19 +22,18 @@ type MergeForm = {
   allOverridableChecksOk: boolean,
   baseLink: string,
   canMergeNow: boolean,
-  defaultDeleteBranchAfterMerge: boolean,
   defaultMergeStyle: string,
-  isPullBranchDeletable: boolean,
   isReady: boolean,
   mergeMessageFieldPlaceHolder: string,
   mergeStyles: MergeStyle[],
   pullHeadCommitID: string,
+  showMergeInstructions: boolean,
   showPullCommands: boolean,
   textBypassRules: string,
   textCancel: string,
   textCmdHint: string,
   textCmdMergeHint: string,
-  textDeleteBranch: string,
+  textMergeBlocked: string,
   textMergeCommitId: string,
   textMergeTitle: string,
   textSelectMergeStyle: string,
@@ -52,7 +50,6 @@ const mergeForm = props.mergeFormProps;
 
 const mergeTitleFieldValue = shallowRef<string | undefined>('');
 const mergeMessageFieldValue = shallowRef<string | undefined>('');
-const deleteBranchAfterMerge = shallowRef(false);
 const forceMerge = shallowRef(false);
 
 const findMergeStyle = (name: string) => mergeForm.mergeStyles.find((msd) => msd.name === name);
@@ -66,6 +63,7 @@ const menuTrigger = useTemplateRef<HTMLButtonElement>('menuTrigger');
 const menuPanel = useTemplateRef<HTMLDivElement>('menuPanel');
 
 const autoMergeWhenSucceed = computed(() => !mergeStyleDetail.value.hideAutoMerge && !forceMerge.value);
+const actionDisabled = computed(() => !autoMergeWhenSucceed.value && !mergeForm.canMergeNow && mergeStyle.value !== mergeStyleManuallyMerged);
 
 const buttonTexts = computed(() => {
   const detail = mergeStyleDetail.value;
@@ -77,11 +75,9 @@ const buttonTexts = computed(() => {
 const mergeButtonStyleClass = computed(() => mergeForm.isReady && mergeStyle.value !== mergeStyleManuallyMerged ? 'green' : '');
 
 watch(mergeStyle, (val) => {
-  for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
-    toggleElem(elem, elem.getAttribute('data-pull-merge-style') === val);
-  }
-}, {immediate: true});
-watch(mergeStyle, (val) => emit('mergeStyleChange', val));
+  forceMerge.value = false;
+  emit('mergeStyleChange', val);
+});
 
 onMounted(() => {
   if (!menuTrigger.value) return;
@@ -103,7 +99,6 @@ onMounted(() => {
 async function toggleActionForm(show: boolean) {
   showActionForm.value = show;
   if (show) {
-    deleteBranchAfterMerge.value = mergeForm.defaultDeleteBranchAfterMerge;
     mergeTitleFieldValue.value = mergeStyleDetail.value.mergeTitleFieldText;
     mergeMessageFieldValue.value = mergeStyleDetail.value.mergeMessageFieldText;
   }
@@ -114,7 +109,7 @@ async function toggleActionForm(show: boolean) {
 
 <template>
   <div>
-    <div class="ui checkbox merge-box-bypass" v-if="mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk">
+    <div class="ui checkbox merge-box-bypass" v-if="!showActionForm && mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk && mergeStyle !== mergeStyleManuallyMerged">
       <input type="checkbox" v-model="forceMerge" id="merge-bypass-rules">
       <label for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
     </div>
@@ -138,24 +133,19 @@ async function toggleActionForm(show: boolean) {
       </div>
 
       <div class="flex-text-block merge-box-actions">
-        <button class="ui button" :class="forceMerge ? 'red' : mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
+        <button class="ui button" :class="forceMerge ? 'red' : mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle" :disabled="actionDisabled">
           {{ buttonTexts.confirm }}
         </button>
 
         <button class="ui button merge-cancel" type="button" @click="toggleActionForm(false)">
           {{ mergeForm.textCancel }}
         </button>
-
-        <div class="ui checkbox" v-if="mergeForm.isPullBranchDeletable">
-          <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
-          <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
-        </div>
       </div>
     </form>
 
     <div v-show="!showActionForm" class="flex-text-block merge-box-actions">
-      <div class="ui buttons" :class="mergeButtonStyleClass">
-        <button ref="mergeButton" class="ui button" type="button" @click="toggleActionForm(true)">
+      <div class="ui buttons" :class="mergeButtonStyleClass" :data-tooltip-content="actionDisabled ? mergeForm.textMergeBlocked : undefined">
+        <button ref="mergeButton" class="ui button" type="button" :disabled="actionDisabled" @click="toggleActionForm(true)">
           {{ buttonTexts.button }}
         </button>
         <button v-if="mergeForm.mergeStyles.length > 1" ref="menuTrigger" class="ui icon button" type="button" :aria-label="mergeForm.textSelectMergeStyle">
@@ -164,8 +154,8 @@ async function toggleActionForm(show: boolean) {
       </div>
 
       <span v-if="mergeForm.showPullCommands" class="merge-box-cmd-hint">
-        {{ mergeForm.textCmdMergeHint }}
-        <a class="show-modal" href="" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
+        <template v-if="mergeForm.showMergeInstructions">{{ mergeForm.textCmdMergeHint }}</template>
+        <a class="show-modal tw-whitespace-nowrap" href="" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
       </span>
     </div>
     <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu">

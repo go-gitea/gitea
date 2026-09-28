@@ -867,7 +867,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 				ctx.ServerError("GetDoerRepoPermission", err)
 				return
 			}
-			if perm.CanWrite(unit.TypeCode) {
+			if perm.CanWrite(unit.TypeCode) && issue.IsClosed {
 				// Check if branch is not protected
 				if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
 					if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
@@ -875,6 +875,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 					} else if !protected {
 						canDelete = true
 						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+					}
+				}
+				if !pull.HeadRepo.IsArchived {
+					if branches, err := git_model.GetBranches(ctx, pull.HeadRepo.ID, []string{pull.HeadBranch}, true); err != nil {
+						log.Error("GetBranches: %v", err)
+					} else if len(branches) == 1 && branches[0].IsDeleted {
+						ctx.Data["RestoreBranchLink"] = fmt.Sprintf("%s/branches/restore?branch_id=%d", pull.HeadRepo.Link(), branches[0].ID)
 					}
 				}
 			}
@@ -903,14 +910,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		}
 	}
 
+	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
+
 	prInfo.prepareMergeBoxDeleteBranch(ctx, canDelete)
 	if ctx.Written() {
 		return
 	}
 
-	// Only show the merge box if the PR is not merged, or the branch is deletable.
-	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
-	data.ShowMergeBox = !pull.HasMerged || data.IsPullBranchDeletable
 	ctx.Data["PullMergeBoxData"] = data
 	if issue.IsClosed {
 		prInfo.prepareMergeBoxClosedSection(ctx)
@@ -961,8 +967,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
 	}
 
-	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0) ||
-		(data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && len(data.mergeBlockers) == 0) // an unblocked auto merge is about to run
+	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress, statusCheckExpected) > 0) ||
+		(data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0) // an unblocked auto merge is about to run
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
 	prInfo.prepareMergeBoxSections(ctx)

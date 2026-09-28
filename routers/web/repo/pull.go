@@ -32,7 +32,6 @@ import (
 	"gitea.dev/modules/glob"
 	issue_template "gitea.dev/modules/issue/template"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -258,7 +257,6 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 }
 
 type pullMergeBoxData struct {
-	ShowMergeBox      bool
 	ReloadingInterval int
 	IsReady           bool
 
@@ -281,6 +279,7 @@ type pullMergeBoxData struct {
 
 	MergeFormProps        map[string]any
 	ShowPullCommands      bool
+	ShowMergeInstructions bool
 	AutodetectManualMerge bool
 	IsPullBranchDeletable bool
 
@@ -414,8 +413,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, commitStatuses)
 
 	// Required scoped workflow checks gate the merge even when the branch protection's own status check is disabled
-	if state := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts); (enableStatusCheck || len(requiredContexts) > 0) && !state.IsSuccess() {
-		data.addOverridableBlocker(ctx.Locale.Tr(util.Iif(state.IsPending(), "repo.pulls.required_status_check_missing", "repo.pulls.required_status_check_failed")))
+	if (enableStatusCheck || len(requiredContexts) > 0) && !pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts).IsSuccess() {
+		data.hasOverridableBlockers = true
 	}
 	if len(commitStatuses) == 0 && len(requiredContexts) == 0 {
 		return
@@ -453,7 +452,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 			commitStatuses = append(commitStatuses, &git_model.CommitStatus{Context: requiredContext, State: commitstatus.CommitStatusPending, Description: ctx.Locale.TrString("repo.pulls.status_checks_waiting")})
 		}
 	}
-	statusCheckData.Groups = groupStatusChecks(commitStatuses, statusCheckData.ActionsStatuses)
+	statusCheckData.groupStatuses(commitStatuses)
 
 	statusCheckData.IsContextRequired = func(context string) bool {
 		for _, c := range requiredContexts {
@@ -487,6 +486,7 @@ type pullCommitStatusCheckData struct {
 	ApproveLink             string            // link to approve all checks
 	Groups                  []*statusCheckGroup
 	ActionsStatuses         actions_module.CommitActionsStatusMap
+	counts                  map[statusCheckKind]int
 }
 
 func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.PullRequest) (string, error) {
@@ -1082,9 +1082,11 @@ func MergePullRequest(ctx *context.Context) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	// There is always a checkbox on the UI (the DeleteBranchAfterMerge is nil if the checkbox is not checked),
-	// just use the user's choice, don't use pull_service.ShouldDeleteBranchAfterMerge to decide
-	deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).Value()
+	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, nil, ctx.Repo.Repository, pr)
+	if err != nil {
+		ctx.ServerError("ShouldDeleteBranchAfterMerge", err)
+		return
+	}
 
 	if form.MergeWhenChecksSucceed {
 		// schedule auto merge

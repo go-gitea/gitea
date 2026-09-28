@@ -55,11 +55,15 @@ type MergeOptions struct {
 }
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
+	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
+	require.NoError(t, err)
+	updateRepoPullRequestConfig(t, repository.ID, func(config *repo_model.PullRequestsConfig) {
+		config.DefaultDeleteBranchAfterMerge = mergeOptions.DeleteBranch
+	})
 	options := map[string]string{
-		"do":                        string(mergeOptions.Style),
-		"head_commit_id":            mergeOptions.HeadCommitID,
-		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
-		"merge_message_field":       mergeOptions.Message,
+		"do":                  string(mergeOptions.Style),
+		"head_commit_id":      mergeOptions.HeadCommitID,
+		"merge_message_field": mergeOptions.Message,
 	}
 	var resp *httptest.ResponseRecorder
 	require.Eventually(t, func() bool {
@@ -72,8 +76,6 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum strin
 	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullNum), redirect)
 
 	pullNumInt, err := strconv.ParseInt(pullNum, 10, 64)
-	assert.NoError(t, err)
-	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
 	assert.NoError(t, err)
 	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullNumInt)
 	assert.NoError(t, err)
@@ -326,6 +328,10 @@ func TestPullCleanUpAfterClose(t *testing.T) {
 			// the "delete branch" button should be gone since the PR has been merged
 			link = getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr)
 			assert.Empty(t, link)
+
+			restoreLink := htmlDoc.doc.Find(`.timeline-item button[data-url*="/branches/restore"]`).AttrOr("data-url", "")
+			session.MakeRequest(t, NewRequest(t, "POST", restoreLink), http.StatusOK)
+			assert.NotEmpty(t, getDeleteBranchLink(t, session, "user2", "repo1", pullNumStr))
 		})
 	})
 }
@@ -343,7 +349,10 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		wipToggleButtonCount := htmlDoc.Find(`.merge-section > .item button[data-global-init="initPullRequestWipToggle"]`).Length()
 		assert.Equal(t, 1, wipToggleButtonCount)
-		assert.Zero(t, htmlDoc.Find("#pull-request-merge-form").Length())
+		mergeFormProps := htmlDoc.Find("#pull-request-merge-form").AttrOr("data-merge-form-props", "")
+		assert.Contains(t, mergeFormProps, `"canMergeNow":false`)
+		assert.NotContains(t, mergeFormProps, `"hideAutoMerge":false`)
+		assert.Contains(t, htmlDoc.Find("#pull-merge-cmd-modal").Text(), "git checkout user1-master")
 	})
 }
 
@@ -386,6 +395,9 @@ func TestCantMergeConflict(t *testing.T) {
 		err = pull_service.Merge(pr.ID, user1, repo_model.MergeStyleRebase, "", "CONFLICT", false)
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, pull_service.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
+		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/user1/repo1/pulls/%d/merge", pr.Index), map[string]string{"do": "merge", "merge_when_checks_succeed": "true"}), http.StatusOK)
+		assert.Equal(t, fmt.Sprintf("/user1/repo1/pulls/%d", pr.Index), DecodeJSON(t, resp, map[string]string{})["redirect"])
+		unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 	})
 }
 

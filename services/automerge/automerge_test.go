@@ -36,23 +36,26 @@ func TestAutoMergeDisabledOrCanceled(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "squash", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRScheduledToAutoMerge}).Content)
 
-	notifier.PullRequestPushCommits(t.Context(), nonWriter, samePull, nil)
+	notifier.PullRequestSynchronized(t.Context(), nonWriter, samePull, "", "")
 	notifier.PullRequestChangeTargetBranch(t.Context(), admin, samePull, "")
 	unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
 	notifier.IssueChangeStatus(t.Context(), admin, "", samePull.Issue, nil, true)
-	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
 	assert.Equal(t, "closed", unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge}).Content)
 
 	samePull.Flow = issues_model.PullRequestFlowAGit
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, samePull.ID, repo_model.MergeStyleMerge, "title", false))
-	notifier.PullRequestPushCommits(t.Context(), nonWriter, samePull, nil)
+	notifier.PullRequestSynchronized(t.Context(), nonWriter, samePull, "", "")
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
 
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, samePull.ID, repo_model.MergeStyleMerge, "title", false))
 	oldTitle := samePull.Issue.Title
 	samePull.Issue.Title = "WIP: " + oldTitle
 	notifier.IssueChangeTitle(t.Context(), admin, samePull.Issue, oldTitle)
-	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: samePull.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge, Content: "work_in_progress"})
+
+	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, samePull.ID, repo_model.MergeStyleMerge, "title", false))
+	notifier.PullRequestChangeTargetBranch(t.Context(), nonWriter, samePull, "")
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: samePull.IssueID, Type: issues_model.CommentTypePRUnScheduledToAutoMerge, Content: "base_changed"})
 
 	require.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), admin, samePull.ID, repo_model.MergeStyleMerge, "title", false))
 	samePull.Issue.PosterID = nonWriter.ID

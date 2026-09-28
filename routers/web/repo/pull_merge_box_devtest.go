@@ -17,7 +17,7 @@ import (
 	"gitea.dev/services/context"
 )
 
-// MockPullMergeBoxes returns the template data of merge boxes in various states for the devtest page
+// MockPullMergeBoxes returns merge box template data in various states for the devtest page
 func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 	repo := &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"}
 	prConfig := &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true, AllowManualMerge: true}
@@ -29,11 +29,9 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 				actionsStatuses[cs.ID] = actions_model.StatusRunning
 			}
 		}
-		return &pullCommitStatusCheckData{
-			IsContextRequired: func(context string) bool { return context == required },
-			ActionsStatuses:   actionsStatuses,
-			Groups:            groupStatusChecks(statuses, actionsStatuses),
-		}
+		data := &pullCommitStatusCheckData{IsContextRequired: func(context string) bool { return context == required }, ActionsStatuses: actionsStatuses}
+		data.groupStatuses(statuses)
+		return data
 	}
 	status := func(context string, state commitstatus.CommitStatusState, description string) *git_model.CommitStatus {
 		return &git_model.CommitStatus{Context: context, State: state, Description: description}
@@ -52,7 +50,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 		pull := &issues_model.PullRequest{Index: 1, Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
 		issue := &issues_model.Issue{Index: 1, IsPull: true, Title: "Add feature", Repo: repo, PullRequest: pull}
 		pull.Issue = issue
-		data := &pullMergeBoxData{ShowMergeBox: true, hasPermToMerge: true, canMergeNow: true, IsPullBranchDeletable: true}
+		data := &pullMergeBoxData{hasPermToMerge: true, canMergeNow: true, IsPullBranchDeletable: true}
 		prInfo := &pullRequestViewInfo{issue: issue, MergeBoxData: data, headTarget: "user2:feature"}
 		setup(prInfo)
 		if issue.IsClosed {
@@ -90,7 +88,6 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 			status("ci/docs", commitstatus.CommitStatusSuccess, "Successful in 12s"),
 			status("security/codeql", commitstatus.CommitStatusSuccess, "No new alerts"),
 		)
-		data.addOverridableBlocker(ctx.Locale.Tr("repo.pulls.required_status_check_missing"))
 	})
 	add("Some checks were not successful", func(prInfo *pullRequestViewInfo) {
 		data := prInfo.MergeBoxData
@@ -109,7 +106,7 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 			status("ci/test (pgsql)", commitstatus.CommitStatusSuccess, "Successful in 5m"),
 			status("security/codeql", commitstatus.CommitStatusSuccess, "No new alerts"),
 		)
-		data.addOverridableBlocker(ctx.Locale.Tr("repo.pulls.required_status_check_failed"))
+		data.hasOverridableBlockers = true
 	})
 	add("All checks have failed", func(prInfo *pullRequestViewInfo) {
 		prInfo.MergeBoxData.StatusCheckData = checks("ci/test",

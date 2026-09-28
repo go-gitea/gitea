@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -31,11 +32,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	if pull.HasMerged || prInfo.issue.IsClosed {
 		return
 	}
+	prInfo.MergeBoxData.ShowMergeInstructions = pull.HeadRepo != nil && ctx.Repo.Permission.CanWrite(unit.TypeCode) &&
+		(prInfo.ProtectedBranchRule == nil || prInfo.ProtectedBranchRule.CanUserPush(ctx, ctx.Doer))
 	if !prInfo.MergeBoxData.hasPermToMerge || prInfo.MergeBoxData.AutoMerge != nil {
 		return
 	}
-	prInfo.MergeBoxData.ShowPullCommands = pull.HeadRepo != nil
-
 	mergeStyle := defaultMergeStyle(prConfig)
 	if mergeStyle == "" {
 		return
@@ -61,31 +62,31 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
+	mergeable := pull.IsStatusMergeable() || pull.IsEmpty()
+	canMergeNow := mergeable && prInfo.MergeBoxData.canMergeNow && !prInfo.IsPullRequestBroken
+	canAutoMerge := !prInfo.MergeBoxData.isMergeBlocked && !prInfo.IsPullRequestBroken && (mergeable || pull.IsFilesConflicted() || pull.IsChecking())
 	mergeFormProps := map[string]any{
 		"baseLink":             prInfo.issue.Link(),
 		"textCancel":           ctx.Locale.Tr("cancel"),
-		"textDeleteBranch":     ctx.Locale.Tr("repo.branch.delete", prInfo.headTarget),
 		"textMergeCommitId":    ctx.Locale.Tr("repo.pulls.merge_commit_id"),
 		"textSelectMergeStyle": ctx.Locale.Tr("repo.pulls.select_merge_style"),
 		"textMergeTitle":       ctx.Locale.Tr("repo.pulls.merge_commit_title"),
+		"textMergeBlocked":     ctx.Locale.Tr("repo.pulls.merge_blocked_by_requirements"),
 
-		"isReady":                       prInfo.MergeBoxData.IsReady,
-		"canMergeNow":                   prInfo.MergeBoxData.canMergeNow,
-		"allOverridableChecksOk":        allOverridableChecksOk,
-		"textBypassRules":               ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),
-		"pullHeadCommitID":              prInfo.CompareInfo.HeadCommitID,
-		"isPullBranchDeletable":         prInfo.MergeBoxData.IsPullBranchDeletable,
-		"defaultMergeStyle":             mergeStyle,
-		"defaultDeleteBranchAfterMerge": prConfig.DefaultDeleteBranchAfterMerge,
-		"mergeMessageFieldPlaceHolder":  ctx.Locale.Tr("repo.editor.commit_message_desc"),
+		"isReady":                      prInfo.MergeBoxData.IsReady,
+		"canMergeNow":                  canMergeNow,
+		"allOverridableChecksOk":       allOverridableChecksOk,
+		"textBypassRules":              ctx.Locale.Tr("repo.pulls.merge_bypass_rules"),
+		"pullHeadCommitID":             prInfo.CompareInfo.HeadCommitID,
+		"defaultMergeStyle":            mergeStyle,
+		"mergeMessageFieldPlaceHolder": ctx.Locale.Tr("repo.editor.commit_message_desc"),
 
-		"showPullCommands": prInfo.MergeBoxData.ShowPullCommands,
-		"textCmdMergeHint": ctx.Locale.Tr("repo.pulls.cmd_instruction_merge_hint"),
-		"textCmdHint":      ctx.Locale.Tr("repo.pulls.cmd_instruction_hint"),
+		"showPullCommands":      prInfo.MergeBoxData.ShowPullCommands,
+		"showMergeInstructions": prInfo.MergeBoxData.ShowMergeInstructions,
+		"textCmdMergeHint":      ctx.Locale.Tr("repo.pulls.cmd_instruction_merge_hint"),
+		"textCmdHint":           ctx.Locale.Tr("repo.pulls.cmd_instruction_hint"),
 	}
 
-	// if this pr can be merged now, then hide the auto merge
-	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
 	var mergeStyles []map[string]any
 	addMergeStyle := func(style repo_model.MergeStyle, allowed bool, textKey, mergeTitle, mergeMessage string) {
 		if !allowed || prInfo.MergeBoxData.unsignable && style != repo_model.MergeStyleFastForwardOnly { // fast-forward-only creates no commit to sign
@@ -101,19 +102,17 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 			"textConfirmAutoMerge":   ctx.Locale.Tr("repo.pulls.confirm_auto_merge", short),
 			"textBypassMerge":        ctx.Locale.Tr("repo.pulls.bypass_rules_and_merge", short),
 			"textConfirmBypassMerge": ctx.Locale.Tr("repo.pulls.confirm_bypass_rules_and_merge", short),
-			"hideAutoMerge":          generalHideAutoMerge,
+			"hideAutoMerge":          !canAutoMerge || canMergeNow && allOverridableChecksOk,
 			"mergeTitleFieldText":    mergeTitle,
 			"mergeMessageFieldText":  mergeMessage,
 			"hideMergeMessageTexts":  style == repo_model.MergeStyleRebase || style == repo_model.MergeStyleFastForwardOnly,
 		})
 	}
-	if (pull.IsStatusMergeable() || pull.IsEmpty()) && !prInfo.MergeBoxData.isMergeBlocked {
-		addMergeStyle(repo_model.MergeStyleMerge, prConfig.AllowMerge, "merge_pull_request", defaultMergeTitle, defaultMergeBody)
-		addMergeStyle(repo_model.MergeStyleRebase, prConfig.AllowRebase, "rebase_merge_pull_request", "", "")
-		addMergeStyle(repo_model.MergeStyleRebaseMerge, prConfig.AllowRebaseMerge, "rebase_merge_commit_pull_request", defaultMergeTitle, defaultMergeBody)
-		addMergeStyle(repo_model.MergeStyleSquash, prConfig.AllowSquash, "squash_merge_pull_request", defaultSquashMergeTitle, git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody))
-		addMergeStyle(repo_model.MergeStyleFastForwardOnly, prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0, "fast_forward_only_merge_pull_request", "", "")
-	}
+	addMergeStyle(repo_model.MergeStyleMerge, prConfig.AllowMerge, "merge_pull_request", defaultMergeTitle, defaultMergeBody)
+	addMergeStyle(repo_model.MergeStyleRebase, prConfig.AllowRebase, "rebase_merge_pull_request", "", "")
+	addMergeStyle(repo_model.MergeStyleRebaseMerge, prConfig.AllowRebaseMerge, "rebase_merge_commit_pull_request", defaultMergeTitle, defaultMergeBody)
+	addMergeStyle(repo_model.MergeStyleSquash, prConfig.AllowSquash, "squash_merge_pull_request", defaultSquashMergeTitle, git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody))
+	addMergeStyle(repo_model.MergeStyleFastForwardOnly, prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0, "fast_forward_only_merge_pull_request", "", "")
 
 	// Manually Merged is not a well-known feature, it is used to mark a non-mergeable PR (already merged, conflicted) as merged
 	// To test it:

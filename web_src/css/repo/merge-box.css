@@ -22,6 +22,10 @@
   flex-shrink: 0;
 }
 
+.pull-merge-box .merge-section:has(#pull-request-merge-form form) > .item:not(.merge-box-footer) {
+  display: none;
+}
+
 .pull-merge-box .merge-section .item-main {
   gap: 0;
 }
@@ -104,7 +108,7 @@ details[open] > summary > .merge-box-chevron {
   color: var(--color-text-light-2);
 }
 
-.merge-box-checks-group:only-of-type > summary {
+.merge-box-checks-group:only-of-type[open] > summary {
   display: none;
 }
 
@@ -142,10 +146,6 @@ details[open] > summary > .merge-box-chevron {
   flex: 1;
   min-width: 0;
   min-height: 38px;
-}
-
-.merge-box-cmd-hint > a {
-  white-space: nowrap;
 }
 
 .merge-box-menu .item > .svg {

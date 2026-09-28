@@ -90,7 +90,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 
 var ErrAutoMergeNotScheduled = util.NewNotExistErrorf("auto merge is not scheduled")
 
-// CancelScheduledAutoMerge cancels the auto merge on behalf of its enabler, the pull request author or a user who can merge
+// CancelScheduledAutoMerge cancels the auto merge for its enabler, the pull request author or a merger
 func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, perm access_model.Permission) error {
 	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
 	if err != nil {

@@ -1,5 +1,4 @@
 {{$data := $.PullMergeBoxData}}
-{{if $data.ShowMergeBox}}
 <div class="timeline-item comment pull-merge-box"
 	data-global-init="initRepoPullMergeBox"
 	{{if $data.ReloadingInterval}}
@@ -34,7 +33,7 @@
 					{{template "repo/issue/view_content/pull_merge_section" $data.WorkInProgressSection}}
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
 					<button type="button" class="ui button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
-						<span>{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}</span>
+						{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 					</button>
 					{{end}}
 				</div>
@@ -49,16 +48,11 @@
 					{{else if $data.MergeFormProps}}
 						<div id="pull-request-merge-form" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
 					{{else}}
-						<span class="merge-box-cmd-hint">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_merge_hint"}} <a class="show-modal" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a></span>
+						<span class="merge-box-cmd-hint"><a class="show-modal tw-whitespace-nowrap" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a></span>
 					{{end}}
 				</div>
-			{{end}}
-
-			{{if $data.ShowPullCommands}}
-				{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" $data}}
 			{{end}}
 			</div>
 		</div>
 	</div>
 </div>
-{{end}}

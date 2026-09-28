@@ -1,10 +1,11 @@
 import {createApp, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 
-let chosenUpdateUrl = ''; // survives the merge box refresh
-let chosenMergeStyle = ''; // survives the merge box refresh, which remounts the form
+let chosenUpdateUrl = '';
+let chosenMergeStyle = '';
 let mergeFormComponent: Component | undefined; // cached so a refresh remounts the form before the next paint
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
@@ -58,19 +59,22 @@ function initRepoPullMergeBoxRefresh(el: Element) {
       if (!resp.ok) return;
       const respText = (await resp.text()).trim();
       if (isBusy()) return;
-      if (!respText) {
-        el.remove(); // merge box might not exist if the PR has changed (e.g.: merged and the head branch has been deleted)
-        return;
-      }
       const newEl = createElementFromHTML(respText);
-      const checks = el.querySelector<HTMLDetailsElement>('.merge-box-checks');
-      const newChecks = newEl.querySelector<HTMLDetailsElement>('.merge-box-checks');
-      if (checks && newChecks) newChecks.open = checks.open;
+      const openDetails = new Map([...el.querySelectorAll<HTMLDetailsElement>('[data-kind]')].map((details) => [details.getAttribute('data-kind'), details.open]));
+      for (const details of newEl.querySelectorAll<HTMLDetailsElement>('[data-kind]')) {
+        const open = openDetails.get(details.getAttribute('data-kind'));
+        if (open !== undefined) details.open = open;
+      }
       const scrollTop = el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
       el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
       if (scrollTop) newEl.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
     },
   });
+}
+
+export function initRepoPullCloneUrl(el: HTMLElement) {
+  const url = el.getAttribute(`data-clone-${localUserSettings.getString('repo-clone-protocol')}`);
+  if (url) el.textContent = url;
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {

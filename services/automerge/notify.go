@@ -74,7 +74,7 @@ func disableIssueAutoMerge(ctx context.Context, doer *user_model.User, issue *is
 	}
 }
 
-// disableAutoMergeIfNotWriter disables auto merge when a user without write access changes the pull request, like GitHub
+// disableAutoMergeIfNotWriter disables auto merge on changes by non-writers, like GitHub
 func disableAutoMergeIfNotWriter(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, reason string) error {
 	if exist, _, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID); err != nil || !exist {
 		return err
@@ -94,14 +94,14 @@ func (n *automergeNotifier) IssueChangeStatus(ctx context.Context, doer *user_mo
 	}
 }
 
-// IssueChangeTitle disables auto merge when a WIP prefix is added, like GitHub does when converting to draft
+// IssueChangeTitle disables auto merge when a WIP prefix is added, like GitHub's convert to draft
 func (n *automergeNotifier) IssueChangeTitle(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	if issue.IsPull && !issues_model.HasWorkInProgressPrefix(oldTitle) && issues_model.HasWorkInProgressPrefix(issue.Title) {
 		disableIssueAutoMerge(ctx, doer, issue, "work_in_progress")
 	}
 }
 
-func (n *automergeNotifier) PullRequestPushCommits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, _ *issues_model.Comment) {
+func (n *automergeNotifier) PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, _, _ string) {
 	// pushing to a same-repo head branch already requires write access, and Actions or deploy key pushers have no user permission
 	if pr.Flow == issues_model.PullRequestFlowGithub && pr.HeadRepoID == pr.BaseRepoID {
 		return

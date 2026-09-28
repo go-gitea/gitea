@@ -82,7 +82,7 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 	return true, scheduledPRM, err
 }
 
-// GetScheduledMergeByPullIDs returns the scheduled auto merges with their doers loaded, keyed by pull ID
+// GetScheduledMergeByPullIDs returns scheduled auto merges with doers loaded, keyed by pull ID
 func GetScheduledMergeByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]*AutoMerge, error) {
 	if len(pullIDs) == 0 {
 		return map[int64]*AutoMerge{}, nil
