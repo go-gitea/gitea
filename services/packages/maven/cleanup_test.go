@@ -18,6 +18,7 @@ import (
 	packages_service "gitea.dev/services/packages"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -55,7 +56,7 @@ func createTestMavenSnapshotPackage(t *testing.T) *packages.PackageVersion {
 		},
 	}, &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
-			Filename: "gitea-test-1.0-20230101.000000-1.jar",
+			Filename: "test-project-1.0-20230101.000000-1.jar",
 		},
 		Creator: owner,
 		Data:    buf,
@@ -65,16 +66,16 @@ func createTestMavenSnapshotPackage(t *testing.T) *packages.PackageVersion {
 
 	// Define remaining files to add (builds 2-5 base jars + classifier jars)
 	additionalFiles := []string{
-		"gitea-test-1.0-20230101.000000-2.jar",
-		"gitea-test-1.0-20230101.000000-3.jar",
-		"gitea-test-1.0-20230101.000000-4.jar",
-		"gitea-test-1.0-20230101.000000-5.jar",
-		"gitea-test-1.0-20230101.000000-3-sources.jar",
-		"gitea-test-1.0-20230101.000000-3-javadoc.jar",
-		"gitea-test-1.0-20230101.000000-4-sources.jar",
-		"gitea-test-1.0-20230101.000000-4-javadoc.jar",
-		"gitea-test-1.0-20230101.000000-5-sources.jar",
-		"gitea-test-1.0-20230101.000000-5-javadoc.jar",
+		"test-project-1.0-20230101.000000-2.jar",
+		"test-project-1.0-20230101.000000-3.jar",
+		"test-project-1.0-20230101.000000-4.jar",
+		"test-project-1.0-20230101.000000-5.jar",
+		"test-project-1.0-20230101.000000-3-sources.jar",
+		"test-project-1.0-20230101.000000-3-javadoc.jar",
+		"test-project-1.0-20230101.000000-4-sources.jar",
+		"test-project-1.0-20230101.000000-4-javadoc.jar",
+		"test-project-1.0-20230101.000000-5-sources.jar",
+		"test-project-1.0-20230101.000000-5-javadoc.jar",
 	}
 
 	for i, filename := range additionalFiles {
@@ -98,10 +99,10 @@ func createTestMavenSnapshotPackage(t *testing.T) *packages.PackageVersion {
 	return pv
 }
 
-func addMavenMetadataToPackageVersion(t *testing.T, pv *packages.PackageVersion) {
+func addMavenMetadataToPackageVersion(t *testing.T, pv *packages.PackageVersion, sourcesBuild int) {
 	t.Helper()
 
-	metadataXML := `<?xml version="1.0" encoding="UTF-8"?>
+	metadataXML := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <metadata>
   <groupId>com.gitea</groupId>
   <artifactId>test-project</artifactId>
@@ -115,57 +116,13 @@ func addMavenMetadataToPackageVersion(t *testing.T, pv *packages.PackageVersion)
     <snapshotVersions>
       <snapshotVersion>
         <extension>jar</extension>
-        <value>1.0-20230101.000000-1</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <extension>jar</extension>
-        <value>1.0-20230101.000000-2</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <extension>jar</extension>
-        <value>1.0-20230101.000000-3</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <classifier>sources</classifier>
-        <extension>jar</extension>
-        <value>1.0-20230101.000000-3</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <classifier>javadoc</classifier>
-        <extension>jar</extension>
-        <value>1.0-20230101.000000-3</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <extension>jar</extension>
-        <value>1.0-20230101.000000-4</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <classifier>sources</classifier>
-        <extension>jar</extension>
-        <value>1.0-20230101.000000-4</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <classifier>javadoc</classifier>
-        <extension>jar</extension>
-        <value>1.0-20230101.000000-4</value>
-        <updated>20230101000000</updated>
-      </snapshotVersion>
-      <snapshotVersion>
-        <extension>jar</extension>
         <value>1.0-20230101.000000-5</value>
         <updated>20230101000000</updated>
       </snapshotVersion>
       <snapshotVersion>
         <classifier>sources</classifier>
         <extension>jar</extension>
-        <value>1.0-20230101.000000-5</value>
+        <value>1.0-20230101.000000-%d</value>
         <updated>20230101000000</updated>
       </snapshotVersion>
       <snapshotVersion>
@@ -176,11 +133,12 @@ func addMavenMetadataToPackageVersion(t *testing.T, pv *packages.PackageVersion)
       </snapshotVersion>
     </snapshotVersions>
   </versioning>
-</metadata>`
+</metadata>`, sourcesBuild)
 
 	metadataReader := bytes.NewReader([]byte(metadataXML))
 	hsr, err := packages_module.CreateHashedBufferFromReader(metadataReader)
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	defer hsr.Close()
 
 	_, err = packages_service.AddFileToPackageVersionInternal(t.Context(), pv, &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
@@ -242,7 +200,7 @@ func TestCleanupSnapshotVersions(t *testing.T) {
 		setting.Packages.DebugMavenCleanup = true
 
 		pv := createTestMavenSnapshotPackage(t)
-		addMavenMetadataToPackageVersion(t, pv)
+		addMavenMetadataToPackageVersion(t, pv, 5)
 
 		filesBefore, err := packages.GetFilesByVersionID(t.Context(), pv.ID)
 		assert.NoError(t, err)
@@ -265,7 +223,7 @@ func TestCleanupSnapshotVersions(t *testing.T) {
 		pv := createTestMavenSnapshotPackage(t)
 		assert.Equal(t, "1.0-SNAPSHOT", pv.Version)
 
-		addMavenMetadataToPackageVersion(t, pv)
+		addMavenMetadataToPackageVersion(t, pv, 5)
 
 		filesBefore, err := packages.GetFilesByVersionID(t.Context(), pv.ID)
 		assert.NoError(t, err)
@@ -299,12 +257,55 @@ func TestCleanupSnapshotVersions(t *testing.T) {
 
 		t.Logf("Retained builds: %v", retainedBuilds)
 
-		assert.Contains(t, retainedBuilds, "gitea-test-1.0-20230101.000000-4.jar")
-		assert.Contains(t, retainedBuilds, "gitea-test-1.0-20230101.000000-4-sources.jar")
-		assert.Contains(t, retainedBuilds, "gitea-test-1.0-20230101.000000-4-javadoc.jar")
+		assert.Contains(t, retainedBuilds, "test-project-1.0-20230101.000000-4.jar")
+		assert.Contains(t, retainedBuilds, "test-project-1.0-20230101.000000-4-sources.jar")
+		assert.Contains(t, retainedBuilds, "test-project-1.0-20230101.000000-4-javadoc.jar")
 
-		assert.Contains(t, retainedBuilds, "gitea-test-1.0-20230101.000000-5.jar")
-		assert.Contains(t, retainedBuilds, "gitea-test-1.0-20230101.000000-5-sources.jar")
-		assert.Contains(t, retainedBuilds, "gitea-test-1.0-20230101.000000-5-javadoc.jar")
+		assert.Contains(t, retainedBuilds, "test-project-1.0-20230101.000000-5.jar")
+		assert.Contains(t, retainedBuilds, "test-project-1.0-20230101.000000-5-sources.jar")
+		assert.Contains(t, retainedBuilds, "test-project-1.0-20230101.000000-5-javadoc.jar")
 	})
+}
+
+func TestCleanupSnapshotFilesRetainsMetadataReferences(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	oldRetain, oldDebug := setting.Packages.RetainMavenSnapshotBuilds, setting.Packages.DebugMavenCleanup
+	t.Cleanup(func() {
+		setting.Packages.RetainMavenSnapshotBuilds = oldRetain
+		setting.Packages.DebugMavenCleanup = oldDebug
+	})
+	setting.Packages.RetainMavenSnapshotBuilds = 1
+	setting.Packages.DebugMavenCleanup = false
+	pv := createTestMavenSnapshotPackage(t)
+	addMavenMetadataToPackageVersion(t, pv, 3)
+	type testFile struct {
+		name string
+		keep bool
+	}
+	files := []testFile{
+		{"test-project-1.0-20230101.000000-1.jar.asc", false},
+		{"test-project-1.0-20230101.000000-1.tar.gz", false},
+		{"test-project-1.0-20230101.000000-1-linux-x86-64.jar", false},
+		{"test-project-1.0-20230101.000000-5-linux-x86-64.jar", true},
+		{"test-project-1.0-20230101.000000-3-sources.jar.asc", true},
+	}
+	for _, file := range files {
+		buf, err := packages_module.CreateHashedBufferFromReader(strings.NewReader(file.name))
+		require.NoError(t, err)
+		_, err = packages_service.AddFileToPackageVersionInternal(t.Context(), pv, &packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{Filename: file.name}, Data: buf,
+		})
+		buf.Close()
+		require.NoError(t, err)
+	}
+	require.NoError(t, CleanupSnapshotVersions(t.Context()))
+	files = append(files, testFile{"test-project-1.0-20230101.000000-3-sources.jar", true})
+	for _, file := range files {
+		_, err := packages.GetFileForVersionByName(t.Context(), pv.ID, file.name, packages.EmptyFileKey)
+		if file.keep {
+			assert.NoError(t, err, file.name)
+		} else {
+			assert.ErrorIs(t, err, packages.ErrPackageFileNotExist, file.name)
+		}
+	}
 }

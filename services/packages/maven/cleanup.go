@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/packages"
@@ -23,7 +24,10 @@ func CleanupSnapshotVersions(ctx context.Context) error {
 	debugSession := setting.Packages.DebugMavenCleanup
 	log.Debug("Maven Cleanup: starting with retainBuilds: %d, debugSession: %t", retainBuilds, debugSession)
 
-	if retainBuilds < 1 {
+	if retainBuilds < 0 {
+		return nil
+	}
+	if retainBuilds == 0 {
 		log.Warn("Maven Cleanup: skipped as value for retainBuilds less than 1: %d. Minimum 1 build should be retained", retainBuilds)
 		return nil
 	}
@@ -92,21 +96,31 @@ func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, 
 		return fmt.Errorf("%w: failed to retrieve maven-metadata.xml: %w", packages.ErrMetadataFile, err)
 	}
 
-	maxBuildNumber, classifiers, err := extractMaxBuildNumber(ctx, metadataFile)
+	snapshotMetadata, err := readSnapshotMetadata(ctx, metadataFile)
 	if err != nil {
 		return fmt.Errorf("%w: failed to extract max build number from maven-metadata.xml: %w", packages.ErrMetadataFile, err)
 	}
 
-	thresholdBuildNumber := maxBuildNumber - retainBuilds
+	thresholdBuildNumber := snapshotMetadata.BuildNumber - retainBuilds
 	if thresholdBuildNumber <= 0 {
 		log.Debug("Maven Cleanup: no files to clean up, as the threshold build number is less than or equal to zero for versionID %d", versionID)
 		return nil
 	}
 
-	filesToRemove, skippedFiles, err := packages.GetFilesBelowBuildNumber(ctx, versionID, thresholdBuildNumber, classifiers...)
+	filesToRemove, skippedFiles, err := packages.GetFilesBelowBuildNumber(ctx, versionID, thresholdBuildNumber)
 	if err != nil {
 		return fmt.Errorf("cleanSnapshotFiles: failed to retrieve files for version: %w", err)
 	}
+
+	protectedFiles := make(map[string]bool, len(snapshotMetadata.Files)*2)
+	for _, filename := range snapshotMetadata.Files {
+		protectedFiles[filename] = true
+		protectedFiles[filename+".asc"] = true
+	}
+	// Metadata can advertise a classifier from an older build.
+	filesToRemove = slices.DeleteFunc(filesToRemove, func(file *packages.PackageFile) bool {
+		return protectedFiles[file.Name]
+	})
 
 	if debugSession {
 		var fileNamesToRemove, skippedFileNames []string
@@ -133,25 +147,22 @@ func cleanSnapshotFiles(ctx context.Context, versionID int64, retainBuilds int, 
 	return nil
 }
 
-func extractMaxBuildNumber(ctx context.Context, metadataFile *packages.PackageFile) (int, []string, error) {
+func readSnapshotMetadata(ctx context.Context, metadataFile *packages.PackageFile) (*maven.SnapshotMetadata, error) {
 	pb, err := packages.GetBlobByID(ctx, metadataFile.BlobID)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to get package blob: %w", err)
+		return nil, fmt.Errorf("failed to get package blob: %w", err)
 	}
 
 	content, err := packages_service.OpenBlobStream(pb)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to get package file stream: %w", err)
+		return nil, fmt.Errorf("failed to get package file stream: %w", err)
 	}
 	defer content.Close()
 
 	snapshotMetadata, err := maven.ParseSnapshotVersionMetadata(content)
 	if err != nil {
-		return 0, nil, fmt.Errorf("failed to parse maven-metadata.xml: %w", err)
+		return nil, fmt.Errorf("failed to parse maven-metadata.xml: %w", err)
 	}
 
-	buildNumber := snapshotMetadata.BuildNumber
-	classifiers := snapshotMetadata.Classifiers
-
-	return buildNumber, classifiers, nil
+	return snapshotMetadata, nil
 }

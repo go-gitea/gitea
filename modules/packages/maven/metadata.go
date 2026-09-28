@@ -33,10 +33,10 @@ type Dependency struct {
 	Version    string `json:"version,omitempty"`
 }
 
-// SnapshotMetadata struct holds the build number and the list of classifiers for a snapshot version
+// SnapshotMetadata holds the build number and advertised files for a snapshot version.
 type SnapshotMetadata struct {
 	BuildNumber int      `json:"build_number,omitempty"`
-	Classifiers []string `json:"classifiers,omitempty"`
+	Files       []string `json:"files,omitempty"`
 }
 
 type pomStruct struct {
@@ -138,7 +138,7 @@ func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 	}, nil
 }
 
-// ParseSnapshotVersionMetadata parses the Maven Snapshot Version metadata to extract the build number and list of available classifiers.
+// ParseSnapshotVersionMetadata parses the build number and advertised files of a Maven snapshot.
 func ParseSnapshotVersionMetadata(r io.Reader) (*SnapshotMetadata, error) {
 	var metadata snapshotMetadataStruct
 
@@ -153,15 +153,23 @@ func ParseSnapshotVersionMetadata(r io.Reader) (*SnapshotMetadata, error) {
 		return nil, errors.New("invalid or missing build number in snapshot metadata")
 	}
 
-	var classifiers []string
+	if metadata.ArtifactID == "" {
+		return nil, errors.New("missing artifact ID in snapshot metadata")
+	}
+	var files []string
 	for _, snapshotVersion := range metadata.Versioning.SnapshotVersions {
-		if snapshotVersion.Classifier != "" {
-			classifiers = append(classifiers, snapshotVersion.Classifier)
+		if snapshotVersion.Value == "" || snapshotVersion.Extension == "" {
+			return nil, errors.New("invalid snapshot version in metadata")
 		}
+		filename := metadata.ArtifactID + "-" + snapshotVersion.Value
+		if snapshotVersion.Classifier != "" {
+			filename += "-" + snapshotVersion.Classifier
+		}
+		files = append(files, filename+"."+snapshotVersion.Extension)
 	}
 
 	return &SnapshotMetadata{
 		BuildNumber: buildNumber,
-		Classifiers: classifiers,
+		Files:       files,
 	}, nil
 }
