@@ -176,8 +176,8 @@ importers:
         specifier: 0.7.22
         version: 0.7.22(@citation-js/core@0.7.21)
       '@citation-js/plugin-software-formats':
-        specifier: 0.7.2
-        version: 0.7.2
+        specifier: 0.6.2
+        version: 0.6.2
       '@codemirror/autocomplete':
         specifier: 6.20.3
         version: 6.20.3
@@ -550,9 +550,9 @@ packages:
     peerDependencies:
       '@citation-js/core': ^0.7.0
 
-  '@citation-js/plugin-cff@0.7.2':
-    resolution: {integrity: sha512-RmwBBC1t7VYryqYD9ZlXvWDlUYdrMT2JqH/XokgjJRHLTAv1w/cRocGnXo2cG7DAXMTeFJWfyKglRnnmEAza2w==}
-    engines: {node: '>=22.0.0'}
+  '@citation-js/plugin-cff@0.6.2':
+    resolution: {integrity: sha512-jvERDFbtQQOBb9s+E8VbRIYsEIb2YEbcLH3yVDxXK0xqBGQDE5m8JZAYUkENy4FmbaD979l0+xJTWAsYN1pV/w==}
+    engines: {node: '>=14.0.0'}
 
   '@citation-js/plugin-csl@0.7.22':
     resolution: {integrity: sha512-/rGdtbeP3nS4uZDdEbQUHT8PrUcIs0da2t+sWMKYXoOhXQqfw3oJJ7p4tUD+R8lptyIR5Eq20/DFk/kQDdLpYg==}
@@ -560,25 +560,25 @@ packages:
     peerDependencies:
       '@citation-js/core': ^0.7.0
 
-  '@citation-js/plugin-github@0.7.2':
-    resolution: {integrity: sha512-HAI3Y100jKvOcaYwSnnGlmv2oP1JHxcVGxBlmVmiLP5BT2MAaPSw3ohIJRMSywelt+FkmN/TIqauNhUTDSDcnw==}
-    engines: {node: '>=22.0.0'}
+  '@citation-js/plugin-github@0.6.2':
+    resolution: {integrity: sha512-NKq/1Ja060o4II1Z4p1+utwpvMsx+XIWdNiFvnJDfR2Z9E1xGETjByPpdobGBsteUTpJPEe9OVfF8Dee/Q7zLQ==}
+    engines: {node: '>=14.0.0'}
 
-  '@citation-js/plugin-npm@0.7.2':
-    resolution: {integrity: sha512-tufey3GOMctwJTrDzhjdniqFW7mYBDHUXKSd0t6lzpmY8R63qLQj+A/oCOt3Yb8sVv5MS/K21u1xER6T+CmGJw==}
-    engines: {node: '>=22.0.0'}
+  '@citation-js/plugin-npm@0.6.2':
+    resolution: {integrity: sha512-mbQg/N9HM+gOqHJCdDZEElSW+h/oM94snKCl3llXuZ4MEH3tHraElS6CYRW/vW7s8KUTTHhgE62Q6ua5aRml8g==}
+    engines: {node: '>=14.0.0'}
 
-  '@citation-js/plugin-software-formats@0.7.2':
-    resolution: {integrity: sha512-yKZixi/RSWgjQZOApfoqeaYo/bgcCEtAM4hxzB/wpf2TzK0i26J9oxGy+neuJ0Ozn46F7aLvKZPLRWzH9Hn8HQ==}
-    engines: {node: '>=22.0.0'}
+  '@citation-js/plugin-software-formats@0.6.2':
+    resolution: {integrity: sha512-x1IG0LBKglBU6SuiiKfvOtn7g7o7s+YhQhB44o7zrFaKEO8jkyQ5qMKtM5VFdCBL7teLfzZLjpjNkdJXtZ6XZw==}
+    engines: {node: '>=14.0.0'}
 
-  '@citation-js/plugin-yaml@0.7.2':
-    resolution: {integrity: sha512-UCM+yLPmIbbqloGkDNkCFO6aVTR97rZNDHc2TLCZQvczwLVlKZCJnv2m891rgLP99vXDI0B03eCN1wD5M1iWbA==}
-    engines: {node: '>=22.0.0'}
+  '@citation-js/plugin-yaml@0.6.2':
+    resolution: {integrity: sha512-qw53Uy2fDekKAzNhv8pkAWpIccIxyKQ3nQuClMgzDPdyeWg34ElIs4bDub9ZZup15fy+X//2gP8k12RJqNo4lA==}
+    engines: {node: '>=14.0.0'}
 
-  '@citation-js/plugin-zenodo@0.7.2':
-    resolution: {integrity: sha512-9DUYimG5BNseGyCJeygQ1oz52mNFCeBEsvqbxPShCxTH9zoRFqoY91PsISxiaTnaEJg3LdVQ4fh5cMwltZ5kcw==}
-    engines: {node: '>=22.0.0'}
+  '@citation-js/plugin-zenodo@0.6.2':
+    resolution: {integrity: sha512-3XQOO3u4WXY/7AWZyQ+9SuBzS8bYTlJ+NF1uCgrZO64g36nK5iIc5YV9cBl2TL2QhHF6S36nvAsXsj5fX9FeHw==}
+    engines: {node: '>=14.0.0'}
 
   '@codemirror/autocomplete@6.20.3':
     resolution: {integrity: sha512-tlosUqb+3BbxCxZdu4tKeRghPFC+QM7q4X5YhKV2eCmPG+1r2F3f4AaSz5sCrFqUtX4Jh20VFTKecl16MgiV9g==}
@@ -4696,10 +4696,10 @@ snapshots:
       '@citation-js/name': 0.4.2
       moo: 0.5.3
 
-  '@citation-js/plugin-cff@0.7.2':
+  '@citation-js/plugin-cff@0.6.2':
     dependencies:
       '@citation-js/date': 0.5.1
-      '@citation-js/plugin-yaml': 0.7.2
+      '@citation-js/plugin-yaml': 0.6.2
 
   '@citation-js/plugin-csl@0.7.22(@citation-js/core@0.7.21)':
     dependencies:
@@ -4707,29 +4707,29 @@ snapshots:
       '@citation-js/date': 0.5.1
       citeproc: 2.4.63
 
-  '@citation-js/plugin-github@0.7.2':
+  '@citation-js/plugin-github@0.6.2':
     dependencies:
       '@citation-js/date': 0.5.1
       '@citation-js/name': 0.4.2
 
-  '@citation-js/plugin-npm@0.7.2':
+  '@citation-js/plugin-npm@0.6.2':
     dependencies:
       '@citation-js/date': 0.5.1
       '@citation-js/name': 0.4.2
 
-  '@citation-js/plugin-software-formats@0.7.2':
+  '@citation-js/plugin-software-formats@0.6.2':
     dependencies:
-      '@citation-js/plugin-cff': 0.7.2
-      '@citation-js/plugin-github': 0.7.2
-      '@citation-js/plugin-npm': 0.7.2
-      '@citation-js/plugin-yaml': 0.7.2
-      '@citation-js/plugin-zenodo': 0.7.2
+      '@citation-js/plugin-cff': 0.6.2
+      '@citation-js/plugin-github': 0.6.2
+      '@citation-js/plugin-npm': 0.6.2
+      '@citation-js/plugin-yaml': 0.6.2
+      '@citation-js/plugin-zenodo': 0.6.2
 
-  '@citation-js/plugin-yaml@0.7.2':
+  '@citation-js/plugin-yaml@0.6.2':
     dependencies:
-      js-yaml: 5.4.2
+      js-yaml: 4.2.0
 
-  '@citation-js/plugin-zenodo@0.7.2':
+  '@citation-js/plugin-zenodo@0.6.2':
     dependencies:
       '@citation-js/date': 0.5.1
       '@citation-js/name': 0.4.2
