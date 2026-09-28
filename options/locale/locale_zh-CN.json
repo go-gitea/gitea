@@ -3749,6 +3749,7 @@
   "actions.status.cancelling": "取消中",
   "actions.status.skipped": "已忽略",
   "actions.status.blocked": "阻塞中",
+  "actions.status.pending": "队列",
   "actions.runners": "运行器",
   "actions.runners.runner_manage_panel": "运行器管理",
   "actions.runners.new": "创建新运行器",

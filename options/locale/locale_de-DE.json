@@ -3761,6 +3761,7 @@
   "actions.status.cancelling": "Wird abgebrochen",
   "actions.status.skipped": "Übersprungen",
   "actions.status.blocked": "Blockiert",
+  "actions.status.pending": "Ausstehend",
   "actions.runners": "Runner",
   "actions.runners.runner_manage_panel": "Runner-Verwaltung",
   "actions.runners.new": "Neuen Runner erstellen",
