@@ -473,9 +473,13 @@ func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]strin
 			"repo": repo.Name,
 		}
 
-		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
-		if err == nil {
-			metas["format"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
+		unitInternalTracker, _ := repo.GetUnit(ctx, unit.TypeIssues)
+		unitExternalTracker, _ := repo.GetUnit(ctx, unit.TypeExternalTracker)
+		if unitInternalTracker != nil {
+			metas["internalTrackerEnabled"] = "true"
+		}
+		if unitExternalTracker != nil {
+			metas["externalTrackerLinkFormat"] = unitExternalTracker.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unitExternalTracker.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric

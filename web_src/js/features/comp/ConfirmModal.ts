@@ -20,7 +20,7 @@ export function createConfirmModal({header = '', content = '', confirmButtonColo
       <div class="content">${content}</div>
       <div class="actions">
         <button class="ui cancel button">${htmlRaw(svg('octicon-x'))} ${i18n.modal_cancel}</button>
-        <button class="ui ${confirmButtonColor} ok button">${htmlRaw(svg('octicon-check'))} ${i18n.modal_confirm}</button>
+        <button class="ui ${confirmButtonColor} ok button" autofocus>${htmlRaw(svg('octicon-check'))} ${i18n.modal_confirm}</button>
       </div>
     </div>
   `.trim());

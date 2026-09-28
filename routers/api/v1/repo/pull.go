@@ -985,15 +985,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	// handle manually-merged mark
 	if manuallyMerged {
 		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
-			if pull_service.IsErrInvalidMergeStyle(err) {
-				ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
-				return
-			}
-			if strings.Contains(err.Error(), "Wrong commit ID") {
-				ctx.APIError(http.StatusConflict, err.Error())
-				return
-			}
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 		ctx.Status(http.StatusOK)
@@ -1040,7 +1032,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
@@ -1157,8 +1149,8 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 
 	log.Trace("Repo: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.FullName(), compareReq.BaseOriRef+compareReq.BaseOriRefSuffix, baseRef, compareReq.HeadOriRef+compareReq.HeadOriRefSuffix, headRef)
 
-	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
-	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
+	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringValidObjectID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
+	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringValidObjectID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
 	// Check if base&head ref are valid.
 	if !baseRefValid || !headRefValid {
 		ctx.APIErrorNotFound()
@@ -1580,39 +1572,40 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	maxLines := setting.Git.MaxGitDiffLines
 
 	// FIXME: If there are too many files in the repo, may cause some unpredictable issues.
+	diffCommonOptions := gitdiff.DiffCommonOptions{
+		BeforeCommitID:     startCommitID,
+		AfterCommitID:      endCommitID,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")),
+	}
 	diff, err := gitdiff.GetDiffForAPI(ctx, baseGitRepo,
 		&gitdiff.DiffOptions{
-			BeforeCommitID:     startCommitID,
-			AfterCommitID:      endCommitID,
-			SkipTo:             ctx.FormString("skip-to"),
-			MaxLines:           maxLines,
-			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           -1, // GetDiff() will return all files
-			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")),
+			DiffCommonOptions: diffCommonOptions,
+			SkipTo:            ctx.FormString("skip-to"),
+			MaxLines:          maxLines,
+			MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+			MaxFiles:          -1, // GetDiff() will return all files
 		})
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, baseGitRepo, startCommitID, endCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, baseGitRepo, &diffCommonOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	listOptions := utils.GetListOptions(ctx)
 
+	listOptions := utils.GetListOptions(ctx)
 	totalNumberOfFiles := diffShortStat.NumFiles
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
 
 	start, limit := listOptions.GetSkipTake()
-
 	limit = min(limit, totalNumberOfFiles-start)
-
 	limit = max(limit, 0)
 
 	apiFiles := make([]*api.ChangedFile, 0, limit)
-	for i := start; i < start+limit; i++ {
+	for i := start; i < start+limit && i < len(diff.Files); i++ {
 		// refs/pull/1/head stores the HEAD commit ID, allowing all related commits to be found in the base repository.
 		// The head repository might have been deleted, so we should not rely on it here.
 		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.BaseRepo, endCommitID))

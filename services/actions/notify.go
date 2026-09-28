@@ -28,7 +28,6 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 			log.Error("Failed to load job attributes: %v", err)
 			continue
 		}
-		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 
 		runRepoIDs[job.RunID] = job.RepoID
 		if _, ok := jobsByRunID[job.RunID]; !ok {
@@ -42,6 +41,7 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 	}
 
 	for _, jobs := range jobsByRunID {
+		CreateCommitStatusForRunJobs(ctx, jobs[0].Run, jobs...)
 		NotifyWorkflowJobsStatusUpdate(ctx, jobs...)
 	}
 }

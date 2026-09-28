@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 )
 
@@ -203,8 +204,8 @@ func (repo *Repository) searchCommits(ctx context.Context, id ObjectID, opts Sea
 	// if there are any keywords (ie not committer:, author:, time:)
 	// then let's iterate over them
 	for _, v := range opts.Keywords {
-		// ignore anything not matching a valid sha pattern
-		if id.Type().IsValid(v) {
+		// ignore anything not matching a valid sha pattern (TODO: the legacy min-length is pretty small, is it right or fine?)
+		if IsStringValidObjectID(id.Type(), v, 4) {
 			// create new git log command with 1 commit limit
 			hashCmd := gitcmd.NewCommand("log", "-1", prettyLogFormat)
 			// add previous arguments except for --grep and --all
@@ -415,7 +416,7 @@ func (repo *Repository) GetCommitsFromIDs(ctx context.Context, commitIDs []strin
 }
 
 // IsCommitInBranch check if the commit is on the branch
-func (repo *Repository) IsCommitInBranch(ctx context.Context, commitID, branch string) (r bool, err error) {
+func IsCommitInBranch(ctx context.Context, repo gitrepo.RepositoryFacade, commitID, branch string) (r bool, err error) {
 	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch).
 		WithRepo(repo).

@@ -12,13 +12,15 @@
 				</div>
 			</h4>
 			<div class="ui bottom attached segment file-view-container">
-				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
-				<div class="file-view {{if .IsPlainText}}plain-text{{else if .IsTextFile}}code-view{{end}}">
+				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
+				<div class="file-view">
 					{{if .IsFileTooLarge}}
 						{{template "shared/filetoolarge" dict "RawFileLink" .RawFileLink}}
 					{{else if not .FileSize}}
 						{{template "shared/fileisempty"}}
-					{{else if not .IsTextFile}}
+					{{else if .FileContentHTML}}
+						{{.FileContentHTML}}
+					{{else}}
 						<div class="view-raw">
 							{{if .IsImageFile}}
 								<img loading="lazy" alt="{{$.RawFileLink}}" src="{{$.RawFileLink}}">
@@ -34,15 +36,6 @@
 								<a href="{{$.RawFileLink}}" rel="nofollow" class="tw-p-4">{{ctx.Locale.Tr "repo.file_view_raw"}}</a>
 							{{end}}
 						</div>
-					{{else if .FileSize}}
-						<table>
-							<tbody>
-								<tr>
-									<td class="lines-num">{{.LineNums}}</td>
-									<td class="lines-code"><pre>{{.FileContent}}</pre></td>
-								</tr>
-							</tbody>
-						</table>
 					{{end}}
 				</div>
 			</div>

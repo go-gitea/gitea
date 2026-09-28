@@ -88,11 +88,6 @@ func getRuleBody(field reflect.StructField, ruleName string) string {
 	return ""
 }
 
-func AddValidationError(errs validation.BindingErrors, fieldName, errorMsg string) validation.BindingErrors {
-	errs.Add([]string{fieldName}, validation.ErrCustomMessage, errorMsg)
-	return errs
-}
-
 func getFieldDisplayNameForMessage(f any, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
 	if len(fieldNames) == 0 {
 		return field, false, ""

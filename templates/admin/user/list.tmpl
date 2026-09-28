@@ -18,7 +18,7 @@
 						<span class="text">{{ctx.Locale.Tr "admin.users.list_status_filter.menu_text"}}</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu flex-items-menu">
-							<a class="item j-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
+							<a class="item js-reset-status-filter">{{ctx.Locale.Tr "admin.users.list_status_filter.reset"}}</a>
 							<div class="divider"></div>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{ctx.Locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
 							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{ctx.Locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
@@ -37,6 +37,16 @@
 						</div>
 					</div>
 
+					<div class="ui dropdown type jump item">
+						<span class="text">{{ctx.Locale.Tr "admin.users.user_type"}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu flex-items-menu">
+							<label class="item"><input type="radio" name="user_type" value="" {{if not $.UserTypeFilter}}checked{{end}}> {{ctx.Locale.Tr "all"}}</label>
+							<label class="item"><input type="radio" name="user_type" value="User" {{if eq $.UserTypeFilter "User"}}checked{{end}}> {{ctx.Locale.Tr "concept_user_user"}}</label>
+							<label class="item"><input type="radio" name="user_type" value="Bot" {{if eq $.UserTypeFilter "Bot"}}checked{{end}}> {{ctx.Locale.Tr "concept_user_bot"}}</label>
+						</div>
+					</div>
+
 					<!-- Sort Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">
@@ -44,12 +54,12 @@
 						</span>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<button class="item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
-							<button class="item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
-							<button class="item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
-							<button class="item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
-							<button class="item" name="sort" value="recentupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
-							<button class="item" name="sort" value="leastupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
+							<button type="submit" class="item" name="sort" value="oldest">{{ctx.Locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button type="submit" class="item" name="sort" value="newest">{{ctx.Locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button type="submit" class="item" name="sort" value="alphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button type="submit" class="item" name="sort" value="reversealphabetically">{{ctx.Locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button type="submit" class="item" name="sort" value="recentupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
+							<button type="submit" class="item" name="sort" value="leastupdate">{{ctx.Locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
 						</div>
 					</div>
 				</div>
@@ -83,14 +93,13 @@
 							<td>
 								<a href="{{.HomeLink}}">{{.Name}}</a>
 								{{if .IsAdmin}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.admin"}}</span>
+									<span class="ui basic label tw-py-0 tw-align-baseline">{{ctx.Locale.Tr "admin.users.admin"}}</span>
 								{{else if eq 2 .Type}}{{/* Reserved user */}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>
-								{{else if eq 4 .Type}}{{/* Bot "user" */}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.bot"}}</span>
+									<span class="ui basic label tw-py-0 tw-align-baseline">{{ctx.Locale.Tr "admin.users.reserved"}}</span>
 								{{else if eq 5 .Type}}{{/* Remote user */}}
-									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.remote"}}</span>
+									<span class="ui basic label tw-py-0 tw-align-baseline">{{ctx.Locale.Tr "admin.users.remote"}}</span>
 								{{end}}
+								{{template "shared/user/user_type_label" .}}
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>

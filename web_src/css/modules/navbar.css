@@ -34,8 +34,7 @@
   background: var(--color-active);
 }
 
-#navbar a.item:hover,
-#navbar button.item:hover {
+#navbar :is(a, button).item:not(.dropdown *):hover {
   background: var(--color-nav-hover-bg);
 }
 
@@ -94,10 +93,6 @@
   #navbar.navbar-menu-open .navbar-left .navbar-mobile-right {
     justify-content: flex-end;
     min-height: 49px;
-  }
-  #navbar #mobile-stopwatch-icon,
-  #navbar #mobile-notifications-icon {
-    margin-right: 6px;
   }
 }
 

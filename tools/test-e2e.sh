@@ -109,6 +109,7 @@ INSTALL_LOCK = true
 
 [service]
 ENABLE_CAPTCHA = false
+DISABLE_REGISTRATION = false
 
 [ui.notification]
 EVENT_SOURCE_UPDATE_TIME = 500ms

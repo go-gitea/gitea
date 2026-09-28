@@ -29,7 +29,7 @@
 									</div>
 								</div>
 							</div>
-							<button class="ui red tiny button link-action" data-modal-confirm="#repo-collaborator-delete-modal" data-url="{{$.Link}}/delete?id={{.ID}}">
+							<button type="button" class="ui red tiny button link-action" data-modal-confirm="#repo-collaborator-delete-modal" data-url="{{$.Link}}/delete?id={{.ID}}">
 								{{ctx.Locale.Tr "repo.settings.delete_collaborator"}}
 							</button>
 						</div>
@@ -43,7 +43,7 @@
 				<div id="search-user-box" class="ui search input">
 					<input class="prompt" name="collaborator" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
 				</div>
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_collaborator"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
 		</div>
 
@@ -91,7 +91,7 @@
 							</div>
 							{{if $allowedToChangeTeams}}
 								<div class="item-trailing" {{if .IncludesAllRepositories}} data-tooltip-content="{{ctx.Locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
-									<button class="ui red tiny button link-action {{if .IncludesAllRepositories}}disabled{{end}}" data-modal-confirm="#repo-collaborator-delete-modal" data-url="{{$.Link}}/team/delete?id={{.ID}}">
+									<button type="button" class="ui red tiny button link-action {{if .IncludesAllRepositories}}disabled{{end}}" data-modal-confirm="#repo-collaborator-delete-modal" data-url="{{$.Link}}/team/delete?id={{.ID}}">
 											{{ctx.Locale.Tr "repo.settings.delete_collaborator"}}
 									</button>
 								</div>
@@ -107,7 +107,7 @@
 						<div id="search-team-box" class="ui search input" data-org-name="{{.OrgName}}">
 							<input class="prompt" name="team" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" autocomplete="off" required>
 						</div>
-						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_team"}}</button>
+						<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_team"}}</button>
 					</form>
 				{{else}}
 					<div class="item">

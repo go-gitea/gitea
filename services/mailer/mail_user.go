@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	mailAuthActivate       templates.TplName = "user/auth/activate"
-	mailAuthActivateEmail  templates.TplName = "user/auth/activate_email"
-	mailAuthResetPassword  templates.TplName = "user/auth/reset_passwd"
-	mailAuthRegisterNotify templates.TplName = "user/auth/register_notify"
+	mailAuthActivate       templates.TplName = "mail/user/auth/activate"
+	mailAuthActivateEmail  templates.TplName = "mail/user/auth/activate_email"
+	mailAuthResetPassword  templates.TplName = "mail/user/auth/reset_passwd"
+	mailAuthRegisterNotify templates.TplName = "mail/user/auth/register_notify"
 )
 
 // sendUserMail sends a mail to the user
@@ -101,8 +101,7 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
 func SendRegisterNotifyMail(u *user_model.User) {
-	if setting.MailService == nil || !u.IsActive {
-		// No mail service configured OR user is inactive
+	if setting.MailService == nil || !u.IsMailable() {
 		return
 	}
 	locale := translation.NewLocale(u.Language)

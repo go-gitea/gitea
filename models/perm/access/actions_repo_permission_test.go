@@ -93,6 +93,17 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 
 		// Fork PR never gets cross-repo access to other private repos
 		assert.False(t, perm.CanRead(unit.TypeCode))
+
+		publicCaller := *repo2
+		publicCaller.IsPrivate = false
+		run := &actions_model.ActionRun{RepoID: repo2.ID, Repo: &publicCaller}
+		allowed, err := CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.False(t, allowed)
+		run.Repo = repo2
+		allowed, err = CanReadWorkflowCrossRepo(ctx, repo15, run)
+		require.NoError(t, err)
+		assert.True(t, allowed)
 	})
 
 	t.Run("CollaborativeOwner_ForkPR_Denied", func(t *testing.T) {

@@ -32,6 +32,7 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/kballard/go-shellquote"
@@ -543,15 +544,15 @@ func doProtectBranchExt(ctx APITestContext, ruleName string, opts doProtectBranc
 	}
 }
 
-func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) func(t *testing.T) {
+func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headOwnerBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		var pr api.PullRequest
 		var err error
 
-		// Create a test pullrequest
+		// Create a test pull request
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
+			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headOwnerBranch)(t)
 			assert.NoError(t, err)
 		})
 
@@ -578,10 +579,14 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
 
 		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
-		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
-		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
-
+		// FIXME: this test (from #10936) is not right, the "master" branch can't be deleted
+		_ = doBranchDelete
+		/*
+			_, headBranch, _ := strings.Cut(headOwnerBranch, ":")
+			t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
+			t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
+			t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffContent))
+		*/
 		// Delete the head repository & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
@@ -621,11 +626,14 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBr
 func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
-		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/files", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
-		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		resp = ctx.Session.MakeRequest(t, req, http.StatusOK)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
-		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		resp = ctx.Session.MakeRequest(t, req, http.StatusOK)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
 	}
 }
 

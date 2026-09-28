@@ -1,6 +1,7 @@
 import {debounce} from './func.ts';
 import type {Promisable} from '../types.ts';
 import type $ from 'jquery';
+import {Idiomorph} from 'idiomorph';
 
 type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
@@ -235,7 +236,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
   };
 }
 
-export function onInputDebounce(fn: () => Promisable<any>) {
+export function onInputDebounce(fn: () => Promisable<void>) {
   return debounce(fn, 300);
 }
 
@@ -277,7 +278,7 @@ export function createElementFromHTML<T extends Element>(htmlString: string): T 
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): T {
+export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, string | number | boolean | null | undefined> | null, ...children: (Node | string)[]): T {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
@@ -424,6 +425,36 @@ export function recoverMorphElements(el: Element, protectedElems: ProtectedMorph
   for (const [id, html] of Object.entries(protectedElems)) {
     const it = el.querySelector(`[data-morph-protect="${CSS.escape(id)}"]`);
     if (!it) continue;
-    it.outerHTML = html;
+    it.replaceWith(createElementFromHTML(html));
   }
+}
+
+export type MorphElementOptions = {
+  morphStyle: 'innerHTML' | 'outerHTML';
+};
+
+export function morphElementWithProtection(el: Element, newEl: Element, opts: MorphElementOptions): Element {
+  const protectedElems = protectMorphElements(newEl);
+  const selectorSkipElems = '.ui.dropdown.active';
+  const nodes = Idiomorph.morph(el, newEl, {
+    morphStyle: opts.morphStyle,
+    callbacks: {
+      beforeNodeMorphed: (oldNode /* , newNode */) => {
+        if (!(oldNode instanceof Element)) return true;
+
+        // If the end user is operating a row, then don't refresh its content.
+        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
+        const oldNodeMorphWholeAndSkipChild = oldNode.matches('[data-morph-whole]') && oldNode.querySelector(selectorSkipElems);
+
+        // If the element should be skipped, don't morph it
+        const oldNodeShouldSkip = oldNode.matches(selectorSkipElems);
+
+        const shouldSkip = oldNodeMorphWholeAndSkipChild || oldNodeShouldSkip;
+        return !shouldSkip;
+      },
+    },
+  });
+  const morphedElem = nodes[0] as Element;
+  recoverMorphElements(morphedElem, protectedElems);
+  return morphedElem;
 }

@@ -120,8 +120,7 @@ func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*u
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range users {
-		if !user.IsActive {
-			// Exclude deactivated users
+		if !user.IsMailable() {
 			continue
 		}
 		// At this point we exclude:
@@ -205,8 +204,7 @@ func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer 
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
-		if !user.IsActive {
-			// don't send emails to inactive users
+		if !user.IsMailable() {
 			continue
 		}
 		langMap[user.Language] = append(langMap[user.Language], user)
