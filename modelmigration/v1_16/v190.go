@@ -5,20 +5,15 @@ package v1_16
 
 import (
 	"context"
-	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddAgitFlowPullRequest(_ context.Context, x base.EngineMigration) error {
-	type PullRequestFlow int
+func ReservedMigrationSlot(_ context.Context, x base.EngineMigration) error {
+	// no-op.
+	// The "Unwrap ldap.Sources" migration was dropped, and the migration that followed it
+	// was renumbered down into its place, leaving a gap at 190. Keep this slot occupied so
+	// the migration IDs stay contiguous and already-migrated databases keep their version.
 
-	type PullRequest struct {
-		Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
-	}
-
-	if err := x.Sync(new(PullRequest)); err != nil {
-		return fmt.Errorf("sync2: %w", err)
-	}
 	return nil
 }
