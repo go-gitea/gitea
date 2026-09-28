@@ -2121,6 +2121,7 @@
   "packages.owner.settings.cleanuprules.enabled": "فعال شده",
   "secrets.creation.description": "شرح",
   "audit.details": "جزئیات",
+  "actions.status.pending": "در انتظار",
   "actions.runners.name": "نام",
   "actions.runners.owner_type": "نوع",
   "actions.runners.description": "شرح",

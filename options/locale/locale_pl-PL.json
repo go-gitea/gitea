@@ -3724,6 +3724,7 @@
   "actions.status.cancelling": "Anulowanie",
   "actions.status.skipped": "Pominięty",
   "actions.status.blocked": "Zablokowany",
+  "actions.status.pending": "Oczekująca",
   "actions.runners": "Uruchamiacze",
   "actions.runners.runner_manage_panel": "Zarządzanie uruchamiaczami",
   "actions.runners.new": "Utwórz nowego uruchamiacza",

@@ -2988,6 +2988,7 @@
   "actions.status.cancelled": "Скасовано",
   "actions.status.skipped": "Пропущено",
   "actions.status.blocked": "Заблоковано",
+  "actions.status.pending": "Очікування",
   "actions.runners.status": "Статус",
   "actions.runners.name": "Назва",
   "actions.runners.owner_type": "Тип",

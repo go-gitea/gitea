@@ -622,7 +622,7 @@ func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) erro
 func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	allSuccessOrSkipped := len(jobs) != 0
 	allSkipped := len(jobs) != 0
-	var hasFailure, hasCancelled, hasCancelling, hasWaiting, hasRunning, hasBlocked bool
+	var hasFailure, hasCancelled, hasCancelling, hasWaiting, hasRunning, hasBlocked, hasPending bool
 	for _, job := range jobs {
 		// A failed job with continue-on-error:true does not fail the workflow run.
 		// It counts as a "continued failure" and is treated like success for aggregation.
@@ -635,6 +635,7 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		hasWaiting = hasWaiting || job.Status == StatusWaiting
 		hasRunning = hasRunning || job.Status == StatusRunning
 		hasBlocked = hasBlocked || job.Status == StatusBlocked
+		hasPending = hasPending || job.Status == StatusPending
 	}
 	switch {
 	case allSkipped:
@@ -648,9 +649,11 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	case hasWaiting:
 		return StatusWaiting
 	case hasBlocked:
-		// Blocked is still a pending state, so it should outrank terminal
+		// Blocked is still an unfinished state, so it should outrank terminal
 		// statuses like cancelled/failure when no job is waiting or running.
 		return StatusBlocked
+	case hasPending:
+		return StatusRunning // a run with only pending jobs left is still in progress
 	case hasCancelled:
 		if hasFailure && hasFailFastMatrixFailure(jobs) {
 			return StatusFailure

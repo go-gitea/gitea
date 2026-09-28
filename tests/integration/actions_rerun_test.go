@@ -411,7 +411,7 @@ jobs:
 		require.Contains(t, rerunJobsByJobID, "job1")
 		require.Contains(t, rerunJobsByJobID, "job2")
 		assert.Equal(t, actions_model.StatusWaiting, rerunJobsByJobID["job1"].Status)
-		assert.Equal(t, actions_model.StatusBlocked, rerunJobsByJobID["job2"].Status)
+		assert.Equal(t, actions_model.StatusPending, rerunJobsByJobID["job2"].Status)
 
 		// fetch job1 rerun task
 		job1TaskR1 := runner.fetchTask(t)

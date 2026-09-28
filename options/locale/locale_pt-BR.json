@@ -3094,6 +3094,7 @@
   "actions.status.cancelled": "Cancelado",
   "actions.status.skipped": "Ignorado",
   "actions.status.blocked": "Bloqueado",
+  "actions.status.pending": "Pendente",
   "actions.runners.runner_manage_panel": "Gerenciamento de Runners",
   "actions.runners.new": "Criar novo Runner",
   "actions.runners.new_notice": "Como iniciar um runner",

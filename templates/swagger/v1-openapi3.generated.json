@@ -11156,7 +11156,7 @@
         "operationId": "listAdminWorkflowJobs",
         "parameters": [
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -11383,7 +11383,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -13169,7 +13169,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -13433,7 +13433,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -17211,7 +17211,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -17646,7 +17646,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -18018,7 +18018,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -18202,7 +18202,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -19349,7 +19349,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -34169,7 +34169,7 @@
         "operationId": "getUserWorkflowJobs",
         "parameters": [
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -34396,7 +34396,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {

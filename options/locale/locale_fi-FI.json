@@ -1411,6 +1411,7 @@
   "packages.terraform.unlock": "Avaa",
   "packages.owner.settings.cleanuprules.enabled": "Käytössä",
   "secrets.creation.description": "Kuvaus",
+  "actions.status.pending": "Odottaa",
   "actions.runners.name": "Nimi",
   "actions.runners.owner_type": "Tyyppi",
   "actions.runners.description": "Kuvaus",

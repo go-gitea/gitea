@@ -2856,6 +2856,7 @@
   "actions.status.cancelled": "Atcelts",
   "actions.status.skipped": "Izlaists",
   "actions.status.blocked": "Bloķēts",
+  "actions.status.pending": "Nav iesūtīts",
   "actions.runners": "Izpildītāji",
   "actions.runners.runner_manage_panel": "Izpildītāju pārvaldība",
   "actions.runners.new": "Pievienot jaunu izpildītāju",

@@ -244,9 +244,9 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (*jo
 	return result, nil
 }
 
-// checkJobsOfCurrentRunAttempt resolves blocked jobs of the run's latest attempt.
+// checkJobsOfCurrentRunAttempt resolves pending and blocked jobs of the run's latest attempt.
 func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun) (*jobsCheckResult, error) {
-	// Approval is the only transition allowed to release an approval-pending run.
+	// Approval is the only transition allowed to release a run awaiting approval.
 	if run.NeedApproval {
 		return &jobsCheckResult{}, nil
 	}
@@ -366,7 +366,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
-	// Caller and matrix expansion both insert Blocked jobs, which only a follow-up pass resolves.
+	// Caller and matrix expansion both insert Pending or Blocked jobs, which only a follow-up pass resolves.
 	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
 	if expandedAnyCaller || resolver.matrixChanged {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
@@ -398,7 +398,7 @@ func cancelFailedMatrixSiblings(ctx context.Context, jobs actions_model.ActionJo
 
 type jobStatusResolver struct {
 	statuses map[int64]actions_model.Status
-	// sortedIDs are the keys of statuses, so blocked jobs are resolved in insertion order.
+	// sortedIDs are the keys of statuses, so jobs are resolved in insertion order.
 	// Resolve only ever rewrites statuses values, never its key set.
 	sortedIDs     []int64
 	needs         map[int64][]int64
@@ -498,6 +498,20 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 	return allDone, allSucceed
 }
 
+func (r *jobStatusResolver) updateStatus(ctx context.Context, job *actions_model.ActionRunJob, status actions_model.Status) error {
+	cond := builder.Eq{"status": job.Status}
+	job.Status = status
+	affected, err := actions_model.UpdateRunJob(ctx, job, cond, "status")
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return fmt.Errorf("no affected for updating job %d", job.ID)
+	}
+	r.statuses[job.ID] = status
+	return nil
+}
+
 func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_model.Status, error) {
 	ret := map[int64]actions_model.Status{}
 
@@ -509,7 +523,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 	for _, id := range r.sortedIDs {
 		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
-		if status != actions_model.StatusBlocked {
+		if !status.In(actions_model.StatusPending, actions_model.StatusBlocked) {
 			continue
 		}
 		// An expanded caller has been resolved in an earlier pass, skip.
@@ -522,7 +536,18 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 				continue
 			}
 		}
+		// past the run's own holds, a job is Pending exactly while its needs are unfinished
 		allDone, allSucceed := r.resolveCheckNeeds(id)
+		var err error
+		switch {
+		case status.IsPending() && allDone:
+			err = r.updateStatus(ctx, actionRunJob, actions_model.StatusBlocked)
+		case status.IsBlocked() && !allDone:
+			err = r.updateStatus(ctx, actionRunJob, actions_model.StatusPending)
+		}
+		if err != nil {
+			return nil, err
+		}
 		if !allDone {
 			continue
 		}
