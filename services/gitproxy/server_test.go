@@ -35,7 +35,7 @@ import (
 const testAuth = "Basic dGVzdDp0ZXN0"
 
 var (
-	allowLoopback = policy.NewPolicy("test", policy.WithAllow("loopback", ""))
+	allowLoopback = policy.NewPolicy("test", policy.WithAllow("loopback:*", ""))
 	blockLoopback = policy.NewPolicy("test", policy.WithBlock("loopback", ""))
 )
 
@@ -424,7 +424,7 @@ func TestRun(t *testing.T) {
 	require.NoError(t, err)
 	defer test.MockVariableValue(&setting.Git.HomePath, base)()
 	defer test.MockVariableValue(&setting.AppPath, exe)()
-	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "127.0.0.1/32")()
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "127.0.0.1/32:*")()
 	t.Cleanup(func() { gitcmd.SetExtraEnvs(nil) })
 	require.NoError(t, Run(t.Context()))
 

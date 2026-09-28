@@ -16,7 +16,7 @@ import (
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		SetUp: func() error {
-			setting.Webhook.AllowedHostList = "loopback"
+			setting.Webhook.AllowedHostList = "loopback:*"
 			setting.LoadQueueSettings()
 			return Init()
 		},

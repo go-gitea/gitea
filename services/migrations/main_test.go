@@ -16,7 +16,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	setting.Migrations.AllowedHostList = "external, private, loopback"
+	setting.Migrations.AllowedHostList = "private:*, loopback:*"
 	unittest.MainTest(m)
 }
 
