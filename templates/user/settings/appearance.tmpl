@@ -16,7 +16,7 @@
 				<div class="field">
 					<label>{{ctx.Locale.Tr "settings.ui"}}</label>
 					<div class="ui selection dropdown">
-						<input type="hidden" name="theme" value="{{$.SignedUser.Theme}}">
+						<input type="hidden" name="theme" value="{{ctx.CurrentWebTheme.InternalName}}">
 						<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu flex-items-menu">
 							{{range $theme := .AllThemes}}

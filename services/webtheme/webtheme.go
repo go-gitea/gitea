@@ -34,7 +34,42 @@ var themeCollection atomic.Pointer[themeCollectionStruct]
 const (
 	fileNamePrefix = "theme-"
 	fileNameSuffix = ".css"
+
+	// The built-in themes were renamed from the "gitea-" prefix to the "teabag-" one.
+	// The old names are still stored in the user settings row and in the theme cookie of everyone
+	// who picked a theme before the rename, and admins may still use them in "[ui].THEMES",
+	// so they must keep resolving to the renamed themes instead of silently falling back to the default.
+	legacyInternalNamePrefix = "gitea-"
+	internalNamePrefix       = "teabag-"
 )
+
+// resolveInternalName maps a theme name written before the "gitea-*" to "teabag-*" rename
+// to its current name. Names which are already current are returned unchanged.
+func resolveInternalName(internalName string) string {
+	if suffix, ok := strings.CutPrefix(internalName, legacyInternalNamePrefix); ok {
+		return internalNamePrefix + suffix
+	}
+	return internalName
+}
+
+// resolveInternalNameSet expands a configured theme name list into a set which matches both
+// the configured names and their post-rename equivalents.
+func resolveInternalNameSet(internalNames []string) container.Set[string] {
+	set := make(container.Set[string], len(internalNames))
+	for _, internalName := range internalNames {
+		set.Add(internalName)
+		set.Add(resolveInternalName(internalName))
+	}
+	return set
+}
+
+func lookupThemeMetaInfo(themeMap map[string]*ThemeMetaInfo, internalName string) *ThemeMetaInfo {
+	if info := themeMap[internalName]; info != nil {
+		return info
+	}
+	// The exact name is tried first, so a custom theme still called "theme-gitea-*.css" keeps winning.
+	return themeMap[resolveInternalName(internalName)]
+}
 
 type ThemeMetaInfo struct {
 	FileName       string
@@ -119,7 +154,7 @@ func parseThemeMetaInfoToMap(cssContent string) map[string]string {
 
 func defaultThemeMetaInfoByFileName(fileName string) *ThemeMetaInfo {
 	internalName := strings.TrimSuffix(strings.TrimPrefix(fileName, fileNamePrefix), fileNameSuffix)
-	// For built-in themes, the manifest knows the unhashed entry name (e.g. "theme-gitea-dark")
+	// For built-in themes, the manifest knows the unhashed entry name (e.g. "theme-teabag-dark")
 	// which lets us correctly strip the content hash without guessing.
 	// Custom themes are not in the manifest and never have content hashes.
 	if name := public.AssetNameFromHashedPath("css/" + fileName); name != "" {
@@ -187,10 +222,12 @@ func loadThemesFromAssets(isViteDevMode bool) (themeList []*ThemeMetaInfo, theme
 		return themeList, themeMap
 	}
 
+	defaultThemeName := resolveInternalName(setting.UI.DefaultTheme)
+
 	themeList = foundThemes
 	if len(setting.UI.Themes) > 0 {
 		themeList = nil // only allow the themes specified in the setting
-		allowedThemes := container.SetOf(setting.UI.Themes...)
+		allowedThemes := resolveInternalNameSet(setting.UI.Themes)
 		for _, theme := range foundThemes {
 			if allowedThemes.Contains(theme.InternalName) {
 				themeList = append(themeList, theme)
@@ -199,7 +236,7 @@ func loadThemesFromAssets(isViteDevMode bool) (themeList []*ThemeMetaInfo, theme
 	}
 
 	sort.Slice(themeList, func(i, j int) bool {
-		if themeList[i].InternalName == setting.UI.DefaultTheme {
+		if themeList[i].InternalName == defaultThemeName {
 			return true
 		}
 		if themeList[i].ColorblindType != themeList[j].ColorblindType {
@@ -234,14 +271,14 @@ func getAvailableThemes() *themeCollectionStruct {
 	if !hasAvailableThemes {
 		defaultTheme := defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)
 		themeList = []*ThemeMetaInfo{defaultTheme}
-		themeMap = map[string]*ThemeMetaInfo{setting.UI.DefaultTheme: defaultTheme}
+		themeMap = map[string]*ThemeMetaInfo{resolveInternalName(setting.UI.DefaultTheme): defaultTheme}
 	}
 
 	if setting.IsProd {
 		if !hasAvailableThemes {
 			setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
 		}
-		if themeMap[setting.UI.DefaultTheme] == nil {
+		if lookupThemeMetaInfo(themeMap, setting.UI.DefaultTheme) == nil {
 			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
 		}
 	}
@@ -256,7 +293,7 @@ func GetAvailableThemes() []*ThemeMetaInfo {
 }
 
 func GetThemeMetaInfo(internalName string) *ThemeMetaInfo {
-	return getAvailableThemes().themeMap[internalName]
+	return lookupThemeMetaInfo(getAvailableThemes().themeMap, internalName)
 }
 
 // GuaranteeGetThemeMetaInfo guarantees to return a non-nil ThemeMetaInfo,
