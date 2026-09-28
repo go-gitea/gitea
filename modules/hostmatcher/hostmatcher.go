@@ -186,6 +186,13 @@ func (hl *HostMatchList) MatchHostName(host string) bool {
 	hostname, _, err := net.SplitHostPort(host)
 	if err != nil {
 		hostname = host
+		// a URL without a port keeps the brackets around an IPv6 literal, as in
+		// "[::1]", and SplitHostPort does not strip them
+		if inner, ok := strings.CutPrefix(hostname, "["); ok {
+			if inner, ok := strings.CutSuffix(inner, "]"); ok && net.ParseIP(inner) != nil {
+				hostname = inner
+			}
+		}
 	}
 	if hl.checkPattern(hostname) {
 		return true

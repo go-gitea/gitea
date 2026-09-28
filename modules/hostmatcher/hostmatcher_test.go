@@ -42,6 +42,8 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"192.168.1.1", nil, true},
 		{"", net.ParseIP("fd00::1"), true},
 		{"fd00::1", nil, true},
+		{"[fd00::1]", nil, true},
+		{"[fd00::1]:8080", nil, true},
 
 		{"", net.ParseIP("8.8.8.8"), true},
 		{"", net.ParseIP("1001::1"), true},
