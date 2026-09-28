@@ -67,7 +67,7 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 		return true, nil
 	}
 
-	if job.ConcurrencyGroup == "" || job.ConcurrencyCancel {
+	if job.ConcurrencyGroup == "" {
 		return false, nil
 	}
 
@@ -97,7 +97,7 @@ func PrepareToStartJobWithConcurrency(ctx context.Context, job *actions_model.Ac
 }
 
 func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (bool, error) {
-	if attempt.ConcurrencyGroup == "" || attempt.ConcurrencyCancel {
+	if attempt.ConcurrencyGroup == "" {
 		return false, nil
 	}
 
@@ -174,7 +174,7 @@ func stopTasks(ctx context.Context, opts actions_model.FindTaskOptions) error {
 // CancelAbandonedJobs cancels jobs that have not been picked by any runner for a long time
 func CancelAbandonedJobs(ctx context.Context) error {
 	abandonedJobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{
-		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked},
+		Statuses:      []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending},
 		UpdatedBefore: timeutil.TimeStampNow().AddDuration(-setting.Actions.AbandonedJobTimeout),
 	})
 	if err != nil {

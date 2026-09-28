@@ -28,7 +28,7 @@
 			{{range .Topics}}<a class="repo-topic ui large label gt-ellipsis" title={{.Name}} href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		</div>
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
-			<button id="manage_topic" class="btn interact-fg tw-mb-2 tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
+			<button type="button" id="manage_topic" class="btn interact-fg tw-mb-2 tw-text-12">{{ctx.Locale.Tr "repo.topic.manage_topics"}}</button>
 			<div class="ui form tw-hidden tw-my-2" id="topic_edit">
 				<div class="ui fluid multiple search selection dropdown tw-flex-wrap tw-flex-1">
 					<input type="hidden" name="topics" value="{{range $i, $v := .Topics}}{{.Name}}{{if Eval $i "+" 1 "<" (len $.Topics)}},{{end}}{{end}}">
@@ -39,8 +39,8 @@
 					<div class="text"></div>
 				</div>
 				<div class="tw-my-2">
-					<button class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
-					<button class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
+					<button type="button" class="ui primary button" id="save_topic" data-link="{{.RepoLink}}/topics">{{ctx.Locale.Tr "save"}}</button>
+					<button type="button" class="ui basic button" id="cancel_topic_edit">{{ctx.Locale.Tr "cancel"}}</button>
 				</div>
 			</div>
 		{{end}}

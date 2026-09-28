@@ -1,10 +1,10 @@
-Subject: Issue assigned
+Subject: "[user/repo] Issue Title (#1)"
 Link: http://localhost
 
 Issue:
   Index: 1
   Repo:
-    FullName: Repo/Name
+    FullName: user/repo
     HTMLURL: http://localhost/issue
 
 Doer:

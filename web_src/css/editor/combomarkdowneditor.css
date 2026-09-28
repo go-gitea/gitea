@@ -95,3 +95,8 @@
 .combo-markdown-editor .CodeMirror-scroll .cm-header-6 {
   font-size: 0.85em;
 }
+
+.combo-editor-container[data-combo-editor-page="previewer"] .form-field-dropzone,
+.combo-editor-container[data-combo-editor-page="previewer"] .dropzone {
+  display: none;
+}

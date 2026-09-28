@@ -9,7 +9,31 @@ import (
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
+
+func UserTypeToString(t user_model.UserType) api.UserTypeString {
+	switch t {
+	case user_model.UserTypeOrganization, user_model.UserTypeOrganizationReserved:
+		return api.UserTypeStringOrganization
+	case user_model.UserTypeBot:
+		return api.UserTypeStringBot
+	default:
+		return api.UserTypeStringUser
+	}
+}
+
+// UserTypeFromString parses a user type an admin may create or convert to
+func UserTypeFromString(s api.UserTypeString) (user_model.UserType, error) {
+	switch s {
+	case api.UserTypeStringUser:
+		return user_model.UserTypeIndividual, nil
+	case api.UserTypeStringBot:
+		return user_model.UserTypeBot, nil
+	default:
+		return 0, util.NewInvalidArgumentErrorf("invalid user type %q (expected %s, %s)", s, api.UserTypeStringUser, api.UserTypeStringBot)
+	}
+}
 
 // ToUser convert user_model.User to api.User
 // if doer is set, private information is added if the doer has the permission to see it
@@ -50,6 +74,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
+		Type:        UserTypeToString(user.Type),
 		FullName:    user.FullName,
 		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),

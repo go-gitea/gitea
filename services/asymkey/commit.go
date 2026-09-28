@@ -46,7 +46,7 @@ func ParseCommitWithSignatureCommitter(ctx context.Context, c *git.Commit, commi
 		return &asymkey_model.CommitVerification{
 			CommittingUser: committer,
 			Verified:       false,
-			Reason:         "gpg.error.not_signed_commit",
+			Reason:         asymkey_model.VerificationReasonCommitNotSigned,
 		}
 	}
 	// to support instance key, we need a fake committer user (not really needed, but legacy code accesses the committer without nil-check)

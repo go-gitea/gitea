@@ -5,7 +5,6 @@
 package admin
 
 import (
-	"errors"
 	"net/http"
 
 	system_model "gitea.dev/models/system"
@@ -161,11 +160,7 @@ loop:
 
 		err := validateConfigKeyValue(key, value)
 		if err != nil {
-			if errors.Is(err, util.ErrInvalidArgument) {
-				ctx.JSONError(err.Error())
-			} else {
-				ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-			}
+			ctx.JSONErrorAuto(err)
 			break loop
 		}
 		configSettings[key] = value

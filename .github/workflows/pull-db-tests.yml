@@ -113,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
+        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -123,13 +123,13 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1@sha256:8d6643d86d71fad6ad3cba92cde7ccfce9e4d6c384bda67598eb553571c32431
+        image: getmeili/meilisearch:v1@sha256:c94e58ca09662dd6e65e8f1b0fd145767be3da7d5422a863a27b8d2b68e090c9
         env:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:76961cd2a0f40ef6fdd334b6b1b3a76a2bad1848d89f3030ca30a7521d4a9493
+        image: redis:8@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -188,7 +188,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
+        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -226,7 +226,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:46f719fd3457d4e7e8e5845fe00c35c20e7bae7ff1e8b9fe595f2a81029f5ba8
+        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:ef0b8db33970ecd01bed49c3a84a1d083c435a9891718df619298b67b352e74a
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard

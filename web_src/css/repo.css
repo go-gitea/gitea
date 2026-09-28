@@ -131,17 +131,13 @@
   margin-bottom: 12px;
 }
 
-.commit-summary {
+.latest-commit .commit-summary,
+.repo-file-item .commit-summary {
   flex: 1;
   overflow-wrap: anywhere;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.commit-header .commit-summary,
-td .commit-summary {
-  white-space: normal;
 }
 
 .latest-commit {
@@ -304,11 +300,6 @@ td .commit-summary {
   width: 100%;
   padding-bottom: 4px;
   margin-bottom: 1rem;
-}
-
-.issue-title-meta {
-  display: flex;
-  align-items: center;
 }
 
 .repository.view.issue .issue-title-buttons {
@@ -1686,10 +1677,6 @@ tbody.commit-list {
   .repository.view.issue .comment-list .comment-header-right .role-label {
     display: none;
   }
-  .commit-header h3 {
-    flex-basis: auto !important;
-    margin-bottom: 0.5rem !important;
-  }
   .commit-table {
     overflow-x: auto;
   }
@@ -1793,6 +1780,7 @@ tbody.commit-list {
   padding: 10px;
   border: 1px solid transparent;
   border-bottom: none;
+  border-radius: 0;
 }
 
 .branch-selector-dropdown .branch-tag-item.active {

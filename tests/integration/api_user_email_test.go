@@ -76,7 +76,7 @@ func TestAPIAddEmail(t *testing.T) {
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/emails", &opts).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusConflict)
 
 	opts = api.CreateEmailOption{
 		Emails: []string{"user2-3@example.com"},
@@ -109,7 +109,7 @@ func TestAPIAddEmail(t *testing.T) {
 	}
 	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails", &opts).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestAPIDeleteEmail(t *testing.T) {

@@ -3,7 +3,7 @@
 * StatusCheckData: optional, additional status check data, see backend pullCommitStatusCheckData struct
 */}}
 {{$statusCheckData := $.StatusCheckData}}
-{{$commitActionsStatuses :=  ctx.ActionsUtils.CommitStatusesToActionsStatuses $.CommitStatuses}}
+{{$commitActionsStatuses := ctx.ActionsUtils.CommitStatusesToActionsStatuses $.CommitStatuses}}
 {{range $cs := $.CommitStatuses}}
 	<div class="item commit-status-item">
 		<div class="flex-text-block tw-flex-1">

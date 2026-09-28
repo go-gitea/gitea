@@ -10,7 +10,7 @@
 		{{else}}
 			{{$referenceHTMLURL = printf "%s/files#%s" $issueHTMLURL .item.HashTag}}
 		{{end}}
-		<div class="item context js-aria-clickable" data-clipboard-text="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
+		<div class="item context js-aria-clickable" data-clipboard-text="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "copy_link"}}</div>
 		<div class="item context js-aria-clickable" data-clipboard-target="#{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
 		{{if ctx.RootData.IsSigned}}
 			{{$needDivider := false}}

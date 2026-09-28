@@ -290,6 +290,7 @@ function commitClickedShift(commit: Commit) {
 <style scoped>
   .ui.dropdown.diff-commit-selector .menu {
     margin-top: 0.25em;
+    padding: 0;
     overflow-x: hidden;
     max-height: 450px;
   }
@@ -305,7 +306,10 @@ function commitClickedShift(commit: Commit) {
     flex-direction: row;
     line-height: 1.4;
     gap: 0.25em;
+    width: auto;
+    margin: 0;
     padding: 7px 14px !important;
+    border-radius: 0;
   }
 
   .ui.dropdown.diff-commit-selector .menu > .item:not(:first-child),
