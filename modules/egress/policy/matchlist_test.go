@@ -17,16 +17,17 @@ func TestMatchHostname(t *testing.T) {
 		port          uint16
 		want          bool
 	}{
-		// a bare entry matches its host exactly, subdomains need a wildcard or leading dot
+		// a bare entry matches its host and subdomains like NO_PROXY, a wildcard or leading dot matches subdomains only
 		{pattern: "example.com", host: "example.com", port: 80, want: true},
-		{pattern: "example.com", host: "sub.example.com", port: 80},
+		{pattern: "example.com", host: "sub.example.com", port: 80, want: true},
+		{pattern: "example.com", host: "notexample.com", port: 80}, // dot-anchored
 		{pattern: "*.example.com", host: "sub.example.com", port: 80, want: true},
 		{pattern: ".example.com", host: "sub.example.com", port: 80, want: true},
 		{pattern: "*.example.com", host: "example.com", port: 80}, // apex never matches
 		{pattern: "*.example.com", host: "notexample.com", port: 80},
 		// matching is case-insensitive and tolerates spaces, a port suffix and a trailing dot
 		{pattern: "example.com", host: " EXAMPLE.com.:8080 ", port: 80, want: true},
-		// allow entries without a port cover the default ports 80 and 443
+		// strict entries without a port cover the web ports 80 and 443
 		{pattern: "example.com", host: "example.com", port: 443, want: true},
 		{pattern: "example.com", host: "example.com", port: 8080},
 		{pattern: "example.com:*", host: "example.com", port: 8080, want: true},
@@ -35,12 +36,14 @@ func TestMatchHostname(t *testing.T) {
 		{pattern: "example.com:[80|443-445]", host: "example.com", port: 444, want: true},
 		{pattern: "example.com:[80|443-445]", host: "example.com", port: 446},
 	} {
-		assert.Equalf(t, tc.want, NewAllowList(tc.pattern).MatchHostname(tc.host, tc.port), "pattern %q host %q port %d", tc.pattern, tc.host, tc.port)
+		assert.Equalf(t, tc.want, NewAllowList(tc.pattern, Strict).MatchHostname(tc.host, tc.port), "pattern %q host %q port %d", tc.pattern, tc.host, tc.port)
 	}
+	// lax entries without a port cover every port
+	assert.True(t, NewAllowList("example.com", Lax).MatchHostname("example.com", 8080))
 
-	assert.True(t, NewAllowList(" , ").IsEmpty(), "blank entries are skipped")
-	assert.True(t, NewAllowList("").IsEmpty())
-	assert.False(t, NewAllowList("example.com").IsEmpty())
+	assert.True(t, NewAllowList(" , ", Strict).IsEmpty(), "blank entries are skipped")
+	assert.True(t, NewAllowList("", Strict).IsEmpty())
+	assert.False(t, NewAllowList("example.com", Strict).IsEmpty())
 }
 
 func TestMatchIPAddr(t *testing.T) {
@@ -72,12 +75,12 @@ func TestMatchIPAddr(t *testing.T) {
 		{pattern: "private:22", ip: "fd00::1", port: 80},
 	} {
 		addr := netip.AddrPortFrom(netip.MustParseAddr(tc.ip), tc.port)
-		assert.Equalf(t, tc.want, NewAllowList(tc.pattern).MatchIPAddr(addr), "pattern %q ip %s port %d", tc.pattern, tc.ip, tc.port)
+		assert.Equalf(t, tc.want, NewAllowList(tc.pattern, Strict).MatchIPAddr(addr), "pattern %q ip %s port %d", tc.pattern, tc.ip, tc.port)
 	}
 }
 
 func TestBlockListDefaultPorts(t *testing.T) {
-	// deny entries without a port cover every port, allow entries default to 80/443
+	// deny entries without a port cover every port, allow entries default to the web ports in strict mode
 	assert.True(t, NewBlockList("example.com").MatchHostname("example.com", 22))
 	assert.True(t, NewBlockList("10.0.0.0/8").MatchIPAddr(netip.AddrPortFrom(netip.MustParseAddr("10.0.0.5"), 12345)))
 
@@ -107,7 +110,7 @@ func TestRejectedEntries(t *testing.T) {
 		{entry: "[::1]:", wantErr: "empty port"},
 		{entry: "[]:80", wantErr: "empty host"},
 	} {
-		list := NewAllowList(tc.entry)
+		list := NewAllowList(tc.entry, Strict)
 		require.Lenf(t, list.Rejected(), 1, "entry %q", tc.entry)
 		assert.Containsf(t, list.Rejected()[0], tc.wantErr, "entry %q", tc.entry)
 	}
@@ -120,10 +123,10 @@ func TestRejectedEntries(t *testing.T) {
 	}
 
 	// a rejected entry drops only itself
-	list := NewAllowList("example.com, 10.0.0.5/8, example.org")
+	list := NewAllowList("example.com, 10.0.0.5/8, example.org", Strict)
 	assert.True(t, list.MatchHostname("example.com", 80))
 	assert.True(t, list.MatchHostname("example.org", 443))
 	require.Len(t, list.Rejected(), 1)
 	assert.Contains(t, list.Rejected()[0], `use "10.0.0.0/8"`)
-	assert.Empty(t, NewAllowList("example.com").Rejected())
+	assert.Empty(t, NewAllowList("example.com", Strict).Rejected())
 }

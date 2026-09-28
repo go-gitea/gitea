@@ -7,14 +7,14 @@ package setting
 var Migrations = struct {
 	MaxAttempts     int
 	RetryBackoff    int
-	Mode            string
+	EgressMode      string
 	AllowedHostList string
 	BlockedHostList string
 	SkipTLSVerify   bool
 }{
 	MaxAttempts:  3,
 	RetryBackoff: 3,
-	Mode:         "lax",
+	EgressMode:   "lax",
 }
 
 func loadMigrationsFrom(rootCfg ConfigProvider) {
@@ -22,7 +22,7 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	Migrations.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(Migrations.MaxAttempts)
 	Migrations.RetryBackoff = sec.Key("RETRY_BACKOFF").MustInt(Migrations.RetryBackoff)
 
-	Migrations.Mode = normalizePolicyMode(sec.Key("MODE").String())
+	Migrations.EgressMode = normalizePolicyMode(sec.Key("EGRESS_MODE").String())
 
 	deprecatedSetting(rootCfg, "migrations", "ALLOWED_DOMAINS", "migrations", "ALLOWED_HOST_LIST", "v28.0.0")
 	deprecatedSetting(rootCfg, "migrations", "BLOCKED_DOMAINS", "migrations", "BLOCKED_HOST_LIST", "v28.0.0")

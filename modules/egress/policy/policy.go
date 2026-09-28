@@ -33,8 +33,8 @@ var ErrDenied = errors.New("denied by egress policy")
 type Policy struct {
 	usage              string
 	mode               Mode
-	allow              *AllowList
-	block              *BlockList
+	allow              AllowList
+	block              BlockList
 	allowKey, blockKey string // the settings the lists were read from, named in rejections
 	localNeedsIPAllow  bool
 	proxyFunc          func(*http.Request) (*url.URL, error)
@@ -46,13 +46,13 @@ type Option func(*Policy)
 // WithAllow sets the allow list from the setting named by key
 func WithAllow(hostList, key string) Option {
 	return func(p *Policy) {
-		p.allow, p.allowKey = NewAllowList(hostList), key
+		p.allow, p.allowKey = *NewAllowList(hostList, p.mode), key
 	}
 }
 
 func WithBlock(hostList, key string) Option {
 	return func(p *Policy) {
-		p.block, p.blockKey = NewBlockList(hostList), key
+		p.block, p.blockKey = *NewBlockList(hostList), key
 	}
 }
 
@@ -69,16 +69,10 @@ func WithProxy(proxyFunc func(*http.Request) (*url.URL, error)) Option {
 	}
 }
 
-// WithMode sets the policy mode, default is Lax
-func WithMode(mode Mode) Option {
-	return func(p *Policy) {
-		p.mode = mode
-	}
-}
-
 // NewPolicy compiles a policy enforced on every outbound dial, usage names the caller in rejections.
-func NewPolicy(usage string, opts ...Option) *Policy {
-	p := &Policy{usage: usage, block: NewBlockList(""), allow: NewAllowList("")}
+// The mode sets the policy posture and the default ports of portless allow entries.
+func NewPolicy(usage string, mode Mode, opts ...Option) *Policy {
+	p := &Policy{usage: usage, mode: mode} // the zero lists are valid and behave as empty ones
 	for _, opt := range opts {
 		opt(p)
 	}

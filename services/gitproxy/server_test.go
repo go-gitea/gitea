@@ -35,8 +35,8 @@ import (
 const testAuth = "Basic dGVzdDp0ZXN0"
 
 var (
-	allowLoopback = policy.NewPolicy("test", policy.WithAllow("loopback:*", ""))
-	blockLoopback = policy.NewPolicy("test", policy.WithBlock("loopback", ""))
+	allowLoopback = policy.NewPolicy("test", policy.Lax, policy.WithAllow("loopback", ""))
+	blockLoopback = policy.NewPolicy("test", policy.Lax, policy.WithBlock("loopback", ""))
 )
 
 func listen(t *testing.T) net.Listener {
@@ -74,7 +74,7 @@ func startProxy(t *testing.T, srv *server) string {
 }
 
 func viaProxy(u *url.URL) *policy.Policy {
-	return policy.NewPolicy("test", policy.WithAllow("loopback", ""), policy.WithProxy(http.ProxyURL(u)))
+	return policy.NewPolicy("test", policy.Lax, policy.WithAllow("loopback", ""), policy.WithProxy(http.ProxyURL(u)))
 }
 
 func serve(srv *server, method, target, auth string) *httptest.ResponseRecorder {
@@ -155,7 +155,7 @@ func TestUpstreamProxy(t *testing.T) {
 	t.Parallel()
 	var seen []string
 	errStop := errors.New("stop")
-	s := &server{policy: policy.NewPolicy("test", policy.WithProxy(func(r *http.Request) (*url.URL, error) {
+	s := &server{policy: policy.NewPolicy("test", policy.Lax, policy.WithProxy(func(r *http.Request) (*url.URL, error) {
 		seen = append(seen, r.URL.Host)
 		return nil, errStop
 	}))}
@@ -424,7 +424,7 @@ func TestRun(t *testing.T) {
 	require.NoError(t, err)
 	defer test.MockVariableValue(&setting.Git.HomePath, base)()
 	defer test.MockVariableValue(&setting.AppPath, exe)()
-	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "127.0.0.1/32:*")()
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "127.0.0.1/32")()
 	t.Cleanup(func() { gitcmd.SetExtraEnvs(nil) })
 	require.NoError(t, Run(t.Context()))
 

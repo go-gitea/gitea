@@ -163,14 +163,14 @@ func (b *listBuilder) domainRules() []domainRule {
 	return rules
 }
 
-func parseList(hostlist string, isBlocklist bool) matchList {
+func parseList(hostlist string, mode Mode, isBlocklist bool) matchList {
 	b := newListBuilder()
 	for entry := range strings.SplitSeq(hostlist, ",") {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
 			continue
 		}
-		rule, err := parseRule(entry, isBlocklist)
+		rule, err := parseRule(entry, mode, isBlocklist)
 		if err != nil {
 			b.reject(err)
 			continue
@@ -221,12 +221,12 @@ func splitEntry(entry string) (target, portSpec string, err error) {
 	return entry, "", nil
 }
 
-func parseRule(entry string, isBlocklist bool) (listEntry, error) {
+func parseRule(entry string, mode Mode, isBlocklist bool) (listEntry, error) {
 	target, portSpec, err := splitEntry(entry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to split entry %s: %w", entry, err)
 	}
-	portRanges, err := parsePortSpec(portSpec, isBlocklist)
+	portRanges, err := parsePortSpec(portSpec, mode, isBlocklist)
 	if err != nil {
 		return nil, fmt.Errorf("invalid port syntax on entry %s: %w", entry, err)
 	}
@@ -331,12 +331,11 @@ func coalesceRanges(ranges []portRange) []portRange {
 	return merged
 }
 
-// parsePortSpec parses a port spec: "" means the context default, "*" all
-// ports on either list, otherwise a port, a "lo-hi" range, or a bracketed
-// "[p|p-p|...]" set.
-func parsePortSpec(spec string, isBlocklist bool) ([]portRange, error) {
+// parsePortSpec parses a port spec: "" means the context default per defaultPorts, "*"
+// all ports, otherwise a port, a "lo-hi" range, or a bracketed "[p|p-p|...]" set.
+func parsePortSpec(spec string, mode Mode, isBlocklist bool) ([]portRange, error) {
 	if spec == "" {
-		return defaultPorts(isBlocklist), nil
+		return defaultPorts(mode, isBlocklist), nil
 	}
 	if spec == "*" {
 		return []portRange{{start: 0, end: 65535}}, nil
@@ -392,19 +391,20 @@ func parsePort(s string) (uint16, error) {
 	return uint16(p), nil
 }
 
-func defaultPorts(isBlocklist bool) []portRange {
-	if isBlocklist {
+// defaultPorts: a portless block entry covers every port, a portless allow entry covers every port in Lax mode and only the web ports in Strict.
+func defaultPorts(mode Mode, isBlocklist bool) []portRange {
+	if isBlocklist || mode == Lax {
 		return []portRange{{start: 0, end: 65535}}
 	}
 	return []portRange{{start: 80, end: 80}, {start: 443, end: 443}}
 }
 
-func NewAllowList(hostList string) *AllowList {
-	return &AllowList{parseList(hostList, false)}
+func NewAllowList(hostList string, mode Mode) *AllowList {
+	return &AllowList{parseList(hostList, mode, false)}
 }
 
 func NewBlockList(hostList string) *BlockList {
-	return &BlockList{parseList(hostList, true)}
+	return &BlockList{parseList(hostList, Strict, true)}
 }
 
 func (m *matchList) MatchHostname(host string, port uint16) bool {
@@ -423,17 +423,17 @@ func (m *matchList) MatchHostname(host string, port uint16) bool {
 }
 
 // matchDomain implements the domain-matching model of x/net/http/httpproxy
-// (dot-anchored suffix), adapted to Gitea's config surface:
-//   - "example.com" matches exactly that host (deliberate deviation: httpproxy also
-//     grants subdomains, but bare-entry = exact keeps existing configs from widening)
-//   - "*.example.com" and ".example.com" match any subdomain, dot-anchored, apex
+// (dot-anchored suffix), like curl's and Go's NO_PROXY:
+//   - "example.com" matches that host and any subdomain, dot-anchored so
+//     "notexample.com" never matches
+//   - "*.example.com" and ".example.com" match only subdomains, apex
 //     excluded — the two spellings are equivalent, mirroring httpproxy's normalization
 func matchDomain(pattern, host string) bool {
 	if strings.HasPrefix(pattern, "*.") || strings.HasPrefix(pattern, ".") {
 		suffix := pattern[1:]
 		return strings.HasSuffix(host, suffix) && len(host) > len(suffix)
 	}
-	return pattern == host
+	return pattern == host || strings.HasSuffix(host, "."+pattern)
 }
 
 // validDomainPattern reports whether p is a usable domain pattern: any glob

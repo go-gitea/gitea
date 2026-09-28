@@ -34,7 +34,7 @@ func TestNewMigrationPolicy(t *testing.T) {
 		{allow: "github.com", mode: "strict", target: "https://8.8.8.8"},
 		{allow: "external", block: "10.0.0.0/8", target: "https://10.0.0.1"},
 	} {
-		setting.Migrations.AllowedHostList, setting.Migrations.BlockedHostList, setting.Migrations.Mode = tc.allow, tc.block, tc.mode
+		setting.Migrations.AllowedHostList, setting.Migrations.BlockedHostList, setting.Migrations.EgressMode = tc.allow, tc.block, tc.mode
 		u, err := url.Parse(tc.target)
 		require.NoError(t, err)
 		err = NewMigrationPolicy().CheckHostIPs(u)
@@ -44,6 +44,7 @@ func TestNewMigrationPolicy(t *testing.T) {
 
 func TestWebhookPolicyProxy(t *testing.T) {
 	proxyURL := &url.URL{Scheme: "http", Host: "localhost:8080"}
+	defer test.MockVariableValue(&setting.Security.EgressMode, "lax")()
 	defer test.MockVariableValue(&setting.Webhook.AllowedHostList, "discordapp.com,s.discordapp.com")()
 	defer test.MockVariableValue(&setting.Webhook.ProxyURL, proxyURL.String())()
 	defer test.MockVariableValue(&setting.Webhook.ProxyURLFixed, proxyURL)()
@@ -75,13 +76,13 @@ func TestWebhookPolicyProxy(t *testing.T) {
 
 func TestSecurityPolicy(t *testing.T) {
 	defer test.MockVariableValue(&setting.Security.AllowedHostList, "avatars.example.com")()
-	defer test.MockVariableValue(&setting.Security.Mode, "lax")()
+	defer test.MockVariableValue(&setting.Security.EgressMode, "lax")()
 	lax := NewSecurityPolicy("test")
 	assert.NoError(t, lax.CheckHost(mustURL(t, "https://avatars.example.com")))
 	assert.NoError(t, lax.CheckHost(mustURL(t, "https://8.8.8.8"))) // lax exempts public targets
 	assert.Error(t, lax.CheckHost(mustURL(t, "https://10.0.0.1")))  // restricted targets still need an allow entry
 
-	setting.Security.Mode = "strict"
+	setting.Security.EgressMode = "strict"
 	strict := NewSecurityPolicy("test")
 	assert.NoError(t, strict.CheckHost(mustURL(t, "https://avatars.example.com")))
 	assert.Error(t, strict.CheckHost(mustURL(t, "https://8.8.8.8")))

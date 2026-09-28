@@ -56,23 +56,34 @@ func TestCheckAddr(t *testing.T) {
 		if tc.localNeedsIPAllow {
 			opts = append(opts, WithLocalNeedsIPAllow())
 		}
-		if tc.strict {
-			opts = append(opts, WithMode(Strict))
-		}
 		var addr netip.Addr
 		if tc.ip != "" {
 			addr = netip.MustParseAddr(tc.ip)
 		}
-		err := NewPolicy("test", opts...).checkAddr(tc.host, netip.AddrPortFrom(addr, 80))
+		mode := Lax
+		if tc.strict {
+			mode = Strict
+		}
+		err := NewPolicy("test", mode, opts...).checkAddr(tc.host, netip.AddrPortFrom(addr, 80))
 		assert.Equal(t, tc.want, err == nil, "%s: %v", tc.name, err)
 	}
 }
 
+// a policy without list options behaves like one with empty lists
+func TestPolicyWithoutLists(t *testing.T) {
+	lax := NewPolicy("test", Lax)
+	assert.NoError(t, lax.checkAddr("", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80))) // public targets pass
+	assert.Error(t, lax.checkAddr("", netip.AddrPortFrom(netip.MustParseAddr("10.0.0.5"), 80)))  // restricted targets need an entry
+	strict := NewPolicy("test", Strict)
+	err := strict.checkAddr("", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80)) // strict denies without an entry
+	assert.ErrorContains(t, err, "can only call allowed HTTP servers")
+}
+
 func TestDenialNamesSetting(t *testing.T) {
-	err := NewPolicy("webhook", WithMode(Strict), WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80))
+	err := NewPolicy("webhook", Strict, WithAllow("example.com", "security.ALLOWED_HOST_LIST")).checkAddr("other.com", netip.AddrPortFrom(netip.MustParseAddr("8.8.8.8"), 80))
 	assert.EqualError(t, err, "webhook can only call allowed HTTP servers (check your security.ALLOWED_HOST_LIST setting), deny 'other.com(8.8.8.8)'")
 
-	err = NewPolicy("webhook", WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost(hostURL(t, "http://evil.com"))
+	err = NewPolicy("webhook", Lax, WithBlock("evil.com", "migrations.BLOCKED_HOST_LIST")).CheckHost(hostURL(t, "http://evil.com"))
 	assert.EqualError(t, err, "webhook can not call blocked HTTP servers (check your migrations.BLOCKED_HOST_LIST setting), deny 'evil.com'")
 }
 
@@ -91,20 +102,20 @@ func TestCheckHostIPs(t *testing.T) {
 		return ret
 	}
 
-	blocked := NewPolicy("test", WithAllow("private", ""), WithBlock("blocked.example.com", ""))
+	blocked := NewPolicy("test", Lax, WithAllow("private", ""), WithBlock("blocked.example.com", ""))
 	assert.NoError(t, blocked.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "10.0.0.5")))
 	assert.NoError(t, blocked.checkHostIPs(hostURL(t, "http://example.com"), nil)) // unresolved name, the dialer re-checks the resolved address
 	assert.Error(t, blocked.checkHostIPs(hostURL(t, "http://blocked.example.com"), ips("8.8.8.8")))
 	assert.Error(t, blocked.checkHostIPs(hostURL(t, "http://blocked.example.com"), nil))
 
-	allowed := NewPolicy("test", WithMode(Strict), WithAllow("10.0.0.0/8, *.example.com", ""))
+	allowed := NewPolicy("test", Strict, WithAllow("10.0.0.0/8, *.example.com", ""))
 	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://"), ips("10.0.0.5")))
 	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), ips("192.168.0.1")))
 	assert.NoError(t, allowed.checkHostIPs(hostURL(t, "http://git.example.com"), nil))
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), ips("10.0.0.5", "192.168.0.1")))
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), nil))
 
-	builtins := NewPolicy("test", WithAllow("external, private, loopback", ""))
+	builtins := NewPolicy("test", Lax, WithAllow("external, private, loopback", ""))
 	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "100.64.0.1", "::1")))
 	for _, ip := range []string{
 		"0.1.2.3", "100.100.100.200", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
@@ -122,7 +133,7 @@ func TestNewDialContext(t *testing.T) {
 	addr := ln.Addr().String()
 
 	dial := func(proxy string, allowProxies bool) error {
-		policy := NewPolicy("test", WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: proxy})))
+		policy := NewPolicy("test", Lax, WithBlock("loopback", ""), WithProxy(http.ProxyURL(&url.URL{Scheme: "http", Host: proxy})))
 		_, _ = policy.Proxy(&http.Request{})
 		conn, err := policy.dialContext(allowProxies)(t.Context(), "tcp", addr)
 		if err == nil {
@@ -146,6 +157,6 @@ func TestProxy(t *testing.T) {
 		assert.Equal(t, want, ProxyDialAddr(u), raw)
 	}
 
-	_, err := NewPolicy("test", WithProxy(http.ProxyURL(&url.URL{Scheme: "socks4", Host: "proxy.corp:1080"}))).Proxy(&http.Request{})
+	_, err := NewPolicy("test", Lax, WithProxy(http.ProxyURL(&url.URL{Scheme: "socks4", Host: "proxy.corp:1080"}))).Proxy(&http.Request{})
 	assert.ErrorContains(t, err, "unsupported proxy scheme")
 }
