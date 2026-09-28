@@ -57,7 +57,8 @@ type searchTerm struct {
 	quoted bool
 }
 
-// splitSearchTerms splits at whitespace outside of double quotes, removing the quotes; `\"` is a literal quote
+// splitSearchTerms splits at whitespace outside of double quotes, removing the quotes.
+// Quotes only start at the beginning of a term or a qualifier value, so the ones in code like `printf("hi")` are kept; `\"` is a literal quote.
 func splitSearchTerms(q string) (terms []searchTerm) {
 	var sb strings.Builder
 	inTerm, inQuotes, quoted := false, false, false
@@ -75,7 +76,7 @@ func splitSearchTerms(q string) (terms []searchTerm) {
 			sb.WriteByte('"')
 			inTerm = true
 			i++
-		case c == '"':
+		case c == '"' && (inQuotes || !inTerm || q[i-1] == ':'):
 			quoted = quoted || !inTerm
 			inQuotes = !inQuotes
 			inTerm = true

@@ -24,6 +24,7 @@ func TestParseSearchQuery(t *testing.T) {
 		{`path:"my dir" "foo bar"`, SearchQuery{Keyword: "foo bar", Qualifiers: []SearchQualifier{{Name: "path", Value: "my dir"}}}},
 		{`"path:src" path: x`, SearchQuery{Keyword: "path:src path: x"}},
 		{`say \"hi\" ""`, SearchQuery{Keyword: `say "hi"`}},
+		{`printf("hi")`, SearchQuery{Keyword: `printf("hi")`}},
 		{`"unclosed quote`, SearchQuery{Keyword: "unclosed quote"}},
 	}
 	for _, c := range cases {
