@@ -5,9 +5,7 @@ package maven
 
 import (
 	"encoding/xml"
-	"errors"
 	"io"
-	"strconv"
 
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -31,12 +29,6 @@ type Dependency struct {
 	GroupID    string `json:"group_id,omitempty"`
 	ArtifactID string `json:"artifact_id,omitempty"`
 	Version    string `json:"version,omitempty"`
-}
-
-// SnapshotMetadata holds the build number and advertised files for a snapshot version.
-type SnapshotMetadata struct {
-	BuildNumber int      `json:"build_number,omitempty"`
-	Files       []string `json:"files,omitempty"`
 }
 
 type pomStruct struct {
@@ -67,26 +59,6 @@ type pomStruct struct {
 		Version    string `xml:"version"`
 		Scope      string `xml:"scope"`
 	} `xml:"dependencies>dependency"`
-}
-
-type snapshotMetadataStruct struct {
-	XMLName    xml.Name `xml:"metadata"`
-	GroupID    string   `xml:"groupId"`
-	ArtifactID string   `xml:"artifactId"`
-	Version    string   `xml:"version"`
-	Versioning struct {
-		LastUpdated string `xml:"lastUpdated"`
-		Snapshot    struct {
-			Timestamp   string `xml:"timestamp"`
-			BuildNumber string `xml:"buildNumber"`
-		} `xml:"snapshot"`
-		SnapshotVersions []struct {
-			Extension  string `xml:"extension"`
-			Classifier string `xml:"classifier"`
-			Value      string `xml:"value"`
-			Updated    string `xml:"updated"`
-		} `xml:"snapshotVersions>snapshotVersion"`
-	} `xml:"versioning"`
 }
 
 // ParsePackageMetaData parses the metadata of a pom file
@@ -135,41 +107,5 @@ func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 		ProjectURL:   pom.URL,
 		Licenses:     licenses,
 		Dependencies: dependencies,
-	}, nil
-}
-
-// ParseSnapshotVersionMetadata parses the build number and advertised files of a Maven snapshot.
-func ParseSnapshotVersionMetadata(r io.Reader) (*SnapshotMetadata, error) {
-	var metadata snapshotMetadataStruct
-
-	dec := xml.NewDecoder(r)
-	dec.CharsetReader = charset.NewReaderLabel
-	if err := dec.Decode(&metadata); err != nil {
-		return nil, err
-	}
-
-	buildNumber, err := strconv.Atoi(metadata.Versioning.Snapshot.BuildNumber)
-	if err != nil {
-		return nil, errors.New("invalid or missing build number in snapshot metadata")
-	}
-
-	if metadata.ArtifactID == "" {
-		return nil, errors.New("missing artifact ID in snapshot metadata")
-	}
-	var files []string
-	for _, snapshotVersion := range metadata.Versioning.SnapshotVersions {
-		if snapshotVersion.Value == "" || snapshotVersion.Extension == "" {
-			return nil, errors.New("invalid snapshot version in metadata")
-		}
-		filename := metadata.ArtifactID + "-" + snapshotVersion.Value
-		if snapshotVersion.Classifier != "" {
-			filename += "-" + snapshotVersion.Classifier
-		}
-		files = append(files, filename+"."+snapshotVersion.Extension)
-	}
-
-	return &SnapshotMetadata{
-		BuildNumber: buildNumber,
-		Files:       files,
 	}, nil
 }
