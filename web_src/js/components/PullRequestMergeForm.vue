@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import {computed, nextTick, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
+import {computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch} from 'vue';
 import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
+import type {Instance} from 'tippy.js';
 
 type MergeStyle = {
   name: string,
@@ -79,9 +80,10 @@ watch(mergeStyle, (val) => {
   emit('mergeStyleChange', val);
 });
 
+let menuTippy: Instance | undefined;
 onMounted(() => {
   if (!menuTrigger.value) return;
-  const menuTippy = createTippy(menuTrigger.value, {
+  menuTippy = createTippy(menuTrigger.value, {
     content: menuPanel.value!,
     getReferenceClientRect: () => menuTrigger.value!.parentElement!.getBoundingClientRect(),
     theme: 'menu',
@@ -93,8 +95,8 @@ onMounted(() => {
     interactive: true,
     hideOnClick: true,
   });
-  menuPanel.value!.addEventListener('click', () => menuTippy.hide());
 });
+onBeforeUnmount(() => menuTippy?.destroy());
 
 async function toggleActionForm(show: boolean) {
   showActionForm.value = show;
@@ -109,9 +111,9 @@ async function toggleActionForm(show: boolean) {
 
 <template>
   <div>
-    <div class="ui checkbox merge-box-bypass" v-if="!showActionForm && mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk && mergeStyle !== mergeStyleManuallyMerged">
+    <div class="ui checkbox tw-flex tw-mb-4" v-if="!showActionForm && mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk && mergeStyle !== mergeStyleManuallyMerged">
       <input type="checkbox" v-model="forceMerge" id="merge-bypass-rules">
-      <label for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
+      <label class="tw-text-red" for="merge-bypass-rules">{{ mergeForm.textBypassRules }}</label>
     </div>
 
     <form ref="actionForm" class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
@@ -132,7 +134,7 @@ async function toggleActionForm(show: boolean) {
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId" required>
       </div>
 
-      <div class="flex-text-block merge-box-actions">
+      <div class="flex-text-block tw-flex-wrap">
         <button class="ui button" :class="forceMerge ? 'red' : mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle" :disabled="actionDisabled">
           {{ buttonTexts.confirm }}
         </button>
@@ -143,7 +145,7 @@ async function toggleActionForm(show: boolean) {
       </div>
     </form>
 
-    <div v-show="!showActionForm" class="flex-text-block merge-box-actions">
+    <div v-show="!showActionForm" class="flex-text-block tw-flex-wrap">
       <div class="ui buttons" :class="mergeButtonStyleClass" :data-tooltip-content="actionDisabled ? mergeForm.textMergeBlocked : undefined">
         <button ref="mergeButton" class="ui button" type="button" :disabled="actionDisabled" @click="toggleActionForm(true)">
           {{ buttonTexts.button }}
@@ -153,12 +155,12 @@ async function toggleActionForm(show: boolean) {
         </button>
       </div>
 
-      <span v-if="mergeForm.showPullCommands" class="merge-box-cmd-hint">
+      <span v-if="mergeForm.showPullCommands" class="tw-text-12 tw-text-text-light-2">
         <template v-if="mergeForm.showMergeInstructions">{{ mergeForm.textCmdMergeHint }}</template>
         <a class="show-modal tw-whitespace-nowrap" href="" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
       </span>
     </div>
-    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu">
+    <div v-if="mergeForm.mergeStyles.length > 1" ref="menuPanel" class="tippy-target merge-box-menu" @click="menuTippy!.hide()">
       <a v-for="msd in mergeForm.mergeStyles" :key="msd.name" class="item" role="menuitemradio" :aria-checked="msd.name === mergeStyle" @click="mergeStyle = msd.name">
         <svg-icon name="octicon-check"/>
         <div><strong>{{ msd.textDoMerge }}</strong><small>{{ msd.textDescription }}</small></div>
@@ -170,18 +172,5 @@ async function toggleActionForm(show: boolean) {
 <style scoped>
 .ui.checkbox label {
   cursor: pointer;
-}
-
-.merge-box-bypass.ui.checkbox {
-  display: flex;
-  margin-bottom: 16px;
-}
-
-.merge-box-bypass.ui.checkbox label {
-  color: var(--color-red);
-}
-
-.merge-box-actions {
-  flex-wrap: wrap;
 }
 </style>

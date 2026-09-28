@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -29,11 +28,6 @@ func defaultMergeStyle(prConfig *repo_model.PullRequestsConfig) repo_model.Merge
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context, prConfig *repo_model.PullRequestsConfig) {
 	pull := prInfo.issue.PullRequest
-	if pull.HasMerged || prInfo.issue.IsClosed {
-		return
-	}
-	prInfo.MergeBoxData.ShowMergeInstructions = pull.HeadRepo != nil && ctx.Repo.Permission.CanWrite(unit.TypeCode) &&
-		(prInfo.ProtectedBranchRule == nil || prInfo.ProtectedBranchRule.CanUserPush(ctx, ctx.Doer))
 	if !prInfo.MergeBoxData.hasPermToMerge || prInfo.MergeBoxData.AutoMerge != nil {
 		return
 	}
@@ -51,13 +45,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
 			log.Error("GetDefaultMergeMessage for style %s failed, error: %v", mergeStyle, err)
 		}
-		defaultSquashMergeTitle, defaultSquashMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
-		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
-		}
-		defaultSquashMergeCommitMessages, err = pull_service.GetSquashMergeCommitMessages(ctx, pull)
-		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
+		if prConfig.AllowSquash {
+			if mergeStyle == repo_model.MergeStyleSquash {
+				defaultSquashMergeTitle, defaultSquashMergeBody = defaultMergeTitle, defaultMergeBody
+			} else {
+				defaultSquashMergeTitle, defaultSquashMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+				if err != nil && !errors.Is(err, util.ErrNotExist) {
+					log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
+				}
+			}
+			defaultSquashMergeCommitMessages, err = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+			if err != nil && !errors.Is(err, util.ErrNotExist) {
+				log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
+			}
 		}
 	}
 

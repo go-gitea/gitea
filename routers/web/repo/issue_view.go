@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -588,7 +589,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDeleteBranch(ctx *context.Cont
 		isPullBranchDeletable, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
 	}
 
-	if isPullBranchDeletable && prInfo.issue.IsClosed {
+	if isPullBranchDeletable {
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
@@ -861,13 +862,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	if ctx.IsSigned {
 		if err := pull.LoadHeadRepo(ctx); err != nil {
 			log.Error("LoadHeadRepo: %v", err)
-		} else if pull.HeadRepo != nil {
+		} else if pull.HeadRepo != nil && issue.IsClosed {
 			perm, err := access_model.GetDoerRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetDoerRepoPermission", err)
 				return
 			}
-			if perm.CanWrite(unit.TypeCode) && issue.IsClosed {
+			if perm.CanWrite(unit.TypeCode) {
 				// Check if branch is not protected
 				if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
 					if protected, err := git_model.IsBranchProtected(ctx, pull.HeadRepo.ID, pull.HeadBranch); err != nil {
@@ -910,15 +911,12 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		}
 	}
 
-	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
-
-	prInfo.prepareMergeBoxDeleteBranch(ctx, canDelete)
-	if ctx.Written() {
-		return
-	}
-
 	ctx.Data["PullMergeBoxData"] = data
 	if issue.IsClosed {
+		prInfo.prepareMergeBoxDeleteBranch(ctx, canDelete)
+		if ctx.Written() {
+			return
+		}
 		prInfo.prepareMergeBoxClosedSection(ctx)
 		return
 	}
@@ -928,10 +926,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 
+	data.ShowPullCommands = pull.HeadRepo != nil
+	data.ShowMergeInstructions = data.ShowPullCommands && ctx.Repo.Permission.CanWrite(unit.TypeCode) &&
+		(prInfo.ProtectedBranchRule == nil || prInfo.ProtectedBranchRule.CanUserPush(ctx, ctx.Doer))
+
 	prInfo.prepareMergeBoxCommitSigning(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	prConfig := issue.Repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
 	data.AutodetectManualMerge = prConfig.AutodetectManualMerge
@@ -949,14 +948,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
-	data.canBypassProtection = isRepoAdmin
+	canBypassProtection := isRepoAdmin
 	if ctx.IsSigned && prInfo.ProtectedBranchRule != nil {
-		data.canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
+		canBypassProtection = git_model.CanBypassBranchProtection(ctx, prInfo.ProtectedBranchRule, ctx.Doer, isRepoAdmin)
 	}
 
 	data.isMergeBlocked = prInfo.workInProgressPrefix != "" || !noDeps
-	// CanMergeNow means: if the doer has write permission, whether the PR can be merged now
-	data.canMergeNow = (!data.hasOverridableBlockers || data.canBypassProtection) && !data.isMergeBlocked
+	data.canMergeNow = (!data.hasOverridableBlockers || canBypassProtection) && !data.isMergeBlocked
 
 	if _, data.AutoMerge, err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID); err != nil {
 		ctx.ServerError("GetScheduledMergeByPullID", err)
@@ -967,8 +965,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		data.mergeBlockers = append(data.mergeBlockers, ctx.Locale.Tr("repo.pulls.no_merge_desc"), ctx.Locale.Tr("repo.pulls.no_merge_helper"))
 	}
 
-	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress, statusCheckExpected) > 0) ||
-		(data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0) // an unblocked auto merge is about to run
+	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0)
+	if data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
+		lastChange := data.AutoMerge.CreatedUnix
+		if data.StatusCheckData != nil {
+			lastChange = max(lastChange, data.StatusCheckData.lastUpdated)
+		}
+		needRefreshMergeBox = needRefreshMergeBox || time.Since(lastChange.AsTime()) < time.Minute // an unblocked auto merge runs shortly, unless it failed
+	}
 	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
 
 	prInfo.prepareMergeBoxSections(ctx)

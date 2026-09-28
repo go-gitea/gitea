@@ -21,14 +21,14 @@
 			<div class="flex-divided-list">
 				{{range $cs := $group.CommitStatuses}}
 				<div class="item commit-status-item">
-					<div class="flex-text-block">
+					<div class="flex-text-block tw-flex-1">
 						{{$actionStatus := $statusCheckData.ActionsStatuses.IconStatus $cs}}
 						{{if $actionStatus}}
 							{{template "repo/icons/action_status" (dict "Status" $actionStatus "Size" 18 "ClassName" "commit-status icon")}}
 						{{else}}
 							{{template "repo/icons/commit_status" $cs}}
 						{{end}}
-						<span class="gt-ellipsis" title="{{$cs.Context}} {{$cs.Description}}">{{if $cs.TargetURL}}<a class="muted" href="{{$cs.TargetURL}}">{{$cs.Context}}</a>{{else}}{{$cs.Context}}{{end}} <span class="check-description">{{$cs.Description}}</span></span>
+						<span class="gt-ellipsis" title="{{$cs.Context}} {{$cs.Description}}">{{if $cs.TargetURL}}<a class="muted" href="{{$cs.TargetURL}}">{{$cs.Context}}</a>{{else}}{{$cs.Context}}{{end}} <span class="tw-text-12 tw-text-text-light-2">{{$cs.Description}}</span></span>
 					</div>
 					{{if call $statusCheckData.IsContextRequired $cs.Context}}
 						<div class="ui basic label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>

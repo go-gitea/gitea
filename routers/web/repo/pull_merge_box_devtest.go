@@ -50,10 +50,11 @@ func MockPullMergeBoxes(ctx *context.Context) (scenarios []map[string]any) {
 		pull := &issues_model.PullRequest{Index: 1, Status: issues_model.PullRequestStatusMergeable, HeadRepo: repo, BaseRepo: repo, HeadBranch: "feature", BaseBranch: "main"}
 		issue := &issues_model.Issue{Index: 1, IsPull: true, Title: "Add feature", Repo: repo, PullRequest: pull}
 		pull.Issue = issue
-		data := &pullMergeBoxData{hasPermToMerge: true, canMergeNow: true, IsPullBranchDeletable: true}
+		data := &pullMergeBoxData{hasPermToMerge: true, canMergeNow: true}
 		prInfo := &pullRequestViewInfo{issue: issue, MergeBoxData: data, headTarget: "user2:feature"}
 		setup(prInfo)
 		if issue.IsClosed {
+			data.IsPullBranchDeletable = true
 			prInfo.prepareMergeBoxClosedSection(ctx)
 		} else {
 			prInfo.prepareMergeBoxSections(ctx)

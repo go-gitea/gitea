@@ -34,6 +34,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/utils"
@@ -266,7 +267,6 @@ type pullMergeBoxData struct {
 	isMergeBlocked         bool // only marking as manually merged is possible, e.g. for WIP or open dependencies
 	canMergeNow            bool // PR is mergeable, either no blocker, or doer can bypass the blockers
 	hasPermToMerge         bool
-	canBypassProtection    bool
 	unsignable             bool // signed commits are required but Gitea can't sign the merge commit
 	mergeBlockers          []template.HTML
 
@@ -417,6 +417,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		data.hasOverridableBlockers = true
 	}
 	if len(commitStatuses) == 0 && len(requiredContexts) == 0 {
+		if enableStatusCheck { // without a checks section, this is the only place showing why merging is blocked
+			data.addOverridableBlocker(ctx.Locale.Tr("repo.pulls.status_checks_waiting"))
+		}
 		return
 	}
 
@@ -487,6 +490,7 @@ type pullCommitStatusCheckData struct {
 	Groups                  []*statusCheckGroup
 	ActionsStatuses         actions_module.CommitActionsStatusMap
 	counts                  map[statusCheckKind]int
+	lastUpdated             timeutil.TimeStamp
 }
 
 func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.PullRequest) (string, error) {
@@ -1082,7 +1086,7 @@ func MergePullRequest(ctx *context.Context) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, nil, ctx.Repo.Repository, pr)
+	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, form.DeleteBranchAfterMerge, ctx.Repo.Repository, pr)
 	if err != nil {
 		ctx.ServerError("ShouldDeleteBranchAfterMerge", err)
 		return

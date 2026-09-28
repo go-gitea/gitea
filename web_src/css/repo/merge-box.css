@@ -116,16 +116,6 @@ details[open] > summary > .merge-box-chevron {
   padding: 0 16px;
 }
 
-.merge-box-checks .commit-status-item > .flex-text-block {
-  flex: 1;
-}
-
-.merge-box-checks .check-description,
-.merge-box-cmd-hint {
-  font-size: 12px;
-  color: var(--color-text-light-2);
-}
-
 .merge-box-checks .commit-status-item > .ui.label {
   padding-top: 0;
   padding-bottom: 0;

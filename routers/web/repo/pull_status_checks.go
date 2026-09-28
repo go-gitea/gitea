@@ -60,6 +60,7 @@ func (d *pullCommitStatusCheckData) groupStatuses(commitStatuses []*git_model.Co
 	for _, cs := range commitStatuses {
 		kind := statusCheckKindOf(cs, d.ActionsStatuses)
 		d.counts[kind]++
+		d.lastUpdated = max(d.lastUpdated, cs.UpdatedUnix)
 		if kind == statusCheckExpected {
 			kind = statusCheckPending // listed with the pending checks but counted separately, like GitHub
 		}

@@ -1,4 +1,4 @@
-import {createApp, type Component} from 'vue';
+import {createApp, type App, type Component} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -7,6 +7,7 @@ import {addDelegatedEventListener, createElementFromHTML, activePageTimerRefresh
 let chosenUpdateUrl = '';
 let chosenMergeStyle = '';
 let mergeFormComponent: Component | undefined; // cached so a refresh remounts the form before the next paint
+let mergeFormApp: App | undefined;
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
   const [elButton, elTrigger] = el.querySelectorAll<HTMLButtonElement>(':scope > button');
@@ -43,8 +44,8 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   const data = JSON.parse(el.getAttribute('data-merge-form-props')!);
   if (data.mergeStyles.some((style: {name: string}) => style.name === chosenMergeStyle)) data.defaultMergeStyle = chosenMergeStyle;
   mergeFormComponent ??= (await import('../components/PullRequestMergeForm.vue')).default;
-  const view = createApp(mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { chosenMergeStyle = style }});
-  view.mount(el); // TODO: can unmount when reloaded?
+  mergeFormApp = createApp(mergeFormComponent, {mergeFormProps: data, onMergeStyleChange: (style: string) => { chosenMergeStyle = style }});
+  mergeFormApp.mount(el);
 }
 
 function initRepoPullMergeBoxRefresh(el: Element) {
@@ -66,6 +67,8 @@ function initRepoPullMergeBoxRefresh(el: Element) {
         if (open !== undefined) details.open = open;
       }
       const scrollTop = el.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTop;
+      mergeFormApp?.unmount();
+      mergeFormApp = undefined;
       el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
       if (scrollTop) newEl.querySelector<HTMLElement>('.merge-box-checks-body')?.scrollTo({top: scrollTop, behavior: 'instant'});
     },

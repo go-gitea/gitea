@@ -14,13 +14,13 @@
 				<div class="item">{{template "repo/issue/view_content/pull_merge_section" .}}</div>
 			{{end}}
 			{{with $data.StatusCheckData}}
-				{{template "repo/issue/view_content/pull_merge_status_checks" (dict "StatusCheckData" $data.StatusCheckData)}}
+				{{template "repo/issue/view_content/pull_merge_status_checks" (dict "StatusCheckData" .)}}
 			{{end}}
 			{{with $data.MergeSection}}
 				<div class="item">
 					{{template "repo/issue/view_content/pull_merge_section" .}}
 					{{if and $data.ShowUpdatePullInfo $data.UpdatePrimaryAction}}{{template "repo/issue/view_content/update_branch_by_merge" (dict "MergeBoxData" $data)}}{{end}}
-					{{if and $.Issue.IsClosed $data.IsPullBranchDeletable}}
+					{{if $data.IsPullBranchDeletable}}
 						<button type="button" class="ui button link-action delete-branch-after-merge" data-url="{{$.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 					{{end}}
 				</div>
@@ -48,7 +48,7 @@
 					{{else if $data.MergeFormProps}}
 						<div id="pull-request-merge-form" data-merge-form-props="{{JsonUtils.EncodeToString $data.MergeFormProps}}"></div>
 					{{else}}
-						<span class="merge-box-cmd-hint"><a class="show-modal tw-whitespace-nowrap" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a></span>
+						<span class="tw-text-12 tw-text-text-light-2"><a class="show-modal tw-whitespace-nowrap" href data-modal="#pull-merge-cmd-modal">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</a></span>
 					{{end}}
 				</div>
 			{{end}}
