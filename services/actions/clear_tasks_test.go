@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createConflictingCancellingJob(t *testing.T, concurrencyGroup string, runIndex int64) *actions_model.ActionRunJob {
+func createRunAttempt(t *testing.T, runIndex int64, concurrencyGroup string, status actions_model.Status) (*actions_model.ActionRun, *actions_model.ActionRunAttempt) {
 	t.Helper()
 
 	run := &actions_model.ActionRun{
@@ -29,7 +29,7 @@ func createConflictingCancellingJob(t *testing.T, concurrencyGroup string, runIn
 		WorkflowID:    "test.yml",
 		Index:         runIndex,
 		Ref:           "refs/heads/main",
-		Status:        actions_model.StatusBlocked,
+		Status:        status,
 	}
 	require.NoError(t, db.Insert(t.Context(), run))
 
@@ -38,11 +38,18 @@ func createConflictingCancellingJob(t *testing.T, concurrencyGroup string, runIn
 		RunID:            run.ID,
 		Attempt:          1,
 		TriggerUserID:    run.TriggerUserID,
-		Status:           actions_model.StatusBlocked,
+		Status:           status,
 		ConcurrencyGroup: concurrencyGroup,
 	}
 	require.NoError(t, db.Insert(t.Context(), attempt))
 
+	return run, attempt
+}
+
+func createConflictingCancellingJob(t *testing.T, concurrencyGroup string, runIndex int64) *actions_model.ActionRunJob {
+	t.Helper()
+
+	run, attempt := createRunAttempt(t, runIndex, concurrencyGroup, actions_model.StatusBlocked)
 	job := &actions_model.ActionRunJob{
 		RunID:            run.ID,
 		RunAttemptID:     attempt.ID,
@@ -107,28 +114,34 @@ func TestShouldBlockJobByConcurrency_CancellingJobBlocks(t *testing.T) {
 	assert.True(t, shouldBlock)
 }
 
-func TestPrepareToStartJobWithConcurrencyKeepsWaitingJob(t *testing.T) {
+func TestShouldBlockJobByConcurrency_OwnAttemptDoesNotBlock(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	const concurrencyGroup = "test-own-attempt-does-not-block"
+	run, attempt := createRunAttempt(t, 9906, concurrencyGroup, actions_model.StatusWaiting)
+	job := &actions_model.ActionRunJob{
+		RunID:                  run.ID,
+		RunAttemptID:           attempt.ID,
+		RepoID:                 run.RepoID,
+		RawConcurrency:         concurrencyGroup,
+		IsConcurrencyEvaluated: true,
+		ConcurrencyGroup:       concurrencyGroup,
+	}
+	shouldBlock, err := shouldBlockJobByConcurrency(t.Context(), job)
+	require.NoError(t, err)
+	assert.False(t, shouldBlock)
+
+	createRunAttempt(t, 9907, concurrencyGroup, actions_model.StatusWaiting) // another run's attempt still holds the group
+	shouldBlock, err = shouldBlockJobByConcurrency(t.Context(), job)
+	require.NoError(t, err)
+	assert.True(t, shouldBlock)
+}
+
+func TestPrepareToStartWithConcurrencyWaitingJob(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	const concurrencyGroup = "test-waiting-job-keeps-concurrency-slot"
-	run := &actions_model.ActionRun{
-		RepoID:        1,
-		OwnerID:       2,
-		TriggerUserID: 2,
-		WorkflowID:    "test.yml",
-		Index:         9905,
-		Ref:           "refs/heads/main",
-		Status:        actions_model.StatusWaiting,
-	}
-	require.NoError(t, db.Insert(t.Context(), run))
-	attempt := &actions_model.ActionRunAttempt{
-		RepoID:        run.RepoID,
-		RunID:         run.ID,
-		Attempt:       1,
-		TriggerUserID: run.TriggerUserID,
-		Status:        actions_model.StatusWaiting,
-	}
-	require.NoError(t, db.Insert(t.Context(), attempt))
+	run, attempt := createRunAttempt(t, 9905, "", actions_model.StatusWaiting)
 	previousJob := &actions_model.ActionRunJob{
 		RunID:            run.ID,
 		RunAttemptID:     attempt.ID,
@@ -154,7 +167,26 @@ func TestPrepareToStartJobWithConcurrencyKeepsWaitingJob(t *testing.T) {
 
 	assert.Equal(t, actions_model.StatusBlocked, status)
 	assert.Empty(t, cancelled)
+
+	newAttempt := &actions_model.ActionRunAttempt{
+		RepoID:           run.RepoID,
+		ConcurrencyGroup: concurrencyGroup,
+	}
+	status, cancelled, err = PrepareToStartRunWithConcurrency(t.Context(), newAttempt)
+	require.NoError(t, err)
+
+	assert.Equal(t, actions_model.StatusBlocked, status)
+	assert.Empty(t, cancelled)
 	assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: previousJob.ID}).Status)
+
+	// a cancelled waiting job releases the group at once
+	newJob.ConcurrencyCancel = true
+	status, cancelled, err = PrepareToStartJobWithConcurrency(t.Context(), newJob)
+	require.NoError(t, err)
+
+	assert.Equal(t, actions_model.StatusWaiting, status)
+	require.Len(t, cancelled, 1)
+	assert.Equal(t, previousJob.ID, cancelled[0].ID)
 }
 
 func TestShouldBlockRunByConcurrency_CancellingJobBlocks(t *testing.T) {

@@ -977,14 +977,20 @@ jobs:
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		// run2 has passed the concurrency gate, so run3 waits for it instead of cancelling it
+		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
 		task6 := runner.fetchTask(t)
-		_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
+		_, _, run2_2 = getTaskAndJobAndRunByTaskID(t, task6.Id)
+		assert.Equal(t, run2.ID, run2_2.ID)
+		runner.execTask(t, task6, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
+
+		task7 := runner.fetchTask(t)
+		_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task7.Id)
 		assert.Equal(t, run3.ID, run3_2.ID)
 		assert.Equal(t, actions_model.StatusRunning, run3_2.Status)
 		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
-
-		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
-		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
 	})
 }
 
@@ -1118,12 +1124,19 @@ jobs:
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run3.ID, job3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		// run2 has passed the concurrency gate, so run3 waits for it instead of cancelling it
+		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
 		task6 := runner.fetchTask(t)
-		_, _, run3 = getTaskAndJobAndRunByTaskID(t, task6.Id)
-		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
+		_, _, run2_2 = getTaskAndJobAndRunByTaskID(t, task6.Id)
+		assert.Equal(t, run2.ID, run2_2.ID)
+		runner.execTask(t, task6, &mockTaskOutcome{
+			result: runnerv1.Result_RESULT_SUCCESS,
+		})
 
-		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
-		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
+		task7 := runner.fetchTask(t)
+		_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task7.Id)
+		assert.Equal(t, run3.ID, run3_2.ID)
+		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3_2))
 	})
 }
 

@@ -713,6 +713,13 @@ func Test_findConcurrencyWaiterToWake(t *testing.T) {
 	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "held-cg")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
+
+	// A waiting holder has passed the gate and is only waiting for a runner, so it holds the group too.
+	seed(99706, "waiting-cg", actions_model.StatusWaiting)
+	seed(99707, "waiting-cg", actions_model.StatusBlocked)
+	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "waiting-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), id)
 }
 
 func Test_maxParallelReusableCallerLifecycle(t *testing.T) {

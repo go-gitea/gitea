@@ -158,7 +158,7 @@ func findConcurrencyWaiterToWake(ctx context.Context, repoID, excludeRunID int64
 	}
 
 	// The slot should be free before any waiter can proceed.
-	holderAttempts, holderJobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, repoID, concurrencyGroup, []actions_model.Status{actions_model.StatusRunning, actions_model.StatusCancelling})
+	holderAttempts, holderJobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, repoID, concurrencyGroup, []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusCancelling})
 	if err != nil {
 		return 0, fmt.Errorf("find concurrency-group holders: %w", err)
 	}

@@ -392,8 +392,9 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 
 	var jobsToCancel []*ActionRunJob
 
-	statusFindOption := []Status{StatusWaiting, StatusBlocked}
+	statusFindOption := []Status{StatusBlocked}
 	if attempt.ConcurrencyCancel {
+		statusFindOption = append(statusFindOption, StatusWaiting)
 		statusFindOption = append(statusFindOption, StatusRunning)
 		statusFindOption = append(statusFindOption, StatusCancelling)
 	}
