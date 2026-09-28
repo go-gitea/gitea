@@ -3527,6 +3527,7 @@
   "actions.status.cancelled": "İptal edildi",
   "actions.status.skipped": "Atlandı",
   "actions.status.blocked": "Engellendi",
+  "actions.status.pending": "Beklemede",
   "actions.runners": "Çalıştırıcılar",
   "actions.runners.runner_manage_panel": "Çalıştırıcı Yönetimi",
   "actions.runners.new": "Yeni çalıştırıcı oluştur",

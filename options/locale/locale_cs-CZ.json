@@ -3101,6 +3101,7 @@
   "actions.status.cancelled": "Zrušeno",
   "actions.status.skipped": "Přeskočeno",
   "actions.status.blocked": "Blokováno",
+  "actions.status.pending": "Čekající",
   "actions.runners": "Runnery",
   "actions.runners.runner_manage_panel": "Správa runnerů",
   "actions.runners.new": "Vytvořit nový runner",
