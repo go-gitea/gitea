@@ -1102,7 +1102,6 @@
   "repo.migrate.github_token_desc": "GitHub API 속도 제한을 우회하여 마이그레이션을 더 빠르게 하기 위해 여기 하나 이상의 토큰을 쉼표로 구분하여 입력할 수 있습니다. 경고: 이 기능을 남용하면 서비스 제공자의 정책을 위반할 수 있으며 계정이 차단될 위험이 있습니다.",
   "repo.migrate.clone_local_path": "또는 로컬 서버의 경로",
   "repo.migrate.permission_denied": "로컬 리포지토리는 가져오기를 할 수 없습니다.",
-  "repo.migrate.permission_denied_blocked": "허용되지 않는 호스트에서는 가져올 수 없습니다. 운영자에게 문의하여 ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS 설정을 확인하세요.",
   "repo.migrate.invalid_local_path": "로컬 경로가 유효하지 않습니다. 존재하지 않거나 디렉터리가 아닙니다.",
   "repo.migrate.invalid_lfs_endpoint": "LFS 엔드포인트가 유효하지 않습니다.",
   "repo.migrate.failed": "마이그레이션 실패: %v",
