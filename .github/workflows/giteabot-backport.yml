@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: go-gitea/giteabot@c214e4be0efc926a2d6ce93b7a3911fe7fa65ab1 # v1.0.6
+      - uses: go-gitea/giteabot@4c9d4d3fd913b5c35f59dcc0b004a3d11d5b22bf # v1.0.7
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN }}
           gitea_fork: giteabot/gitea
