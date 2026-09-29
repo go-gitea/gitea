@@ -172,7 +172,7 @@ func basicAuth(user *url.Userinfo) string {
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if subtle.ConstantTimeCompare([]byte(r.Header.Get("Proxy-Authorization")), []byte(s.auth)) != 1 {
-		w.Header().Set("Proxy-Authenticate", `Basic realm="gitea"`)
+		w.Header().Set("Proxy-Authenticate", `Basic realm="gitea egress proxy"`)
 		http.Error(w, "egress: proxy authentication required", http.StatusProxyAuthRequired)
 		return
 	}
