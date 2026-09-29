@@ -32,6 +32,7 @@ type Repository struct {
 }
 
 // reindexingStorage picks up packs that git wrote after go-git loaded its index
+// https://github.com/go-git/go-git/issues/2439
 type reindexingStorage struct {
 	*filesystem.Storage
 	packs []plumbing.Hash
