@@ -25,7 +25,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
-	"github.com/silverwind/go-rpmutils"
+	"github.com/sassoftware/go-rpmutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -11,7 +11,7 @@ import (
 	packages_module "gitea.dev/modules/packages"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
-	"github.com/silverwind/go-rpmutils"
+	"github.com/sassoftware/go-rpmutils"
 )
 
 func SignPackage(buf *packages_module.HashedBuffer, privateKey string) (*packages_module.HashedBuffer, error) {

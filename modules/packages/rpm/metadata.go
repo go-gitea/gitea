@@ -11,7 +11,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/validation"
 
-	"github.com/silverwind/go-rpmutils"
+	"github.com/sassoftware/go-rpmutils"
 )
 
 const (

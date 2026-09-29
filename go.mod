@@ -82,8 +82,8 @@ require (
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
+	github.com/sassoftware/go-rpmutils v0.4.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/silverwind/go-rpmutils v0.4.1-0.20260929103815-ac29049bef9a // until https://github.com/sassoftware/go-rpmutils/pull/44 is released
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/ulikunitz/xz v0.5.17
@@ -266,3 +266,5 @@ ignore (
 	./vendor
 	./web_src
 )
+
+replace github.com/sassoftware/go-rpmutils => github.com/silverwind/go-rpmutils v0.4.1-0.20260925122310-93f304cb3182 // until https://github.com/sassoftware/go-rpmutils/pull/44 is released
