@@ -42,17 +42,19 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	// A tree with two entries sharing the same name is an fsck "duplicateEntries" error: readers that
-	// look up a single blob (e.g. the web UI) and readers that materialize the whole tree (e.g. checkout,
-	// archive) disagree on which entry wins, so such objects must never be accepted from a push.
+	// reject malformed objects on push and fetch, e.g. duplicate tree entries
+	// that the web UI and checkout can resolve differently
 	if err := configSet(ctx, "transfer.fsckObjects", "true"); err != nil {
 		return err
 	}
-	// add fsck options to ignore
+	// ignore harmless issues found in real-world histories, same as Gitaly:
+	// https://gitlab.com/gitlab-org/gitaly/-/blob/bd3bba454181f52331cca441b3417bbd2de4b1cb/internal/git/gitcmd/command_description.go#L506-547
 	for _, prefix := range []string{"fsck", "fetch.fsck", "receive.fsck"} {
-		// See https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/git/gitcmd/command_description.go#L506-539
-		// for details
-		for _, key := range []string{"badTimezone", "missingSpaceBeforeDate", "zeroPaddedFilemode"} {
+		for _, key := range []string{
+			"badTimezone",            // written by a bug in old git versions
+			"missingSpaceBeforeDate", // mostly signatures without a date
+			"zeroPaddedFilemode",     // written by old git versions
+		} {
 			if err := configSet(ctx, fmt.Sprintf("%s.%s", prefix, key), "ignore"); err != nil {
 				return err
 			}
