@@ -36,6 +36,7 @@ type Features struct {
 	SupportCheckAttrOnBare     bool           // >= 2.40
 	SupportCatFileBatchCommand bool           // >= 2.36, support `git cat-file --batch-command`
 	SupportGitMergeTree        bool           // >= 2.40 // we also need "--merge-base"
+	SupportConfigEnv           bool           // >= 2.31, support GIT_CONFIG_COUNT/GIT_CONFIG_KEY_n/GIT_CONFIG_VALUE_n
 }
 
 type GlobalConfigStruct struct {
@@ -89,6 +90,7 @@ func loadGitVersionFeatures() (*Features, error) {
 	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
 	features.SupportCatFileBatchCommand = features.CheckVersionAtLeast("2.36")
 	features.SupportGitMergeTree = features.CheckVersionAtLeast("2.40") // we also need "--merge-base"
+	features.SupportConfigEnv = features.CheckVersionAtLeast("2.31")
 	return features, nil
 }
 

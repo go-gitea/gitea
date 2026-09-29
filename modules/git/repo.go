@@ -244,13 +244,21 @@ type PushOptions struct {
 	Force          bool
 	ForceWithLease string
 	Mirror         bool
+	Configs        []ConfigEntry // passed as "git -c" options
 	Env            []string
 	Timeout        time.Duration
+}
+
+type ConfigEntry struct {
+	Key, Value string
 }
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	cmd := gitcmd.NewCommand("push")
+	for _, c := range opts.Configs {
+		cmd.AddConfig(c.Key, c.Value)
+	}
 	if opts.ForceWithLease != "" {
 		cmd.AddOptionFormat("--force-with-lease=%s", opts.ForceWithLease)
 	} else if opts.Force {
