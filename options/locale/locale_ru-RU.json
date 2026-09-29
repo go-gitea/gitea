@@ -2801,6 +2801,7 @@
   "actions.status.cancelled": "Отменено",
   "actions.status.skipped": "Пропущено",
   "actions.status.blocked": "Заблокировано",
+  "actions.status.pending": "Ожидание",
   "actions.runners": "Раннеры",
   "actions.runners.runner_manage_panel": "Управление раннерами",
   "actions.runners.new": "Создать новый раннер",

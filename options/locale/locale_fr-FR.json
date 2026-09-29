@@ -3760,6 +3760,7 @@
   "actions.status.cancelling": "Annulation",
   "actions.status.skipped": "Ignoré",
   "actions.status.blocked": "Bloqué",
+  "actions.status.pending": "En attente",
   "actions.runners": "Opérateurs",
   "actions.runners.runner_manage_panel": "Gestion des opérateurs",
   "actions.runners.new": "Créer un nouvel opérateur",

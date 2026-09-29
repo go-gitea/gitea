@@ -1665,6 +1665,7 @@
   "packages.terraform.unlock": "Lås upp",
   "packages.owner.settings.cleanuprules.enabled": "Aktiv",
   "secrets.creation.description": "Beskrivning",
+  "actions.status.pending": "Väntande",
   "actions.runners.name": "Namn",
   "actions.runners.owner_type": "Typ",
   "actions.runners.description": "Beskrivning",

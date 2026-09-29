@@ -3743,6 +3743,7 @@
   "actions.status.cancelling": "キャンセル中",
   "actions.status.skipped": "スキップされました",
   "actions.status.blocked": "ブロックされました",
+  "actions.status.pending": "保留",
   "actions.runners": "ランナー",
   "actions.runners.runner_manage_panel": "ランナーの管理",
   "actions.runners.new": "新しいランナーを作成",
