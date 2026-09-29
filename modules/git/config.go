@@ -45,8 +45,18 @@ func syncGitConfig(ctx context.Context) (err error) {
 	// A tree with two entries sharing the same name is an fsck "duplicateEntries" error: readers that
 	// look up a single blob (e.g. the web UI) and readers that materialize the whole tree (e.g. checkout,
 	// archive) disagree on which entry wins, so such objects must never be accepted from a push.
-	if err := configSet(ctx, "receive.fsckObjects", "true"); err != nil {
+	if err := configSet(ctx, "transfer.fsckObjects", "true"); err != nil {
 		return err
+	}
+	// add fsck options to ignore
+	for _, prefix := range []string{"fsck", "fetch.fsck", "receive.fsck"} {
+		// See https://gitlab.com/gitlab-org/gitaly/-/blob/master/internal/git/gitcmd/command_description.go#L506-539
+		// for details
+		for _, key := range []string{"badTimezone", "missingSpaceBeforeDate", "zeroPaddedFilemode"} {
+			if err := configSet(ctx, fmt.Sprintf("%s.%s", prefix, key), "ignore"); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := configSet(ctx, "core.commitGraph", "true"); err != nil {
