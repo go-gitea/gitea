@@ -752,6 +752,9 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *re
 
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequest) (_ string, err error) {
+	if pr.MergeBase == "" { // no commit range to list without a merge base
+		return "", nil
+	}
 	if err := pr.LoadIssue(ctx); err != nil {
 		return "", err
 	}
@@ -784,10 +787,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		headCommitRef = git.RefNameFromCommit(pr.HeadCommitID)
 	}
 
-	var mergeBaseRef git.RefName // empty lists all head commits
-	if pr.MergeBase != "" {
-		mergeBaseRef = git.RefNameFromCommit(pr.MergeBase)
-	}
+	mergeBaseRef := git.RefNameFromCommit(pr.MergeBase)
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 

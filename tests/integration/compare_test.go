@@ -238,6 +238,7 @@ func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
 
 	unrelated := createPull("unrelated-history")
+	assert.False(t, unrelated.Mergeable)
 	for link, filename := range map[string]string{
 		fmt.Sprintf("/user2/repo1/pulls/%d/files", rewrittenBase.Index):                      "LICENSE",
 		fmt.Sprintf("/user2/repo1/pulls/%d/files", unrelated.Index):                          "file2.txt",
@@ -249,8 +250,12 @@ func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 		assert.Equal(t, []string{"1", "1"}, []string{labels.Eq(1).Text(), labels.Eq(2).Text()})
 	}
 	session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d", unrelated.Index), http.StatusOK)
-	assert.Contains(t, session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d.diff", unrelated.Index), http.StatusOK).Body.String(), "+++ b/file2.txt")
-	assert.Len(t, DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/files", unrelated.Index)).AddTokenAuth(token), http.StatusOK), []*api.ChangedFile{}), 1)
+	for _, suffix := range []string{".diff", ".patch"} {
+		assert.Contains(t, session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d%s", unrelated.Index, suffix), http.StatusOK).Body.String(), "+++ b/file2.txt")
+	}
+	for _, endpoint := range []string{"files", "commits"} {
+		assert.Len(t, DecodeJSON(t, MakeRequest(t, NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/pulls/%d/%s", unrelated.Index, endpoint).AddTokenAuth(token), http.StatusOK), []map[string]any{}), 1)
+	}
 	MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", unrelated.Index), &forms.MergePullRequestForm{Do: "rebase"}).AddTokenAuth(token), http.StatusMethodNotAllowed)
 	MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/update?style=rebase", rewrittenBase.Index)).AddTokenAuth(token), http.StatusUnprocessableEntity)
 }
