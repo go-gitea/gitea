@@ -100,7 +100,7 @@ func Users(ctx *context.Context) {
 		authSourceFilterOptions = append(authSourceFilterOptions, &authSourceFilterOption{
 			Value:    strconv.FormatInt(source.ID, 10),
 			Label:    source.Name,
-			Selected: sourceIDFilter.Value() == source.ID,
+			Selected: sourceIDFilter.Has() && sourceIDFilter.Value() == source.ID,
 		})
 	}
 	ctx.Data["HasAuthSources"] = len(sources) > 0
