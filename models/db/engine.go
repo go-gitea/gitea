@@ -122,10 +122,85 @@ func ResetModels() {
 
 // SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
-	_, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{
-		WarnIfDatabaseColumnMissed: true,
-	}, registeredModels...)
-	return err
+	var beans, sameColumnIndexBeans []any
+	var sameColumnIndexTables []*schemas.Table
+	for _, bean := range registeredModels {
+		table, err := xormEngine.TableInfo(bean)
+		if err != nil {
+			return err
+		}
+		if hasSameColumnIndexes(table) {
+			sameColumnIndexBeans = append(sameColumnIndexBeans, bean)
+			sameColumnIndexTables = append(sameColumnIndexTables, table)
+		} else {
+			beans = append(beans, bean)
+		}
+	}
+
+	opts := xorm.SyncOptions{WarnIfDatabaseColumnMissed: true}
+	if _, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(opts, beans...); err != nil {
+		return err
+	}
+	if len(sameColumnIndexBeans) == 0 {
+		return nil
+	}
+
+	// xorm pairs indexes by column set regardless of name and order, so it can drop one of two
+	// indexes over the same columns (https://github.com/go-gitea/gitea/issues/39244). Sync those by name instead.
+	opts.IgnoreIndices = true
+	if _, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(opts, sameColumnIndexBeans...); err != nil {
+		return err
+	}
+	for _, table := range sameColumnIndexTables {
+		if err := syncIndexesByName(table); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func hasSameColumnIndexes(table *schemas.Table) bool {
+	for name, index := range table.Indexes {
+		for otherName, other := range table.Indexes {
+			if name != otherName && index.Type == schemas.IndexType && index.Equal(other) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func syncIndexesByName(table *schemas.Table) error {
+	dialect := xormEngine.Dialect()
+	tableName := dialects.TableNameWithSchema(dialect, table.Name)
+	existing, err := dialect.GetIndexes(xormEngine.DB(), context.Background(), table.Name)
+	if err != nil {
+		return err
+	}
+	for name, index := range existing {
+		if index.Type != schemas.IndexType {
+			continue
+		}
+		if declared, ok := table.Indexes[name]; ok && declared.Type == schemas.IndexType && declared.Equal(index) {
+			continue
+		}
+		if _, err := xormEngine.Exec(dialect.DropIndexSQL(tableName, index)); err != nil {
+			return err
+		}
+		delete(existing, name)
+	}
+	for name, index := range table.Indexes {
+		if index.Type != schemas.IndexType {
+			continue
+		}
+		if _, ok := existing[name]; ok {
+			continue
+		}
+		if _, err := xormEngine.Exec(dialect.CreateIndexSQL(tableName, index)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // NamesToBean return a list of beans or an error
