@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
@@ -93,7 +94,10 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	_ = m.GetRepository(ctx)
+	if m.GetRepository(ctx) == nil {
+		log.Error("GetRepository [%d]: repository not found", mirrorID)
+		return false
+	}
 
 	m.LastError = ""
 
@@ -157,6 +161,14 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
+
+		sshEnvs, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
+		if err != nil {
+			return fmt.Errorf("SetupManagedSSHAgent failed: %w", err)
+		}
+		defer cleanup()
+		envs = append(envs, sshEnvs...)
+
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
