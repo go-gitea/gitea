@@ -49,6 +49,14 @@ type ChangeRepoFile struct {
 
 	DeleteRecursively bool // when deleting, work as `git rm -r ...`
 
+	// IsLFSPointer says ContentReader already holds a valid LFS pointer and
+	// must be written to git as-is. Without it, a path whose .gitattributes
+	// routes it through LFS has its content run through GeneratePointer -- so
+	// committing a pointer would store the pointer text as an LFS object and
+	// commit a pointer to that. A pointer to a pointer, which resolves to the
+	// text of a pointer rather than to any recording.
+	IsLFSPointer bool
+
 	Options *RepoFileOptions // FIXME: need to refactor, internal usage only
 }
 
@@ -565,7 +573,7 @@ func writeRepoObjectForModify(ctx context.Context, t *TemporaryUploadRepository,
 		if err != nil {
 			return nil, err
 		}
-		if checkIsLfsFiles[0] {
+		if checkIsLfsFiles[0] && !file.IsLFSPointer {
 			// OK, so we are supposed to LFS this data!
 			ret.LfsPointer, err = lfs.GeneratePointer(file.ContentReader)
 			if err != nil {

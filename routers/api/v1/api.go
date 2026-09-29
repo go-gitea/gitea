@@ -1490,6 +1490,14 @@ func Routes() *web.Router {
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
 				m.Post("/diffpatch", mustEnableEditor, reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ReqChangeRepoFileOptionsAndCheck, repo.ApplyDiffPatch)
+				// Moving a committed blob into LFS cannot be done from
+				// outside: over /contents a pointer is read as content and
+				// re-encoded into a pointer to a pointer, and re-committing a
+				// file's own bytes is identical content and makes no commit.
+				// Here the bytes never leave Gitea, so there is no body and no
+				// size ceiling.
+				m.Post("/lfs/promote", reqToken(), reqRepoWriter(unit.TypeCode),
+					bind(api.PromoteToLFSOptions{}), context.ReferencesGitRepo(false), repo.PromoteToLFS)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)
