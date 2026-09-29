@@ -63,7 +63,7 @@ func newServer(p *policy.Policy, auth string, proxyTLS *tls.Config) *server {
 	transport := p.NewHTTPTransport()
 	transport.Proxy = s.upstreamProxy
 	transport.TLSClientConfig = s.proxyTLS.Clone() // the transport adds its ALPN protocols to the config it gets
-	transport.ReadBufferSize = 64*1024
+	transport.ReadBufferSize = 64 * 1024
 	s.reverseProxy = &httputil.ReverseProxy{
 		Rewrite:       func(*httputil.ProxyRequest) {},
 		Transport:     transport,
