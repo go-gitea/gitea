@@ -122,9 +122,10 @@ function compareStatusWorstFirst(a: ActionsStatus, b: ActionsStatus): number {
     if (s === 'running') return 2;
     if (s === 'waiting') return 3;
     if (s === 'blocked') return 4;
-    if (s === 'success') return 5;
-    if (s === 'skipped') return 6;
-    return 7;
+    if (s === 'pending') return 5;
+    if (s === 'success') return 6;
+    if (s === 'skipped') return 7;
+    return 8;
   };
   return rank(a) - rank(b);
 }

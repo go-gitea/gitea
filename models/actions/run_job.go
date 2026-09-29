@@ -116,7 +116,7 @@ type ActionRunJob struct {
 	//   - JSON object  : explicit mapping {alias: source_name}; names only, no values.
 	// Only set when IsReusableCaller is true.
 	CallSecrets string `xorm:"LONGTEXT"`
-	// CallPayload is the JSON-encoded WorkflowCallPayload exposed to children as gitea.event.
+	// CallPayload is the JSON-encoded WorkflowCallPayload.
 	// Populated atomically with IsExpanded at the end of expandReusableWorkflowCaller.
 	// Only set when IsReusableCaller is true.
 	CallPayload string `xorm:"LONGTEXT"`
@@ -622,7 +622,7 @@ func RefreshReusableCallerStatus(ctx context.Context, caller *ActionRunJob) erro
 func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	allSuccessOrSkipped := len(jobs) != 0
 	allSkipped := len(jobs) != 0
-	var hasFailure, hasCancelled, hasCancelling, hasWaiting, hasRunning, hasBlocked bool
+	var hasFailure, hasCancelled, hasCancelling, hasWaiting, hasRunning, hasBlocked, hasPending bool
 	for _, job := range jobs {
 		// A failed job with continue-on-error:true does not fail the workflow run.
 		// It counts as a "continued failure" and is treated like success for aggregation.
@@ -635,6 +635,7 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 		hasWaiting = hasWaiting || job.Status == StatusWaiting
 		hasRunning = hasRunning || job.Status == StatusRunning
 		hasBlocked = hasBlocked || job.Status == StatusBlocked
+		hasPending = hasPending || job.Status == StatusPending
 	}
 	switch {
 	case allSkipped:
@@ -648,9 +649,11 @@ func AggregateJobStatus(jobs []*ActionRunJob) Status {
 	case hasWaiting:
 		return StatusWaiting
 	case hasBlocked:
-		// Blocked is still a pending state, so it should outrank terminal
+		// Blocked is still an unfinished state, so it should outrank terminal
 		// statuses like cancelled/failure when no job is waiting or running.
 		return StatusBlocked
+	case hasPending:
+		return StatusRunning // a run with only pending jobs left is still in progress
 	case hasCancelled:
 		if hasFailure && hasFailFastMatrixFailure(jobs) {
 			return StatusFailure
@@ -721,6 +724,20 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 	return cancelledJobs, nil
 }
 
+// GetAncestorCallerIDs returns the IDs of the reusable workflow callers the job is nested in.
+func GetAncestorCallerIDs(ctx context.Context, job *ActionRunJob) (container.Set[int64], error) {
+	ids := make(container.Set[int64])
+	for parentID := job.ParentJobID; parentID != 0; {
+		parent, err := GetRunJobByRunAndID(ctx, job.RunID, parentID)
+		if err != nil {
+			return nil, fmt.Errorf("load caller %d: %w", parentID, err)
+		}
+		ids.Add(parent.ID)
+		parentID = parent.ParentJobID
+	}
+	return ids, nil
+}
+
 func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) (jobsToCancel []*ActionRunJob, _ error) {
 	if job.RawConcurrency == "" {
 		return nil, nil
@@ -732,16 +749,15 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		return nil, nil
 	}
 
-	statusFindOption := []Status{StatusWaiting, StatusBlocked}
-	if job.ConcurrencyCancel {
-		statusFindOption = append(statusFindOption, StatusRunning)
-		statusFindOption = append(statusFindOption, StatusCancelling)
-	}
-	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, statusFindOption)
+	attempts, jobs, err := getConcurrencyEntriesToReplace(ctx, job.RepoID, job.ConcurrencyGroup, job.ConcurrencyCancel)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
-	jobs = slices.DeleteFunc(jobs, func(j *ActionRunJob) bool { return j.ID == job.ID })
+	callerIDs, err := GetAncestorCallerIDs(ctx, job)
+	if err != nil {
+		return nil, err
+	}
+	jobs = slices.DeleteFunc(jobs, func(j *ActionRunJob) bool { return j.ID == job.ID || callerIDs.Contains(j.ID) })
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group
