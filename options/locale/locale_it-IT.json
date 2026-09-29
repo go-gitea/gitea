@@ -2274,6 +2274,7 @@
   "packages.owner.settings.cleanuprules.enabled": "Attivo",
   "secrets.creation.description": "Descrizione",
   "audit.details": "Dettagli",
+  "actions.status.pending": "In sospeso",
   "actions.runners.name": "Nome",
   "actions.runners.owner_type": "Tipo",
   "actions.runners.description": "Descrizione",
@@ -2284,5 +2285,6 @@
   "actions.runs.summary": "Riepilogo",
   "actions.workflow.scope_owner": "Proprietario",
   "actions.workflow.required": "Richiesto",
+  "actions.job_queue.filter_repo_no_select": "Tutte le repository",
   "actions.general.token_permissions.mode.restricted": "Limitato"
 }

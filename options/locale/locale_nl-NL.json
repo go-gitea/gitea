@@ -1992,6 +1992,7 @@
   "packages.settings.link.button": "Repository link bijwerken",
   "packages.owner.settings.cleanuprules.enabled": "Ingeschakeld",
   "secrets.creation.description": "Omschrijving",
+  "actions.status.pending": "In behandeling",
   "actions.runners.name": "Naam",
   "actions.runners.description": "Omschrijving",
   "actions.runners.task_list.repository": "Opslagplaats",
@@ -2000,5 +2001,6 @@
   "actions.runs.summary": "Overzicht",
   "actions.workflow.scope_owner": "Eigenaar",
   "actions.workflow.required": "Vereist",
+  "actions.job_queue.filter_repo_no_select": "Alle repositories",
   "actions.general.token_permissions.mode.restricted": "Beperkt"
 }
