@@ -233,12 +233,12 @@ async function loadTabItems() {
         <input name="search" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
       </div>
       <div v-if="showTabBranches" class="branch-tag-tab">
-        <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
+        <button type="button" class="btn branch-tag-item" :class="{active: selectedTab === 'branches'}" @click="handleTabSwitch('branches')">
           <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
-        </a>
-        <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
+        </button>
+        <button v-if="showTabTags" type="button" class="btn branch-tag-item" :class="{active: selectedTab === 'tags'}" @click="handleTabSwitch('tags')">
           <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
-        </a>
+        </button>
       </div>
       <div class="branch-tag-divider"/>
       <div class="scrolling menu" ref="elScrollContainer">

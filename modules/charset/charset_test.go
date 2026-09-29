@@ -245,3 +245,10 @@ func TestToUTF8WithFallbackReader(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultDetectedCharsetsOrder(t *testing.T) {
+	for _, charsetName := range setting.DefaultDetectedCharsetsOrder() {
+		e, _ := Lookup(charsetName)
+		assert.NotNil(t, e, "charset %s is not registered", charsetName)
+	}
+}

@@ -1,8 +1,6 @@
 // Copyright 2018 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// Package cmd provides subcommands to the gitea binary - such as "web" or
-// "admin".
 package cmd
 
 import (
@@ -22,8 +20,8 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-// argsSet checks that all the required arguments are set. args is a list of
-// arguments that must be set in the passed Context.
+// argsSet checks that all the required arguments are set.
+// args is a list of arguments that must be set in the command context.
 func argsSet(c *cli.Command, args ...string) error {
 	for _, a := range args {
 		if !c.IsSet(a) {
@@ -140,4 +138,12 @@ func isValidDefaultSubCommand(cmd *cli.Command) (string, bool) {
 		return args[0], false
 	}
 	return "", true
+}
+
+func cprintf(c *cli.Command, format string, args ...any) {
+	_, _ = fmt.Fprintf(c.Writer, format, args...)
+}
+
+func cprintln(c *cli.Command, args ...any) {
+	_, _ = fmt.Fprintln(c.Writer, args...)
 }

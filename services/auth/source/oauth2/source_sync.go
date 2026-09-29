@@ -40,8 +40,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		Expired:         true,
 		LoginSourceID:   source.AuthSource.ID,
 	}
-
-	return user_model.IterateExternalLogin(ctx, opts, func(ctx context.Context, u *user_model.ExternalLoginUser) error {
+	return db.IterateByColumn(ctx, "external_id", opts.ToConds(), func(ctx context.Context, u *user_model.ExternalLoginUser) error {
 		return source.refresh(ctx, provider, u)
 	})
 }

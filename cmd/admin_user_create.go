@@ -44,8 +44,8 @@ func microcmdUserCreate() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "user-type",
-				Usage: "Set user's type: individual or bot",
-				Value: "individual",
+				Usage: "Set user's type: User or Bot",
+				Value: "User",
 			},
 			&cli.StringFlag{
 				Name:  "password",
@@ -105,20 +105,16 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
 	setting.LoadSettings()
 
-	userTypes := map[string]user_model.UserType{
-		"individual": user_model.UserTypeIndividual,
-		"bot":        user_model.UserTypeBot,
-	}
-	userType, ok := userTypes[c.String("user-type")]
-	if !ok {
-		return fmt.Errorf("invalid user type: %s", c.String("user-type"))
+	userType, err := parseUserTypeFlag(c.String("user-type"))
+	if err != nil {
+		return err
 	}
 	if userType != user_model.UserTypeIndividual {
-		// Some other commands like "change-password" also only support individual users.
+		// Some other commands like "change-password" also only support regular user accounts.
 		// It needs to clarify the "password" behavior for bot users in the future.
 		// At the moment, we do not allow setting password for bot users.
 		if c.IsSet("password") || c.IsSet("random-password") {
-			return errors.New("password can only be set for individual users")
+			return errors.New("password can only be set for user accounts")
 		}
 	}
 
@@ -152,7 +148,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 			return err
 		}
 		// codeql[disable-next-line=go/clear-text-logging]
-		fmt.Printf("generated random password is '%s'\n", password)
+		cprintf(c, "generated random password is '%s'\n", password)
 	} else if userType == user_model.UserTypeIndividual {
 		return errors.New("must set either password or random-password flag")
 	}
@@ -162,7 +158,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	mustChangePassword := userType == user_model.UserTypeIndividual
 	if c.IsSet("must-change-password") {
 		if userType != user_model.UserTypeIndividual {
-			return errors.New("must-change-password flag can only be set for individual users")
+			return errors.New("must-change-password flag can only be set for user accounts")
 		}
 		// if the flag is set, use the value provided by the user
 		mustChangePassword = c.Bool("must-change-password")
@@ -228,7 +224,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %w", err)
 	}
-	fmt.Printf("New user '%s' has been successfully created!\n", username)
+	cprintf(c, "New user '%s' has been successfully created!\n", username)
 
 	// create the access token
 	if accessTokenScope != "" {
@@ -236,7 +232,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		if err := auth_model.NewAccessToken(ctx, t); err != nil {
 			return err
 		}
-		fmt.Printf("Access token was successfully created... %s\n", t.Token)
+		cprintf(c, "Access token was successfully created... %s\n", t.Token)
 	}
 	return nil
 }

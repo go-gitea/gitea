@@ -23,7 +23,7 @@ go test -run '^TestName$' ./modulepath/
 make test-backend#TestName
 ```
 
-Frontend unit tests run with [Vitest](https://vitest.dev/):
+Frontend unit tests run with [Vitest](https://vitest.dev/) browser mode:
 
 ```bash
 make test-frontend
@@ -110,6 +110,13 @@ List the available job names, then run a single one:
 gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
 gitea-runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
+
+## Recorded API responses
+
+Repository migration unit and integration tests replay API responses recorded under
+`_mock_data/`, so they run offline. Setting the environment variables a test reads, usually
+API credentials, makes it record from the live API instead. To re-record, delete the test's
+`_mock_data` directory, run the test with those variables set, and update its assertions.
 
 ## End-to-end tests
 

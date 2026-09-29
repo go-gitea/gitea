@@ -29,15 +29,13 @@ function scrollToAnchor(encodedId?: string): void {
   if (!elemId) return;
 
   const prefixedId = addPrefix(elemId);
-  // eslint-disable-next-line unicorn/prefer-query-selector
-  let el = document.getElementById(prefixedId);
+  let el = document.querySelector<HTMLElement>(`#${CSS.escape(prefixedId)}`);
 
   // check for matching user-generated `a[name]`
   el = el ?? document.querySelector(`a[name="${CSS.escape(prefixedId)}"]`);
 
   // compat for links with old 'user-content-' prefixed hashes
-  // eslint-disable-next-line unicorn/prefer-query-selector
-  el = (!el && hasPrefix(elemId)) ? document.getElementById(elemId) : el;
+  el = (!el && hasPrefix(elemId)) ? document.querySelector<HTMLElement>(`#${CSS.escape(elemId)}`) : el;
 
   el?.scrollIntoView();
 }

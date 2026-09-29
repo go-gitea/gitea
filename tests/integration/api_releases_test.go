@@ -424,13 +424,13 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 			resp := performUpload(t, assetURL, bufImageBytes, http.StatusCreated)
 			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, filename, attachment.Name)
-			assert.EqualValues(t, 104, attachment.Size)
+			assert.EqualValues(t, len(bufImageBytes), attachment.Size)
 		})
 		t.Run("UploadWithName", func(t *testing.T) {
 			resp := performUpload(t, assetURL+"?name=test-asset", bufImageBytes, http.StatusCreated)
 			attachment := DecodeJSON(t, resp, &api.Attachment{})
 			assert.Equal(t, "test-asset", attachment.Name)
-			assert.EqualValues(t, 104, attachment.Size)
+			assert.EqualValues(t, len(bufImageBytes), attachment.Size)
 		})
 	})
 
@@ -449,6 +449,6 @@ func TestAPIUploadAssetRelease(t *testing.T) {
 		attachment := DecodeJSON(t, resp, &api.Attachment{})
 
 		assert.Equal(t, "stream.bin", attachment.Name)
-		assert.EqualValues(t, 104, attachment.Size)
+		assert.EqualValues(t, len(bufImageBytes), attachment.Size)
 	})
 }

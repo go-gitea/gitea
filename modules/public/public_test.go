@@ -28,7 +28,7 @@ func TestParseAcceptEncoding(t *testing.T) {
 
 	for _, kase := range kases {
 		t.Run(kase.Header, func(t *testing.T) {
-			assert.EqualValues(t, kase.Expected, parseAcceptEncoding(kase.Header))
+			assert.Equal(t, kase.Expected, parseAcceptEncoding(kase.Header))
 		})
 	}
 }

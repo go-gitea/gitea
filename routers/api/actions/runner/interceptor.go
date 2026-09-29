@@ -5,7 +5,6 @@ package runner
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"strings"
 	"time"
@@ -43,7 +42,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		if subtle.ConstantTimeCompare([]byte(runner.TokenHash), []byte(auth_model.HashToken(token, runner.TokenSalt))) != 1 {
+		if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 

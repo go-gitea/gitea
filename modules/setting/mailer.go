@@ -79,7 +79,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	deprecatedSetting(rootCfg, "mailer", "MAILER_TYPE", "mailer", "PROTOCOL", "v1.19.0")
 	if sec.HasKey("MAILER_TYPE") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("MAILER_TYPE").String() == "sendmail" {
-			sec.Key("PROTOCOL").MustString("sendmail")
+			sec.Key("PROTOCOL").MustString("sendmail") // FIXME: INI-MUST-SIDE-EFFECT
 		}
 	}
 
@@ -95,32 +95,32 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		if addr == "" {
 			addr = "127.0.0.1"
 		}
-		sec.Key("SMTP_ADDR").MustString(addr)
-		sec.Key("SMTP_PORT").MustString(port)
+		sec.Key("SMTP_ADDR").MustString(addr) // FIXME: INI-MUST-SIDE-EFFECT
+		sec.Key("SMTP_PORT").MustString(port) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	deprecatedSetting(rootCfg, "mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL", "v1.19.0")
 	if sec.HasKey("IS_TLS_ENABLED") && !sec.HasKey("PROTOCOL") {
 		if sec.Key("IS_TLS_ENABLED").MustBool() {
-			sec.Key("PROTOCOL").MustString("smtps")
+			sec.Key("PROTOCOL").MustString("smtps") // FIXME: INI-MUST-SIDE-EFFECT
 		} else {
-			sec.Key("PROTOCOL").MustString("smtp+starttls")
+			sec.Key("PROTOCOL").MustString("smtp+starttls") // FIXME: INI-MUST-SIDE-EFFECT
 		}
 	}
 
 	deprecatedSetting(rootCfg, "mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO", "v1.19.0")
 	if sec.HasKey("DISABLE_HELO") && !sec.HasKey("ENABLE_HELO") {
-		sec.Key("ENABLE_HELO").MustBool(!sec.Key("DISABLE_HELO").MustBool())
+		sec.Key("ENABLE_HELO").MustBool(!sec.Key("DISABLE_HELO").MustBool()) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	deprecatedSetting(rootCfg, "mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT", "v1.19.0")
 	if sec.HasKey("SKIP_VERIFY") && !sec.HasKey("FORCE_TRUST_SERVER_CERT") {
-		sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(sec.Key("SKIP_VERIFY").MustBool())
+		sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(sec.Key("SKIP_VERIFY").MustBool()) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	deprecatedSetting(rootCfg, "mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT", "v1.19.0")
 	if sec.HasKey("USE_CERTIFICATE") && !sec.HasKey("USE_CLIENT_CERT") {
-		sec.Key("USE_CLIENT_CERT").MustBool(sec.Key("USE_CERTIFICATE").MustBool())
+		sec.Key("USE_CLIENT_CERT").MustBool(sec.Key("USE_CERTIFICATE").MustBool()) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	deprecatedSetting(rootCfg, "mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE", "v1.19.0")
@@ -135,7 +135,7 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 
 	deprecatedSetting(rootCfg, "mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT", "v1.19.0")
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") && !sec.HasKey("SEND_AS_PLAIN_TEXT") {
-		sec.Key("SEND_AS_PLAIN_TEXT").MustBool(!sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false))
+		sec.Key("SEND_AS_PLAIN_TEXT").MustBool(!sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	if sec.HasKey("PROTOCOL") && sec.Key("PROTOCOL").String() == "smtp+startls" {
@@ -144,15 +144,15 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 	}
 
 	// Set default values & validate
-	sec.Key("NAME").MustString(AppName)
+	sec.Key("NAME").MustString(AppName) // FIXME: INI-MUST-SIDE-EFFECT
 	sec.Key("PROTOCOL").In("", []string{"smtp", "smtps", "smtp+starttls", "smtp+unix", "sendmail", "dummy"})
-	sec.Key("ENABLE_HELO").MustBool(true)
-	sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(false)
-	sec.Key("USE_CLIENT_CERT").MustBool(false)
-	sec.Key("SENDMAIL_PATH").MustString("sendmail")
-	sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute)
-	sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true)
-	sec.Key("FROM").MustString(sec.Key("USER").String())
+	sec.Key("ENABLE_HELO").MustBool(true)                     // FIXME: INI-MUST-SIDE-EFFECT
+	sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(false)        // FIXME: INI-MUST-SIDE-EFFECT
+	sec.Key("USE_CLIENT_CERT").MustBool(false)                // FIXME: INI-MUST-SIDE-EFFECT
+	sec.Key("SENDMAIL_PATH").MustString("sendmail")           // FIXME: INI-MUST-SIDE-EFFECT
+	sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute) // FIXME: INI-MUST-SIDE-EFFECT
+	sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true)           // FIXME: INI-MUST-SIDE-EFFECT
+	sec.Key("FROM").MustString(sec.Key("USER").String())      // FIXME: INI-MUST-SIDE-EFFECT
 
 	// Now map the values on to the MailService
 	MailService = &Mailer{}

@@ -49,7 +49,7 @@ func loadLFSFrom(rootCfg ConfigProvider) error {
 		if lfsSec == nil {
 			lfsSec = rootCfg.Section("lfs")
 		}
-		lfsSec.Key("PATH").MustString(val)
+		lfsSec.Key("PATH").MustString(val) // FIXME: INI-MUST-SIDE-EFFECT
 	}
 
 	var err error

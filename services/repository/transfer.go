@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -22,6 +23,7 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -267,13 +269,13 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
-	if err := repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
+	if err := repo_model.WatchRepoAuto(ctx, doer, repo, true); err != nil {
 		return fmt.Errorf("watchRepo: %w", err)
 	}
 
 	if oldOwner.IsOrganization() {
 		// Remove watch for organization.
-		if err := repo_model.WatchRepo(ctx, oldOwner, repo, false); err != nil {
+		if err := repo_model.WatchRepoAuto(ctx, oldOwner, repo, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %w", err)
 		}
 
@@ -352,7 +354,15 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 	}
 
-	return committer.Commit()
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+
+	for _, team := range teams {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, newRepo, "team", team.Name)
+	}
+
+	return nil
 }
 
 // changeRepositoryName changes all corresponding setting from old repository name to new one.
@@ -417,6 +427,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	releaser()
 
 	repo.Name = newRepoName
+
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 
 	return nil
@@ -450,7 +461,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
 		}
 
-		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) {
+		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) || user_model.IsUserBlockedBy(ctx, newOwner, repo.OwnerID) {
 			return user_model.ErrBlockedUser
 		}
 
@@ -471,15 +482,19 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		if err != nil {
 			return err
 		}
-		if !hasAccess {
-			if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
+		grantRecipientTempAccess := !hasAccess
+		if grantRecipientTempAccess {
+			if err := db.Insert(ctx, &repo_model.Collaboration{RepoID: repo.ID, UserID: newOwner.ID, Mode: perm.AccessModeRead}); err != nil {
+				return err
+			}
+			if err := access_model.RecalculateUserAccess(ctx, repo, newOwner.ID); err != nil {
 				return err
 			}
 		}
 
 		// Make repo as pending for transfer
 		repo.Status = repo_model.RepositoryPendingTransfer
-		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams)
+		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, grantRecipientTempAccess)
 	}); err != nil {
 		return err
 	}
@@ -498,7 +513,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 // thus cancel the transfer process.
 // The accepter can reject the transfer.
 func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, repo)
 		if err != nil {
 			return err
@@ -511,6 +526,9 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
+		if err := removeTransferRecipientCollaboration(ctx, repoTransfer); err != nil {
+			return err
+		}
 
 		repo.Status = repo_model.RepositoryReady
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
@@ -518,7 +536,20 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		return repo_model.DeleteRepositoryTransfer(ctx, repo.ID)
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryTransferCancel, repo)
+
+	return nil
+}
+
+func removeTransferRecipientCollaboration(ctx context.Context, repoTransfer *repo_model.RepoTransfer) error {
+	if !repoTransfer.RecipientAccessGranted {
+		return nil
+	}
+	return deleteCollaborationByMode(ctx, repoTransfer.Repo, repoTransfer.Recipient, perm.AccessModeRead)
 }
 
 func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *user_model.User) bool {
@@ -551,13 +582,16 @@ func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *u
 // CancelRepositoryTransfer cancels the repository transfer process. The sender or
 // the users who have admin permission of the original repository can cancel the transfer
 func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.RepoTransfer, doer *user_model.User) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := repoTransfer.LoadAttributes(ctx); err != nil {
 			return err
 		}
 
 		if !canUserCancelTransfer(ctx, repoTransfer, doer) {
 			return util.ErrPermissionDenied
+		}
+		if err := removeTransferRecipientCollaboration(ctx, repoTransfer); err != nil {
+			return err
 		}
 
 		repoTransfer.Repo.Status = repo_model.RepositoryReady
@@ -566,5 +600,11 @@ func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.Repo
 		}
 
 		return repo_model.DeleteRepositoryTransfer(ctx, repoTransfer.RepoID)
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryTransferCancel, repoTransfer.Repo)
+
+	return nil
 }

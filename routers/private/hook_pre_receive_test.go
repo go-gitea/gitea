@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
@@ -19,7 +18,7 @@ import (
 
 // TestPreReceiveCanWriteCodePerBranch ensures the maintainer-edit write grant is evaluated against
 // the exact ref being pushed on every call, derived from that ref rather than shared mutable state.
-// Otherwise a per-branch grant (an open PR with "allow edits from maintainers") could be batched
+// Otherwise, a per-branch grant (an open PR with "allow edits from maintainers") could be batched
 // together with a protected branch or a tag to escalate into full repository write.
 func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
@@ -45,16 +44,12 @@ func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	require.NoError(t, issues_model.NewPullRequest(t.Context(), baseRepo, pr.Issue, nil, nil, pr))
 
 	// The pusher is the base repo owner (the maintainer) with only read access on the head repo.
-	maintainer := baseRepo.Owner
-	headPerm, err := access.GetIndividualUserRepoPermission(t.Context(), headRepo, maintainer)
-	require.NoError(t, err)
-
 	mockCtx, _ := contexttest.MockPrivateContext(t, "/")
-	ctx := &preReceiveContext{
-		PrivateContext: mockCtx,
-		user:           maintainer,
-		userPerm:       headPerm,
-	}
+	ctx := &preReceiveContext{PrivateContext: mockCtx}
+	ctx.SetPathParam("owner", headRepo.OwnerName)
+	ctx.SetPathParam("repo", headRepo.Name)
+	RepoAssignment(ctx.PrivateContext)
+	loadContextDoerPermission(ctx.PrivateContext, baseRepo.OwnerID, "")
 
 	// The granted branch must be writable...
 	assert.True(t, ctx.canWriteCodeRef(git.RefNameFromBranch("granted-branch")))

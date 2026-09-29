@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -25,7 +26,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
-	"github.com/google/uuid"
 	"go.yaml.in/yaml/v4"
 )
 

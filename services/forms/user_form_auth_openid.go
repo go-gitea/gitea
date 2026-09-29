@@ -3,47 +3,25 @@
 
 package forms
 
-import (
-	"net/http"
-
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
-)
+import "gitea.dev/modules/web/middleware"
 
 // SignInOpenIDForm form for signing in with OpenID
 type SignInOpenIDForm struct {
+	middleware.FormDefaultValidator
 	Openid   string `binding:"Required;MaxSize(256)"`
 	Remember bool
 }
 
-// Validate validates the fields
-func (f *SignInOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(ctx, errs, f)
-}
-
 // SignUpOpenIDForm form for signin up with OpenID
 type SignUpOpenIDForm struct {
+	middleware.FormDefaultValidator
 	UserName string `binding:"Required;Username;MaxSize(40)"`
 	Email    string `binding:"Required;Email;MaxSize(254)"`
 }
 
-// Validate validates the fields
-func (f *SignUpOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(ctx, errs, f)
-}
-
 // ConnectOpenIDForm form for connecting an existing account to an OpenID URI
 type ConnectOpenIDForm struct {
+	middleware.FormDefaultValidator
 	UserName string `binding:"Required;MaxSize(254)"`
 	Password string `binding:"Required;MaxSize(255)"`
-}
-
-// Validate validates the fields
-func (f *ConnectOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(ctx, errs, f)
 }

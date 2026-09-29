@@ -87,6 +87,7 @@ type Release struct {
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	PublishedUnix    timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -432,7 +433,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 		// If the names unique, use the URL with the Name instead of the UUID
 		if !hasDuplicateName(release.Attachments) {
 			for _, attachment := range release.Attachments {
-				attachment.CustomDownloadURL = release.Repo.HTMLURL() + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
+				attachment.CustomDownloadURL = release.Repo.HTMLURL(ctx) + "/releases/download/" + url.PathEscape(release.TagName) + "/" + url.PathEscape(attachment.Name)
 			}
 		}
 	}
@@ -473,7 +474,7 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("lower_tag_name", lowerTags).
-		Cols("is_draft", "num_commits", "sha1").
+		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{
 			IsDraft: true,
 		}); err != nil {

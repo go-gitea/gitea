@@ -16,28 +16,22 @@ import (
 
 // env keys for git hooks need
 const (
-	EnvRepoName      = "GITEA_REPO_NAME"
-	EnvRepoUsername  = "GITEA_REPO_USER_NAME"
-	EnvRepoID        = "GITEA_REPO_ID"
-	EnvRepoIsWiki    = "GITEA_REPO_IS_WIKI"
-	EnvPusherName    = "GITEA_PUSHER_NAME"
-	EnvPusherEmail   = "GITEA_PUSHER_EMAIL"
-	EnvPusherID      = "GITEA_PUSHER_ID"
-	EnvKeyID         = "GITEA_KEY_ID" // public key ID
-	EnvDeployKeyID   = "GITEA_DEPLOY_KEY_ID"
-	EnvPRID          = "GITEA_PR_ID"
-	EnvPRIndex       = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
-	EnvPushTrigger   = "GITEA_PUSH_TRIGGER"
-	EnvIsInternal    = "GITEA_INTERNAL_PUSH"
-	EnvAppURL        = "GITEA_ROOT_URL"
-	EnvActionsTaskID = "GITEA_ACTIONS_TASK_ID"
-)
+	EnvRepoName     = "GITEA_REPO_NAME"
+	EnvRepoUsername = "GITEA_REPO_USER_NAME" // owner name
+	EnvRepoID       = "GITEA_REPO_ID"
+	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
 
-type PushTrigger string
+	EnvKeyID = "GITEA_KEY_ID" // public key ID
 
-const (
-	PushTriggerPRMergeToBase    PushTrigger = "pr-merge-to-base"
-	PushTriggerPRUpdateWithBase PushTrigger = "pr-update-with-base"
+	EnvPusherName        = "GITEA_PUSHER_NAME"
+	EnvPusherEmail       = "GITEA_PUSHER_EMAIL"
+	EnvPusherID          = "GITEA_PUSHER_ID"
+	EnvPusherExtDoerData = "GITEA_PUSHER_EXT_DOER_DATA"
+
+	EnvPRID       = "GITEA_PR_ID"
+	EnvPRIndex    = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
+	EnvIsInternal = "GITEA_INTERNAL_PUSH"
+	EnvAppURL     = "GITEA_ROOT_URL"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push
@@ -68,8 +62,8 @@ func DoerPushingEnvironment(doer *user_model.User, repo *repo_model.Repository, 
 	if !doer.KeepEmailPrivate {
 		env = append(env, EnvPusherEmail+"="+doer.Email)
 	}
-	if taskID, isActionsUser := user_model.GetActionsUserTaskID(doer); isActionsUser {
-		env = append(env, EnvActionsTaskID+"="+strconv.FormatInt(taskID, 10))
+	if doer.ExtDoerData != nil {
+		env = append(env, EnvPusherExtDoerData+"="+doer.ExtDoerData.EncodeToString())
 	}
 	return env
 }

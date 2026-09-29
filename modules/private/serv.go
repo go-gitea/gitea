@@ -33,16 +33,18 @@ func ServNoCommand(ctx context.Context, keyID int64) (*asymkey_model.PublicKey, 
 
 // ServCommandResults are the results of a call to the private route serv
 type ServCommandResults struct {
-	IsWiki      bool
-	DeployKeyID int64
-	KeyID       int64  // public key
-	KeyName     string // this field is ambiguous, it can be the name of DeployKey, or the name of the PublicKey
-	UserName    string
-	UserEmail   string
-	UserID      int64
-	OwnerName   string
-	RepoName    string
-	RepoID      int64
+	IsWiki bool
+
+	OwnerName string
+	RepoName  string
+	RepoID    int64
+
+	PublicKeyID int64
+
+	UserName        string
+	UserEmail       string
+	UserID          int64
+	UserExtDoerData string
 
 	RepoStoragePath string
 }

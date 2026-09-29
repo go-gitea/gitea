@@ -21,16 +21,11 @@
   text-align: start;
 }
 
-.ui.disabled.input,
 .ui.input:not(.disabled) input[disabled] {
   opacity: var(--opacity-disabled);
-}
-.ui.disabled.input > input,
-.ui.input:not(.disabled) input[disabled] {
   pointer-events: none;
 }
 
-.ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
 }
@@ -87,20 +82,15 @@
   opacity: 1;
 }
 
-.ui.form .field.error > .ui.action.input > .ui.button,
 .ui.action.input.error > .ui.button {
   border-top: 1px solid var(--color-error-border);
   border-bottom: 1px solid var(--color-error-border);
 }
 
-.ui.action.input > .button,
-.ui.action.input > .buttons {
+.ui.action.input > .button {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-}
-.ui.action.input > .button,
-.ui.action.input > .buttons > .button {
   padding-top: 0.78571429em;
   padding-bottom: 0.78571429em;
   margin: 0;
@@ -114,18 +104,15 @@
 }
 
 .ui.action.input > .dropdown:first-child,
-.ui.action.input > .button:first-child,
-.ui.action.input > .buttons:first-child > .button {
+.ui.action.input > .button:first-child {
   border-radius: 0.28571429rem 0 0 0.28571429rem;
 }
 .ui.action.input > .dropdown:not(:first-child),
-.ui.action.input > .button:not(:first-child),
-.ui.action.input > .buttons:not(:first-child) > .button {
+.ui.action.input > .button:not(:first-child) {
   border-radius: 0;
 }
 .ui.action.input > .dropdown:last-child,
-.ui.action.input > .button:last-child,
-.ui.action.input > .buttons:last-child > .button {
+.ui.action.input > .button:last-child {
   border-radius: 0 0.28571429rem 0.28571429rem 0;
 }
 

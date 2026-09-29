@@ -1,0 +1,89 @@
+<div class="ui attached segment">
+	<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2">
+		{{if .AuditSort}}<input type="hidden" name="sort" value="{{.AuditSort}}">{{end}}
+		<div class="ui small action input tw-flex-1">
+			<input type="text" name="actor" value="{{.AuditFilterActor}}" placeholder="{{ctx.Locale.Tr "audit.filter.actor"}}">
+			{{template "shared/search/button"}}
+		</div>
+		<div class="ui small input">
+			<select class="ui dropdown" name="action">
+				<option value="">{{ctx.Locale.Tr "audit.filter.action"}}</option>
+				{{range $action := .AuditActions}}
+					<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
+				{{end}}
+			</select>
+		</div>
+		<div class="ui small input">
+			<select class="ui dropdown" name="origin">
+				<option value="">{{ctx.Locale.Tr "audit.filter.origin"}}</option>
+				{{range $origin := .AuditOrigins}}
+					<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
+				{{end}}
+			</select>
+		</div>
+	</form>
+</div>
+<div class="ui attached table segment">
+	<table class="ui very basic striped table unstackable">
+		<thead>
+			<tr>
+				<th>{{ctx.Locale.Tr "audit.actor"}}</th>
+				<th>{{ctx.Locale.Tr "audit.scope"}}</th>
+				<th>{{ctx.Locale.Tr "audit.action"}}</th>
+				<th>{{ctx.Locale.Tr "audit.origin"}}</th>
+				<th>{{ctx.Locale.Tr "audit.details"}}</th>
+				<th>{{ctx.Locale.Tr "audit.ip_address"}}</th>
+				<th data-sortt-asc="timestamp_asc" data-sortt-desc="timestamp_desc">{{ctx.Locale.Tr "audit.timestamp"}}{{SortArrow "timestamp_asc" "timestamp_desc" $.AuditSort false}}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{range $event := .AuditEvents}}
+				<tr>
+					<td>
+						{{with $impersonator := $event.Impersonator}}
+							{{if $impersonator.HasLink}}
+								<a href="{{$impersonator.HomeLink}}">{{$impersonator.DisplayName}}</a>
+							{{else}}
+								{{$impersonator.DisplayName}}
+							{{end}}
+							<span class="text small">{{ctx.Locale.Tr "audit.impersonating_as"}}</span>
+						{{end}}
+						{{if $event.Actor.DisplayName}}
+							{{if $event.Actor.HasLink}}
+								<a href="{{$event.Actor.HomeLink}}">{{$event.Actor.DisplayName}}</a>
+							{{else}}
+								{{$event.Actor.DisplayName}}
+							{{end}}
+						{{else}}
+							<span class="text small">{{ctx.Locale.Tr "audit.deleted.actor"}}</span>
+						{{end}}
+						{{if $event.ActorCredential}}
+							<div><code class="text small">{{$event.ActorCredential}}</code></div>
+						{{end}}
+					</td>
+					<td>
+						{{if $event.Scope.DisplayName}}
+							{{if $event.Scope.HasLink}}
+								<a href="{{$event.Scope.HomeLink}}">{{$event.Scope.DisplayName}}</a>
+							{{else}}
+								{{$event.Scope.DisplayName}}
+							{{end}}
+						{{else}}
+							<span class="text small">{{ctx.Locale.Tr "audit.deleted.type" $event.Scope.Type $event.Scope.ID}}</span>
+						{{end}}
+					</td>
+					<td><code>{{$event.Action}}</code></td>
+					<td><code>{{$event.Origin}}</code></td>
+					<td>
+						{{$event.Message}}
+					</td>
+					<td>{{$event.IPAddress}}</td>
+					<td>{{DateUtils.FullTime $event.Time}}</td>
+				</tr>
+			{{else}}
+				<tr><td colspan="7">{{ctx.Locale.Tr "audit.no_events"}}</td></tr>
+			{{end}}
+		</tbody>
+	</table>
+</div>
+{{template "base/paginate" .}}

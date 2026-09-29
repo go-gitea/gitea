@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -100,5 +101,24 @@ func TestAuthenticate(t *testing.T) {
 	t.Run("handleLFSToken allows writes for authorized users", func(t *testing.T) {
 		err := handleLFSTokenTestPerm("upload", 2, repo1, perm_model.AccessModeWrite)
 		assert.NoError(t, err)
+	})
+
+	// a deploy-key doer has no user row, so the token must carry its ext doer data to stay redeemable
+	t.Run("handleLFSToken resolves deploy-key doers", func(t *testing.T) {
+		key, err := deploykey_model.AddDeployKeyToken(t.Context(), repo1.ID, "lfs", perm_model.AccessModeRead)
+		require.NoError(t, err)
+		doer := user_model.NewDeployKeyUserWithKeyID(key.ID)
+		getDoerToken := func(op string) string {
+			s, _ := GetLFSAuthTokenWithBearer(AuthTokenOptions{Op: op, UserID: doer.ID, UserExtDoerData: doer.ExtDoerData.EncodeToString(), RepoID: repo1.ID})
+			_, token, _ := strings.Cut(s, " ")
+			return token
+		}
+
+		u, err := handleLFSToken(ctx, getDoerToken("download"), repo1, perm_model.AccessModeRead)
+		require.NoError(t, err)
+		assert.Equal(t, user_model.DeployKeyUserID, u.ID)
+
+		_, err = handleLFSToken(ctx, getDoerToken("upload"), repo1, perm_model.AccessModeWrite)
+		assert.ErrorContains(t, err, "no permission to access the repository")
 	})
 }

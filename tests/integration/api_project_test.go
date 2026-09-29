@@ -38,9 +38,9 @@ func TestAPIProjects(t *testing.T) {
 	// user2 owns repo1 and is on org3's Owners team, so one token covers all three scopes
 	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization,
 		auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-	// user5 is signed in but is neither an org member nor a repo1 collaborator, and is scoped
+	// user8 is signed in but is neither an org member nor a repo1 collaborator, and is scoped
 	// generously so that permissions rather than token scopes are what denies below
-	outsider := getUserToken(t, "user5", auth_model.AccessTokenScopeWriteIssue,
+	outsider := getUserToken(t, "user8", auth_model.AccessTokenScopeWriteIssue,
 		auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeReadUser)
 
 	for _, scope := range []projectScope{
@@ -262,8 +262,7 @@ func testAPIProjectPermissions(t *testing.T, ownerToken, outsiderToken string) {
 	// fixture project 1 belongs to repo1, so this needs no project of its own
 	const projectURL = "/api/v1/repos/user2/repo1/projects/1"
 
-	title := "hijacked"
-	req := NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: &title}).AddTokenAuth(outsiderToken)
+	req := NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: new("hijacked")}).AddTokenAuth(outsiderToken)
 	MakeRequest(t, req, http.StatusForbidden)
 
 	MakeRequest(t, NewRequest(t, "DELETE", projectURL).AddTokenAuth(outsiderToken), http.StatusForbidden)

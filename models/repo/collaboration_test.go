@@ -73,31 +73,31 @@ func TestRepository_IsOwnerMemberCollaborator(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	// Organisation owner.
-	actual, err := repo_model.IsOwnerMemberCollaborator(t.Context(), repo1, 2)
+	actual, err := repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 2)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	// Team member.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo1, 4)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 4)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	// Normal user.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo1, 1)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo1, 1)
 	assert.NoError(t, err)
 	assert.False(t, actual)
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 
 	// Collaborator.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo2, 4)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo2, 4)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15})
 
 	// Repository owner.
-	actual, err = repo_model.IsOwnerMemberCollaborator(t.Context(), repo3, 2)
+	actual, err = repo_model.HasAccessToRepoCodeUnit(t.Context(), repo3, 2)
 	assert.NoError(t, err)
 	assert.True(t, actual)
 }

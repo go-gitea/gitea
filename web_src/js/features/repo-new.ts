@@ -38,7 +38,7 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
     $repoTemplateDropdown.dropdown('setting', {
       apiSettings: {
         url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${ownerId}`,
-        onResponse(response: any) {
+        onResponse(response: {data: Array<{repository: {full_name: string, id: number}}>}) {
           const results = [];
           results.push({name: '', value: ''}); // empty item means not using template
           for (const tmplRepo of response.data) {
@@ -49,7 +49,6 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
           }
           return {results};
         },
-        cache: false,
       },
     });
   };

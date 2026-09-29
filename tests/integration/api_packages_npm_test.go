@@ -122,8 +122,8 @@ func TestPackageNpm(t *testing.T) {
 		  }`
 	}
 
-	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
-	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.QueryEscape(packageName))
+	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.PathEscape(packageName))
+	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.PathEscape(packageName))
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
@@ -169,23 +169,24 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		rootPaths := []string{
+			fmt.Sprintf("/api/packages/%s/npm/@scope/test-package", user.Name),
+			fmt.Sprintf("/api/packages/%s/npm/@scope%%2ftest-package", user.Name),
+		}
+		for _, root := range rootPaths {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			b, _ := base64.StdEncoding.DecodeString(attachmentData)
+			assert.Equal(t, b, resp.Body.Bytes())
 
-		b, _ := base64.StdEncoding.DecodeString(attachmentData)
-		assert.Equal(t, b, resp.Body.Bytes())
-
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).
-			AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, b, resp.Body.Bytes())
-
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).AddTokenAuth(token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, b, resp.Body.Bytes())
+		}
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(2), pvs[0].DownloadCount)
+		assert.Equal(t, int64(4), pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
@@ -230,6 +231,24 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, "https://example.com/fund", pmv.Funding)
 		assert.Equal(t, map[string]string{"left-pad": "1.x"}, pmv.AcceptDependencies)
 		assert.Empty(t, pmv.Deprecated)
+	})
+
+	t.Run("PackageVersionMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		for _, selector := range []string{packageVersion, packageTag} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, selector)).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			pmv := DecodeJSON(t, resp, &npm.PackageMetadataVersion{})
+			assert.Equal(t, fmt.Sprintf("%s@%s", packageName, packageVersion), pmv.ID)
+			assert.Equal(t, npm.Repository{Type: repoType, URL: repoURL, Directory: repoDirectory}, pmv.Repository)
+		}
+
+		for _, missing := range []string{"9.9.9", "no-such-tag"} {
+			req := NewRequest(t, "GET", root+"/"+missing).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusNotFound)
+		}
 	})
 
 	t.Run("AddTag", func(t *testing.T) {
@@ -443,7 +462,7 @@ func TestPackageNpm(t *testing.T) {
 		// authoritative tarball scan must overrule the claim.
 		claimPackageName := "@scope/test-shrinkwrap-claim"
 		claimVersion := "1.0.0"
-		claimRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(claimPackageName))
+		claimRoot := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.PathEscape(claimPackageName))
 		body := `{
 			"_id": "` + claimPackageName + `",
 			"name": "` + claimPackageName + `",

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/gtprof"
@@ -26,6 +27,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/routers"
 	"gitea.dev/routers/install"
+	"gitea.dev/services/audit"
 
 	"github.com/felixge/fgprof"
 	"github.com/urfave/cli/v3"
@@ -226,7 +228,14 @@ func serveInstalled(c *cli.Command) error {
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
+
+	auditCtx := cliAuditContext(context.Background())
+	log.Info("Audit record output: %s", setting.Audit.RecordOutput)
+	audit.Record(auditCtx, audit_model.SystemStartup, nil, "version", setting.AppVer)
+
 	err := listen(webRoutes, true)
+
+	audit.Record(auditCtx, audit_model.SystemShutdown, nil)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	return err

@@ -80,33 +80,6 @@ func SetLogSQL(ctx context.Context, on bool) ResponseExtra {
 	return requestJSONClientMsg(req, "Log SQL setting set")
 }
 
-// LoggerOptions represents the options for the add logger call
-type LoggerOptions struct {
-	Logger string
-	Writer string
-	Mode   string
-	Config map[string]any
-}
-
-// AddLogger adds a logger
-func AddLogger(ctx context.Context, logger, writer, mode string, config map[string]any) ResponseExtra {
-	reqURL := setting.LocalURL + "api/internal/manager/add-logger"
-	req := newInternalRequestAPI(ctx, reqURL, "POST", LoggerOptions{
-		Logger: logger,
-		Writer: writer,
-		Mode:   mode,
-		Config: config,
-	})
-	return requestJSONClientMsg(req, "Added")
-}
-
-// RemoveLogger removes a logger
-func RemoveLogger(ctx context.Context, logger, writer string) ResponseExtra {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/remove-logger/%s/%s", url.PathEscape(logger), url.PathEscape(writer))
-	req := newInternalRequestAPI(ctx, reqURL, "POST")
-	return requestJSONClientMsg(req, "Removed")
-}
-
 // Processes return the current processes from this gitea instance
 func Processes(ctx context.Context, out io.Writer, flat, noSystem, stacktraces, json bool, cancel string) ResponseExtra {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/processes?flat=%t&no-system=%t&stacktraces=%t&json=%t&cancel-pid=%s", flat, noSystem, stacktraces, json, url.QueryEscape(cancel))

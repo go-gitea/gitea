@@ -69,22 +69,19 @@ func (b *Base) FormBool(key string) bool {
 // FormOptionalBool returns an optional.Some(true) or optional.Some(false) if the value
 // for the provided key exists in the form else it returns optional.None[bool]()
 func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
-	value := b.Req.FormValue(key)
-	if len(value) == 0 {
+	s := b.Req.FormValue(key)
+	if s == "" {
 		return optional.None[bool]()
 	}
-	s := b.Req.FormValue(key)
 	v, _ := strconv.ParseBool(s)
 	v = v || strings.EqualFold(s, "on")
 	return optional.Some(v)
 }
 
-// FormOptionalInt64 returns an optional.Some(int64) if the value for the provided key in the form
-// is a valid int64, else it returns optional.None[int64]() (unlike FormOptionalBool, an invalid
-// value is reported as None instead of the zero value, because 0 is a meaningful ID)
 func (b *Base) FormOptionalInt64(key string) optional.Option[int64] {
-	v, err := strconv.ParseInt(b.Req.FormValue(key), 10, 64)
-	if err != nil {
+	s := b.Req.FormValue(key)
+	v, err := strconv.ParseInt(s, 10, 64)
+	if s == "" || err != nil {
 		return optional.None[int64]()
 	}
 	return optional.Some(v)

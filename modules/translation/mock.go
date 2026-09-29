@@ -14,6 +14,10 @@ type MockLocale struct {
 	Lang, LangName string // these fields are used directly in templates: ctx.Locale.Lang
 }
 
+func (l MockLocale) HasKey(trKey string) bool {
+	return true
+}
+
 var _ Locale = (*MockLocale)(nil)
 
 func (l MockLocale) Language() string {

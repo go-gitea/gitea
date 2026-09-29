@@ -27,6 +27,10 @@ type StarredReposOptions struct {
 	Actor *user_model.User
 }
 
+func (opts *StarredReposOptions) ToOrders() string {
+	return "`repository`.id"
+}
+
 func (opts *StarredReposOptions) ApplyPublicOnly(publicOnly bool) {
 	if publicOnly {
 		opts.IncludePrivate = false
@@ -74,6 +78,10 @@ type WatchedReposOptions struct {
 	// Actor is the user the private repositories are gated on: a private repo is only
 	// returned when Actor still has access to it, even if it was watched while access was granted.
 	Actor *user_model.User
+}
+
+func (opts *WatchedReposOptions) ToOrders() string {
+	return "`repository`.id"
 }
 
 func (opts *WatchedReposOptions) ApplyPublicOnly(publicOnly bool) {

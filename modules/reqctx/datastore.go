@@ -146,8 +146,15 @@ func NewRequestContext(parentCtx context.Context, profDesc string) (_ context.Co
 	}
 }
 
+type TestingT interface {
+	Cleanup(func())
+	Context() context.Context
+}
+
 // NewRequestContextForTest creates a new RequestContext for testing purposes
-// It doesn't add the context to the process manager, nor do cleanup
-func NewRequestContextForTest(parentCtx context.Context) RequestContext {
-	return &requestContext{Context: parentCtx, RequestDataStore: &requestDataStore{values: make(map[any]any)}}
+func NewRequestContextForTest(t TestingT) RequestContext {
+	store := &requestDataStore{values: make(map[any]any)}
+	ret := &requestContext{Context: t.Context(), RequestDataStore: store}
+	t.Cleanup(store.cleanUp)
+	return ret
 }

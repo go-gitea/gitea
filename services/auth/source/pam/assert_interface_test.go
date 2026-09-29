@@ -17,4 +17,4 @@ type sourceInterface interface {
 	auth_model.Config
 }
 
-var _ (sourceInterface) = &pam.Source{}
+var _ sourceInterface = &pam.Source{}

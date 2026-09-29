@@ -73,6 +73,6 @@ func runChangePassword(ctx context.Context, c *cli.Command) error {
 		}
 	}
 
-	fmt.Printf("%s's password has been successfully updated!\n", user.Name)
+	cprintf(c, "%s's password has been successfully updated!\n", user.Name)
 	return nil
 }

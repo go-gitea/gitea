@@ -5,18 +5,19 @@ beforeEach(() => {
 });
 
 test('isGiteaError', () => {
+  const {origin} = window.location;
   expect(isGiteaError('', '')).toBe(true);
   expect(isGiteaError('moz-extension://abc/content.js', '')).toBe(false);
   expect(isGiteaError('safari-extension://abc/content.js', '')).toBe(false);
   expect(isGiteaError('safari-web-extension://abc/content.js', '')).toBe(false);
   expect(isGiteaError('chrome-extension://abc/content.js', '')).toBe(false);
   expect(isGiteaError('https://other-site.com/script.js', '')).toBe(false);
-  expect(isGiteaError('http://localhost:3000/some/page', '')).toBe(true);
-  expect(isGiteaError('http://localhost:3000/assets/js/index.abc123.js', '')).toBe(true);
+  expect(isGiteaError(`${origin}/some/page`, '')).toBe(true);
+  expect(isGiteaError(`${origin}/assets/js/index.abc123.js`, '')).toBe(true);
   expect(isGiteaError('', `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
   expect(isGiteaError('', `Error\n    at https://other-site.com/script.js:1:1`)).toBe(false);
-  expect(isGiteaError('', `Error\n    at http://localhost:3000/assets/js/index.abc123.js:1:1`)).toBe(true);
-  expect(isGiteaError('http://localhost:3000/assets/js/index.js', `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
+  expect(isGiteaError('', `Error\n    at ${origin}/assets/js/index.abc123.js:1:1`)).toBe(true);
+  expect(isGiteaError(`${origin}/assets/js/index.js`, `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
 });
 
 test('showGlobalErrorMessage', () => {

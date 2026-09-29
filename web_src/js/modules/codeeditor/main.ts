@@ -262,7 +262,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
       cm.view.EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
           textarea.value = update.state.doc.toString();
-          textarea.dispatchEvent(new Event('change')); // needed for jquery-are-you-sure
+          textarea.dispatchEvent(new Event('change', {bubbles: true})); // for the areYouSure dirty tracking
         }
       }),
     ],

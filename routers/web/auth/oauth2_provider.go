@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
@@ -21,12 +21,12 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/oauth2_provider"
 
-	"gitea.com/go-chi/binding"
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
@@ -122,7 +122,7 @@ func InfoOAuth(ctx *context.Context) {
 	var accessTokenScope auth.AccessTokenScope
 	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
 		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
-			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
+			accessTokenScope, _, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
 		}
 	}
 
@@ -223,16 +223,6 @@ func oauthDoerAuthorizePreCheck(ctx *context.Context, formState string) bool {
 func AuthorizeOAuth(ctx *context.Context) {
 	form := web.GetForm[*forms.AuthorizationForm](ctx)
 	if !oauthDoerAuthorizePreCheck(ctx, form.State) {
-		return
-	}
-	errs := binding.Errors{}
-	errs = form.Validate(ctx.Req, errs)
-	if len(errs) > 0 {
-		var errstring strings.Builder
-		for _, e := range errs {
-			errstring.WriteString(e.Error() + "\n")
-		}
-		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring.String()))
 		return
 	}
 
@@ -439,6 +429,8 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			}, form.RedirectURI)
 			return
 		}
+
+		audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, "oauth2_application", app.Name, "granted_scope", form.Scope)
 	} else if grant.Scope != form.Scope {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,

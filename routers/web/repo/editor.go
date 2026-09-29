@@ -67,7 +67,7 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 		return nil
 	}
 
-	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanEnableEditor() {
+	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanContentChange() {
 		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.editor.fork_not_editable")
 		ctx.NotFound(nil)
 	}

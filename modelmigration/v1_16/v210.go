@@ -5,16 +5,32 @@ package v1_16
 
 import (
 	"context"
+	"crypto/ecdh"
 	"encoding/base32"
+	"errors"
 	"fmt"
 	"strings"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 
-	"github.com/tstranex/u2f"
 	"xorm.io/xorm/schemas"
 )
+
+func parseU2FRegistration(raw []byte) (keyHandle, publicKey []byte, err error) {
+	if len(raw) < 69 || raw[0] != 0x05 {
+		return nil, nil, errors.New("invalid u2f registration")
+	}
+	pub, err := ecdh.P256().NewPublicKey(raw[1:66])
+	if err != nil {
+		return nil, nil, err
+	}
+	keyHandleLen := int(raw[66])
+	if len(raw) < 67+keyHandleLen {
+		return nil, nil, errors.New("invalid u2f registration key handle")
+	}
+	return raw[67 : 67+keyHandleLen], pub.Bytes(), nil
+}
 
 // v208 migration was completely broken
 func RemigrateU2FCredentials(_ context.Context, x base.EngineMigration) error {
@@ -112,12 +128,7 @@ func RemigrateU2FCredentials(_ context.Context, x base.EngineMigration) error {
 				}
 			}
 			for _, reg := range regs {
-				parsed := new(u2f.Registration)
-				err = parsed.UnmarshalBinary(reg.Raw)
-				if err != nil {
-					continue
-				}
-				pubKey, err := parsed.PubKey.ECDH()
+				keyHandle, publicKey, err := parseU2FRegistration(reg.Raw)
 				if err != nil {
 					continue
 				}
@@ -126,8 +137,8 @@ func RemigrateU2FCredentials(_ context.Context, x base.EngineMigration) error {
 					Name:            reg.Name,
 					LowerName:       strings.ToLower(reg.Name),
 					UserID:          reg.UserID,
-					CredentialID:    base32.HexEncoding.EncodeToString(parsed.KeyHandle),
-					PublicKey:       pubKey.Bytes(),
+					CredentialID:    base32.HexEncoding.EncodeToString(keyHandle),
+					PublicKey:       publicKey,
 					AttestationType: "fido-u2f",
 					AAGUID:          []byte{},
 					SignCount:       reg.Counter,

@@ -154,7 +154,7 @@ type CreateRepoOption struct {
 	// Whether the repository is template
 	Template bool `json:"template"`
 	// Gitignores to use
-	Gitignores string `json:"gitignores"`
+	Gitignores string `json:"gitignores" binding:"MaxSize(1024)"`
 	// License to use
 	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create

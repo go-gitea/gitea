@@ -124,6 +124,8 @@ func FindReposLatestCommitStatuses(ctx context.Context, repos []*repo_model.Repo
 	for i, repo := range repos {
 		if cv := getCommitStatusCache(repo.ID, repo.DefaultBranch); cv != nil {
 			results[i] = &git_model.CommitStatus{
+				RepoID:    repo.ID,
+				Repo:      repo,
 				State:     commitstatus.CommitStatusState(cv.State),
 				TargetURL: cv.TargetURL,
 			}
@@ -163,6 +165,7 @@ func FindReposLatestCommitStatuses(ctx context.Context, repos []*repo_model.Repo
 	for _, summary := range summaryResults {
 		for i, repo := range repos {
 			if repo.ID == summary.RepoID {
+				summary.Repo = repo
 				results[i] = summary
 				repoSHAs = slices.DeleteFunc(repoSHAs, func(repoSHA git_model.RepoSHA) bool {
 					return repoSHA.RepoID == repo.ID
@@ -190,6 +193,7 @@ func FindReposLatestCommitStatuses(ctx context.Context, repos []*repo_model.Repo
 		if results[i] == nil {
 			results[i] = git_model.CalcCommitStatus(repoToItsLatestCommitStatuses[repo.ID])
 			if results[i] != nil {
+				results[i].Repo = repo
 				if err := updateCommitStatusCache(repo.ID, repo.DefaultBranch, results[i].State, results[i].TargetURL); err != nil {
 					log.Error("updateCommitStatusCache[%d:%s] failed: %v", repo.ID, repo.DefaultBranch, err)
 				}

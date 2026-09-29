@@ -94,4 +94,4 @@ func (s *sizeWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-var _ (sessions.Store) = &SessionsStore{}
+var _ sessions.Store = &SessionsStore{}

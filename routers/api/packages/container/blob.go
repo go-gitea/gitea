@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -18,7 +17,6 @@ import (
 	"gitea.dev/modules/log"
 	packages_module "gitea.dev/modules/packages"
 	container_module "gitea.dev/modules/packages/container"
-	"gitea.dev/modules/util"
 	packages_service "gitea.dev/services/packages"
 
 	"github.com/opencontainers/go-digest"
@@ -51,28 +49,10 @@ func saveAsPackageBlobInternal(ctx context.Context, hsr packages_module.HashedSi
 		if err := packages_service.CheckSizeQuotaExceeded(ctx, pci.Creator, pci.Owner, packages_model.TypeContainer, hsr.Size()); err != nil {
 			return err
 		}
-
-		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
+		pb, exists, err = packages_service.GetOrSavePackageBlob(ctx, contentStore, pb, hsr)
 		if err != nil {
-			log.Error("Error inserting package blob: %v", err)
 			return err
 		}
-		// FIXME: Workaround to be removed in v1.20
-		// https://github.com/go-gitea/gitea/issues/19586
-		if exists {
-			err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
-			if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
-				log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
-				exists = false
-			}
-		}
-		if !exists {
-			if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), hsr, hsr.Size()); err != nil {
-				log.Error("Error saving package blob in content store: %v", err)
-				return err
-			}
-		}
-
 		return createFileForBlob(ctx, uploadVersion, pb)
 	})
 	if err != nil {

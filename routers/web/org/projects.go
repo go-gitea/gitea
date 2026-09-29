@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	project_service "gitea.dev/services/projects"
@@ -103,8 +105,7 @@ func Projects(ctx *context.Context) {
 		project.RenderedContent = renderUtils.MarkdownToHtml(project.Description)
 	}
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParamFromRequest(ctx.Req)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(setting.UI.IssuePagingNum).CurPage(page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = canWriteProjects(ctx)
@@ -117,7 +118,7 @@ func Projects(ctx *context.Context) {
 
 func canWriteProjects(ctx *context.Context) bool {
 	if ctx.ContextUser.IsOrganization() {
-		return ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+		return ctx.Org.CanWriteAnyRepoUnit(ctx, unit.TypeProjects)
 	}
 	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
@@ -172,6 +173,7 @@ func NewProjectPost(ctx *context.Context) {
 		ctx.ServerError("NewProject", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectCreate, ctx.ContextUser, "project", newProject.Title, "project_id", newProject.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
 	ctx.Redirect(ctx.ContextUser.HomeLink() + "/-/projects")
@@ -215,6 +217,7 @@ func DeleteProject(ctx *context.Context) {
 	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.ProjectDelete, ctx.ContextUser, "project", p.Title, "project_id", p.ID)
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
@@ -285,6 +288,7 @@ func EditProjectPost(ctx *context.Context) {
 		ctx.ServerError("UpdateProjects", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectUpdate, ctx.ContextUser, "project", p.Title, "project_id", p.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {

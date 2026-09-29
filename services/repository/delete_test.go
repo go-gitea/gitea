@@ -4,6 +4,7 @@
 package repository_test
 
 import (
+	"context"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -54,6 +55,16 @@ func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	assert.NoError(t, repo_service.DeleteOwnerRepositoriesDirectly(t.Context(), user))
+
+	t.Run("RejectedInTransaction", func(t *testing.T) {
+		unittest.PrepareTestEnv(t)
+
+		err := db.WithTx(t.Context(), func(ctx context.Context) error {
+			return repo_service.DeleteRepositoryDirectly(ctx, 1)
+		})
+		assert.ErrorContains(t, err, "must not be called within a transaction")
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	})
 }
 
 func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {

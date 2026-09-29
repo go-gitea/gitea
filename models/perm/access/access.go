@@ -33,7 +33,9 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
+// modeByOwnerAndAccess returns the access mode of a user to a repository,
+// considering: the repository's owner (visibility and doer restriction), any explicit "access" records.
+func modeByOwnerAndAccess(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
 	mode := perm.AccessModeNone
 	var userID int64
 	restricted := false
@@ -69,14 +71,6 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 	return a.Mode, nil
 }
 
-func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {
-	maxMode := perm.AccessModeNone
-	for _, mode := range modes {
-		maxMode = max(maxMode, mode)
-	}
-	return maxMode
-}
-
 type userAccess struct {
 	User *user_model.User
 	Mode perm.AccessMode
@@ -85,7 +79,7 @@ type userAccess struct {
 // updateUserAccess updates an access map so that user has at least mode
 func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mode perm.AccessMode) {
 	if ua, ok := accessMap[user.ID]; ok {
-		ua.Mode = maxAccessMode(ua.Mode, mode)
+		ua.Mode = max(ua.Mode, mode)
 	} else {
 		accessMap[user.ID] = &userAccess{User: user, Mode: mode}
 	}
@@ -263,7 +257,7 @@ func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 				t.AccessMode = perm.AccessModeOwner
 			}
 
-			accessMode = maxAccessMode(accessMode, t.AccessMode)
+			accessMode = max(accessMode, t.AccessMode)
 		}
 	}
 

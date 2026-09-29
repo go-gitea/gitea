@@ -1,33 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
-	<title>{{.Subject}}</title>
+	{{template "mail/base/head" .Subject}}
+	<style>
+		.job-row td {border-top: 1px solid #d0d7de}
+		a.status-success {color: #2da44e !important}
+		a.status-failure {color: #e5534b !important}
+		a.status-neutral, .job-duration {color: #697077 !important}
+		img.status-neutral {filter: brightness(75%)}
+		@media (prefers-color-scheme: dark) {
+			.job-row td {border-top-color: #3f4248}
+			a.status-neutral, .job-duration {color: #afbac7 !important}
+			img.status-neutral {filter: brightness(125%)}
+		}
+	</style>
 </head>
-<body style="background-color: #f5f7fa; margin: 20px;">
+<body>
 
-	<h2 style="color: #2c3e50; margin-bottom: 20px;">
-		{{.Repo.FullName}} {{.Run.WorkflowID}}: {{.RunStatusText}}
-	</h2>
-
-	<ul style="list-style: none; padding: 0; margin: 0 0 30px 0;">
-	{{range $job := .Jobs}}
-		<li style="background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); transition: box-shadow 0.2s ease;">
-			<a href="{{$job.HTMLURL}}" style="color: #0073e6; text-decoration: none; font-weight: bold;">
-				{{$job.Status}}: {{$job.Name}}{{if gt $job.Attempt 1}}, Attempt #{{$job.Attempt}}{{end}}, {{$job.Duration}}
-			</a>
-		</li>
+	<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;"><tr><td style="padding: 0 8px;">
+	{{if .Jobs}}
+	<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
+	{{range $index, $job := .Jobs}}
+		<tr{{if $index}} class="job-row"{{end}}>
+			<td width="26" style="width: 26px; padding: 6px 8px 6px 0; vertical-align: middle;"><img class="{{$job.StatusClass}}" src="cid:{{$job.StatusIconCID}}" width="18" height="18" alt="{{$job.StatusIconAlt}}" style="display: block;"></td>
+			<td align="left" style="padding: 6px 0; text-align: left; vertical-align: middle; word-break: break-word;">
+				<a class="{{$job.StatusClass}}" href="{{$job.HTMLURL}}" style="font-weight: bold;"><span style="display: none;">{{$job.StatusIconAlt}}: </span>{{$job.Name}}</a>
+				{{if gt $job.Attempt 1}}({{$.locale.Tr "actions.runs.attempt"}} #{{$job.Attempt}}){{end}}
+			</td>
+			<td class="job-duration" width="1%" align="right" style="width: 1%; padding: 6px 0 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;">{{$job.Duration}}<span style="display: none;"><br></span></td>
+		</tr>
 	{{end}}
-	</ul>
+	</table>
+	{{else}}
+	<p><a href="{{.Run.HTMLURL}}">{{.Run.WorkflowID}}</a></p>
+	{{end}}
+	</td></tr></table>
 
-	<br/>
-
-	<div style="text-align: center; margin-top: 30px;">
-		<a href="{{.Run.HTMLURL}}" style="display: inline-block; background-color: #28a745; color: #ffffff !important; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
-			{{.locale.Tr "mail.view_it_on" AppName}}
-		</a>
-	</div>
+	{{template "mail/base/footer"}}
 
 </body>
 </html>

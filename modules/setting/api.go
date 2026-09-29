@@ -3,13 +3,6 @@
 
 package setting
 
-import (
-	"net/url"
-	"path"
-
-	"gitea.dev/modules/log"
-)
-
 // API settings
 var API = struct {
 	EnableSwagger          bool
@@ -31,12 +24,5 @@ var API = struct {
 
 func loadAPIFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "api", &API)
-
-	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
-	u, err := url.Parse(rootCfg.Section("server").Key("ROOT_URL").MustString(defaultAppURL))
-	if err != nil {
-		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
-	}
-	u.Path = path.Join(u.Path, "api", "swagger")
-	API.SwaggerURL = u.String()
+	API.SwaggerURL = AppURL + "api/swagger"
 }

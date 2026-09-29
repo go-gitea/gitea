@@ -178,10 +178,19 @@ func TestToActionWorkflowJob_StepStatusIsIndependentOfJobStatus(t *testing.T) {
 	assert.Equal(t, "failure", apiJob.Steps[1].Conclusion, "step 1 conclusion")
 }
 
-func TestToActionsStatus_Cancelling(t *testing.T) {
-	action, conclusion := ToActionsStatus(actions_model.StatusCancelling)
-	assert.Equal(t, "in_progress", action)
-	assert.Empty(t, conclusion)
+func TestToActionsStatus(t *testing.T) {
+	for status, expected := range map[actions_model.Status]string{
+		actions_model.StatusWaiting:    "queued",
+		actions_model.StatusBlocked:    "pending",
+		actions_model.StatusPending:    "requested",
+		actions_model.StatusCancelling: "in_progress",
+	} {
+		action, conclusion := ToActionsStatus(status)
+		assert.Equal(t, expected, action, status.String())
+		assert.Empty(t, conclusion)
+	}
+	action, _ := ToRunActionsStatus(&actions_model.ActionRun{NeedApproval: true}, actions_model.StatusBlocked)
+	assert.Equal(t, "waiting", action)
 }
 
 func TestToWorkflowRunAction_Cancelling(t *testing.T) {
