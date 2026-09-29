@@ -14,7 +14,9 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
+	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
@@ -81,6 +83,8 @@ on:
 
 jobs:
   reusable1_job1:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - run: echo 'reusable1_job1'
@@ -135,6 +139,8 @@ jobs:
 
   caller_job2:
     needs: [caller_job1]
+    permissions:
+      contents: read
     uses: './.gitea/workflows/reusable1.yaml'
     with:
       str_input: 'from_caller_job2'
@@ -178,13 +184,13 @@ jobs:
 				callerJob2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "caller_job2"})
 				callerJob2ID = callerJob2.ID
 				callerJob2AttemptJobID = callerJob2.AttemptJobID
-				assert.Equal(t, actions_model.StatusBlocked, callerJob2.Status)
+				assert.Equal(t, actions_model.StatusPending, callerJob2.Status)
 				assert.True(t, callerJob2.IsReusableCaller)
 
 				// caller_job3
 				callerJob3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "caller_job3"})
 				callerJob3AttemptJobID = callerJob3.AttemptJobID
-				assert.Equal(t, actions_model.StatusBlocked, callerJob3.Status)
+				assert.Equal(t, actions_model.StatusPending, callerJob3.Status)
 				assert.False(t, callerJob3.IsReusableCaller)
 			})
 
@@ -204,6 +210,8 @@ jobs:
 				_, r1Job1, _ := getTaskAndJobAndRunByTaskID(t, r1Job1Task.Id)
 				assert.Equal(t, "reusable1_job1", r1Job1.JobID)
 				assert.Equal(t, callerJob2ID, r1Job1.ParentJobID)
+				require.NotNil(t, r1Job1.TokenPermissions)
+				assert.Equal(t, perm_model.AccessModeRead, r1Job1.TokenPermissions.UnitAccessModes[unit.TypeCode])
 				payload := getWorkflowCallPayloadFromTask(t, r1Job1Task)
 				if assert.Len(t, payload.Inputs, 5) {
 					assert.Equal(t, "from_caller_job2", payload.Inputs["str_input"])
@@ -222,9 +230,8 @@ jobs:
 					result: runnerv1.Result_RESULT_SUCCESS,
 				})
 
-				// reusable1_job3 (a nested caller) needs reusable1_job2, so it stays Blocked until r1j2 succeeds.
 				r1Job3Pre := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable1_job3"})
-				assert.Equal(t, actions_model.StatusBlocked, r1Job3Pre.Status)
+				assert.Equal(t, actions_model.StatusPending, r1Job3Pre.Status)
 				assert.False(t, r1Job3Pre.IsExpanded)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable2_job1"}))
 
@@ -253,6 +260,8 @@ jobs:
 				r1Job3AttemptJobID = r1Job3.AttemptJobID
 				r2Job1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "reusable2_job1"})
 				assert.Equal(t, r1Job3ID, r2Job1.ParentJobID)
+				require.NotNil(t, r2Job1.TokenPermissions)
+				assert.Equal(t, perm_model.AccessModeRead, r2Job1.TokenPermissions.UnitAccessModes[unit.TypeCode])
 				r2Job1AttemptJobID = r2Job1.AttemptJobID
 
 				r2Job1Task := defaultRunner.fetchTask(t) // for reusable2_job1
@@ -298,11 +307,11 @@ jobs:
 				callerJob2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: callerJob2AttemptJobID})
 				assert.Equal(t, actions_model.StatusWaiting, callerJob2.Status)
 				callerJob3 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: callerJob3AttemptJobID})
-				assert.Equal(t, actions_model.StatusBlocked, callerJob3.Status)
+				assert.Equal(t, actions_model.StatusPending, callerJob3.Status)
 
 				// reusable1_job3 needs reusable1_job2, so rerunning r1j2 pulls r1j3 (and its subtree) into the rerun set
 				r1Job3Attempt2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, AttemptJobID: r1Job3AttemptJobID})
-				assert.Equal(t, actions_model.StatusBlocked, r1Job3Attempt2.Status)
+				assert.Equal(t, actions_model.StatusPending, r1Job3Attempt2.Status)
 				assert.True(t, r1Job3Attempt2.IsReusableCaller)
 				assert.False(t, r1Job3Attempt2.IsExpanded)
 				assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{RunID: runID, RunAttemptID: attempt2.ID, JobID: "reusable2_job1"}))
@@ -575,7 +584,7 @@ jobs:
 			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 		})
 
-		t.Run("Nested caller with missing callee fails instead of blocking", func(t *testing.T) {
+		t.Run("Nested caller with missing callee fails with the error as summary instead of blocking", func(t *testing.T) {
 			// When the expansion hits a terminal error (e.g. missing callee), the emitter must fail the caller and let the run finish as failed, not retry the expansion forever.
 			apiRepo := createActionsTestRepo(t, user2Token, "nested-caller-missing-callee", false)
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
@@ -596,12 +605,11 @@ jobs:
     uses: ./.gitea/workflows/does-not-exist.yml
 `)
 
-			// plain_job runs first; bad_caller is Blocked on needs and is NOT expanded at creation.
 			plainTask := runner.fetchTask(t)
 			_, plainJob, run := getTaskAndJobAndRunByTaskID(t, plainTask.Id)
 			assert.Equal(t, "plain_job", plainJob.JobID)
 			badCallerPre := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "bad_caller"})
-			assert.Equal(t, actions_model.StatusBlocked, badCallerPre.Status)
+			assert.Equal(t, actions_model.StatusPending, badCallerPre.Status)
 			assert.False(t, badCallerPre.IsExpanded)
 
 			runner.execTask(t, plainTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
@@ -616,6 +624,9 @@ jobs:
 			assert.Equal(t, actions_model.StatusFailure, finalRun.Status)
 
 			runner.fetchNoTask(t) // no task scheduled for the failed caller; the run is not stuck
+			summary, err := actions_model.GetActionRunJobSummary(t.Context(), repo.ID, run.ID, badCaller.RunAttemptID, badCaller.ID, 0)
+			require.NoError(t, err)
+			assert.Contains(t, summary.Content, "does-not-exist.yml")
 		})
 
 		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {
@@ -900,7 +911,7 @@ jobs:
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
 
-		t.Run("No-needs caller if evaluated inline: false skips, true expands", func(t *testing.T) {
+		t.Run("No-needs callers: if evaluated inline, called job concurrency serializes them", func(t *testing.T) {
 			// A no-needs reusable-workflow caller is processed inline during InsertRun, where its own
 			// `if:` is now evaluated before expansion:
 			//   - a false `if:` skips the caller without inserting any children, and the skip is
@@ -917,6 +928,8 @@ on:
 jobs:
   inner:
     runs-on: ubuntu-latest
+    concurrency:
+      group: called-job
     steps:
       - run: echo inner
 `)
@@ -933,6 +946,9 @@ jobs:
 
   will_run:
     if: ${{ true }}
+    uses: ./.gitea/workflows/lib.yaml
+
+  will_run_too:
     uses: ./.gitea/workflows/lib.yaml
 
   after_skip:
@@ -959,12 +975,16 @@ jobs:
 			willRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "will_run"})
 			assert.True(t, willRun.IsReusableCaller)
 			assert.True(t, willRun.IsExpanded)
-			innerChild := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner"})
-			assert.Equal(t, willRun.ID, innerChild.ParentJobID)
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner", ParentJobID: willRun.ID})
 
-			// after_skip: a dependent of the skipped caller resolves to Skipped instead of staying Blocked.
 			afterSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "after_skip"})
 			assert.Equal(t, actions_model.StatusSkipped, afterSkip.Status)
+
+			unittest.AssertCount(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner", Status: actions_model.StatusBlocked}, 1)
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+			runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			runner.fetchTask(t)
 		})
 	})
 }

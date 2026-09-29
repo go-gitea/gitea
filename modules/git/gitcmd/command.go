@@ -172,6 +172,16 @@ func (c *Command) AddOptionFormat(opt string, args ...any) *Command {
 	return c
 }
 
+func (c *Command) AddOptionGrepExpr(s string) *Command {
+	if len(c.args) == 0 || c.args[0] != "grep" {
+		c.handlePreErrorBrokenCommand("(not grep command)")
+		return c
+	}
+	// man git-grep: -e: This option has to be used for patterns starting with "-"
+	c.args = append(c.args, "-e", s)
+	return c
+}
+
 // AddDynamicArguments adds new dynamic argument values to the command.
 // The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options.
 // TODO: in the future, this function can be renamed to AddArgumentValues
@@ -245,10 +255,14 @@ func commonBaseEnvs() []string {
 
 // CommonGitCmdEnvs returns the common environment variables for a "git" command.
 func CommonGitCmdEnvs() []string {
-	return append(commonBaseEnvs(), []string{
+	envs := append(commonBaseEnvs(), []string{
 		"LC_ALL=C",              // ensure git output is in English, error messages are parsed in English
 		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
 	}...)
+	if extra := extraEnvs.Load(); extra != nil {
+		envs = append(envs, *extra...)
+	}
+	return envs
 }
 
 // CommonCmdServEnvs is like CommonGitCmdEnvs, but it only returns minimal required environment variables for the "gitea serv" command

@@ -210,6 +210,9 @@ func (b *Base) SetHeaderContentSecurityPolicyGeneral() {
 
 func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 	reqCtx := reqctx.FromContext(req.Context())
+	if reqCtx.Value(BaseContextKey) != nil {
+		panic("Base context already exists in request context")
+	}
 	b := &Base{
 		RequestContext: reqCtx,
 

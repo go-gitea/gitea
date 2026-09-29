@@ -35,6 +35,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 		run  *actions_model.ActionRun // defaults to stubRun
 		jobs actions_model.ActionJobList
 		want map[int64]actions_model.Status
+		note string
 	}{
 		{
 			name: "no blocked",
@@ -57,11 +58,11 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 		},
 		{
-			name: "multiple blocked",
+			name: "multiple pending",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusSuccess, Needs: []string{}},
-				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
-				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
+				{ID: 2, JobID: "2", Status: actions_model.StatusPending, Needs: []string{"1"}},
+				{ID: 3, JobID: "3", Status: actions_model.StatusPending, Needs: []string{"1"}},
 			},
 			want: map[int64]actions_model.Status{
 				2: actions_model.StatusWaiting,
@@ -69,11 +70,11 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 		},
 		{
-			name: "chain blocked",
+			name: "chain pending",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "1", Status: actions_model.StatusFailure, Needs: []string{}},
-				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
-				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"2"}},
+				{ID: 2, JobID: "2", Status: actions_model.StatusPending, Needs: []string{"1"}},
+				{ID: 3, JobID: "3", Status: actions_model.StatusPending, Needs: []string{"2"}},
 			},
 			want: map[int64]actions_model.Status{
 				2: actions_model.StatusSkipped,
@@ -81,11 +82,20 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			},
 		},
 		{
+			name: "failure checks transitive needs after a skipped job",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "fail", Status: actions_model.StatusFailure},
+				{ID: 2, JobID: "skipped", Status: actions_model.StatusSkipped, Needs: []string{"fail"}},
+				{ID: 3, JobID: "recover", Status: actions_model.StatusBlocked, Needs: []string{"skipped"}, WorkflowPayload: []byte(`jobs: {recover: {if: "${{ failure() }}"}}`)},
+			},
+			want: map[int64]actions_model.Status{3: actions_model.StatusWaiting},
+		},
+		{
 			name: "loop need",
 			jobs: actions_model.ActionJobList{
-				{ID: 1, JobID: "1", Status: actions_model.StatusBlocked, Needs: []string{"3"}},
-				{ID: 2, JobID: "2", Status: actions_model.StatusBlocked, Needs: []string{"1"}},
-				{ID: 3, JobID: "3", Status: actions_model.StatusBlocked, Needs: []string{"2"}},
+				{ID: 1, JobID: "1", Status: actions_model.StatusPending, Needs: []string{"3"}},
+				{ID: 2, JobID: "2", Status: actions_model.StatusPending, Needs: []string{"1"}},
+				{ID: 3, JobID: "3", Status: actions_model.StatusPending, Needs: []string{"2"}},
 			},
 			want: map[int64]actions_model.Status{},
 		},
@@ -93,7 +103,7 @@ func Test_jobStatusResolver_Resolve(t *testing.T) {
 			name: "`if` is not empty and all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -112,7 +122,7 @@ jobs:
 			name: "`if` is not empty and not all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -131,7 +141,7 @@ jobs:
 			name: "`if` is empty and not all jobs in `needs` completed successfully",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -144,6 +154,24 @@ jobs:
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
+		},
+		{
+			name: "invalid job `if` is skipped with an annotation",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, RepoID: 1, JobID: "job1", Status: actions_model.StatusSuccess},
+				{ID: 2, RepoID: 1, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte("jobs: {job2: {if: '${{ fromJSON(needs.job1.outputs.x) }}'}}")},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
+			note: "Error when evaluating `if` for job `job2`.",
+		},
+		{
+			name: "invalid job `concurrency` fails the job with an annotation",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, RepoID: 1, JobID: "job1", Status: actions_model.StatusSuccess},
+				{ID: 2, RepoID: 1, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, RawConcurrency: "group: ${{ fromJSON(needs.job1.outputs.cfg).group }}", WorkflowPayload: []byte("jobs: {job2: {}}")},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusFailure},
+			note: "Error when evaluating `concurrency` for job `job2`.",
 		},
 		{
 			name: "max-parallel: a freed slot promotes the lowest blocked job id",
@@ -211,7 +239,7 @@ jobs:
 			name: "`if` is empty and a failed need has continue-on-error",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, ContinueOnError: true, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 name: test
 on: push
@@ -235,7 +263,7 @@ jobs:
 			},
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
-				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+				{ID: 2, JobID: "job2", Status: actions_model.StatusPending, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
 on:
   workflow_dispatch:
@@ -256,12 +284,16 @@ jobs:
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
-	stubRun := &actions_model.ActionRun{TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{}}
+	stubRun := &actions_model.ActionRun{TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{Owner: &user_model.User{}}}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Each subtest gets a unique RunID / RunAttemptID so jobs from different subtests don't bleed into each other's FindTaskNeeds queries
-			runID := int64(9001 + i)
-			attemptID := int64(9001 + i)
+			repoID := tt.jobs[0].RepoID
+			dbRun := &actions_model.ActionRun{RepoID: repoID, Index: int64(9001 + i)}
+			require.NoError(t, db.Insert(ctx, dbRun))
+			attempt := &actions_model.ActionRunAttempt{RepoID: repoID, RunID: dbRun.ID, Attempt: 1}
+			require.NoError(t, db.Insert(ctx, attempt))
+			runID, attemptID := dbRun.ID, attempt.ID
 			run := util.IfZero(tt.run, stubRun)
 
 			// Insert each test job (letting the DB assign IDs) and remember the testID -> dbID mapping so we can translate the expected map.
@@ -273,9 +305,7 @@ jobs:
 				j.RunAttemptID = attemptID
 				j.Run = run
 
-				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
-				// supply a minimal one when the case didn't.
-				if j.Status == actions_model.StatusBlocked && len(j.WorkflowPayload) == 0 {
+				if j.Status.In(actions_model.StatusPending, actions_model.StatusBlocked) && len(j.WorkflowPayload) == 0 {
 					j.WorkflowPayload = minimalWorkflowPayload(j.JobID)
 				}
 
@@ -292,6 +322,56 @@ jobs:
 			got, err := r.Resolve(ctx)
 			require.NoError(t, err)
 			assert.Equal(t, want, got)
+			if tt.note != "" {
+				summaries, err := actions_model.ListActionRunJobSummaries(ctx, 1, runID, attemptID, 0)
+				require.NoError(t, err)
+				require.Len(t, summaries, 1)
+				assert.Contains(t, summaries[0].Content, tt.note)
+			}
+		})
+	}
+}
+
+func Test_cancelFailedMatrixSiblings(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	for index, test := range []struct {
+		name            string
+		failFast        bool
+		continueOnError bool
+		wantCancelled   bool
+	}{
+		{name: "fail fast cancels a queued combination", failFast: true, wantCancelled: true},
+		{name: "disabled fail fast keeps a queued combination", failFast: false},
+		{name: "continued failure keeps a queued combination", failFast: true, continueOnError: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := t.Context()
+			run := &actions_model.ActionRun{RepoID: 1, OwnerID: 1, TriggerUserID: 1, WorkflowID: "matrix.yml", Index: int64(12000 + index), Status: actions_model.StatusRunning}
+			require.NoError(t, db.Insert(ctx, run))
+			attempt := &actions_model.ActionRunAttempt{RepoID: 1, RunID: run.ID, Attempt: 1, Status: actions_model.StatusRunning}
+			require.NoError(t, db.Insert(ctx, attempt))
+			_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+			require.NoError(t, err)
+			jobs := actions_model.ActionJobList{
+				{RunID: run.ID, RunAttemptID: attempt.ID, RepoID: 1, OwnerID: 1, JobID: "matrix", Status: actions_model.StatusFailure, ContinueOnError: test.continueOnError, WorkflowPayload: fmt.Appendf(nil, "jobs: {matrix: {strategy: {fail-fast: %t}}}", test.failFast)},
+				{RunID: run.ID, RunAttemptID: attempt.ID, RepoID: 1, OwnerID: 1, JobID: "matrix", Status: actions_model.StatusWaiting},
+			}
+			for _, job := range jobs {
+				require.NoError(t, db.Insert(ctx, job))
+			}
+			cancelled, err := cancelFailedMatrixSiblings(ctx, jobs)
+			require.NoError(t, err)
+			if test.wantCancelled {
+				require.Len(t, cancelled, 1)
+				assert.Equal(t, jobs[1].ID, cancelled[0].ID)
+				assert.Equal(t, actions_model.StatusCancelled, cancelled[0].Status)
+				run, err = actions_model.GetRunByRepoAndID(ctx, 1, run.ID)
+				require.NoError(t, err)
+				assert.Equal(t, actions_model.StatusFailure, run.Status)
+			} else {
+				assert.Empty(t, cancelled)
+				assert.Equal(t, actions_model.StatusWaiting, jobs[1].Status)
+			}
 		})
 	}
 }
@@ -496,6 +576,33 @@ jobs:
 	assert.Equal(t, actions_model.StatusBlocked, refreshed.Status)
 }
 
+func Test_checkJobsOfCurrentRunAttempt_SameGroupSiblingsGateInTurn(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run, attempt := createRunAttempt(t, 9915, "", actions_model.StatusBlocked)
+	run.LatestAttemptID = attempt.ID
+	jobs := make([]*actions_model.ActionRunJob, 3)
+	for i, jobID := range []string{"a", "b", "c"} {
+		jobs[i] = &actions_model.ActionRunJob{
+			RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: int64(i + 1), RepoID: run.RepoID, OwnerID: run.OwnerID,
+			JobID: jobID, Name: jobID, Status: actions_model.StatusBlocked, RawConcurrency: "group: siblings\n", WorkflowPayload: minimalWorkflowPayload(jobID),
+		}
+		require.NoError(t, db.Insert(ctx, jobs[i]))
+	}
+
+	result, err := checkJobsOfCurrentRunAttempt(ctx, run)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{run.ID}, result.RunIDsToReEmit)
+
+	result, err = checkJobsOfCurrentRunAttempt(ctx, run)
+	require.NoError(t, err)
+	assert.Empty(t, result.RunIDsToReEmit)
+	for i, status := range []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusCancelled} {
+		assert.Equal(t, status, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobs[i].ID}).Status)
+	}
+}
+
 func Test_checkJobsOfCurrentRunAttempt_NeedApprovalKeepsJobsBlocked(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
@@ -523,6 +630,37 @@ func Test_checkJobsOfCurrentRunAttempt_NeedApprovalKeepsJobsBlocked(t *testing.T
 	assert.NoError(t, err)
 	assert.Empty(t, result.UpdatedJobs)
 	assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+}
+
+func Test_checkJobsOfCurrentRunAttempt_SkippedCallerIsUpdated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
+		WorkflowID: "test.yml", Index: 9914, Ref: "refs/heads/main",
+		Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, run))
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID: 4, RunID: run.ID, Attempt: 1, Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, attempt))
+	_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+	assert.NoError(t, err)
+	run.LatestAttemptID = attempt.ID
+	caller := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1,
+		RepoID: 4, OwnerID: 1, JobID: "caller", Name: "caller", Status: actions_model.StatusBlocked,
+		IsReusableCaller: true, WorkflowPayload: []byte("jobs: {caller: {if: false, uses: ./.gitea/workflows/called.yml}}"),
+	}
+	assert.NoError(t, db.Insert(ctx, caller))
+
+	result, err := checkJobsOfCurrentRunAttempt(ctx, run)
+	assert.NoError(t, err)
+	require.Len(t, result.UpdatedJobs, 1)
+	assert.Equal(t, caller.ID, result.UpdatedJobs[0].ID)
+	assert.Equal(t, actions_model.StatusSkipped, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: caller.ID}).Status)
 }
 
 // Test_checkRunConcurrency_HeldGroupDoesNotWake verifies that only an unoccupied concurrency group can wake up a blocked run/job.
@@ -596,12 +734,25 @@ func Test_findConcurrencyWaiterToWake(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
 
-	// Held group "held-cg" (a running holder) has a blocked waiter, but nothing is woken while held.
-	seed(99704, "held-cg", actions_model.StatusRunning)
+	seed(99704, "held-cg", actions_model.StatusWaiting)
 	seed(99705, "held-cg", actions_model.StatusBlocked)
 	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "held-cg")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
+
+	own := seed(99706, "", actions_model.StatusBlocked)
+	caller := &actions_model.ActionRunJob{RunID: own.ID, RepoID: repoID, Status: actions_model.StatusBlocked, IsReusableCaller: true, IsExpanded: true, ConcurrencyGroup: "own-cg"}
+	assert.NoError(t, db.Insert(ctx, caller))
+	assert.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{RunID: own.ID, RepoID: repoID, ParentJobID: caller.ID, Status: actions_model.StatusBlocked, ConcurrencyGroup: "own-cg"}))
+	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "own-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, own.ID, id)
+
+	ownRun := seed(99707, "own-run-cg", actions_model.StatusBlocked)
+	assert.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{RunID: ownRun.ID, RepoID: repoID, Status: actions_model.StatusBlocked, IsReusableCaller: true, IsExpanded: true, ConcurrencyGroup: "own-run-cg"}))
+	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "own-run-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, ownRun.ID, id)
 }
 
 func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
@@ -654,34 +805,44 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 // dependents honest: a round resolved after an insert would judge them against a job set that is
 // missing the siblings. See Resolve for why that is wrong.
 func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// build (2) stands for the expanded anchor: it reaches a terminal status this round, which is
-	// what would let report (3) resolve in the next one.
-	newChain := func() actions_model.ActionJobList {
-		return actions_model.ActionJobList{
-			{ID: 1, JobID: "generate", Status: actions_model.StatusFailure, WorkflowPayload: minimalWorkflowPayload("generate")},
-			{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{"generate"}, WorkflowPayload: minimalWorkflowPayload("build")},
-			{ID: 3, JobID: "report", Status: actions_model.StatusBlocked, Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report")},
+	newChain := func(index int64) actions_model.ActionJobList {
+		run := &actions_model.ActionRun{Index: index}
+		require.NoError(t, db.Insert(ctx, run))
+		attempt := &actions_model.ActionRunAttempt{RunID: run.ID, Attempt: 1}
+		require.NoError(t, db.Insert(ctx, attempt))
+		jobs := actions_model.ActionJobList{
+			{JobID: "generate", Status: actions_model.StatusFailure, WorkflowPayload: minimalWorkflowPayload("generate")},
+			{JobID: "build", Status: actions_model.StatusPending, Needs: []string{"generate"}, WorkflowPayload: minimalWorkflowPayload("build")},
+			{JobID: "report", Status: actions_model.StatusPending, Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report")},
 		}
+		for _, job := range jobs {
+			job.RunID, job.RunAttemptID = run.ID, attempt.ID
+			require.NoError(t, db.Insert(ctx, job))
+		}
+		return jobs
 	}
 
 	t.Run("without an insert the whole chain resolves in one pass", func(t *testing.T) {
-		got, err := newJobStatusResolver(newChain(), nil).Resolve(ctx)
+		chain := newChain(9201)
+		got, err := newJobStatusResolver(chain, nil).Resolve(ctx)
 		require.NoError(t, err)
 		assert.Equal(t, map[int64]actions_model.Status{
-			2: actions_model.StatusSkipped,
-			3: actions_model.StatusSkipped,
+			chain[1].ID: actions_model.StatusSkipped,
+			chain[2].ID: actions_model.StatusSkipped,
 		}, got)
 	})
 
 	t.Run("an insert stops the pass before the dependents are resolved", func(t *testing.T) {
-		r := newJobStatusResolver(newChain(), nil)
+		chain := newChain(9202)
+		r := newJobStatusResolver(chain, nil)
 		r.matrixInserted = true // as resolve() sets it once expansion has inserted siblings
 
 		got, err := r.Resolve(ctx)
 		require.NoError(t, err)
-		assert.Equal(t, map[int64]actions_model.Status{2: actions_model.StatusSkipped}, got,
+		assert.Equal(t, map[int64]actions_model.Status{chain[1].ID: actions_model.StatusSkipped}, got,
 			"report must wait for the re-emit, which sees the sibling combinations too")
 	})
 }

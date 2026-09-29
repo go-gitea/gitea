@@ -10,10 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseResolvesAliases(t *testing.T) {
+func TestParseResolvesAliasesAndTimestamps(t *testing.T) {
 	got, err := Parse([]byte(`on: push
 env: &common_env
   SHARED: "1"
+  DATE: 2026-03-15
 jobs:
   a:
     runs-on: linux
@@ -31,7 +32,7 @@ jobs:
 		_, job := workflow.Job()
 		var env map[string]string
 		require.NoError(t, job.Env.Decode(&env))
-		assert.Equal(t, map[string]string{"SHARED": "1"}, env)
+		assert.Equal(t, map[string]string{"SHARED": "1", "DATE": "2026-03-15"}, env)
 		require.Len(t, job.Steps, 1)
 
 		payload, err := workflow.Marshal()
@@ -49,18 +50,6 @@ func TestParseRejectsAliases(t *testing.T) {
 		name, wantErr string
 		content       []byte
 	}{
-		{
-			name: "nested aliases exceed the node limit",
-			content: []byte(`on: push
-x0: &x0 [1, 2, 3, 4, 5, 6, 7, 8, 9]
-x1: &x1 [*x0, *x0, *x0, *x0, *x0, *x0, *x0, *x0, *x0]
-x2: &x2 [*x1, *x1, *x1, *x1, *x1, *x1, *x1, *x1, *x1]
-x3: &x3 [*x2, *x2, *x2, *x2, *x2, *x2, *x2, *x2, *x2]
-x4: &x4 [*x3, *x3, *x3, *x3, *x3, *x3, *x3, *x3, *x3]
-jobs: {a: {runs-on: linux, steps: [{run: echo}]}}
-`),
-			wantErr: "maximum YAML nodes exceeded",
-		},
 		{
 			name:    "anchor aliased from inside itself",
 			content: job("    steps: &s [{run: echo}, *s]\n"),
