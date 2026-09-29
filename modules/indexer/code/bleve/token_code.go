@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"unicode"
 
-	"gitea.dev/modules/util"
-
 	"github.com/blevesearch/bleve/v2/analysis"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/character"
 	"github.com/blevesearch/bleve/v2/registry"
@@ -57,9 +55,4 @@ func codeTokenFilterConstructor(_ map[string]any, _ *registry.Cache) (analysis.T
 	return &codeTokenFilter{
 		re: regexp.MustCompile("[a-zA-Z]+|[0-9]+"),
 	}, nil
-}
-
-func init() {
-	util.MustNoError(registry.RegisterTokenizer(codeTokenizerName, codeTokenizerConstructor))
-	util.MustNoError(registry.RegisterTokenFilter(codeTokenFilterName, codeTokenFilterConstructor))
 }

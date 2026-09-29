@@ -2,6 +2,7 @@
 *.tmpl linguist-language=Handlebars
 *.pb.go linguist-generated
 /assets/*.json linguist-generated
+/public/assets/emoji.json linguist-generated
 /public/assets/img/svg/*.svg linguist-generated
 /templates/swagger/*.generated.json linguist-generated
 /options/fileicon/** linguist-generated

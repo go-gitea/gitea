@@ -9,7 +9,7 @@ async function generateMailIcon(icon: string, name: string, color: string) {
     (await readFile(
       new URL(import.meta.resolve(`${icon.replace('octicon-', '@primer/octicons/build/svg/')}.svg`)),
       'utf8',
-    )).replace('<svg ', `<svg fill="${color}" `),
+    )).replace('<svg ', () => `<svg fill="${color}" `),
     `../services/mailer/icons/${name}.png`,
     {size: 48},
   );
