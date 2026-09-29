@@ -57,7 +57,7 @@ jobs:
             backend:
               - "**/*.go"
               - "templates/**/*.tmpl"
-              - "assets/emoji.json"
+              - "public/assets/emoji.json"
               - "go.mod"
               - "go.sum"
               - "Makefile"
@@ -77,7 +77,7 @@ jobs:
               - "tools/**/*.json"
               - "tools/playwright.sh"
               - "tsconfig.json"
-              - "assets/emoji.json"
+              - "public/assets/emoji.json"
               - "package.json"
               - "pnpm-lock.yaml"
               - "pnpm-workspace.yaml"

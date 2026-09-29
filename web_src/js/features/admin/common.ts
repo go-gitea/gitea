@@ -289,7 +289,7 @@ function initAdminNotice() {
   const checkboxes = document.querySelectorAll<HTMLInputElement>('.select.table .ui.checkbox input');
 
   queryElems(pageContent, '.select.action', (el) => el.addEventListener('click', () => {
-    switch (el.getAttribute('data-action')) {
+    switch (el.getAttribute('data-action')!) {
       case 'select-all':
         for (const checkbox of checkboxes) {
           checkbox.checked = true;

@@ -9,14 +9,17 @@ import (
 	"testing"
 
 	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	testModule "gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -334,45 +337,47 @@ func TestRender_emoji(t *testing.T) {
 	}
 
 	// Make sure we can successfully match every emoji in our dataset with regex
-	for i := range emoji.GemojiData {
-		test(
-			emoji.GemojiData[i].Emoji,
-			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
-	}
-	for i := range emoji.GemojiData {
-		test(
-			":"+emoji.GemojiData[i].Aliases[0]+":",
-			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
+	data, err := public.AssetFS().ReadFile("assets", "emoji.json")
+	require.NoError(t, err)
+	var emojis []emoji.Emoji
+	require.NoError(t, json.Unmarshal(data, &emojis))
+	for _, e := range emojis {
+		expected := `<p><span class="emoji" data-alias="` + e.Aliases[0] + `">` + e.Emoji + `</span></p>`
+		test(e.Emoji, expected)
+		test(":"+e.Aliases[0]+":", expected)
 	}
 
 	// Text that should be turned into or recognized as emoji
 	test(
 		":gitea:",
-		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
+		`<p><span class="emoji"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
 	test(
 		":custom-emoji:",
 		`<p>:custom-emoji:</p>`)
 	setting.UI.CustomEmojisMap["custom-emoji"] = ":custom-emoji:"
 	test(
 		":custom-emoji:",
-		`<p><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span></p>`)
+		`<p><span class="emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span></p>`)
 	test(
 		"这是字符:1::+1: some🐊 \U0001f44d:custom-emoji: :gitea:",
-		`<p>这是字符:1:<span class="emoji" aria-label="thumbs up">👍</span> some<span class="emoji" aria-label="crocodile">🐊</span> `+
-			`<span class="emoji" aria-label="thumbs up">👍</span><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span> `+
-			`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
+		`<p>这是字符:1:<span class="emoji" data-alias="+1">👍</span> some<span class="emoji" data-alias="crocodile">🐊</span> `+
+			`<span class="emoji" data-alias="+1">👍</span><span class="emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span> `+
+			`<span class="emoji"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
 	test(
 		"Some text with 😄 in the middle",
-		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+		`<p>Some text with <span class="emoji" data-alias="smile">😄</span> in the middle</p>`)
 	test(
 		"Some text with :smile: in the middle",
-		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
+		`<p>Some text with <span class="emoji" data-alias="smile">😄</span> in the middle</p>`)
 	test(
 		"Some text with 😄😄 2 emoji next to each other",
-		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span><span class="emoji" aria-label="grinning face with smiling eyes">😄</span> 2 emoji next to each other</p>`)
+		`<p>Some text with <span class="emoji" data-alias="smile">😄</span><span class="emoji" data-alias="smile">😄</span> 2 emoji next to each other</p>`)
 	test(
 		"😎🤪🔐🤑❓",
-		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="red question mark">❓</span></p>`)
+		`<p><span class="emoji" data-alias="sunglasses">😎</span><span class="emoji" data-alias="zany_face">🤪</span><span class="emoji" data-alias="closed_lock_with_key">🔐</span><span class="emoji" data-alias="money_mouth_face">🤑</span><span class="emoji" data-alias="question">❓</span></p>`)
+	test(
+		"👍🏽🧑🏽‍💻👩🏿‍❤️‍👩🏿",
+		`<p><span class="emoji" data-alias="+1">👍🏽</span><span class="emoji" data-alias="technologist">🧑🏽‍💻</span><span class="emoji" data-alias="couple_with_heart_woman_woman">👩🏿‍❤️‍👩🏿</span></p>`)
 
 	// should match nothing
 	test(":100:200", `<p>:100:200</p>`)
@@ -380,7 +385,7 @@ func TestRender_emoji(t *testing.T) {
 	test(":not exist:", `<p>:not exist:</p>`)
 	test("foo `:smile:", "<p>foo `:smile:</p>")
 	test("foo `:smile:`", `<p>foo <code>:smile:</code></p>`)
-	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" aria-label=\"grinning face with smiling eyes\">😄</span></p>")
+	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" data-alias=\"smile\">😄</span></p>")
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -532,10 +537,10 @@ func TestPostProcess(t *testing.T) {
 	// Test that other post-processing still works.
 	test(
 		":gitea:",
-		`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
+		`<span class="emoji"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span>`)
 	test(
 		"Some text with 😄 in the middle",
-		`Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle`)
+		`Some text with <span class="emoji" data-alias="smile">😄</span> in the middle`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
 
