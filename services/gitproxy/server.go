@@ -42,6 +42,12 @@ const (
 // proxyDialer reaches the operator's proxies, which are configuration rather than user input
 var proxyDialer = &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
 
+// copyBuffers beats the reverse proxy's 32 KiB default as it flushes every write, the transport's ReadBufferSize lets a read span chunks
+type copyBuffers struct{}
+
+func (copyBuffers) Get() []byte { return make([]byte, 256<<10) }
+func (copyBuffers) Put([]byte)  {}
+
 // server is a forward proxy for git's remotes that enforces an egress policy on its direct dials.
 type server struct {
 	auth         string // the Proxy-Authorization header git must send
@@ -57,10 +63,12 @@ func newServer(p *policy.Policy, auth string, proxyTLS *tls.Config) *server {
 	transport := p.NewHTTPTransport()
 	transport.Proxy = s.upstreamProxy
 	transport.TLSClientConfig = s.proxyTLS.Clone() // the transport adds its ALPN protocols to the config it gets
+	transport.ReadBufferSize = 64 << 10
 	s.reverseProxy = &httputil.ReverseProxy{
 		Rewrite:       func(*httputil.ProxyRequest) {},
 		Transport:     transport,
 		FlushInterval: -1,
+		BufferPool:    copyBuffers{},
 		ErrorHandler:  func(w http.ResponseWriter, _ *http.Request, err error) { writeUpstreamError(w, err) },
 	}
 	return s
