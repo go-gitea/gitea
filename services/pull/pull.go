@@ -784,7 +784,10 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		headCommitRef = git.RefNameFromCommit(pr.HeadCommitID)
 	}
 
-	mergeBaseRef := git.RefNameFromCommit(pr.MergeBase)
+	var mergeBaseRef git.RefName // empty lists all head commits
+	if pr.MergeBase != "" {
+		mergeBaseRef = git.RefNameFromCommit(pr.MergeBase)
+	}
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 
@@ -1034,23 +1037,30 @@ func headContainsMergeBase(ctx context.Context, repo git.RepositoryFacade, merge
 	return mergeBase != "" && gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(mergeBase, headCommitID).WithRepo(repo).Run(ctx) == nil
 }
 
-func storedCompareBase(ctx context.Context, pr *issues_model.PullRequest, headCommitID string) string {
-	if headContainsMergeBase(ctx, pr.BaseRepo, pr.MergeBase, headCommitID) {
-		return pr.MergeBase
+// markUnrelated keeps the last merge base while the head still contains it
+func markUnrelated(ctx context.Context, repo git.RepositoryFacade, pr *issues_model.PullRequest) {
+	if !headContainsMergeBase(ctx, repo, pr.MergeBase, pr.HeadCommitID) {
+		pr.MergeBase = ""
 	}
+	pr.Status = issues_model.PullRequestStatusUnrelated
+}
+
+func emptyTreeID(pr *issues_model.PullRequest) string {
 	return git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName).EmptyTree().String()
 }
 
-// GetCompareInfo falls back to storedCompareBase for unrelated histories
+// GetCompareInfo falls back to the last merge base or the empty tree for unrelated histories
 func GetCompareInfo(ctx context.Context, pr *issues_model.PullRequest, baseGitRepo *git.Repository, baseRef git.RefName) (git_service.CompareInfo, error) {
 	compareInfo, err := git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, baseRef, git.RefName(pr.GetGitHeadRefName()), git_service.CompareOptions{})
 	if err != nil || compareInfo.CompareBase != "" {
 		return compareInfo, err
 	}
-	compareInfo.CompareBase = storedCompareBase(ctx, pr, compareInfo.HeadCommitID)
 	commitRange := compareInfo.HeadCommitID
-	if compareInfo.CompareBase == pr.MergeBase {
+	if headContainsMergeBase(ctx, pr.BaseRepo, pr.MergeBase, compareInfo.HeadCommitID) {
+		compareInfo.CompareBase = pr.MergeBase
 		commitRange = pr.MergeBase + ".." + commitRange
+	} else {
+		compareInfo.CompareBase = emptyTreeID(pr)
 	}
 	if compareInfo.Commits, err = baseGitRepo.ShowPrettyFormatLogToList(ctx, commitRange); err != nil {
 		return compareInfo, err

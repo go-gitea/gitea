@@ -19,10 +19,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
-	"gitea.dev/modules/util"
 )
-
-var errUpdateUnrelatedHistories = util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "update failed because of unrelated histories"), "repo.pulls.no_common_history")
 
 // Update updates pull request with base branch.
 func Update(pr *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {

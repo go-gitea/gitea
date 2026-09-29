@@ -36,7 +36,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	}
 	defer closer.Close()
 
-	compareArg := pr.MergeBase + "..." + pr.GetGitHeadRefName()
+	compareArg := util.Iif(pr.MergeBase == "", emptyTreeID(pr)+"..", pr.MergeBase+"...") + pr.GetGitHeadRefName()
 	switch {
 	case patch:
 		err = gitRepo.GetPatch(ctx, compareArg, w)
@@ -86,10 +86,7 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 	mergeBase, err := git.MergeBase(ctx, prCtx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch)
 	if errors.Is(err, util.ErrNotExist) {
-		if !headContainsMergeBase(ctx, prCtx.tmpRepo, pr.MergeBase, pr.HeadCommitID) {
-			pr.MergeBase = ""
-		}
-		pr.Status = issues_model.PullRequestStatusEmpty
+		markUnrelated(ctx, prCtx.tmpRepo, pr)
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("MergeBase: %w", err)

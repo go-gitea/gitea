@@ -77,7 +77,7 @@ func TestPullRequestMergeable(t *testing.T) {
 			for lastMergeBase, expectedMergeBase := range map[string]string{"65f1bf27bc3bf70f64657658635e66094edbcb4d": "65f1bf27bc3bf70f64657658635e66094edbcb4d", "90c1019714259b24fb81711d4416ac0f18667dfa": ""} {
 				pr.MergeBase = lastMergeBase
 				require.NoError(t, checkFunc(t.Context(), pr))
-				assert.Equal(t, issues_model.PullRequestStatusEmpty, pr.Status)
+				assert.Equal(t, issues_model.PullRequestStatusUnrelated, pr.Status)
 				assert.Equal(t, expectedMergeBase, pr.MergeBase)
 			}
 		})

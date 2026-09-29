@@ -104,6 +104,7 @@ const (
 	PullRequestStatusError
 	PullRequestStatusEmpty
 	PullRequestStatusAncestor
+	PullRequestStatusUnrelated
 )
 
 // PullRequestFlow the flow of pull request
@@ -447,6 +448,11 @@ func (pr *PullRequest) IsEmpty() bool {
 	return pr.Status == PullRequestStatusEmpty
 }
 
+// IsUnrelated returns true if head and base share no history
+func (pr *PullRequest) IsUnrelated() bool {
+	return pr.Status == PullRequestStatusUnrelated
+}
+
 // IsAncestor returns true if the Head Commit of this PR is an ancestor of the Base Commit
 func (pr *PullRequest) IsAncestor() bool {
 	return pr.Status == PullRequestStatusAncestor
@@ -748,9 +754,10 @@ func (pr *PullRequest) Mergeable(ctx context.Context) bool {
 	// - Being conflict checked.
 	// - Has a conflict.
 	// - Received a error while being conflict checked.
+	// - Shares no history with its base.
 	// - Is a work-in-progress pull request.
 	return pr.Status != PullRequestStatusChecking && pr.Status != PullRequestStatusConflict &&
-		pr.Status != PullRequestStatusError && !pr.IsWorkInProgress(ctx)
+		pr.Status != PullRequestStatusError && !pr.IsUnrelated() && !pr.IsWorkInProgress(ctx)
 }
 
 // HasEnoughApprovals returns true if pr has enough granted approvals.

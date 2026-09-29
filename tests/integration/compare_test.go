@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/forms"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -244,9 +245,13 @@ func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	} {
 		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
 		assert.Equal(t, filename, doc.Find(".diff-file-box").AttrOr("data-new-filename", ""))
-		assert.Equal(t, "11", doc.Find(".pull.tabular.menu .item .label").Slice(1, 3).Text())
+		labels := doc.Find(".pull.tabular.menu .item .label")
+		assert.Equal(t, []string{"1", "1"}, []string{labels.Eq(1).Text(), labels.Eq(2).Text()})
 	}
+	session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d", unrelated.Index), http.StatusOK)
+	assert.Contains(t, session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/pulls/%d.diff", unrelated.Index), http.StatusOK).Body.String(), "+++ b/file2.txt")
 	assert.Len(t, DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/files", unrelated.Index)).AddTokenAuth(token), http.StatusOK), []*api.ChangedFile{}), 1)
+	MakeRequest(t, NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", unrelated.Index), &forms.MergePullRequestForm{Do: "rebase"}).AddTokenAuth(token), http.StatusMethodNotAllowed)
 	MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/update?style=rebase", rewrittenBase.Index)).AddTokenAuth(token), http.StatusUnprocessableEntity)
 }
 
