@@ -576,6 +576,33 @@ jobs:
 	assert.Equal(t, actions_model.StatusBlocked, refreshed.Status)
 }
 
+func Test_checkJobsOfCurrentRunAttempt_SameGroupSiblingsGateInTurn(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run, attempt := createRunAttempt(t, 9915, "", actions_model.StatusBlocked)
+	run.LatestAttemptID = attempt.ID
+	jobs := make([]*actions_model.ActionRunJob, 3)
+	for i, jobID := range []string{"a", "b", "c"} {
+		jobs[i] = &actions_model.ActionRunJob{
+			RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: int64(i + 1), RepoID: run.RepoID, OwnerID: run.OwnerID,
+			JobID: jobID, Name: jobID, Status: actions_model.StatusBlocked, RawConcurrency: "group: siblings\n", WorkflowPayload: minimalWorkflowPayload(jobID),
+		}
+		require.NoError(t, db.Insert(ctx, jobs[i]))
+	}
+
+	result, err := checkJobsOfCurrentRunAttempt(ctx, run)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{run.ID}, result.RunIDsToReEmit)
+
+	result, err = checkJobsOfCurrentRunAttempt(ctx, run)
+	require.NoError(t, err)
+	assert.Empty(t, result.RunIDsToReEmit)
+	for i, status := range []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusCancelled} {
+		assert.Equal(t, status, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: jobs[i].ID}).Status)
+	}
+}
+
 func Test_checkJobsOfCurrentRunAttempt_NeedApprovalKeepsJobsBlocked(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
@@ -707,12 +734,25 @@ func Test_findConcurrencyWaiterToWake(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
 
-	// Held group "held-cg" (a running holder) has a blocked waiter, but nothing is woken while held.
-	seed(99704, "held-cg", actions_model.StatusRunning)
+	seed(99704, "held-cg", actions_model.StatusWaiting)
 	seed(99705, "held-cg", actions_model.StatusBlocked)
 	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "held-cg")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
+
+	own := seed(99706, "", actions_model.StatusBlocked)
+	caller := &actions_model.ActionRunJob{RunID: own.ID, RepoID: repoID, Status: actions_model.StatusBlocked, IsReusableCaller: true, IsExpanded: true, ConcurrencyGroup: "own-cg"}
+	assert.NoError(t, db.Insert(ctx, caller))
+	assert.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{RunID: own.ID, RepoID: repoID, ParentJobID: caller.ID, Status: actions_model.StatusBlocked, ConcurrencyGroup: "own-cg"}))
+	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "own-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, own.ID, id)
+
+	ownRun := seed(99707, "own-run-cg", actions_model.StatusBlocked)
+	assert.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{RunID: ownRun.ID, RepoID: repoID, Status: actions_model.StatusBlocked, IsReusableCaller: true, IsExpanded: true, ConcurrencyGroup: "own-run-cg"}))
+	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "own-run-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, ownRun.ID, id)
 }
 
 func Test_maxParallelReusableCallerLifecycle(t *testing.T) {

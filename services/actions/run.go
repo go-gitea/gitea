@@ -252,8 +252,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		}
 		runJob.RawConcurrency = string(rawConcurrency)
 
-		// the job emitter evaluates it for jobs with `needs`, a skipped job never takes part
-		if len(needs) == 0 && runJob.Status != actions_model.StatusSkipped {
+		// a job enters its group at its gate, ApproveRuns gates an approval-blocked one with this evaluation
+		if runJob.Status == actions_model.StatusWaiting && slots.available(runJob) || len(needs) == 0 && run.NeedApproval {
 			if err := EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs); err != nil {
 				return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
 			}
