@@ -485,6 +485,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 			HeadBranch: "unrelated",
 			BaseBranch: "base",
 		})
+		assert.True(t, pr.IsUnrelated())
+		resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user1/repo1/pulls/%d", pr.Index)), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Contains(t, htmlDoc.Find(".merge-section").Text(), "This branch has no history in common with the target branch.")
+		mergeFormProps := htmlDoc.Find("#pull-request-merge-form").AttrOr("data-merge-form-props", "")
+		assert.Contains(t, mergeFormProps, `"canMergeNow":false`)
+		assert.NotContains(t, mergeFormProps, `"hideAutoMerge":false`)
 
 		err = pull_service.Merge(pr.ID, user1, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")

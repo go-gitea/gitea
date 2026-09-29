@@ -56,6 +56,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxSections(ctx *context.Context)
 		section.Icon, section.Title, section.Details = "octicon-sync", ctx.Locale.Tr("repo.pulls.is_checking"), []template.HTML{ctx.Locale.Tr("repo.pulls.is_checking_desc")}
 	case pull.IsAncestor():
 		section.Title = ctx.Locale.Tr("repo.pulls.is_ancestor")
+	case pull.IsUnrelated():
+		section.Icon, section.IconClass, section.Title = "octicon-x", "tw-bg-red", ctx.Locale.Tr("repo.pulls.is_unrelated")
 	case pull.IsEmpty():
 		section.Title, section.Details = ctx.Locale.Tr("repo.pulls.is_empty"), []template.HTML{ctx.Locale.Tr("repo.pulls.can_auto_merge_desc")}
 	case !pull.IsStatusMergeable():

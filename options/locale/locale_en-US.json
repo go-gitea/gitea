@@ -1826,6 +1826,7 @@
   "repo.pulls.is_checking_desc": "Hang in there while we check the branch's status.",
   "repo.pulls.is_ancestor": "This branch is already included in the target branch. There is nothing to merge.",
   "repo.pulls.is_empty": "The changes on this branch are already on the target branch. This will be an empty commit.",
+  "repo.pulls.is_unrelated": "This branch has no history in common with the target branch.",
   "repo.pulls.merging_is_blocked": "Merging is blocked",
   "repo.pulls.review_required": "Review required",
   "repo.pulls.changes_requested": "Changes requested",

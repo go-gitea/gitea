@@ -164,7 +164,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		return nil
 	}
 
-	if (!pr.IsStatusMergeable() && !pr.IsEmpty()) || pr.IsWorkInProgress(ctx) {
+	if (!pr.IsStatusMergeable() && !pr.IsEmpty()) || pr.IsUnrelated() || pr.IsWorkInProgress(ctx) {
 		// quick check: if the PR can't be merged, just skip
 		return errors.Join(errSkipAutoMerge, errors.New("pull request is not mergeable or is work in progress"))
 	}

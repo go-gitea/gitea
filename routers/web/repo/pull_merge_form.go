@@ -39,7 +39,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	var defaultMergeTitle, defaultMergeBody string
 	var defaultSquashMergeTitle, defaultSquashMergeBody string
 	var defaultSquashMergeCommitMessages string
-	if !prInfo.IsPullRequestBroken && ctx.Repo.GitRepo != nil { // the devtest page has no git repo
+	if !prInfo.IsPullRequestBroken && !pull.IsUnrelated() && ctx.Repo.GitRepo != nil { // the devtest page has no git repo
 		var err error
 		defaultMergeTitle, defaultMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
@@ -62,7 +62,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
-	mergeable := pull.IsStatusMergeable() || pull.IsEmpty()
+	mergeable := (pull.IsStatusMergeable() || pull.IsEmpty()) && !pull.IsUnrelated()
 	canMergeNow := mergeable && prInfo.MergeBoxData.canMergeNow && !prInfo.IsPullRequestBroken
 	canAutoMerge := !prInfo.MergeBoxData.isMergeBlocked && !prInfo.IsPullRequestBroken && (mergeable || pull.IsFilesConflicted() || pull.IsChecking())
 	mergeFormProps := map[string]any{

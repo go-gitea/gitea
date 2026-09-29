@@ -50,6 +50,6 @@ func EnumPullRequestsByHeadCommitID(ctx context.Context, repo *repo_model.Reposi
 func GetMergeablePullRequestsByHeadCommitID(ctx context.Context, repo *repo_model.Repository, commitID string) ([]*issues_model.PullRequest, error) {
 	return EnumPullRequestsByHeadCommitID(ctx, repo, commitID, func(pr *issues_model.PullRequest) bool {
 		_ = pr.LoadIssue(ctx)
-		return pr.Issue != nil && !pr.Issue.IsClosed && !pr.HasMerged && (pr.IsStatusMergeable() || pr.IsEmpty())
+		return pr.Issue != nil && !pr.Issue.IsClosed && !pr.HasMerged && (pr.IsStatusMergeable() || pr.IsEmpty()) && !pr.IsUnrelated()
 	})
 }

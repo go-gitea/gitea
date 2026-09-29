@@ -966,7 +966,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	}
 
 	needRefreshMergeBox := pull.IsChecking() || (data.StatusCheckData != nil && data.StatusCheckData.count(statusCheckPending, statusCheckInProgress) > 0)
-	if data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
+	if data.AutoMerge != nil && (pull.IsStatusMergeable() || pull.IsEmpty()) && !pull.IsUnrelated() && !data.hasOverridableBlockers && len(data.mergeBlockers) == 0 {
 		lastChange := data.AutoMerge.CreatedUnix
 		if data.StatusCheckData != nil {
 			lastChange = max(lastChange, data.StatusCheckData.lastUpdated)
