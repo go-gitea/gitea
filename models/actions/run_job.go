@@ -724,6 +724,20 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 	return cancelledJobs, nil
 }
 
+// GetAncestorCallerIDs returns the IDs of the reusable workflow callers the job is nested in.
+func GetAncestorCallerIDs(ctx context.Context, job *ActionRunJob) (container.Set[int64], error) {
+	ids := make(container.Set[int64])
+	for parentID := job.ParentJobID; parentID != 0; {
+		parent, err := GetRunJobByRunAndID(ctx, job.RunID, parentID)
+		if err != nil {
+			return nil, fmt.Errorf("load caller %d: %w", parentID, err)
+		}
+		ids.Add(parent.ID)
+		parentID = parent.ParentJobID
+	}
+	return ids, nil
+}
+
 func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) (jobsToCancel []*ActionRunJob, _ error) {
 	if job.RawConcurrency == "" {
 		return nil, nil
@@ -735,18 +749,15 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		return nil, nil
 	}
 
-	// Waiting jobs have already passed the concurrency gate; only the blocked queue entry is replaceable by default.
-	statusFindOption := []Status{StatusBlocked}
-	if job.ConcurrencyCancel {
-		statusFindOption = append(statusFindOption, StatusWaiting)
-		statusFindOption = append(statusFindOption, StatusRunning)
-		statusFindOption = append(statusFindOption, StatusCancelling)
-	}
-	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, statusFindOption)
+	attempts, jobs, err := getConcurrencyEntriesToReplace(ctx, job.RepoID, job.ConcurrencyGroup, job.ConcurrencyCancel)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
-	jobs = slices.DeleteFunc(jobs, func(j *ActionRunJob) bool { return j.ID == job.ID })
+	callerIDs, err := GetAncestorCallerIDs(ctx, job)
+	if err != nil {
+		return nil, err
+	}
+	jobs = slices.DeleteFunc(jobs, func(j *ActionRunJob) bool { return j.ID == job.ID || callerIDs.Contains(j.ID) })
 	jobsToCancel = append(jobsToCancel, jobs...)
 
 	// cancel runs in the same concurrency group

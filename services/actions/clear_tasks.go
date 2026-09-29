@@ -72,14 +72,17 @@ func shouldBlockJobByConcurrency(ctx context.Context, job *actions_model.ActionR
 		return false, nil
 	}
 
-	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, job.RepoID, job.ConcurrencyGroup, []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusCancelling})
+	attempts, jobs, err := actions_model.GetConcurrencyHolders(ctx, job.RepoID, job.ConcurrencyGroup)
 	if err != nil {
-		return false, fmt.Errorf("GetConcurrentRunAttemptsAndJobs: %w", err)
+		return false, fmt.Errorf("GetConcurrencyHolders: %w", err)
 	}
-	// the job's own attempt is in the group when the workflow declares the same one, it must not block its own job
-	attempts = slices.DeleteFunc(attempts, func(a *actions_model.ActionRunAttempt) bool { return a.ID == job.RunAttemptID })
-
-	return len(attempts) > 0 || len(jobs) > 0, nil
+	callerIDs, err := actions_model.GetAncestorCallerIDs(ctx, job)
+	if err != nil {
+		return false, err
+	}
+	// the job's own attempt and callers may declare the same group, they must not block their own job
+	return slices.ContainsFunc(attempts, func(a *actions_model.ActionRunAttempt) bool { return a.ID != job.RunAttemptID }) ||
+		slices.ContainsFunc(jobs, func(j *actions_model.ActionRunJob) bool { return !callerIDs.Contains(j.ID) }), nil
 }
 
 // PrepareToStartJobWithConcurrency prepares a job to start by its evaluated concurrency group and cancelling previous jobs if necessary.
@@ -104,18 +107,18 @@ func shouldBlockRunByConcurrency(ctx context.Context, attempt *actions_model.Act
 		return false, nil
 	}
 
-	attempts, jobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, []actions_model.Status{actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusCancelling})
+	attempts, jobs, err := actions_model.GetConcurrencyHolders(ctx, attempt.RepoID, attempt.ConcurrencyGroup)
 	if err != nil {
 		return false, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
-
-	return len(attempts) > 0 || len(jobs) > 0, nil
+	// the run's own attempt and jobs may declare the same group, they must not block their own run
+	return slices.ContainsFunc(attempts, func(a *actions_model.ActionRunAttempt) bool { return a.RunID != attempt.RunID }) ||
+		slices.ContainsFunc(jobs, func(j *actions_model.ActionRunJob) bool { return j.RunID != attempt.RunID }), nil
 }
 
 // PrepareToStartRunWithConcurrency prepares a run attempt to start by its evaluated concurrency group and cancelling previous jobs if necessary.
 // It returns the new status of the run attempt (either StatusBlocked or StatusWaiting), any cancelled jobs, and any error encountered during the process.
 func PrepareToStartRunWithConcurrency(ctx context.Context, attempt *actions_model.ActionRunAttempt) (actions_model.Status, []*actions_model.ActionRunJob, error) {
-	// cancel before checking, so the jobs this cancellation finishes no longer hold the group
 	jobs, err := actions_model.CancelPreviousJobsByRunConcurrency(ctx, attempt)
 	if err != nil {
 		return actions_model.StatusBlocked, nil, fmt.Errorf("CancelPreviousJobsByRunConcurrency: %w", err)

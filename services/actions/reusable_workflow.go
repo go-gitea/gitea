@@ -28,6 +28,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
 
+	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
@@ -423,6 +424,13 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		if parsedChild.Uses != "" {
 			child.IsReusableCaller = true
 			child.CallUses = parsedChild.Uses
+		}
+		if parsedChild.RawConcurrency != nil {
+			rawConcurrency, err := yaml.Marshal(parsedChild.RawConcurrency)
+			if err != nil {
+				return fmt.Errorf("marshal raw concurrency of child %q under caller %d: %w", jobID, caller.ID, err)
+			}
+			child.RawConcurrency = string(rawConcurrency)
 		}
 		if err := db.Insert(ctx, child); err != nil {
 			return fmt.Errorf("insert child %q under caller %d: %w", jobID, caller.ID, err)

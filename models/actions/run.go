@@ -366,23 +366,40 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 
 type ActionRunIndex db.ResourceIndex
 
-// GetConcurrentRunAttemptsAndJobs returns run attempts and jobs in the same concurrency group by statuses.
-func GetConcurrentRunAttemptsAndJobs(ctx context.Context, repoID int64, concurrencyGroup string, status []Status) ([]*ActionRunAttempt, []*ActionRunJob, error) {
-	attempts, err := FindConcurrentRunAttempts(ctx, repoID, concurrencyGroup, status)
-	if err != nil {
+// expandedCallerCond matches a reusable caller that passed its gate, its status aggregated from its children can still be blocked
+var expandedCallerCond = builder.Eq{"is_reusable_caller": true, "is_expanded": true}
+
+// GetConcurrencyHolders returns the run attempts and jobs that passed the gate of the concurrency group and are not done yet.
+func GetConcurrencyHolders(ctx context.Context, repoID int64, concurrencyGroup string) ([]*ActionRunAttempt, []*ActionRunJob, error) {
+	holding := builder.In("status", StatusWaiting, StatusRunning, StatusCancelling)
+	return findConcurrencyGroupEntries(ctx, repoID, concurrencyGroup, holding, holding.Or(expandedCallerCond.And(builder.Eq{"status": StatusBlocked})))
+}
+
+// GetConcurrencyWaiters returns the run attempts and jobs blocked at the gate of the concurrency group.
+func GetConcurrencyWaiters(ctx context.Context, repoID int64, concurrencyGroup string) ([]*ActionRunAttempt, []*ActionRunJob, error) {
+	blocked := builder.Eq{"status": StatusBlocked}
+	return findConcurrencyGroupEntries(ctx, repoID, concurrencyGroup, blocked, blocked.And(builder.Not{expandedCallerCond}))
+}
+
+func findConcurrencyGroupEntries(ctx context.Context, repoID int64, concurrencyGroup string, attemptCond, jobCond builder.Cond) ([]*ActionRunAttempt, []*ActionRunJob, error) {
+	groupCond := builder.Eq{"repo_id": repoID, "concurrency_group": concurrencyGroup}
+	attempts := make([]*ActionRunAttempt, 0)
+	if err := db.GetEngine(ctx).Where(groupCond.And(attemptCond)).Find(&attempts); err != nil {
 		return nil, nil, fmt.Errorf("find run attempts: %w", err)
 	}
-
-	jobs, err := db.Find[ActionRunJob](ctx, &FindRunJobOptions{
-		RepoID:           repoID,
-		ConcurrencyGroup: concurrencyGroup,
-		Statuses:         status,
-	})
-	if err != nil {
+	jobs := make([]*ActionRunJob, 0)
+	if err := db.GetEngine(ctx).Where(groupCond.And(jobCond)).Find(&jobs); err != nil {
 		return nil, nil, fmt.Errorf("find jobs: %w", err)
 	}
-
 	return attempts, jobs, nil
+}
+
+func getConcurrencyEntriesToReplace(ctx context.Context, repoID int64, concurrencyGroup string, cancelInProgress bool) ([]*ActionRunAttempt, []*ActionRunJob, error) {
+	if !cancelInProgress {
+		return GetConcurrencyWaiters(ctx, repoID, concurrencyGroup)
+	}
+	unfinished := builder.In("status", StatusBlocked, StatusWaiting, StatusRunning, StatusCancelling)
+	return findConcurrencyGroupEntries(ctx, repoID, concurrencyGroup, unfinished, unfinished)
 }
 
 func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunAttempt) ([]*ActionRunJob, error) {
@@ -392,13 +409,7 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 
 	var jobsToCancel []*ActionRunJob
 
-	statusFindOption := []Status{StatusBlocked}
-	if attempt.ConcurrencyCancel {
-		statusFindOption = append(statusFindOption, StatusWaiting)
-		statusFindOption = append(statusFindOption, StatusRunning)
-		statusFindOption = append(statusFindOption, StatusCancelling)
-	}
-	attempts, jobs, err := GetConcurrentRunAttemptsAndJobs(ctx, attempt.RepoID, attempt.ConcurrencyGroup, statusFindOption)
+	attempts, jobs, err := getConcurrencyEntriesToReplace(ctx, attempt.RepoID, attempt.ConcurrencyGroup, attempt.ConcurrencyCancel)
 	if err != nil {
 		return nil, fmt.Errorf("find concurrent runs and jobs: %w", err)
 	}
