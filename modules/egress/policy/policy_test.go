@@ -33,13 +33,11 @@ func TestCheckAddr(t *testing.T) {
 		{name: "allow host", allow: "example.com", host: "example.com", ip: "8.8.8.8", want: true},
 		{name: "allow cidr", allow: "10.0.0.0/8", ip: "10.0.0.5", want: true},
 		{name: "block overrides allow", allow: "10.0.0.0/8", block: "10.0.0.5/32", ip: "10.0.0.5"},
-		{name: "reserved denied by wildcard", allow: "*", ip: "169.254.169.254"},
 		{name: "reserved denied by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254"},
 		{name: "reserved denied ipv4-mapped", allow: "169.254.0.0/16", ip: "::ffff:169.254.169.254"},
 		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", localNeedsIPAllow: true},
-		{name: "local gate ignores wildcard", allow: "*", ip: "127.0.0.1", localNeedsIPAllow: true},
 		{name: "local gate accepts builtin", allow: "private", ip: "100.64.0.1", localNeedsIPAllow: true, want: true},
-		{name: "local gate accepts cidr", allow: "external, 10.0.0.0/24", ip: "10.0.0.5", localNeedsIPAllow: true, want: true},
+		{name: "local gate accepts cidr", allow: "10.0.0.0/24", ip: "10.0.0.5", localNeedsIPAllow: true, want: true},
 		// strict mode requires every target to match the allow list, an empty list denies all
 		{name: "strict denies public with empty list", ip: "8.8.8.8", strict: true},
 		{name: "strict denies unresolved with empty list", host: "example.com", strict: true},
@@ -115,7 +113,7 @@ func TestCheckHostIPs(t *testing.T) {
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), ips("10.0.0.5", "192.168.0.1")))
 	assert.Error(t, allowed.checkHostIPs(hostURL(t, "http://other.com"), nil))
 
-	builtins := NewPolicy("test", Lax, WithAllow("external, private, loopback", ""))
+	builtins := NewPolicy("test", Lax, WithAllow("private, loopback", ""))
 	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "100.64.0.1", "::1")))
 	for _, ip := range []string{
 		"0.1.2.3", "100.100.100.200", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",

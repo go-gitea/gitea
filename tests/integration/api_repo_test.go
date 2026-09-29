@@ -378,7 +378,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		})
 
 		t.Run("DisallowedHost", func(t *testing.T) {
-			defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+			defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 			for _, cloneURL := range []string{"https://localhost:3000/user/test_repo.git", "https://10.0.0.1/user/test_repo.git"} {
 				req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate", &api.MigrateRepoOptions{
 					CloneAddr:   cloneURL,

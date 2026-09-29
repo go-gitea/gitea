@@ -4,7 +4,6 @@
 package policy
 
 import (
-	"cmp"
 	"errors"
 	"fmt"
 	"net"
@@ -80,91 +79,29 @@ type (
 	BlockList struct{ matchList }
 )
 
-type listBuilder struct {
-	ipv4 map[netip.Prefix][]portRange
-	ipv6 map[netip.Prefix][]portRange
-	host map[string][]portRange
-
-	rejected []string
+type listEntry interface {
+	addTo(*matchList)
 }
 
-func newListBuilder() *listBuilder {
-	return &listBuilder{
-		ipv4:     map[netip.Prefix][]portRange{},
-		ipv6:     map[netip.Prefix][]portRange{},
-		host:     map[string][]portRange{},
-		rejected: []string{},
+func (p prefixRule) addTo(m *matchList) {
+	if p.prefix.Addr().Is4() {
+		m.ipv4List = append(m.ipv4List, p)
+	} else {
+		m.ipv6List = append(m.ipv6List, p)
 	}
 }
 
-type listEntry interface {
-	addTo(*listBuilder)
-}
-
-func (p prefixRule) addTo(b *listBuilder) { b.addPrefix(p.prefix, p.portRanges) }
-
-func (p domainRule) addTo(b *listBuilder) { b.addHost(p.pattern, p.portRanges) }
+func (p domainRule) addTo(m *matchList) { m.patterns = append(m.patterns, p) }
 
 type aliasExpansion []prefixRule
 
-func (r aliasExpansion) addTo(b *listBuilder) {
+func (r aliasExpansion) addTo(m *matchList) {
 	for _, pr := range r {
-		b.addPrefix(pr.prefix, pr.portRanges)
+		pr.addTo(m)
 	}
 }
 
-func (b *listBuilder) addPrefix(p netip.Prefix, ranges []portRange) {
-	target := b.ipv4
-	if !p.Addr().Is4() {
-		target = b.ipv6
-	}
-	target[p] = append(target[p], ranges...)
-}
-
-func (b *listBuilder) addHost(pattern string, ranges []portRange) {
-	b.host[pattern] = append(b.host[pattern], ranges...)
-}
-
-func (b *listBuilder) reject(err error) {
-	b.rejected = append(b.rejected, err.Error())
-}
-
-func (b *listBuilder) build() matchList {
-	return matchList{
-		ipv4List: b.prefixRules(b.ipv4),
-		ipv6List: b.prefixRules(b.ipv6),
-		patterns: b.domainRules(),
-		rejected: b.rejected,
-	}
-}
-
-// prefixRules coalesces port ranges per prefix
-func (b *listBuilder) prefixRules(entries map[netip.Prefix][]portRange) []prefixRule {
-	if len(entries) == 0 {
-		return nil
-	}
-	rules := make([]prefixRule, 0, len(entries))
-	for prefix, ranges := range entries {
-		rules = append(rules, prefixRule{prefix: prefix, portRanges: coalesceRanges(ranges)})
-	}
-	slices.SortFunc(rules, func(a, b prefixRule) int { return strings.Compare(a.prefix.String(), b.prefix.String()) })
-	return rules
-}
-
-func (b *listBuilder) domainRules() []domainRule {
-	if len(b.host) == 0 {
-		return nil
-	}
-	rules := make([]domainRule, 0, len(b.host))
-	for pattern, ranges := range b.host {
-		rules = append(rules, domainRule{pattern: pattern, portRanges: coalesceRanges(ranges)})
-	}
-	slices.SortFunc(rules, func(a, b domainRule) int { return strings.Compare(a.pattern, b.pattern) })
-	return rules
-}
-
-func parseList(hostlist string, mode Mode, isBlocklist bool) matchList {
-	b := newListBuilder()
+func parseList(hostlist string, mode Mode, isBlocklist bool) (list matchList) {
 	for entry := range strings.SplitSeq(hostlist, ",") {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
@@ -172,12 +109,12 @@ func parseList(hostlist string, mode Mode, isBlocklist bool) matchList {
 		}
 		rule, err := parseRule(entry, mode, isBlocklist)
 		if err != nil {
-			b.reject(err)
+			list.rejected = append(list.rejected, err.Error())
 			continue
 		}
-		rule.addTo(b)
+		rule.addTo(&list)
 	}
-	return b.build()
+	return list
 }
 
 func splitEntry(entry string) (target, portSpec string, err error) {
@@ -309,26 +246,13 @@ func newDomainRule(target string, ranges []portRange) (domainRule, error) {
 	if target == "*" {
 		return domainRule{}, fmt.Errorf("catch-all host pattern %q matches every host and is not allowed", target)
 	}
+	if target == "external" {
+		return domainRule{}, errors.New(`the "external" builtin was replaced by EGRESS_MODE = lax`)
+	}
 	if !validDomainPattern(target) {
 		return domainRule{}, fmt.Errorf("target %q is not an IP, CIDR, named range, or valid hostname pattern", target)
 	}
 	return domainRule{pattern: target, portRanges: ranges}, nil
-}
-
-func coalesceRanges(ranges []portRange) []portRange {
-	slices.SortFunc(ranges, func(a, b portRange) int { return cmp.Compare(a.start, b.start) })
-	// merged aliases ranges: callers pass the builder's own per-key slice and
-	// never read it again, so compacting in place is safe and avoids an alloc.
-	merged := ranges[:0]
-	for _, r := range ranges {
-		// uint32 so the +1 adjacency check cannot overflow at 65535.
-		if last := len(merged) - 1; last >= 0 && uint32(r.start) <= uint32(merged[last].end)+1 {
-			merged[last].end = max(merged[last].end, r.end)
-			continue
-		}
-		merged = append(merged, r)
-	}
-	return merged
 }
 
 // parsePortSpec parses a port spec: "" means the context default per defaultPorts, "*"
@@ -430,7 +354,7 @@ func (m *matchList) MatchHostname(host string, port uint16) bool {
 //     excluded — the two spellings are equivalent, mirroring httpproxy's normalization
 func matchDomain(pattern, host string) bool {
 	if strings.HasPrefix(pattern, "*.") || strings.HasPrefix(pattern, ".") {
-		suffix := pattern[1:]
+		suffix := strings.TrimPrefix(pattern, "*")
 		return strings.HasSuffix(host, suffix) && len(host) > len(suffix)
 	}
 	return pattern == host || strings.HasSuffix(host, "."+pattern)

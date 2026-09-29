@@ -97,7 +97,6 @@ func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {
 }
 
 func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
-	// external-only allow-list must reject link-local cloud metadata (169.254.169.254) at dial time
 	resp, err := oauth2AvatarHTTPClient().Get("http://169.254.169.254/latest/meta-data/")
 	if resp != nil {
 		_ = resp.Body.Close()

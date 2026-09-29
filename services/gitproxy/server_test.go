@@ -416,7 +416,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestRun(t *testing.T) {
-	t.Parallel()
 	base := t.TempDir()
 	exe, err := os.Executable()
 	require.NoError(t, err)

@@ -72,7 +72,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
 
-	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
 
 	// Cleanup

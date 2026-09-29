@@ -25,6 +25,7 @@ func TestMatchHostname(t *testing.T) {
 		{pattern: ".example.com", host: "sub.example.com", port: 80, want: true},
 		{pattern: "*.example.com", host: "example.com", port: 80}, // apex never matches
 		{pattern: "*.example.com", host: "notexample.com", port: 80},
+		{pattern: ".example.com", host: "notexample.com", port: 80},
 		// matching is case-insensitive and tolerates spaces, a port suffix and a trailing dot
 		{pattern: "example.com", host: " EXAMPLE.com.:8080 ", port: 80, want: true},
 		// strict entries without a port cover the web ports 80 and 443
@@ -92,6 +93,7 @@ func TestBlockListDefaultPorts(t *testing.T) {
 func TestRejectedEntries(t *testing.T) {
 	for _, tc := range []struct{ entry, wantErr string }{
 		{entry: "*", wantErr: `catch-all host pattern "*" matches every host and is not allowed`},
+		{entry: "external", wantErr: "EGRESS_MODE"},
 		{entry: "0.0.0.0/0", wantErr: `catch-all CIDR "0.0.0.0/0" covers every address and is not allowed`},
 		{entry: "::/0", wantErr: `catch-all CIDR "::/0" covers every address and is not allowed`},
 		{entry: "10.0.0.5/8", wantErr: `host bits must be zero, use "10.0.0.0/8"`},

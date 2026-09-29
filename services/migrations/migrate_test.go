@@ -45,7 +45,7 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	adminUser := &user_model.User{IsAdmin: true}
 	nonAdminUser := &user_model.User{}
 
-	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 	defer test.MockVariableValue(&setting.Migrations.BlockedHostList, "8.8.4.4")()
 	assert.NoError(t, IsMigrateURLAllowed("https://8.8.8.8/go-gitea/gitea.git", nonAdminUser))
 	assert.Error(t, IsMigrateURLAllowed("https://8.8.4.4/go-gitea/gitea.git", nonAdminUser))

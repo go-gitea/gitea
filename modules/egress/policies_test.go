@@ -28,11 +28,11 @@ func TestNewMigrationPolicy(t *testing.T) {
 		allow, block, mode, target string
 		want                       bool
 	}{
-		{allow: "external", target: "https://1.2.3.4", want: true},
+		{target: "https://1.2.3.4", want: true},
 		{allow: "github.com", target: "https://10.0.0.1"},            // a hostname allow doesn't cover a private IP
 		{allow: "github.com", target: "https://8.8.8.8", want: true}, // lax exempts public targets
 		{allow: "github.com", mode: "strict", target: "https://8.8.8.8"},
-		{allow: "external", block: "10.0.0.0/8", target: "https://10.0.0.1"},
+		{block: "8.8.0.0/16", target: "https://8.8.8.8"},
 	} {
 		setting.Migrations.AllowedHostList, setting.Migrations.BlockedHostList, setting.Migrations.EgressMode = tc.allow, tc.block, tc.mode
 		u, err := url.Parse(tc.target)
@@ -61,10 +61,6 @@ func TestWebhookPolicyProxy(t *testing.T) {
 		require.NoError(t, err)
 		req.Host = ""
 		u, err := selectProxy(req)
-		if want == "error" {
-			assert.Error(t, err, target)
-			continue
-		}
 		require.NoError(t, err, target)
 		if want == "" {
 			assert.Nil(t, u, target)

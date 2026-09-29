@@ -151,7 +151,7 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
 	assert.EqualValues(t, 1, requests.Load(), "the git proxy must deny the redirect to a reserved address")
 
-	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "external")()
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 	assert.False(t, mirror_service.SyncPullMirror(ctx, mirror.RepoID))
 	assert.EqualValues(t, 1, requests.Load(), "the disallowed internal remote must not be reached")
 }
