@@ -267,4 +267,4 @@ ignore (
 	./web_src
 )
 
-replace github.com/sassoftware/go-rpmutils => github.com/silverwind/go-rpmutils v0.4.1-0.20260925122310-93f304cb3182 // until https://github.com/sassoftware/go-rpmutils/pull/44 is released
+replace github.com/sassoftware/go-rpmutils => github.com/silverwind/go-rpmutils v0.4.1-gitea.1 // until https://github.com/sassoftware/go-rpmutils/pull/44 is released
