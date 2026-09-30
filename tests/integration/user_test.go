@@ -85,7 +85,6 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	req := NewRequest(t, "GET", "/"+org22.Name)
 	MakeRequest(t, req, http.StatusNotFound)
 	MakeRequest(t, NewRequest(t, "GET", "/"+org22.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
-	MakeRequest(t, NewRequest(t, "GET", "/user31").SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
 
 	session := loginUser(t, "user1")
 	oldName := org22.Name
@@ -110,7 +109,6 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 	strangerSession := loginUser(t, "user4")
 	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+org23.Name+"?action=follow"), http.StatusNotFound)
-	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/user31?action=follow"), http.StatusNotFound)
 
 	oldName = org23.Name
 	newName = "org23_renamed"
@@ -132,6 +130,8 @@ func testViewLimitedAndPrivateUserAndRename(t *testing.T) {
 	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
 	req = NewRequest(t, "GET", "/"+user31.Name)
 	MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", "/"+user31.Name).SetHeader("Accept", "application/rss+xml"), http.StatusNotFound)
+	strangerSession.MakeRequest(t, NewRequest(t, "POST", "/"+user31.Name+"?action=follow"), http.StatusNotFound)
 
 	oldName = user31.Name
 	newName = "user31_renamed"

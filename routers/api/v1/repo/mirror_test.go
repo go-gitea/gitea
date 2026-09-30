@@ -14,7 +14,6 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +33,6 @@ func TestCreatePushMirrorUsesCallerPermission(t *testing.T) {
 func TestAddPushMirrorDisabled(t *testing.T) {
 	defer test.MockVariableValue(&setting.Mirror.DisableNewPush, true)()
 	ctx, resp := contexttest.MockAPIContext(t, "user2/repo1")
-	web.SetForm(ctx, &api.CreatePushMirrorOption{})
 
 	AddPushMirror(ctx)
 

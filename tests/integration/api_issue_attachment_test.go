@@ -40,8 +40,7 @@ func TestAPIGetIssueAttachment(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
 
 	commentAttachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 3, RepoID: repo.ID})
-	commentIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: commentAttachment.IssueID})
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, commentIssue.Index, commentAttachment.ID)).
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: commentAttachment.IssueID}).Index, commentAttachment.ID)).
 		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }

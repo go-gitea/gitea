@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
@@ -163,7 +162,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// if it's not a pointer, just serve the data directly
 	if !pointer.IsValid() {
-		httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, int64(len(lfsPointerBuf)), bytes.NewReader(lfsPointerBuf), httplib.ServeHeaderOptions{Filename: path.Base(ctx.Repo.TreePath)})
+		httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, int64(len(lfsPointerBuf)), bytes.NewReader(lfsPointerBuf), httplib.ServeHeaderOptions{Filename: blob.Name()})
 		return
 	}
 
@@ -172,7 +171,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// If there isn't one, just serve the data directly
 	if errors.Is(err, git_model.ErrLFSObjectNotExist) {
-		httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, int64(len(lfsPointerBuf)), bytes.NewReader(lfsPointerBuf), httplib.ServeHeaderOptions{Filename: path.Base(ctx.Repo.TreePath)})
+		httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, int64(len(lfsPointerBuf)), bytes.NewReader(lfsPointerBuf), httplib.ServeHeaderOptions{Filename: blob.Name()})
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)
@@ -199,7 +198,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 	defer lfsDataFile.Close()
-	httplib.ServeUserContentByFile(ctx.Base.Req, ctx.Base.Resp, lfsDataFile, httplib.ServeHeaderOptions{Filename: path.Base(ctx.Repo.TreePath)})
+	httplib.ServeUserContentByFile(ctx.Base.Req, ctx.Base.Resp, lfsDataFile, httplib.ServeHeaderOptions{Filename: blob.Name()})
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {

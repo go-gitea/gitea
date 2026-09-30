@@ -327,7 +327,7 @@ func TestGiteaDownloadCommentsPaging(t *testing.T) {
 		{maxResponseItems: 0, pageSize: 10, commentCount: 0, requests: 1},
 		{maxResponseItems: math.MaxInt, pageSize: 100, commentCount: 0, requests: 1},
 	} {
-		t.Run(strconv.Itoa(tc.commentCount), func(t *testing.T) {
+		t.Run(fmt.Sprintf("maxResponseItems=%d/comments=%d", tc.maxResponseItems, tc.commentCount), func(t *testing.T) {
 			commentRequests := 0
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				switch r.URL.Path {
@@ -354,7 +354,7 @@ func TestGiteaDownloadCommentsPaging(t *testing.T) {
 
 			downloader, err := NewGiteaDownloader(t.Context(), server.URL, "o/r", "", "", "")
 			require.NoError(t, err)
-			assert.Equal(t, tc.pageSize, downloader.maxPerPage)
+			require.Equal(t, tc.pageSize, downloader.maxPerPage)
 
 			comments, _, err := downloader.GetComments(t.Context(), &base.Issue{Number: 1})
 			require.NoError(t, err)
