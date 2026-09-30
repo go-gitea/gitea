@@ -78,10 +78,8 @@ export function initGlobalCopyToClipboardListener() {
       const textTarget = document.querySelector(textSelector)!;
       if (textTarget.nodeName === 'INPUT' || textTarget.nodeName === 'TEXTAREA') {
         text = (textTarget as HTMLInputElement | HTMLTextAreaElement).value;
-      } else if (textTarget.nodeName === 'DIV') {
-        text = textTarget.textContent;
       } else {
-        throw new Error(`Unsupported element for clipboard target: ${textSelector}`);
+        text = textTarget.textContent;
       }
     }
     // now, text can not be null
