@@ -226,7 +226,6 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        # MariaDB 11.6.2+ defaults innodb_snapshot_isolation to ON, which rejects concurrent writes that MySQL accepts
         image: mariadb:11.8@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68
         env:
           MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: true
