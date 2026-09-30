@@ -17,6 +17,7 @@ test('isGiteaError', () => {
   expect(isGiteaError('', `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
   expect(isGiteaError('', `Error\n    at https://other-site.com/script.js:1:1`)).toBe(false);
   expect(isGiteaError('', `Error\n    at ${origin}/assets/js/index.abc123.js:1:1`)).toBe(true);
+  expect(isGiteaError('', `Error\n    at ${origin}/web_src/js/index.ts:1:1`)).toBe(true);
   expect(isGiteaError(`${origin}/assets/js/index.js`, `Error\n    at chrome-extension://abc/content.js:1:1`)).toBe(false);
 });
 

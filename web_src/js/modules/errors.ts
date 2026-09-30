@@ -58,7 +58,7 @@ export function isGiteaError(filename: string, stack: string): boolean {
   if (extensionRe.test(filename) || extensionRe.test(stack)) return false;
   const assetBaseUrl = new URL(`${windowConfig()?.assetUrlPrefix}/`, window.location.origin).href;
   if (filename && !filename.startsWith(assetBaseUrl) && !filename.startsWith(window.location.origin)) return false;
-  return !stack || stack.includes(assetBaseUrl);
+  return !stack || stack.includes(assetBaseUrl) || stack.includes(`${window.location.origin}/web_src/`); // vite dev server serves the sources
 }
 
 export function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
