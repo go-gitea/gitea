@@ -106,10 +106,13 @@ func (repo *Repository) getTag(ctx context.Context, tagID ObjectID, name string)
 		return nil, ErrNotExist{ID: tagID.String()}
 	}
 
-	// then we need to parse the tag
-	// and load the commit
-	data, err := io.ReadAll(io.LimitReader(rd, size))
+	// then we need to parse the tag and load the commit
+	limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+	data, err := io.ReadAll(limitReader)
 	if err != nil {
+		return nil, err
+	}
+	if err = limitDiscard(); err != nil {
 		return nil, err
 	}
 	_, err = rd.Discard(1)

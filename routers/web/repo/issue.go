@@ -96,10 +96,13 @@ func MustEnableIssues(ctx *context.Context) {
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
+	unitExtTracker, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypeExternalTracker)
 	if err == nil {
-		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
-		return
+		extURL := unitExtTracker.ExternalTrackerConfig().ExternalTrackerURL
+		if extURL != "" {
+			ctx.Redirect(extURL)
+			return
+		}
 	}
 }
 
@@ -581,7 +584,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	}
 	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
-		attachments[i] = convert.ToAttachment(ctx.Repo.Repository, issue.Attachments[i])
+		attachments[i] = convert.ToAttachment(ctx, ctx.Repo.Repository, issue.Attachments[i])
 	}
 	ctx.JSON(http.StatusOK, attachments)
 }

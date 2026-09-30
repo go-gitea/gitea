@@ -13,7 +13,7 @@
 
 		<div class="item flex-relaxed-list">
 			<span class="tw-text-center">
-				{{.ContextUser.Name}}
+				{{.ContextUser.Name}}{{template "shared/user/user_type_label" .ContextUser}}
 				{{if .IsAdmin}}
 					<a href="{{AppSubUrl}}/-/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{svg "octicon-gear" 18}}</a>
 				{{end}}
@@ -125,7 +125,7 @@
 				<div class="item">
 					{{$buttonExtraClass := Iif $.IsFollowing "" "primary"}}
 					{{$followAction := Iif $.IsFollowing "unfollow" "follow"}}
-					<button class="ui basic {{$buttonExtraClass}} button tw-w-full"
+					<button type="button" class="ui basic {{$buttonExtraClass}} button tw-w-full"
 									data-fetch-method="post" data-fetch-url="{{.ContextUser.HomeLink}}?action={{$followAction}}"
 									data-fetch-sync="$body #profile-avatar-card"
 					>

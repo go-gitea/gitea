@@ -4,35 +4,45 @@
 package v28
 
 import (
+	"context"
+	"slices"
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/xorm/schemas"
 )
 
-func TestAddWorkflowPathToActions(t *testing.T) {
-	type ActionRun struct {
-		ID int64 `xorm:"pk autoincr"`
-	}
-	type ActionSchedule struct {
-		ID int64 `xorm:"pk autoincr"`
-	}
-
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionRun), new(ActionSchedule))
+func TestAddAuditEventTable(t *testing.T) {
+	x, deferable := migrationtest.PrepareTestEnv(t, 0)
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
-	_, err := x.Insert(new(ActionRun), new(ActionSchedule))
-	require.NoError(t, err)
-	require.NoError(t, AddWorkflowPathToActions(t.Context(), x))
 
-	for _, table := range []string{"action_run", "action_schedule"} {
-		var workflowPath string
-		has, err := x.SQL("SELECT workflow_path FROM "+table+" WHERE id = ?", 1).Get(&workflowPath)
-		require.NoError(t, err)
-		require.True(t, has)
-		require.Empty(t, workflowPath)
+	require.NoError(t, AddAuditEventTable(t.Context(), x))
+
+	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "audit_event")
+	require.NoError(t, err)
+	for _, columns := range [][]string{
+		{"action"},
+		{"actor_id"},
+		{"scope_id", "scope_type"},
+		{"scope_type"},
+		{"origin"},
+		{"timestamp_unix"},
+	} {
+		assert.True(t, hasAuditIndexWithColumns(indexes, columns), "missing index on %v", columns)
 	}
+}
+
+func hasAuditIndexWithColumns(indexes map[string]*schemas.Index, columns []string) bool {
+	for _, index := range indexes {
+		if slices.Equal(index.Cols, columns) {
+			return true
+		}
+	}
+	return false
 }

@@ -13,6 +13,7 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func fullWorkflowContent(part string) []byte {
@@ -25,6 +26,25 @@ jobs:
     steps:
       - run: echo hello
 `)
+}
+
+func TestReadWorkflowEventsStaticErrors(t *testing.T) {
+	for content, static := range map[string]bool{
+		"on: push\njobs: {}":                                                                  true,
+		"on: push\njobs: {test: {needs: absent}}":                                             true,
+		"on: push\njobs: {one: {needs: two}, two: {needs: one}}":                              true,
+		"on: push\njobs: {test: {strategy: {matrix: {os: []}}}}":                              true,
+		"on: push\nrun-name: ${{ secrets.TOKEN }}\njobs: {test: {}}":                          true,
+		"on: push\nrun-name: ${{ fromJSON(inputs.x) }}\njobs: {test: {steps: [{run: echo}]}}": false,
+	} {
+		_, gotStatic, err := readWorkflowEvents([]byte(content))
+		require.Error(t, err, content)
+		assert.Equal(t, static, gotStatic, content)
+	}
+	for _, content := range []string{"on: push\njobs: {test: {steps: [{run: echo}]}}", "on: push\nrun-name: ${{ github.ref }}\njobs: {test: {}}"} {
+		_, _, err := readWorkflowEvents([]byte(content))
+		assert.NoError(t, err, content)
+	}
 }
 
 func TestIsWorkflow(t *testing.T) {

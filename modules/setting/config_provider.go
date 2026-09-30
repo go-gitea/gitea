@@ -19,14 +19,21 @@ import (
 )
 
 type ConfigKey interface {
+	internal()
+
 	Name() string
 	Value() string
 	SetValue(v string)
 
-	In(defaultVal string, candidates []string) string
 	String() string
 	Strings(delim string) []string
 	Bool() (bool, error)
+
+	// FIXME: INI-MUST-SIDE-EFFECT: ini package's In/MustXxx functions have bad side-effects:
+	// they will change the origin config content and write the key with default value if the key didn't exist.
+	// Need to completely refactor the ini package to remove this side-effect.
+
+	In(defaultVal string, candidates []string) string
 
 	MustString(defaultVal string) string
 	MustBool(defaultVal ...bool) bool
@@ -73,10 +80,56 @@ type iniConfigSection struct {
 	sec *ini.Section
 }
 
+type iniConfigKey struct {
+	key *ini.Key
+}
+
+func (k *iniConfigKey) internal() {}
+
+func (k *iniConfigKey) Name() string { return k.key.Name() }
+
+func (k *iniConfigKey) Value() string { return k.key.Value() }
+
+func (k *iniConfigKey) SetValue(v string) { k.key.SetValue(v) }
+
+func (k *iniConfigKey) String() string { return k.key.String() }
+
+func (k *iniConfigKey) Strings(delim string) []string { return k.key.Strings(delim) }
+
+func (k *iniConfigKey) Bool() (bool, error) { return k.key.Bool() }
+
+func (k *iniConfigKey) MustString(defaultVal string) string { return k.key.MustString(defaultVal) }
+
+func (k *iniConfigKey) MustBool(defaultVal ...bool) bool { return k.key.MustBool(defaultVal...) }
+
+func (k *iniConfigKey) MustInt(defaultVal ...int) int { return k.key.MustInt(defaultVal...) }
+
+func (k *iniConfigKey) MustInt64(defaultVal ...int64) int64 { return k.key.MustInt64(defaultVal...) }
+
+func (k *iniConfigKey) In(defaultVal string, candidates []string) string {
+	return k.key.In(defaultVal, candidates)
+}
+
+func (k *iniConfigKey) MustDuration(defaultVal ...time.Duration) time.Duration {
+	s := k.String()
+	v, err := strconv.ParseInt(s, 10, 64)
+	if err == nil {
+		d := time.Duration(v) * time.Second
+		k.key.SetValue(d.String())
+		return d
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		d = util.OptionalArg(defaultVal)
+	}
+	k.key.SetValue(d.String())
+	return d
+}
+
 var (
 	_ ConfigProvider = (*iniConfigProvider)(nil)
 	_ ConfigSection  = (*iniConfigSection)(nil)
-	_ ConfigKey      = (*ini.Key)(nil)
+	_ ConfigKey      = (*iniConfigKey)(nil)
 )
 
 // ConfigSectionKey only searches the keys in the given section, but it is O(n).
@@ -156,16 +209,20 @@ func (s *iniConfigSection) HasKey(key string) bool {
 }
 
 func (s *iniConfigSection) NewKey(name, value string) (ConfigKey, error) {
-	return s.sec.NewKey(name, value)
+	k, err := s.sec.NewKey(name, value)
+	if err != nil {
+		return nil, err
+	}
+	return &iniConfigKey{k}, nil
 }
 
 func (s *iniConfigSection) Key(key string) ConfigKey {
-	return s.sec.Key(key)
+	return &iniConfigKey{s.sec.Key(key)}
 }
 
 func (s *iniConfigSection) Keys() (keys []ConfigKey) {
 	for _, k := range s.sec.Keys() {
-		keys = append(keys, k)
+		keys = append(keys, &iniConfigKey{k})
 	}
 	return keys
 }

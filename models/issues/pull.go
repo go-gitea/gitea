@@ -202,15 +202,10 @@ func (pr *PullRequest) String() string {
 	return s.String()
 }
 
-// MustHeadUserName returns the HeadRepo's username if failed return blank
-func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
-	if err := pr.LoadHeadRepo(ctx); err != nil {
-		if !repo_model.IsErrRepoNotExist(err) {
-			log.Error("LoadHeadRepo: %v", err)
-		} else {
-			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
-		}
-		return ""
+// OptionalHeadUserName returns the HeadRepo's username if failed return blank
+func (pr *PullRequest) OptionalHeadUserName(ctx context.Context) string {
+	if err := pr.LoadHeadRepo(ctx); err != nil && !errors.Is(err, util.ErrNotExist) {
+		log.Error("LoadHeadRepo: %v", err)
 	}
 	if pr.HeadRepo == nil {
 		return ""
@@ -221,16 +216,10 @@ func (pr *PullRequest) MustHeadUserName(ctx context.Context) string {
 // LoadAttributes loads pull request attributes from database
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
-	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = user_model.GetUserByID(ctx, pr.MergerID)
-		if user_model.IsErrUserNotExist(err) {
-			pr.MergerID = user_model.GhostUserID
-			pr.Merger = user_model.NewGhostUser()
-		} else if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %w", pr.MergerID, err)
-		}
+	if pr.Merger == nil && pr.MergerID != 0 {
+		pr.MergerID, pr.Merger, err = user_model.GetPossibleUserByID(ctx, pr.MergerID)
+		return err
 	}
-
 	return nil
 }
 

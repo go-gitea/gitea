@@ -4,10 +4,11 @@
 package actions
 
 import (
-	"fmt"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
@@ -16,52 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestEvaluateJobIfDefersMatrixExpression(t *testing.T) {
-	// A placeholder's `if:` reading `matrix.*` can only be decided per combination once the matrix is expanded.
-
-	emptyRun := &actions_model.ActionRun{} // if the gate is removed, the emptyRun will cause an error
-	deferredJob := func(ifExpr string) *actions_model.ActionRunJob {
-		return &actions_model.ActionRunJob{
-			ID: 1, JobID: "build", Needs: []string{"setup"}, IsMatrixDeferred: true,
-			WorkflowPayload: fmt.Appendf(nil, `name: test
-on: push
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    if: %s
-    strategy:
-      matrix:
-        value: ${{ fromJson(needs.setup.outputs.m) }}
-    steps:
-      - run: echo
-`, ifExpr),
-		}
-	}
-
-	for _, tt := range []struct {
-		ifExpr string
-		// wantNeedsFailed is what the `if:` decides when the needs did not all succeed.
-		wantNeedsFailed bool
-	}{
-		// These hold only for a real combination, so none can be decided before the matrix expands,
-		// and the fallback is the needs gate: a job whose needs did not succeed is still skipped.
-		{ifExpr: "${{ matrix.value == 1 }}"},
-		{ifExpr: "matrix.value == 1"}, // an `if:` may omit the `${{ }}`
-		// always() asks to run whatever the needs did, so it must not fall back to their gate.
-		{ifExpr: "${{ always() && matrix.value == 1 }}", wantNeedsFailed: true},
-	} {
-		t.Run(tt.ifExpr, func(t *testing.T) {
-			got, err := evaluateJobIf(t.Context(), emptyRun, nil, deferredJob(tt.ifExpr), nil, true)
-			require.NoError(t, err)
-			assert.True(t, got, "must reach the expansion that gates each combination on its own values")
-
-			got, err = evaluateJobIf(t.Context(), emptyRun, nil, deferredJob(tt.ifExpr), nil, false)
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantNeedsFailed, got)
-		})
-	}
-}
 
 func TestDispatchInputsForRunJobs(t *testing.T) {
 	// a child carries the callee's `on: workflow_call`, so only a top-level job answers for the run
@@ -78,6 +33,59 @@ func TestDispatchInputsForRunJobs(t *testing.T) {
 	inputs, err := dispatchInputsForRunJobs(run, []*actions_model.ActionRunJob{child, job})
 	require.NoError(t, err)
 	assert.Equal(t, true, inputs["deploy"])
+}
+
+func TestReusableChildInputs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	const runID = 9801
+	insertJob := func(jobID string, parentID int64, payload, callPayload string) *actions_model.ActionRunJob {
+		job := &actions_model.ActionRunJob{RunID: runID, JobID: jobID, ParentJobID: parentID, WorkflowPayload: []byte(payload), CallPayload: callPayload}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
+	}
+	caller := insertJob("caller", 0,
+		"on: {workflow_dispatch: {inputs: {flag: {type: boolean}, Shared: {type: string}}}}\njobs:\n  caller:\n    uses: ./.gitea/workflows/mid.yml\n",
+		`{"inputs":{"shared":"from-call","mid_only":"mid"}}`)
+	mid := insertJob("mid", caller.ID, "", `{"inputs":{"env":"leaf"}}`)
+	leaf := insertJob("leaf", mid.ID, "", "")
+
+	dispatchRun := &actions_model.ActionRun{ID: runID, Event: "workflow_dispatch", EventPayload: `{"inputs":{"flag":"true","Shared":"from-dispatch"}}`}
+	pushRun := &actions_model.ActionRun{ID: runID, Event: "push", EventPayload: `{}`}
+
+	t.Run("dispatch inputs overlaid case-insensitively with the caller's with", func(t *testing.T) {
+		inputs, err := getInputsForJob(ctx, dispatchRun, mid)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]any{"flag": true, "shared": "from-call", "mid_only": "mid"}, inputs)
+	})
+
+	t.Run("task context of a nested child keeps the older runners' form and carries the original event", func(t *testing.T) {
+		leaf.Run = dispatchRun
+		gitCtx := GiteaContext{
+			"event_name": "workflow_dispatch",
+			"event":      map[string]any{"inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"}},
+		}
+		require.NoError(t, setCalledWorkflowContext(ctx, leaf, gitCtx))
+		inputs := map[string]any{"flag": true, "Shared": "from-dispatch", "env": "leaf"}
+		assert.Equal(t, "workflow_call", gitCtx["event_name"])
+		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
+		assert.Equal(t, map[string]any{
+			"original_event_name":   "workflow_dispatch",
+			"original_event_inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"},
+			"inputs":                inputs,
+		}, gitCtx["gitea_workflow_call"])
+	})
+
+	t.Run("task context of a non-dispatch run", func(t *testing.T) {
+		mid.Run = pushRun
+		gitCtx := GiteaContext{"event_name": "push", "event": map[string]any{}}
+		require.NoError(t, setCalledWorkflowContext(ctx, mid, gitCtx))
+		inputs := map[string]any{"shared": "from-call", "mid_only": "mid"}
+		assert.Equal(t, "workflow_call", gitCtx["event_name"])
+		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
+		assert.Equal(t, map[string]any{"original_event_name": "push", "inputs": inputs}, gitCtx["gitea_workflow_call"])
+	})
 }
 
 func TestPullRequestTargetBaseSHA(t *testing.T) {

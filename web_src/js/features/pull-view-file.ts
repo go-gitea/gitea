@@ -50,7 +50,7 @@ export function initDiffFileViewedForm(el: Element) {
     // Unfortunately, actual forms cause too many problems, hence another approach is needed
     const files: Record<string, boolean> = {};
     files[fileName] = this.checked;
-    const data: Record<string, any> = {files};
+    const data: {files: Record<string, boolean>, headCommitSHA?: string} = {files};
     const headCommitSHA = el.getAttribute('data-headcommit');
     if (headCommitSHA) data.headCommitSHA = headCommitSHA;
     POST(el.getAttribute('data-link')!, {data});

@@ -188,7 +188,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	var filteredWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	workflows, schedules, filtered, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
+	workflows, schedules, filtered, invalid, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
 		input.Event,
 		input.Payload,
 		shouldDetectSchedules,
@@ -234,7 +234,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, _, baseFiltered, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
+		baseWorkflows, _, baseFiltered, _, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
@@ -266,6 +266,10 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 			return err
 		}
+	}
+
+	if input.Event == webhook_module.HookEventPush {
+		handleInvalidWorkflows(ctx, input, ref, commit, invalid)
 	}
 
 	if err := handleWorkflows(ctx, detectedWorkflows, commit, input, ref); err != nil {
@@ -391,11 +395,20 @@ func buildApproveAndInsertRun(
 		IsScopedRun:       isScopedRun,
 	}
 
-	need, err := ifNeedApproval(ctx, run, input.Repo, input.Doer)
+	approvalUsers, err := getApprovalUsers(ctx, input, isForkPullRequest)
 	if err != nil {
-		return fmt.Errorf("check if need approval for user %d: %w", input.Doer.ID, err)
+		return err
 	}
-	run.NeedApproval = need
+	for _, user := range approvalUsers {
+		need, err := ifNeedApproval(ctx, run, input.Repo, user)
+		if err != nil {
+			return fmt.Errorf("check if need approval for user %d: %w", user.ID, err)
+		}
+		if need {
+			run.NeedApproval = true
+			break
+		}
+	}
 
 	if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
 		return fmt.Errorf("PrepareRunAndInsert: %w", err)
@@ -476,6 +489,23 @@ func notifyPackage(ctx context.Context, sender *user_model.User, pd *packages_mo
 			Sender:  convert.ToUser(ctx, sender, nil),
 		}).
 		Notify(ctx)
+}
+
+// getApprovalUsers returns the event actor, plus the fork PR author when the workflow comes from the PR
+func getApprovalUsers(ctx context.Context, input *notifyInput, isForkPullRequest bool) ([]*user_model.User, error) {
+	if !isForkPullRequest || input.PullRequest == nil || actions_module.IsDefaultBranchWorkflow(input.Event) {
+		return []*user_model.User{input.Doer}, nil
+	}
+	if err := input.PullRequest.LoadIssue(ctx); err != nil {
+		return nil, fmt.Errorf("load pull request issue: %w", err)
+	}
+	if err := input.PullRequest.Issue.LoadPoster(ctx); err != nil {
+		return nil, fmt.Errorf("load pull request author: %w", err)
+	}
+	if input.PullRequest.Issue.PosterID == input.Doer.ID {
+		return []*user_model.User{input.Doer}, nil
+	}
+	return []*user_model.User{input.Doer, input.PullRequest.Issue.Poster}, nil
 }
 
 func ifNeedApproval(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, user *user_model.User) (bool, error) {

@@ -23,8 +23,8 @@
 				{{end}}
 				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
 				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
-				<button class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
-				<button class="ui tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
+				<button type="button" class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
+				<button type="button" class="ui tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>
 			</div>
 		</div>
 	</h4>

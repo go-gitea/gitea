@@ -62,11 +62,15 @@ main() {
     fi
   done
 
-  for target in "${RELEASE_PLATFORMS_GOGIT[@]}"; do
-    if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
-      build "$target" "gogit"
-    fi
-  done
+  # Only build with gogit for main-nightly, disable gogit for stable releases since there seems no real requirement for them.
+  # If no real requirement (no user feedbacks), we can completely remove gogit support in the future.
+  if [ "$VERSION" = "main-nightly" ]; then
+    for target in "${RELEASE_PLATFORMS_GOGIT[@]}"; do
+      if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
+        build "$target" "gogit"
+      fi
+    done
+  fi
 }
 
 main "$@"

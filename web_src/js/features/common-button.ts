@@ -47,7 +47,7 @@ export type ElementWithAssignableProperties = {
   nodeName: string;
   getAttribute: (name: string) => string | null;
   setAttribute: (name: string, value: string) => void;
-} & Record<string, any>;
+};
 
 export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
   if (el.nodeName === 'FORM') {
@@ -59,14 +59,15 @@ export function assignElementProperty(el: ElementWithAssignableProperties, kebab
     if (kebabName === 'url') kebabName = 'action';
   }
   const camelizedName = camelize(kebabName);
-  const old = el[camelizedName];
+  const properties: Record<string, unknown> = el;
+  const old = properties[camelizedName];
   if (typeof old === 'boolean') {
-    el[camelizedName] = val === 'true';
+    properties[camelizedName] = val === 'true';
   } else if (typeof old === 'number') {
-    el[camelizedName] = parseFloat(val);
+    properties[camelizedName] = parseFloat(val);
   } else if (typeof old === 'string') {
-    el[camelizedName] = val;
-  } else if (old?.nodeName) {
+    properties[camelizedName] = val;
+  } else if (old && typeof old === 'object' && 'nodeName' in old) {
     // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
     el.setAttribute(kebabName, val);
   } else {

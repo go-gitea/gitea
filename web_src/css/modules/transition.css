@@ -16,8 +16,7 @@
 /* dimmer uses "active" but not "hidden/visible" classes, no special classes for it here */
 
 /* only modal and dimmer need animation, dropdown menu doesn't */
-.ui.modal.transition,
-.ui.dimmer.transition {
+.ui.modal.transition {
   animation-name: fadein;
   animation-duration: 100ms;
   animation-timing-function: ease-in-out;
