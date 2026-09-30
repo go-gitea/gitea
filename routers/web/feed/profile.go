@@ -9,7 +9,9 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 	feed_service "gitea.dev/services/feed"
 
@@ -28,8 +30,15 @@ func ShowUserFeedAtom(ctx *context.Context) {
 
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
-	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	isOrganisation := ctx.ContextUser.IsOrganization()
+	if !setting.Other.EnableFeed ||
+		isOrganisation && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
+		!isOrganisation && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.NotFound(nil)
+		return
+	}
+
+	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 	if ctx.IsSigned && isOrganisation && !includePrivate {
 		// When feed is requested by a member of the organization,
 		// include the private repo's the member has access to.
