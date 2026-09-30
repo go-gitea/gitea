@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"gitea.dev/modules/log"
@@ -59,6 +60,12 @@ func InitEngine(ctx context.Context) error {
 	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 
+	if setting.Database.Type.IsMySQL() {
+		if err := avoidSnapshotIsolationConflicts(xe); err != nil {
+			return fmt.Errorf("failed to read database variables: %w", err)
+		}
+	}
+
 	if setting.Database.SlowQueryThreshold > 0 {
 		xe.AddHook(&EngineHook{
 			Threshold: setting.Database.SlowQueryThreshold,
@@ -67,6 +74,27 @@ func InitEngine(ctx context.Context) error {
 	}
 
 	SetDefaultEngine(ctx, xe)
+	return nil
+}
+
+// avoidSnapshotIsolationConflicts switches to READ COMMITTED where MariaDB's innodb_snapshot_isolation (ON since 11.6.2) would fail concurrent writes with error 1020
+func avoidSnapshotIsolationConflicts(xe *xorm.Engine) error {
+	rows, err := xe.QueryString("SHOW VARIABLES WHERE Variable_name IN ('innodb_snapshot_isolation', 'log_bin', 'binlog_format')")
+	if err != nil {
+		return err
+	}
+	vars := make(map[string]string, len(rows))
+	for _, row := range rows {
+		vars[row["Variable_name"]] = row["Value"]
+	}
+	if vars["innodb_snapshot_isolation"] != "ON" {
+		return nil
+	}
+	if vars["log_bin"] == "ON" && vars["binlog_format"] == "STATEMENT" {
+		log.Warn("innodb_snapshot_isolation is ON and binlog_format is STATEMENT, concurrent writes may fail with error 1020, set binlog_format to ROW or MIXED")
+		return nil
+	}
+	xe.SetDefaultTxOptions(&sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	return nil
 }
 

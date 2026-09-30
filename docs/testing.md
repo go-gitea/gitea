@@ -71,6 +71,14 @@ docker run -e "MYSQL_DATABASE=test" -e "MYSQL_ALLOW_EMPTY_PASSWORD=yes" -p 3306:
 GITEA_TEST_DATABASE=mysql TEST_MYSQL_HOST=localhost:3306 TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root TEST_MYSQL_PASSWORD='' make test-integration
 ```
 
+#### MariaDB
+
+MariaDB runs with the MySQL command above. Since 11.6.2 it defaults `innodb_snapshot_isolation` to `ON`, which rejects concurrent writes that MySQL accepts:
+
+```bash
+docker run -e "MARIADB_DATABASE=test" -e "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=yes" -p 3306:3306 --rm --name mariadb mariadb:latest
+```
+
 #### PostgreSQL
 
 PostgreSQL tests also use a MinIO container for object storage:

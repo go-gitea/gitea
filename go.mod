@@ -267,3 +267,5 @@ ignore (
 	./vendor
 	./web_src
 )
+
+replace xorm.io/xorm => gitea.com/silverwind/xorm v1.4.3-0.20260930172606-d6fb4e971393

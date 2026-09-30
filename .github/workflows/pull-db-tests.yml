@@ -220,6 +220,54 @@ jobs:
           TAGS: bindata
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
+  test-mariadb:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        # MariaDB 11.6.2+ defaults innodb_snapshot_isolation to ON, which rejects concurrent writes that MySQL accepts
+        image: mariadb:11.8@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: true
+          MARIADB_DATABASE: testgitea
+        ports:
+          - "3306:3306"
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/mysql
+      elasticsearch:
+        image: elasticsearch:8.19.21@sha256:ae1f398ec8734a63eb7f719cecc2ea33e2bb46e23bdf24641dec86fd256bf594
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+        ports:
+          - "9200:9200"
+      smtpimap:
+        image: tabascoterrier/docker-imap-devel:latest@sha256:3fb7cf50b47693e7b80f6f74abea2def4d7386016931d61359864de8a0aba551
+        ports:
+          - "25:25"
+          - "143:143"
+          - "587:587"
+          - "993:993"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/go-setup
+      - name: Add hosts to /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - run: GITEA_TEST_DATABASE=mysql make test-migration
+      - name: run tests
+        run: GITEA_TEST_DATABASE=mysql make test-integration
+        env:
+          TAGS: bindata
+          TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
+
   test-mssql:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
