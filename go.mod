@@ -109,7 +109,7 @@ require (
 	modernc.org/sqlite v1.59.0
 	mvdan.cc/xurls/v2 v2.6.0
 	xorm.io/builder v0.3.13
-	xorm.io/xorm v1.4.2-0.20260909191324-ab9ddc17a856
+	xorm.io/xorm v1.4.2
 )
 
 require (
