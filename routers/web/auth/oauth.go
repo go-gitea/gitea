@@ -434,6 +434,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			session.KeyUID:                  u.ID,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 			session.KeySignInMethod:         session.SignInMethodOAuth2,
+			session.KeyPersistSessionCookie: true,
 		}); err != nil {
 			ctx.ServerError("updateSession", err)
 			return
