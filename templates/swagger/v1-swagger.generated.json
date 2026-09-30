@@ -2070,6 +2070,81 @@
         }
       }
     },
+    "/orgs/{org}/actions/permissions": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get the Actions job token settings of an organization",
+        "operationId": "orgGetActionsPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrgActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Replace the Actions job token settings of an organization",
+        "operationId": "orgUpdateActionsPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditOrgActionsPermissionsOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrgActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/orgs/{org}/actions/runners": {
       "get": {
         "produces": [
@@ -5917,6 +5992,95 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/permissions": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the Actions job token settings of a repository",
+        "operationId": "repoGetActionsPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Replace the Actions job token settings of a repository",
+        "operationId": "repoUpdateActionsPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditRepoActionsPermissionsOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoActionsPermissions"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -25548,6 +25712,103 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ActionsTokenPermissions": {
+      "description": "ActionsTokenPermissions represents the access level of an Actions job token for each repository unit",
+      "type": "object",
+      "required": [
+        "code",
+        "issues",
+        "pull_requests",
+        "packages",
+        "actions",
+        "wiki",
+        "releases",
+        "projects"
+      ],
+      "properties": {
+        "actions": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "Actions"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "Code"
+        },
+        "issues": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "Issues"
+        },
+        "packages": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "Packages"
+        },
+        "projects": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "Projects"
+        },
+        "pull_requests": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "PullRequests"
+        },
+        "releases": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "Releases"
+        },
+        "wiki": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "x-go-enum-desc": "none ActionsTokenAccessLevelNone\nread ActionsTokenAccessLevelRead\nwrite ActionsTokenAccessLevelWrite",
+          "x-go-name": "Wiki"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "Activity": {
       "type": "object",
       "properties": {
@@ -28783,6 +29044,36 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "EditOrgActionsPermissionsOption": {
+      "description": "EditOrgActionsPermissionsOption replaces the Actions job token settings of an organization",
+      "type": "object",
+      "required": [
+        "token_permission_mode"
+      ],
+      "properties": {
+        "allowed_cross_repos": {
+          "description": "AllowedCrossRepos lists the organization's repositories that jobs of its other repositories may read",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "AllowedCrossRepos"
+        },
+        "max_token_permissions": {
+          "$ref": "#/definitions/ActionsTokenPermissions"
+        },
+        "token_permission_mode": {
+          "type": "string",
+          "enum": [
+            "permissive",
+            "restricted"
+          ],
+          "x-go-enum-desc": "permissive ActionsTokenPermissionModePermissive\nrestricted ActionsTokenPermissionModeRestricted",
+          "x-go-name": "TokenPermissionMode"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "EditOrgOption": {
       "description": "EditOrgOption options for editing an organization",
       "type": "object",
@@ -29003,6 +29294,31 @@
           "description": "The new target commitish for the release",
           "type": "string",
           "x-go-name": "Target"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "EditRepoActionsPermissionsOption": {
+      "description": "EditRepoActionsPermissionsOption replaces the Actions job token settings of a repository",
+      "type": "object",
+      "properties": {
+        "max_token_permissions": {
+          "$ref": "#/definitions/ActionsTokenPermissions"
+        },
+        "override_owner_config": {
+          "description": "OverrideOwnerConfig must be true for the other fields to take effect",
+          "type": "boolean",
+          "x-go-name": "OverrideOwnerConfig"
+        },
+        "token_permission_mode": {
+          "description": "TokenPermissionMode is required when OverrideOwnerConfig is true",
+          "type": "string",
+          "enum": [
+            "permissive",
+            "restricted"
+          ],
+          "x-go-enum-desc": "permissive ActionsTokenPermissionModePermissive\nrestricted ActionsTokenPermissionModeRestricted",
+          "x-go-name": "TokenPermissionMode"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -31258,6 +31574,33 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "OrgActionsPermissions": {
+      "description": "OrgActionsPermissions represents the Actions job token settings of an organization",
+      "type": "object",
+      "properties": {
+        "allowed_cross_repos": {
+          "description": "AllowedCrossRepos lists the organization's repositories that jobs of its other repositories may read",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "AllowedCrossRepos"
+        },
+        "max_token_permissions": {
+          "$ref": "#/definitions/ActionsTokenPermissions"
+        },
+        "token_permission_mode": {
+          "type": "string",
+          "enum": [
+            "permissive",
+            "restricted"
+          ],
+          "x-go-enum-desc": "permissive ActionsTokenPermissionModePermissive\nrestricted ActionsTokenPermissionModeRestricted",
+          "x-go-name": "TokenPermissionMode"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "Organization": {
       "description": "Organization represents an organization",
       "type": "object",
@@ -32514,6 +32857,30 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "NewName"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepoActionsPermissions": {
+      "description": "RepoActionsPermissions represents the Actions job token settings of a repository",
+      "type": "object",
+      "properties": {
+        "max_token_permissions": {
+          "$ref": "#/definitions/ActionsTokenPermissions"
+        },
+        "override_owner_config": {
+          "description": "OverrideOwnerConfig is false when the repository follows its owner's settings, which are then returned",
+          "type": "boolean",
+          "x-go-name": "OverrideOwnerConfig"
+        },
+        "token_permission_mode": {
+          "type": "string",
+          "enum": [
+            "permissive",
+            "restricted"
+          ],
+          "x-go-enum-desc": "permissive ActionsTokenPermissionModePermissive\nrestricted ActionsTokenPermissionModeRestricted",
+          "x-go-name": "TokenPermissionMode"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34684,6 +35051,12 @@
         }
       }
     },
+    "OrgActionsPermissions": {
+      "description": "OrgActionsPermissions",
+      "schema": {
+        "$ref": "#/definitions/OrgActionsPermissions"
+      }
+    },
     "Organization": {
       "description": "Organization",
       "schema": {
@@ -34879,6 +35252,12 @@
         "items": {
           "$ref": "#/definitions/Release"
         }
+      }
+    },
+    "RepoActionsPermissions": {
+      "description": "RepoActionsPermissions",
+      "schema": {
+        "$ref": "#/definitions/RepoActionsPermissions"
       }
     },
     "RepoCollaboratorPermission": {

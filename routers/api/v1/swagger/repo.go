@@ -498,6 +498,20 @@ type swaggerRunner struct {
 	Body api.ActionRunner `json:"body"`
 }
 
+// OrgActionsPermissions
+// swagger:response OrgActionsPermissions
+type swaggerOrgActionsPermissions struct {
+	// in:body
+	Body api.OrgActionsPermissions `json:"body"`
+}
+
+// RepoActionsPermissions
+// swagger:response RepoActionsPermissions
+type swaggerRepoActionsPermissions struct {
+	// in:body
+	Body api.RepoActionsPermissions `json:"body"`
+}
+
 // swagger:response Compare
 type swaggerCompare struct {
 	// in:body

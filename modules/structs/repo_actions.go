@@ -260,3 +260,82 @@ type RunDetails struct {
 	RunURL        string `json:"run_url"`
 	HTMLURL       string `json:"html_url"`
 }
+
+// ActionsTokenAccessLevel is the access level of an Actions job token for a repository unit
+// swagger:enum ActionsTokenAccessLevel
+type ActionsTokenAccessLevel string
+
+const (
+	ActionsTokenAccessLevelNone  ActionsTokenAccessLevel = "none"
+	ActionsTokenAccessLevelRead  ActionsTokenAccessLevel = "read"
+	ActionsTokenAccessLevelWrite ActionsTokenAccessLevel = "write"
+)
+
+// ActionsTokenPermissionMode is the default permission mode of Actions job tokens
+// swagger:enum ActionsTokenPermissionMode
+type ActionsTokenPermissionMode string
+
+const (
+	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
+	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
+)
+
+// ActionsTokenPermissions represents the access level of an Actions job token for each repository unit
+type ActionsTokenPermissions struct {
+	// required: true
+	Code ActionsTokenAccessLevel `json:"code" binding:"Required;In(none,read,write)"`
+	// required: true
+	Issues ActionsTokenAccessLevel `json:"issues" binding:"Required;In(none,read,write)"`
+	// required: true
+	PullRequests ActionsTokenAccessLevel `json:"pull_requests" binding:"Required;In(none,read,write)"`
+	// required: true
+	Packages ActionsTokenAccessLevel `json:"packages" binding:"Required;In(none,read,write)"`
+	// required: true
+	Actions ActionsTokenAccessLevel `json:"actions" binding:"Required;In(none,read,write)"`
+	// required: true
+	Wiki ActionsTokenAccessLevel `json:"wiki" binding:"Required;In(none,read,write)"`
+	// required: true
+	Releases ActionsTokenAccessLevel `json:"releases" binding:"Required;In(none,read,write)"`
+	// required: true
+	Projects ActionsTokenAccessLevel `json:"projects" binding:"Required;In(none,read,write)"`
+}
+
+// OrgActionsPermissions represents the Actions job token settings of an organization
+type OrgActionsPermissions struct {
+	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode"`
+	// MaxTokenPermissions caps the permissions of any job token, null means no cap
+	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions"`
+	// AllowedCrossRepos lists the organization's repositories that jobs of its other repositories may read
+	AllowedCrossRepos []string `json:"allowed_cross_repos"`
+}
+
+// EditOrgActionsPermissionsOption replaces the Actions job token settings of an organization
+// swagger:model
+type EditOrgActionsPermissionsOption struct {
+	// required: true
+	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode" binding:"Required;In(permissive,restricted)"`
+	// MaxTokenPermissions caps the permissions of any job token, null means no cap
+	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions"`
+	// AllowedCrossRepos lists the organization's repositories that jobs of its other repositories may read
+	AllowedCrossRepos []string `json:"allowed_cross_repos"`
+}
+
+// RepoActionsPermissions represents the Actions job token settings of a repository
+type RepoActionsPermissions struct {
+	// OverrideOwnerConfig is false when the repository follows its owner's settings, which are then returned
+	OverrideOwnerConfig bool                       `json:"override_owner_config"`
+	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode"`
+	// MaxTokenPermissions caps the permissions of any job token, null means no cap
+	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions"`
+}
+
+// EditRepoActionsPermissionsOption replaces the Actions job token settings of a repository
+// swagger:model
+type EditRepoActionsPermissionsOption struct {
+	// OverrideOwnerConfig must be true for the other fields to take effect
+	OverrideOwnerConfig bool `json:"override_owner_config"`
+	// TokenPermissionMode is required when OverrideOwnerConfig is true
+	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode" binding:"In(permissive,restricted)"`
+	// MaxTokenPermissions caps the permissions of any job token, null means no cap
+	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions"`
+}
