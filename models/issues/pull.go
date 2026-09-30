@@ -104,6 +104,7 @@ const (
 	PullRequestStatusError
 	PullRequestStatusEmpty
 	PullRequestStatusAncestor
+	PullRequestStatusUnrelated
 )
 
 // PullRequestFlow the flow of pull request
@@ -407,6 +408,10 @@ func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefN
 	return git.RefNameFromPullIndex(pr.Index).String()
 }
 
+func (pr *PullRequest) GetCompareBaseRef() git.RefName {
+	return util.Iif(pr.HasMerged, git.RefName(pr.MergeBase), git.RefNameFromBranch(pr.BaseBranch))
+}
+
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
 func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
@@ -435,6 +440,11 @@ func (pr *PullRequest) IsStatusMergeable() bool {
 // IsEmpty returns true if this pull request is empty.
 func (pr *PullRequest) IsEmpty() bool {
 	return pr.Status == PullRequestStatusEmpty
+}
+
+// IsUnrelated returns true if head and base share no history
+func (pr *PullRequest) IsUnrelated() bool {
+	return pr.Status == PullRequestStatusUnrelated
 }
 
 // IsAncestor returns true if the Head Commit of this PR is an ancestor of the Base Commit
@@ -738,9 +748,10 @@ func (pr *PullRequest) Mergeable(ctx context.Context) bool {
 	// - Being conflict checked.
 	// - Has a conflict.
 	// - Received a error while being conflict checked.
+	// - Shares no history with its base.
 	// - Is a work-in-progress pull request.
 	return pr.Status != PullRequestStatusChecking && pr.Status != PullRequestStatusConflict &&
-		pr.Status != PullRequestStatusError && !pr.IsWorkInProgress(ctx)
+		pr.Status != PullRequestStatusError && !pr.IsUnrelated() && !pr.IsWorkInProgress(ctx)
 }
 
 // HasEnoughApprovals returns true if pr has enough granted approvals.

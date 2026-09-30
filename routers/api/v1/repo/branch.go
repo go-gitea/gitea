@@ -1333,6 +1333,8 @@ func MergeUpstream(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/error"
 	form := web.GetForm[*api.MergeUpstreamRequest](ctx)
 	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)
 	if err != nil {
@@ -1345,11 +1347,11 @@ func MergeUpstream(ctx *context.APIContext) {
 		} else if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.APIError(http.StatusForbidden, err.Error())
 			return
-		} else if pull_service.IsErrMergeConflicts(err) || pull_service.IsErrMergeUnrelatedHistories(err) {
+		} else if pull_service.IsErrMergeConflicts(err) {
 			ctx.APIError(http.StatusConflict, err.Error())
 			return
 		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, &api.MergeUpstreamResponse{MergeStyle: mergeStyle})

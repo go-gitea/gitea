@@ -580,6 +580,8 @@ func (err ErrMergeUnrelatedHistories) Error() string {
 	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
 
+var errUpdateUnrelatedHistories = util.ErrorWrapTranslatable(util.ErrorWrap(util.ErrUnprocessableContent, "update failed because of unrelated histories"), "repo.pulls.no_common_history")
+
 // ErrMergeDivergingFastForwardOnly represents an error if a fast-forward-only merge fails because the branches diverge
 type ErrMergeDivergingFastForwardOnly struct {
 	StdOut string

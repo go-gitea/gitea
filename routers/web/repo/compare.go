@@ -150,6 +150,7 @@ func setCsvCompareContext(ctx *context.Context) {
 type comparePageInfoType struct {
 	compareInfo      *git_service.CompareInfo
 	nothingToCompare bool
+	isComparePull    bool
 	allowCreatePull  bool
 }
 
@@ -296,14 +297,17 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 		}
 	}
 
-	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), fileOnly)
+	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, git_service.CompareOptions{CompareSeparator: compareReq.CompareSeparator, FileOnly: fileOnly})
 	if err != nil {
 		return err
 	}
 
 	// Treat as pull request if both references are branches
-	cpi.allowCreatePull = baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true)
-	cpi.allowCreatePull = cpi.allowCreatePull && compareInfo.CompareBase != ""
+	cpi.isComparePull = baseRef.IsBranch() && headRef.IsBranch() && permBase.CanReadIssuesOrPulls(true) && compareInfo.CompareBase != ""
+	cpi.nothingToCompare = compareInfo.CompareBase == "" || compareInfo.HeadCommitID == compareInfo.CompareBase
+	// auto-detect manual merge would close an empty PR immediately
+	cpi.allowCreatePull = cpi.isComparePull && compareInfo.CompareSeparator == "..." &&
+		(!cpi.nothingToCompare || (!baseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().AutodetectManualMerge && !compareInfo.IsSameRef()))
 	cpi.compareInfo = &compareInfo
 	return nil
 }
@@ -374,7 +378,6 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitespaceBehavior gitcmd.TrustedCmdArgs) {
 	ci := cpi.compareInfo
 	if ci.CompareBase == "" {
-		cpi.nothingToCompare = true
 		return
 	}
 	repo := ctx.Repo.Repository
@@ -392,13 +395,6 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 	ctx.Data["BodyQuery"] = newPrFormBody
 
 	if headCommitID == ci.CompareBase {
-		config := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
-		// if auto-detect manual merge, an empty PR will be closed immediately because it is already on base branch
-		supportEmptyPr := !config.AutodetectManualMerge
-		acrossRepoPr := !ci.IsSameRef()
-		ctx.Data["AllowEmptyPr"] = supportEmptyPr && acrossRepoPr
-
-		cpi.nothingToCompare = true
 		return
 	}
 
@@ -558,8 +554,9 @@ func CompareDiff(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_common_history"), true)
 		ctx.Data["CommitCount"] = 0
 	}
-	ctx.Data["PageIsComparePull"] = comparePageInfo.allowCreatePull
+	ctx.Data["PageIsComparePull"] = comparePageInfo.isComparePull
 	ctx.Data["IsNothingToCompare"] = comparePageInfo.nothingToCompare
+	ctx.Data["AllowCreatePR"] = comparePageInfo.allowCreatePull
 	ctx.HTML(http.StatusOK, tplCompare)
 }
 
@@ -604,7 +601,7 @@ func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
 
 func (cpi *comparePageInfoType) prepareCreatePullRequestPage(ctx *context.Context) {
 	ci := cpi.compareInfo
-	if cpi.allowCreatePull {
+	if cpi.isComparePull {
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
