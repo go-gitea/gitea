@@ -111,9 +111,8 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	if err != nil {
 		log.Info("Unable to get global API settings. Ignoring these.")
 		log.Debug("giteaClient.GetGlobalAPISettings. Error: %v", err)
-	}
-	if apiConf != nil && apiConf.MaxResponseItems > 0 {
-		maxPerPage = apiConf.MaxResponseItems
+	} else if apiConf != nil && apiConf.MaxResponseItems > 0 {
+		maxPerPage = min(apiConf.MaxResponseItems, 100)
 	}
 
 	return &GiteaDownloader{
