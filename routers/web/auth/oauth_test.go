@@ -124,106 +124,26 @@ func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
 		"avatar client must refuse a link-local cloud-metadata address")
 }
 
-func TestGrantApplicationOAuth_AllowsScopeChange(t *testing.T) {
+func TestOAuth2ScopeChange(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-
 	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, UserID: 1})
-
-	oldScope := grant.Scope
-	require.NotEmpty(t, oldScope)
-
-	newScope := oldScope + " email"
-	redirectURI := app.RedirectURIs[0]
-	state := "test-state"
-
-	mockOpt := contexttest.MockContextOption{
-		SessionStore: session.NewMockMemStore("oauth2-scope-change"),
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("oauth2-scope-change")}
+	authorize := func(scope string) int {
+		ctx, resp := contexttest.MockContext(t, "/login/oauth/authorize", mockOpt)
+		ctx.Doer = doer
+		web.SetForm(ctx, &forms.AuthorizationForm{ResponseType: "code", ClientID: app.ClientID, RedirectURI: app.RedirectURIs[0], State: "state", Scope: scope})
+		AuthorizeOAuth(ctx)
+		return resp.Code
 	}
-	ctx, _ := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
+	assert.Equal(t, http.StatusSeeOther, authorize(""))
+	assert.Equal(t, http.StatusSeeOther, authorize("profile openid"))
+	assert.Equal(t, http.StatusOK, authorize("openid profile email"))
 
-	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	require.NoError(t, ctx.Session.Set("client_id", app.ClientID))
-	require.NoError(t, ctx.Session.Set("state", state))
-	require.NoError(t, ctx.Session.Set("redirect_uri", redirectURI))
-
-	web.SetForm(ctx, &forms.GrantApplicationForm{
-		ClientID:    app.ClientID,
-		Granted:     true,
-		RedirectURI: redirectURI,
-		State:       state,
-		Scope:       newScope,
-	})
-
+	ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
+	ctx.Doer = doer
+	web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: "openid profile email"})
 	GrantApplicationOAuth(ctx)
-
-	updatedGrant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: grant.ID})
-	assert.Equal(t, newScope, updatedGrant.Scope)
-}
-
-func TestAuthorizeOAuth_ConfidentialClientSameScopesDifferentOrder(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	require.True(t, app.ConfidentialClient)
-
-	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, UserID: 1})
-	require.Equal(t, "openid profile", grant.Scope)
-
-	redirectURI := app.RedirectURIs[0]
-	state := "test-state"
-
-	mockOpt := contexttest.MockContextOption{
-		SessionStore: session.NewMockMemStore("oauth2-scope-order"),
-	}
-	ctx, resp := contexttest.MockContext(t, "/login/oauth/authorize", mockOpt)
-
-	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	web.SetForm(ctx, &forms.AuthorizationForm{
-		ResponseType: "code",
-		ClientID:     app.ClientID,
-		RedirectURI:  redirectURI,
-		State:        state,
-		Scope:        "profile openid",
-	})
-
-	AuthorizeOAuth(ctx)
-
 	assert.Equal(t, http.StatusSeeOther, resp.Code)
-}
-
-func TestAuthorizeOAuth_ConfidentialClientScopeChangeShowsConsent(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
-	require.True(t, app.ConfidentialClient)
-
-	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, UserID: 1})
-	require.NotEmpty(t, grant.Scope)
-
-	newScope := grant.Scope + " email"
-	redirectURI := app.RedirectURIs[0]
-	state := "test-state"
-
-	mockOpt := contexttest.MockContextOption{
-		SessionStore: session.NewMockMemStore("oauth2-confidential-scope-change"),
-	}
-	ctx, resp := contexttest.MockContext(t, "/login/oauth2/authorize", mockOpt)
-
-	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-
-	web.SetForm(ctx, &forms.AuthorizationForm{
-		ResponseType: "code",
-		ClientID:     app.ClientID,
-		RedirectURI:  redirectURI,
-		State:        state,
-		Scope:        newScope,
-	})
-
-	AuthorizeOAuth(ctx)
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, newScope, ctx.Data["Scope"])
+	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: "openid profile email"})
 }

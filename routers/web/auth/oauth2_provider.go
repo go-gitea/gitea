@@ -320,20 +320,19 @@ func AuthorizeOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
-	var oldScopes, newScopes []string
-	var addedScopes, removedScopes []string
-	scopeChanged := false
 
+	var addedScopes, removedScopes []string
 	if grant != nil {
-		oldScopes = strings.Fields(grant.Scope)
-		newScopes = strings.Fields(form.Scope)
-		addedScopes, removedScopes = util.DiffSlice(oldScopes, newScopes)
-		scopeChanged = len(addedScopes) > 0 || len(removedScopes) > 0
+		if form.Scope == "" {
+			form.Scope = grant.Scope
+		}
+		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grant.Scope), strings.Fields(form.Scope))
 	}
+	scopeChanged := len(addedScopes) > 0 || len(removedScopes) > 0
+
 	// Redirect if user already granted access and the application is confidential or trusted otherwise
 	// I.e. always require authorization for untrusted public clients as recommended by RFC 6749 Section 10.2
-	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil &&
-		!scopeChanged {
+	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil && !scopeChanged {
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -355,14 +354,9 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	// Check if the requested scopes differ from the existing grant.
-	ctx.Data["ScopeChanged"] = scopeChanged
-	if scopeChanged {
-		ctx.Data["OldScopes"] = oldScopes
-		ctx.Data["NewScopes"] = newScopes
-		ctx.Data["AddedScopes"] = addedScopes
-		ctx.Data["RemovedScopes"] = removedScopes
-	}
+	// check if additional scopes
+	ctx.Data["AdditionalScopes"] = oauth2_provider.GrantAdditionalScopes(form.Scope) != auth.AccessTokenScopeAll
+	ctx.Data["AddedScopes"] = addedScopes
 
 	// show authorize page to grant access
 	ctx.Data["Application"] = app
