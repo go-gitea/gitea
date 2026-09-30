@@ -31,7 +31,7 @@ func readWorkflowDoc(doc *yaml.Node) (*model.Workflow, error) {
 	if err := doc.Decode(w); err != nil {
 		return w, err
 	}
-	return w, validateJobs(w)
+	return w, validateJobConditions(w)
 }
 
 // decodeResolved is yaml.Unmarshal with aliases expanded first.
