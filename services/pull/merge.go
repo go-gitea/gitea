@@ -776,26 +776,29 @@ func MarkAsMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommi
 		return false, fmt.Errorf("unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
+	pr.Issue = nil
+	if err := pr.LoadIssue(ctx); err != nil {
+		return false, err
+	}
+
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+
+	if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
+		return false, err
+	}
+
+	// Handle the scheduled auto merge
+	_, scheduledAutoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
+	if err != nil {
+		return false, err
+	}
+
 	wasAutoMerged := false
 	ok, err := db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
-		pr.Issue = nil
-		if err := pr.LoadIssue(ctx); err != nil {
-			return false, err
-		}
-
-		if err := pr.Issue.LoadRepo(ctx); err != nil {
-			return false, err
-		}
-
-		if err := pr.Issue.Repo.LoadOwner(ctx); err != nil {
-			return false, err
-		}
-
-		// Handle the scheduled auto merge
-		_, scheduledAutoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
-		if err != nil {
-			return false, err
-		}
+		// TODO: workaround for MariaDB default innodb_snapshot_isolation=on https://github.com/go-gitea/gitea/issues/39492
+		// Don't load repo in this transaction
 		if scheduledAutoMerge != nil {
 			wasAutoMerged = scheduledAutoMerge.MergedCommitID == pr.MergedCommitID
 			if _, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil {
@@ -820,9 +823,7 @@ func MarkAsMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommi
 
 		return true, nil
 	})
-	if err != nil {
-		return false, err
-	} else if !ok {
+	if !ok || err != nil {
 		return false, err
 	}
 
