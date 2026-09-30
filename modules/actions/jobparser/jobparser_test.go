@@ -118,8 +118,10 @@ func TestParseDefersDynamicMatrix(t *testing.T) {
 on: push
 jobs:
   setup:
+    runs-on: ubuntu-latest
     steps: [{run: echo}]
   build:
+    runs-on: ubuntu-latest
     %s
     %s
     steps: [{run: echo}]
@@ -290,16 +292,21 @@ func TestParseInterpolatesRunName(t *testing.T) {
 	assert.Empty(t, result[0].RunName)
 }
 
-func TestParseRunsOnFromJSONArray(t *testing.T) {
-	content := []byte("on: push\njobs:\n  build:\n    runs-on: ${{ fromJSON(vars.RUNNER) }}\n    steps: [{run: echo}]\n")
-	_, err := Parse(content)
-	require.NoError(t, err)
-	for runner, want := range map[string][]string{`["self-hosted", "linux"]`: {"self-hosted", "linux"}, "[]": {""}} {
-		result, err := Parse(content, WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"RUNNER": runner}))
-		require.NoError(t, err)
+func TestParseRunsOn(t *testing.T) {
+	for runsOn, want := range map[string][]string{
+		"${{ fromJSON(vars.RUNNER) }}": {"self-hosted", "linux"},
+		"${{ fromJSON('[]') }}":        {""},
+		"[]":                           {""},
+		"{}":                           {""},
+	} {
+		content := []byte("on: push\njobs:\n  build:\n    runs-on: " + runsOn + "\n    steps: [{run: echo}]\n")
+		_, err := Parse(content)
+		require.NoError(t, err, runsOn)
+		result, err := Parse(content, WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"RUNNER": `["self-hosted", "linux"]`}))
+		require.NoError(t, err, runsOn)
 		require.Len(t, result, 1)
 		_, job := result[0].Job()
-		assert.Equal(t, want, job.RunsOn(), runner)
+		assert.Equal(t, want, job.RunsOn(), runsOn)
 	}
 }
 
@@ -307,8 +314,10 @@ func TestJobFieldsWithoutMatrix(t *testing.T) {
 	const workflow = `on: push
 jobs:
   seed:
+    runs-on: ubuntu-latest
     steps: [{run: echo}]
   build:
+    runs-on: ubuntu-latest
     name: build-${{ github.ref_name }}
     continue-on-error: ${{ fromJSON(vars.CONTINUE) }}
     steps: [{run: echo}]
@@ -449,7 +458,7 @@ func TestReadWorkflowJobConditionContexts(t *testing.T) {
 		"'${{ github.ref }} ${{ secrets.X }}'": "secrets",
 		"github.event.matrix && gitea.ref && needs.a.result && vars.X && inputs.y && always() && fromJSON('true')": "",
 	} {
-		_, err := ReadWorkflow([]byte("jobs: {build: {if: " + condition + "}}"))
+		_, err := ReadWorkflow([]byte("jobs: {build: {runs-on: ubuntu-latest, if: " + condition + "}}"))
 		if unavailable == "" {
 			assert.NoError(t, err, condition)
 		} else {
@@ -474,6 +483,7 @@ func TestParseRawSingleWorkflowRoundTripsDeferredPlaceholder(t *testing.T) {
 on: push
 jobs:
   setup:
+    runs-on: ubuntu-latest
     steps: [{run: echo}]
   build:
     needs: setup

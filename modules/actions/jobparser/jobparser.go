@@ -225,7 +225,6 @@ func replaceScalars(node *yaml.Node, replace func(string) string) {
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
 // strategy and interpolating the name, runs-on and continue-on-error with it.
 func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
-	srcRunsOn := model.RunsOnFromNode(src.RawRunsOn)
 	order, names := make([]int, len(matrixes)), make([]string, len(matrixes))
 	for index, matrix := range matrixes {
 		order[index], names[index] = index, matrixName(matrix)
@@ -260,7 +259,7 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
 			runsOn := model.RunsOnFromNode(rawRunsOn)
-			if len(runsOn) == 0 && len(srcRunsOn) > 0 { // match no runner rather than every runner
+			if len(runsOn) == 0 && src.RawRunsOn.Kind != 0 {
 				runsOn = []string{""}
 			}
 			for i := range runsOn {

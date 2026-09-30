@@ -45,13 +45,16 @@ func ValidateWorkflowStatic(content []byte) ([]*Event, error) {
 	return events, nil
 }
 
-func validateJobConditions(workflow *model.Workflow) error {
+func validateJobs(workflow *model.Workflow) error {
 	for id, job := range workflow.Jobs {
 		if job == nil {
 			continue
 		}
 		if unavailable := unavailableContext(IfExpression(job.If.Value), jobConditionContexts); unavailable != "" {
 			return fmt.Errorf("job %s: Unrecognized named-value: '%s'", id, unavailable)
+		}
+		if job.Uses == "" && job.RawRunsOn.Kind == 0 {
+			return fmt.Errorf("job %s: Required property is missing: runs-on", id)
 		}
 	}
 	return nil
@@ -76,7 +79,6 @@ func validateWorkflowStructure(workflow *model.Workflow) error {
 		if job == nil {
 			return fmt.Errorf("job %q has no configuration", id)
 		}
-		// a job without runs-on is accepted and runs on any runner, github.com rejects it
 		for _, dependency := range job.Needs() {
 			if _, ok := workflow.Jobs[dependency]; !ok {
 				return fmt.Errorf("job %q needs unknown job %q", id, dependency)
