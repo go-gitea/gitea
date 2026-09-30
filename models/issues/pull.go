@@ -25,6 +25,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"github.com/dlclark/regexp2/v2"
+	"github.com/kballard/go-shellquote"
 	"xorm.io/builder"
 )
 
@@ -405,6 +406,21 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 // GetGitHeadRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefName but not string
 	return git.RefNameFromPullIndex(pr.Index).String()
+}
+
+func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
+	BaseBranchArg  string
+	HeadBranchArg  string
+	LocalBranchArg string
+},
+) {
+	ret.BaseBranchArg = shellquote.Join(pr.BaseBranch)
+	ret.HeadBranchArg = shellquote.Join(pr.HeadBranch)
+	ret.LocalBranchArg = ret.HeadBranchArg
+	if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
+		ret.LocalBranchArg = shellquote.Join(pr.HeadRepo.OwnerName) + "-" + ret.HeadBranchArg
+	}
+	return ret
 }
 
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
