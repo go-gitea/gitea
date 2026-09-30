@@ -39,6 +39,20 @@ test('pdf file', async ({page, request}) => {
   await assertFlushWithParent(container, page.locator('.file-view'));
 });
 
+test('code line anchors', async ({page, request}) => {
+  const repoName = `e2e-line-anchor-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repoName});
+  const url = `/${env.GITEA_TEST_E2E_USER}/${repoName}/src/branch/main/README.md?display=source`;
+  const activeRows = page.locator('.code-view tr.active');
+  await page.goto(`${url}#L0`);
+  await page.goto(`${url}#L1`);
+  await expect(activeRows).toHaveCount(1);
+  await page.goto(`${url}#L1000`);
+  await expect(activeRows).toHaveCount(0);
+  await expect(page.locator('.code-line-button')).toHaveCount(0);
+  await assertNoJsError(page);
+});
+
 test('asciicast file', async ({page, request}) => {
   const repoName = `e2e-asciicast-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;

@@ -11,7 +11,7 @@ function changeHash(hash: string) {
 }
 
 // it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
-export function selectRange(range: string): Element | null {
+function selectRange(range: string): Element | null {
   for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
   const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[data-line-number]`);
 
@@ -58,9 +58,9 @@ export function selectRange(range: string): Element | null {
     stopLineNum = tmp;
     range = `${stop}-${start}`;
   }
-  if (startLineNum < 1) return null;
+  const first = elLineNums[startLineNum - 1];
+  if (!first) return null;
 
-  const first = elLineNums[startLineNum - 1] ?? null;
   for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
     elLineNums[i].closest('tr')!.classList.add('active');
   }
@@ -139,8 +139,8 @@ export function initRepoCodeView() {
       // set scrollRestoration to 'manual' when there is a hash in the URL, so that the scroll position will not be remembered after refreshing
       if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
       first.scrollIntoView({block: 'start'});
-      showLineButton();
     }
+    showLineButton();
   };
   onHashChange();
   window.addEventListener('hashchange', onHashChange);
