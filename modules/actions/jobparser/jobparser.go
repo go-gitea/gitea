@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 
 	"gitea.dev/actionslib/pkg/expreval"
@@ -128,7 +127,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				}
 			}
 			// Keep accepting empty exclude mappings for workflow compatibility, although GitHub rejects them.
-			matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).GetMatrixes()
+			matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).MatrixCombinations()
 			if err != nil {
 				return nil, fmt.Errorf("getMatrixes: %w", err)
 			}
@@ -169,7 +168,7 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	if err := job.Strategy.resolve(expreval.New(NewInterpeter(jobID, nil, nil, gitCtx, results, vars, inputs).Evaluate)); err != nil {
 		return nil, err
 	}
-	matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).GetMatrixes()
+	matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).MatrixCombinations()
 	if err != nil {
 		return nil, fmt.Errorf("getMatrixes: %w", err)
 	}
@@ -224,17 +223,17 @@ func replaceScalars(node *yaml.Node, replace func(string) string) {
 
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
 // strategy and interpolating the name, runs-on and continue-on-error with it.
-func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
+func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombination, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
 	srcRunsOn := model.RunsOnFromNode(src.RawRunsOn)
 	order, names := make([]int, len(matrixes)), make([]string, len(matrixes))
 	for index, matrix := range matrixes {
-		order[index], names[index] = index, matrixName(matrix)
+		order[index], names[index] = index, matrixName(matrix.NameValues)
 	}
 	slices.SortStableFunc(order, func(a, b int) int { return strings.Compare(names[a], names[b]) })
 	combos := make([]*Job, 0, len(matrixes))
 	var err error
 	for _, index := range order {
-		matrix := matrixes[index]
+		matrix := matrixes[index].Values
 		combo := src.Clone()
 		if combo.Name == "" {
 			combo.Name = jobID
@@ -249,7 +248,7 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx
 			combo.Name, err = evaluator.Interpolate(combo.Name)
 			combo.Name = escapeExpressions(combo.Name)
 		} else {
-			combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator)
+			combo.Name, err = nameWithMatrix(combo.Name, matrix, names[index], evaluator)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
@@ -324,29 +323,29 @@ func encodeMatrix(matrix map[string]any) yaml.Node {
 	return node
 }
 
-func nameWithMatrix(name string, m map[string]any, evaluator expreval.Evaluator) (string, error) {
+func nameWithMatrix(name string, m map[string]any, suffix string, evaluator expreval.Evaluator) (string, error) {
 	if len(m) == 0 {
 		return name, nil
 	}
 
 	if !strings.Contains(name, "${{") || !strings.Contains(name, "}}") {
-		return escapeExpressions(name + " " + matrixName(m)), nil
+		return escapeExpressions(name + suffix), nil
 	}
 
 	name, err := evaluator.Interpolate(name)
 	return escapeExpressions(name), err
 }
 
-func matrixName(m map[string]any) string {
-	ks := make([]string, 0, len(m))
-	for k := range m {
-		ks = append(ks, k)
+// matrixName formats the name suffix like GitHub's MatrixBuilder, which skips null and empty values
+func matrixName(values []any) string {
+	var names []string
+	for _, value := range values {
+		if name := exprparser.CoerceToString(value); name != "" {
+			names = append(names, name)
+		}
 	}
-	sort.Strings(ks)
-	vs := make([]string, 0, len(m))
-	for _, v := range ks {
-		vs = append(vs, fmt.Sprint(m[v]))
+	if len(names) == 0 {
+		return ""
 	}
-
-	return fmt.Sprintf("(%s)", strings.Join(vs, ", "))
+	return " (" + strings.Join(names, ", ") + ")"
 }

@@ -405,6 +405,12 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		assert.Len(t, got, 2)
 	})
 
+	t.Run("names coerce scalars and omit empty values", func(t *testing.T) {
+		got, err := expand(t, "\n  value: [[1.0, true, false, 0, 1000000000000000, '', null, {os: linux}], ['', null]]\n")
+		require.NoError(t, err)
+		assert.Equal(t, []string{"build", "build (1, true, false, 0, 1E+15, linux)"}, []string{got[0].Name, got[1].Name})
+	})
+
 	for _, tt := range []struct{ name, matrix, errHas string }{
 		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n", `Matrix vector "version" does not contain any values`},
 		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n", "Matrix must define at least one vector"},
