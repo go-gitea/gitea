@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -139,7 +140,8 @@ func TestMirrorPullWithCredentials(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, IsPrivate: true})
 		remoteURL := u.JoinPath(user.Name, privateRepo.Name+".git")
-		remoteURL.User = url.UserPassword(user.Name, userPassword)
+		plainAddr := remoteURL.String()
+		remoteURL.User = url.UserPassword("", getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository))
 
 		mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
 			Name:     "auth_mirror",
@@ -148,7 +150,6 @@ func TestMirrorPullWithCredentials(t *testing.T) {
 		}, false)
 		require.NoError(t, err)
 		_, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, migration.MigrateOptions{
-			RepoName:  "auth_mirror",
 			Mirror:    true,
 			CloneAddr: remoteURL.String(),
 		}, nil)
@@ -156,9 +157,7 @@ func TestMirrorPullWithCredentials(t *testing.T) {
 
 		addr, err := git.GetRemoteAddress(ctx, mirrorRepo, "origin")
 		require.NoError(t, err)
-		assert.Equal(t, git.RemoteAddressWithoutCredentials(remoteURL.String()), addr)
-
-		// the private repository can only be fetched if git gets the credentials from the database
+		assert.Equal(t, plainAddr, addr)
 		assert.True(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
 	})
 }

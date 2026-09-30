@@ -217,15 +217,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
 				return repo, fmt.Errorf("InsertOne: %w", err)
 			}
-			// the clone left the credentials in the git config, they are in the database now
-			if err = git.ManagedRemoteStripCredentials(ctx, repo, mirrorModel.GetRemoteName()); err != nil {
-				return repo, err
-			}
-			if HasWiki(ctx, repo) {
-				if err = git.ManagedRemoteStripCredentials(ctx, repo.WikiStorageRepo(), mirrorModel.GetRemoteName()); err != nil {
-					return repo, err
-				}
-			}
 
 			repo.IsMirror = true
 			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "num_watches", "is_empty", "default_branch", "default_wiki_branch", "is_mirror"); err != nil {

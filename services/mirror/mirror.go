@@ -6,6 +6,7 @@ package mirror
 import (
 	"context"
 	"errors"
+	"net/url"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
@@ -121,4 +122,18 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
 	StartSyncMirrors()
+}
+
+// addRemoteCredentials adds the credentials of credentialsAddr to addr if both have the same origin
+func addRemoteCredentials(addr, credentialsAddr string) string {
+	u, err := url.Parse(addr)
+	if err != nil || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return addr
+	}
+	cu, err := url.Parse(credentialsAddr)
+	if err != nil || cu.User == nil || cu.Scheme != u.Scheme || cu.Host != u.Host {
+		return addr
+	}
+	u.User = cu.User
+	return u.String()
 }

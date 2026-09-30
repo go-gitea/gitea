@@ -13,19 +13,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// RemoteAddressWithoutCredentials removes the credentials from an HTTP(S) address, other addresses are returned as-is.
-func RemoteAddressWithoutCredentials(addr string) string {
-	if !strings.HasPrefix(addr, "http://") && !strings.HasPrefix(addr, "https://") {
-		return addr
-	}
-	u, err := url.Parse(addr)
-	if err != nil || u.User == nil {
-		return addr
-	}
-	u.User = nil
-	return u.String()
-}
-
 // GetRemoteAddress returns remote url of git repository in the repoPath with special remote name
 func GetRemoteAddress(ctx context.Context, repo RepositoryFacade, remoteName string) (string, error) {
 	cmd := gitcmd.NewCommand("remote", "get-url").AddDynamicArguments(remoteName)

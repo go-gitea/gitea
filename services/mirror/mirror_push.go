@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"regexp"
 	"time"
 
@@ -32,8 +31,7 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
-		// the credentials are stored in the database, git gets them when running a command
-		if err := git.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, git.RemoteAddressWithoutCredentials(addr), git.RemoteOptionMirrorPush); err != nil {
+		if err := git.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, git.RemoteOptionMirrorPush); err != nil {
 			return err
 		}
 		if err := git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
@@ -170,11 +168,10 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
-			Remote:  m.RemoteName,
-			Force:   true,
-			Mirror:  true,
-			Timeout: timeout,
-			// the wiki is on the same host, so the credentials of the code repository address apply
+			Remote:             m.RemoteName,
+			Force:              true,
+			Mirror:             true,
+			Timeout:            timeout,
 			CredentialsAddress: credentialsAddr,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
@@ -273,18 +270,4 @@ func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
 	for _, mirror := range pushMirrors {
 		AddPushMirrorToQueue(mirror.ID)
 	}
-}
-
-// addRemoteCredentials adds the credentials of credentialsAddr to addr if they point to the same host
-func addRemoteCredentials(addr, credentialsAddr string) string {
-	u, err := url.Parse(addr)
-	if err != nil || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") {
-		return addr
-	}
-	cu, err := url.Parse(credentialsAddr)
-	if err != nil || cu.User == nil || cu.Scheme != u.Scheme || cu.Host != u.Host {
-		return addr
-	}
-	u.User = cu.User
-	return u.String()
 }

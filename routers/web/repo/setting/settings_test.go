@@ -16,7 +16,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
@@ -241,7 +240,7 @@ func TestDeleteTeam(t *testing.T) {
 	assert.False(t, repo_service.HasRepository(t.Context(), team, repo.ID))
 }
 
-func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
+func TestHandleSettingsPostMirrorCredentials(t *testing.T) {
 	defer test.MockVariableValue(&setting.Mirror.Enabled, true)()
 
 	unittest.PrepareTestEnv(t)
@@ -253,37 +252,39 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	require.NoError(t, mirror_service.UpdateAddress(t.Context(), mirror, "https://existing-user:existing-password@example.com/user2/repo1.git"))
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	stale := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
 
-	ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
-	contexttest.LoadUser(t, ctx, user.ID)
-	contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
+	post := func(address, password string) string {
+		ctx, _ := contexttest.MockContext(t, mirrorRepo.Link()+"/settings")
+		contexttest.LoadUser(t, ctx, user.ID)
+		contexttest.LoadRepo(t, ctx, mirrorRepo.ID)
+		web.SetForm(ctx, &forms.RepoSettingForm{Interval: "8h", MirrorAddress: address, MirrorPassword: password})
+		handleSettingsPostMirror(ctx)
+		require.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 
-	web.SetForm(ctx, &forms.RepoSettingForm{
-		Interval:       "8h",
-		MirrorAddress:  "https://example.com/user2/repo1.git",
-		MirrorPassword: "updated-password",
-	})
+		updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+		assert.Equal(t, address, updatedMirror.RemoteAddress)
+		updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
+		assert.Equal(t, address, updatedRepo.OriginalURL)
+		configAddress, err := git.GetRemoteAddress(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
+		require.NoError(t, err)
+		assert.Equal(t, address, configAddress)
 
-	handleSettingsPostMirror(ctx)
+		remoteAddr, err := updatedMirror.GetRemoteAddressWithCredentials(t.Context())
+		require.NoError(t, err)
+		remoteURL, err := url.Parse(remoteAddr)
+		require.NoError(t, err)
+		return remoteURL.User.String()
+	}
 
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, "existing-user:updated-password", post("https://example.com/user2/repo1.git", "updated-password"))
+	assert.Equal(t, "existing-user:updated-password", post("https://example.com/user2/repo2.git", ""))
+	assert.Equal(t, "existing-user:", post("https://example.com:8443/user2/repo1.git", ""))
 
-	updatedMirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedMirror.RemoteAddress)
+	encrypted := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID}).RemoteAddressEncrypted
+	require.NoError(t, repo_model.UpdateMirror(t.Context(), stale))
+	assert.Equal(t, encrypted, unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID}).RemoteAddressEncrypted)
 
-	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
-	assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
-
-	remoteURL, err := git.ParseRemoteAddressURL(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
-	require.NoError(t, err)
-	assert.Nil(t, remoteURL.User, "credentials must not be kept in the git config")
-	remoteAddr, err := updatedMirror.GetRemoteAddressWithCredentials(t.Context())
-	require.NoError(t, err)
-	remoteURL, err = giturl.ParseGitURL(remoteAddr)
-	require.NoError(t, err)
-	require.NotNil(t, remoteURL.User)
-	assert.Equal(t, "existing-user", remoteURL.User.Username())
-	password, ok := remoteURL.User.Password()
-	require.True(t, ok)
-	assert.Equal(t, "updated-password", password)
+	require.NoError(t, repo_model.UpdateMirrorRemoteAddressEncrypted(t.Context(), &repo_model.Mirror{ID: mirror.ID, RemoteAddressEncrypted: "undecryptable"}))
+	assert.Equal(t, ":recovered", post("https://example.com/user2/repo1.git", "recovered"))
 }

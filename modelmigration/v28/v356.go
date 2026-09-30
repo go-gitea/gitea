@@ -5,42 +5,28 @@ package v28
 
 import (
 	"context"
-	"net/url"
-	"strings"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"xorm.io/xorm"
 )
 
-type mirrorWithEncryptedAddress struct {
-	RemoteAddressEncrypted string `xorm:"TEXT"`
-}
-
-func (mirrorWithEncryptedAddress) TableName() string {
-	return "mirror"
-}
-
-type pushMirrorWithEncryptedAddress struct {
-	RemoteAddressEncrypted string `xorm:"TEXT"`
-}
-
-func (pushMirrorWithEncryptedAddress) TableName() string {
-	return "push_mirror"
-}
-
 // MoveMirrorCredentialsToDatabase moves the credentials of mirror remotes from the git config into the database, encrypted
 func MoveMirrorCredentialsToDatabase(ctx context.Context, x base.EngineMigration) error {
+	type Mirror struct {
+		RemoteAddressEncrypted string `xorm:"TEXT"`
+	}
+	type PushMirror Mirror
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(mirrorWithEncryptedAddress), new(pushMirrorWithEncryptedAddress)); err != nil {
+	}, new(Mirror), new(PushMirror)); err != nil {
 		return err
 	}
 	if err := moveMirrorCredentials(ctx, x, "mirror", "'origin'"); err != nil {
@@ -86,7 +72,7 @@ func moveMirrorCredentials(ctx context.Context, x base.EngineMigration, table, r
 func moveMirrorRemoteCredentials(ctx context.Context, x base.EngineMigration, table string, id int64, ownerName, repoName, remoteName string) error {
 	codeRepo := base.LocalCodeGitRepo(ownerName, repoName)
 	addr, err := remoteAddress(ctx, codeRepo, remoteName)
-	if err != nil || addr == "" || stripCredentials(addr) == addr {
+	if err != nil || gitcmd.RemoteAddressWithoutCredentials(addr) == addr {
 		return err
 	}
 	encrypted, err := secret.EncryptSecret(setting.SecretKey, addr)
@@ -96,47 +82,34 @@ func moveMirrorRemoteCredentials(ctx context.Context, x base.EngineMigration, ta
 	if _, err := x.Exec("UPDATE "+table+" SET remote_address_encrypted = ? WHERE id = ?", encrypted, id); err != nil {
 		return err
 	}
-	for _, repo := range []gitrepo.RepositoryFacade{codeRepo, base.LocalWikiGitRepo(ownerName, repoName)} {
-		if err := stripRemoteCredentials(ctx, repo, remoteName); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func remoteAddress(ctx context.Context, repo gitrepo.RepositoryFacade, remoteName string) (string, error) {
-	if !isGitRepo(repo) {
-		return "", nil
-	}
-	stdout, _, err := gitcmd.NewCommand("config", "--get").AddDynamicArguments("remote." + remoteName + ".url").WithRepo(repo).RunStdString(ctx)
-	if gitcmd.IsErrorExitCode(err, 1) {
-		return "", nil // the remote does not exist
-	}
-	return strings.TrimSpace(stdout), err
-}
-
-func stripRemoteCredentials(ctx context.Context, repo gitrepo.RepositoryFacade, remoteName string) error {
-	addr, err := remoteAddress(ctx, repo, remoteName)
-	if err != nil || addr == "" || stripCredentials(addr) == addr {
+	if err := stripRemoteCredentials(ctx, codeRepo, remoteName, addr); err != nil {
 		return err
 	}
-	_, _, err = gitcmd.NewCommand("config").AddDynamicArguments("remote."+remoteName+".url", stripCredentials(addr)).WithRepo(repo).RunStdString(ctx)
+	wikiRepo := base.LocalWikiGitRepo(ownerName, repoName)
+	wikiAddr, err := remoteAddress(ctx, wikiRepo, remoteName)
+	if err != nil {
+		return err
+	}
+	return stripRemoteCredentials(ctx, wikiRepo, remoteName, wikiAddr)
+}
+
+func stripRemoteCredentials(ctx context.Context, repo gitrepo.RepositoryFacade, remoteName, addr string) error {
+	stripped := gitcmd.RemoteAddressWithoutCredentials(addr)
+	if stripped == addr {
+		return nil
+	}
+	_, _, err := gitcmd.NewCommand("remote", "set-url").AddDynamicArguments(remoteName, stripped).WithRepo(repo).RunStdString(ctx)
 	return err
 }
 
-func stripCredentials(addr string) string {
-	if !strings.HasPrefix(addr, "http://") && !strings.HasPrefix(addr, "https://") {
-		return addr
+// remoteAddress returns an empty address if the repository or the remote does not exist
+func remoteAddress(ctx context.Context, repo gitrepo.RepositoryFacade, remoteName string) (string, error) {
+	if exist, _ := git.IsRepositoryExist(ctx, repo); !exist {
+		return "", nil
 	}
-	u, err := url.Parse(addr)
-	if err != nil || u.User == nil {
-		return addr
+	addr, err := git.GetRemoteAddress(ctx, repo, remoteName)
+	if git.IsRemoteNotExistError(err) {
+		return "", nil
 	}
-	u.User = nil
-	return u.String()
-}
-
-func isGitRepo(repo gitrepo.RepositoryFacade) bool {
-	exist, _ := util.IsExist(gitrepo.RepoLocalPath(repo))
-	return exist
+	return addr, err
 }

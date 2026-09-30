@@ -85,18 +85,16 @@ func (m *PushMirror) SetRemoteAddressWithCredentials(addr string) (err error) {
 	return err
 }
 
-// GetRemoteAddressWithCredentials returns the address including its credentials
 func (m *PushMirror) GetRemoteAddressWithCredentials(ctx context.Context) (string, error) {
-	return decryptRemoteAddress(ctx, m.RemoteAddressEncrypted, m.GetRepository(ctx), m.RemoteName)
+	return decryptRemoteAddress(ctx, m.RemoteAddressEncrypted, m)
 }
 
 // UpdatePushMirror updates the push-mirror
 func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("remote_address_encrypted").Update(m) // a stale copy must not revert the credentials
 	return err
 }
 
-// UpdatePushMirrorRemoteAddressEncrypted updates the encrypted remote address of the push-mirror
 func UpdatePushMirrorRemoteAddressEncrypted(ctx context.Context, m *PushMirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("remote_address_encrypted").Update(m)
 	return err

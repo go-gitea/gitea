@@ -32,7 +32,7 @@ func ManagedRemoteAdd(ctx context.Context, repo RepositoryFacade, remoteName, re
 				return errors.New("unknown remote option: " + string(options[0]))
 			}
 		}
-		_, _, err := cmd.AddDynamicArguments(remoteName, remoteURL).WithRepo(repo).RunStdString(ctx)
+		_, _, err := cmd.AddDynamicArguments(remoteName, gitcmd.RemoteAddressWithoutCredentials(remoteURL)).WithRepo(repo).RunStdString(ctx) // commands get them with WithRemoteCredentials
 		return err
 	})
 }
@@ -41,22 +41,6 @@ func ManagedRemoteRemove(ctx context.Context, repo RepositoryFacade, remoteName 
 	return LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
 		cmd := gitcmd.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
 		_, _, err := cmd.WithRepo(repo).RunStdString(ctx)
-		return err
-	})
-}
-
-// ManagedRemoteStripCredentials removes the credentials from the address of a remote, they are provided when running git commands instead.
-func ManagedRemoteStripCredentials(ctx context.Context, repo RepositoryFacade, remoteName string) error {
-	return LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
-		addr, err := GetRemoteAddress(ctx, repo, remoteName)
-		if err != nil {
-			return err
-		}
-		stripped := RemoteAddressWithoutCredentials(addr)
-		if stripped == addr {
-			return nil
-		}
-		_, _, err = gitcmd.NewCommand("remote", "set-url").AddDynamicArguments(remoteName, stripped).WithRepo(repo).RunStdString(ctx)
 		return err
 	})
 }

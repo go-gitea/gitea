@@ -42,8 +42,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	// the credentials are stored in the database, git gets them when running a command
-	err = git.ManagedRemoteAdd(ctx, repo, remoteName, git.RemoteAddressWithoutCredentials(addr), git.RemoteOptionMirrorFetch)
+	err = git.ManagedRemoteAdd(ctx, repo, remoteName, addr, git.RemoteOptionMirrorFetch)
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
@@ -56,7 +55,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 			return err
 		}
 
-		err = git.ManagedRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, git.RemoteAddressWithoutCredentials(wikiRemotePath), git.RemoteOptionMirrorFetch)
+		err = git.ManagedRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, git.RemoteOptionMirrorFetch)
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
@@ -113,14 +112,14 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResult, bool) {
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
+	remoteURL, remoteErr := git.ParseRemoteAddressURL(ctx, m.Repo, m.GetRemoteName())
+	if remoteErr != nil {
+		log.Error("SyncMirrors [repo: %-v]: GetRemoteURL Error %v", m.Repo, remoteErr)
+		return nil, false
+	}
 	remoteAddr, remoteErr := m.GetRemoteAddressWithCredentials(ctx)
 	if remoteErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddressWithCredentials Error %v", m.Repo, remoteErr)
-		return nil, false
-	}
-	remoteURL, remoteErr := giturl.ParseGitURL(remoteAddr)
-	if remoteErr != nil {
-		log.Error("SyncMirrors [repo: %-v]: ParseGitURL Error %v", m.Repo, remoteErr)
 		return nil, false
 	}
 	// re-validate on every sync: the host may now resolve to an internal IP (rebinding) or the
@@ -189,7 +188,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
+		lfsClient, err := lfs.NewClientFromEndpoint(addRemoteCredentials(remoteURL.String(), remoteAddr), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to initialize LFS client: %v", m.Repo.FullName(), err)
 		} else if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
@@ -217,7 +216,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		// the wiki is on the same host, so the credentials of the code repository address apply
 		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithRemoteCredentials(remoteAddr)
 	}
 

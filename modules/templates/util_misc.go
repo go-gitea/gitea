@@ -160,16 +160,8 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Mirror) remoteAddres
 		}
 	}
 
-	// The URL stored in the git repo could contain authentication,
-	// erase it, or it will be shown in the UI.
 	u.User = nil
 	ret.Address = u.String()
-	// Why not use m.OriginalURL to set ret.Address?
-	// It should be OK to use it, since m.OriginalURL should be the same as the authentication-erased URL from the Git repository.
-	// However, the old code has already stored authentication in m.OriginalURL when updating mirror settings.
-	// That means we need to use "giturl.Parse" for m.OriginalURL again to ensure authentication is erased.
-	// Instead of doing this, why not directly use the authentication-erased URL from the Git repository?
-	// It should be the same as long as there are no bugs.
 
 	return ret
 }
