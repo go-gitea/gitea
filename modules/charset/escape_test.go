@@ -162,21 +162,21 @@ func TestEscapeControlReader(t *testing.T) {
 	}
 }
 
-func TestTrackMathTag(t *testing.T) {
+func TestTrackHtmlTag(t *testing.T) {
 	e := &escapeStreamer{}
 	for _, tt := range []struct {
 		parts  []string
 		inMath bool
 	}{
-		{[]string{"<ma", "th display=\"block\">"}, true},
+		{[]string{"<ma", `th display="block">`}, true},
 		{[]string{"<mo>"}, true},
-		{[]string{"</ma", "th>"}, false},
+		{[]string{"</MA", "TH>"}, false},
 		{[]string{"<mathx>"}, false},
 	} {
 		for _, part := range tt.parts {
-			e.trackMathTag([]byte(part))
+			e.trackHtmlTag([]byte(part))
 		}
-		assert.Equal(t, tt.inMath, e.inMath, "%v", tt.parts)
+		assert.Equal(t, tt.inMath, e.inTagMath, "%v", tt.parts)
 	}
 }
 

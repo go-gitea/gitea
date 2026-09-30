@@ -14,6 +14,7 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 )
 
 type htmlChunkReader struct {
@@ -31,8 +32,9 @@ type escapeStreamer struct {
 	ambiguousTables []*AmbiguousTable
 	allowed         map[rune]bool
 
-	tagHead []byte
-	inMath  bool // MathML operators like U+2212 are intended and wrapping them breaks the math layout
+	tagPartial []byte // partial tag content, used to detect if we are in some tags
+
+	inTagMath bool // MathML operators like U+2212 are intended and wrapping them breaks the math layout
 
 	out io.Writer
 }
@@ -66,7 +68,7 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		for i, part := range parts {
 			if partInTag[i] {
 				lastIsTag = true
-				es.trackMathTag(part)
+				es.trackHtmlTag(part)
 				if _, err := out.Write(part); err != nil {
 					return nil, err
 				}
@@ -80,7 +82,7 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 						return nil, err
 					}
 				}
-				if es.inMath {
+				if es.inTagMath {
 					if _, err := out.Write(part); err != nil {
 						return nil, err
 					}
@@ -92,24 +94,31 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 	}
 }
 
-// trackMathTag receives tag parts, a tag might be split into multiple parts
-func (e *escapeStreamer) trackMathTag(part []byte) {
-	const maxHeadLen = len("</math>")
+// trackHtmlTag receives tag parts, a tag might be split into multiple parts
+func (e *escapeStreamer) trackHtmlTag(part []byte) {
+	const maxHeadLen = 100 // only read the first N bytes of the tag for detection purpose
 	if part[0] == '<' {
-		e.tagHead = e.tagHead[:0]
+		// start a new tag
+		e.tagPartial = e.tagPartial[:0]
 	}
-	if len(e.tagHead) >= maxHeadLen {
+	if len(e.tagPartial) >= maxHeadLen {
 		return
 	}
-	e.tagHead = append(e.tagHead, part[:min(len(part), maxHeadLen-len(e.tagHead))]...)
+	e.tagPartial = append(e.tagPartial, part[:min(len(part), maxHeadLen-len(e.tagPartial))]...)
+
 	isTag := func(prefix string) bool {
-		rest, ok := bytes.CutPrefix(e.tagHead, []byte(prefix))
-		return ok && len(rest) > 0 && strings.IndexByte(" \t\n\r\f>", rest[0]) != -1
+		if len(e.tagPartial) < len(prefix)+1 {
+			return false
+		}
+		if !util.AsciiEqualFold(e.tagPartial[:len(prefix)], []byte(prefix)) {
+			return false
+		}
+		return strings.IndexByte(" \t\n\r\f>", e.tagPartial[len(prefix)]) != -1
 	}
 	if isTag("<math") {
-		e.inMath = true
+		e.inTagMath = true
 	} else if isTag("</math") {
-		e.inMath = false
+		e.inTagMath = false
 	}
 }
 
