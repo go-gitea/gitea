@@ -5,6 +5,16 @@
   overflow-wrap: break-word;
 }
 
+@font-face {
+  font-family: NewComputerModernMath;
+  src: local("NewComputerModernMath"), url("../../fonts/NewCMMath-Book.woff2") format("woff2");
+}
+
+.markup math {
+  font-family: NewComputerModernMath, "Latin Modern Math", "STIX Two Math", "Cambria Math", math;
+  font-size-adjust: ex-height 0.52;
+}
+
 .markup > *:first-child {
   margin-top: 0 !important;
 }
