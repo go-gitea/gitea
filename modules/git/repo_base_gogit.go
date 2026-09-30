@@ -20,6 +20,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
 )
 
 const isGogit = true
@@ -31,8 +32,8 @@ type Repository struct {
 	gogitStorage *reindexingStorage
 }
 
-// reindexingStorage picks up packs that git wrote after go-git loaded its index
-// https://github.com/go-git/go-git/issues/2439
+// reindexingStorage reloads the pack index when git added or removed packs after go-git loaded it
+// https://github.com/go-git/go-git/issues/2439 https://github.com/go-git/go-git/issues/1623
 type reindexingStorage struct {
 	*filesystem.Storage
 	packs []plumbing.Hash
@@ -40,7 +41,7 @@ type reindexingStorage struct {
 
 func (s *reindexingStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
 	obj, err := s.Storage.EncodedObject(t, h)
-	if !errors.Is(err, plumbing.ErrObjectNotFound) {
+	if !errors.Is(err, plumbing.ErrObjectNotFound) && !errors.Is(err, dotgit.ErrPackfileNotFound) {
 		return obj, err
 	}
 	packs, _ := s.ObjectPacks()
