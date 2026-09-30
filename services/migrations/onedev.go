@@ -88,10 +88,11 @@ func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, passwo
 		client: &http.Client{
 			Transport: roundTripperFunc(
 				func(req *http.Request) (*http.Response, error) {
+					req = req.Clone(ctx)
 					if username != "" && password != "" {
 						req.SetBasicAuth(username, password)
 					}
-					return httpTransport.RoundTrip(req.WithContext(ctx))
+					return httpTransport.RoundTrip(req)
 				}),
 		},
 		userMap:      make(map[int64]*onedevUser),

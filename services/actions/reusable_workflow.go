@@ -25,8 +25,10 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
 
+	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
@@ -187,7 +189,7 @@ func canonicalCallUses(job *actions_model.ActionRunJob) string {
 }
 
 // expandReusableWorkflowCaller loads and parses the target reusable workflow and inserts the caller's direct child jobs.
-// It expands only ONE level: a child that is itself a reusable caller is inserted Blocked and expanded later by a subsequent resolver pass.
+// It expands only ONE level: a child that is itself a reusable caller is inserted Blocked or Pending and expanded later by a subsequent resolver pass.
 // It does NOT schedule a follow-up resolver pass; the caller of this function is responsible for emitting.
 //
 // All call sites (PrepareRunAndInsert, execRerunPlan, checkJobsOfCurrentRunAttempt, ApproveRuns) invoke this inside their enclosing write transaction,
@@ -272,6 +274,10 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 			return fmt.Errorf("caller %q inputs: %w", caller.JobID, err)
 		}
 	}
+	jobInputs, err := calledWorkflowInputs(ctx, run, caller, workflowCallInputs)
+	if err != nil {
+		return err
+	}
 
 	// 7. Build CallPayload (persisted in step 9).
 	callPayload, err := (&api.WorkflowCallPayload{
@@ -303,7 +309,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 9. We own the expansion: insert the direct children.
-	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
+	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, jobInputs); err != nil {
 		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
 		return errors.Join(err, undoExpansion(ctx, caller))
 	}
@@ -335,13 +341,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 
-	// Parse the called workflow with the caller's `inputs`
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
-	if event, ok := gitCtx["event"].(map[string]any); ok {
-		event["inputs"] = inputs
-	}
-	gitCtx["event_name"] = "workflow_call"
-
 	childWorkflows, err := jobparser.Parse(content,
 		jobparser.WithVars(vars),
 		jobparser.WithGitContext(gitCtx.ToGitHubContext()),
@@ -407,7 +407,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			RunsOnGroup:             parsedChild.RunsOnGroup(),
 			ContinueOnError:         parsedChild.GetContinueOnError(),
 			MaxParallel:             parseMaxParallel(jobID, parsedChild.Strategy.MaxParallelString),
-			Status:                  actions_model.StatusBlocked,
+			Status:                  util.Iif(len(needs) > 0, actions_model.StatusPending, actions_model.StatusBlocked),
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
 			WorkflowSourceCommitSHA: sourceCommitSHA,
@@ -425,6 +425,13 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		if parsedChild.Uses != "" {
 			child.IsReusableCaller = true
 			child.CallUses = parsedChild.Uses
+		}
+		if parsedChild.RawConcurrency != nil {
+			rawConcurrency, err := yaml.Marshal(parsedChild.RawConcurrency)
+			if err != nil {
+				return fmt.Errorf("marshal raw concurrency of child %q under caller %d: %w", jobID, caller.ID, err)
+			}
+			child.RawConcurrency = string(rawConcurrency)
 		}
 		if err := db.Insert(ctx, child); err != nil {
 			return fmt.Errorf("insert child %q under caller %d: %w", jobID, caller.ID, err)

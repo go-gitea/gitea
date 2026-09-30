@@ -560,7 +560,7 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 		for _, job := range jobs {
 			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
 			// is skipped: parsing the payload would report a valid workflow as invalid.
-			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
+			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked, actions_model.StatusPending) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
@@ -646,7 +646,15 @@ func (data *actionRunListData) preparePartialRefreshRuns(ctx *context.Context) b
 		ctx.ServerError("GetRunsByRepoAndID", err)
 		return false
 	}
-	data.ActionRuns = runs
+	runsMap := make(map[int64]*actions_model.ActionRun, len(runs))
+	for _, run := range runs {
+		runsMap[run.ID] = run
+	}
+	for _, id := range data.refreshRunIDs {
+		if run, ok := runsMap[id]; ok {
+			data.ActionRuns = append(data.ActionRuns, run)
+		}
+	}
 	return true
 }
 
