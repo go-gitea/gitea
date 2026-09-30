@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -50,8 +50,7 @@ func TestAPIFollow(t *testing.T) {
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var users []api.User
-		DecodeJSON(t, resp, &users)
+		users := DecodeJSON(t, resp, []api.User{})
 		assert.Len(t, users, 1)
 		assert.Equal(t, user1, users[0].UserName)
 	})
@@ -63,8 +62,7 @@ func TestAPIFollow(t *testing.T) {
 			AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var users []api.User
-		DecodeJSON(t, resp, &users)
+		users := DecodeJSON(t, resp, []api.User{})
 		assert.Len(t, users, 1)
 		assert.Equal(t, user1, users[0].UserName)
 	})
@@ -76,8 +74,7 @@ func TestAPIFollow(t *testing.T) {
 			AddTokenAuth(token1)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var users []api.User
-		DecodeJSON(t, resp, &users)
+		users := DecodeJSON(t, resp, []api.User{})
 		assert.Len(t, users, 1)
 		assert.Equal(t, user2, users[0].UserName)
 	})
@@ -89,8 +86,7 @@ func TestAPIFollow(t *testing.T) {
 			AddTokenAuth(token1)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var users []api.User
-		DecodeJSON(t, resp, &users)
+		users := DecodeJSON(t, resp, []api.User{})
 		assert.Len(t, users, 1)
 		assert.Equal(t, user2, users[0].UserName)
 	})

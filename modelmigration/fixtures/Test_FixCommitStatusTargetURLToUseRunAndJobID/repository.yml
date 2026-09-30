@@ -1,0 +1,9 @@
+# type Repository struct {
+#   ID        int64  `xorm:"pk autoincr"`
+#   OwnerName string
+#   Name      string
+# }
+-
+  id: 100
+  owner_name: testuser
+  name: repo1

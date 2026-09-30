@@ -13,11 +13,13 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // This file contains functions for creating authorized_principals files
@@ -61,8 +63,8 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		t.Close()
-		os.Remove(tmpPath)
+		_ = t.Close()
+		_ = util.RemoveWithRetry(tmpPath)
 	}()
 
 	if setting.SSH.AuthorizedPrincipalsBackup {
@@ -83,13 +85,13 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 		return err
 	}
 
-	t.Close()
-	return util.Rename(tmpPath, fPath)
+	_ = t.Close()
+	return util.RenameWithRetry(tmpPath, fPath)
 }
 
 func regeneratePrincipalKeys(ctx context.Context, t io.Writer) error {
-	if err := db.GetEngine(ctx).Where("type = ?", asymkey_model.KeyTypePrincipal).Iterate(new(asymkey_model.PublicKey), func(idx int, bean any) (err error) {
-		return asymkey_model.WriteAuthorizedStringForValidKey(bean.(*asymkey_model.PublicKey), t)
+	if err := db.Iterate(ctx, builder.Eq{"type": asymkey_model.KeyTypePrincipal}, func(ctx context.Context, key *asymkey_model.PublicKey) error {
+		return asymkey_model.WriteAuthorizedStringForValidKey(key, t)
 	}); err != nil {
 		return err
 	}

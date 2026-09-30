@@ -9,13 +9,13 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // SearchPointerBlobs scans the whole repository for LFS pointer files
-func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan chan<- PointerBlob, errChan chan<- error) {
+func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan chan<- PointerBlob) error {
 	gitRepo := repo.GoGitRepo()
 
 	err := func() error {
@@ -49,14 +49,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 			return nil
 		})
 	}()
-	if err != nil {
-		select {
-		case <-ctx.Done():
-		default:
-			errChan <- err
-		}
-	}
 
 	close(pointerChan)
-	close(errChan)
+	return err
 }

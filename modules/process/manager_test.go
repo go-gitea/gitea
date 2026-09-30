@@ -6,7 +6,6 @@ package process
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -86,26 +85,4 @@ func TestManager_Remove(t *testing.T) {
 
 	_, exists := pm.processMap[GetPID(p2Ctx)]
 	assert.False(t, exists, "PID %d is in the list but shouldn't", GetPID(p2Ctx))
-}
-
-func TestExecTimeoutNever(t *testing.T) {
-	// TODO Investigate how to improve the time elapsed per round.
-	maxLoops := 10
-	for i := 1; i < maxLoops; i++ {
-		_, stderr, err := GetManager().ExecTimeout(5*time.Second, "ExecTimeout", "git", "--version")
-		if err != nil {
-			t.Fatalf("git --version: %v(%s)", err, stderr)
-		}
-	}
-}
-
-func TestExecTimeoutAlways(t *testing.T) {
-	maxLoops := 100
-	for i := 1; i < maxLoops; i++ {
-		_, stderr, err := GetManager().ExecTimeout(100*time.Microsecond, "ExecTimeout", "sleep", "5")
-		// TODO Simplify logging and errors to get precise error type. E.g. checking "if err != context.DeadlineExceeded".
-		if err == nil {
-			t.Fatalf("sleep 5 secs: %v(%s)", err, stderr)
-		}
-	}
 }

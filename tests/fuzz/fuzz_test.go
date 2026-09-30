@@ -8,10 +8,15 @@ import (
 	"io"
 	"testing"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
 )
+
+func TestMain(m *testing.M) {
+	setting.SetupGiteaTestEnv()
+	m.Run()
+}
 
 func newFuzzRenderContext() *markup.RenderContext {
 	return markup.NewTestRenderContext("https://example.com/go-gitea/gitea", map[string]string{"user": "go-gitea", "repo": "gitea"})

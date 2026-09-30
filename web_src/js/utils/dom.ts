@@ -1,17 +1,16 @@
-import {debounce} from 'throttle-debounce';
+import {debounce} from './func.ts';
 import type {Promisable} from '../types.ts';
 import type $ from 'jquery';
-import {isInFrontendUnitTest} from './testhelper.ts';
+import {Idiomorph} from 'idiomorph';
 
 type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & {target: Partial<T>;};
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
-  if (typeof el === 'string' || el instanceof String) {
-    el = document.querySelectorAll(el as string);
+  if (typeof el === 'string') {
+    el = document.querySelectorAll(el);
   }
   if (el instanceof Node) {
     func(el, ...args);
@@ -65,6 +64,7 @@ function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?:
 }
 
 export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  if (!el.parentNode) return [];
   const elems = Array.from(el.parentNode.children) as T[];
   return applyElemsCallback<T>(elems.filter((child: Element) => {
     return child !== el && child.matches(selector);
@@ -73,11 +73,6 @@ export function queryElemSiblings<T extends Element>(el: Element, selector = '*'
 
 /** it works like jQuery.children: only the direct children are selected */
 export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
-  if (isInFrontendUnitTest()) {
-    // https://github.com/capricorn86/happy-dom/issues/1620 : ":scope" doesn't work
-    const selected = Array.from<T>(parent.children as any).filter((child) => child.matches(selector));
-    return applyElemsCallback<T>(selected, fn);
-  }
   return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
@@ -125,10 +120,10 @@ export function isDocumentFragmentOrElementNode(el: Node) {
 export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 0}: {viewportMarginBottom?: number} = {}) {
   let isUserResized = false;
   // lastStyleHeight and initialStyleHeight are CSS values like '100px'
-  let lastMouseX: number;
-  let lastMouseY: number;
-  let lastStyleHeight: string;
-  let initialStyleHeight: string;
+  let lastMouseX: number | undefined;
+  let lastMouseY: number | undefined;
+  let lastStyleHeight: string | undefined;
+  let initialStyleHeight: string | undefined;
 
   function onUserResize(event: MouseEvent) {
     if (isUserResized) return;
@@ -153,7 +148,8 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       el = el.offsetParent as HTMLTextAreaElement;
     }
 
-    const top = offsetTop - document.defaultView.scrollY;
+    const scrollY = document.defaultView ? document.defaultView.scrollY : 0;
+    const top = offsetTop - scrollY;
     const bottom = document.documentElement.clientHeight - (top + textarea.offsetHeight);
     return {top, bottom};
   }
@@ -240,8 +236,8 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
   };
 }
 
-export function onInputDebounce(fn: () => Promisable<any>) {
-  return debounce(300, fn);
+export function onInputDebounce(fn: () => Promisable<void>) {
+  return debounce(fn, 300);
 }
 
 type LoadableElement = HTMLEmbedElement | HTMLIFrameElement | HTMLImageElement | HTMLScriptElement | HTMLTrackElement;
@@ -256,51 +252,33 @@ export function loadElem(el: LoadableElement, src: string) {
   });
 }
 
-// some browsers like PaleMoon don't have "SubmitEvent" support, so polyfill it by a tricky method: use the last clicked button as submitter
-// it can't use other transparent polyfill patches because PaleMoon also doesn't support "addEventListener(capture)"
-const needSubmitEventPolyfill = typeof SubmitEvent === 'undefined';
-
-export function submitEventSubmitter(e: any) {
-  e = e.originalEvent ?? e; // if the event is wrapped by jQuery, use "originalEvent", otherwise, use the event itself
-  return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
-}
-
-function submitEventPolyfillListener(e: DOMEvent<Event>) {
-  const form = e.target.closest('form');
-  if (!form) return;
-  form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
-}
-
-export function initSubmitEventPolyfill() {
-  if (!needSubmitEventPolyfill) return;
-  console.warn(`This browser doesn't have "SubmitEvent" support, use a tricky method to polyfill`);
-  document.body.addEventListener('click', submitEventPolyfillListener);
-  document.body.addEventListener('focus', submitEventPolyfillListener);
-}
-
 export function isElemVisible(el: HTMLElement): boolean {
   // Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
-  // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return !el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none';
+  return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
 }
 
-export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
+export function createElementFromHTML<T extends Element>(htmlString: string): T {
   htmlString = htmlString.trim();
+  if (!htmlString.startsWith('<')) throw new Error(`Invalid HTML element string: ${htmlString}`);
+  const isLetter = (code: number) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+  const startsWithTag = (s: string, tag: string) => {
+    return s.substring(1, 1 + tag.length).toLowerCase() === tag.toLowerCase() &&
+      !isLetter(s[1 + tag.length].charCodeAt(0));
+  };
   // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
-  // eslint-disable-next-line github/unescaped-html-literal
-  if (htmlString.startsWith('<tr')) {
+  if (startsWithTag(htmlString, 'tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
-    return container.querySelector<T>('tr');
+    return container.querySelector<T>('tr')!;
   }
   const div = document.createElement('div');
   div.innerHTML = htmlString;
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node | string)[]): HTMLElement {
+export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, string | number | boolean | null | undefined> | null, ...children: (Node | string)[]): T {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
@@ -313,7 +291,7 @@ export function createElementFromAttrs(tagName: string, attrs: Record<string, an
   for (const child of children) {
     el.append(child instanceof Node ? child : document.createTextNode(child));
   }
-  return el;
+  return el as T;
 }
 
 export function animateOnce(el: Element, animationClassName: string): Promise<void> {
@@ -354,4 +332,129 @@ export function isPlainClick(e: MouseEvent) {
 let elemIdCounter = 0;
 export function generateElemId(prefix: string = ''): string {
   return `${prefix}${elemIdCounter++}`;
+}
+
+export type ActivePageTimerOptions = {
+  once?: boolean;
+  interval: () => number; // if it returns 0, the timer is stopped
+  callback: () => Promise<void>;
+};
+
+export class ActivePageTimer {
+  private readonly opts: ActivePageTimerOptions;
+  private readonly onVisibilityChange: () => void;
+
+  private sysTimerId?: number;
+  private startTime?: number;
+
+  constructor(opts: ActivePageTimerOptions) {
+    this.opts = opts;
+    this.onVisibilityChange = () => {
+      if (!this.startTime) return;
+      const interval = this.opts.interval();
+      if (document.hidden) {
+        this.clearSysTimer();
+      } else if (interval) {
+        this.startSysTimer(interval);
+      }
+    };
+  }
+
+  private async handler() {
+    this.clear();
+    await this.opts.callback();
+    if (!this.opts.once) this.start();
+  }
+
+  start() {
+    const interval = this.opts.interval();
+    if (!interval) return;
+    if (this.sysTimerId) return;
+    if (!this.startTime) {
+      this.startTime = Date.now();
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (!document.hidden) this.startSysTimer(interval);
+  }
+
+  private startSysTimer(interval: number) {
+    const remaining = interval - (Date.now() - this.startTime!);
+    if (remaining <= 0) {
+      this.handler();
+    } else {
+      this.sysTimerId = window.setTimeout(() => this.handler(), remaining);
+    }
+  }
+
+  private clearSysTimer() {
+    if (!this.sysTimerId) return;
+    window.clearTimeout(this.sysTimerId);
+    this.sysTimerId = undefined;
+  }
+
+  clear() {
+    if (!this.startTime) return;
+    this.startTime = undefined;
+    this.clearSysTimer();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+  }
+}
+
+export function activePageTimerRefresh(opts: ActivePageTimerOptions): ActivePageTimer {
+  const timer = new ActivePageTimer(opts);
+  timer.start();
+  return timer;
+}
+
+type ProtectedMorphElements = Record<string, string>;
+
+export function protectMorphElements(el: Element): ProtectedMorphElements {
+  // Some components like Dropdown manage their internal states and styles.
+  // If morph changes any style or layout, then the Dropdown will stop working.
+  // So, protect such fragile components ahead, then morph, then recover.
+  const ret: ProtectedMorphElements = {};
+  for (const it of el.querySelectorAll('.ui.dropdown, [data-morph-protect]')) {
+    const id = generateElemId();
+    ret[id] = it.outerHTML;
+    it.setAttribute('data-morph-protect', id);
+  }
+  return ret;
+}
+
+export function recoverMorphElements(el: Element, protectedElems: ProtectedMorphElements) {
+  for (const [id, html] of Object.entries(protectedElems)) {
+    const it = el.querySelector(`[data-morph-protect="${CSS.escape(id)}"]`);
+    if (!it) continue;
+    it.replaceWith(createElementFromHTML(html));
+  }
+}
+
+export type MorphElementOptions = {
+  morphStyle: 'innerHTML' | 'outerHTML';
+};
+
+export function morphElementWithProtection(el: Element, newEl: Element, opts: MorphElementOptions): Element {
+  const protectedElems = protectMorphElements(newEl);
+  const selectorSkipElems = '.ui.dropdown.active';
+  const nodes = Idiomorph.morph(el, newEl, {
+    morphStyle: opts.morphStyle,
+    callbacks: {
+      beforeNodeMorphed: (oldNode /* , newNode */) => {
+        if (!(oldNode instanceof Element)) return true;
+
+        // If the end user is operating a row, then don't refresh its content.
+        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
+        const oldNodeMorphWholeAndSkipChild = oldNode.matches('[data-morph-whole]') && oldNode.querySelector(selectorSkipElems);
+
+        // If the element should be skipped, don't morph it
+        const oldNodeShouldSkip = oldNode.matches(selectorSkipElems);
+
+        const shouldSkip = oldNodeMorphWholeAndSkipChild || oldNodeShouldSkip;
+        return !shouldSkip;
+      },
+    },
+  });
+  const morphedElem = nodes[0] as Element;
+  recoverMorphElements(morphedElem, protectedElems);
+  return morphedElem;
 }

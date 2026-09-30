@@ -7,14 +7,16 @@ import (
 	"bytes"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/mdstripper"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/mdstripper"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 var (
@@ -24,7 +26,7 @@ var (
 
 	// NOTE: All below regex matching do not perform any extra validation.
 	// Thus a link is produced even if the linked entity does not exist.
-	// While fast, this is also incorrect and lead to false positives.
+	// While fast, this is also incorrect and leads to false positives.
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
@@ -45,6 +47,7 @@ var (
 	timeLogPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@([0-9]+([\.,][0-9]+)?(w|d|m|h))+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
+	issueKeywordWindow                            int
 	issueKeywordsOnce                             sync.Once
 
 	giteaHostInit         sync.Once
@@ -82,6 +85,7 @@ type IssueReference struct {
 	Index   int64
 	Owner   string
 	Name    string
+	IsPull  bool
 	Action  XRefAction
 	TimeLog string
 }
@@ -120,6 +124,7 @@ func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 			Index:   r.index,
 			Owner:   r.owner,
 			Name:    r.name,
+			IsPull:  r.isPull,
 			Action:  r.action,
 			TimeLog: r.timeLog,
 		}
@@ -167,6 +172,10 @@ func newKeywords() {
 func doNewKeywords(closeKeywords, reopenKeywords []string) {
 	issueCloseKeywordsPat = makeKeywordsPat(closeKeywords)
 	issueReopenKeywordsPat = makeKeywordsPat(reopenKeywords)
+	issueKeywordWindow = 0
+	for _, word := range slices.Concat(closeKeywords, reopenKeywords) {
+		issueKeywordWindow = max(issueKeywordWindow, utf8.RuneCountInString(word)*utf8.UTFMax+3) // delimiter, keyword with (?i)-folded runes like ſ for s, ": "
+	}
 }
 
 // getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
@@ -248,7 +257,7 @@ func FindAllIssueReferencesMarkdown(content string) []IssueReference {
 
 func findAllIssueReferencesMarkdown(content string) []*rawReference {
 	bcontent, links := mdstripper.StripMarkdownBytes([]byte(content))
-	return findAllIssueReferencesBytes(bcontent, links)
+	return findAllIssueReferencesBytes(bcontent, links, []byte(content))
 }
 
 func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byte) {
@@ -326,7 +335,7 @@ func FindAllIssueReferences(content string) []IssueReference {
 	} else {
 		log.Debug("No GiteaIssuePullPattern pattern")
 	}
-	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}))
+	return rawToIssueReferenceList(findAllIssueReferencesBytes(contentBytes, []string{}, nil))
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
@@ -378,9 +387,23 @@ func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) *Re
 		return nil
 	}
 
-	action, location := findActionKeywords([]byte(content), match[2])
+	// The external tracker pattern can use alternatives with separate capture
+	// groups. Pick the first group that participated in this match instead of
+	// assuming the first group always did.
+	issueStart, issueEnd := -1, -1
+	for i := 2; i+1 < len(match); i += 2 {
+		if match[i] >= 0 {
+			issueStart, issueEnd = match[i], match[i+1]
+			break
+		}
+	}
+	if issueStart < 0 {
+		return nil
+	}
+
+	action, location := findActionKeywords([]byte(content), issueStart)
 	return &RenderizableReference{
-		Issue:          content[match[2]:match[3]],
+		Issue:          content[issueStart:issueEnd],
 		RefLocation:    &RefSpan{Start: match[0], End: match[1]},
 		Action:         action,
 		ActionLocation: location,
@@ -406,7 +429,8 @@ func FindRenderizableReferenceAlphanumeric(content string) *RenderizableReferenc
 }
 
 // FindAllIssueReferencesBytes returns a list of unvalidated references found in a byte slice.
-func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference {
+// originalContent is optional and used to detect closing/reopening keywords for URL references.
+func findAllIssueReferencesBytes(content []byte, links []string, originalContent []byte) []*rawReference {
 	ret := make([]*rawReference, 0, 10)
 	pos := 0
 
@@ -470,10 +494,27 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 			default:
 				continue
 			}
-			// Note: closing/reopening keywords not supported with URLs
-			bytes := []byte(parts[1] + "/" + parts[2] + sep + parts[4])
-			if ref := getCrossReference(bytes, 0, len(bytes), true, false); ref != nil {
+			refBytes := []byte(parts[1] + "/" + parts[2] + sep + parts[4])
+			if ref := getCrossReference(refBytes, 0, len(refBytes), true, false); ref != nil {
 				ref.refLocation = nil
+				// Detect closing/reopening keywords by finding the URL position in original content
+				if originalContent != nil {
+					if idx := bytes.Index(originalContent, []byte(link)); idx > 0 {
+						// For markdown links [text](url), find the opening bracket before the URL
+						// to properly detect keywords like "closes [text](url)"
+						searchStart := idx
+						if idx >= 2 && originalContent[idx-1] == '(' {
+							// Find the matching '[' for this markdown link
+							bracketIdx := bytes.LastIndex(originalContent[:idx-1], []byte{'['})
+							if bracketIdx >= 0 {
+								searchStart = bracketIdx
+							}
+						}
+						action, location := findActionKeywords(originalContent, searchStart)
+						ref.action = action
+						ref.actionLocation = location
+					}
+				}
 				ret = append(ret, ref)
 			}
 		}
@@ -567,17 +608,16 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 
 func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 	newKeywords()
-	var m []int
+	windowStart := max(start-issueKeywordWindow, 0)
+	prefix := content[windowStart:start]
 	if issueCloseKeywordsPat != nil {
-		m = issueCloseKeywordsPat.FindSubmatchIndex(content[:start])
-		if m != nil {
-			return XRefActionCloses, &RefSpan{Start: m[2], End: m[3]}
+		if m := issueCloseKeywordsPat.FindSubmatchIndex(prefix); m != nil {
+			return XRefActionCloses, &RefSpan{Start: windowStart + m[2], End: windowStart + m[3]}
 		}
 	}
 	if issueReopenKeywordsPat != nil {
-		m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start])
-		if m != nil {
-			return XRefActionReopens, &RefSpan{Start: m[2], End: m[3]}
+		if m := issueReopenKeywordsPat.FindSubmatchIndex(prefix); m != nil {
+			return XRefActionReopens, &RefSpan{Start: windowStart + m[2], End: windowStart + m[3]}
 		}
 	}
 	return XRefActionNone, nil

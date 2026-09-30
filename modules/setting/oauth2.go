@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/log"
 )
 
 // OAuth2UsernameType is enum describing the way gitea generates its 'username' from oauth2 data
@@ -99,6 +99,7 @@ var OAuth2 = struct {
 	JWTClaimIssuer             string `ini:"JWT_CLAIM_ISSUER"`
 	MaxTokenLength             int
 	DefaultApplications        []string
+	CustomSchemes              []string
 }{
 	Enabled:                    true,
 	AccessTokenExpirationTime:  3600,
@@ -107,7 +108,7 @@ var OAuth2 = struct {
 	JWTSigningAlgorithm:        "RS256",
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
-	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
+	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea", "gitea-app"},
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {
@@ -133,16 +134,13 @@ func loadOAuth2From(rootCfg ConfigProvider) {
 
 	// FIXME: at the moment, no matter oauth2 is enabled or not, it must generate a "oauth2 JWT_SECRET"
 	// Because this secret is also used as GeneralTokenSigningSecret (as a quick not-that-breaking fix for some legacy problems).
-	// Including: CSRF token, account validation token, etc ...
+	// Including: account validation token, etc ...
 	// In main branch, the signing token should be refactored (eg: one unique for LFS/OAuth2/etc ...)
 	jwtSecretBase64 := loadSecret(sec, "JWT_SECRET_URI", "JWT_SECRET")
 	if InstallLock {
 		jwtSecretBytes, err := generate.DecodeJwtSecretBase64(jwtSecretBase64)
 		if err != nil {
-			jwtSecretBytes, jwtSecretBase64, err = generate.NewJwtSecretWithBase64()
-			if err != nil {
-				log.Fatal("error generating JWT secret: %v", err)
-			}
+			jwtSecretBytes, jwtSecretBase64 = generate.NewJwtSecretWithBase64()
 			saveCfg, err := rootCfg.PrepareSaving()
 			if err != nil {
 				log.Fatal("save oauth2.JWT_SECRET failed: %v", err)
@@ -162,10 +160,7 @@ var generalSigningSecret atomic.Pointer[[]byte]
 func GetGeneralTokenSigningSecret() []byte {
 	old := generalSigningSecret.Load()
 	if old == nil || len(*old) == 0 {
-		jwtSecret, _, err := generate.NewJwtSecretWithBase64()
-		if err != nil {
-			log.Fatal("Unable to generate general JWT secret: %v", err)
-		}
+		jwtSecret, _ := generate.NewJwtSecretWithBase64()
 		if generalSigningSecret.CompareAndSwap(old, &jwtSecret) {
 			return jwtSecret
 		}

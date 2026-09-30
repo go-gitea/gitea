@@ -1,0 +1,21 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"e083f0fed8ec0f3bd66c07010daf4918"
+Gitlab-Lb: haproxy-main-45-lb-gprd
+Gitlab-Sv: api-gke-us-east1-d
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 20
+Ratelimit-Remaining: 1980
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee964ec6c27f-VIE","version":"1"}
+X-Runtime: 0.140863
+
+{"id":324656914,"iid":3,"project_id":15578026,"title":"Test branch","description":"do not merge this PR","state":"closed","created_at":"2024-09-03T07:52:08.078Z","updated_at":"2024-09-03T08:09:34.155Z","merged_by":null,"merge_user":null,"merged_at":null,"closed_by":{"id":2005797,"username":"oliverpool","public_email":"","name":"oliverpool","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/2005797/avatar.png","web_url":"https://gitlab.com/oliverpool"},"closed_at":"2024-09-03T07:52:28.488Z","target_branch":"master","source_branch":"feat/test","user_notes_count":1,"upvotes":1,"downvotes":0,"author":{"id":2005797,"username":"oliverpool","public_email":"","name":"oliverpool","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/2005797/avatar.png","web_url":"https://gitlab.com/oliverpool"},"assignees":[],"assignee":null,"reviewers":[],"source_project_id":61363672,"target_project_id":15578026,"labels":[],"draft":false,"imported":false,"imported_from":"none","work_in_progress":false,"milestone":null,"merge_when_pipeline_succeeds":false,"merge_status":"can_be_merged","detailed_merge_status":"not_open","merge_after":null,"sha":"9f733b96b98a4175276edf6a2e1231489c3bdd23","merge_commit_sha":null,"squash_commit_sha":null,"discussion_locked":null,"should_remove_source_branch":null,"force_remove_source_branch":true,"prepared_at":"2024-09-03T08:09:34.153Z","allow_collaboration":true,"allow_maintainer_to_push":true,"reference":"!3","references":{"short":"!3","relative":"!3","full":"gitea/test_repo!3"},"web_url":"https://gitlab.com/gitea/test_repo/-/merge_requests/3","time_stats":{"time_estimate":0,"total_time_spent":0,"human_time_estimate":null,"human_total_time_spent":null},"squash":false,"squash_on_merge":false,"task_completion_status":{"count":0,"completed_count":0},"has_conflicts":false,"blocking_discussions_resolved":true,"approvals_before_merge":null,"subscribed":false,"changes_count":"1","latest_build_started_at":null,"latest_build_finished_at":null,"first_deployed_to_production_at":null,"pipeline":null,"head_pipeline":null,"diff_refs":{"base_sha":"c59c9b451acca9d106cc19d61d87afe3fbbb8b83","head_sha":"9f733b96b98a4175276edf6a2e1231489c3bdd23","start_sha":"c59c9b451acca9d106cc19d61d87afe3fbbb8b83"},"merge_error":null,"first_contribution":true,"user":{"can_merge":false}}

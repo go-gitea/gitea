@@ -6,21 +6,21 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	repo_service "gitea.dev/services/repository"
 )
 
 // ListForks list a repository's forks
@@ -55,7 +55,8 @@ func ListForks(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, utils.GetListOptions(ctx))
+	listOptions := utils.GetListOptions(ctx)
+	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -71,7 +72,7 @@ func ListForks(ctx *context.APIContext) {
 
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer)
+		permission, err := access_model.GetDoerRepoPermission(ctx, fork, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -79,8 +80,38 @@ func ListForks(ctx *context.APIContext) {
 		apiForks[i] = convert.ToRepo(ctx, fork, permission)
 	}
 
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, apiForks)
+}
+
+func prepareDoerCreateRepoInOrg(ctx *context.APIContext, orgName string) *organization.Organization {
+	org, err := organization.GetOrgByName(ctx, orgName)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.APIErrorNotFound()
+		return nil
+	} else if err != nil {
+		ctx.APIErrorInternal(err)
+		return nil
+	}
+
+	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
+		ctx.APIErrorNotFound()
+		return nil
+	}
+
+	if !ctx.Doer.IsAdmin {
+		canCreate, err := org.CanCreateOrgRepo(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return nil
+		}
+		if !canCreate {
+			ctx.APIError(http.StatusForbidden, "User is not allowed to create repositories in this organization.")
+			return nil
+		}
+	}
+	return org
 }
 
 // CreateFork create a fork of a repo
@@ -117,51 +148,28 @@ func CreateFork(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateForkOption)
-	repo := ctx.Repo.Repository
-	var forker *user_model.User // user/org that will own the fork
-	if form.Organization == nil {
-		forker = ctx.Doer
-	} else {
-		org, err := organization.GetOrgByName(ctx, *form.Organization)
-		if err != nil {
-			if organization.IsErrOrgNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
-			} else {
-				ctx.APIErrorInternal(err)
-			}
+	form := web.GetForm[*api.CreateForkOption](ctx)
+	forkOwner := ctx.Doer // user/org that will own the fork
+	if form.Organization != nil {
+		org := prepareDoerCreateRepoInOrg(ctx, *form.Organization)
+		if ctx.Written() {
 			return
 		}
-		if !ctx.Doer.IsAdmin {
-			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			} else if !isMember {
-				ctx.APIError(http.StatusForbidden, fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
-				return
-			}
-		}
-		forker = org.AsUser()
+		forkOwner = org.AsUser()
 	}
 
-	var name string
-	if form.Name == nil {
-		name = repo.Name
-	} else {
-		name = *form.Name
-	}
-
-	fork, err := repo_service.ForkRepository(ctx, ctx.Doer, forker, repo_service.ForkRepoOptions{
+	repo := ctx.Repo.Repository
+	name := optional.FromPtr(form.Name).ValueOrDefault(repo.Name)
+	fork, err := repo_service.ForkRepository(ctx, ctx.Doer, forkOwner, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
-			ctx.APIError(http.StatusConflict, err)
+			ctx.APIError(http.StatusConflict, err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

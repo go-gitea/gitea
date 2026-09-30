@@ -10,23 +10,27 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
+	"time"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	auth_module "code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
-	source_service "code.gitea.io/gitea/services/auth/source"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
-	user_service "code.gitea.io/gitea/services/user"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	auth_module "gitea.dev/modules/auth"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/egress"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
+	source_service "gitea.dev/services/auth/source"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
+	"gitea.dev/services/externalaccount"
+	user_service "gitea.dev/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -42,10 +46,7 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.FormString("redirect_to")
-	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	}
+	rememberAuthRedirectLink(ctx)
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
 	user, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
@@ -55,13 +56,15 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
+	oauth2Source := auth.MustSourceCfg[*oauth2.Source](authSource)
+
+	if err = oauth2Source.Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
 			if err = oauth2.ResetOAuth2(ctx); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
-			if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
+			if err = oauth2Source.Callout(ctx.Req, ctx.Resp); err != nil {
 				ctx.ServerError("SignIn", err)
 			}
 			return
@@ -81,7 +84,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 		}
 		sort.Strings(errorKeyValues)
-		ctx.Flash.Error(strings.Join(errorKeyValues, "<br>"), true)
+		ctx.Flash.Error(strings.Join(errorKeyValues, "\n"), true)
 	}
 
 	// first look if the provider is still active
@@ -99,8 +102,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 	u, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err != nil {
-		if user_model.IsErrUserProhibitLogin(err) {
-			uplerr := err.(user_model.ErrUserProhibitLogin)
+		if uplerr, ok := err.(user_model.ErrUserProhibitLogin); ok {
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
@@ -120,7 +122,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			return
 		}
 		if err, ok := err.(*go_oauth2.RetrieveError); ok {
-			ctx.Flash.Error("OAuth2 RetrieveError: "+err.Error(), true)
+			ctx.Flash.Error("OAuth2 RetrieveError: " + err.Error())
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
@@ -187,11 +189,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				IsActive: optional.Some(!setting.OAuth2Client.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
 			}
 
-			source := authSource.Cfg.(*oauth2.Source)
-
-			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
-			u.IsAdmin = isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue
-			u.IsRestricted = isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted)
+			source := auth.MustSourceCfg[*oauth2.Source](authSource)
 
 			linkAccountData := &LinkAccountData{authSource.ID, gothUser}
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingDisabled {
@@ -277,8 +275,11 @@ type LinkAccountData struct {
 	GothUser     goth.User
 }
 
+func init() {
+	gob.Register(LinkAccountData{}) // TODO: CHI-SESSION-GOB-REGISTER
+}
+
 func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
-	gob.Register(LinkAccountData{})
 	v, ok := ctx.Session.Get("linkAccountData").(LinkAccountData)
 	if !ok {
 		return nil
@@ -287,10 +288,7 @@ func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
 }
 
 func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData) error {
-	gob.Register(LinkAccountData{})
-	return updateSession(ctx, nil, map[string]any{
-		"linkAccountData": linkAccountData,
-	})
+	return ctx.Session.Set("linkAccountData", linkAccountData)
 }
 
 func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.User) {
@@ -301,21 +299,47 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-func oauth2UpdateAvatarIfNeed(ctx *context.Context, url string, u *user_model.User) {
-	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
-		resp, err := http.Get(url)
-		if err == nil {
-			defer func() {
-				_ = resp.Body.Close()
-			}()
-		}
-		// ignore any error
-		if err == nil && resp.StatusCode == http.StatusOK {
-			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
-			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = user_service.UploadAvatar(ctx, u, data)
-			}
-		}
+func oauth2AvatarHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: egress.NewSecurityPolicy("oauth2-avatar").NewHTTPTransport(),
+	}
+}
+
+func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_model.User) {
+	if !setting.OAuth2Client.UpdateAvatar || len(avatarURL) == 0 {
+		return
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, avatarURL, nil)
+	if err != nil {
+		log.Warn("invalid avatar URL %q: %v", avatarURL, err)
+		return
+	}
+	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
+	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
+
+	resp, err := oauth2AvatarHTTPClient().Do(req)
+	if err != nil {
+		log.Warn("fetch %q failed: %v", avatarURL, err)
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Warn("fetch %q returned status %d", avatarURL, resp.StatusCode)
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
+	if err != nil {
+		log.Warn("read body from %q failed: %v", avatarURL, err)
+		return
+	}
+	if int64(len(data)) > setting.Avatar.MaxFileSize {
+		log.Warn("avatar from %q exceeds max size %d", avatarURL, setting.Avatar.MaxFileSize)
+		return
+	}
+	if err := user_service.UploadAvatar(ctx, u, data); err != nil {
+		log.Warn("UploadAvatar for user %q failed: %v", u.Name, err)
 	}
 }
 
@@ -327,15 +351,15 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	needs2FA := false
 	if !authSource.TwoFactorShouldSkip() {
-		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
-		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
+		var err error
+		if needs2FA, err = auth.HasTwoFactorOrWebAuthn(ctx, u.ID); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		needs2FA = err == nil
 	}
 
-	oauth2Source := authSource.Cfg.(*oauth2.Source)
+	oauth2Source := auth.MustSourceCfg[*oauth2.Source](authSource)
+
 	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
 	if err != nil {
 		ctx.ServerError("UnmarshalGroupTeamMapping", err)
@@ -346,13 +370,25 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	opts := &user_service.UpdateOptions{}
 
-	// Reactivate user if they are deactivated
+	// HINT: OAUTH-AUTO-SYNC-USER-ACTIVATION: see services/auth/source/oauth2/source_sync.go
+	// Reactivate user only if they were disabled by the OAuth2 auto sync cron (invalid_grant),
+	// which clears AccessToken/RefreshToken/ExpiresAt on the ExternalLoginUser row
+	// An admin-disabled user has no such signature, so we leave IsActive alone
+	// and let verifyAuthWithOptions route them through the prohibit-login / activate page.
 	if !u.IsActive {
-		opts.IsActive = optional.Some(true)
+		extLogin, hasExt, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
+		if err != nil {
+			ctx.ServerError("GetExternalLogin", err)
+			return
+		}
+		// the cron clears all three token fields when it disables a user, so require the
+		// full signature; a RefreshToken alone is empty for many normal logins (e.g. GitHub
+		// or OIDC without offline_access), which would otherwise reactivate admin-disabled users
+		isDisabledByAutoSync := hasExt && extLogin.AccessToken == "" && extLogin.RefreshToken == "" && extLogin.ExpiresAt.IsZero()
+		if isDisabledByAutoSync {
+			opts.IsActive = optional.Some(true)
+		}
 	}
-
-	// Update GroupClaims
-	opts.IsAdmin, opts.IsRestricted = getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
 
 	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
 		if err := source_service.SyncGroupsToTeams(ctx, u, groups, groupTeamMapping, oauth2Source.GroupTeamMapRemoval); err != nil {
@@ -372,7 +408,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		// Register last login
 		opts.SetLastLogin = true
 
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -382,63 +418,38 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
-		if err := updateSession(ctx, nil, map[string]any{
+		if err := regenerateSession(ctx, map[string]any{
 			session.KeyUID:                  u.ID,
-			session.KeyUname:                u.Name,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+			session.KeySignInMethod:         session.SignInMethodOAuth2,
 		}); err != nil {
 			ctx.ServerError("updateSession", err)
 			return
 		}
-
-		// force to generate a new CSRF token
-		ctx.Csrf.PrepareForSessionUser(ctx)
 
 		if err := resetLocale(ctx, u); err != nil {
 			ctx.ServerError("resetLocale", err)
 			return
 		}
 
-		if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
-			middleware.DeleteRedirectToCookie(ctx.Resp)
-			ctx.RedirectToCurrentSite(redirectTo)
-			return
-		}
-
-		ctx.Redirect(setting.AppSubURL + "/")
+		redirectAfterAuth(ctx)
 		return
 	}
 
 	if opts.IsActive.Has() || opts.IsAdmin.Has() || opts.IsRestricted.Has() {
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
 	}
 
-	if err := updateSession(ctx, nil, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":      u.ID,
-		"twofaRemember": false,
-	}); err != nil {
-		ctx.ServerError("updateSession", err)
-		return
-	}
-
-	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
-	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
+	handleTwoFactorRequired(ctx, u, false, map[string]any{session.KeySignInMethod: session.SignInMethodOAuth2})
 }
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
 func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
-	oauth2Source := authSource.Cfg.(*oauth2.Source)
+	oauth2Source := auth.MustSourceCfg[*oauth2.Source](authSource)
 
 	// Make sure that the response is not an error response.
 	errorName := request.FormValue("error")
@@ -485,13 +496,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		}
 	}
 
-	user := &user_model.User{
-		LoginName:   gothUser.UserID,
-		LoginType:   auth.OAuth2,
-		LoginSource: authSource.ID,
-	}
-
-	hasUser, err := user_model.GetUser(ctx, user)
+	user, hasUser, err := user_model.GetIndividualUserByLoginSource(ctx, auth.OAuth2, authSource.ID, gothUser.UserID)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
@@ -501,19 +506,78 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 	}
 
 	// search in external linked users
-	externalLoginUser := &user_model.ExternalLoginUser{
-		ExternalID:    gothUser.UserID,
-		LoginSourceID: authSource.ID,
-	}
-	hasUser, err = user_model.GetExternalLogin(request.Context(), externalLoginUser)
+	externalLoginUser, hasUser, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
 	if hasUser {
-		user, err = user_model.GetUserByID(request.Context(), externalLoginUser.UserID)
-		return user, gothUser, err
+		user, err = user_model.GetUserByID(ctx, externalLoginUser.UserID)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return nil, goth.User{}, err
+		}
+		if err == nil && user.IsIndividual() {
+			return user, gothUser, nil
+		}
+
+		// The external login record is stale: the linked user no longer exists, or it exists but is
+		// not an individual user (only individual users can sign in, so a link pointing at an
+		// organization, bot or remote user can never resolve). Remove it so the next sign-in can
+		// relink the external account to the correct user. Nothing is lost, because the link is
+		// recreated automatically on the next sign-in.
+		reason := "linked user does not exist"
+		if err == nil {
+			reason = fmt.Sprintf("linked user type is %d", user.Type)
+		}
+		log.Warn("Ignoring stale external login link [external-id=%s login-source-id=%d user-id=%d]: %s", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID, externalLoginUser.UserID, reason)
+
+		if err := user_model.RemoveExternalLoginByExternalID(ctx, externalLoginUser.LoginSourceID, externalLoginUser.ExternalID); err != nil {
+			return nil, goth.User{}, err
+		}
 	}
 
 	// no user found to login
 	return nil, gothUser, nil
+}
+
+// buildOIDCEndSessionURL constructs an OIDC RP-Initiated Logout URL for the
+// given user. Returns "" if the user's auth source is not OIDC or doesn't
+// advertise an end_session_endpoint.
+func buildOIDCEndSessionURL(ctx *context.Context, doer *user_model.User) string {
+	authSource, err := auth.GetSourceByID(ctx, doer.LoginSource)
+	if err != nil {
+		log.Error("Failed to get auth source for OIDC logout (source=%d): %v", doer.LoginSource, err)
+		return ""
+	}
+
+	oauth2Cfg, ok := authSource.Cfg.(*oauth2.Source)
+	if !ok {
+		return ""
+	}
+
+	endSessionEndpoint := oauth2.GetOIDCEndSessionEndpoint(authSource.Name)
+	if endSessionEndpoint == "" {
+		return ""
+	}
+
+	endSessionURL, err := url.Parse(endSessionEndpoint)
+	if err != nil {
+		log.Error("Failed to parse end_session_endpoint %q: %v", endSessionEndpoint, err)
+		return ""
+	}
+
+	// RP-Initiated Logout 1.0: use client_id to identify the client to the IdP.
+	// https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
+	params := endSessionURL.Query()
+	params.Set("client_id", oauth2Cfg.ClientID)
+
+	// AWS Cognito uses "logout_uri" instead of the standard "post_logout_redirect_uri"
+	redirectURI := httplib.GuessCurrentAppURL(ctx)
+	if oauth2Cfg.Provider == oauth2.ProviderNameAwsCognito {
+		params.Set("logout_uri", redirectURI)
+	} else {
+		params.Set("post_logout_redirect_uri", redirectURI)
+	}
+
+	endSessionURL.RawQuery = params.Encode()
+	return endSessionURL.String()
 }

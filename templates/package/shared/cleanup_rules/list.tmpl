@@ -5,41 +5,41 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="flex-list">
+	<div class="flex-divided-list items-with-main">
 		{{range .CleanupRules}}
-			<div class="flex-item">
-				<div class="flex-item-leading">
+			<div class="item">
+				<div class="item-leading">
 					{{svg .Type.SVGName 32}}
 				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title">
+				<div class="item-main">
+					<div class="item-title">
 						<a class="item" href="{{$.Link}}/rules/{{.ID}}">{{.Type.Name}}</a>
 					</div>
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{if .Enabled}}{{ctx.Locale.Tr "enabled"}}{{else}}{{ctx.Locale.Tr "disabled"}}{{end}}</i>
 					</div>
 					{{if .KeepCount}}
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count"}}:</i> {{if eq .KeepCount 1}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.1"}}{{else}}{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.count.n" .KeepCount}}{{end}}
 					</div>
 					{{end}}
 					{{if .KeepPattern}}
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.keep.pattern"}}:</i> {{StringUtils.EllipsisString .KeepPattern 100}}
 					</div>
 					{{end}}
 					{{if .RemoveDays}}
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.days"}}:</i> {{ctx.Locale.Tr "tool.days" .RemoveDays}}
 					</div>
 					{{end}}
 					{{if .RemovePattern}}
-					<div class="flex-item-body">
+					<div class="item-body">
 						<i>{{ctx.Locale.Tr "packages.owner.settings.cleanuprules.remove.pattern"}}:</i> {{StringUtils.EllipsisString .RemovePattern 100}}
 					</div>
 					{{end}}
 				</div>
-				<div class="flex-item-trailing">
+				<div class="item-trailing">
 					<div class="ui dropdown tiny basic button">
 						{{svg "octicon-kebab-horizontal"}}
 						<div class="menu">

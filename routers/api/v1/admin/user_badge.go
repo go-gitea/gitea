@@ -6,10 +6,10 @@ package admin
 import (
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
 )
 
 // ListUserBadges lists all badges belonging to a user
@@ -66,7 +66,7 @@ func AddUserBadges(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	form := web.GetForm(ctx).(*api.UserBadgeOption)
+	form := web.GetForm[*api.UserBadgeOption](ctx)
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.AddUserBadges(ctx, ctx.ContextUser, badges); err != nil {
@@ -102,7 +102,7 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.UserBadgeOption)
+	form := web.GetForm[*api.UserBadgeOption](ctx)
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.RemoveUserBadges(ctx, ctx.ContextUser, badges); err != nil {

@@ -32,52 +32,11 @@
   padding-top: 0;
 }
 
-.ui.comments .comment > .comments {
-  margin: 0 0 0.5em 0.5em;
-  padding: 1em 0 1em 1em;
-}
-
-.ui.comments .comment > .comments::before {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.ui.comments .comment > .comments .comment {
-  border: none;
-  border-top: none;
-  background: none;
-}
-
 .ui.comments .comment > .content {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
-}
-
-.ui.comments .comment .author {
-  font-size: 1em;
-  font-weight: var(--font-weight-medium);
-}
-
-.ui.comments .comment a.author {
-  cursor: pointer;
-}
-
-.ui.comments .comment .metadata {
-  display: inline-block;
-  margin-left: 0.5em;
-  font-size: 0.875em;
-}
-
-.ui.comments .comment .metadata > * {
-  display: inline-block;
-  margin: 0 0.5em 0 0;
-}
-
-.ui.comments .comment .metadata > :last-child {
-  margin-right: 0;
 }
 
 .ui.comments .comment .text {

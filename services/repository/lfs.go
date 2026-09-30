@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"time"
 
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 )
 
 // GarbageCollectLFSMetaObjectsOptions provides options for GarbageCollectLFSMetaObjects function
@@ -52,7 +52,10 @@ func GarbageCollectLFSMetaObjects(ctx context.Context, opts GarbageCollectLFSMet
 		if newMinimum := int64(float64(count) * opts.ProportionToCheckPerRepo); newMinimum > opts.NumberToCheckPerRepo && opts.NumberToCheckPerRepo != 0 {
 			opts.NumberToCheckPerRepo = newMinimum
 		}
-		return GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts)
+		if err := GarbageCollectLFSMetaObjectsForRepo(ctx, repo, opts); err != nil {
+			log.Error("Unable to garbage collect LFS meta objects in %-v: %v", repo, err)
+		}
+		return nil
 	})
 }
 
@@ -70,7 +73,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		}
 	}()
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		log.Error("Unable to open git repository %-v: %v", repo, err)
 		return err
@@ -88,7 +91,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		total++
 		pointerSha := git.ComputeBlobHash(objectFormat, []byte(metaObject.Pointer.StringContent()))
 
-		if gitRepo.IsObjectExist(pointerSha.String()) {
+		if gitRepo.IsObjectExist(ctx, pointerSha.String()) {
 			return git_model.MarkLFSMetaObject(ctx, metaObject.ID)
 		}
 		orphaned++
@@ -102,7 +105,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 				return nil
 			}
 
-			if err := store.Delete(metaObject.RelativePath()); err != nil {
+			if err := store.ObjectStorage.Delete(metaObject.RelativePath()); err != nil {
 				log.Error("Unable to remove lfs metaobject %s from store: %v", metaObject.Oid, err)
 			}
 			deleted++
@@ -123,17 +126,21 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		//
 		// It is likely that a week is potentially excessive but it should definitely be enough that any
 		// unassociated LFS object is genuinely unassociated.
-		OlderThan:                 timeutil.TimeStamp(opts.OlderThan.Unix()),
-		UpdatedLessRecentlyThan:   timeutil.TimeStamp(opts.UpdatedLessRecentlyThan.Unix()),
-		OrderByUpdated:            true,
-		LoopFunctionAlwaysUpdates: true,
+		OlderThan:               timeutil.TimeStamp(opts.OlderThan.Unix()),
+		UpdatedLessRecentlyThan: timeutil.TimeStamp(opts.UpdatedLessRecentlyThan.Unix()),
 	})
 
 	if err == errStop {
 		opts.LogDetail("Processing stopped at %d total LFSMetaObjects in %-v", total, repo)
-		return nil
 	} else if err != nil {
 		return err
 	}
+
+	if collected > 0 {
+		if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
+			return fmt.Errorf("unable to update size for %s: %w", repo.FullName(), err)
+		}
+	}
+
 	return nil
 }

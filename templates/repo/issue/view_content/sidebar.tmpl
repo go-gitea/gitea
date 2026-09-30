@@ -1,4 +1,4 @@
-<div class="issue-content-right ui segment">
+<div class="issue-content-right ui segment" data-global-init="initRepoIssueSidebar">
 	{{template "repo/issue/branch_selector_field" $}}{{/* TODO: RemoveIssueRef: template "repo/issue/branch_selector_field" $*/}}
 
 	{{if .Issue.IsPull}}

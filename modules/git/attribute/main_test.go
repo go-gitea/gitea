@@ -8,9 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
 )
 
 func testRun(m *testing.M) error {
@@ -18,7 +17,7 @@ func testRun(m *testing.M) error {
 	if err != nil {
 		return fmt.Errorf("unable to create temp dir: %w", err)
 	}
-	defer util.RemoveAll(gitHomePath)
+	defer os.RemoveAll(gitHomePath)
 	setting.Git.HomePath = gitHomePath
 
 	if err = git.InitFull(); err != nil {

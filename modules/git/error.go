@@ -4,12 +4,10 @@
 package git
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // ErrNotExist commit not exist error
@@ -125,28 +123,4 @@ func (err *ErrPushRejected) GenerateMessage() {
 		messageBuilder.WriteString(strings.TrimSpace(line) + "\n")
 	}
 	err.Message = strings.TrimSpace(messageBuilder.String())
-}
-
-// ErrMoreThanOne represents an error if pull request fails when there are more than one sources (branch, tag) with the same name
-type ErrMoreThanOne struct {
-	StdOut string
-	StdErr string
-	Err    error
-}
-
-// IsErrMoreThanOne checks if an error is a ErrMoreThanOne
-func IsErrMoreThanOne(err error) bool {
-	_, ok := err.(*ErrMoreThanOne)
-	return ok
-}
-
-func (err *ErrMoreThanOne) Error() string {
-	return fmt.Sprintf("ErrMoreThanOne Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
-}
-
-func IsErrCanceledOrKilled(err error) bool {
-	// When "cancel()" a git command's context, the returned error of "Run()" could be one of them:
-	// - context.Canceled
-	// - *exec.ExitError: "signal: killed"
-	return err != nil && (errors.Is(err, context.Canceled) || err.Error() == "signal: killed")
 }

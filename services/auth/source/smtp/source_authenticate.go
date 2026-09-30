@@ -10,10 +10,12 @@ import (
 	"net/textproto"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
+	audit_model "gitea.dev/models/audit"
+	auth_model "gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
@@ -21,10 +23,10 @@ import (
 func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
-		idx := strings.Index(userName, "@")
-		if idx == -1 {
+		_, after, ok := strings.Cut(userName, "@")
+		if !ok {
 			return nil, user_model.ErrUserNotExist{Name: userName}
-		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), userName[idx+1:], true) {
+		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), after, true) {
 			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 	}
@@ -61,9 +63,9 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	username := userName
-	idx := strings.Index(userName, "@")
-	if idx > -1 {
-		username = userName[:idx]
+	before, _, ok := strings.Cut(userName, "@")
+	if ok {
+		username = before
 	}
 
 	user = &user_model.User{
@@ -82,6 +84,8 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return user, err
 	}
+
+	audit.RecordAs(ctx, user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user, nil
 }

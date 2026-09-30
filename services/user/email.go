@@ -8,67 +8,22 @@ import (
 	"errors"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
-// AdminAddOrSetPrimaryEmailAddress is used by admins to add or set a user's primary email address
-func AdminAddOrSetPrimaryEmailAddress(ctx context.Context, u *user_model.User, emailStr string) error {
-	if strings.EqualFold(u.Email, emailStr) {
-		return nil
-	}
-
-	if err := user_model.ValidateEmailForAdmin(emailStr); err != nil {
-		return err
-	}
-
-	// Check if address exists already
-	email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return err
-	}
-	if email != nil && email.UID != u.ID {
-		return user_model.ErrEmailAlreadyUsed{Email: emailStr}
-	}
-
-	// Update old primary address
-	primary, err := user_model.GetPrimaryEmailAddressOfUser(ctx, u.ID)
-	if err != nil {
-		return err
-	}
-
-	primary.IsPrimary = false
-	if err := user_model.UpdateEmailAddress(ctx, primary); err != nil {
-		return err
-	}
-
-	// Insert new or update existing address
-	if email != nil {
-		email.IsPrimary = true
-		email.IsActivated = true
-		if err := user_model.UpdateEmailAddress(ctx, email); err != nil {
-			return err
-		}
-	} else {
-		email = &user_model.EmailAddress{
-			UID:         u.ID,
-			Email:       emailStr,
-			IsActivated: true,
-			IsPrimary:   true,
-		}
-		if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
-			return err
-		}
-	}
-
-	u.Email = emailStr
-
-	return user_model.UpdateUserCols(ctx, u, "email")
-}
-
+// ReplacePrimaryEmailAddress replaces the user's primary email address with the given email address.
+// It also updates the user's email field to match the new primary email address.
 func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailStr string) error {
+	// FIXME: this check is from old logic, but it is not right, there are far more user types, not only "organization"
+	if u.IsOrganization() {
+		return util.NewInvalidArgumentErrorf("user %s is an organization", u.Name)
+	}
+
 	if strings.EqualFold(u.Email, emailStr) {
 		return nil
 	}
@@ -77,7 +32,8 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		return err
 	}
 
-	if !u.IsOrganization() {
+	var newEmail *user_model.EmailAddress
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Check if address exists already
 		email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
 		if err != nil && !errors.Is(err, util.ErrNotExist) {
@@ -100,67 +56,104 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		}
 
 		// Insert new primary address
-		email = &user_model.EmailAddress{
+		newEmail = &user_model.EmailAddress{
 			UID:         u.ID,
 			Email:       emailStr,
 			IsActivated: true,
 			IsPrimary:   true,
 		}
-		if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
+		if _, err := user_model.InsertEmailAddress(ctx, newEmail); err != nil {
 			return err
 		}
+
+		u.Email = emailStr
+		return user_model.UpdateUserCols(ctx, u, "email")
+	}); err != nil {
+		return err
 	}
 
-	u.Email = emailStr
-
-	return user_model.UpdateUserCols(ctx, u, "email")
-}
-
-func AddEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {
-	for _, emailStr := range emails {
-		if err := user_model.ValidateEmail(emailStr); err != nil {
-			return err
-		}
-
-		// Check if address exists already
-		email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
-		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			return err
-		}
-		if email != nil {
-			return user_model.ErrEmailAlreadyUsed{Email: emailStr}
-		}
-
-		// Insert new address
-		email = &user_model.EmailAddress{
-			UID:         u.ID,
-			Email:       emailStr,
-			IsActivated: !setting.Service.RegisterEmailConfirm,
-			IsPrimary:   false,
-		}
-		if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
-			return err
-		}
+	if newEmail != nil {
+		audit.Record(ctx, audit_model.UserEmailPrimaryChange, u, "email", newEmail.Email)
 	}
 
 	return nil
 }
 
-func DeleteEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {
-	for _, emailStr := range emails {
-		// Check if address exists
-		email, err := user_model.GetEmailAddressOfUser(ctx, emailStr, u.ID)
-		if err != nil {
-			return err
-		}
-		if email.IsPrimary {
-			return user_model.ErrPrimaryEmailCannotDelete{Email: emailStr}
+func AddEmailAddresses(ctx context.Context, u *user_model.User, emailsToAdd []string) error {
+	emails := make([]*user_model.EmailAddress, 0, len(emailsToAdd))
+
+	// Audit only after the transaction committed, so a partial batch neither persists nor records.
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		for _, emailStr := range emailsToAdd {
+			if err := user_model.ValidateEmail(emailStr); err != nil {
+				return err
+			}
+
+			// Check if address exists already
+			email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
+			if err != nil && !errors.Is(err, util.ErrNotExist) {
+				return err
+			}
+			if email != nil {
+				return user_model.ErrEmailAlreadyUsed{Email: emailStr}
+			}
+
+			// Insert new address
+			email = &user_model.EmailAddress{
+				UID:         u.ID,
+				Email:       emailStr,
+				IsActivated: !setting.Service.RegisterEmailConfirm,
+				IsPrimary:   false,
+			}
+			if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
+				return err
+			}
+
+			emails = append(emails, email)
 		}
 
-		// Remove address
-		if _, err := db.DeleteByID[user_model.EmailAddress](ctx, email.ID); err != nil {
-			return err
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	for _, email := range emails {
+		audit.Record(ctx, audit_model.UserEmailAdd, u, "email", email.Email)
+	}
+
+	return nil
+}
+
+func DeleteEmailAddresses(ctx context.Context, u *user_model.User, emailsToRemove []string) error {
+	emails := make([]*user_model.EmailAddress, 0, len(emailsToRemove))
+
+	// Audit only after the transaction committed, so a partial batch neither persists nor records.
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		for _, emailStr := range emailsToRemove {
+			// Check if address exists
+			email, err := user_model.GetEmailAddressOfUser(ctx, emailStr, u.ID)
+			if err != nil {
+				return err
+			}
+			if email.IsPrimary {
+				return user_model.ErrPrimaryEmailCannotDelete{Email: emailStr}
+			}
+
+			// Remove address
+			if _, err := db.DeleteByID[user_model.EmailAddress](ctx, email.ID); err != nil {
+				return err
+			}
+
+			emails = append(emails, email)
 		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	for _, email := range emails {
+		audit.Record(ctx, audit_model.UserEmailRemove, u, "email", email.Email)
 	}
 
 	return nil

@@ -6,38 +6,37 @@ package repository
 import (
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestLinkedRepository(t *testing.T) {
+func TestAttachLinkedTypeAndRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testCases := []struct {
 		name             string
 		attachID         int64
-		expectedRepo     *repo_model.Repository
 		expectedUnitType unit.Type
+		expectedRepoID   int64
 	}{
-		{"LinkedIssue", 1, &repo_model.Repository{ID: 1}, unit.TypeIssues},
-		{"LinkedComment", 3, &repo_model.Repository{ID: 1}, unit.TypePullRequests},
-		{"LinkedRelease", 9, &repo_model.Repository{ID: 1}, unit.TypeReleases},
-		{"Notlinked", 10, nil, -1},
+		{"LinkedIssue", 1, unit.TypeIssues, 1},
+		{"LinkedComment", 3, unit.TypePullRequests, 1},
+		{"LinkedRelease", 9, unit.TypeReleases, 1},
+		{"Notlinked", 10, unit.TypeInvalid, 0},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attach, err := repo_model.GetAttachmentByID(t.Context(), tc.attachID)
 			assert.NoError(t, err)
-			repo, unitType, err := LinkedRepository(t.Context(), attach)
+			unitType, repoID, err := GetAttachmentLinkedTypeAndRepoID(t.Context(), attach)
 			assert.NoError(t, err)
-			if tc.expectedRepo != nil {
-				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
-			}
 			assert.Equal(t, tc.expectedUnitType, unitType)
+			assert.Equal(t, tc.expectedRepoID, repoID)
 		})
 	}
 }
@@ -69,4 +68,48 @@ func TestRepository_HasWiki(t *testing.T) {
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.False(t, HasWiki(t.Context(), repo2))
+}
+
+func TestMakeRepoPrivateClearsWatches(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.False(t, repo.IsPrivate)
+
+	watchers, err := repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+	require.NoError(t, err)
+	require.NotEmpty(t, watchers)
+
+	assert.NoError(t, MakeRepoPrivate(t.Context(), repo, true))
+
+	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+	assert.NoError(t, err)
+	assert.Empty(t, watchers)
+
+	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+	assert.True(t, updatedRepo.IsPrivate)
+	assert.Zero(t, updatedRepo.NumWatches)
+}
+
+// TestUpdateRepositoryClearsWatchesOnVisibilityChange ensures the shared updateRepository
+// helper (used by the API EditRepo path) also clears watches when a repo goes private.
+func TestUpdateRepositoryClearsWatchesOnVisibilityChange(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.False(t, repo.IsPrivate)
+
+	watchers, err := repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+	require.NoError(t, err)
+	require.NotEmpty(t, watchers)
+
+	repo.IsPrivate = true
+	require.NoError(t, updateRepository(t.Context(), repo, true))
+
+	watchers, err = repo_model.GetRepoWatchers(t.Context(), repo.ID, db.ListOptions{Page: 1})
+	assert.NoError(t, err)
+	assert.Empty(t, watchers)
+
+	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+	assert.Zero(t, updatedRepo.NumWatches)
 }

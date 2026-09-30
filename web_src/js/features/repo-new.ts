@@ -6,13 +6,13 @@ import {sanitizeRepoName} from './repo-common.ts';
 const {appSubUrl} = window.config;
 
 function initRepoNewTemplateSearch(form: HTMLFormElement) {
-  const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button');
-  const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message');
-  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown');
-  const elRepoTemplateDropdown = form.querySelector<HTMLInputElement>('#repo_template_search');
-  const inputRepoTemplate = form.querySelector<HTMLInputElement>('#repo_template');
-  const elTemplateUnits = form.querySelector('#template_units');
-  const elNonTemplate = form.querySelector('#non_template');
+  const elSubmitButton = querySingleVisibleElem<HTMLInputElement>(form, '.ui.primary.button')!;
+  const elCreateRepoErrorMessage = form.querySelector('#create-repo-error-message')!;
+  const elRepoOwnerDropdown = form.querySelector('#repo_owner_dropdown')!;
+  const elRepoTemplateDropdown = form.querySelector<HTMLInputElement>('#repo_template_search')!;
+  const inputRepoTemplate = form.querySelector<HTMLInputElement>('#repo_template')!;
+  const elTemplateUnits = form.querySelector('#template_units')!;
+  const elNonTemplate = form.querySelector('#non_template')!;
   const checkTemplate = function () {
     const hasSelectedTemplate = inputRepoTemplate.value !== '' && inputRepoTemplate.value !== '0';
     toggleElem(elTemplateUnits, hasSelectedTemplate);
@@ -38,7 +38,7 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
     $repoTemplateDropdown.dropdown('setting', {
       apiSettings: {
         url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${ownerId}`,
-        onResponse(response: any) {
+        onResponse(response: {data: Array<{repository: {full_name: string, id: number}}>}) {
           const results = [];
           results.push({name: '', value: ''}); // empty item means not using template
           for (const tmplRepo of response.data) {
@@ -47,10 +47,8 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
               value: String(tmplRepo.repository.id),
             });
           }
-          $repoTemplateDropdown.fomanticExt.onResponseKeepSelectedItem($repoTemplateDropdown, inputRepoTemplate.value);
           return {results};
         },
-        cache: false,
       },
     });
   };
@@ -62,10 +60,10 @@ export function initRepoNew() {
   const pageContent = document.querySelector('.page-content.repository.new-repo');
   if (!pageContent) return;
 
-  const form = document.querySelector<HTMLFormElement>('.new-repo-form');
-  const inputGitIgnores = form.querySelector<HTMLInputElement>('input[name="gitignores"]');
-  const inputLicense = form.querySelector<HTMLInputElement>('input[name="license"]');
-  const inputAutoInit = form.querySelector<HTMLInputElement>('input[name="auto_init"]');
+  const form = document.querySelector<HTMLFormElement>('.new-repo-form')!;
+  const inputGitIgnores = form.querySelector<HTMLInputElement>('input[name="gitignores"]')!;
+  const inputLicense = form.querySelector<HTMLInputElement>('input[name="license"]')!;
+  const inputAutoInit = form.querySelector<HTMLInputElement>('input[name="auto_init"]')!;
   const updateUiAutoInit = () => {
     inputAutoInit.checked = Boolean(inputGitIgnores.value || inputLicense.value);
   };
@@ -73,13 +71,13 @@ export function initRepoNew() {
   inputLicense.addEventListener('change', updateUiAutoInit);
   updateUiAutoInit();
 
-  const inputRepoName = form.querySelector<HTMLInputElement>('input[name="repo_name"]');
-  const inputPrivate = form.querySelector<HTMLInputElement>('input[name="private"]');
+  const inputRepoName = form.querySelector<HTMLInputElement>('input[name="repo_name"]')!;
+  const inputPrivate = form.querySelector<HTMLInputElement>('input[name="private"]')!;
   const updateUiRepoName = () => {
     const helps = form.querySelectorAll(`.help[data-help-for-repo-name]`);
     hideElem(helps);
     let help = form.querySelector(`.help[data-help-for-repo-name="${CSS.escape(inputRepoName.value)}"]`);
-    if (!help) help = form.querySelector(`.help[data-help-for-repo-name=""]`);
+    if (!help) help = form.querySelector(`.help[data-help-for-repo-name=""]`)!;
     showElem(help);
     const repoNamePreferPrivate: Record<string, boolean> = {'.profile': false, '.profile-private': true};
     const preferPrivate = repoNamePreferPrivate[inputRepoName.value];

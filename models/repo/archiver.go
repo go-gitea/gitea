@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -80,7 +80,7 @@ func (archiver *RepoArchiver) RelativePath() string {
 	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
 }
 
-// repoArchiverForRelativePath takes a relativePath created from (archiver *RepoArchiver) RelativePath() and creates a shell repoArchiver struct representing it
+// repoArchiverForRelativePath takes a relativePath created from RepoArchiver.RelativePath() and creates a shell repoArchiver struct representing it
 func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
 	parts := strings.SplitN(relativePath, "/", 3)
 	if len(parts) != 3 {
@@ -107,7 +107,7 @@ func GetRepoArchiver(ctx context.Context, repoID int64, tp ArchiveType, commitID
 	if has {
 		return &archiver, nil
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 }
 
 // ExistsRepoArchiverWithStoragePath checks if there is a RepoArchiver for a given storage path

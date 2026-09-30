@@ -1,7 +1,7 @@
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {
   initRepoCommentFormAndSidebar,
-  initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
+  initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
 } from './repo-issue.ts';
@@ -17,10 +17,10 @@ import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
-import {initRepoPullMergeBox} from './repo-issue-pull.ts';
+import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
 
 function initRepoBranchTagSelector() {
-  registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
+  registerGlobalInitFunc('initRepoBranchTagSelector', (elRoot: HTMLInputElement) => {
     createApp(RepoBranchTagSelector, {elRoot}).mount(elRoot);
   });
 }
@@ -30,14 +30,17 @@ export function initBranchSelectorTabs() {
   for (const elSelectBranch of elSelectBranches) {
     queryElems(elSelectBranch, '.reference.column', (el) => el.addEventListener('click', () => {
       hideElem(elSelectBranch.querySelectorAll('.scrolling.reference-list-menu'));
-      showElem(el.getAttribute('data-target'));
-      queryElemChildren(el.parentNode, '.branch-tag-item', (el) => el.classList.remove('active'));
+      showElem(el.getAttribute('data-target')!);
+      queryElemChildren(el.parentNode!, '.branch-tag-item', (el) => el.classList.remove('active'));
       el.classList.add('active');
     }));
   }
 }
 
 export function initRepository() {
+  registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
+  registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
+
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
 
@@ -58,7 +61,6 @@ export function initRepository() {
   if (pageContent.matches('.page-content.repository.view.issue')) {
     initRepoIssueCommentEdit();
 
-    initRepoIssueBranchSelect();
     initRepoIssueTitleEdit();
     initRepoIssueWipToggle();
     initRepoIssueComments();
@@ -68,8 +70,6 @@ export function initRepository() {
     initRepoIssueCommentDelete();
     initRepoIssueCodeCommentCancel();
     initCompReactionSelector();
-
-    registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
   }
 
   initUnicodeEscapeButton();

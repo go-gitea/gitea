@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"maps"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // ViewedState stores for a file in which state it is currently viewed
@@ -66,25 +68,30 @@ func (rs *ReviewState) GetViewedFileCount() int {
 // If the review didn't exist before in the database, it won't afterwards either.
 // The returned boolean shows whether the review exists in the database
 func GetReviewState(ctx context.Context, userID, pullID int64, commitSHA string) (*ReviewState, bool, error) {
-	review := &ReviewState{UserID: userID, PullID: pullID, CommitSHA: commitSHA}
-	has, err := db.GetEngine(ctx).Get(review)
-	return review, has, err
+	review, has, err := db.Get[ReviewState](ctx, builder.Eq{"user_id": userID, "pull_id": pullID, "commit_sha": commitSHA})
+	if err != nil {
+		return nil, false, err
+	}
+	if review == nil {
+		review = &ReviewState{UserID: userID, PullID: pullID, CommitSHA: commitSHA}
+	}
+	return review, has, nil
 }
 
 // UpdateReviewState updates the given review inside the database, regardless of whether it existed before or not
 // The given map of files with their viewed state will be merged with the previous review, if present
-func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA string, updatedFiles map[string]ViewedState) error {
+func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA string, updatedFiles map[string]ViewedState) (*ReviewState, error) {
 	log.Trace("Updating review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, updatedFiles)
 
 	review, exists, err := GetReviewState(ctx, userID, pullID, commitSHA)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if exists {
 		review.UpdatedFiles = mergeFiles(review.UpdatedFiles, updatedFiles)
 	} else if previousReview, err := getNewestReviewStateApartFrom(ctx, userID, pullID, commitSHA); err != nil {
-		return err
+		return nil, err
 
 		// Overwrite the viewed files of the previous review if present
 	} else if previousReview != nil {
@@ -98,11 +105,11 @@ func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA stri
 	if !exists {
 		log.Trace("Inserting new review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, review.UpdatedFiles)
 		_, err := engine.Insert(review)
-		return err
+		return nil, err
 	}
 	log.Trace("Updating already existing review with ID %d (user %d, repo %d, commit %s) with the updated files %v.", review.ID, userID, pullID, commitSHA, review.UpdatedFiles)
-	_, err = engine.ID(review.ID).Update(&ReviewState{UpdatedFiles: review.UpdatedFiles})
-	return err
+	_, err = engine.ID(review.ID).Cols("updated_files").Update(review)
+	return review, err
 }
 
 // mergeFiles merges the given maps of files with their viewing state into one map.

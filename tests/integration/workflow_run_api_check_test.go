@@ -9,11 +9,15 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIWorkflowRun(t *testing.T) {
@@ -29,6 +33,103 @@ func TestAPIWorkflowRun(t *testing.T) {
 	t.Run("RepoRuns", func(t *testing.T) {
 		testAPIWorkflowRunBasic(t, "/api/v1/repos/org3/repo5/actions", "User2", 802, auth_model.AccessTokenScopeReadRepository)
 	})
+	t.Run("RepoWorkflowRuns", func(t *testing.T) {
+		testAPIWorkflowRunsByWorkflowID(t, "org3", "repo5", "test.yaml", "User2", 802, auth_model.AccessTokenScopeReadRepository)
+	})
+	t.Run("PullRequestsField", testAPIWorkflowRunsPullRequestsField)
+}
+
+// testAPIWorkflowRunsPullRequestsField exercises the `pull_requests` field and the
+// `exclude_pull_requests` toggle by associating an inserted run with fixture PR
+// user2/repo1#3 (head: branch2, base: master).
+func testAPIWorkflowRunsPullRequestsField(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID:        1,
+		OwnerID:       2,
+		TriggerUserID: 2,
+		WorkflowID:    "pr-assoc.yaml",
+		Index:         99001,
+		Ref:           "refs/pull/3/head",
+		CommitSHA:     "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+		Event:         webhook_module.HookEventPullRequest,
+		TriggerEvent:  "pull_request_target",
+		Status:        actions_model.StatusSuccess,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+
+	token := getUserToken(t, "User2", auth_model.AccessTokenScopeReadRepository)
+	runsURL := "/api/v1/repos/user2/repo1/actions/workflows/pr-assoc.yaml/runs"
+
+	req := NewRequest(t, "GET", runsURL).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	list := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
+
+	var got *api.ActionWorkflowRun
+	for _, r := range list.Entries {
+		if r.ID == run.ID {
+			got = r
+			break
+		}
+	}
+	require.NotNil(t, got, "inserted PR-triggered run not returned")
+	require.Len(t, got.PullRequests, 1)
+	pr := got.PullRequests[0]
+	assert.Equal(t, int64(3), pr.Number)
+	assert.Equal(t, "branch2", pr.Head.Ref)
+	assert.Equal(t, "master", pr.Base.Ref)
+	assert.Equal(t, int64(1), pr.Base.Repo.ID)
+	assert.Equal(t, "repo1", pr.Base.Repo.Name)
+
+	req = NewRequest(t, "GET", runsURL+"?exclude_pull_requests=true").AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	excluded := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
+	for _, r := range excluded.Entries {
+		if r.ID == run.ID {
+			assert.Empty(t, r.PullRequests)
+		}
+	}
+}
+
+func testAPIWorkflowRunsByWorkflowID(t *testing.T, owner, repo, workflowID, userUsername string, expectedRunID int64, scope ...auth_model.AccessTokenScope) {
+	defer tests.PrepareTestEnv(t)()
+	token := getUserToken(t, userUsername, scope...)
+
+	workflowRunsURL := fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/%s/runs", owner, repo, workflowID)
+
+	req := NewRequest(t, "GET", workflowRunsURL).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	runList := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
+
+	found := false
+	for _, run := range runList.Entries {
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", run.Status, "", "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", "", "", run.HeadBranch, "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", "", run.Event, "", "", "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", "", "", "", run.TriggerActor.UserName, "")
+		verifyWorkflowRunCanbeFoundWithStatusFilter(t, workflowRunsURL, token, run.ID, "", "", "", "", run.TriggerActor.UserName, run.HeadSha)
+		if run.ID == expectedRunID {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected to find run with ID %d in workflow %s runs", expectedRunID, workflowID)
+
+	req = NewRequest(t, "GET", workflowRunsURL+"?exclude_pull_requests=true").AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	excludedList := DecodeJSON(t, resp, api.ActionWorkflowRunsResponse{})
+	excludedFound := false
+	for _, run := range excludedList.Entries {
+		assert.Empty(t, run.PullRequests, "expected pull_requests to be empty when excluded")
+		if run.ID == expectedRunID {
+			excludedFound = true
+		}
+	}
+	assert.True(t, excludedFound, "expected to find run with ID %d when excluding pull requests", expectedRunID)
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/workflows/nonexistent.yaml/runs", owner, repo)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runID int64, scope ...auth_model.AccessTokenScope) {
@@ -38,12 +139,15 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 	apiRunsURL := fmt.Sprintf("%s/%s", apiRootURL, "runs")
 	req := NewRequest(t, "GET", apiRunsURL).AddTokenAuth(token)
 	runnerListResp := MakeRequest(t, req, http.StatusOK)
-	runnerList := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, runnerListResp, &runnerList)
+	runnerList := DecodeJSON(t, runnerListResp, &api.ActionWorkflowRunsResponse{})
 
 	foundRun := false
 
 	for _, run := range runnerList.Entries {
+		if run.ID == 802 {
+			// Fixture stores registration event (push) and schedule as trigger; API must expose the trigger as Event.
+			assert.Equal(t, "schedule", run.Event)
+		}
 		// Verify filtering works
 		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, "", run.Status, "", "", "", "")
 		verifyWorkflowRunCanbeFoundWithStatusFilter(t, apiRunsURL, token, run.ID, run.Conclusion, "", "", "", "", "")
@@ -55,8 +159,7 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 		// Verify run url works
 		req := NewRequest(t, "GET", run.URL).AddTokenAuth(token)
 		runResp := MakeRequest(t, req, http.StatusOK)
-		apiRun := api.ActionWorkflowRun{}
-		DecodeJSON(t, runResp, &apiRun)
+		apiRun := DecodeJSON(t, runResp, &api.ActionWorkflowRun{})
 		assert.Equal(t, run.ID, apiRun.ID)
 		assert.Equal(t, run.Status, apiRun.Status)
 		assert.Equal(t, run.Conclusion, apiRun.Conclusion)
@@ -65,8 +168,7 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 		// Verify jobs list works
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/%s", run.URL, "jobs")).AddTokenAuth(token)
 		jobsResp := MakeRequest(t, req, http.StatusOK)
-		jobList := api.ActionWorkflowJobsResponse{}
-		DecodeJSON(t, jobsResp, &jobList)
+		jobList := DecodeJSON(t, jobsResp, &api.ActionWorkflowJobsResponse{})
 
 		if run.ID == runID {
 			foundRun = true
@@ -82,8 +184,7 @@ func testAPIWorkflowRunBasic(t *testing.T, apiRootURL, userUsername string, runI
 				// Verify job url works
 				req := NewRequest(t, "GET", job.URL).AddTokenAuth(token)
 				jobsResp := MakeRequest(t, req, http.StatusOK)
-				apiJob := api.ActionWorkflowJob{}
-				DecodeJSON(t, jobsResp, &apiJob)
+				apiJob := DecodeJSON(t, jobsResp, &api.ActionWorkflowJob{})
 				assert.Equal(t, job.ID, apiJob.ID)
 				assert.Equal(t, job.RunID, apiJob.RunID)
 				assert.Equal(t, job.Status, apiJob.Status)
@@ -116,8 +217,7 @@ func verifyWorkflowRunCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token 
 	}
 	req := NewRequest(t, "GET", runAPIURL+"?"+filter.Encode()).AddTokenAuth(token)
 	runResp := MakeRequest(t, req, http.StatusOK)
-	runList := api.ActionWorkflowRunsResponse{}
-	DecodeJSON(t, runResp, &runList)
+	runList := DecodeJSON(t, runResp, &api.ActionWorkflowRunsResponse{})
 
 	found := false
 	for _, run := range runList.Entries {
@@ -151,8 +251,7 @@ func verifyWorkflowJobCanbeFoundWithStatusFilter(t *testing.T, runAPIURL, token 
 	}
 	req := NewRequest(t, "GET", runAPIURL+"?status="+filter).AddTokenAuth(token)
 	jobListResp := MakeRequest(t, req, http.StatusOK)
-	jobList := api.ActionWorkflowJobsResponse{}
-	DecodeJSON(t, jobListResp, &jobList)
+	jobList := DecodeJSON(t, jobListResp, &api.ActionWorkflowJobsResponse{})
 
 	found := false
 	for _, job := range jobList.Entries {

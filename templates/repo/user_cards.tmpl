@@ -1,14 +1,5 @@
-<!-- Refresh the content if a htmx response contains "HX-Trigger" header.
-This usually happens when a user stays on the watchers/stargazers page
-when they watched/unwatched/starred/unstarred and the list should be refreshed.
-To test go to the watchers page and click the watch button. The user cards should reload.
-At the moment, no JS initialization would re-trigger (fortunately there is no JS for this page).
--->
-<div class="no-loading-indicator tw-hidden"></div>
-<div class="user-cards"
-		hx-trigger="refreshUserCards from:body" hx-indicator=".no-loading-indicator"
-		hx-get="{{$.CurrentURL}}" hx-swap="outerHTML" hx-select=".user-cards"
->
+{{/* need to reload after "watch/unwatch" or "star/unstar" fetch actions */}}
+<div class="user-cards" id="user-cards-container" data-fetch-trigger="fetch-reload">
 	{{if .CardsTitle}}
 	<h2 class="ui dividing header">
 		{{.CardsTitle}}
@@ -20,11 +11,11 @@ At the moment, no JS initialization would re-trigger (fortunately there is no JS
 				<a href="{{.HomeLink}}">
 					{{ctx.AvatarUtils.Avatar . 48}}
 				</a>
-				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
+				<h3 class="name flex-text-block"><a href="{{.HomeLink}}">{{.DisplayName}}</a>{{template "shared/user/user_type_label" .}}</h3>
 
-				<div class="meta">
+				<div class="meta flex-text-block">
 					{{if .Website}}
-						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank" rel="noopener noreferrer">{{.Website}}</a>
+						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank">{{.Website}}</a>
 					{{else if .Location}}
 						{{svg "octicon-location"}} {{.Location}}
 					{{else}}

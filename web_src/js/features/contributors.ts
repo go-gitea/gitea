@@ -4,7 +4,7 @@ export async function initRepoContributors() {
   const el = document.querySelector('#repo-contributors-chart');
   if (!el) return;
 
-  const {default: RepoContributors} = await import(/* webpackChunkName: "contributors-graph" */'../components/RepoContributors.vue');
+  const {default: RepoContributors} = await import('../components/RepoContributors.vue');
   try {
     const View = createApp(RepoContributors, {
       repoLink: el.getAttribute('data-repo-link'),
@@ -20,6 +20,7 @@ export async function initRepoContributors() {
         loadingTitle: el.getAttribute('data-locale-loading-title'),
         loadingTitleFailed: el.getAttribute('data-locale-loading-title-failed'),
         loadingInfo: el.getAttribute('data-locale-loading-info'),
+        chartZoomHint: el.getAttribute('data-locale-chart-zoom-hint'),
       },
     });
     View.mount(el);

@@ -7,8 +7,8 @@ const pass = document.querySelector<HTMLInputElement>('#auth_password');
 const token = document.querySelector<HTMLInputElement>('#auth_token');
 const mirror = document.querySelector<HTMLInputElement>('#mirror');
 const lfs = document.querySelector<HTMLInputElement>('#lfs');
-const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings');
-const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint');
+const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings')!;
+const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint')!;
 const items = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
 
 export function initRepoMigration() {

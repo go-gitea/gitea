@@ -6,11 +6,11 @@ package asymkey
 import (
 	"testing"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -66,7 +66,7 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 
 	for i, kase := range testCases {
 		s.ID = int64(i) + 20
-		asymkey_model.AddPublicKeysBySource(t.Context(), user, s, []string{kase.keyString})
+		asymkey_model.AddPublicKeysBySource(t.Context(), user, s, []string{kase.keyString}, false)
 		keys, err := db.Find[asymkey_model.PublicKey](t.Context(), asymkey_model.FindPublicKeyOptions{
 			OwnerID:       user.ID,
 			LoginSourceID: s.ID,

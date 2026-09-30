@@ -7,20 +7,19 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
+	"io"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
 )
 
 // BatchChecker provides a reader for check-attribute content that can be long running
 type BatchChecker struct {
 	attributesNum int
 	repo          *git.Repository
-	stdinWriter   *os.File
+	stdinWriter   io.WriteCloser
 	stdOut        *nulSeparatedAttributeWriter
 	ctx           context.Context
 	cancel        context.CancelFunc
@@ -29,15 +28,15 @@ type BatchChecker struct {
 
 // NewBatchChecker creates a check attribute reader for the current repository and provided commit ID
 // If treeish is empty, then it will use current working directory, otherwise it will use the provided treeish on the bare repo
-func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) (checker *BatchChecker, returnedErr error) {
-	ctx, cancel := context.WithCancel(repo.Ctx)
+func NewBatchChecker(ctx context.Context, repo *git.Repository, treeish string, attributes []string) (checker *BatchChecker, returnedErr error) {
+	ctx, cancel := context.WithCancel(ctx)
 	defer func() {
 		if returnedErr != nil {
 			cancel()
 		}
 	}()
 
-	cmd, envs, cleanup, err := checkAttrCommand(repo, treeish, nil, attributes)
+	cmd, envs, cleanup, err := checkAttrCommand(ctx, repo, treeish, nil, attributes)
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +59,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 		},
 	}
 
-	stdinReader, stdinWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
+	stdinWriter, stdinWriterClose := cmd.MakeStdinPipe()
 	checker.stdinWriter = stdinWriter
 
 	lw := new(nulSeparatedAttributeWriter)
@@ -71,23 +67,19 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 	lw.closed = make(chan struct{})
 	checker.stdOut = lw
 
-	go func() {
-		defer func() {
-			_ = stdinReader.Close()
-			_ = lw.Close()
-		}()
-		stdErr := new(bytes.Buffer)
-		err := cmd.WithEnv(envs).
-			WithDir(repo.Path).
-			WithStdin(stdinReader).
-			WithStdout(lw).
-			WithStderr(stdErr).
-			Run(ctx)
+	cmd.WithEnv(envs).
+		WithRepo(repo).
+		WithStdoutCopy(lw)
 
-		if err != nil && !git.IsErrCanceledOrKilled(err) {
+	go func() {
+		defer stdinWriterClose()
+		defer checker.cancel()
+		defer lw.Close()
+
+		err := cmd.RunWithStderr(ctx)
+		if err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
 			log.Error("Attribute checker for commit %s exits with error: %v", treeish, err)
 		}
-		checker.cancel()
 	}()
 
 	return checker, nil
@@ -97,7 +89,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 	defer func() {
 		if err != nil && err != c.ctx.Err() {
-			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.repo.Path), err)
+			log.Error("Unexpected error when checking path %s in %s, error: %v", path, c.repo.LogString(), err)
 		}
 	}()
 
@@ -119,7 +111,7 @@ func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 			stdOutClosed = true
 		default:
 		}
-		debugMsg := fmt.Sprintf("check path %q in repo %q", path, filepath.Base(c.repo.Path))
+		debugMsg := fmt.Sprintf("check path %q in repo %q", path, c.repo.LogString())
 		debugMsg += fmt.Sprintf(", stdOut: tmp=%q, pos=%d, closed=%v", string(c.stdOut.tmp), c.stdOut.pos, stdOutClosed)
 		if c.cmd != nil {
 			debugMsg += fmt.Sprintf(", process state: %q", c.cmd.ProcessState())

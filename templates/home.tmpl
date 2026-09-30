@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}" class="page-content home">
+<div role="main" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}" class="page-content home">
 	<div class="tw-mb-8 tw-px-8">
 		<div class="center">
 			<img class="logo" width="220" height="220" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
@@ -43,7 +43,7 @@
 				{{svg "octicon-code"}} {{ctx.Locale.Tr "startpage.license"}}
 			</h1>
 			<p class="large tw-text-balance">
-				{{ctx.Locale.Tr "startpage.license_desc" "https://code.gitea.io/gitea" "code.gitea.io/gitea" "https://github.com/go-gitea/gitea"}}
+				{{ctx.Locale.Tr "startpage.license_desc" "https://gitea.dev" "gitea.dev" "https://github.com/go-gitea/gitea"}}
 			</p>
 		</div>
 	</div>

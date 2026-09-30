@@ -6,12 +6,12 @@ package admin
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	user_setting "code.gitea.io/gitea/routers/web/user/setting"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/context"
 )
 
 var (
@@ -21,7 +21,7 @@ var (
 
 func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            0,
+		Owner:              nil, // instance-wide
 		BasePathList:       setting.AppSubURL + "/-/admin/applications",
 		BasePathEditPrefix: setting.AppSubURL + "/-/admin/applications/oauth2",
 		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
@@ -73,7 +73,7 @@ func EditApplicationPost(ctx *context.Context) {
 
 // ApplicationsRegenerateSecret handles the post request for regenerating the secret
 func ApplicationsRegenerateSecret(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsAdminApplications"] = true
 
 	oa := newOAuth2CommonHandlers()

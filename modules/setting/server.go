@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"encoding/base64"
 	"net"
 	"net/url"
 	"os"
@@ -13,9 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // Scheme describes protocol types
@@ -44,13 +42,15 @@ const (
 const (
 	PublicURLAuto   = "auto"
 	PublicURLLegacy = "legacy"
+	PublicURLNever  = "never"
 )
 
 // Server settings
 var (
 	// AppURL is the Application ROOT_URL. It always has a '/' suffix
 	// It maps to ini:"ROOT_URL"
-	AppURL string
+	AppURL    string
+	AppDomain string
 
 	// PublicURLDetection controls how to use the HTTP request headers to detect public URL
 	PublicURLDetection string
@@ -72,9 +72,6 @@ var (
 	// It maps to ini:"LOCAL_ROOT_URL" in [server]
 	LocalURL string
 
-	// AssetVersion holds an opaque value that is used for cache-busting assets
-	AssetVersion string
-
 	// appTempPathInternal is the temporary path for the app, it is only an internal variable
 	// DO NOT use it directly, always use AppDataTempDir
 	appTempPathInternal string
@@ -84,14 +81,12 @@ var (
 	ProxyProtocolTLSBridging   bool
 	ProxyProtocolHeaderTimeout time.Duration
 	ProxyProtocolAcceptUnknown bool
-	Domain                     string
 	HTTPAddr                   string
 	HTTPPort                   string
 	LocalUseProxyProtocol      bool
 	RedirectOtherPort          bool
 	RedirectorUseProxyProtocol bool
 	PortToRedirect             string
-	OfflineMode                bool
 	CertFile                   string
 	KeyFile                    string
 	StaticRootPath             string
@@ -106,6 +101,7 @@ var (
 	AcmeLiveDirectory          string
 	AcmeEmail                  string
 	AcmeURL                    string
+	AcmeProfile                string
 	AcmeCARoot                 string
 	SSLMinimumVersion          string
 	SSLMaximumVersion          string
@@ -116,76 +112,42 @@ var (
 	StartupTimeout             time.Duration
 	PerWriteTimeout            = 30 * time.Second
 	PerWritePerKbTimeout       = 10 * time.Second
-	StaticURLPrefix            string
-	AbsoluteAssetURL           string
-
-	ManifestData string
+	StaticURLPrefix            string // no trailing slash, defaults to AppSubURL, the URL can be relative or absolute
 )
 
-// MakeManifestData generates web app manifest JSON
-func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
-	type manifestIcon struct {
-		Src   string `json:"src"`
-		Type  string `json:"type"`
-		Sizes string `json:"sizes"`
+func loadServerDomainAndURL(sec ConfigSection, protocol string) {
+	defaultAppURL := protocol + "://localhost:" + HTTPPort
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
+	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLAuto)
+	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy && PublicURLDetection != PublicURLNever {
+		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
 	}
 
-	type manifestJSON struct {
-		Name      string         `json:"name"`
-		ShortName string         `json:"short_name"`
-		StartURL  string         `json:"start_url"`
-		Icons     []manifestIcon `json:"icons"`
-	}
-
-	bytes, err := json.Marshal(&manifestJSON{
-		Name:      appName,
-		ShortName: appName,
-		StartURL:  appURL,
-		Icons: []manifestIcon{
-			{
-				Src:   absoluteAssetURL + "/assets/img/logo.png",
-				Type:  "image/png",
-				Sizes: "512x512",
-			},
-			{
-				Src:   absoluteAssetURL + "/assets/img/logo.svg",
-				Type:  "image/svg+xml",
-				Sizes: "512x512",
-			},
-		},
-	})
+	// Check validity of AppURL
+	appURL, err := url.Parse(AppURL)
 	if err != nil {
-		log.Error("unable to marshal manifest JSON. Error: %v", err)
-		return make([]byte, 0)
+		log.Fatal("Invalid ROOT_URL %q: %s", AppURL, err)
 	}
-
-	return bytes
-}
-
-// MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
-	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
-	if err != nil {
-		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
+	// Remove default ports from AppURL.
+	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
+	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
+		appURL.Host = appURL.Hostname()
 	}
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
 
-	if err == nil && parsedPrefix.Hostname() == "" {
-		if staticURLPrefix == "" {
-			return strings.TrimSuffix(appURL, "/")
-		}
-
-		// StaticURLPrefix is just a path
-		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
-	}
-
-	return strings.TrimSuffix(staticURLPrefix, "/")
+	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
+	// This value is empty if site does not have sub-url.
+	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
+	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
+	AppDomain = appURL.Hostname()
 }
 
 func loadServerFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
-	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
@@ -210,6 +172,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		Protocol = HTTPS
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
+			AcmeProfile = sec.Key("ACME_PROFILE").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
 
 			if sec.HasKey("ACME_ACCEPTTOS") {
@@ -284,43 +247,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
 	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
-	defaultAppURL := string(Protocol) + "://" + Domain + ":" + HTTPPort
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	PublicURLDetection = sec.Key("PUBLIC_URL_DETECTION").MustString(PublicURLLegacy)
-	if PublicURLDetection != PublicURLAuto && PublicURLDetection != PublicURLLegacy {
-		log.Fatal("Invalid PUBLIC_URL_DETECTION value: %s", PublicURLDetection)
-	}
-
-	// Check validity of AppURL
-	appURL, err := url.Parse(AppURL)
-	if err != nil {
-		log.Fatal("Invalid ROOT_URL %q: %s", AppURL, err)
-	}
-	// Remove default ports from AppURL.
-	// (scheme-based URL normalization, RFC 3986 section 6.2.3)
-	if (appURL.Scheme == string(HTTP) && appURL.Port() == "80") || (appURL.Scheme == string(HTTPS) && appURL.Port() == "443") {
-		appURL.Host = appURL.Hostname()
-	}
-	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
-	AppURL = strings.TrimRight(appURL.String(), "/") + "/"
-
-	// AppSubURL should start with '/' and end without '/', such as '/{subpath}'.
-	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
-	UseSubURLPath = sec.Key("USE_SUB_URL_PATH").MustBool(false)
-	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
-
-	// Check if Domain differs from AppURL domain than update it to AppURL's domain
-	urlHostname := appURL.Hostname()
-	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {
-		Domain = urlHostname
-	}
-
-	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
-	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
-
-	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
-	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
+	loadServerDomainAndURL(sec, string(Protocol))
 
 	var defaultLocalURL string
 	switch Protocol {
@@ -346,10 +273,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	OfflineMode = sec.Key("OFFLINE_MODE").MustBool(true)
-	if len(StaticRootPath) == 0 {
-		StaticRootPath = AppWorkPath
-	}
+	StaticRootPath = util.IfZero(StaticRootPath, AppWorkPath)
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
@@ -369,6 +293,10 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
 		}
 	}
+
+	// TODO: GOLANG-HTTP-TMPDIR: Some Golang packages (like "http") use os.TempDir() to create temporary files when uploading files.
+	// So ideally we should set the TMPDIR environment variable to make them use our managed temp directory.
+	// But there is no clear place to set it currently, for example: when running "install" page, the AppDataPath is not ready yet, then AppDataTempDir won't work
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)

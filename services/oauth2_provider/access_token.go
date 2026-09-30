@@ -10,15 +10,15 @@ import (
 	"strconv"
 	"strings"
 
-	auth "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	auth "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -74,16 +74,18 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-// GrantAdditionalScopes returns valid scopes coming from grant
-func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
-	// scopes_supported from templates/user/auth/oidc_wellknown.tmpl
-	generalScopesSupported := []string{
+func GeneralScopesSupported() []string {
+	return []string{
 		"openid",
 		"profile",
 		"email",
 		"groups",
 	}
+}
 
+// GrantAdditionalScopes returns valid scopes coming from grant
+func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
+	generalScopesSupported := GeneralScopesSupported()
 	var accessScopes []string // the scopes for access control, but not for general information
 	for scope := range strings.SplitSeq(grantScopes, " ") {
 		if scope != "" && !slices.Contains(generalScopesSupported, scope) {

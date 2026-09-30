@@ -6,18 +6,15 @@
 package git
 
 import (
+	"context"
 	"strings"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.
-func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
-	r, err := git.PlainOpen(repo.Path)
-	if err != nil {
-		return nil, err
-	}
+func (repo *Repository) GetRefsFiltered(ctx context.Context, pattern string) ([]*Reference, error) {
+	r := repo.gogitRepo
 
 	refsIter, err := r.References()
 	if err != nil {
@@ -30,7 +27,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 			refType := string(ObjectCommit)
 			if ref.Name().IsTag() {
 				// tags can be of type `commit` (lightweight) or `tag` (annotated)
-				if tagType, _ := repo.GetTagType(ParseGogitHash(ref.Hash())); err == nil {
+				if tagType, _ := repo.GetTagType(ctx, ParseGogitHash(ref.Hash())); err == nil {
 					refType = tagType
 				}
 			}

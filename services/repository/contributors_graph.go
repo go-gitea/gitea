@@ -8,22 +8,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/models/avatars"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/avatars"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
 )
 
 const (
@@ -85,7 +83,7 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 	if !cache.IsExist(cacheKey) {
 		genReady := make(chan struct{})
 
-		// dont start multiple async generations
+		// don't start multiple async generations
 		_, run := generateLock.Load(cacheKey)
 		if run {
 			return nil, ErrAwaitGeneration
@@ -112,31 +110,22 @@ func GetContributorStats(ctx context.Context, cache cache.StringCache, repo *rep
 }
 
 // getExtendedCommitStats return the list of *ExtendedCommitStats for the given revision
-func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
-	baseCommit, err := repo.GetCommit(revision)
+func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision string /*, limit int */) ([]*ExtendedCommitStats, error) {
+	baseCommit, err := repo.GetCommit(ctx, revision)
 	if err != nil {
 		return nil, err
 	}
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
 
 	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
+	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
 	var extendedCommitStats []*ExtendedCommitStats
-	stderr := new(strings.Builder)
-	err = gitCmd.WithDir(repo.Path).
-		WithStdout(stdoutWriter).
-		WithStderr(stderr).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
+	err = gitCmd.WithRepo(repo).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 
 			for scanner.Scan() {
@@ -188,12 +177,11 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 				}
 				extendedCommitStats = append(extendedCommitStats, res)
 			}
-			_ = stdoutReader.Close()
 			return nil
 		}).
-		Run(repo.Ctx)
+		RunWithStderr(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("ContributorsCommitStats: %w", err)
 	}
 
 	return extendedCommitStats, nil
@@ -202,7 +190,7 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {
 	ctx := graceful.GetManager().HammerContext()
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		_ = cache.PutJSON(cacheKey, fmt.Errorf("OpenRepository: %w", err), contributorStatsCacheTimeout)
 		return
@@ -212,7 +200,7 @@ func generateContributorStats(genDone chan struct{}, cache cache.StringCache, ca
 	if len(revision) == 0 {
 		revision = repo.DefaultBranch
 	}
-	extendedCommitStats, err := getExtendedCommitStats(gitRepo, revision)
+	extendedCommitStats, err := getExtendedCommitStats(ctx, gitRepo, revision)
 	if err != nil {
 		_ = cache.PutJSON(cacheKey, fmt.Errorf("ExtendedCommitStats: %w", err), contributorStatsCacheTimeout)
 		return

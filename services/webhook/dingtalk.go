@@ -10,11 +10,11 @@ import (
 	"net/url"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	webhook_module "gitea.dev/modules/webhook"
 
 	dingtalk "gitea.com/lunny/dingtalk_webhook"
 )
@@ -72,22 +72,22 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
+	var text strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n")) + authorName
+		text.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\r\n"
+			text.WriteString("\r\n")
 		}
 	}
 
-	return createDingtalkPayload(title, text, linkText, titleLink), nil
+	return createDingtalkPayload(title, text.String(), linkText, titleLink), nil
 }
 
 // Issue implements PayloadConvertor Issue method
@@ -152,6 +152,9 @@ func (dc dingtalkConvertor) Repository(p *api.RepositoryPayload) (DingtalkPayloa
 				Content: title,
 			},
 		}, nil
+	case api.HookRepoRenamed:
+		title := fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
+		return createDingtalkPayload(title, title, "view repository", p.Repository.HTMLURL), nil
 	}
 
 	return DingtalkPayload{}, nil

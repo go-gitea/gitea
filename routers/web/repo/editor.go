@@ -11,22 +11,21 @@ import (
 	"path"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/issues"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	files_service "gitea.dev/services/repository/files"
 )
 
 const (
@@ -41,7 +40,12 @@ const (
 	editorCommitChoiceNewBranch string = "commit-to-new-branch"
 )
 
-func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *context.CommitFormOptions {
+func prepareEditorPage(ctx *context.Context, editorAction string) *context.CommitFormOptions {
+	prepareHomeTreeSideBarSwitch(ctx)
+	return prepareEditorPageFormOptions(ctx, editorAction)
+}
+
+func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *context.CommitFormOptions {
 	cleanedTreePath := files_service.CleanGitTreePath(ctx.Repo.TreePath)
 	if cleanedTreePath != ctx.Repo.TreePath {
 		redirectTo := fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, editorAction, util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(cleanedTreePath))
@@ -63,7 +67,7 @@ func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *
 		return nil
 	}
 
-	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanEnableEditor() {
+	if commitFormOptions.WillSubmitToFork && !commitFormOptions.TargetRepo.CanContentChange() {
 		ctx.Data["NotFoundPrompt"] = ctx.Locale.Tr("repo.editor.fork_not_editable")
 		ctx.NotFound(nil)
 	}
@@ -73,8 +77,6 @@ func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *
 	ctx.Data["CommitFormOptions"] = commitFormOptions
 
 	// for online editor
-	ctx.Data["PreviewableExtensions"] = strings.Join(markup.PreviewableExtensions(), ",")
-	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
 	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
 	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
 
@@ -110,7 +112,7 @@ func (f *preparedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage stri
 }
 
 func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *preparedEditorCommitForm[T] {
-	form := web.GetForm(ctx).(T)
+	form := web.GetForm[T](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return nil
@@ -216,12 +218,13 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 	}
 
 	// redirect to the newly updated file
-	redirectTo := util.URLJoin(ctx.Repo.RepoLink, "src/branch", util.PathEscapeSegments(parsed.NewBranchName), util.PathEscapeSegments(treePath))
+	redirectTo := ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(parsed.NewBranchName) + "/" + util.PathEscapeSegments(treePath)
+	redirectTo = strings.TrimSuffix(redirectTo, "/")
 	ctx.JSONRedirect(redirectTo)
 }
 
 func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.ReadCloser, fInfo *fileInfo) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "GetTreeEntryByPath", err)
 		return nil, nil, nil
@@ -233,7 +236,7 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 		return nil, nil, nil
 	}
 
-	blob := entry.Blob()
+	blob := entry.Blob(ctx.Repo.GitRepo)
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -283,7 +286,7 @@ func EditFile(ctx *context.Context) {
 	// on the "New File" page, we should add an empty path field to make end users could input a new name
 	prepareTreePathFieldsAndPaths(ctx, util.Iif(isNewFile, ctx.Repo.TreePath+"/", ctx.Repo.TreePath))
 
-	prepareEditorCommitFormOptions(ctx, editorAction)
+	prepareEditorPage(ctx, editorAction)
 	if ctx.Written() {
 		return
 	}
@@ -312,15 +315,16 @@ func EditFile(ctx *context.Context) {
 				ctx.ServerError("ReadAll", err)
 				return
 			}
-			if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
-				ctx.Data["FileContent"] = string(buf)
-			} else {
-				ctx.Data["FileContent"] = content
-			}
+			ctx.Data["FileContent"] = string(charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true, ErrorReturnOrigin: true}))
 		}
 	}
 
-	ctx.Data["EditorconfigJson"] = getContextRepoEditorConfig(ctx, ctx.Repo.TreePath)
+	editorConfig := getCodeEditorConfigByEditorconfig(ctx, ctx.Repo.TreePath)
+	editorConfig.Autofocus = !isNewFile
+	if isNewFile {
+		editorConfig.Filename = ""
+	}
+	ctx.Data["CodeEditorConfig"] = editorConfig
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 
@@ -376,15 +380,16 @@ func EditFilePost(ctx *context.Context) {
 
 // DeleteFile render delete file page
 func DeleteFile(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_delete")
+	prepareEditorPage(ctx, "_delete")
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["PageIsDelete"] = true
+	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
 	ctx.HTML(http.StatusOK, tplDeleteFile)
 }
 
-// DeleteFilePost response for deleting file
+// DeleteFilePost response for deleting file or directory
 func DeleteFilePost(ctx *context.Context) {
 	parsed := prepareEditorCommitSubmittedForm[*forms.DeleteRepoFileForm](ctx)
 	if ctx.Written() {
@@ -392,17 +397,37 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	treePath := ctx.Repo.TreePath
-	_, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
+	if treePath == "" {
+		ctx.JSONError("cannot delete root directory") // it should not happen unless someone is trying to be malicious
+		return
+	}
+
+	// Check if the path is a directory
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
+		return
+	}
+
+	var commitMessage string
+	if entry.IsDir() {
+		commitMessage = parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete_directory", treePath))
+	} else {
+		commitMessage = parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete", treePath))
+	}
+
+	_, err = files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: parsed.form.LastCommit,
 		OldBranch:    parsed.OldBranchName,
 		NewBranch:    parsed.NewBranchName,
 		Files: []*files_service.ChangeRepoFile{
 			{
-				Operation: "delete",
-				TreePath:  treePath,
+				Operation:         "delete",
+				TreePath:          treePath,
+				DeleteRecursively: true,
 			},
 		},
-		Message:   parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete", treePath)),
+		Message:   commitMessage,
 		Signoff:   parsed.form.Signoff,
 		Author:    parsed.GitCommitter,
 		Committer: parsed.GitCommitter,
@@ -412,15 +437,19 @@ func DeleteFilePost(ctx *context.Context) {
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
-	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
+	if entry.IsDir() {
+		ctx.Flash.Success(ctx.Tr("repo.editor.directory_delete_success", treePath))
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
+	}
+	redirectTreePath := getClosestParentWithFiles(ctx, ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
 	redirectForCommitChoice(ctx, parsed, redirectTreePath)
 }
 
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
 	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
-	opts := prepareEditorCommitFormOptions(ctx, "_upload")
+	opts := prepareEditorPage(ctx, "_upload")
 	if ctx.Written() {
 		return
 	}

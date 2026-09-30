@@ -6,10 +6,11 @@ package repo
 import (
 	"net/http"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	release_service "code.gitea.io/gitea/services/release"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	release_service "gitea.dev/services/release"
 )
 
 // GetReleaseByTag get a single release of a repository by tag name
@@ -56,6 +57,13 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	if release.IsTag {
 		ctx.APIErrorNotFound()
 		return
+	}
+
+	if release.IsDraft { // only the users with write access can see draft releases
+		if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit_model.TypeReleases) {
+			ctx.APIErrorNotFound()
+			return
+		}
 	}
 
 	if err = release.LoadAttributes(ctx); err != nil {

@@ -20,15 +20,15 @@ import (
 	"io"
 	"strings"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	alpine_model "code.gitea.io/gitea/models/packages/alpine"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/json"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	alpine_module "code.gitea.io/gitea/modules/packages/alpine"
-	"code.gitea.io/gitea/modules/util"
-	packages_service "code.gitea.io/gitea/services/packages"
+	packages_model "gitea.dev/models/packages"
+	alpine_model "gitea.dev/models/packages/alpine"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/json"
+	packages_module "gitea.dev/modules/packages"
+	alpine_module "gitea.dev/modules/packages/alpine"
+	"gitea.dev/modules/util"
+	packages_service "gitea.dev/services/packages"
 )
 
 const (
@@ -44,32 +44,9 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 
 // GetOrCreateKeyPair gets or creates the RSA keys used to sign repository files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ctx, ownerID, alpine_module.SettingKeyPrivate)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	pub, err := user_model.GetSetting(ctx, ownerID, alpine_module.SettingKeyPublic)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	if priv == "" || pub == "" {
-		priv, pub, err = util.GenerateKeyPair(4096)
-		if err != nil {
-			return "", "", err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, alpine_module.SettingKeyPrivate, priv); err != nil {
-			return "", "", err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, alpine_module.SettingKeyPublic, pub); err != nil {
-			return "", "", err
-		}
-	}
-
-	return priv, pub, nil
+	return packages_service.GetOrCreateKeyPair(ctx, ownerID, alpine_module.SettingKeyPrivate, alpine_module.SettingKeyPublic, func() (string, string, error) {
+		return util.GenerateKeyPair(4096)
+	})
 }
 
 // BuildAllRepositoryFiles (re)builds all repository files for every available branches, repositories and architectures

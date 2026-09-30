@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/services/auth/source/ldap"
+	"gitea.dev/models/auth"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/auth/source/ldap"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
@@ -233,7 +233,7 @@ func TestAddLdapBindDn(t *testing.T) {
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
 				assert.FailNow(t, "getAuthSourceByID called", "case %d: should not call getAuthSourceByID", n)
-				return nil, nil
+				return nil, nil //nolint:nilnil // mock function covering improper behavior
 			},
 		}
 
@@ -463,7 +463,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
 				assert.FailNow(t, "getAuthSourceById called", "case %d: should not call getAuthSourceByID", n)
-				return nil, nil
+				return nil, nil //nolint:nilnil // mock function covering improper behavior
 			},
 		}
 

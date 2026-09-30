@@ -7,20 +7,20 @@ import (
 	"bytes"
 	"fmt"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
+	sender_service "gitea.dev/services/mailer/sender"
 )
 
 const (
-	mailAuthActivate       templates.TplName = "user/auth/activate"
-	mailAuthActivateEmail  templates.TplName = "user/auth/activate_email"
-	mailAuthResetPassword  templates.TplName = "user/auth/reset_passwd"
-	mailAuthRegisterNotify templates.TplName = "user/auth/register_notify"
+	mailAuthActivate       templates.TplName = "mail/user/auth/activate"
+	mailAuthActivateEmail  templates.TplName = "mail/user/auth/activate_email"
+	mailAuthResetPassword  templates.TplName = "mail/user/auth/reset_passwd"
+	mailAuthRegisterNotify templates.TplName = "mail/user/auth/register_notify"
 )
 
 // sendUserMail sends a mail to the user
@@ -101,8 +101,7 @@ func SendActivateEmailMail(u *user_model.User, email string) {
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
 func SendRegisterNotifyMail(u *user_model.User) {
-	if setting.MailService == nil || !u.IsActive {
-		// No mail service configured OR user is inactive
+	if setting.MailService == nil || !u.IsMailable() {
 		return
 	}
 	locale := translation.NewLocale(u.Language)

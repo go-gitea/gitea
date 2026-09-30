@@ -6,9 +6,9 @@ package organization_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )

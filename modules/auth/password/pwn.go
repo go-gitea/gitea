@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/auth/password/pwn"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/auth/password/pwn"
+	"gitea.dev/modules/setting"
 )
 
 var ErrIsPwned = errors.New("password has been pwned")
@@ -38,8 +38,7 @@ func IsPwned(ctx context.Context, password string) error {
 		return nil
 	}
 
-	client := pwn.New(pwn.WithContext(ctx))
-	count, err := client.CheckPassword(password, true)
+	count, err := pwn.New().CheckPassword(ctx, password, true)
 	if err != nil {
 		return ErrIsPwnedRequest{err}
 	}

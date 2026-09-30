@@ -4,25 +4,26 @@
 package org_test
 
 import (
+	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/routers/web/org"
-	"code.gitea.io/gitea/services/contexttest"
+	"gitea.dev/models/unittest"
+	"gitea.dev/routers/web/org"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckProjectColumnChangePermissions(t *testing.T) {
+func TestChangeProjectStatusRejectsForeignProjects(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "user2/-/projects/4/4")
-	contexttest.LoadUser(t, ctx, 2)
-	ctx.ContextUser = ctx.Doer // user2
+	// project 4 is owned by user2 not user1
+	ctx, _ := contexttest.MockContext(t, "user1/-/projects/4/close")
+	contexttest.LoadUser(t, ctx, 1)
+	ctx.ContextUser = ctx.Doer
+	ctx.SetPathParam("action", "close")
 	ctx.SetPathParam("id", "4")
-	ctx.SetPathParam("columnID", "4")
 
-	project, column := org.CheckProjectColumnChangePermissions(ctx)
-	assert.NotNil(t, project)
-	assert.NotNil(t, column)
-	assert.False(t, ctx.Written())
+	org.ChangeProjectStatus(ctx)
+
+	assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 }

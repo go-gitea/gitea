@@ -4,6 +4,7 @@
 package util
 
 import (
+	"iter"
 	"strings"
 	"unsafe"
 )
@@ -120,7 +121,7 @@ func asciiLower(b byte) byte {
 
 // AsciiEqualFold is from Golang https://cs.opensource.google/go/go/+/refs/tags/go1.24.4:src/net/http/internal/ascii/print.go
 // ASCII only. In most cases for protocols, we should only use this but not [strings.EqualFold]
-func AsciiEqualFold(s, t string) bool { //nolint:revive // PascalCase
+func AsciiEqualFold(s, t string) bool {
 	if len(s) != len(t) {
 		return false
 	}
@@ -130,4 +131,11 @@ func AsciiEqualFold(s, t string) bool { //nolint:revive // PascalCase
 		}
 	}
 	return true
+}
+
+func StringSplitSeq[T, S ~string](s T, sep S) iter.Seq[T] {
+	f := strings.SplitSeq(string(s), string(sep))
+	return func(yield func(T) bool) {
+		f(func(v string) bool { return yield(T(v)) })
+	}
 }

@@ -59,7 +59,6 @@ func (cfg *MinioStorageConfig) ToShadow() {
 	}
 }
 
-// MinioStorageConfig represents the configuration for a minio storage
 type AzureBlobStorageConfig struct {
 	Endpoint    string `ini:"AZURE_BLOB_ENDPOINT" json:",omitempty"`
 	AccountName string `ini:"AZURE_BLOB_ACCOUNT_NAME" json:",omitempty"`
@@ -104,20 +103,20 @@ const storageSectionName = "storage"
 func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec := rootCfg.Section(storageSectionName)
 	// Global Defaults
-	storageSec.Key("STORAGE_TYPE").MustString("local")
-	storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")
-	storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")
-	storageSec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")
-	storageSec.Key("MINIO_BUCKET").MustString("gitea")
-	storageSec.Key("MINIO_LOCATION").MustString("us-east-1")
-	storageSec.Key("MINIO_USE_SSL").MustBool(false)
-	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)
-	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default")
-	storageSec.Key("MINIO_BUCKET_LOOKUP_TYPE").MustString("auto")
-	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")
-	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")
-	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")
-	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")
+	storageSec.Key("STORAGE_TYPE").MustString("local")               // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_ENDPOINT").MustString("localhost:9000")    // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_ACCESS_KEY_ID").MustString("")             // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_SECRET_ACCESS_KEY").MustString("")         // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_BUCKET").MustString("gitea")               // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_LOCATION").MustString("us-east-1")         // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_USE_SSL").MustBool(false)                  // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_INSECURE_SKIP_VERIFY").MustBool(false)     // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_CHECKSUM_ALGORITHM").MustString("default") // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("MINIO_BUCKET_LOOKUP_TYPE").MustString("auto")    // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ENDPOINT").MustString("")             // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")         // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")          // FIXME: INI-MUST-SIDE-EFFECT
+	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")       // FIXME: INI-MUST-SIDE-EFFECT
 	return storageSec
 }
 
@@ -172,11 +171,11 @@ func getStorageSectionByType(rootCfg ConfigProvider, typ string) (ConfigSection,
 	targetType := targetSec.Key("STORAGE_TYPE").String()
 	if targetType == "" {
 		if !IsValidStorageType(StorageType(typ)) {
-			return nil, 0, fmt.Errorf("unknow storage type %q", typ)
+			return nil, 0, fmt.Errorf("unknown storage type %q", typ)
 		}
 		targetSec.Key("STORAGE_TYPE").SetValue(typ)
 	} else if !IsValidStorageType(StorageType(targetType)) {
-		return nil, 0, fmt.Errorf("unknow storage type %q for section storage.%v", targetType, typ)
+		return nil, 0, fmt.Errorf("unknown storage type %q for section storage.%v", targetType, typ)
 	}
 
 	return targetSec, targetSecIsTyp, nil
@@ -202,7 +201,7 @@ func getStorageTargetSection(rootCfg ConfigProvider, name, typ string, sec Confi
 		}
 	}
 
-	// check stoarge name thirdly
+	// check storage name thirdly
 	targetSec, _ := rootCfg.GetSection(storageSectionName + "." + name)
 	if targetSec != nil {
 		targetType := targetSec.Key("STORAGE_TYPE").String()

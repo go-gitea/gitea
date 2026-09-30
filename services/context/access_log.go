@@ -5,17 +5,17 @@ package context
 
 import (
 	"bytes"
-	"net"
 	"net/http"
 	"strings"
 	"text/template"
 	"time"
 	"unicode"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web/middleware"
 )
 
 type accessLoggerTmplData struct {
@@ -77,10 +77,7 @@ func (lr *accessLogRecorder) record(start time.Time, respWriter ResponseWriter, 
 		requestID = parseRequestIDFromRequestHeader(req)
 	}
 
-	reqHost, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err != nil {
-		reqHost = req.RemoteAddr
-	}
+	reqHost := httplib.RemoteHost(req)
 
 	identity := "-"
 	data := middleware.GetContextData(req.Context())
@@ -100,7 +97,7 @@ func (lr *accessLogRecorder) record(start time.Time, respWriter ResponseWriter, 
 	}
 	tmplData.ResponseWriter.Status = respWriter.WrittenStatus()
 	tmplData.ResponseWriter.Size = respWriter.WrittenSize()
-	err = lr.logTemplate.Execute(buf, tmplData)
+	err := lr.logTemplate.Execute(buf, tmplData)
 	if err != nil {
 		log.Error("Could not execute access logger template: %v", err.Error())
 	}
@@ -122,8 +119,9 @@ func AccessLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			next.ServeHTTP(w, req)
-			recorder.record(start, w.(ResponseWriter), req)
+			respWriter := WrapResponseWriter(w)
+			next.ServeHTTP(respWriter, req)
+			recorder.record(start, respWriter, req)
 		})
 	}
 }

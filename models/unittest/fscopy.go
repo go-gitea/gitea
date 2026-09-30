@@ -4,11 +4,13 @@
 package unittest
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // SyncFile synchronizes the two files. This is skipped if both files
@@ -39,7 +41,20 @@ func SyncFile(srcPath, destPath string) error {
 // SyncDirs synchronizes files recursively from source to target directory.
 // It returns error when error occurs in underlying functions.
 func SyncDirs(srcPath, destPath string) error {
-	err := os.MkdirAll(destPath, os.ModePerm)
+	destPath = filepath.Clean(destPath)
+	destPathAbs, err := filepath.Abs(destPath)
+	if err != nil {
+		return err
+	}
+	devDataPathAbs, err := filepath.Abs(filepath.Join(setting.GetGiteaTestSourceRoot(), "data"))
+	if err != nil {
+		return err
+	}
+	if strings.HasPrefix(destPathAbs+string(filepath.Separator), devDataPathAbs+string(filepath.Separator)) {
+		return errors.New("destination path should not be inside Gitea data directory, otherwise your data for dev mode will be removed")
+	}
+
+	err = os.MkdirAll(destPath, os.ModePerm)
 	if err != nil {
 		return err
 	}

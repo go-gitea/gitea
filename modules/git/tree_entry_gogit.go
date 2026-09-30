@@ -7,6 +7,8 @@
 package git
 
 import (
+	"context"
+
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -29,15 +31,15 @@ func (te *TreeEntry) toGogitTreeEntry() *object.TreeEntry {
 	}
 }
 
-// Size returns the size of the entry
-func (te *TreeEntry) Size() int64 {
+// GetSize returns the size of the entry
+func (te *TreeEntry) GetSize(ctx context.Context, gitRepo *Repository) int64 {
 	if te.IsDir() {
 		return 0
 	} else if te.sized {
 		return te.size
 	}
 
-	ptreeGogitTree, err := te.ptree.gogitTreeObject()
+	ptreeGogitTree, err := te.ptree.gogitTreeObject(gitRepo)
 	if err != nil {
 		return 0
 	}
@@ -52,15 +54,10 @@ func (te *TreeEntry) Size() int64 {
 }
 
 // Blob returns the blob object the entry
-func (te *TreeEntry) Blob() *Blob {
-	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.toGogitTreeEntry().Hash)
-	if err != nil {
-		return nil
-	}
-
+func (te *TreeEntry) Blob(gitRepo *Repository) *Blob {
 	return &Blob{
-		ID:              te.ID,
-		gogitEncodedObj: encodedObj,
-		name:            te.Name(),
+		ID:   te.ID,
+		repo: gitRepo,
+		name: te.Name(),
 	}
 }

@@ -4,7 +4,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
+	api "gitea.dev/modules/structs"
 )
 
 // PublicKey

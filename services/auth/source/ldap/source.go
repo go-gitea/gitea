@@ -6,11 +6,11 @@ package ldap
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/auth"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/secret"
+	"gitea.dev/modules/setting"
 )
 
 // .____     ________      _____ __________
@@ -44,6 +44,7 @@ type Source struct {
 	AttributesInBind      bool   // fetch attributes in bind context (not user)
 	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
 	AttributeAvatar       string
+	SSHKeysAreVerified    bool   // true if SSH keys in LDAP are verified
 	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin

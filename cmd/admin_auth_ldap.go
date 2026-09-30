@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/auth/source/ldap"
+	"gitea.dev/models/auth"
+	"gitea.dev/modules/util"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/auth/source/ldap"
 
 	"github.com/urfave/cli/v3"
 )
@@ -93,6 +94,10 @@ func commonLdapCLIFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:  "public-ssh-key-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
+		},
+		&cli.BoolFlag{
+			Name:  "ssh-keys-are-verified",
+			Usage: "Set to true to automatically flag SSH keys in LDAP as verified.",
 		},
 		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
@@ -217,8 +222,8 @@ func microcmdAuthUpdateLdapSimpleAuth() *cli.Command {
 func newAuthService() *authService {
 	return &authService{
 		initDB:            initDB,
-		createAuthSource:  auth.CreateSource,
-		updateAuthSource:  auth.UpdateSource,
+		createAuthSource:  auth_service.CreateSource,
+		updateAuthSource:  auth_service.UpdateSource,
 		getAuthSourceByID: auth.GetSourceByID,
 	}
 }
@@ -294,6 +299,9 @@ func parseLdapConfig(c *cli.Command, config *ldap.Source) error {
 	if c.IsSet("public-ssh-key-attribute") {
 		config.AttributeSSHPublicKey = c.String("public-ssh-key-attribute")
 	}
+	if c.IsSet("ssh-keys-are-verified") {
+		config.SSHKeysAreVerified = c.Bool("ssh-keys-are-verified")
+	}
 	if c.IsSet("avatar-attribute") {
 		config.AttributeAvatar = c.String("avatar-attribute")
 	}
@@ -347,13 +355,10 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 	return 0, false
 }
 
-// getAuthSource gets the login source by its id defined in the command line flags.
-// It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authType auth.Type) (*auth.Source, error) {
-	if err := argsSet(c, "id"); err != nil {
-		return nil, err
-	}
-	authSource, err := a.getAuthSourceByID(ctx, c.Int64("id"))
+// getAuthSourceOfType gets the login source by id.
+// It returns an error if the id does not match any source or if the source is not of the expected type.
+func (a *authService) getAuthSourceOfType(ctx context.Context, id int64, authType auth.Type) (*auth.Source, error) {
+	authSource, err := a.getAuthSourceByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -365,6 +370,15 @@ func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authTyp
 	return authSource, nil
 }
 
+// getAuthSource gets the login source by its id defined in the command line flags.
+// It returns an error if the id is not set, does not match any source or if the source is not of expected type.
+func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authType auth.Type) (*auth.Source, error) {
+	if err := argsSet(c, "id"); err != nil {
+		return nil, err
+	}
+	return a.getAuthSourceOfType(ctx, c.Int64("id"), authType)
+}
+
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
 func (a *authService) addLdapBindDn(ctx context.Context, c *cli.Command) error {
 	if err := argsSet(c, "name", "security-protocol", "host", "port", "user-search-base", "user-filter", "email-attribute"); err != nil {
@@ -374,16 +388,17 @@ func (a *authService) addLdapBindDn(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
+	ldapConfig := &ldap.Source{
+		Enabled: true, // always true
+	}
 	authSource := &auth.Source{
 		Type:     auth.LDAP,
 		IsActive: true, // active by default
-		Cfg: &ldap.Source{
-			Enabled: true, // always true
-		},
+		Cfg:      ldapConfig,
 	}
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 
@@ -400,9 +415,10 @@ func (a *authService) updateLdapBindDn(ctx context.Context, c *cli.Command) erro
 	if err != nil {
 		return err
 	}
+	ldapConfig := auth.MustSourceCfg[*ldap.Source](authSource)
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 
@@ -419,16 +435,17 @@ func (a *authService) addLdapSimpleAuth(ctx context.Context, c *cli.Command) err
 		return err
 	}
 
+	ldapConfig := &ldap.Source{
+		Enabled: true, // always true
+	}
 	authSource := &auth.Source{
 		Type:     auth.DLDAP,
 		IsActive: true, // active by default
-		Cfg: &ldap.Source{
-			Enabled: true, // always true
-		},
+		Cfg:      ldapConfig,
 	}
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 
@@ -445,9 +462,10 @@ func (a *authService) updateLdapSimpleAuth(ctx context.Context, c *cli.Command) 
 	if err != nil {
 		return err
 	}
+	ldapConfig := auth.MustSourceCfg[*ldap.Source](authSource)
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 

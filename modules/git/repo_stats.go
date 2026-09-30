@@ -7,14 +7,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // CodeActivityStats represents git statistics data
@@ -36,15 +35,15 @@ type CodeActivityAuthor struct {
 }
 
 // GetCodeActivityStats returns code statistics for activity page
-func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) (*CodeActivityStats, error) {
+func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.Time, branch string) (*CodeActivityStats, error) {
 	stats := &CodeActivityStats{}
 
 	since := fromTime.Format(time.RFC3339)
 
 	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		WithRepo(repo).
+		RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -55,15 +54,6 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 	stats.CommitCountInAllBranches = c
 
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
 	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
 		AddOptionFormat("--since=%s", since)
 	if len(branch) == 0 {
@@ -72,13 +62,11 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
-	stderr := new(strings.Builder)
+	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
 	err = gitCmd.
-		WithDir(repo.Path).
-		WithStdout(stdoutWriter).
-		WithStderr(stderr).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
+		WithRepo(repo).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
 			stats.CommitCount = 0
@@ -129,7 +117,6 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 				}
 			}
 			if err = scanner.Err(); err != nil {
-				_ = stdoutReader.Close()
 				return fmt.Errorf("GetCodeActivityStats scan: %w", err)
 			}
 			a := make([]*CodeActivityAuthor, 0, len(authors))
@@ -143,12 +130,11 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.AuthorCount = int64(len(authors))
 			stats.ChangedFiles = int64(len(files))
 			stats.Authors = a
-			_ = stdoutReader.Close()
 			return nil
 		}).
-		Run(repo.Ctx)
+		RunWithStderr(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("GetCodeActivityStats: %w", err)
 	}
 
 	return stats, nil

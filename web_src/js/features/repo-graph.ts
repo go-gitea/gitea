@@ -6,8 +6,8 @@ export function initRepoGraphGit() {
   const graphContainer = document.querySelector<HTMLElement>('#git-graph-container');
   if (!graphContainer) return;
 
-  const elColorMonochrome = document.querySelector<HTMLElement>('#flow-color-monochrome');
-  const elColorColored = document.querySelector<HTMLElement>('#flow-color-colored');
+  const elColorMonochrome = document.querySelector<HTMLElement>('#flow-color-monochrome')!;
+  const elColorColored = document.querySelector<HTMLElement>('#flow-color-colored')!;
   const toggleColorMode = (mode: 'monochrome' | 'colored') => {
     toggleElemClass(graphContainer, 'monochrome', mode === 'monochrome');
     toggleElemClass(graphContainer, 'colored', mode === 'colored');
@@ -31,7 +31,7 @@ export function initRepoGraphGit() {
   elColorMonochrome.addEventListener('click', () => toggleColorMode('monochrome'));
   elColorColored.addEventListener('click', () => toggleColorMode('colored'));
 
-  const elGraphBody = document.querySelector<HTMLElement>('#git-graph-body');
+  const elGraphBody = document.querySelector<HTMLElement>('#git-graph-body')!;
   const url = new URL(window.location.href);
   const params = url.searchParams;
   const loadGitGraph = async () => {
@@ -42,7 +42,7 @@ export function initRepoGraphGit() {
 
     elGraphBody.classList.add('is-loading');
     try {
-      const resp = await GET(ajaxUrl.toString());
+      const resp = await GET(ajaxUrl.href);
       elGraphBody.innerHTML = await resp.text();
     } finally {
       elGraphBody.classList.remove('is-loading');
@@ -51,7 +51,7 @@ export function initRepoGraphGit() {
 
   const dropdownSelected = params.getAll('branch');
   if (params.has('hide-pr-refs') && params.get('hide-pr-refs') === 'true') {
-    dropdownSelected.splice(0, 0, '...flow-hide-pr-refs');
+    dropdownSelected.unshift('...flow-hide-pr-refs');
   }
 
   const $dropdown = fomanticQuery('#flow-select-refs-dropdown');

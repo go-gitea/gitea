@@ -11,13 +11,12 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"uuid"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-
-	gouuid "github.com/google/uuid"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // ErrUploadNotExist represents a "UploadNotExist" kind of error.
@@ -60,7 +59,7 @@ func (upload *Upload) LocalPath() string {
 // NewUpload creates a new upload object.
 func NewUpload(ctx context.Context, name string, buf []byte, file multipart.File) (_ *Upload, err error) {
 	upload := &Upload{
-		UUID: gouuid.New().String(),
+		UUID: uuid.New().String(),
 		Name: name,
 	}
 
@@ -127,7 +126,7 @@ func DeleteUploads(ctx context.Context, uploads ...*Upload) (err error) {
 
 	for _, upload := range uploads {
 		localPath := upload.LocalPath()
-		if err := util.Remove(localPath); err != nil {
+		if err := util.RemoveWithRetry(localPath); err != nil {
 			// just continue, don't fail the whole operation if a file is missing (removed by others)
 			log.Error("unable to remove upload file %s: %v", localPath, err)
 		}

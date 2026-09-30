@@ -14,7 +14,7 @@ const DefaultHashAlgorithmName = "pbkdf2"
 
 var DefaultHashAlgorithm *PasswordHashAlgorithm
 
-// aliasAlgorithNames provides a mapping between the value of PASSWORD_HASH_ALGO
+// aliasAlgorithmNames provides a mapping between the value of PASSWORD_HASH_ALGO
 // configured in the app.ini and the parameters used within the hashers internally.
 //
 // If it is necessary to change the default parameters for any hasher in future you
@@ -61,16 +61,4 @@ func SetDefaultPasswordHashAlgorithm(algorithmName string) (string, *PasswordHas
 	// now we get a full specification, e.g. pbkdf2$50000$50 rather than pbdkf2
 	DefaultHashAlgorithm = Parse(algoSpec)
 	return algoSpec, DefaultHashAlgorithm
-}
-
-// ConfigHashAlgorithm will try to find a "recommended algorithm name" defined by RecommendedHashAlgorithms for config
-// This function is not fast and is only used for the installation page
-func ConfigHashAlgorithm(algorithm string) string {
-	algorithm = hashAlgorithmToSpec(algorithm)
-	for _, recommAlgo := range RecommendedHashAlgorithms {
-		if algorithm == hashAlgorithmToSpec(recommAlgo) {
-			return recommAlgo
-		}
-	}
-	return algorithm
 }

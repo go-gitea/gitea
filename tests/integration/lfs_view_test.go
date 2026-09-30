@@ -9,14 +9,14 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/lfs"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	"gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/lfs"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -129,8 +129,7 @@ func TestLFSLockView(t *testing.T) {
 		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, http.StatusCreated)
-		lockResp := &api.LFSLockResponse{}
-		DecodeJSON(t, resp, lockResp)
+		lockResp := DecodeJSON(t, resp, &api.LFSLockResponse{})
 		lockID = lockResp.Lock.ID
 	}
 	defer func() {

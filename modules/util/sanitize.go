@@ -5,7 +5,8 @@ package util
 
 import (
 	"bytes"
-	"unicode"
+	"net"
+	"strings"
 )
 
 type sanitizedError struct {
@@ -25,48 +26,103 @@ func SanitizeErrorCredentialURLs(err error) error {
 	return sanitizedError{err: err}
 }
 
-const userPlaceholder = "sanitized-credential"
-
 var schemeSep = []byte("://")
 
-// SanitizeCredentialURLs remove all credentials in URLs (starting with "scheme://") for the input string: "https://user:pass@domain.com" => "https://sanitized-credential@domain.com"
+const userInfoPlaceholder = "(masked)"
+
+// SanitizeCredentialURLs remove all credentials in URLs for the input string:
+// * "https://userinfo@domain.com" => "https://***@domain.com"
+// * "user:pass@domain.com" => "***@domain.com"
+// "***" is a magic string internally used, doesn't guarantee to be anything.
 func SanitizeCredentialURLs(s string) string {
+	sepColPos := strings.Index(s, ":")
+	if sepColPos == -1 {
+		return s // fast path: no colon, unlikely contain any URL credential
+	}
+	sepAtPos := strings.Index(s[sepColPos+1:], "@")
+	for sepAtPos == -1 {
+		return s // fast path: no "@" after colon, unlikely contain any URL credential
+	}
+	sepAtPos += sepColPos + 1
+
+	res := make([]byte, 0, len(s)+len(userInfoPlaceholder)) // a best guess to avoid too many re-allocations
 	bs := UnsafeStringToBytes(s)
-	schemeSepPos := bytes.Index(bs, schemeSep)
-	if schemeSepPos == -1 || bytes.IndexByte(bs[schemeSepPos:], '@') == -1 {
-		return s // fast return if there is no URL scheme or no userinfo
-	}
-	out := make([]byte, 0, len(bs)+len(userPlaceholder))
-	for schemeSepPos != -1 {
-		schemeSepPos += 3         // skip the "://"
-		sepAtPos := -1            // the possible '@' position: "https://foo@[^here]host"
-		sepEndPos := schemeSepPos // the possible end position: "The https://host[^here] in log for test"
-	sepLoop:
-		for ; sepEndPos < len(bs); sepEndPos++ {
-			c := bs[sepEndPos]
-			if ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') {
-				continue
-			}
+	for {
+		// left part (before "@") is likely to be the "userinfo" (single username, or "username:password")
+		leftPos := sepAtPos - 1
+	leftLoop:
+		for leftPos >= 0 {
+			c := bs[leftPos]
 			switch c {
-			case '@':
-				sepAtPos = sepEndPos
 			case '-', '.', '_', '~', '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=', ':', '%':
-				continue // due to RFC 3986, userinfo can contain - . _ ~ ! $ & ' ( ) * + , ; = : and any percent-encoded chars
+				// RFC 3986, userinfo can contain - . _ ~ ! $ & ' ( ) * + , ; = : and any percent-encoded chars
 			default:
-				break sepLoop // if it is an invalid char for URL (eg: space, '/', and others), stop the loop
+				valid := 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9'
+				if !valid {
+					break leftLoop
+				}
 			}
+			leftPos--
 		}
-		// if there is '@', and the string is like "s://u@h", then hide the "u" part
-		if sepAtPos != -1 && (schemeSepPos >= 4 && unicode.IsLetter(rune(bs[schemeSepPos-4]))) && sepAtPos-schemeSepPos > 0 && sepEndPos-sepAtPos > 0 {
-			out = append(out, bs[:schemeSepPos]...)
-			out = append(out, userPlaceholder...)
-			out = append(out, bs[sepAtPos:sepEndPos]...)
+		// left pos should point to the beginning of the left part, this pos is always valid in the buffer
+		leftPos++
+
+		// right part is likely to be the host (domain name, ip address)
+		rightPos := sepAtPos + 1
+	rightLoop:
+		for rightPos < len(bs) {
+			c := bs[rightPos]
+			switch c {
+			case '.', '-':
+				// valid host char
+			case '[':
+				// ipv6 begin
+				if rightPos != sepAtPos+1 {
+					break rightLoop
+				}
+			case ']':
+				// ipv6 end
+				rightPos++
+				break rightLoop
+			default:
+				valid := 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9'
+				if bs[sepAtPos+1] == '[' {
+					// ipv6 host
+					valid = 'a' <= c && c <= 'f' || 'A' <= c && c <= 'F' || '0' <= c && c <= '9' || c == ':'
+				}
+				if !valid {
+					break rightLoop
+				}
+			}
+			rightPos++
+		}
+
+		leading, leftPart, rightPart := bs[:leftPos], bs[leftPos:sepAtPos], bs[sepAtPos+1:rightPos]
+
+		// Either:
+		// * git log message: "user:pass@host" (it contains a colon in userinfo), ignore "git@host" pattern
+		// * http like URL: "https://userinfo@host.com" (it has "://" before the userinfo)
+		needSanitize := bytes.IndexByte(leftPart, ':') >= 0 || bytes.HasSuffix(leading, schemeSep)
+		needSanitize = needSanitize && len(leftPart) > 0 && len(rightPart) > 0
+		// TODO: can also do more checks for right part
+		// for example: ipv6 quick check
+		if needSanitize && rightPart[0] == '[' {
+			needSanitize = rightPart[len(rightPart)-1] == ']' && net.ParseIP(UnsafeBytesToString(rightPart[1:len(rightPart)-1])) != nil
+		}
+		if needSanitize {
+			res = append(res, leading...)
+			res = append(res, userInfoPlaceholder...)
+			res = append(res, '@')
+			res = append(res, rightPart...)
 		} else {
-			out = append(out, bs[:sepEndPos]...)
+			res = append(res, bs[:rightPos]...)
 		}
-		bs = bs[sepEndPos:]
-		schemeSepPos = bytes.Index(bs, schemeSep)
+		bs = bs[rightPos:]
+		sepAtPos = bytes.IndexByte(bs, '@')
+		if sepAtPos == -1 {
+			break
+		}
 	}
-	out = append(out, bs...)
-	return UnsafeBytesToString(out)
+	res = append(res, bs...)
+	return UnsafeBytesToString(res)
 }

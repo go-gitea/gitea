@@ -1,37 +1,53 @@
-details.toggleable-item {
-  user-select: none !important;
-  padding: 0 !important;
+.ui.vertical.menu > details.item {
+  user-select: none;
+  padding: 0;
 }
 
-details.toggleable-item .menu {
-  margin: 4px 0 10px !important;
-}
-
-details.toggleable-item summary {
+.ui.vertical.menu > details.item summary {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* make the "::after" right-aligned */
   align-items: center;
-  padding: 0.92857143em 1.14285714em;
+  padding: 16px 13px; /* match Fomantic menu item padding */
 }
 
-details.toggleable-item summary::marker, /* Chrome, Edge, Firefox */
-details.toggleable-item summary::-webkit-details-marker /* Safari */ {
+.ui.vertical.menu > details.item > summary::marker, /* Chrome, Edge, Firefox */
+.ui.vertical.menu > details.item > summary::-webkit-details-marker /* Safari */ {
   display: none;
 }
 
-details.toggleable-item summary::after {
+.ui.vertical.menu > details.item > summary::after {
   transition: transform 0.25s ease;
   content: "";
   width: 14px;
   height: 14px;
   mask-size: cover;
-  -webkit-mask-size: cover;
   mask-image: var(--octicon-chevron-right);
-  -webkit-mask-image: var(--octicon-chevron-right);
   background: currentcolor;
   border: 1px solid var(--color-body); /* workaround https://bugzilla.mozilla.org/show_bug.cgi?id=1671784 */
 }
 
-details.toggleable-item[open] summary::after {
+.ui.vertical.menu > details.item[open] > summary::after {
   transform: rotate(90deg);
+}
+
+/* default toggleable details menu: items don't have menu item padding, don't change background color on hover or active */
+.ui.vertical.menu > details.item > .menu {
+  margin: 0 0 10px; /* only need the space between the current details menu and next item */
+}
+
+/* full width toggleable details menu: items have menu item padding, change background color on hover and active */
+.ui.vertical.menu > details.item > .menu.items-full-width {
+  margin: 0;
+}
+
+.ui.vertical.menu > details.item > .menu.items-full-width > .item {
+  padding: 16px 13px; /* match Fomantic menu item padding */
+}
+
+.ui.vertical.menu > details.item > .menu.items-full-width > .item.active {
+  background: var(--color-active);
+}
+
+.ui.vertical.menu > details.item > .menu.items-full-width > .item:hover {
+  background: var(--color-hover); /* ".ui.vertical.menu .menu .item" resets the hover background, so we need to add it again */
 }

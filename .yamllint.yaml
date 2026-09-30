@@ -21,9 +21,7 @@ rules:
   comments-indentation:
     level: error
 
-  document-start:
-    level: error
-    present: false
+  document-start: disable
 
   document-end:
     present: false

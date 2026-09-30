@@ -50,7 +50,7 @@ However, the templates still have the Fomantic-style HTML layout:
 </div>
 ```
 
-We call `initAriaCheckboxPatch` to link the `input` and `label` which makes clicking the
+We call `initAriaLabels` to link the `input` and `label` which makes clicking the
 label etc. work. There is still a problem: These checkboxes are not friendly to screen readers,
 so we add IDs to all the Fomantic UI checkboxes automatically by JS. If the `label` part is empty,
 then the checkbox needs to get the `aria-label` attribute manually.

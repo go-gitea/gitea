@@ -4,8 +4,8 @@
 package pam
 
 import (
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/models/auth"
+	"gitea.dev/modules/json"
 )
 
 // __________  _____      _____

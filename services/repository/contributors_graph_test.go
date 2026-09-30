@@ -7,10 +7,10 @@ import (
 	"slices"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/setting"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )

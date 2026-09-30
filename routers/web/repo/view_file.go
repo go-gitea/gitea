@@ -11,28 +11,25 @@ import (
 	"path"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	issue_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/renderhelper"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/actions"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/attribute"
-	"code.gitea.io/gitea/modules/highlight"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/nektos/act/pkg/model"
+	git_model "gitea.dev/models/git"
+	issue_model "gitea.dev/models/issues"
+	"gitea.dev/models/renderhelper"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/actions"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/attribute"
+	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	issue_service "gitea.dev/services/issue"
 )
 
 func prepareLatestCommitInfo(ctx *context.Context) bool {
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return false
@@ -60,14 +57,19 @@ func prepareFileViewLfsAttrs(ctx *context.Context) (*attribute.Attributes, bool)
 	return attrs, true
 }
 
-func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedType typesniffer.SniffedType, prefetchBuf []byte, utf8Reader io.Reader) bool {
-	markupType := markup.DetectMarkupTypeByFileName(filename)
-	if markupType == "" {
-		markupType = markup.DetectRendererType(filename, sniffedType, prefetchBuf)
+func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Reader io.Reader) bool {
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+		CurrentRefSubURL: ctx.Repo.RefTypeNameSubURL(),
+		CurrentTreePath:  path.Dir(ctx.Repo.TreePath),
+	}).WithRelativePath(ctx.Repo.TreePath)
+
+	renderer := rctx.DetectMarkupRenderer(prefetchBuf)
+	if renderer == nil {
+		return false // not supported markup
 	}
-	if markupType == "" {
-		return false
-	}
+	metas := ctx.Repo.Repository.ComposeRepoFileMetas(ctx)
+	metas["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
+	rctx.WithMetas(metas)
 
 	ctx.Data["HasSourceRenderedToggle"] = true
 
@@ -75,27 +77,22 @@ func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedTy
 		return false
 	}
 
-	ctx.Data["MarkupType"] = markupType
-	metas := ctx.Repo.Repository.ComposeRepoFileMetas(ctx)
-	metas["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
-	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
-	}).
-		WithMarkupType(markupType).
-		WithRelativePath(ctx.Repo.TreePath).
-		WithMetas(metas)
-
 	var err error
-	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, rctx, utf8Reader)
+	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, utf8Reader)
 	if err != nil {
 		ctx.ServerError("Render", err)
 		return true
 	}
+
+	opts, ok := markup.GetExternalRendererOptions(renderer)
+	usingIframe := ok && opts.DisplayInIframe
+	ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
+	ctx.Data["RenderAsMarkup"] = util.Iif(usingIframe, "markup-iframe", "markup-inplace")
 	return true
 }
 
-func handleFileViewRenderSource(ctx *context.Context, filename string, attrs *attribute.Attributes, fInfo *fileInfo, utf8Reader io.Reader) bool {
+func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attributes, fInfo *fileInfo, utf8Reader io.Reader) bool {
+	filename := ctx.Repo.TreePath
 	if ctx.FormString("display") == "rendered" || !fInfo.st.IsRepresentableAsText() {
 		return false
 	}
@@ -124,17 +121,13 @@ func handleFileViewRenderSource(ctx *context.Context, filename string, attrs *at
 	}
 
 	language := attrs.GetLanguage().Value()
-	fileContent, lexerName, err := highlight.File(filename, language, buf)
+	fileContent, lexerName := highlight.RenderFullFile(filename, language, buf)
 	ctx.Data["LexerName"] = lexerName
-	if err != nil {
-		log.Error("highlight.File failed, fallback to plain text: %v", err)
-		fileContent = highlight.PlainText(buf)
-	}
 	status := &charset.EscapeStatus{}
 	statuses := make([]*charset.EscapeStatus, len(fileContent))
 	for i, line := range fileContent {
 		statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
-		status = status.Or(statuses[i])
+		status.Combine(statuses[i])
 	}
 	ctx.Data["EscapeStatus"] = status
 	ctx.Data["FileContent"] = fileContent
@@ -168,7 +161,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 		return
 	}
 
-	blob := entry.Blob()
+	blob := entry.Blob(ctx.Repo.GitRepo)
 
 	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -176,7 +169,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		_, editorconfigWarning, editorconfigErr := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
 		if editorconfigWarning != nil {
 			ctx.Data["FileWarning"] = strings.TrimSpace(editorconfigWarning.Error())
 		}
@@ -184,21 +177,20 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = strings.TrimSpace(editorconfigErr.Error())
 		}
 	} else if issue_service.IsTemplateConfig(ctx.Repo.TreePath) {
-		_, issueConfigErr := issue_service.GetTemplateConfig(ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.Commit)
+		_, issueConfigErr := issue_service.GetTemplateConfig(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath, ctx.Repo.Commit)
 		if issueConfigErr != nil {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
 		}
 	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx, ctx.Repo.GitRepo, entry)
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
 		}
-		_, workFlowErr := model.ReadWorkflow(bytes.NewReader(content))
-		if workFlowErr != nil {
+		if _, workFlowErr := actions.GetEventsFromContent(content); workFlowErr != nil {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
-		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+		if data, err := blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
@@ -246,10 +238,8 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	switch {
 	case fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize:
 		ctx.Data["IsFileTooLarge"] = true
-	case handleFileViewRenderMarkup(ctx, entry.Name(), fInfo.st, buf, contentReader):
-		// it also sets ctx.Data["FileContent"] and more
-		ctx.Data["IsMarkup"] = true
-	case handleFileViewRenderSource(ctx, entry.Name(), attrs, fInfo, contentReader):
+	case handleFileViewRenderMarkup(ctx, buf, contentReader):
+	case handleFileViewRenderSource(ctx, attrs, fInfo, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsDisplayingSource"] = true
 	case handleFileViewRenderImage(ctx, fInfo, buf):
@@ -265,7 +255,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 
 func prepareFileViewEditorButtons(ctx *context.Context) bool {
 	// archived or mirror repository, the buttons should not be shown
-	if !ctx.Repo.Repository.CanEnableEditor() {
+	if !ctx.Repo.Repository.CanContentChange() {
 		return true
 	}
 

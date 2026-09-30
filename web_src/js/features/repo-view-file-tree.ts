@@ -6,29 +6,33 @@ import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
+function isUserSignedIn() {
+  return Boolean(document.querySelector('#navbar .user-menu'));
+}
+
 async function toggleSidebar(btn: HTMLElement) {
-  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle-show');
-  const elFileTreeContainer = document.querySelector('.repo-view-file-tree-container');
+  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle[data-toggle-action="show"]')!;
+  const elFileTreeContainer = document.querySelector('.repo-view-file-tree-container')!;
   const shouldShow = btn.getAttribute('data-toggle-action') === 'show';
   toggleElem(elFileTreeContainer, shouldShow);
   toggleElem(elToggleShow, !shouldShow);
 
   // FIXME: need to remove "full height" style from parent element
 
-  if (!elFileTreeContainer.hasAttribute('data-user-is-signed-in')) return;
+  if (!isUserSignedIn()) return;
   await POST(`${appSubUrl}/user/settings/update_preferences`, {
     data: {codeViewShowFileTree: shouldShow},
   });
 }
 
-export async function initRepoViewFileTree() {
+export function initRepoViewFileTree() {
   const sidebar = document.querySelector<HTMLElement>('.repo-view-file-tree-container');
   const repoViewContent = document.querySelector('.repo-view-content');
   if (!sidebar || !repoViewContent) return;
 
   registerGlobalEventFunc('click', 'onRepoViewFileTreeToggle', toggleSidebar);
 
-  const fileTree = sidebar.querySelector('#view-file-tree');
+  const fileTree = sidebar.querySelector('#view-file-tree')!;
   createApp(ViewFileTree, {
     repoLink: fileTree.getAttribute('data-repo-link'),
     treePath: fileTree.getAttribute('data-tree-path'),

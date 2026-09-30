@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,13 +43,15 @@ func GetOrInsertBlob(ctx context.Context, pb *PackageBlob) (*PackageBlob, bool, 
 
 	existing := &PackageBlob{}
 
-	has, err := e.Where(builder.Eq{
+	hashCond := builder.Eq{
 		"size":        pb.Size,
 		"hash_md5":    pb.HashMD5,
 		"hash_sha1":   pb.HashSHA1,
 		"hash_sha256": pb.HashSHA256,
 		"hash_sha512": pb.HashSHA512,
-	}).Get(existing)
+	}
+
+	has, err := e.Where(hashCond).Get(existing)
 	if err != nil {
 		return nil, false, err
 	}
@@ -57,6 +59,11 @@ func GetOrInsertBlob(ctx context.Context, pb *PackageBlob) (*PackageBlob, bool, 
 		return existing, true, nil
 	}
 	if _, err = e.Insert(pb); err != nil {
+		// Handle race condition: another request may have inserted the same blob
+		// between our SELECT and INSERT. Retry the SELECT to get the existing blob.
+		if has, _ = e.Where(hashCond).Get(existing); has {
+			return existing, true, nil
+		}
 		return nil, false, err
 	}
 	return pb, false, nil
@@ -119,6 +126,10 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 	if user.IsAdmin {
 		return true, nil
 	}
+	ownerVisibilities := []structs.VisibleType{structs.VisibleTypePublic}
+	if !user.IsRestricted {
+		ownerVisibilities = append(ownerVisibilities, structs.VisibleTypeLimited)
+	}
 
 	maxTeamAuthorize := builder.
 		Select("max(team.authorize)").
@@ -137,7 +148,7 @@ func IsBlobAccessibleForUser(ctx context.Context, blobID int64, user *user_model
 		// owner = user
 		builder.Eq{"`user`.id": user.ID}.
 			// user can see owner
-			Or(builder.Eq{"`user`.visibility": structs.VisibleTypePublic}.Or(builder.Eq{"`user`.visibility": structs.VisibleTypeLimited})).
+			Or(builder.In("`user`.visibility", ownerVisibilities)).
 			// owner is an organization and user has access to it
 			Or(builder.Eq{"`user`.type": user_model.UserTypeOrganization}.
 				And(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamAuthorize}.Or(builder.Lte{strconv.Itoa(int(perm.AccessModeRead)): maxTeamUnitAccessMode}))),

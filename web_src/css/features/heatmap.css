@@ -32,26 +32,29 @@
   fill: currentcolor !important;
 }
 
-/* root legend */
-#user-heatmap .vch__container > .vch__legend {
+#user-heatmap .heatmap-footer {
   display: flex;
   font-size: 11px;
   justify-content: space-between;
 }
 
-/* for the "Less" and "More" legend */
-#user-heatmap .vch__legend .vch__legend {
+/* "Less [colors] More" scale */
+#user-heatmap .heatmap-legend {
   display: flex;
   align-items: center;
   justify-content: right;
 }
 
-#user-heatmap .vch__legend .vch__legend div:first-child,
-#user-heatmap .vch__legend .vch__legend div:last-child {
+#user-heatmap .heatmap-legend-svg {
+  margin-right: -12px;
+}
+
+#user-heatmap .heatmap-legend > div:first-child,
+#user-heatmap .heatmap-legend > div:last-child {
   display: inline-block;
   padding: 0 5px;
 }
 
-#user-heatmap .vch__day__square:hover {
+#user-heatmap .heatmap-day:hover {
   outline: 1.5px solid var(--color-text);
 }

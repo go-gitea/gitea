@@ -10,7 +10,7 @@
 {{$queryLink := .QueryLink}}
 <div class="item ui dropdown jump {{if not .UserSearchList}}disabled{{end}}">
 	{{$.TextFilterTitle}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
+	<div class="menu flex-items-menu">
 		<div class="ui icon search input">
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">

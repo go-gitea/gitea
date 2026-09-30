@@ -25,13 +25,13 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	chef_module "code.gitea.io/gitea/modules/packages/chef"
-	"code.gitea.io/gitea/modules/setting"
-	chef_router "code.gitea.io/gitea/routers/api/packages/chef"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	chef_module "gitea.dev/modules/packages/chef"
+	"gitea.dev/modules/setting"
+	chef_router "gitea.dev/routers/api/packages/chef"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -345,8 +345,7 @@ nwIDAQAB
 			Dependencies map[string]string `json:"dependencies"`
 		}
 
-		var result map[string]map[string]*VersionInfo
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, map[string]map[string]*VersionInfo{})
 
 		assert.Len(t, result, 1)
 		assert.Contains(t, result, packageName)
@@ -398,8 +397,7 @@ nwIDAQAB
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result Result
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &Result{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Items, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -449,8 +447,7 @@ nwIDAQAB
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result Result
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &Result{})
 
 			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Items, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -484,8 +481,7 @@ nwIDAQAB
 			Versions      []string  `json:"versions"`
 		}
 
-		var result Result
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &Result{})
 
 		versionURL := fmt.Sprintf("%s%s/cookbooks/%s/versions/%s", setting.AppURL, root[1:], packageName, packageVersion)
 
@@ -513,8 +509,7 @@ nwIDAQAB
 			Dependencies    map[string]string `json:"dependencies"`
 		}
 
-		var result Result
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &Result{})
 
 		packageURL := fmt.Sprintf("%s%s/cookbooks/%s", setting.AppURL, root[1:], packageName)
 

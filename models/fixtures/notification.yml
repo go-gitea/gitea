@@ -52,3 +52,5 @@
   issue_id: 4
   created_unix: 946688800
   updated_unix: 946688820
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

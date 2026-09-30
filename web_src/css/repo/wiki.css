@@ -1,7 +1,3 @@
-.repository.wiki .wiki-pages-list tr:hover {
-  background-color: var(--color-hover);
-}
-
 .repository.wiki .wiki-pages-list .wiki-git-entry {
   margin-left: 10px;
   display: none;
@@ -13,10 +9,6 @@
 
 .repository.wiki .markup {
   overflow: visible;
-}
-
-.repository.wiki .markup[data-tab-panel="markdown-previewer"] {
-  min-height: 340px; /* This height matches the markdown editor's height */
 }
 
 .repository.wiki .wiki-content-parts .markup {
@@ -50,7 +42,7 @@
 }
 
 .repository.wiki .wiki-content-toc ul ul {
-  border-left:  1px var(--color-secondary);
+  border-left: 1px var(--color-secondary);
   border-left-style: dashed;
 }
 

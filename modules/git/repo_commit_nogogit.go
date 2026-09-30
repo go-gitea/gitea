@@ -6,81 +6,49 @@
 package git
 
 import (
-	"bufio"
+	"context"
 	"errors"
 	"io"
-	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/setting"
 )
 
-// ResolveReference resolves a name to a reference
-func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").
-		AddDynamicArguments(name).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	if err != nil {
-		if strings.Contains(err.Error(), "not a valid ref") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-	stdout = strings.TrimSpace(stdout)
-	if stdout == "" {
-		return "", ErrNotExist{name, ""}
-	}
-
-	return stdout, nil
-}
-
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+func (repo *Repository) GetRefCommitID(ctx context.Context, name string) (string, error) {
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(name + "\n"))
-	if err != nil {
-		return "", err
-	}
-	shaBs, _, _, err := ReadBatchLine(rd)
+	info, err := batch.QueryInfo(name)
 	if IsErrNotExist(err) {
 		return "", ErrNotExist{name, ""}
+	} else if err != nil {
+		return "", err
 	}
-
-	return string(shaBs), nil
+	return info.ID, nil
 }
 
-// IsCommitExist returns true if given commit exists in current repository.
-func (repo *Repository) IsCommitExist(name string) bool {
-	if err := ensureValidGitRepository(repo.Ctx, repo.Path); err != nil {
-		log.Error("IsCommitExist: %v", err)
-		return false
-	}
-	_, _, err := gitcmd.NewCommand("cat-file", "-e").
-		AddDynamicArguments(name).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	return err == nil
-}
-
-func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) getCommit(ctx context.Context, id ObjectID) (*Commit, error) {
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
-
-	_, _ = wr.Write([]byte(id.String() + "\n"))
-
-	return repo.getCommitFromBatchReader(wr, rd, id)
+	return repo.getCommitWithBatch(batch, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.Reader, id ObjectID) (*Commit, error) {
-	_, typ, size, err := ReadBatchLine(rd)
+func limitDiscardReader(rd BufferedReader, full, limit int64) (io.Reader, func() error) {
+	return io.LimitReader(rd, min(full, limit)), func() error {
+		if full > limit {
+			return DiscardFull(rd, full-limit)
+		}
+		return nil
+	}
+}
+
+func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
+	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: id.String()}
@@ -88,14 +56,16 @@ func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.
 		return nil, err
 	}
 
-	switch typ {
+	switch info.Type {
 	case "missing":
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
-		// then we need to parse the tag
-		// and load the commit
-		data, err := io.ReadAll(io.LimitReader(rd, size))
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		data, err := io.ReadAll(limitReader)
 		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
@@ -106,20 +76,14 @@ func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.
 		if err != nil {
 			return nil, err
 		}
-
-		if _, err := wr.Write([]byte(tag.Object.String() + "\n")); err != nil {
-			return nil, err
-		}
-
-		commit, err := repo.getCommitFromBatchReader(wr, rd, tag.Object)
-		if err != nil {
-			return nil, err
-		}
-
-		return commit, nil
+		return repo.getCommitWithBatch(batch, tag.Object)
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
+		limitReader, limitDiscard := limitDiscardReader(rd, info.Size, MaxGitObjectSize)
+		commit, err := CommitFromReader(id, limitReader)
 		if err != nil {
+			return nil, err
+		}
+		if err = limitDiscard(); err != nil {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
@@ -129,8 +93,10 @@ func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.
 
 		return commit, nil
 	default:
-		log.Debug("Unknown typ: %s", typ)
-		if err := DiscardFull(rd, size+1); err != nil {
+		if info.Type != "blob" && info.Type != "tree" {
+			setting.PanicInDevOrTesting("Unknown cat-file object type %s for object %s in repo %s", info.Type, id.String(), repo.LogString())
+		}
+		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{
@@ -139,35 +105,31 @@ func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.
 	}
 }
 
-// ConvertToGitID returns a GitHash object from a potential ID string
-func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	objectFormat, err := repo.GetObjectFormat()
+// ConvertToGitID returns a git object ID from the git ref, it doesn't guarantee the returned ID really exists
+func (repo *Repository) ConvertToGitID(ctx context.Context, ref string) (ObjectID, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if len(commitID) == objectFormat.FullLength() && objectFormat.IsValid(commitID) {
-		ID, err := NewIDFromString(commitID)
+	if IsStringValidObjectID(objectFormat, ref) {
+		id, err := NewIDFromString(ref)
 		if err == nil {
-			return ID, nil
+			return id, nil
 		}
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(commitID + "\n"))
-	if err != nil {
-		return nil, err
-	}
-	sha, _, _, err := ReadBatchLine(rd)
+	info, err := batch.QueryInfo(ref)
 	if err != nil {
 		if IsErrNotExist(err) {
-			return nil, ErrNotExist{commitID, ""}
+			return nil, ErrNotExist{ref, ""}
 		}
 		return nil, err
 	}
 
-	return MustIDFromString(string(sha)), nil
+	return MustIDFromString(info.ID), nil
 }

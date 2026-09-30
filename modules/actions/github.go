@@ -4,7 +4,7 @@
 package actions
 
 import (
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 const (
@@ -58,6 +58,10 @@ func IsDefaultBranchWorkflow(triggedEvent webhook_module.HookEventType) bool {
 		webhook_module.HookEventIssueMilestone:
 		// Github "issues" event
 		// https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issues
+		return true
+	case webhook_module.HookEventWorkflowRun:
+		// GitHub "workflow_run" event
+		// https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#workflow_run
 		return true
 	}
 

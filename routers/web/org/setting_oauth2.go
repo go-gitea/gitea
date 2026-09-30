@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	user_setting "code.gitea.io/gitea/routers/web/user/setting"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	shared_user "gitea.dev/routers/web/shared/user"
+	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/context"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 
 func newOAuth2CommonHandlers(org *context.Organization) *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
-		OwnerID:            org.Organization.ID,
+		Owner:              org.Organization.AsUser(),
 		BasePathList:       fmt.Sprintf("%s/org/%s/settings/applications", setting.AppSubURL, org.Organization.Name),
 		BasePathEditPrefix: fmt.Sprintf("%s/org/%s/settings/applications/oauth2", setting.AppSubURL, org.Organization.Name),
 		TplAppEdit:         tplSettingsOAuthApplicationEdit,
@@ -84,7 +84,7 @@ func OAuth2ApplicationEdit(ctx *context.Context) {
 
 // OAuthApplicationsRegenerateSecret handles the post request for regenerating the secret
 func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 

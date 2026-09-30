@@ -10,16 +10,16 @@ import (
 	"fmt"
 	"net/url"
 
-	org_model "code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/translation"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
+	org_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/translation"
+	sender_service "gitea.dev/services/mailer/sender"
 )
 
-const tplTeamInviteMail templates.TplName = "org/team_invite"
+const tplTeamInviteMail templates.TplName = "mail/org/team_invite"
 
 // MailTeamInvite sends team invites
 func MailTeamInvite(ctx context.Context, inviter *user_model.User, team *org_model.Team, invite *org_model.TeamInvite) error {

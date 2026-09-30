@@ -11,9 +11,9 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )
@@ -21,6 +21,7 @@ import (
 var (
 	ErrMissingManifestFile    = util.NewInvalidArgumentErrorf("Package.swift file is missing")
 	ErrManifestFileTooLarge   = util.NewInvalidArgumentErrorf("Package.swift file is too large")
+	ErrManifestFilesTooLarge  = util.NewInvalidArgumentErrorf("Package.swift files are too large")
 	ErrInvalidManifestVersion = util.NewInvalidArgumentErrorf("manifest version is invalid")
 
 	manifestPattern     = regexp.MustCompile(`\APackage(?:@swift-(\d+(?:\.\d+)?(?:\.\d+)?))?\.swift\z`)
@@ -29,6 +30,8 @@ var (
 
 const (
 	maxManifestFileSize = 128 * 1024
+	maxManifestFiles    = 64
+	maxManifestSize     = maxManifestFiles * maxManifestFileSize
 
 	PropertyScope         = "swift.scope"
 	PropertyName          = "swift.name"
@@ -47,6 +50,7 @@ type Metadata struct {
 	Keywords      []string             `json:"keywords,omitempty"`
 	RepositoryURL string               `json:"repository_url,omitempty"`
 	License       string               `json:"license,omitempty"`
+	LicenseURL    string               `json:"license_url,omitempty"`
 	Author        Person               `json:"author"`
 	Manifests     map[string]*Manifest `json:"manifests,omitempty"`
 }
@@ -67,7 +71,8 @@ type SoftwareSourceCode struct {
 	Keywords            []string            `json:"keywords,omitempty"`
 	CodeRepository      string              `json:"codeRepository,omitempty"`
 	License             string              `json:"license,omitempty"`
-	Author              Person              `json:"author"`
+	LicenseURL          string              `json:"licenseURL,omitempty"`
+	Author              *Person             `json:"author,omitempty"`
 	ProgrammingLanguage ProgrammingLanguage `json:"programmingLanguage"`
 	RepositoryURLs      []string            `json:"repositoryURLs,omitempty"`
 }
@@ -121,11 +126,36 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		},
 	}
 
+	// Nested packages (test fixtures, examples, benchmarks) ship their own manifests, which must not
+	// replace the package manifest. The package sits at the archive root or in a single top level
+	// directory, so keep only the shallowest manifest directory, breaking ties by name for stability.
+	var manifestFiles []*zip.File
+	manifestDir, manifestDepth := "", 0
 	for _, file := range zr.File {
-		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
-		if len(manifestMatch) == 0 {
+		if strings.HasSuffix(file.Name, "/") || !manifestPattern.MatchString(path.Base(file.Name)) {
 			continue
 		}
+		dir, depth := path.Dir(file.Name), strings.Count(file.Name, "/")
+		switch {
+		case manifestFiles == nil || depth < manifestDepth || (depth == manifestDepth && dir < manifestDir):
+			manifestDir, manifestDepth, manifestFiles = dir, depth, []*zip.File{file}
+		case dir == manifestDir:
+			manifestFiles = append(manifestFiles, file)
+		}
+	}
+	if len(manifestFiles) > maxManifestFiles {
+		return nil, ErrManifestFilesTooLarge
+	}
+	var manifestSize uint64
+	for _, file := range manifestFiles {
+		manifestSize += file.UncompressedSize64
+	}
+	if manifestSize > maxManifestSize {
+		return nil, ErrManifestFilesTooLarge
+	}
+
+	for _, file := range manifestFiles {
+		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
 
 		if file.UncompressedSize64 > maxManifestFileSize {
 			return nil, ErrManifestFileTooLarge
@@ -181,25 +211,30 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		if err := json.NewDecoder(mr).Decode(&ssc); err != nil {
 			return nil, err
 		}
-
 		p.Metadata.Description = ssc.Description
 		p.Metadata.Keywords = ssc.Keywords
 		p.Metadata.License = ssc.License
-		author := Person{
-			Name:       ssc.Author.Name,
-			GivenName:  ssc.Author.GivenName,
-			MiddleName: ssc.Author.MiddleName,
-			FamilyName: ssc.Author.FamilyName,
+		p.Metadata.LicenseURL = ssc.LicenseURL
+		if ssc.Author != nil {
+			author := Person{
+				Name:       ssc.Author.Name,
+				GivenName:  ssc.Author.GivenName,
+				MiddleName: ssc.Author.MiddleName,
+				FamilyName: ssc.Author.FamilyName,
+			}
+			// If Name is not provided, generate it from individual name components
+			if author.Name == "" {
+				author.Name = author.String()
+			}
+			p.Metadata.Author = author
 		}
-		// If Name is not provided, generate it from individual name components
-		if author.Name == "" {
-			author.Name = author.String()
-		}
-		p.Metadata.Author = author
 
 		p.Metadata.RepositoryURL = ssc.CodeRepository
 		if !validation.IsValidURL(p.Metadata.RepositoryURL) {
 			p.Metadata.RepositoryURL = ""
+		}
+		if !validation.IsValidURL(p.Metadata.LicenseURL) {
+			p.Metadata.LicenseURL = ""
 		}
 
 		p.RepositoryURLs = ssc.RepositoryURLs

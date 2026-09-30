@@ -5,28 +5,30 @@
 package org
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	user_setting "code.gitea.io/gitea/routers/web/user/setting"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	org_service "code.gitea.io/gitea/services/org"
-	user_service "code.gitea.io/gitea/services/user"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	shared_user "gitea.dev/routers/web/shared/user"
+	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/audit"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	org_service "gitea.dev/services/org"
+	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -57,7 +59,7 @@ func Settings(ctx *context.Context) {
 
 // SettingsPost response for settings change submitted
 func SettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateOrgSettingForm)
+	form := web.GetForm[*forms.UpdateOrgSettingForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
@@ -69,24 +71,25 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
-
-	if form.Email != "" {
-		if err := user_service.ReplacePrimaryEmailAddress(ctx, org.AsUser(), form.Email); err != nil {
+	if err := org_service.UpdateOrgEmailAddress(ctx, org, form.Email); err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
 			return
 		}
+		ctx.ServerError("UpdateOrgEmailAddress", err)
+		return
 	}
 
 	opts := &user_service.UpdateOptions{
-		FullName:                  optional.Some(form.FullName),
-		Description:               optional.Some(form.Description),
-		Website:                   optional.Some(form.Website),
-		Location:                  optional.Some(form.Location),
-		RepoAdminChangeTeamAccess: optional.Some(form.RepoAdminChangeTeamAccess),
+		FullName:                  optional.FromPtr(form.FullName),
+		Description:               optional.FromPtr(form.Description),
+		Website:                   optional.FromPtr(form.Website),
+		Location:                  optional.FromPtr(form.Location),
+		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if ctx.Doer.IsAdmin {
-		opts.MaxRepoCreation = optional.Some(form.MaxRepoCreation)
+		opts.MaxRepoCreation = optional.FromPtr(form.MaxRepoCreation)
 	}
 
 	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
@@ -101,7 +104,7 @@ func SettingsPost(ctx *context.Context) {
 
 // SettingsAvatar response for change avatar on settings page
 func SettingsAvatar(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form := web.GetForm[*forms.AvatarForm](ctx)
 	form.Source = forms.AvatarLocal
 	if err := user_setting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -170,9 +173,14 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	hook, err := webhook.GetWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+	} else if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
+		audit.RecordScoped(ctx, ctx.Org.Organization.AsUser(), nil, audit.WebhookRemove, "webhook", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
@@ -196,7 +204,7 @@ func Labels(ctx *context.Context) {
 
 // SettingsRenamePost response for renaming organization
 func SettingsRenamePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RenameOrgForm)
+	form := web.GetForm[*forms.RenameOrgForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -213,7 +221,7 @@ func SettingsRenamePost(ctx *context.Context) {
 		return
 	}
 
-	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
 			ctx.JSONError(ctx.Tr("org.form.name_been_taken", newOrgName))
 		} else if db.IsErrNameReserved(err) {
@@ -233,9 +241,10 @@ func SettingsRenamePost(ctx *context.Context) {
 
 // SettingsChangeVisibilityPost response for change organization visibility
 func SettingsChangeVisibilityPost(ctx *context.Context) {
-	visibility, ok := structs.VisibilityModes[ctx.FormString("visibility")]
+	visibilityStr := ctx.FormString("visibility")
+	visibility, ok := structs.VisibilityModes[structs.VisibilityString(visibilityStr)]
 	if !ok {
-		ctx.Flash.Error(ctx.Tr("invalid_data", visibility))
+		ctx.Flash.Error(ctx.Tr("invalid_data", visibilityStr))
 		ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
 		return
 	}

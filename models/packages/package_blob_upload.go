@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // ErrPackageBlobUploadNotExist indicates a package blob upload not exist error
@@ -31,16 +31,13 @@ type PackageBlobUpload struct {
 
 // CreateBlobUpload inserts a blob upload
 func CreateBlobUpload(ctx context.Context) (*PackageBlobUpload, error) {
-	id, err := util.CryptoRandomString(25)
-	if err != nil {
-		return nil, err
-	}
+	id := util.CryptoRandomString(25)
 
 	pbu := &PackageBlobUpload{
 		ID: strings.ToLower(id),
 	}
 
-	_, err = db.GetEngine(ctx).Insert(pbu)
+	_, err := db.GetEngine(ctx).Insert(pbu)
 	return pbu, err
 }
 

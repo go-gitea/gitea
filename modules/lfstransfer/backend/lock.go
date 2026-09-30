@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	lfslock "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/json"
+	lfslock "gitea.dev/modules/structs"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
@@ -69,7 +69,7 @@ func (g *giteaLockBackend) Create(path, refname string) (transfer.Lock, error) {
 	var respBody lfslock.LFSLockResponse
 	err = json.Unmarshal(respBytes, &respBody)
 	if err != nil {
-		g.logger.Log("json umarshal error", err)
+		g.logger.Log("json unmarshal error", err)
 		return nil, err
 	}
 
@@ -202,7 +202,7 @@ func (g *giteaLockBackend) queryLocks(v url.Values) ([]transfer.Lock, string, er
 	var respBody lfslock.LFSLockList
 	err = json.Unmarshal(respBytes, &respBody)
 	if err != nil {
-		g.logger.Log("json umarshal error", err)
+		g.logger.Log("json unmarshal error", err)
 		return nil, "", err
 	}
 

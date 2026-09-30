@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
+	auth_model "gitea.dev/models/auth"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -43,7 +43,6 @@ func TestAPIRepoLicense(t *testing.T) {
 
 		// Save new file to master branch
 		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
-			"_csrf":         doc.GetCSRF(),
 			"last_commit":   lastCommit,
 			"tree_path":     "LICENSE",
 			"content":       testLicenseContent,
@@ -75,8 +74,7 @@ func checkRepoLicense(t *testing.T, owner, repo string, expected []string) {
 	req := NewRequest(t, "GET", reqURL)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var licenses []string
-	DecodeJSON(t, resp, &licenses)
+	licenses := DecodeJSON(t, resp, []string{})
 
 	assert.ElementsMatch(t, expected, licenses, 0)
 }

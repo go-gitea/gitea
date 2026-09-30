@@ -6,9 +6,9 @@ package oauth2
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -57,12 +57,7 @@ func TestSource(t *testing.T) {
 			err := source.refresh(t.Context(), provider, e)
 			assert.NoError(t, err)
 
-			e := &user_model.ExternalLoginUser{
-				ExternalID:    e.ExternalID,
-				LoginSourceID: e.LoginSourceID,
-			}
-
-			ok, err := user_model.GetExternalLogin(t.Context(), e)
+			e, ok, err := user_model.GetExternalLogin(t.Context(), e.LoginSourceID, e.ExternalID)
 			assert.NoError(t, err)
 			assert.True(t, ok)
 			assert.Equal(t, "refresh", e.RefreshToken)
@@ -82,12 +77,7 @@ func TestSource(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
-			e := &user_model.ExternalLoginUser{
-				ExternalID:    e.ExternalID,
-				LoginSourceID: e.LoginSourceID,
-			}
-
-			ok, err := user_model.GetExternalLogin(t.Context(), e)
+			e, ok, err := user_model.GetExternalLogin(t.Context(), e.LoginSourceID, e.ExternalID)
 			assert.NoError(t, err)
 			assert.True(t, ok)
 			assert.Empty(t, e.RefreshToken)

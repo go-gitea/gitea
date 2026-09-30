@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/log"
-	session_module "code.gitea.io/gitea/modules/session"
+	"gitea.dev/modules/log"
+	session_module "gitea.dev/modules/session"
 
 	"github.com/gorilla/sessions"
 )
@@ -94,4 +94,4 @@ func (s *sizeWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-var _ (sessions.Store) = &SessionsStore{}
+var _ sessions.Store = &SessionsStore{}

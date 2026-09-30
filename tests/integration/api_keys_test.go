@@ -9,14 +9,15 @@ import (
 	"net/url"
 	"testing"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	asymkey_model "gitea.dev/models/asymkey"
+	auth_model "gitea.dev/models/auth"
+	deploykey_model "gitea.dev/models/deploykey"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -65,13 +66,11 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newDeployKey api.DeployKey
-	DecodeJSON(t, resp, &newDeployKey)
-	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
-		ID:      newDeployKey.ID,
-		Name:    rawKeyBody.Title,
-		Content: rawKeyBody.Key,
-		Mode:    perm.AccessModeRead,
+	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
+	unittest.AssertExistsAndLoadBean(t, &deploykey_model.DeployKey{
+		ID:   newDeployKey.ID,
+		Name: rawKeyBody.Title,
+		Mode: perm.AccessModeRead,
 	})
 
 	// Using the ID of a key that does not belong to the repository must fail
@@ -104,13 +103,11 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newDeployKey api.DeployKey
-	DecodeJSON(t, resp, &newDeployKey)
-	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
-		ID:      newDeployKey.ID,
-		Name:    rawKeyBody.Title,
-		Content: rawKeyBody.Key,
-		Mode:    perm.AccessModeWrite,
+	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
+	unittest.AssertExistsAndLoadBean(t, &deploykey_model.DeployKey{
+		ID:   newDeployKey.ID,
+		Name: rawKeyBody.Title,
+		Mode: perm.AccessModeWrite,
 	})
 }
 
@@ -130,8 +127,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 
-	var newPublicKey api.PublicKey
-	DecodeJSON(t, resp, &newPublicKey)
+	newPublicKey := DecodeJSON(t, resp, &api.PublicKey{})
 	fingerprint, err := asymkey_model.CalcFingerprint(rawKeyBody.Key)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
@@ -147,8 +143,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	var fingerprintPublicKeys []api.PublicKey
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys := DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Equal(t, user.ID, fingerprintPublicKeys[0].Owner.ID)
@@ -157,7 +152,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Equal(t, user.ID, fingerprintPublicKeys[0].Owner.ID)
@@ -167,7 +162,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
 
 	// Fail searching for wrong users key
@@ -175,7 +170,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
 
 	// Now login as user 2
@@ -187,7 +182,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Nil(t, fingerprintPublicKeys[0].Owner)
@@ -197,7 +192,7 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Equal(t, newPublicKey.Fingerprint, fingerprintPublicKeys[0].Fingerprint)
 	assert.Equal(t, newPublicKey.ID, fingerprintPublicKeys[0].ID)
 	assert.Nil(t, fingerprintPublicKeys[0].Owner)
@@ -207,6 +202,34 @@ func TestCreateUserKey(t *testing.T) {
 		AddTokenAuth(token2)
 	resp = MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &fingerprintPublicKeys)
+	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
+}
+
+func TestCreateDeployToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys", repoOwner.Name, repo.Name)
+
+	req := NewRequestWithJSON(t, "POST", keysURL+"/tokens", api.CreateDeployKeyTokenOption{Title: "ci", ReadOnly: true}).
+		AddTokenAuth(token)
+	created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.DeployKey{})
+	assert.NotEmpty(t, created.Token)
+	assert.True(t, created.ReadOnly)
+
+	// a token is listed and deleted like a deploy key, but it is never readable again
+	resp := MakeRequest(t, NewRequest(t, "GET", keysURL).AddTokenAuth(token), http.StatusOK)
+	listed := DecodeJSON(t, resp, []api.DeployKey{})
+	assert.Len(t, listed, 1)
+	assert.NotContains(t, resp.Body.String(), created.Token)
+	assert.Equal(t, created.Fingerprint, listed[0].Fingerprint)
+	assert.Contains(t, created.Fingerprint, "********")
+
+	MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", keysURL, created.ID)).AddTokenAuth(token), http.StatusNoContent)
+	resp = MakeRequest(t, NewRequest(t, "GET", keysURL).AddTokenAuth(token), http.StatusOK)
+	assert.Empty(t, DecodeJSON(t, resp, []api.DeployKey{}))
 }

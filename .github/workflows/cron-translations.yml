@@ -5,13 +5,17 @@ on:
     - cron: "7 0 * * *" # every day at 00:07 UTC
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   crowdin-pull:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: crowdin/github-action@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: crowdin/github-action@df474cdfb9f41d6ae777118749477c2cdf7cacc8 # v3.2.0
         with:
           upload_sources: true
           upload_translations: false
@@ -27,7 +31,7 @@ jobs:
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
-        uses: appleboy/git-push-action@v0.0.3
+        uses: appleboy/git-push-action@3b2c8661652360dbf1afe1b319a49dbb739c39f1 # v1.2.0
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot

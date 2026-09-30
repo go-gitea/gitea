@@ -5,30 +5,23 @@
 package migrations
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/graceful"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/structs"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGiteaUploadRepo(t *testing.T) {
@@ -39,14 +32,15 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
+	ctx := t.Context()
+	downloader, err := NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
+	require.NoError(t, err)
 	var (
-		ctx        = t.Context()
-		downloader = NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
-		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
-		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
+		repoName = "builder-" + time.Now().Format("2006-01-02-15-04-05")
+		uploader = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	err := migrateRepository(t.Context(), user, downloader, uploader, base.MigrateOptions{
+	err = migrateRepository(t.Context(), user, downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
@@ -227,298 +221,4 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	err = uploader.remapUser(ctx, &source, &target)
 	assert.NoError(t, err)
 	assert.Equal(t, linkedUser.ID, target.GetUserID())
-}
-
-func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-
-	//
-	// fromRepo master
-	//
-	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	baseRef := "master"
-	// this is very different from the real situation. It should be a bare repository for all the Gitea managed repositories
-	assert.NoError(t, git.InitRepository(t.Context(), fromRepo.RepoPath(), false, fromRepo.ObjectFormatName))
-	err := gitrepo.RunCmd(t.Context(), fromRepo, gitcmd.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseRef))
-	assert.NoError(t, err)
-	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+fromRepo.RepoPath()), 0o644))
-	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
-	signature := git.Signature{
-		Email: "test@example.com",
-		Name:  "test",
-		When:  time.Now(),
-	}
-	assert.NoError(t, git.CommitChanges(t.Context(), fromRepo.RepoPath(), git.CommitChangesOptions{
-		Committer: &signature,
-		Author:    &signature,
-		Message:   "Initial Commit",
-	}))
-	fromGitRepo, err := gitrepo.OpenRepository(t.Context(), fromRepo)
-	assert.NoError(t, err)
-	defer fromGitRepo.Close()
-	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
-	assert.NoError(t, err)
-
-	//
-	// fromRepo branch1
-	//
-	headRef := "branch1"
-	_, err = gitrepo.RunCmdString(t.Context(), fromRepo, gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(headRef))
-	assert.NoError(t, err)
-	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
-	assert.NoError(t, git.AddChanges(t.Context(), fromRepo.RepoPath(), true))
-	signature.When = time.Now()
-	assert.NoError(t, git.CommitChanges(t.Context(), fromRepo.RepoPath(), git.CommitChangesOptions{
-		Committer: &signature,
-		Author:    &signature,
-		Message:   "Pull request",
-	}))
-	assert.NoError(t, err)
-	headSHA, err := fromGitRepo.GetBranchCommitID(headRef)
-	assert.NoError(t, err)
-
-	fromRepoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: fromRepo.OwnerID})
-
-	//
-	// forkRepo branch2
-	//
-	forkHeadRef := "branch2"
-	forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
-	assert.NoError(t, git.Clone(t.Context(), fromRepo.RepoPath(), forkRepo.RepoPath(), git.CloneRepoOptions{
-		Branch: headRef,
-	}))
-	_, err = gitrepo.RunCmdString(t.Context(), forkRepo, gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(forkHeadRef))
-	assert.NoError(t, err)
-	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte("# branch2 "+forkRepo.RepoPath()), 0o644))
-	assert.NoError(t, git.AddChanges(t.Context(), forkRepo.RepoPath(), true))
-	assert.NoError(t, git.CommitChanges(t.Context(), forkRepo.RepoPath(), git.CommitChangesOptions{
-		Committer: &signature,
-		Author:    &signature,
-		Message:   "branch2 commit",
-	}))
-	forkGitRepo, err := gitrepo.OpenRepository(t.Context(), forkRepo)
-	assert.NoError(t, err)
-	defer forkGitRepo.Close()
-	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)
-	assert.NoError(t, err)
-
-	toRepoName := "migrated"
-	ctx := t.Context()
-	uploader := NewGiteaLocalUploader(ctx, fromRepoOwner, fromRepoOwner.Name, toRepoName)
-	uploader.gitServiceType = structs.GiteaService
-
-	assert.NoError(t, repo_service.Init(t.Context()))
-	assert.NoError(t, uploader.CreateRepo(ctx, &base.Repository{
-		Description: "description",
-		OriginalURL: fromRepo.RepoPath(),
-		CloneURL:    fromRepo.RepoPath(),
-		IsPrivate:   false,
-		IsMirror:    true,
-	}, base.MigrateOptions{
-		GitServiceType: structs.GiteaService,
-		Private:        false,
-		Mirror:         true,
-	}))
-
-	for _, testCase := range []struct {
-		name        string
-		head        string
-		logFilter   []string
-		logFiltered []bool
-		pr          base.PullRequest
-	}{
-		{
-			name: "fork, good Head.SHA",
-			head: fmt.Sprintf("%s/%s", forkRepo.OwnerName, forkHeadRef),
-			pr: base.PullRequest{
-				PatchURL: "",
-				Number:   1,
-				State:    "open",
-				Base: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       baseRef,
-					SHA:       baseSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-				Head: base.PullRequestBranch{
-					CloneURL:  forkRepo.RepoPath(),
-					Ref:       forkHeadRef,
-					SHA:       forkHeadSHA,
-					RepoName:  forkRepo.Name,
-					OwnerName: forkRepo.OwnerName,
-				},
-			},
-		},
-		{
-			name: "fork, invalid Head.Ref",
-			head: "unknown repository",
-			pr: base.PullRequest{
-				PatchURL: "",
-				Number:   1,
-				State:    "open",
-				Base: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       baseRef,
-					SHA:       baseSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-				Head: base.PullRequestBranch{
-					CloneURL:  forkRepo.RepoPath(),
-					Ref:       "INVALID",
-					SHA:       forkHeadSHA,
-					RepoName:  forkRepo.Name,
-					OwnerName: forkRepo.OwnerName,
-				},
-			},
-			logFilter:   []string{"Fetch branch from"},
-			logFiltered: []bool{true},
-		},
-		{
-			name: "invalid fork CloneURL",
-			head: "unknown repository",
-			pr: base.PullRequest{
-				PatchURL: "",
-				Number:   1,
-				State:    "open",
-				Base: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       baseRef,
-					SHA:       baseSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-				Head: base.PullRequestBranch{
-					CloneURL:  "UNLIKELY",
-					Ref:       forkHeadRef,
-					SHA:       forkHeadSHA,
-					RepoName:  forkRepo.Name,
-					OwnerName: "WRONG",
-				},
-			},
-			logFilter:   []string{"AddRemote"},
-			logFiltered: []bool{true},
-		},
-		{
-			name: "no fork, good Head.SHA",
-			head: headRef,
-			pr: base.PullRequest{
-				PatchURL: "",
-				Number:   1,
-				State:    "open",
-				Base: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       baseRef,
-					SHA:       baseSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-				Head: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       headRef,
-					SHA:       headSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-			},
-		},
-		{
-			name: "no fork, empty Head.SHA",
-			head: headRef,
-			pr: base.PullRequest{
-				PatchURL: "",
-				Number:   1,
-				State:    "open",
-				Base: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       baseRef,
-					SHA:       baseSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-				Head: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       headRef,
-					SHA:       "",
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-			},
-			logFilter:   []string{"Empty reference", "Cannot remove local head"},
-			logFiltered: []bool{true, false},
-		},
-		{
-			name: "no fork, invalid Head.SHA",
-			head: headRef,
-			pr: base.PullRequest{
-				PatchURL: "",
-				Number:   1,
-				State:    "open",
-				Base: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       baseRef,
-					SHA:       baseSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-				Head: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       headRef,
-					SHA:       "brokenSHA",
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-			},
-			logFilter:   []string{"Deprecated local head"},
-			logFiltered: []bool{true},
-		},
-		{
-			name: "no fork, not found Head.SHA",
-			head: headRef,
-			pr: base.PullRequest{
-				PatchURL: "",
-				Number:   1,
-				State:    "open",
-				Base: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       baseRef,
-					SHA:       baseSHA,
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-				Head: base.PullRequestBranch{
-					CloneURL:  fromRepo.RepoPath(),
-					Ref:       headRef,
-					SHA:       "2697b352310fcd01cbd1f3dbd43b894080027f68",
-					RepoName:  fromRepo.Name,
-					OwnerName: fromRepo.OwnerName,
-				},
-			},
-			logFilter:   []string{"Deprecated local head", "Cannot remove local head"},
-			logFiltered: []bool{true, false},
-		},
-	} {
-		t.Run(testCase.name, func(t *testing.T) {
-			stopMark := fmt.Sprintf(">>>>>>>>>>>>>STOP: %s<<<<<<<<<<<<<<<", testCase.name)
-
-			logChecker, cleanup := test.NewLogChecker(log.DEFAULT)
-			logChecker.Filter(testCase.logFilter...).StopMark(stopMark)
-			defer cleanup()
-
-			testCase.pr.EnsuredSafe = true
-
-			head, err := uploader.updateGitForPullRequest(ctx, &testCase.pr)
-			assert.NoError(t, err)
-			assert.Equal(t, testCase.head, head)
-
-			log.Info(stopMark)
-
-			logFiltered, logStopped := logChecker.Check(5 * time.Second)
-			assert.True(t, logStopped)
-			if len(testCase.logFilter) > 0 {
-				assert.Equal(t, testCase.logFiltered, logFiltered, "for log message filters: %v", testCase.logFilter)
-			}
-		})
-	}
 }

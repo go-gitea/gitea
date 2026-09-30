@@ -8,14 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	repo_service "code.gitea.io/gitea/services/repository"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -60,6 +61,36 @@ func TestTeam_RemoveMember(t *testing.T) {
 
 	err := RemoveTeamMember(t.Context(), team1, user2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
+}
+
+func TestRemoveTeamMemberRemovesSubscriptionsAndStopwatches(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
+
+	assert.NoError(t, repo_model.WatchRepoAuto(ctx, user, repo, true))
+	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(ctx, user.ID, issue.ID, true))
+	ok, err := issues_model.CreateIssueStopwatch(ctx, user, issue)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+
+	assert.NoError(t, RemoveTeamMember(ctx, team, user))
+
+	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
+	assert.NoError(t, err)
+	assert.False(t, repo_model.IsWatchModeWatching(watch.Mode))
+
+	_, exists, err := issues_model.GetIssueWatch(ctx, user.ID, issue.ID)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	hasStopwatch, _, _, err := issues_model.HasUserStopwatch(ctx, user.ID)
+	assert.NoError(t, err)
+	assert.False(t, hasStopwatch)
 }
 
 func TestNewTeam(t *testing.T) {

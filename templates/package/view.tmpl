@@ -3,12 +3,14 @@
 <div role="main" aria-label="{{.Title}}" class="page-content organization packages">
 	{{template "org/header" .}}
 	<div class="ui container">
+		{{template "base/alert" .}}
 		{{template "package/shared/view" .}}
 	</div>
 </div>
 {{else}}
 <div role="main" aria-label="{{.Title}}" class="page-content user profile packages">
 	<div class="ui container">
+		{{template "base/alert" .}}
 		<div class="ui stackable grid">
 			<div class="ui four wide column">
 				{{template "shared/user/profile_big_avatar" .}}

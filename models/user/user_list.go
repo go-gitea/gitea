@@ -6,7 +6,7 @@ package user
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 func GetUsersMapByIDs(ctx context.Context, userIDs []int64) (map[int64]*User, error) {
@@ -31,18 +31,15 @@ func GetUsersMapByIDs(ctx context.Context, userIDs []int64) (map[int64]*User, er
 }
 
 func GetPossibleUserFromMap(userID int64, usererMaps map[int64]*User) *User {
-	switch userID {
-	case GhostUserID:
-		return NewGhostUser()
-	case ActionsUserID:
-		return NewActionsUser()
-	case 0:
+	if userID == 0 {
 		return nil
-	default:
-		user, ok := usererMaps[userID]
-		if !ok {
-			return NewGhostUser()
-		}
-		return user
 	}
+	if newFunc, ok := globalVars().systemUserNewFuncs[userID]; ok {
+		return newFunc()
+	}
+	user, ok := usererMaps[userID]
+	if !ok {
+		return NewGhostUser()
+	}
+	return user
 }

@@ -11,6 +11,7 @@ type Repository struct {
 	IsPrivate     bool `yaml:"is_private"`
 	IsMirror      bool `yaml:"is_mirror"`
 	Description   string
+	Website       string
 	CloneURL      string `yaml:"clone_url"` // SECURITY: This must be checked to ensure that is safe to be used
 	OriginalURL   string `yaml:"original_url"`
 	DefaultBranch string

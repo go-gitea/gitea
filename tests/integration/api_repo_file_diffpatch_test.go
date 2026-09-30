@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -50,8 +50,7 @@ func TestAPIApplyDiffPatchFileOptions(t *testing.T) {
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/diffpatch", getApplyDiffPatchFileOptions()).AddTokenAuth(token2)
 		resp := MakeRequest(t, req, http.StatusCreated)
-		var fileResponse api.FileResponse
-		DecodeJSON(t, resp, &fileResponse)
+		fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 		assert.Nil(t, fileResponse.Content)
 		assert.NotEmpty(t, fileResponse.Commit.HTMLURL)
 		req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/raw/patch-file-1.txt")

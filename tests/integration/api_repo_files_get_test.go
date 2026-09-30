@@ -9,17 +9,17 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,10 +42,10 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
+	lastCommit, _ := gitRepo.GetCommitByPath(t.Context(), "README.md")
 
 	requestFiles := func(t *testing.T, url string, files []string, expectedStatusCode ...int) (ret []*api.ContentsResponse) {
 		req := NewRequestWithJSON(t, "POST", url, &api.GetFilesOptions{Files: files})
@@ -53,7 +53,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		if resp.Code != http.StatusOK {
 			return nil
 		}
-		DecodeJSON(t, resp, &ret)
+		ret = DecodeJSON(t, resp, []*api.ContentsResponse{})
 		return ret
 	}
 
@@ -62,33 +62,49 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		reqBodyParam, _ := json.Marshal(reqBodyOpt)
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/file-contents?body="+url.QueryEscape(string(reqBodyParam)))
 		resp := MakeRequest(t, req, http.StatusOK)
-		var ret []*api.ContentsResponse
-		DecodeJSON(t, resp, &ret)
-		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
+		ret := DecodeJSON(t, resp, []*api.ContentsResponse{})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("master", "refs/heads/master", lastCommit.ID.String())}
 		assert.Equal(t, expected, ret)
 	})
 	t.Run("User2NoRef", func(t *testing.T) {
 		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents", []string{"README.md"})
-		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("master", "refs/heads/master", lastCommit.ID.String())}
 		assert.Equal(t, expected, ret)
 	})
 	t.Run("User2RefBranch", func(t *testing.T) {
 		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=master", []string{"README.md"})
-		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("master", "refs/heads/master", lastCommit.ID.String())}
 		assert.Equal(t, expected, ret)
 	})
 	t.Run("User2RefTag", func(t *testing.T) {
 		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=v1.1", []string{"README.md"})
-		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("v1.1", "tag", lastCommit.ID.String())}
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("v1.1", "refs/tags/v1.1", lastCommit.ID.String())}
 		assert.Equal(t, expected, ret)
 	})
 	t.Run("User2RefCommit", func(t *testing.T) {
-		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=65f1bf27bc3bf70f64657658635e66094edbcb4d", []string{"README.md"})
-		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("65f1bf27bc3bf70f64657658635e66094edbcb4d", "commit", lastCommit.ID.String())}
+		commitID := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+commitID, []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(commitID, git.RefNameFromCommit(commitID), lastCommit.ID.String())}
 		assert.Equal(t, expected, ret)
 	})
 	t.Run("User2RefNotExist", func(t *testing.T) {
 		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=not-exist", []string{"README.md"}, http.StatusNotFound)
+		assert.Empty(t, ret)
+	})
+	t.Run("User2RefFullBranch", func(t *testing.T) {
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=refs/heads/master", []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("refs/heads/master", "refs/heads/master", lastCommit.ID.String())}
+		assert.Equal(t, expected, ret)
+	})
+	t.Run("User2RefFullTag", func(t *testing.T) {
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=refs/tags/v1.1", []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("refs/tags/v1.1", "refs/tags/v1.1", lastCommit.ID.String())}
+		assert.Equal(t, expected, ret)
+	})
+	t.Run("User2RefInternalPullRejected", func(t *testing.T) {
+		// repo1 has refs/pull/2/head in fixtures; contents API must not resolve it
+		assert.True(t, git.IsReferenceExist(t.Context(), gitRepo, "refs/pull/2/head"))
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape("refs/pull/2/head"), []string{"README.md"}, http.StatusNotFound)
 		assert.Empty(t, ret)
 	})
 

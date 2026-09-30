@@ -7,14 +7,15 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // ToRepo converts a Repository to api.Repository
@@ -34,7 +35,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		permissionInRepo.SetUnitsWithDefaultAccessMode(repo.Units, permissionInRepo.AccessMode)
 	}
 
-	// TODO: ideally we should pass "doer" into "ToRepo" to to make CloneLink could generate user-related links
+	// TODO: ideally we should pass "doer" into "ToRepo" to make CloneLink could generate user-related links
 	// And passing "doer" in will also fix other FIXMEs in this file.
 	cloneLink := repo.CloneLinkGeneral(ctx) // no doer at the moment
 	permission := &api.Permission{
@@ -97,12 +98,15 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	allowRebaseMerge := false
 	allowSquash := false
 	allowFastForwardOnly := false
+	allowMergeUpdate := false
 	allowRebaseUpdate := false
 	allowManualMerge := true
 	autodetectManualMerge := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
+	defaultUpdateStyle := repo_model.UpdateStyleMerge
 	defaultAllowMaintainerEdit := false
+	defaultTargetBranch := ""
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -112,12 +116,15 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
 		allowFastForwardOnly = config.AllowFastForwardOnly
+		allowMergeUpdate = config.AllowMergeUpdate
 		allowRebaseUpdate = config.AllowRebaseUpdate
 		allowManualMerge = config.AllowManualMerge
 		autodetectManualMerge = config.AutodetectManualMerge
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
-		defaultMergeStyle = config.GetDefaultMergeStyle()
+		defaultMergeStyle = config.DefaultMergeStyle
+		defaultUpdateStyle = config.DefaultUpdateStyle
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
+		defaultTargetBranch = config.DefaultTargetBranch
 	}
 	hasProjects := false
 	projectsMode := repo_model.ProjectsModeAll
@@ -127,20 +134,10 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		projectsMode = config.ProjectsMode
 	}
 
-	hasReleases := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeReleases); err == nil {
-		hasReleases = true
-	}
-
-	hasPackages := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypePackages); err == nil {
-		hasPackages = true
-	}
-
-	hasActions := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeActions); err == nil {
-		hasActions = true
-	}
+	hasCode := repo.UnitEnabled(ctx, unit_model.TypeCode)
+	hasReleases := repo.UnitEnabled(ctx, unit_model.TypeReleases)
+	hasPackages := repo.UnitEnabled(ctx, unit_model.TypePackages)
+	hasActions := repo.UnitEnabled(ctx, unit_model.TypeActions)
 
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil
@@ -152,13 +149,20 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		RepoID:        repo.ID,
 	})
 
+	branchCount, err := git_model.CountBranches(ctx, repo.ID, false)
+	if err != nil {
+		log.Error("CountBranches [%d]: %v", repo.ID, err)
+	}
+
 	mirrorInterval := ""
 	var mirrorUpdated time.Time
+	var lastSync time.Time
 	if repo.IsMirror {
 		pullMirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 		if err == nil {
 			mirrorInterval = pullMirror.Interval.String()
 			mirrorUpdated = pullMirror.UpdatedUnix.AsTime()
+			lastSync = pullMirror.LastSyncUnix.AsTime()
 		}
 	}
 
@@ -213,6 +217,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Stars:                         repo.NumStars,
 		Forks:                         repo.NumForks,
 		Watchers:                      repo.NumWatches,
+		BranchCount:                   int(branchCount),
 		OpenIssues:                    repo.NumOpenIssues,
 		OpenPulls:                     repo.NumOpenPulls,
 		Releases:                      int(numReleases),
@@ -221,6 +226,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Updated:                       repo.UpdatedUnix.AsTime(),
 		ArchivedAt:                    repo.ArchivedUnix.AsTime(),
 		Permissions:                   permission,
+		HasCode:                       hasCode,
 		HasIssues:                     hasIssues,
 		ExternalTracker:               externalTracker,
 		InternalTracker:               internalTracker,
@@ -238,19 +244,23 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AllowRebaseMerge:              allowRebaseMerge,
 		AllowSquash:                   allowSquash,
 		AllowFastForwardOnly:          allowFastForwardOnly,
+		AllowMergeUpdate:              allowMergeUpdate,
 		AllowRebaseUpdate:             allowRebaseUpdate,
 		AllowManualMerge:              allowManualMerge,
 		AutodetectManualMerge:         autodetectManualMerge,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
+		DefaultUpdateStyle:            string(defaultUpdateStyle),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
+		DefaultTargetBranch:           defaultTargetBranch,
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+		MirrorLastSyncAt:              lastSync,
 		MirrorInterval:                mirrorInterval,
 		MirrorUpdated:                 mirrorUpdated,
 		RepoTransfer:                  transfer,
 		Topics:                        util.SliceNilAsEmpty(repo.Topics),
-		ObjectFormatName:              repo.ObjectFormatName,
+		ObjectFormatName:              api.ObjectFormatName(repo.ObjectFormatName),
 		Licenses:                      util.SliceNilAsEmpty(repoLicenses.StringList()),
 	}
 }

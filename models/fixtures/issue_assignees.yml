@@ -18,3 +18,5 @@
   id: 5
   assignee_id: 10
   issue_id: 6
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

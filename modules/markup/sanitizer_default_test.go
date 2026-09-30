@@ -58,6 +58,15 @@ func TestSanitizer(t *testing.T) {
 		`<a href="cbthunderlink://somebase64string)">my custom URL scheme</a>`, `<a href="cbthunderlink://somebase64string)" rel="nofollow">my custom URL scheme</a>`,
 		`<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join">my custom URL scheme</a>`, `<a href="matrix:roomid/psumPMeAfzgAeQpXMG:feneas.org?action=join" rel="nofollow">my custom URL scheme</a>`,
 
+		// picture
+		`<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`, `<picture><source media="a"><source media="b"><img alt="c" src="d"></picture>`,
+
+		// MathML
+		`<math display="block" class="foo"><mi mathcolor="c" class="bar"></mi></math>`, `<math display="block"><mi mathcolor="c"></mi></math>`,
+		`<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><msqrt><mn>2</mn></msqrt></mfrac></math>`, `<math><mfrac><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><msqrt><mn>2</mn></msqrt></mfrac></math>`,
+		`<math><mtable><mtr><mtd rowspan="2" columnspan="2"><mn>1</mn></mtd></mtr></mtable></math>`, `<math><mtable><mtr><mtd rowspan="2" columnspan="2"><mn>1</mn></mtd></mtr></mtable></math>`,
+		`<math><maction actiontype="toggle" selection="2"><mi intent="power($b,$e)" arg="b">x</mi><mn>2</mn></maction></math>`, `<math><maction actiontype="toggle" selection="2"><mi intent="power($b,$e)" arg="b">x</mi><mn>2</mn></maction></math>`,
+
 		// Disallow dangerous url schemes
 		`<a href="javascript:alert('xss')">bad</a>`, `bad`,
 		`<a href="vbscript:no">bad</a>`, `bad`,
@@ -69,6 +78,6 @@ func TestSanitizer(t *testing.T) {
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		assert.Equal(t, testCases[i+1], string(Sanitize(testCases[i])))
+		assert.Equal(t, testCases[i+1], string(Sanitize(testCases[i])), "input: %s", testCases[i])
 	}
 }

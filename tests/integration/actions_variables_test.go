@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/tests"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,17 +50,14 @@ func TestActionsVariables(t *testing.T) {
 
 	doUpdate := func(t *testing.T, sess *TestSession, baseURL string, id int64, data string, expectedStatus int) {
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d/edit", baseURL, id), map[string]string{
-			"_csrf": GetUserCSRFToken(t, sess),
-			"name":  "VAR",
-			"data":  data,
+			"name": "VAR",
+			"data": data,
 		})
 		sess.MakeRequest(t, req, expectedStatus)
 	}
 
 	doDelete := func(t *testing.T, sess *TestSession, baseURL string, id int64, expectedStatus int) {
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d/delete", baseURL, id), map[string]string{
-			"_csrf": GetUserCSRFToken(t, sess),
-		})
+		req := NewRequest(t, "POST", fmt.Sprintf("%s/%d/delete", baseURL, id))
 		sess.MakeRequest(t, req, expectedStatus)
 	}
 

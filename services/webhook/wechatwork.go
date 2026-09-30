@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"strings"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 type (
@@ -77,7 +77,7 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 
 	title := fmt.Sprintf("# %s:%s <font color=\"warning\">  %s  </font>", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
+	var text strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
@@ -86,15 +86,15 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 		}
 
 		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
-		text += fmt.Sprintf(" > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
+		fmt.Fprintf(&text, " > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
 			message, authorName)
 
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\n"
+			text.WriteString("\n")
 		}
 	}
-	return newWechatworkMarkdownPayload(title + "\r\n\r\n" + text), nil
+	return newWechatworkMarkdownPayload(title + "\r\n\r\n" + text.String()), nil
 }
 
 // Issue implements PayloadConvertor Issue method
@@ -149,6 +149,9 @@ func (wc wechatworkConvertor) Repository(p *api.RepositoryPayload) (WechatworkPa
 		return newWechatworkMarkdownPayload(title), nil
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
+		return newWechatworkMarkdownPayload(title), nil
+	case api.HookRepoRenamed:
+		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
 		return newWechatworkMarkdownPayload(title), nil
 	}
 

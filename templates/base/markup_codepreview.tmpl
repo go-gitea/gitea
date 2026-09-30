@@ -13,10 +13,7 @@
 			{{- range $idx, $line := .HighlightLines -}}
 			<tr>
 				<td class="lines-num"><span data-line-number="{{$line.Num}}"></span></td>
-				{{- if $.EscapeStatus.Escaped -}}
-					{{- $lineEscapeStatus := index $.LineEscapeStatus $idx -}}
-					<td class="lines-escape">{{if $lineEscapeStatus.Escaped}}<a href="#" class="toggle-escape-button btn interact-bg" title="{{if $lineEscapeStatus.HasInvisible}}{{ctx.Locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $lineEscapeStatus.HasAmbiguous}}{{ctx.Locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
-				{{- end}}
+				{{- ctx.RenderUtils.RenderUnicodeEscapeToggleTd $.EscapeStatus (index $.LineEscapeStatus $idx)}}
 				<td class="lines-code chroma"><div class="code-inner">{{$line.FormattedContent}}</div></td>{{/* only div works, span generates incorrect HTML structure */}}
 			</tr>
 			{{- end -}}

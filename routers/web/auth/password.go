@@ -7,20 +7,21 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/mailer"
-	user_service "code.gitea.io/gitea/services/user"
+	audit_model "gitea.dev/models/audit"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/password"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/mailer"
+	user_service "gitea.dev/services/user"
 )
 
 var (
@@ -61,6 +62,9 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Email"] = email
 
 	u, err := user_model.GetUserByEmail(ctx, email)
+	if err == nil && !u.IsIndividual() {
+		err = user_model.ErrUserNotExist{}
+	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
@@ -75,7 +79,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	if !u.IsLocal() && !u.IsOAuth2() {
 		ctx.Data["Err_Email"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("auth.non_local_account"), tplForgotPassword, nil)
 		return
 	}
 
@@ -86,6 +90,10 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 
 	mailer.SendResetPasswordMail(u)
+
+	// the request is unauthenticated, so the affected account is the only actor
+	// we can name; the recorded IP address carries the forensic signal
+	audit.RecordAs(ctx, u, audit_model.UserPasswordResetRequest, u)
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -172,27 +180,21 @@ func ResetPasswdPost(ctx *context.Context) {
 			if !twofa.VerifyScratchToken(ctx.FormString("token")) {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Token"] = true
-				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
+				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
 				return
 			}
 			regenerateScratchToken = true
 		} else {
 			passcode := ctx.FormString("passcode")
-			ok, err := twofa.ValidateTOTP(passcode)
+			ok, err := twofa.ValidateAndConsumeTOTP(ctx, passcode)
 			if err != nil {
-				ctx.HTTPError(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				ctx.HTTPError(http.StatusInternalServerError, "ValidateAndConsumeTOTP", err.Error())
 				return
 			}
-			if !ok || twofa.LastUsedPasscode == passcode {
+			if !ok {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
-				ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
-				return
-			}
-
-			twofa.LastUsedPasscode = passcode
-			if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-				ctx.ServerError("ResetPasswdPost: UpdateTwoFactor", err)
+				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
 				return
 			}
 		}
@@ -207,13 +209,13 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 		case errors.Is(err, password.ErrComplexity):
-			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplResetPassword, nil)
 		case errors.Is(err, password.ErrIsPwned):
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplResetPassword, nil)
 		case password.IsErrIsPwnedRequest(err):
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplResetPassword, nil)
 		default:
 			ctx.ServerError("UpdateAuth", err)
 		}
@@ -236,13 +238,26 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		handleSignInFull(ctx, u, remember, false)
+		handleSignInFull(ctx, u, remember)
 		if ctx.Written() {
 			return
 		}
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
+	}
+
+	// the reset form only carries a TOTP field, so a WebAuthn-only user finishes on its own page
+	if twofa == nil {
+		hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+			return
+		}
+		if hasWebAuthn {
+			handleTwoFactorRequired(ctx, u, remember, nil)
+			return
+		}
 	}
 
 	handleSignIn(ctx, u, remember)
@@ -259,7 +274,7 @@ func MustChangePassword(ctx *context.Context) {
 // MustChangePasswordPost response for updating a user's password after their
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.MustChangePasswordForm)
+	form := web.GetForm[*forms.MustChangePasswordForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 	if ctx.HasError() {
@@ -276,7 +291,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	if form.Password != form.Retype {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplMustChangePassword, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.password_not_match"), tplMustChangePassword, &form)
 		return
 	}
 
@@ -288,16 +303,16 @@ func MustChangePasswordPost(ctx *context.Context) {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
 		case errors.Is(err, password.ErrComplexity):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplMustChangePassword, &form)
 		case errors.Is(err, password.ErrIsPwned):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords"), tplMustChangePassword, &form)
 		case password.IsErrIsPwnedRequest(err):
 			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplMustChangePassword, &form)
 		default:
 			ctx.ServerError("UpdateAuth", err)
 		}
@@ -308,11 +323,5 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", ctx.Doer.Name)
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToCurrentSite(redirectTo)
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/")
+	redirectAfterAuth(ctx)
 }

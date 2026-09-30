@@ -88,6 +88,11 @@
 		<label>{{ctx.Locale.Tr "admin.auths.oauth2_ssh_public_key_claim_name"}}</label>
 		<input name="oauth2_ssh_public_key_claim_name" value="{{.oauth2_ssh_public_key_claim_name}}" placeholder="sshpubkey">
 	</div>
+	<div class="open_id_connect_external_id_claim field">
+		<label for="open_id_connect_external_id_claim">{{ctx.Locale.Tr "admin.auths.open_id_connect_external_id_claim"}}</label>
+		<input id="open_id_connect_external_id_claim" name="open_id_connect_external_id_claim" value="{{.open_id_connect_external_id_claim}}" placeholder="sub">
+		<p class="help">{{ctx.Locale.Tr "admin.auths.open_id_connect_external_id_claim_helper"}}</p>
+	</div>
 	<div class="field">
 		<label for="oauth2_required_claim_name">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>
 		<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" value="{{.oauth2_required_claim_name}}">

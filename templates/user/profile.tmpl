@@ -18,6 +18,7 @@
 				{{else if eq .TabName "stars"}}
 					<div class="stars">
 						{{template "shared/repo/search" .}}
+						<div class="divider"></div>
 						{{template "shared/repo/list" .}}
 						{{template "base/paginate" .}}
 					</div>
@@ -31,6 +32,7 @@
 					{{template "repo/user_cards" .}}
 				{{else}}
 					{{template "shared/repo/search" .}}
+					<div class="divider"></div>
 					{{template "shared/repo/list" .}}
 					{{template "base/paginate" .}}
 				{{end}}

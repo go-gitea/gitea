@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/process"
+	"gitea.dev/modules/process"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -20,7 +20,7 @@ var manager *Manager
 // Manager is the nosql connection manager
 type Manager struct {
 	ctx      context.Context
-	finished context.CancelFunc
+	finished process.FinishedFunc
 	mutex    sync.Mutex
 
 	RedisConnections   map[string]*redisClientHolder

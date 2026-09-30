@@ -10,15 +10,17 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
 )
 
 // AuthorizedStringCommentPrefix is a magic tag
@@ -50,12 +52,42 @@ func WriteAuthorizedStringForValidKey(key *PublicKey, w io.Writer) error {
 	return err
 }
 
+var globalVars = sync.OnceValue(func() (ret struct {
+	principalRegexp *regexp.Regexp
+},
+) {
+	// principalRegexp expresses whether a principal is considered valid.
+	// This reverse engineers how sshd parses the authorized keys file,
+	// see e.g. https://github.com/openssh/openssh-portable/blob/32deb00b38b4ee2b3302f261ea1e68c04e020a08/auth2-pubkeyfile.c#L221-L256
+	// Any newline or # comment will be stripped when parsing, so don't allow
+	// those. Also, if any space or tab is present in the principal, the part
+	// proceeding this would be parsed as an option, so just avoid any whitespace
+	// altogether.
+	ret.principalRegexp = regexp.MustCompile(`^[^\s#]+$`)
+	return ret
+})
+
 func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, err error) {
-	const tpl = AuthorizedStringCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,no-user-rc,restrict %s %s` + "\n"
-	pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
-	if err != nil {
-		return false, err
+	const tpl = AuthorizedStringCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,no-user-rc,restrict %s` + "\n"
+
+	var sshKey string
+
+	if key.Type == KeyTypePrincipal {
+		// TODO: actually using PublicKey to store "principal" is an abuse
+		if !globalVars().principalRegexp.MatchString(key.Content) {
+			return false, fmt.Errorf("invalid principal key: %s", key.Content)
+		}
+		sshKey = fmt.Sprintf("%s # user-%d", key.Content, key.OwnerID)
+	} else {
+		pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
+		if err != nil {
+			return false, err
+		}
+
+		sshKeyMarshalled := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pubKey)))
+		sshKey = fmt.Sprintf("%s user-%d", sshKeyMarshalled, key.OwnerID)
 	}
+
 	// now the key is valid, the code below could only return template/IO related errors
 	sbCmd := &strings.Builder{}
 	err = setting.SSH.AuthorizedKeysCommandTemplateTemplate.Execute(sbCmd, map[string]any{
@@ -69,9 +101,7 @@ func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, er
 		return true, err
 	}
 	sshCommandEscaped := util.ShellEscape(sbCmd.String())
-	sshKeyMarshalled := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pubKey)))
-	sshKeyComment := fmt.Sprintf("user-%d", key.OwnerID)
-	_, err = fmt.Fprintf(w, tpl, sshCommandEscaped, sshKeyMarshalled, sshKeyComment)
+	_, err = fmt.Fprintf(w, tpl, sshCommandEscaped, sshKey)
 	return true, err
 }
 
@@ -133,8 +163,8 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(ctx context.Context, t io.Writer) error {
-	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
-		return WriteAuthorizedStringForValidKey(bean.(*PublicKey), t)
+	if err := db.Iterate(ctx, builder.Neq{"type": KeyTypePrincipal}, func(ctx context.Context, key *PublicKey) error {
+		return WriteAuthorizedStringForValidKey(key, t)
 	}); err != nil {
 		return err
 	}

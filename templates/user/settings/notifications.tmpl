@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings")}}
+{{template "user/settings/layout_head" (dict "pageClass" "user settings")}}
 	<div class="user-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "notifications"}}
@@ -7,7 +7,6 @@
 			<div class="ui list flex-items-block">
 				<div class="item">
 					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/email" method="post">
-						{{$.CsrfTokenHtml}}
 						<div class="field">
 							<label>{{ctx.Locale.Tr "settings.email_desc"}}</label>
 							<div class="ui selection dropdown">
@@ -23,7 +22,7 @@
 							</div>
 						</div>
 						<div class="field">
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
+							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
 						</div>
 					</form>
 				</div>
@@ -38,7 +37,6 @@
 			<div class="ui list flex-items-block">
 				<div class="item">
 					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/actions" method="post">
-						{{$.CsrfTokenHtml}}
 						<div class="field">
 							<label>{{ctx.Locale.Tr "settings.email_notifications.actions.desc" "https://docs.gitea.com/usage/actions/overview/"}}</label>
 							<div class="ui selection dropdown">
@@ -53,7 +51,7 @@
 							</div>
 						</div>
 						<div class="field">
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
+							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
 						</div>
 					</form>
 				</div>

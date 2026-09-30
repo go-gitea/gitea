@@ -91,6 +91,8 @@ type PullRequest struct {
 
 	// The pin order for the pull request
 	PinOrder int `json:"pin_order"`
+	// The version of the pull request content for optimistic locking
+	ContentVersion int `json:"content_version"`
 }
 
 // PRBranchInfo information about a branch
@@ -140,6 +142,8 @@ type CreatePullRequestOption struct {
 	Reviewers []string `json:"reviewers"`
 	// The list of team reviewer names
 	TeamReviewers []string `json:"team_reviewers"`
+	// Whether maintainers can edit the pull request
+	AllowMaintainerEdit *bool `json:"allow_maintainer_edit"`
 }
 
 // EditPullRequestOption options when modify pull request
@@ -166,6 +170,8 @@ type EditPullRequestOption struct {
 	RemoveDeadline *bool `json:"unset_due_date"`
 	// Whether to allow maintainer edits
 	AllowMaintainerEdit *bool `json:"allow_maintainer_edit"`
+	// The current version of the pull request content to detect conflicts during editing
+	ContentVersion *int `json:"content_version"`
 }
 
 // ChangedFile store information about files affected by the pull request

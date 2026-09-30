@@ -1,0 +1,3 @@
+Content-Type: application/json;charset=utf-8
+
+[{"id":398,"number":4,"state":"Open","title":"Hi there","description":"an issue not assigned to a milestone","submitterId":336,"submitDate":"2021-08-09T22:56:16.734Z","fields":[{"name":"Type","value":"Improvement"}]},{"id":397,"number":3,"state":"Open","title":"Add an awesome feature","description":"just another issue to test against","submitterId":336,"submitDate":"2021-08-09T22:55:49.878Z","fields":[{"name":"Type","value":"New Feature"}]}]

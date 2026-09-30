@@ -9,22 +9,21 @@
 <div class="ui small fluid action input">
 	{{template "shared/search/input" dict "Value" .Value "Disabled" .Disabled "Placeholder" .Placeholder}}
 	{{if .SearchModes}}
-	<div class="ui small dropdown selection {{if .Disabled}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
-		<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		<input name="search_mode" type="hidden" value="
-			{{- if .SelectedSearchMode -}}
-				{{- .SelectedSearchMode -}}
-			{{- else -}}
-				{{- $defaultSearchMode := index .SearchModes 0 -}}
-				{{- $defaultSearchMode.ModeValue -}}
-			{{- end -}}
-		">
-		<div class="menu">
-			{{range $mode := .SearchModes}}
-				<div class="item" data-value="{{$mode.ModeValue}}" data-tooltip-content="{{ctx.Locale.Tr $mode.TooltipTrKey}}">{{ctx.Locale.Tr $mode.TitleTrKey}}</div>
+		{{$selected := index .SearchModes 0}}
+		{{range $mode := .SearchModes}}
+			{{if eq $mode.ModeValue $.SelectedSearchMode}}
+				{{$selected = $mode}}
 			{{end}}
+		{{end}}
+		<div class="ui small dropdown selection {{if .Disabled}}disabled{{end}}" data-tooltip-content="{{ctx.Locale.Tr "search.type_tooltip"}}">
+			<div class="text">{{ctx.Locale.Tr $selected.TitleTrKey}}</div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<input name="search_mode" type="hidden" value="{{$selected.ModeValue}}">
+			<div class="menu">
+				{{range $mode := .SearchModes}}
+					<div class="item" data-value="{{$mode.ModeValue}}" data-tooltip-content="{{ctx.Locale.Tr $mode.TooltipTrKey}}">{{ctx.Locale.Tr $mode.TitleTrKey}}</div>
+				{{end}}
+			</div>
 		</div>
-	</div>
 	{{end}}
 	{{template "shared/search/button" dict "Disabled" .Disabled "Tooltip" .Tooltip}}
 </div>

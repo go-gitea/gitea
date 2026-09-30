@@ -22,10 +22,6 @@
   "admin": false,
   "components": [
     "api",
-    "dropdown",
-    "form",
-    "modal",
-    "search",
     "tab"
   ]
 }

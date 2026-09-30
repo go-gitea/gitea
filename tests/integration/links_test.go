@@ -9,18 +9,24 @@ import (
 	"path"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func assertLinkPageComplete(t *testing.T, session *TestSession, link string) {
+func assertLinkPageComplete(t *testing.T, session *TestSession, link string, containStrings ...string) {
 	req := NewRequest(t, "GET", link)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()), "Page did not complete: "+link)
+	for _, s := range containStrings {
+		assert.Contains(t, resp.Body.String(), s, "Page does not contain expected string: "+s)
+	}
 }
 
 func TestLinks(t *testing.T) {
@@ -31,6 +37,42 @@ func TestLinks(t *testing.T) {
 	t.Run("NoLoginNotExist", testLinksNoLoginNotExist)
 	t.Run("AsUser", testLinksAsUser)
 	t.Run("RepoCommon", testLinksRepoCommon)
+	t.Run("ApiJson", testLinksApiJson)
+}
+
+func testLinksApiJson(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppVer, "1.2.3")()
+	defer test.MockVariableValue(&setting.AppSubURL)()
+	t.Run("Swagger", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/swagger.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				BasePath string `json:"basePath"`
+				Info     struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.BasePath)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
+	t.Run("OpenAPI3", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/openapi3.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				Servers []struct {
+					URL string `json:"url"`
+				} `json:"servers"`
+				Info struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.Servers[0].URL)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
 }
 
 func testLinksNoLogin(t *testing.T) {
@@ -145,8 +187,7 @@ func testLinksAsUser(t *testing.T) {
 
 	reqAPI := NewRequestf(t, "GET", "/api/v1/users/user2/repos")
 	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
-	var apiRepos []*api.Repository
-	DecodeJSON(t, respAPI, &apiRepos)
+	apiRepos := DecodeJSON(t, respAPI, []*api.Repository{})
 	repoLinks := []string{
 		"",
 		"/issues",
@@ -180,26 +221,30 @@ func testLinksAsUser(t *testing.T) {
 func testLinksRepoCommon(t *testing.T) {
 	// repo1 has enabled almost features, so we can test most links
 	repoLink := "/user2/repo1"
-	links := []string{
-		"/actions",
-		"/packages",
-		"/projects",
+
+	err := db.Insert(t.Context(), &actions.ActionRun{Title: "", RepoID: 1})
+	require.NoError(t, err)
+
+	links := map[string][]string{
+		"/actions":  {"(empty commit message)"},
+		"/packages": {},
+		"/projects": {},
 	}
 
 	// anonymous user
-	for _, link := range links {
-		assertLinkPageComplete(t, nil, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, nil, repoLink+link, strs...)
 	}
 
 	// admin/owner user
 	session := loginUser(t, "user1")
-	for _, link := range links {
-		assertLinkPageComplete(t, session, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, session, repoLink+link, strs...)
 	}
 
 	// non-admin non-owner user
 	session = loginUser(t, "user2")
-	for _, link := range links {
-		assertLinkPageComplete(t, session, repoLink+link)
+	for link, strs := range links {
+		assertLinkPageComplete(t, session, repoLink+link, strs...)
 	}
 }

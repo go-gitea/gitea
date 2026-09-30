@@ -8,12 +8,12 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/options"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/util"
 )
 
 type materialIconRulesData struct {
@@ -76,7 +76,7 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	if p.IconSVGs[svgID] == "" {
 		p.IconSVGs[svgID] = svgHTML
 	}
-	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
+	return template.HTML(`<svg ` + svgCommonAttrs + `><use href="#` + svgID + `"></use></svg>`)
 }
 
 func (m *MaterialIconProvider) EntryIconHTML(p *RenderedIconPool, entry *EntryInfo) template.HTML {

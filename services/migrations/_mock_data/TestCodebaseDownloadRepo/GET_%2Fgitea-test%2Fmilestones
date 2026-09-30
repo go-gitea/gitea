@@ -1,0 +1,21 @@
+Content-Type: application/xml; charset=utf-8
+
+<?xml version="1.0" encoding="UTF-8"?>
+<ticketing-milestone type="array">
+  <ticketing-milestone>
+    <id type="integer">1</id>
+    <identifier>milestone1</identifier>
+    <name>Milestone1</name>
+    <deadline type="date">2021-09-16</deadline>
+    <description></description>
+    <status>active</status>
+  </ticketing-milestone>
+  <ticketing-milestone>
+    <id type="integer">2</id>
+    <identifier>milestone2</identifier>
+    <name>Milestone2</name>
+    <deadline type="date">2021-09-17</deadline>
+    <description></description>
+    <status>closed</status>
+  </ticketing-milestone>
+</ticketing-milestone>

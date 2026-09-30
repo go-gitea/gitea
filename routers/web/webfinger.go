@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/context"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/context"
 )
 
 // https://datatracker.ietf.org/doc/html/draft-ietf-appsawg-webfinger-14#section-4.4

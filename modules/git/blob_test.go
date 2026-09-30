@@ -7,6 +7,7 @@ package git
 import (
 	"io"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,14 +17,14 @@ import (
 func TestBlob_Data(t *testing.T) {
 	output := "file2\n"
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
+	repo, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	require.NoError(t, err)
 	defer repo.Close()
 
 	testBlob, err := repo.GetBlob("6c493ff740f9380390d5c9ddef4af18697ac9375")
 	assert.NoError(t, err)
 
-	r, err := testBlob.DataAsync()
+	r, err := testBlob.DataAsync(t.Context())
 	assert.NoError(t, err)
 	require.NotNil(t, r)
 
@@ -36,7 +37,7 @@ func TestBlob_Data(t *testing.T) {
 
 func Benchmark_Blob_Data(b *testing.B) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(b.Context(), bareRepo1Path)
+	repo, err := OpenRepositoryLocal(b.Context(), bareRepo1Path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -48,11 +49,28 @@ func Benchmark_Blob_Data(b *testing.B) {
 	}
 
 	for b.Loop() {
-		r, err := testBlob.DataAsync()
+		r, err := testBlob.DataAsync(b.Context())
 		if err != nil {
 			b.Fatal(err)
 		}
 		io.ReadAll(r)
 		_ = r.Close()
 	}
+}
+
+func TestGetBlobLineCount(t *testing.T) {
+	size, count, err := getBlobLineCount(strings.NewReader(""), nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, size)
+	assert.Equal(t, 0, count)
+
+	size, count, err = getBlobLineCount(strings.NewReader("\n"), nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, size)
+	assert.Equal(t, 1, count)
+
+	size, count, err = getBlobLineCount(strings.NewReader("a\nb"), nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, size)
+	assert.Equal(t, 2, count)
 }

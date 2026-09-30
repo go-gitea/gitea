@@ -6,24 +6,23 @@ package repo
 import (
 	"bytes"
 	"net/http"
-	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/repository/files"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/repository/files"
 )
 
 func CherryPick(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_cherrypick")
+	prepareEditorPage(ctx, "_cherrypick")
 	if ctx.Written() {
 		return
 	}
 
 	fromCommitID := ctx.PathParam("sha")
 	ctx.Data["FromCommitID"] = fromCommitID
-	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(fromCommitID)
+	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx, fromCommitID)
 	if err != nil {
 		HandleGitError(ctx, "GetCommit", err)
 		return
@@ -32,12 +31,10 @@ func CherryPick(ctx *context.Context) {
 	if ctx.FormString("cherry-pick-type") == "revert" {
 		ctx.Data["CherryPickType"] = "revert"
 		ctx.Data["commit_summary"] = "revert " + ctx.PathParam("sha")
-		ctx.Data["commit_message"] = "revert " + cherryPickCommit.Message()
+		ctx.Data["commit_message"] = "revert " + cherryPickCommit.MessageUTF8()
 	} else {
 		ctx.Data["CherryPickType"] = "cherry-pick"
-		splits := strings.SplitN(cherryPickCommit.Message(), "\n", 2)
-		ctx.Data["commit_summary"] = splits[0]
-		ctx.Data["commit_message"] = splits[1]
+		ctx.Data["commit_summary"], ctx.Data["commit_message"] = cherryPickCommit.MessageTitle(), cherryPickCommit.MessageBody()
 	}
 
 	ctx.HTML(http.StatusOK, tplCherryPick)
@@ -66,9 +63,9 @@ func CherryPickPost(ctx *context.Context) {
 		// Drop through to the "apply" method
 		buf := &bytes.Buffer{}
 		if parsed.form.Revert {
-			err = git.GetReverseRawDiff(ctx, ctx.Repo.Repository.RepoPath(), fromCommitID, buf)
+			err = git.GetReverseRawDiff(ctx, ctx.Repo.Repository, fromCommitID, buf)
 		} else {
-			err = git.GetRawDiff(ctx.Repo.GitRepo, fromCommitID, "patch", buf)
+			err = git.GetRawDiff(ctx, ctx.Repo.GitRepo, fromCommitID, git.RawDiffPatch, buf)
 		}
 		if err == nil {
 			opts.Content = buf.String()

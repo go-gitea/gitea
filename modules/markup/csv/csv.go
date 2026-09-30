@@ -9,31 +9,27 @@ import (
 	"io"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/csv"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/csv"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 )
 
 func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer for csv files
 type Renderer struct{}
 
-// Name implements markup.Renderer
 func (Renderer) Name() string {
 	return "csv"
 }
 
-// Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
-	return []string{".csv", ".tsv"}
+func (Renderer) FileNamePatterns() []string {
+	return []string{"*.csv", "*.tsv"}
 }
 
-// SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
 		{Element: "table", AllowAttr: "class", Regexp: `^data-table$`},

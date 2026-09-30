@@ -32,3 +32,8 @@ type RepoTopicOptions struct {
 	// list of topic names
 	Topics []string `json:"topics"`
 }
+
+// TopicListResponse returns a list of TopicResponse
+type TopicListResponse struct {
+	Topics []*TopicResponse `json:"topics"`
+}

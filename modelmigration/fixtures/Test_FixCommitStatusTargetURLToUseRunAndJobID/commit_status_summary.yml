@@ -1,0 +1,19 @@
+# type CommitStatusSummary struct {
+#   ID        int64  `xorm:"pk autoincr"`
+#   RepoID    int64  `xorm:"index"`
+#   SHA       string `xorm:"VARCHAR(64) NOT NULL"`
+#   State     string `xorm:"VARCHAR(7) NOT NULL"`
+#   TargetURL string
+# }
+-
+  id: 10020
+  repo_id: 100
+  sha: sha-shared
+  state: pending
+  target_url: /testuser/repo1/actions/runs/7/jobs/0
+-
+  id: 10021
+  repo_id: 100
+  sha: sha-other
+  state: pending
+  target_url: /testuser/repo1/actions/runs/9/jobs/0

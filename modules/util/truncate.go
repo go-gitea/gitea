@@ -130,3 +130,17 @@ func TruncateRunes(str string, limit int) string {
 	}
 	return string([]rune(str)[:limit])
 }
+
+// TruncateStringBytes returns a truncated string with given byte limit,
+// it returns input string if its byte length doesn't exceed the limit.
+func TruncateStringBytes(str string, limit int) string {
+	l := 0
+	for i, r := range str {
+		rl := utf8.RuneLen(r)
+		if l+rl > limit {
+			return str[:i]
+		}
+		l += rl
+	}
+	return str
+}

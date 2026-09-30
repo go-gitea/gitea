@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/json"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -268,7 +268,7 @@ body:
     attributes:
       label: "a"
 `,
-			wantErr: "body[0](dropdown): 'options' is required and should be a array",
+			wantErr: "body[0](dropdown): 'options' is required and should be an array",
 		},
 		{
 			name: "dropdown invalid options",

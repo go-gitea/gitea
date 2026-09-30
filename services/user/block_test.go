@@ -6,8 +6,8 @@ package user
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -62,4 +62,8 @@ func TestCanUnblockUser(t *testing.T) {
 	assert.True(t, CanUnblockUser(t.Context(), user1, user2, user29))
 	assert.True(t, CanUnblockUser(t.Context(), user2, user2, user29))
 	assert.True(t, CanUnblockUser(t.Context(), user1, org17, user28))
+	// Existing block can still be removed after the blockee becomes an admin.
+	user29.IsAdmin = true
+	assert.False(t, user_model.IsUserBlockedBy(t.Context(), user29, user2.ID))
+	assert.True(t, CanUnblockUser(t.Context(), user2, user2, user29))
 }

@@ -7,16 +7,16 @@ import (
 	"errors"
 	"net/http"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	actions_service "code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	shared_user "gitea.dev/routers/web/shared/user"
+	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 const (
@@ -51,7 +51,7 @@ func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	if ctx.Data["PageIsOrgSettings"] == true {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil
+			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
 		}
 		return &variablesCtx{
 			OwnerID:           ctx.ContextUser.ID,
@@ -122,12 +122,11 @@ func VariableCreate(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 
 	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
 	if err != nil {
-		log.Error("CreateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
@@ -154,14 +153,13 @@ func VariableUpdate(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 	variable.Name = form.Name
 	variable.Data = form.Data
 	variable.Description = form.Description
 
-	if ok, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil || !ok {
-		log.Error("UpdateVariable: %v", err)
-		ctx.JSONError(ctx.Tr("actions.variables.update.failed"))
+	if _, err := actions_service.UpdateVariableNameData(ctx, variable); err != nil {
+		ctx.JSONErrorAuto(err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("actions.variables.update.success"))

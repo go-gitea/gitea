@@ -6,13 +6,12 @@ package versioned_migration
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/migrations"
-	"code.gitea.io/gitea/modules/globallock"
-
-	"xorm.io/xorm"
+	"gitea.dev/modelmigration"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/globallock"
 )
 
-func Migrate(ctx context.Context, x *xorm.Engine) error {
+func Migrate(ctx context.Context, x db.EngineMigration) error {
 	// only one instance can do the migration at the same time if there are multiple instances
 	release, err := globallock.Lock(ctx, "gitea_versioned_migration")
 	if err != nil {
@@ -20,5 +19,5 @@ func Migrate(ctx context.Context, x *xorm.Engine) error {
 	}
 	defer release()
 
-	return migrations.Migrate(ctx, x)
+	return modelmigration.Migrate(ctx, x)
 }

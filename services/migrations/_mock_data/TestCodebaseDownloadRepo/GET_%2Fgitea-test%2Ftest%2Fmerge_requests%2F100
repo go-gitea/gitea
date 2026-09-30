@@ -1,0 +1,22 @@
+Content-Type: application/xml; charset=utf-8
+
+<?xml version="1.0" encoding="UTF-8"?>
+<merge-request>
+  <id type="integer">100</id>
+  <source-ref>readme-mr</source-ref>
+  <target-ref>master</target-ref>
+  <subject>Readme Change</subject>
+  <status>new</status>
+  <user-id type="integer">43</user-id>
+  <created-at type="datetime">2021-09-26T20:25:47+00:00</created-at>
+  <updated-at type="datetime">2021-09-26T20:25:47+00:00</updated-at>
+  <comments type="array">
+    <comment>
+      <content>Merge Request comment</content>
+      <id type="integer">300</id>
+      <user-id type="integer">43</user-id>
+      <action nil="true"></action>
+      <created-at type="datetime">2021-09-26T20:25:47+00:00</created-at>
+    </comment>
+  </comments>
+</merge-request>

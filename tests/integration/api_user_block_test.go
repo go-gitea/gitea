@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -116,8 +116,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(blockerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Len(t, users, 1)
 			assert.Equal(t, blockeeName, users[0].UserName)
@@ -143,8 +142,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(blockerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Empty(t, users)
 		})
@@ -206,8 +204,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(doerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Len(t, users, 1)
 			assert.Equal(t, blockeeName, users[0].UserName)
@@ -233,8 +230,7 @@ func TestBlockUser(t *testing.T) {
 				AddTokenAuth(doerToken)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var users []api.User
-			DecodeJSON(t, resp, &users)
+			users := DecodeJSON(t, resp, []api.User{})
 
 			assert.Empty(t, users)
 		})

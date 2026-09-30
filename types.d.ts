@@ -1,24 +1,48 @@
-declare module '@techknowlogick/license-checker-webpack-plugin' {
-  const plugin: any;
-  export = plugin;
+declare module '*.svg' {
+  const value: string;
+  export default value;
 }
-declare module 'eslint-plugin-no-use-extend-native' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
+
+declare module '*.txt' {
+  const value: string;
+  export default value;
 }
-declare module 'eslint-plugin-array-func' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
+
+declare module '*.vue' {
+  import type {DefineComponent} from 'vue';
+  const component: DefineComponent<unknown, unknown, any>;
+  export default component;
 }
-declare module 'eslint-plugin-github' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
+
+declare module 'idiomorph' {
+  interface Idiomorph {
+    morph(existing: Node | string, replacement: Node | string, options?: {
+      morphStyle: 'innerHTML' | 'outerHTML',
+      callbacks?: {
+        beforeNodeMorphed?: (oldNode: Node, newNode: Node) => boolean,
+      },
+    }): Node[];
+  }
+  export const Idiomorph: Idiomorph;
 }
-declare module '@eslint-community/eslint-plugin-eslint-comments' {
-  import type {Eslint} from 'eslint';
-  const plugin: Eslint.Plugin;
-  export = plugin;
+
+declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
+  const value = await import('swagger-ui-dist');
+  export default value.SwaggerUIBundle;
 }
+
+declare module '@citation-js/core' {
+  export class Cite {
+    constructor(data: string);
+    format(format: string, options?: Record<string, any>): string;
+  }
+  export const plugins: {
+    config: {
+      get(name: string): any;
+    };
+  };
+}
+
+declare module '@citation-js/plugin-software-formats' {}
+declare module '@citation-js/plugin-bibtex' {}
+declare module '@citation-js/plugin-csl' {}

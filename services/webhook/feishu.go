@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	webhook_model "code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
+	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
 )
 
 type (
@@ -76,22 +76,23 @@ func (fc feishuConvertor) Push(p *api.PushPayload) (FeishuPayload, error) {
 		commitDesc string
 	)
 
-	text := fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
+	var text strings.Builder
+	fmt.Fprintf(&text, "[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n")) + authorName
+		text.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\r\n"
+			text.WriteString("\r\n")
 		}
 	}
 
-	return newFeishuTextPayload(text), nil
+	return newFeishuTextPayload(text.String()), nil
 }
 
 // Issue implements PayloadConvertor Issue method
@@ -146,6 +147,9 @@ func (fc feishuConvertor) Repository(p *api.RepositoryPayload) (FeishuPayload, e
 		return newFeishuTextPayload(text), nil
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
+		return newFeishuTextPayload(text), nil
+	case api.HookRepoRenamed:
+		text = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
 		return newFeishuTextPayload(text), nil
 	}
 

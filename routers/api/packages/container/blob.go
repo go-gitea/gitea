@@ -8,27 +8,34 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/log"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/util"
-	packages_service "code.gitea.io/gitea/services/packages"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	container_model "gitea.dev/models/packages/container"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/log"
+	packages_module "gitea.dev/modules/packages"
+	container_module "gitea.dev/modules/packages/container"
+	packages_service "gitea.dev/services/packages"
 
 	"github.com/opencontainers/go-digest"
 )
 
 // saveAsPackageBlob creates a package blob from an upload
 // The uploaded blob gets stored in a special upload version to link them to the package/image
-func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) { //nolint:unparam // PackageBlob is never used
+// There will be concurrent uploading for the same blob, so it needs a global lock per blob hash
+func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo) (*packages_model.PackageBlob, error) { //nolint:unparam //returned PackageBlob is never used
 	pb := packages_service.NewPackageBlob(hsr)
+	err := globallock.LockAndDo(ctx, "container-blob:"+pb.HashSHA256, func(ctx context.Context) error {
+		var err error
+		pb, err = saveAsPackageBlobInternal(ctx, hsr, pci, pb)
+		return err
+	})
+	return pb, err
+}
 
+func saveAsPackageBlobInternal(ctx context.Context, hsr packages_module.HashedSizeReader, pci *packages_service.PackageCreationInfo, pb *packages_model.PackageBlob) (*packages_model.PackageBlob, error) {
 	exists := false
 
 	contentStore := packages_module.NewContentStore()
@@ -42,32 +49,14 @@ func saveAsPackageBlob(ctx context.Context, hsr packages_module.HashedSizeReader
 		if err := packages_service.CheckSizeQuotaExceeded(ctx, pci.Creator, pci.Owner, packages_model.TypeContainer, hsr.Size()); err != nil {
 			return err
 		}
-
-		pb, exists, err = packages_model.GetOrInsertBlob(ctx, pb)
+		pb, exists, err = packages_service.GetOrSavePackageBlob(ctx, contentStore, pb, hsr)
 		if err != nil {
-			log.Error("Error inserting package blob: %v", err)
 			return err
 		}
-		// FIXME: Workaround to be removed in v1.20
-		// https://github.com/go-gitea/gitea/issues/19586
-		if exists {
-			err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
-			if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
-				log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
-				exists = false
-			}
-		}
-		if !exists {
-			if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), hsr, hsr.Size()); err != nil {
-				log.Error("Error saving package blob in content store: %v", err)
-				return err
-			}
-		}
-
 		return createFileForBlob(ctx, uploadVersion, pb)
 	})
 	if err != nil {
-		if !exists {
+		if !exists && pb != nil { // pb can be nil if GetOrInsertBlob failed
 			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
 				log.Error("Error deleting package blob from content store: %v", err)
 			}

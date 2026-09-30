@@ -10,21 +10,24 @@ import (
 	"os"
 	"text/tabwriter"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	auth_service "code.gitea.io/gitea/services/auth"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	auth_service "gitea.dev/services/auth"
 
 	"github.com/urfave/cli/v3"
 )
 
-var (
-	microcmdAuthDelete = &cli.Command{
+func newAuthDeleteCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
 		Flags:  []cli.Flag{idFlag()},
 		Action: runDeleteAuth,
 	}
-	microcmdAuthList = &cli.Command{
+}
+
+func newAuthListCommand() *cli.Command {
+	return &cli.Command{
 		Name:   "list",
 		Usage:  "List auth sources",
 		Action: runListAuth,
@@ -55,7 +58,7 @@ var (
 			},
 		},
 	}
-)
+}
 
 func runListAuth(ctx context.Context, c *cli.Command) error {
 	if err := initDB(ctx); err != nil {

@@ -6,8 +6,8 @@ package repo_test
 import (
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -74,7 +74,7 @@ func TestAttachment_DownloadURL(t *testing.T) {
 		UUID: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
 		ID:   1,
 	}
-	assert.Equal(t, "https://try.gitea.io/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.DownloadURL())
+	assert.Equal(t, "https://try.gitea.io/attachments/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.DownloadURL(t.Context()))
 }
 
 func TestUpdateAttachment(t *testing.T) {
@@ -100,4 +100,20 @@ func TestGetAttachmentsByUUIDs(t *testing.T) {
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", attachList[1].UUID)
 	assert.Equal(t, int64(1), attachList[0].IssueID)
 	assert.Equal(t, int64(5), attachList[1].IssueID)
+}
+
+func TestGetUnlinkedAttachmentsByUserID(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	attachments, err := repo_model.GetUnlinkedAttachmentsByUserID(t.Context(), 8)
+	assert.NoError(t, err)
+	assert.Len(t, attachments, 1)
+	assert.Equal(t, int64(10), attachments[0].ID)
+	assert.Zero(t, attachments[0].IssueID)
+	assert.Zero(t, attachments[0].ReleaseID)
+	assert.Zero(t, attachments[0].CommentID)
+
+	attachments, err = repo_model.GetUnlinkedAttachmentsByUserID(t.Context(), 1)
+	assert.NoError(t, err)
+	assert.Empty(t, attachments)
 }

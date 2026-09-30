@@ -1,0 +1,10 @@
+Content-Type: application/xml; charset=utf-8
+
+<?xml version="1.0" encoding="UTF-8"?>
+<repository>
+  <name>test</name>
+  <description>Repository Description</description>
+  <permalink>test</permalink>
+  <clone-url>git@codebasehq.com:gitea-test/gitea-test/test.git</clone-url>
+  <source></source>
+</repository>

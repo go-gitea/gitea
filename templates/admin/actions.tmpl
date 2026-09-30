@@ -1,10 +1,16 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin actions")}}
+{{template "admin/layout_head" (dict "pageClass" "admin actions")}}
 	<div class="admin-setting-content">
 	{{if eq .PageType "runners"}}
 		{{template "shared/actions/runner_list" .}}
 	{{end}}
 	{{if eq .PageType "variables"}}
 		{{template "shared/variables/variable_list" .}}
+	{{end}}
+	{{if eq .PageType "scoped-workflows"}}
+		{{template "shared/actions/scoped_workflows" .}}
+	{{end}}
+	{{if eq .PageType "job_queue"}}
+		{{template "shared/actions/job_queue_list" .}}
 	{{end}}
 	</div>
 {{template "admin/layout_footer" .}}

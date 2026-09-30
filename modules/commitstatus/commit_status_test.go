@@ -41,7 +41,7 @@ func TestCombine(t *testing.T) {
 		{
 			name:     "warning",
 			states:   CommitStatusStates{CommitStatusWarning},
-			expected: CommitStatusSuccess,
+			expected: CommitStatusFailure,
 		},
 		// 2 states
 		{
@@ -62,7 +62,7 @@ func TestCombine(t *testing.T) {
 		{
 			name:     "pending and warning",
 			states:   CommitStatusStates{CommitStatusPending, CommitStatusWarning},
-			expected: CommitStatusPending,
+			expected: CommitStatusFailure,
 		},
 		{
 			name:     "success and error",
@@ -77,7 +77,7 @@ func TestCombine(t *testing.T) {
 		{
 			name:     "success and warning",
 			states:   CommitStatusStates{CommitStatusSuccess, CommitStatusWarning},
-			expected: CommitStatusSuccess,
+			expected: CommitStatusFailure,
 		},
 		{
 			name:     "error and failure",
@@ -98,7 +98,7 @@ func TestCombine(t *testing.T) {
 		{
 			name:     "pending, success and warning",
 			states:   CommitStatusStates{CommitStatusPending, CommitStatusSuccess, CommitStatusWarning},
-			expected: CommitStatusPending,
+			expected: CommitStatusFailure,
 		},
 		{
 			name:     "pending, success and error",
@@ -133,7 +133,7 @@ func TestCombine(t *testing.T) {
 		{
 			name:     "success, warning and skipped",
 			states:   CommitStatusStates{CommitStatusSuccess, CommitStatusWarning, CommitStatusSkipped},
-			expected: CommitStatusSuccess,
+			expected: CommitStatusFailure,
 		},
 		// All success
 		{
@@ -181,12 +181,12 @@ func TestCombine(t *testing.T) {
 		{
 			name:     "mixed states with all success",
 			states:   CommitStatusStates{CommitStatusSuccess, CommitStatusSuccess, CommitStatusPending, CommitStatusWarning},
-			expected: CommitStatusPending,
+			expected: CommitStatusFailure,
 		},
 		{
 			name:     "all success with warning",
 			states:   CommitStatusStates{CommitStatusSuccess, CommitStatusSuccess, CommitStatusSuccess, CommitStatusWarning},
-			expected: CommitStatusSuccess,
+			expected: CommitStatusFailure,
 		},
 	}
 

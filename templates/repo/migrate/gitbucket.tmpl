@@ -8,7 +8,6 @@
 			{{template "base/alert" .}}
 			<form class="ui form left-right-form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 
 				<input id="service_type" type="hidden" name="service" value="{{.service}}">
 
@@ -20,11 +19,11 @@
 					</span>
 				</div>
 
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field">
 					<label for="auth_username">{{ctx.Locale.Tr "username"}}</label>
 					<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
 				</div>
-				<div class="inline field {{if .Err_Auth}}error{{end}}">
+				<div class="inline field">
 					<label for="auth_password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 				</div>
@@ -121,7 +120,7 @@
 
 				<div class="inline field">
 					<label></label>
-					<button class="ui primary button">
+					<button type="submit" class="ui primary button">
 						{{ctx.Locale.Tr "repo.migrate_repo"}}
 					</button>
 				</div>

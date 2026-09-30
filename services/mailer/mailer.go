@@ -7,13 +7,13 @@ package mailer
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	sender_service "code.gitea.io/gitea/services/mailer/sender"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	sender_service "gitea.dev/services/mailer/sender"
+	notify_service "gitea.dev/services/notify"
 )
 
 var mailQueue *queue.WorkerPoolQueue[*sender_service.Message]
@@ -43,7 +43,7 @@ func NewContext(ctx context.Context) {
 		sender = &sender_service.SMTPSender{}
 	}
 
-	templates.LoadMailTemplates(ctx, &loadedTemplates)
+	_ = templates.MailRenderer()
 
 	mailQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "mail", func(items ...*sender_service.Message) []*sender_service.Message {
 		for _, msg := range items {

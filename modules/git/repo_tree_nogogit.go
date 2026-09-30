@@ -6,28 +6,25 @@
 package git
 
 import (
+	"context"
 	"io"
 )
 
-func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error) {
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	_, _ = wr.Write([]byte(id.String() + "\n"))
-
-	// ignore the SHA
-	_, typ, size, err := ReadBatchLine(rd)
+	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
 		return nil, err
 	}
 
-	switch typ {
+	switch info.Type {
 	case "tag":
-		resolvedID := id
-		data, err := io.ReadAll(io.LimitReader(rd, size))
+		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
 		if err != nil {
 			return nil, err
 		}
@@ -36,40 +33,36 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 			return nil, err
 		}
 
-		if _, err := wr.Write([]byte(tag.Object.String() + "\n")); err != nil {
-			return nil, err
-		}
-		commit, err := repo.getCommitFromBatchReader(wr, rd, tag.Object)
+		commit, err := repo.getCommitWithBatch(batch, tag.Object)
 		if err != nil {
 			return nil, err
 		}
-		commit.Tree.ResolvedID = resolvedID
-		return &commit.Tree, nil
+		tree := commit.Tree()
+		return tree, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
+		commit, err := CommitFromReader(id, io.LimitReader(rd, info.Size))
 		if err != nil {
 			return nil, err
 		}
 		if _, err := rd.Discard(1); err != nil {
 			return nil, err
 		}
-		commit.Tree.ResolvedID = commit.ID
-		return &commit.Tree, nil
+		tree := commit.Tree()
+		return tree, nil
 	case "tree":
-		tree := NewTree(repo, id)
-		tree.ResolvedID = id
-		objectFormat, err := repo.GetObjectFormat()
+		tree := newTree(id)
+		objectFormat, err := repo.GetObjectFormat(ctx)
 		if err != nil {
 			return nil, err
 		}
-		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, size)
+		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, info.Size)
 		if err != nil {
 			return nil, err
 		}
 		tree.entriesParsed = true
 		return tree, nil
 	default:
-		if err := DiscardFull(rd, size+1); err != nil {
+		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{
@@ -79,13 +72,13 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 }
 
 // GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if len(idStr) != objectFormat.FullLength() {
-		res, err := repo.GetRefCommitID(idStr)
+		res, err := repo.GetRefCommitID(ctx, idStr)
 		if err != nil {
 			return nil, err
 		}
@@ -98,5 +91,5 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 		return nil, err
 	}
 
-	return repo.getTree(id)
+	return repo.getTree(ctx, id)
 }

@@ -5,14 +5,12 @@ package pull
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
 )
 
 // AutoMerge represents a pull request scheduled for merging when checks succeed
@@ -25,6 +23,7 @@ type AutoMerge struct {
 	Message                string                `xorm:"LONGTEXT"`
 	DeleteBranchAfterMerge bool
 	CreatedUnix            timeutil.TimeStamp `xorm:"created"`
+	MergedCommitID         string             `xorm:"VARCHAR(64)"`
 }
 
 // TableName return database table name for xorm
@@ -78,27 +77,16 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 		return false, nil, err
 	}
 
-	doer, err := user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
-	if errors.Is(err, util.ErrNotExist) {
-		doer, err = user_model.NewGhostUser(), nil
-	}
-	if err != nil {
-		return false, nil, err
-	}
-
-	scheduledPRM.Doer = doer
-	return true, scheduledPRM, nil
+	scheduledPRM.DoerID, scheduledPRM.Doer, err = user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
+	return true, scheduledPRM, err
 }
 
-// DeleteScheduledAutoMerge delete a scheduled pull request
-func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
-	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
-	if err != nil {
-		return err
-	} else if !exist {
-		return db.ErrNotExist{Resource: "auto_merge", ID: pullID}
-	}
+func GetScheduledMergePullIDsSince(ctx context.Context, since timeutil.TimeStamp) ([]int64, error) {
+	var pullIDs []int64
+	err := db.GetEngine(ctx).Table(&AutoMerge{}).Where("created_unix >= ?", since).Cols("pull_id").Find(&pullIDs)
+	return pullIDs, err
+}
 
-	_, err = db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{})
-	return err
+func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) (int64, error) {
+	return db.GetEngine(ctx).Where("pull_id = ?", pullID).Delete(&AutoMerge{})
 }

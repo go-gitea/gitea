@@ -7,13 +7,14 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // GetRefs returns all references of the repository.
-func (repo *Repository) GetRefs() ([]*Reference, error) {
-	return repo.GetRefsFiltered("")
+func (repo *Repository) GetRefs(ctx context.Context) ([]*Reference, error) {
+	return repo.GetRefsFiltered(ctx, "")
 }
 
 // ListOccurrences lists all refs of the given refType the given commit appears in sorted by creation date DESC
@@ -29,7 +30,7 @@ func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA 
 		return nil, util.NewInvalidArgumentErrorf(`can only use "branch" or "tag" for refType, but got %q`, refType)
 	}
 	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").
-		AddDynamicArguments(commitSHA).WithDir(repo.Path).RunStdString(ctx)
+		AddDynamicArguments(commitSHA).WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -71,23 +72,26 @@ func parseTags(refs []string) []string {
 // * "refs/tags/1234567890" vs commit "1234567890"
 // In most cases, it SHOULD AVOID using this function, unless there is an irresistible reason (eg: make API friendly to end users)
 // If the function is used, the caller SHOULD CHECK the ref type carefully.
-func (repo *Repository) UnstableGuessRefByShortName(shortName string) RefName {
-	if repo.IsBranchExist(shortName) {
+func (repo *Repository) UnstableGuessRefByShortName(ctx context.Context, shortName string) RefName {
+	if repo.IsBranchExist(ctx, shortName) {
 		return RefNameFromBranch(shortName)
 	}
-	if repo.IsTagExist(shortName) {
+	if repo.IsTagExist(ctx, shortName) {
 		return RefNameFromTag(shortName)
 	}
 	if strings.HasPrefix(shortName, "refs/") {
-		if repo.IsReferenceExist(shortName) {
+		if repo.IsReferenceExist(ctx, shortName) {
 			return RefName(shortName)
 		}
 	}
-	commit, err := repo.GetCommit(shortName)
+	commit, err := repo.GetCommit(ctx, shortName)
 	if err == nil {
 		commitIDString := commit.ID.String()
-		if strings.HasPrefix(commitIDString, shortName) {
+		// make sure the "shortName" is either partial commit ID, or it is HEAD
+		if strings.HasPrefix(commitIDString, shortName) || shortName == RefNameHead {
 			return RefName(commitIDString)
+		} else {
+			setting.PanicInDevOrTesting("abuse of UnstableGuessRefByShortName, queried %s, got %s", shortName, commitIDString)
 		}
 	}
 	return ""

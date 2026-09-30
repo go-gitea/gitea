@@ -6,7 +6,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form tw-max-w-2xl tw-m-auto" action="{{.ChangePasscodeLink}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="required field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="password">{{ctx.Locale.Tr "password"}}</label>
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="new-password" required>
@@ -16,7 +15,7 @@
 				<input id="retype" name="retype" type="password" autocomplete="new-password" required>
 			</div>
 			<div class="inline field">
-				<button class="ui primary button">{{ctx.Locale.Tr "settings.change_password"}}</button>
+				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "settings.change_password"}}</button>
 			</div>
 			</form>
 		</div>

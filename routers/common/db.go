@@ -8,15 +8,13 @@ import (
 	"errors"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/migrations"
-	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/setting/config"
-	"code.gitea.io/gitea/services/versioned_migration"
-
-	"xorm.io/xorm"
+	"gitea.dev/modelmigration"
+	"gitea.dev/models/db"
+	system_model "gitea.dev/models/system"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
+	"gitea.dev/services/versioned_migration"
 )
 
 // InitDBEngine In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
@@ -42,17 +40,17 @@ func InitDBEngine(ctx context.Context) (err error) {
 	return nil
 }
 
-func migrateWithSetting(ctx context.Context, x *xorm.Engine) error {
+func migrateWithSetting(ctx context.Context, x db.EngineMigration) error {
 	if setting.Database.AutoMigration {
 		return versioned_migration.Migrate(ctx, x)
 	}
 
-	if current, err := migrations.GetCurrentDBVersion(x); err != nil {
+	if current, err := modelmigration.GetCurrentDBVersion(x); err != nil {
 		return err
 	} else if current < 0 {
 		// execute migrations when the database isn't initialized even if AutoMigration is false
 		return versioned_migration.Migrate(ctx, x)
-	} else if expected := migrations.ExpectedDBVersion(); current != expected {
+	} else if expected := modelmigration.ExpectedDBVersion(); current != expected {
 		log.Fatal(`"database.AUTO_MIGRATION" is disabled, but current database version %d is not equal to the expected version %d.`+
 			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "gitea [--config /path/to/app.ini] migrate"`, current, expected)
 	}

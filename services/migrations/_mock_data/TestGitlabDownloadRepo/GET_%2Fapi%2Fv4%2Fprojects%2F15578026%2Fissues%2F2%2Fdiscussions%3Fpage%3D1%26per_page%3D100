@@ -1,0 +1,28 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"3a60a8124f040aa4a8458c91b49f4b0f"
+Gitlab-Lb: haproxy-main-29-lb-gprd
+Gitlab-Sv: api-gke-us-east1-c
+Link: <https://gitlab.com/api/v4/projects/15578026/issues/2/discussions?id=15578026&noteable_id=2&page=1&per_page=100>; rel="first", <https://gitlab.com/api/v4/projects/15578026/issues/2/discussions?id=15578026&noteable_id=2&page=1&per_page=100>; rel="last"
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 15
+Ratelimit-Remaining: 1985
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee8c4a95c27f-VIE","version":"1"}
+X-Next-Page: 
+X-Page: 1
+X-Per-Page: 100
+X-Prev-Page: 
+X-Runtime: 0.170698
+X-Total: 4
+X-Total-Pages: 1
+
+[{"id":"617967369d98d8b73b6105a40318fe839f931a24","individual_note":true,"resolvable":false,"notes":[{"id":251637434,"type":null,"body":"This is a comment","author":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"created_at":"2019-11-28T08:44:52.501Z","updated_at":"2019-11-28T08:44:52.501Z","system":false,"noteable_id":27687706,"noteable_type":"Issue","project_id":15578026,"resolvable":false,"confidential":false,"internal":false,"imported":false,"imported_from":"none","noteable_iid":2,"commands_changes":{}}]},{"id":"b92d74daee411a17d844041bcd3c267ade58f680","individual_note":true,"resolvable":false,"notes":[{"id":251637528,"type":null,"body":"changed milestone to %2","author":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"created_at":"2019-11-28T08:45:02.329Z","updated_at":"2019-11-28T08:45:02.335Z","system":true,"noteable_id":27687706,"noteable_type":"Issue","project_id":15578026,"resolvable":false,"confidential":false,"internal":false,"imported":false,"imported_from":"none","noteable_iid":2,"commands_changes":{}}]},{"id":"6010f567d2b58758ef618070372c97891ac75349","individual_note":true,"resolvable":false,"notes":[{"id":251637892,"type":null,"body":"closed","author":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"created_at":"2019-11-28T08:45:45.007Z","updated_at":"2019-11-28T08:45:45.010Z","system":true,"noteable_id":27687706,"noteable_type":"Issue","project_id":15578026,"resolvable":false,"confidential":false,"internal":false,"imported":false,"imported_from":"none","noteable_iid":2,"commands_changes":{}}]},{"id":"632d0cbfd6a1a08f38aaf9ef7715116f4b188ebb","individual_note":true,"resolvable":false,"notes":[{"id":251637999,"type":null,"body":"A second comment","author":{"id":1241334,"username":"lafriks","public_email":"","name":"Lauris BH","state":"active","locked":false,"avatar_url":"https://gitlab.com/uploads/-/system/user/avatar/1241334/avatar.png","web_url":"https://gitlab.com/lafriks"},"created_at":"2019-11-28T08:45:53.501Z","updated_at":"2019-11-28T08:45:53.501Z","system":false,"noteable_id":27687706,"noteable_type":"Issue","project_id":15578026,"resolvable":false,"confidential":false,"internal":false,"imported":false,"imported_from":"none","noteable_iid":2,"commands_changes":{}}]}]

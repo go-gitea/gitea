@@ -6,9 +6,7 @@ package validation
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/glob"
-
-	"gitea.com/go-chi/binding"
+	"gitea.dev/modules/glob"
 )
 
 func getGlobPatternErrorString(pattern string) string {
@@ -21,31 +19,27 @@ func getGlobPatternErrorString(pattern string) string {
 }
 
 func Test_GlobPatternValidation(t *testing.T) {
-	AddBindingRules()
-
 	globValidationTestCases := []validationTestCase{
 		{
 			description: "Empty glob pattern",
-			data: TestForm{
+			data: &TestForm{
 				GlobPattern: "",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "Valid glob",
-			data: TestForm{
+			data: &TestForm{
 				GlobPattern: "{master,release*}",
 			},
-			expectedErrors: binding.Errors{},
 		},
 
 		{
 			description: "Invalid glob",
-			data: TestForm{
+			data: &TestForm{
 				GlobPattern: "[a-",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"GlobPattern"},
 					Classification: ErrGlobPattern,
 					Message:        getGlobPatternErrorString("[a-"),

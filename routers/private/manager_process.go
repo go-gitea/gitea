@@ -11,10 +11,8 @@ import (
 	"runtime"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	process_module "code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/services/context"
+	process_module "gitea.dev/modules/process"
+	"gitea.dev/services/context"
 )
 
 // Processes prints out the processes
@@ -38,10 +36,7 @@ func Processes(ctx *context.PrivateContext) {
 	if stacktraces {
 		processes, processCount, goroutineCount, err = process_module.GetManager().ProcessStacktraces(flat, noSystem)
 		if err != nil {
-			log.Error("Unable to get stacktrace: %v", err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to get stacktraces: %v", err),
-			})
+			ctx.PrivateInternalErrorf("Failed to get stacktraces: %v", err)
 			return
 		}
 	} else {
@@ -61,11 +56,8 @@ func Processes(ctx *context.PrivateContext) {
 	ctx.Resp.WriteHeader(http.StatusOK)
 
 	if err := writeProcesses(ctx.Resp, processes, processCount, goroutineCount, "", flat); err != nil {
-		log.Error("Unable to write out process stacktrace: %v", err)
 		if !ctx.Written() {
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to get stacktraces: %v", err),
-			})
+			ctx.PrivateInternalErrorf("Failed to get stacktraces: %v", err)
 		}
 		return
 	}

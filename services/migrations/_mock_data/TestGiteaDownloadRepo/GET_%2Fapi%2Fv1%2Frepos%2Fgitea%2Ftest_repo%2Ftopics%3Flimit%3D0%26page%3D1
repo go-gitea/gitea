@@ -1,0 +1,10 @@
+Access-Control-Expose-Headers: X-Total-Count
+Alt-Svc: h3=":443"; ma=2592000
+Cache-Control: max-age=0, private, must-revalidate, no-transform
+Content-Length: 44
+Content-Type: application/json;charset=utf-8
+Vary: Origin
+X-Content-Type-Options: nosniff
+X-Total-Count: 4
+
+{"topics":["ci","gitea","migration","test"]}

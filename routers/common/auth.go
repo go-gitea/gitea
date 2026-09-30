@@ -4,10 +4,11 @@
 package common
 
 import (
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/web/middleware"
-	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/web/middleware"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/context"
 )
 
 type AuthResult struct {
@@ -24,12 +25,24 @@ func AuthShared(ctx *context.Base, sessionStore auth_service.SessionStore, authM
 		if ctx.Locale.Language() != ar.Doer.Language {
 			ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 		}
-		ar.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
+		ar.IsBasicAuth = ctx.Data["AuthedMethod"] == auth_service.BasicMethodName
 
 		ctx.Data["IsSigned"] = true
 		ctx.Data[middleware.ContextDataKeySignedUser] = ar.Doer
 		ctx.Data["SignedUserID"] = ar.Doer.ID
 		ctx.Data["IsAdmin"] = ar.Doer.IsAdmin
+
+		if sessionStore != nil {
+			if uid := auth_service.ImpersonatorUserID(sessionStore); uid != 0 {
+				impersonator, err := user_model.GetUserByID(ctx, uid)
+				if err != nil {
+					// the session stays usable, but audit events must not silently lose the admin behind it
+					log.Error("Unable to resolve impersonator %d: %v", uid, err)
+				} else {
+					ctx.Data[middleware.ContextDataKeyImpersonator] = impersonator
+				}
+			}
+		}
 	} else {
 		ctx.Data["SignedUserID"] = int64(0)
 	}
@@ -38,8 +51,8 @@ func AuthShared(ctx *context.Base, sessionStore auth_service.SessionStore, authM
 
 // VerifyOptions contains required or check options
 type VerifyOptions struct {
-	SignInRequired  bool
-	SignOutRequired bool
-	AdminRequired   bool
-	DisableCSRF     bool
+	SignInRequired               bool
+	SignOutRequired              bool
+	AdminRequired                bool
+	DisableCrossOriginProtection bool
 }

@@ -11,16 +11,17 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
+	wiki_service "gitea.dev/services/wiki"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,10 +30,11 @@ func TestMirrorPush(t *testing.T) {
 	onGiteaRun(t, testMirrorPush)
 }
 
-func testMirrorPush(t *testing.T, u *url.URL) {
-	setting.Migrations.AllowLocalNetworks = true
-	assert.NoError(t, migrations.Init())
+func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
+	onGiteaRun(t, testMirrorPushWikiDefaultBranchMismatch)
+}
 
+func testMirrorPush(t *testing.T, u *url.URL) {
 	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -54,21 +56,24 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
 
-	srcGitRepo, err := gitrepo.OpenRepository(t.Context(), srcRepo)
+	srcGitRepo, err := git.OpenRepository(t.Context(), srcRepo)
 	assert.NoError(t, err)
 	defer srcGitRepo.Close()
 
-	srcCommit, err := srcGitRepo.GetBranchCommit("master")
+	srcCommit, err := srcGitRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
 
-	mirrorGitRepo, err := gitrepo.OpenRepository(t.Context(), mirrorRepo)
+	mirrorGitRepo, err := git.OpenRepository(t.Context(), mirrorRepo)
 	assert.NoError(t, err)
 	defer mirrorGitRepo.Close()
 
-	mirrorCommit, err := mirrorGitRepo.GetBranchCommit("master")
+	mirrorCommit, err := mirrorGitRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+
+	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
+	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
 
 	// Cleanup
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))
@@ -77,9 +82,40 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.Empty(t, mirrors)
 }
 
+func testMirrorPushWikiDefaultBranchMismatch(t *testing.T, u *url.URL) {
+	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name: "test-push-mirror-wiki",
+	}, true)
+	assert.NoError(t, err)
+
+	assert.NoError(t, wiki_service.AddWikiPage(t.Context(), user, mirrorRepo, wiki_service.WebPath("Home"), "Mirror wiki content", "init wiki"))
+
+	mirrorRepo.DefaultBranch = "mirror-head"
+	assert.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), mirrorRepo, "default_branch"))
+
+	wikiCommitID, err := git.GetBranchCommitID(t.Context(), mirrorRepo.WikiStorageRepo(), mirrorRepo.DefaultWikiBranch)
+	assert.NoError(t, err)
+	assert.NoError(t, git.CreateBranch(t.Context(), mirrorRepo.WikiStorageRepo(), "mirror-head", wikiCommitID))
+
+	session := loginUser(t, user.Name)
+
+	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
+	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
+
+	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
+	assert.NoError(t, err)
+	assert.Len(t, mirrors, 1)
+
+	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
+	assert.True(t, ok)
+}
+
 func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, address, username, password, interval string) {
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", url.PathEscape(owner), url.PathEscape(repo)), map[string]string{
-		"_csrf":                GetUserCSRFToken(t, session),
 		"action":               "push-mirror-add",
 		"push_mirror_address":  address,
 		"push_mirror_username": username,
@@ -94,7 +130,6 @@ func testCreatePushMirror(t *testing.T, session *TestSession, owner, repo, addre
 
 func doRemovePushMirror(t *testing.T, session *TestSession, owner, repo string, pushMirrorID int64) bool {
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", url.PathEscape(owner), url.PathEscape(repo)), map[string]string{
-		"_csrf":          GetUserCSRFToken(t, session),
 		"action":         "push-mirror-remove",
 		"push_mirror_id": strconv.FormatInt(pushMirrorID, 10),
 	})
@@ -105,7 +140,6 @@ func doRemovePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 
 func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, pushMirrorID int64, interval string) bool {
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", owner, repo), map[string]string{
-		"_csrf":                  GetUserCSRFToken(t, session),
 		"action":                 "push-mirror-update",
 		"push_mirror_id":         strconv.FormatInt(pushMirrorID, 10),
 		"push_mirror_interval":   interval,
@@ -117,8 +151,6 @@ func doUpdatePushMirror(t *testing.T, session *TestSession, owner, repo string, 
 
 func TestRepoSettingPushMirrorUpdate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.Migrations.AllowLocalNetworks = true
-	assert.NoError(t, migrations.Init())
 
 	session := loginUser(t, "user2")
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})

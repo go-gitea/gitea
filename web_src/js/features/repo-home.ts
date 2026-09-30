@@ -1,41 +1,45 @@
 import {stripTags} from '../utils.ts';
-import {hideElem, queryElemChildren, showElem, type DOMEvent} from '../utils/dom.ts';
+import {hideElem, queryElemChildren, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast, type Toast} from '../modules/toast.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import type {FomanticApiResponse, JQueryElem} from '../types.ts';
 
 const {appSubUrl} = window.config;
+
+type TopicSearchResponse = {topics: Array<{topic_name: string}>};
+type TopicSearchResult = {description: string, 'data-value': string};
 
 export function initRepoTopicBar() {
   const mgrBtn = document.querySelector<HTMLButtonElement>('#manage_topic');
   if (!mgrBtn) return;
 
-  const editDiv = document.querySelector('#topic_edit');
-  const viewDiv = document.querySelector('#repo-topics');
-  const topicDropdown = editDiv.querySelector('.ui.dropdown');
-  let lastErrorToast: Toast;
+  const editDiv = document.querySelector('#topic_edit')!;
+  const viewDiv = document.querySelector('#repo-topics')!;
+  const topicDropdown = editDiv.querySelector('.ui.dropdown')!;
+  let lastErrorToast: Toast | null = null;
 
   mgrBtn.addEventListener('click', () => {
     hideElem([viewDiv, mgrBtn]);
     showElem(editDiv);
-    topicDropdown.querySelector<HTMLInputElement>('input.search').focus();
+    topicDropdown.querySelector<HTMLInputElement>('input.search')!.focus();
   });
 
-  document.querySelector('#cancel_topic_edit').addEventListener('click', () => {
+  document.querySelector('#cancel_topic_edit')!.addEventListener('click', () => {
     lastErrorToast?.hideToast();
     hideElem(editDiv);
     showElem([viewDiv, mgrBtn]);
     mgrBtn.focus();
   });
 
-  document.querySelector<HTMLButtonElement>('#save_topic').addEventListener('click', async (e: DOMEvent<MouseEvent, HTMLButtonElement>) => {
+  document.querySelector<HTMLButtonElement>('#save_topic')!.addEventListener('click', async (e) => {
     lastErrorToast?.hideToast();
-    const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]').value;
+    const topics = editDiv.querySelector<HTMLInputElement>('input[name=topics]')!.value;
 
     const data = new FormData();
     data.append('topics', topics);
 
-    const response = await POST(e.target.getAttribute('data-link'), {data});
+    const response = await POST((e.target as HTMLElement).getAttribute('data-link')!, {data});
 
     if (response.ok) {
       const responseData = await response.json();
@@ -79,7 +83,6 @@ export function initRepoTopicBar() {
     forceSelection: false,
     fullTextSearch: 'exact',
     fields: {name: 'description', value: 'data-value'},
-    saveRemoteData: false,
     label: {
       transition: 'horizontal flip',
       duration: 200,
@@ -88,18 +91,14 @@ export function initRepoTopicBar() {
     apiSettings: {
       url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
-      cache: false,
-      onResponse(this: any, res: any) {
-        const formattedResponse = {
+      onResponse(this: {urlData: {query: string}}, res: TopicSearchResponse) {
+        const formattedResponse: FomanticApiResponse<TopicSearchResult> = {
           success: false,
-          results: [] as Array<Record<string, any>>,
+          results: [],
         };
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
-        const current_topics = [];
-        for (const el of queryElemChildren(topicDropdown, 'a.ui.label.visible')) {
-          current_topics.push(el.getAttribute('data-value'));
-        }
+        const current_topics = Array.from(queryElemChildren(topicDropdown, 'a.ui.label.visible'), (el) => el.getAttribute('data-value'));
 
         if (res.topics) {
           let found = false;
@@ -139,7 +138,7 @@ export function initRepoTopicBar() {
       this.attr('data-value', value).contents().first().replaceWith(value);
       return fomanticQuery(this);
     },
-    onAdd(addedValue: string, _addedText: any, $addedChoice: any) {
+    onAdd(addedValue: string, _addedText: any, $addedChoice: JQueryElem) {
       addedValue = addedValue.toLowerCase().trim();
       $addedChoice[0].setAttribute('data-value', addedValue);
       $addedChoice[0].setAttribute('data-text', addedValue);

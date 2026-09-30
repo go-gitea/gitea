@@ -1,7 +1,7 @@
-//go:build pam
-
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
+
+//go:build pam
 
 package pam
 

@@ -6,24 +6,23 @@ package migrations
 import (
 	"crypto/tls"
 	"net/http"
+	"sync"
 
-	"code.gitea.io/gitea/modules/hostmatcher"
-	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/egress"
+	"gitea.dev/modules/setting"
 )
 
-// NewMigrationHTTPClient returns a HTTP client for migration
-func NewMigrationHTTPClient() *http.Client {
-	return &http.Client{
-		Transport: NewMigrationHTTPTransport(),
-	}
+// getMigrationHTTPClient returns the shared migration client, so downloads from one host reuse its connections
+var getMigrationHTTPClient = sync.OnceValue(newMigrationHTTPClient)
+
+// newMigrationHTTPClient returns a HTTP client for migration
+func newMigrationHTTPClient() *http.Client {
+	return &http.Client{Transport: NewMigrationHTTPTransport()}
 }
 
-// NewMigrationHTTPTransport returns a HTTP transport for migration
+// NewMigrationHTTPTransport returns a HTTP transport for migration, enforcing the migration policy on its direct dials.
 func NewMigrationHTTPTransport() *http.Transport {
-	return &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-		Proxy:           proxy.Proxy(),
-		DialContext:     hostmatcher.NewDialContext("migration", allowList, blockList, setting.Proxy.ProxyURLFixed),
-	}
+	t := egress.NewMigrationPolicy().NewHTTPTransport()
+	t.TLSClientConfig = &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify}
+	return t
 }

@@ -40,7 +40,7 @@ export function initCompWebHookEditor() {
   if (httpMethodInput) {
     const updateContentType = function () {
       const visible = httpMethodInput.value === 'POST';
-      toggleElem(document.querySelector('#content_type').closest('.field'), visible);
+      toggleElem(document.querySelector('#content_type')!.closest('.field')!, visible);
     };
     updateContentType();
     httpMethodInput.addEventListener('change', updateContentType);
@@ -49,9 +49,7 @@ export function initCompWebHookEditor() {
   // Test delivery
   document.querySelector<HTMLButtonElement>('#test-delivery')?.addEventListener('click', async function () {
     this.classList.add('is-loading', 'disabled');
-    await POST(this.getAttribute('data-link'));
-    setTimeout(() => {
-      window.location.href = this.getAttribute('data-redirect');
-    }, 5000);
+    await POST(this.getAttribute('data-link')!);
+    setTimeout(() => window.location.reload(), 5000);
   });
 }

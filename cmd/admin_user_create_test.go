@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,13 +56,21 @@ func TestAdminUserCreate(t *testing.T) {
 	t.Run("UserType", func(t *testing.T) {
 		reset()
 		assert.ErrorContains(t, createUser("u", "--user-type", "invalid"), "invalid user type")
-		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--password", "123"), "can only be set for individual users")
-		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--must-change-password"), "can only be set for individual users")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--password", "123"), "can only be set for user accounts")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--must-change-password"), "can only be set for user accounts")
+		assert.ErrorContains(t, createUser("u", "--user-type", "bot", "--admin"), "bot user can not be a site administrator")
 
 		assert.NoError(t, createUser("u", "--user-type", "bot"))
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})
 		assert.Equal(t, user_model.UserTypeBot, u.Type)
 		assert.Empty(t, u.Passwd)
+		assert.False(t, u.MustChangePassword, "bot users should not be forced to change password")
+
+		changeType := func(userType string) error {
+			return microcmdUserChangeType().Run(t.Context(), []string{"change-type", "--username", "u", "--user-type", userType})
+		}
+		assert.NoError(t, changeType("User"))
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"}).IsIndividual())
 	})
 
 	t.Run("AccessToken", func(t *testing.T) {

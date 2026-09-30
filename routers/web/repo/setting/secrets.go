@@ -7,12 +7,13 @@ import (
 	"errors"
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	shared "code.gitea.io/gitea/routers/web/shared/secrets"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	shared "gitea.dev/routers/web/shared/secrets"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
 )
 
 const (
@@ -23,6 +24,8 @@ const (
 )
 
 type secretsCtx struct {
+	Owner           *user_model.User
+	Repo            *repo_model.Repository
 	OwnerID         int64
 	RepoID          int64
 	IsRepo          bool
@@ -35,7 +38,7 @@ type secretsCtx struct {
 func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &secretsCtx{
-			OwnerID:         0,
+			Repo:            ctx.Repo.Repository,
 			RepoID:          ctx.Repo.Repository.ID,
 			IsRepo:          true,
 			SecretsTemplate: tplRepoSecrets,
@@ -46,11 +49,11 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	if ctx.Data["PageIsOrgSettings"] == true {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil
+			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
 		}
 		return &secretsCtx{
+			Owner:           ctx.ContextUser,
 			OwnerID:         ctx.ContextUser.ID,
-			RepoID:          0,
 			IsOrg:           true,
 			SecretsTemplate: tplOrgSecrets,
 			RedirectLink:    ctx.Org.OrgLink + "/settings/actions/secrets",
@@ -59,8 +62,8 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &secretsCtx{
+			Owner:           ctx.Doer,
 			OwnerID:         ctx.Doer.ID,
-			RepoID:          0,
 			IsUser:          true,
 			SecretsTemplate: tplUserSecrets,
 			RedirectLink:    setting.AppSubURL + "/user/settings/actions/secrets",
@@ -74,7 +77,6 @@ func Secrets(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageType"] = "secrets"
 	ctx.Data["PageIsSharedSettingsSecrets"] = true
-	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
 
 	sCtx, err := getSecretsCtx(ctx)
 	if err != nil {
@@ -107,8 +109,8 @@ func SecretsPost(ctx *context.Context) {
 
 	shared.PerformSecretsPost(
 		ctx,
-		sCtx.OwnerID,
-		sCtx.RepoID,
+		sCtx.Owner,
+		sCtx.Repo,
 		sCtx.RedirectLink,
 	)
 }
@@ -121,8 +123,8 @@ func SecretsDelete(ctx *context.Context) {
 	}
 	shared.PerformSecretsDelete(
 		ctx,
-		sCtx.OwnerID,
-		sCtx.RepoID,
+		sCtx.Owner,
+		sCtx.Repo,
 		sCtx.RedirectLink,
 	)
 }

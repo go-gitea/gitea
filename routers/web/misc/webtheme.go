@@ -6,13 +6,13 @@ package misc
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/context"
-	user_service "code.gitea.io/gitea/services/user"
-	"code.gitea.io/gitea/services/webtheme"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/context"
+	user_service "gitea.dev/services/user"
+	"gitea.dev/services/webtheme"
 )
 
 func WebThemeList(ctx *context.Context) {
@@ -37,6 +37,6 @@ func WebThemeApply(ctx *context.Context) {
 		opts := &user_service.UpdateOptions{Theme: optional.Some(themeName)}
 		_ = user_service.UpdateUser(ctx, ctx.Doer, opts)
 	} else {
-		middleware.SetSiteCookie(ctx.Resp, "gitea_theme", themeName, 0)
+		middleware.SetSiteCookie(ctx.Resp, middleware.CookieTheme, themeName, 0)
 	}
 }

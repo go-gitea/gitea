@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/tests"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -51,6 +51,12 @@ func TestAPITwoFactor(t *testing.T) {
 		AddBasicAuth(user.Name)
 	req.Header.Set("X-Gitea-OTP", passcode)
 	MakeRequest(t, req, http.StatusOK)
+
+	// the same passcode must not be replayable on the basic-auth surface (RFC 6238 single-use)
+	req = NewRequest(t, "GET", "/api/v1/user").
+		AddBasicAuth(user.Name)
+	req.Header.Set("X-Gitea-OTP", passcode)
+	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestBasicAuthWithWebAuthn(t *testing.T) {
@@ -76,8 +82,7 @@ func TestBasicAuthWithWebAuthn(t *testing.T) {
 	type tokenResponse struct {
 		Token string `json:"token"`
 	}
-	var tokenParsed tokenResponse
-	DecodeJSON(t, resp, &tokenParsed)
+	tokenParsed := DecodeJSON(t, resp, &tokenResponse{})
 	assert.NotEmpty(t, tokenParsed.Token)
 
 	// user32 has webauthn enrolled, he can't request API with basic auth
@@ -91,8 +96,7 @@ func TestBasicAuthWithWebAuthn(t *testing.T) {
 	type userResponse struct {
 		Message string `json:"message"`
 	}
-	var userParsed userResponse
-	DecodeJSON(t, resp, &userParsed)
+	userParsed := DecodeJSON(t, resp, &userResponse{})
 	assert.Equal(t, "basic authorization is not allowed while WebAuthn enrolled", userParsed.Message)
 
 	// user32 has webauthn enrolled, he can't request git protocol with basic auth

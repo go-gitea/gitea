@@ -39,3 +39,5 @@
   user_id: 10
   repo_id: 32
   mode: 1 # normal
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

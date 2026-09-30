@@ -8,10 +8,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/cmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/cmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v3"
@@ -38,13 +37,15 @@ func Test_CmdKeys(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				// FIXME: this test is not quite right. Each "command run" always re-initializes settings
-				defer test.MockVariableValue(&cmd.CmdKeys.Before, nil)() // don't re-initialize logger during the test
+				keysCmd := cmd.NewKeysCommand()
+				keysCmd.Before = nil    // don't re-initialize logger during the test
+				keysCmd.HideHelp = true // skip help on usage error, which would re-initialize settings (urfave/cli v3.10)
 
 				var stdout, stderr bytes.Buffer
 				app := &cli.Command{
 					Writer:    &stdout,
 					ErrWriter: &stderr,
-					Commands:  []*cli.Command{cmd.CmdKeys},
+					Commands:  []*cli.Command{keysCmd},
 				}
 				err := app.Run(t.Context(), append([]string{"prog"}, tt.args...))
 				if tt.wantErr {

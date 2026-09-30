@@ -10,20 +10,20 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {
-	currentRepo, err := git.OpenRepository(b.Context(), ".")
+	currentRepo, err := git.OpenRepositoryLocal(b.Context(), ".")
 	if err != nil || currentRepo == nil {
 		b.Error("Could not open repository")
 	}
 	defer currentRepo.Close()
 
 	for b.Loop() {
-		graph, err := GetCommitGraph(currentRepo, 1, 0, false, nil, nil)
+		graph, err := GetCommitGraph(b.Context(), currentRepo, 1, 0, false, nil, nil)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}
@@ -238,8 +238,8 @@ func TestCommitStringParsing(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			testString := fmt.Sprintf("%s%s", dataFirstPart, test.commitMessage)
-			idx := strings.Index(testString, "DATA:")
-			commit, err := NewCommit(0, 0, []byte(testString[idx+5:]))
+			_, after, _ := strings.Cut(testString, "DATA:")
+			commit, err := NewCommit(0, 0, []byte(after))
 			if err != nil && test.shouldPass {
 				t.Errorf("Could not parse %s", testString)
 				return

@@ -6,14 +6,14 @@ package templates
 import (
 	"bytes"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 )
 
-type JsonUtils struct{} //nolint:revive // variable naming triggers on Json, wants JSON
+type JsonUtils struct{}
 
 var jsonUtils = JsonUtils{}
 
-func NewJsonUtils() *JsonUtils { //nolint:revive // variable naming triggers on Json, wants JSON
+func NewJsonUtils() *JsonUtils {
 	return &jsonUtils
 }
 

@@ -6,11 +6,12 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // CommitTreeOpts represents the possible options to CommitTree
@@ -23,7 +24,7 @@ type CommitTreeOpts struct {
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
-func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opts CommitTreeOpts) (ObjectID, error) {
+func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signature, tree *Tree, opts CommitTreeOpts) (ObjectID, error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -58,16 +59,12 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := cmd.WithEnv(env).
-		WithDir(repo.Path).
-		WithStdin(messageBytes).
-		WithStdout(stdout).
-		WithStderr(stderr).
-		Run(repo.Ctx)
+	stdout, _, err := cmd.WithEnv(env).
+		WithRepo(repo).
+		WithStdinBytes(messageBytes.Bytes()).
+		RunStdString(ctx)
 	if err != nil {
-		return nil, gitcmd.ConcatenateError(err, stderr.String())
+		return nil, err
 	}
-	return NewIDFromString(strings.TrimSpace(stdout.String()))
+	return NewIDFromString(strings.TrimSpace(stdout))
 }

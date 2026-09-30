@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/translation"
 )
 
 // Seconds-based time units

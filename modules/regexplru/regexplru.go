@@ -5,40 +5,37 @@ package regexplru
 
 import (
 	"regexp"
-
-	"code.gitea.io/gitea/modules/log"
+	"sync"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-var lruCache *lru.Cache[string, any]
+type lruItem struct {
+	regexp *regexp.Regexp
+	err    error
+}
 
-func init() {
-	var err error
-	lruCache, err = lru.New[string, any](1000)
-	if err != nil {
-		log.Fatal("failed to new LRU cache, err: %v", err)
-	}
+type RegexpCache struct {
+	lruCache *lru.Cache[string, *lruItem]
+}
+
+func NewCache(size int) *RegexpCache {
+	lruCache, _ := lru.New[string, *lruItem](size)
+	return &RegexpCache{lruCache: lruCache}
 }
 
 // GetCompiled works like regexp.Compile, the compiled expr or error is stored in LRU cache
-func GetCompiled(expr string) (r *regexp.Regexp, err error) {
-	v, ok := lruCache.Get(expr)
+func (regexpCache *RegexpCache) GetCompiled(expr string) (r *regexp.Regexp, err error) {
+	v, ok := regexpCache.lruCache.Get(expr)
 	if !ok {
 		r, err = regexp.Compile(expr)
-		if err != nil {
-			lruCache.Add(expr, err)
-			return nil, err
-		}
-		lruCache.Add(expr, r)
-	} else {
-		r, ok = v.(*regexp.Regexp)
-		if !ok {
-			if err, ok = v.(error); ok {
-				return nil, err
-			}
-			panic("impossible")
-		}
+		regexpCache.lruCache.Add(expr, &lruItem{regexp: r, err: err})
+		return r, err
 	}
-	return r, nil
+	return v.regexp, v.err
 }
+
+var (
+	UserCache   = sync.OnceValue(func() *RegexpCache { return NewCache(1000) })
+	SystemCache = sync.OnceValue(func() *RegexpCache { return NewCache(1000) })
+)

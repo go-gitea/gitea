@@ -6,7 +6,7 @@ package setting
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 )
 
 // DefaultUILocation is the location on the UI, so that we can display the time on UI.

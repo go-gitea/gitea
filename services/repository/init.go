@@ -9,17 +9,17 @@ import (
 	"os"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	asymkey_service "gitea.dev/services/asymkey"
 )
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Repository, u *user_model.User, defaultBranch string) (err error) {
+func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Repository, u *user_model.User) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
@@ -41,7 +41,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	cmd := gitcmd.NewCommand("commit", "--message=Initial commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)
 
-	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
+	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, u)
 	if sign {
 		if key.Format != "" {
 			cmd.AddConfig("gpg.format", key.Format)
@@ -67,16 +67,12 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git commit: %w", err)
 	}
 
-	if len(defaultBranch) == 0 {
-		defaultBranch = setting.Repository.DefaultBranch
-	}
-
-	if stdout, _, err := gitcmd.NewCommand("push", "origin").
-		AddDynamicArguments("HEAD:" + defaultBranch).
-		WithDir(tmpPath).
-		WithEnv(repo_module.InternalPushingEnvironment(u, repo)).
-		RunStdString(ctx); err != nil {
-		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
+	if err := git.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
+		LocalRefName: "HEAD",
+		Branch:       repo.DefaultBranch,
+		Env:          repo_module.InternalPushingEnvironment(u, repo),
+	}); err != nil {
+		log.Error("Failed to push back to HEAD Error: %v", err)
 		return fmt.Errorf("git push: %w", err)
 	}
 

@@ -6,15 +6,8 @@ package git
 import (
 	"crypto/sha1"
 	"crypto/sha256"
-	"regexp"
 	"strconv"
 )
-
-// sha1Pattern can be used to determine if a string is an valid sha
-var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
-
-// sha256Pattern can be used to determine if a string is an valid sha
-var sha256Pattern = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 
 type ObjectFormat interface {
 	// Name returns the name of the object format
@@ -25,8 +18,6 @@ type ObjectFormat interface {
 	EmptyTree() ObjectID
 	// FullLength is the length of the hash's hex string
 	FullLength() int
-	// IsValid returns true if the input is a valid hash
-	IsValid(input string) bool
 	// MustID creates a new ObjectID from a byte slice
 	MustID(b []byte) ObjectID
 	// ComputeHash compute the hash for a given ObjectType and content
@@ -37,25 +28,14 @@ type Sha1ObjectFormatImpl struct{}
 
 var (
 	emptySha1ObjectID = &Sha1Hash{}
-	emptySha1Tree     = &Sha1Hash{
-		0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60,
-		0xe5, 0x4b, 0xf8, 0xd6, 0x92, 0x88, 0xfb, 0xee, 0x49, 0x04,
-	}
+	// emptySha1Tree: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+	emptySha1Tree = &Sha1Hash{0x4b, 0x82, 0x5d, 0xc6, 0x42, 0xcb, 0x6e, 0xb9, 0xa0, 0x60, 0xe5, 0x4b, 0xf8, 0xd6, 0x92, 0x88, 0xfb, 0xee, 0x49, 0x04}
 )
 
-func (Sha1ObjectFormatImpl) Name() string { return "sha1" }
-func (Sha1ObjectFormatImpl) EmptyObjectID() ObjectID {
-	return emptySha1ObjectID
-}
-
-func (Sha1ObjectFormatImpl) EmptyTree() ObjectID {
-	return emptySha1Tree
-}
-func (Sha1ObjectFormatImpl) FullLength() int { return 40 }
-func (Sha1ObjectFormatImpl) IsValid(input string) bool {
-	return sha1Pattern.MatchString(input)
-}
-
+func (Sha1ObjectFormatImpl) Name() string            { return "sha1" }
+func (Sha1ObjectFormatImpl) EmptyObjectID() ObjectID { return emptySha1ObjectID }
+func (Sha1ObjectFormatImpl) EmptyTree() ObjectID     { return emptySha1Tree }
+func (Sha1ObjectFormatImpl) FullLength() int         { return 40 }
 func (Sha1ObjectFormatImpl) MustID(b []byte) ObjectID {
 	var id Sha1Hash
 	copy(id[0:20], b)
@@ -85,19 +65,10 @@ var (
 	}
 )
 
-func (Sha256ObjectFormatImpl) Name() string { return "sha256" }
-func (Sha256ObjectFormatImpl) EmptyObjectID() ObjectID {
-	return emptySha256ObjectID
-}
-
-func (Sha256ObjectFormatImpl) EmptyTree() ObjectID {
-	return emptySha256Tree
-}
-func (Sha256ObjectFormatImpl) FullLength() int { return 64 }
-func (Sha256ObjectFormatImpl) IsValid(input string) bool {
-	return sha256Pattern.MatchString(input)
-}
-
+func (Sha256ObjectFormatImpl) Name() string            { return "sha256" }
+func (Sha256ObjectFormatImpl) EmptyObjectID() ObjectID { return emptySha256ObjectID }
+func (Sha256ObjectFormatImpl) EmptyTree() ObjectID     { return emptySha256Tree }
+func (Sha256ObjectFormatImpl) FullLength() int         { return 64 }
 func (Sha256ObjectFormatImpl) MustID(b []byte) ObjectID {
 	var id Sha256Hash
 	copy(id[0:32], b)
@@ -115,9 +86,21 @@ func (h Sha256ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) Object
 	return h.MustID(hasher.Sum(nil))
 }
 
+type invalidObjectFormatImpl struct{}
+
+func (h invalidObjectFormatImpl) Name() string             { return "invalid-object-format" }
+func (h invalidObjectFormatImpl) EmptyObjectID() ObjectID  { return &Sha1Hash{} }
+func (h invalidObjectFormatImpl) EmptyTree() ObjectID      { return h.EmptyObjectID() }
+func (h invalidObjectFormatImpl) FullLength() int          { return len(h.EmptyObjectID().RawValue()) * 2 }
+func (h invalidObjectFormatImpl) MustID(b []byte) ObjectID { return h.EmptyObjectID() }
+func (h invalidObjectFormatImpl) ComputeHash(t ObjectType, content []byte) ObjectID {
+	return h.EmptyObjectID()
+}
+
 var (
-	Sha1ObjectFormat   ObjectFormat = Sha1ObjectFormatImpl{}
-	Sha256ObjectFormat ObjectFormat = Sha256ObjectFormatImpl{}
+	Sha1ObjectFormat    ObjectFormat = Sha1ObjectFormatImpl{}
+	Sha256ObjectFormat  ObjectFormat = Sha256ObjectFormatImpl{}
+	invalidObjectFormat ObjectFormat = invalidObjectFormatImpl{}
 )
 
 func ObjectFormatFromName(name string) ObjectFormat {
@@ -126,9 +109,9 @@ func ObjectFormatFromName(name string) ObjectFormat {
 			return objectFormat
 		}
 	}
-	return nil
+	return invalidObjectFormat
 }
 
 func IsValidObjectFormat(name string) bool {
-	return ObjectFormatFromName(name) != nil
+	return ObjectFormatFromName(name) != invalidObjectFormat
 }

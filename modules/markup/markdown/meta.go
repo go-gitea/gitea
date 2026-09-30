@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func isYAMLSeparator(line []byte) bool {
@@ -60,8 +60,8 @@ func ExtractMetadata(contents string, out any) (string, error) {
 	return string(body), err
 }
 
-// ExtractMetadata consumes a markdown file, parses YAML frontmatter,
-// and returns the frontmatter metadata separated from the markdown content
+// ExtractMetadataBytes consumes a Markdown content, parses YAML frontmatter,
+// and returns the frontmatter metadata separated from the Markdown content
 func ExtractMetadataBytes(contents []byte, out any) ([]byte, error) {
 	var front, body []byte
 

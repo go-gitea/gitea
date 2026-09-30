@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +27,6 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 	assert.True(t, exists, "The template has changed")
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf":      htmlDoc.GetCSRF(),
 		"clone_addr": cloneAddr,
 		"uid":        uid,
 		"repo_name":  repoName,

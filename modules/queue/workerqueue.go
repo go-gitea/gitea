@@ -11,17 +11,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
 )
 
 // WorkerPoolQueue is a queue that uses a pool of workers to process items
 // It can use different underlying (base) queue types
 type WorkerPoolQueue[T any] struct {
 	ctxRun       context.Context
-	ctxRunCancel context.CancelFunc
+	ctxRunCancel process.FinishedFunc
 
 	shutdownDone    chan struct{}
 	shutdownTimeout atomic.Int64 // in case some buggy handlers (workers) would hang forever, "shutdown" should finish in predictable time
