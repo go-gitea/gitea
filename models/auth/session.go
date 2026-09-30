@@ -5,7 +5,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
@@ -13,55 +12,45 @@ import (
 	"xorm.io/builder"
 )
 
-// Session represents a session compatible for go-chi session
+// Session represents the stored data of a web session
 type Session struct {
-	Key    string             `xorm:"pk CHAR(16)"` // has to be Key to match with go-chi/session
-	Data   []byte             `xorm:"BLOB"`        // on MySQL this has a maximum size of 64Kb - this may need to be increased
-	Expiry timeutil.TimeStamp // has to be Expiry to match with go-chi/session
+	Key    string             `xorm:"pk CHAR(16)"`
+	Data   []byte             `xorm:"BLOB"` // on MySQL this has a maximum size of 64Kb - this may need to be increased
+	Expiry timeutil.TimeStamp // last access time
 }
 
 func init() {
 	db.RegisterModel(new(Session))
 }
 
-// UpdateSession updates the session with provided id
-func UpdateSession(ctx context.Context, key string, data []byte) error {
-	_, err := db.GetEngine(ctx).ID(key).Update(&Session{
-		Data:   data,
-		Expiry: timeutil.TimeStampNow(),
-	})
+// UpdateSession stores the data of the session with provided id, creating the session only if create is set
+func UpdateSession(ctx context.Context, key string, data []byte, create bool) error {
+	session := &Session{Key: key, Data: data, Expiry: timeutil.TimeStampNow()}
+	update := func() (int64, error) {
+		return db.GetEngine(ctx).ID(key).Cols("data", "expiry").Update(session)
+	}
+	if updated, err := update(); err != nil || updated > 0 || !create {
+		return err
+	}
+	insertErr := db.Insert(ctx, session)
+	if insertErr == nil {
+		return nil
+	}
+	// the row exists if a concurrent request inserted it, or if MySQL reported an unchanged row as not updated
+	if exist, err := db.Exist[Session](ctx, builder.Eq{"`key`": key}); err != nil || !exist {
+		return insertErr
+	}
+	_, err := update()
 	return err
 }
 
-// UpdateSessionExpiry refreshes the expiry of the session with provided id
 func UpdateSessionExpiry(ctx context.Context, key string) error {
 	_, err := db.GetEngine(ctx).ID(key).Cols("expiry").Update(&Session{Expiry: timeutil.TimeStampNow()})
 	return err
 }
 
-// ReadSession reads the data for the provided session
-func ReadSession(ctx context.Context, key string) (*Session, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*Session, error) {
-		session, exist, err := db.Get[Session](ctx, builder.Eq{"`key`": key})
-		if err != nil {
-			return nil, err
-		} else if !exist {
-			session = &Session{
-				Key:    key,
-				Expiry: timeutil.TimeStampNow(),
-			}
-			if err := db.Insert(ctx, session); err != nil {
-				return nil, err
-			}
-		}
-
-		return session, nil
-	})
-}
-
-// ExistSession checks if a session exists
-func ExistSession(ctx context.Context, key string) (bool, error) {
-	return db.Exist[Session](ctx, builder.Eq{"`key`": key})
+func GetSession(ctx context.Context, key string) (*Session, bool, error) {
+	return db.Get[Session](ctx, builder.Eq{"`key`": key})
 }
 
 // DestroySession destroys a session
@@ -70,45 +59,6 @@ func DestroySession(ctx context.Context, key string) error {
 		Key: key,
 	})
 	return err
-}
-
-// RegenerateSession regenerates a session from the old id
-func RegenerateSession(ctx context.Context, oldKey, newKey string) (*Session, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*Session, error) {
-		if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": newKey}); err != nil {
-			return nil, err
-		} else if has {
-			return nil, fmt.Errorf("session Key: %s already exists", newKey)
-		}
-
-		if has, err := db.Exist[Session](ctx, builder.Eq{"`key`": oldKey}); err != nil {
-			return nil, err
-		} else if !has {
-			if err := db.Insert(ctx, &Session{
-				Key:    oldKey,
-				Expiry: timeutil.TimeStampNow(),
-			}); err != nil {
-				return nil, err
-			}
-		}
-
-		if _, err := db.Exec(ctx, "UPDATE `session` SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
-			return nil, err
-		}
-
-		s, _, err := db.Get[Session](ctx, builder.Eq{"`key`": newKey})
-		if err != nil {
-			// is not exist, it should be impossible
-			return nil, err
-		}
-
-		return s, nil
-	})
-}
-
-// CountSessions returns the number of sessions
-func CountSessions(ctx context.Context) (int64, error) {
-	return db.GetEngine(ctx).Count(&Session{})
 }
 
 // CleanupSessions cleans up expired sessions

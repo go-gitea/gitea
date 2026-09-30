@@ -34,7 +34,7 @@
 			</div>
 			{{end}}
 
-			{{template "user/auth/captcha" .}}
+			{{if not .LinkAccountMode}}{{template "user/auth/captcha" .}}{{end}}
 
 			<div class="field">
 				<button type="submit" class="ui primary button tw-w-full" tabindex="3">

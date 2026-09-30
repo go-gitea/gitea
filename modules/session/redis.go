@@ -6,228 +6,63 @@
 package session
 
 import (
-	"fmt"
-	"sync"
+	"errors"
 	"time"
 
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/nosql"
 
-	"gitea.com/go-chi/session"
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisStore represents a redis session store implementation.
-type RedisStore struct {
-	c           redis.UniversalClient
-	prefix, sid string
-	duration    time.Duration
-	lock        sync.RWMutex
-	data        map[any]any
-	dirty       bool
+type redisBackend struct {
+	client      redis.UniversalClient
+	prefix      string
+	maxLifetime time.Duration
 }
 
-// NewRedisStore creates and returns a redis session store.
-func NewRedisStore(c redis.UniversalClient, prefix, sid string, dur time.Duration, kv map[any]any) *RedisStore {
-	return &RedisStore{
-		c:        c,
-		prefix:   prefix,
-		sid:      sid,
-		duration: dur,
-		data:     kv,
+// newRedisBackend accepts a connection string like "redis://127.0.0.1:6379/0?prefix=session"
+func newRedisBackend(config string, maxLifetime int64) (*redisBackend, error) {
+	uri := nosql.ToRedisURI(config)
+	b := &redisBackend{
+		client:      nosql.GetManager().GetRedisClient(uri.String()),
+		prefix:      uri.Query().Get("prefix"),
+		maxLifetime: time.Duration(maxLifetime) * time.Second,
 	}
+	return b, b.client.Ping(graceful.GetManager().ShutdownContext()).Err()
 }
 
-// Set sets value to given key in session.
-func (s *RedisStore) Set(key, val any) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	s.data[key] = val
-	s.dirty = true
-	return nil
-}
-
-// Get gets value by given key in session.
-func (s *RedisStore) Get(key any) any {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	return s.data[key]
-}
-
-// Delete delete a key from session.
-func (s *RedisStore) Delete(key any) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	if _, ok := s.data[key]; ok {
-		s.dirty = true
-	}
-	delete(s.data, key)
-	return nil
-}
-
-// ID returns current session ID.
-func (s *RedisStore) ID() string {
-	return s.sid
-}
-
-// Release releases resource and save data to provider.
-func (s *RedisStore) Release() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	// Skip encoding if the data is empty
-	if len(s.data) == 0 {
+func (b *redisBackend) load(sid string) ([]byte, error) {
+	ctx := graceful.GetManager().HammerContext()
+	var get *redis.StringCmd
+	_, err := b.client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		get = pipe.Get(ctx, b.prefix+sid)
+		pipe.Expire(ctx, b.prefix+sid, b.maxLifetime)
 		return nil
+	})
+	if errors.Is(err, redis.Nil) {
+		return nil, nil
 	}
-	if !s.dirty {
-		return s.c.Expire(graceful.GetManager().HammerContext(), s.prefix+s.sid, s.duration).Err()
-	}
-
-	data, err := session.EncodeGob(s.data)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	err = s.c.Set(graceful.GetManager().HammerContext(), s.prefix+s.sid, string(data), s.duration).Err()
-	s.dirty = err != nil
-	return err
+	return get.Bytes()
 }
 
-// Flush deletes all session data.
-func (s *RedisStore) Flush() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (b *redisBackend) save(sid string, data []byte, create bool) error {
+	ctx := graceful.GetManager().HammerContext()
+	if create {
+		return b.client.Set(ctx, b.prefix+sid, data, b.maxLifetime).Err()
+	}
+	return b.client.SetXX(ctx, b.prefix+sid, data, b.maxLifetime).Err()
+}
 
-	s.data = make(map[any]any)
-	s.dirty = true
+func (*redisBackend) touch(string) error {
 	return nil
 }
 
-// RedisProvider represents a redis session provider implementation.
-type RedisProvider struct {
-	c        redis.UniversalClient
-	duration time.Duration
-	prefix   string
+func (b *redisBackend) destroy(sid string) error {
+	return b.client.Del(graceful.GetManager().HammerContext(), b.prefix+sid).Err()
 }
 
-// Init initializes redis session provider.
-// configs: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180,prefix=session;
-func (p *RedisProvider) Init(maxlifetime int64, configs string) (err error) {
-	p.duration, err = time.ParseDuration(fmt.Sprintf("%ds", maxlifetime))
-	if err != nil {
-		return err
-	}
-
-	uri := nosql.ToRedisURI(configs)
-
-	for k, v := range uri.Query() {
-		switch k {
-		case "prefix":
-			p.prefix = v[0]
-		}
-	}
-
-	p.c = nosql.GetManager().GetRedisClient(uri.String())
-	return p.c.Ping(graceful.GetManager().ShutdownContext()).Err()
-}
-
-// Read returns raw session store by session ID.
-func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
-	psid := p.prefix + sid
-	if exist, err := p.Exist(sid); err == nil && !exist {
-		if err := p.c.Set(graceful.GetManager().HammerContext(), psid, "", p.duration).Err(); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
-	}
-
-	var kv map[any]any
-	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), psid).Result()
-	if err != nil {
-		return nil, err
-	}
-	if len(kvs) == 0 {
-		kv = make(map[any]any)
-	} else {
-		kv, err = session.DecodeGob([]byte(kvs))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return NewRedisStore(p.c, p.prefix, sid, p.duration, kv), nil
-}
-
-// Exist returns true if session with given ID exists.
-func (p *RedisProvider) Exist(sid string) (bool, error) {
-	v, err := p.c.Exists(graceful.GetManager().HammerContext(), p.prefix+sid).Result()
-	return err == nil && v == 1, err
-}
-
-// Destroy deletes a session by session ID.
-func (p *RedisProvider) Destroy(sid string) error {
-	return p.c.Del(graceful.GetManager().HammerContext(), p.prefix+sid).Err()
-}
-
-// Regenerate regenerates a session store from old session ID to new one.
-func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err error) {
-	poldsid := p.prefix + oldsid
-	psid := p.prefix + sid
-
-	if exist, err := p.Exist(sid); err != nil {
-		return nil, err
-	} else if exist {
-		return nil, fmt.Errorf("new sid '%s' already exists", sid)
-	}
-	if exist, err := p.Exist(oldsid); err == nil && !exist {
-		// Make a fake old session.
-		if err := p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
-	}
-
-	// do not use Rename here, because the old sid and new sid may be in different redis cluster slot.
-	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), poldsid).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	if err = p.c.Del(graceful.GetManager().HammerContext(), poldsid).Err(); err != nil {
-		return nil, err
-	}
-
-	if err = p.c.Set(graceful.GetManager().HammerContext(), psid, kvs, p.duration).Err(); err != nil {
-		return nil, err
-	}
-
-	var kv map[any]any
-	if len(kvs) == 0 {
-		kv = make(map[any]any)
-	} else {
-		kv, err = session.DecodeGob([]byte(kvs))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return NewRedisStore(p.c, p.prefix, sid, p.duration, kv), nil
-}
-
-// Count counts and returns number of sessions.
-func (p *RedisProvider) Count() (int, error) {
-	size, err := p.c.DBSize(graceful.GetManager().HammerContext()).Result()
-	return int(size), err
-}
-
-// GC calls GC to clean expired sessions.
-func (*RedisProvider) GC() {}
-
-func init() {
-	session.Register("redis", &RedisProvider{})
-}
+func (*redisBackend) gc() {}

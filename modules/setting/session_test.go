@@ -69,11 +69,21 @@ PROVIDER = file
 
 			loadRedisFrom(cfg)
 			loadSessionFrom(cfg)
-			// ProviderConfig is shadowed into a JSON blob at the end of loadSessionFrom
 			assert.Contains(t, SessionConfig.ProviderConfig, tt.wantContain)
 			if tt.wantMissing != "" {
 				assert.NotContains(t, SessionConfig.ProviderConfig, tt.wantMissing)
 			}
 		})
+	}
+}
+
+func TestSessionNonPositiveLifetimesUseDefaults(t *testing.T) {
+	defer test.MockVariableValue(&SessionConfig)()
+	for _, interval := range []string{"0", "-1"} {
+		cfg, err := NewConfigProviderFromData("[session]\nGC_INTERVAL_TIME = " + interval + "\nSESSION_LIFE_TIME = 0")
+		assert.NoError(t, err)
+		loadSessionFrom(cfg)
+		assert.EqualValues(t, 3600, SessionConfig.Gclifetime)
+		assert.EqualValues(t, 3600, SessionConfig.Maxlifetime)
 	}
 }
