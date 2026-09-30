@@ -17,9 +17,8 @@ test('create a bot and manage its access token', async ({page, request}) => {
   await page.getByRole('row', {name: /^user /}).getByRole('radio', {name: 'Read', exact: true}).check();
   await page.getByRole('button', {name: 'Generate Token'}).click();
   const token = await page.getByRole('code').textContent();
-  const copyButton = page.getByRole('button', {name: 'Copy', exact: true});
-  await copyButton.click();
-  await expect(copyButton.locator('.octicon-check')).toBeVisible();
+  await page.getByRole('button', {name: 'Copy', exact: true}).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(token);
   const response = await request.get('/api/v1/user', {headers: {Authorization: `token ${token}`}});
   expect(await response.json()).toMatchObject({login: botName, type: 'Bot'});
 
