@@ -21,7 +21,18 @@ import (
 	"gitea.dev/modules/util"
 
 	"github.com/caddyserver/certmagic"
+	"github.com/mholt/acmez/v3/acme"
 )
+
+func acmeExternalAccountBinding() (*acme.EAB, error) {
+	if setting.AcmeEABKID == "" && setting.AcmeEABHMAC == "" {
+		return nil, nil
+	}
+	if setting.AcmeEABKID == "" || setting.AcmeEABHMAC == "" {
+		return nil, errors.New("both ACME_EAB_KID and ACME_EAB_HMAC must be set")
+	}
+	return &acme.EAB{KeyID: setting.AcmeEABKID, MACKey: setting.AcmeEABHMAC}, nil
+}
 
 func getCARoot(path string) (*x509.CertPool, error) {
 	r, err := os.ReadFile(path)
@@ -66,6 +77,10 @@ func runACME(listenAddr string, m http.Handler) error {
 			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
 		}
 	}
+	externalAccount, err := acmeExternalAccountBinding()
+	if err != nil {
+		return err
+	}
 	// FIXME: this path is not right, it uses "AppWorkPath" incorrectly, and writes the data into "AppWorkPath/https"
 	// Ideally it should migrate to AppDataPath write to "AppDataPath/https"
 	// And one more thing, no idea why we should set the global default variables here
@@ -84,6 +99,7 @@ func runACME(listenAddr string, m http.Handler) error {
 		Email:                   setting.AcmeEmail,
 		Agreed:                  setting.AcmeTOS,
 		Profile:                 setting.AcmeProfile,
+		ExternalAccount:         externalAccount,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
 		ListenHost:              setting.HTTPAddr,
@@ -100,7 +116,7 @@ func runACME(listenAddr string, m http.Handler) error {
 	// takes HTTPS down on restart (https://github.com/go-gitea/gitea/issues/38519).
 	// Prefer keeping the existing cert and retrying renewals asynchronously.
 	ctx := graceful.GetManager().ShutdownContext()
-	err := magic.ManageSync(ctx, []string{setting.AppDomain})
+	err = magic.ManageSync(ctx, []string{setting.AppDomain})
 	if err != nil {
 		cert, cacheErr := magic.CacheManagedCertificate(ctx, setting.AppDomain)
 		if cacheErr != nil || cert.Expired() {
