@@ -162,7 +162,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// if it's not a pointer, just serve the data directly
 	if !pointer.IsValid() {
-		_, _ = ctx.Resp.Write(lfsPointerBuf)
+		httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, int64(len(lfsPointerBuf)), bytes.NewReader(lfsPointerBuf), httplib.ServeHeaderOptions{Filename: ctx.Repo.TreePath})
 		return
 	}
 
@@ -171,7 +171,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// If there isn't one, just serve the data directly
 	if errors.Is(err, git_model.ErrLFSObjectNotExist) {
-		_, _ = ctx.Resp.Write(lfsPointerBuf)
+		httplib.ServeUserContentByReader(ctx.Req, ctx.Resp, int64(len(lfsPointerBuf)), bytes.NewReader(lfsPointerBuf), httplib.ServeHeaderOptions{Filename: ctx.Repo.TreePath})
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)

@@ -5,6 +5,7 @@ package migrations
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -317,13 +318,14 @@ func TestGiteaDownloadRepo(t *testing.T) {
 
 func TestGiteaDownloadCommentsPaging(t *testing.T) {
 	for _, tc := range []struct {
-		maxResponseItems, commentCount, requests int
-		paginated                                bool
+		maxResponseItems, pageSize, commentCount, requests int
+		paginated                                          bool
 	}{
-		{maxResponseItems: 2, commentCount: 2, requests: 2},
-		{maxResponseItems: 2, commentCount: 3, requests: 1},
-		{maxResponseItems: 2, commentCount: 4, requests: 3, paginated: true},
-		{maxResponseItems: 0, commentCount: 0, requests: 1},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 2, requests: 2},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 3, requests: 1},
+		{maxResponseItems: 2, pageSize: 2, commentCount: 4, requests: 3, paginated: true},
+		{maxResponseItems: 0, pageSize: 10, commentCount: 0, requests: 1},
+		{maxResponseItems: math.MaxInt, pageSize: 100, commentCount: 0, requests: 1},
 	} {
 		t.Run(strconv.Itoa(tc.commentCount), func(t *testing.T) {
 			commentRequests := 0
@@ -352,6 +354,7 @@ func TestGiteaDownloadCommentsPaging(t *testing.T) {
 
 			downloader, err := NewGiteaDownloader(t.Context(), server.URL, "o/r", "", "", "")
 			require.NoError(t, err)
+			assert.Equal(t, tc.pageSize, downloader.maxPerPage)
 
 			comments, _, err := downloader.GetComments(t.Context(), &base.Issue{Number: 1})
 			require.NoError(t, err)

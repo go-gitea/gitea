@@ -38,6 +38,12 @@ func TestAPIGetIssueAttachment(t *testing.T) {
 	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: apiAttachment.ID, IssueID: issue.ID})
+
+	commentAttachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 3, RepoID: repo.ID})
+	commentIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: commentAttachment.IssueID})
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/assets/%d", repoOwner.Name, repo.Name, commentIssue.Index, commentAttachment.ID)).
+		AddTokenAuth(token)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIListIssueAttachments(t *testing.T) {
