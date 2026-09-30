@@ -168,9 +168,9 @@ func TestTrackHtmlTag(t *testing.T) {
 		parts  []string
 		inMath bool
 	}{
-		{[]string{"<ma", `th display="block">`}, true},
+		{[]string{"<ma", `TH display="block">`}, true},
 		{[]string{"<mo>"}, true},
-		{[]string{"</MA", "TH>"}, false},
+		{[]string{"</MA", "th>"}, false},
 		{[]string{"<mathx>"}, false},
 	} {
 		for _, part := range tt.parts {
