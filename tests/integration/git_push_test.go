@@ -16,6 +16,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -175,6 +177,14 @@ func TestGitPushVisibilityOption(t *testing.T) {
 		doGitPushTestRepository(gitPath, "origin", "branch2", "-o", "repo.private=false")(t)
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
 		assert.True(t, repo.IsPrivate, "repo.private option must be ignored on an existing repository")
+
+		defer test.MockVariableValue(&setting.Repository.ForcePrivate, true)()
+		forcedRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{Name: "repo-visibility-forced", DefaultBranch: "master", IsPrivate: true})
+		require.NoError(t, err)
+		u.Path = forcedRepo.FullName() + ".git"
+		doGitAddRemote(gitPath, "forced", u)(t)
+		doGitPushTestRepository(gitPath, "forced", "master", "-o", "repo.private=false")(t)
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: forcedRepo.ID}).IsPrivate)
 	})
 }
 
