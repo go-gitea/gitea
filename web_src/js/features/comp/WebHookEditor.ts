@@ -26,7 +26,8 @@ export function initCompWebHookEditor() {
     button.addEventListener('click', () => {
       const checked = button.getAttribute('data-events-checked') === 'true';
       for (const input of document.querySelectorAll<HTMLInputElement>('.events.fields input[type=checkbox]')) {
-        if (input.checked !== checked) input.click(); // fires the change event the form dirty check listens to
+        input.checked = checked;
+        input.dispatchEvent(new Event('change', {bubbles: true})); // for the areYouSure dirty tracking
       }
     });
   }
