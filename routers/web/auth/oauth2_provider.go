@@ -333,7 +333,13 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	// Redirect if user already granted access and the application is confidential or trusted otherwise
 	// I.e. always require authorization for untrusted public clients as recommended by RFC 6749 Section 10.2
-	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil {
+	//
+	// Not when the application is asking for a different scope than the grant
+	// holds. Skipping consent there would hand back a token narrower than what
+	// was asked for, with nothing saying so -- and the user would never be
+	// shown the new permission they are being asked to agree to. Falling
+	// through asks them, per RFC 6749 Section 3.3.
+	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil && grant.Scope == form.Scope {
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -440,12 +446,18 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			return
 		}
 	} else if grant.Scope != form.Scope {
-		handleAuthorizeError(ctx, AuthorizeError{
-			State:            form.State,
-			ErrorDescription: "a grant exists with different scope",
-			ErrorCode:        ErrorCodeServerError,
-		}, form.RedirectURI)
-		return
+		// The user has just been shown the new scope and agreed to it, so the
+		// grant takes it. Refusing here was the old behaviour and it made a
+		// scope change permanently impossible: every existing user got a server
+		// error, and the only escape was revoking the application by hand.
+		if err := grant.SetScope(ctx, form.Scope); err != nil {
+			handleAuthorizeError(ctx, AuthorizeError{
+				State:            form.State,
+				ErrorDescription: "cannot update grant scope for user",
+				ErrorCode:        ErrorCodeServerError,
+			}, form.RedirectURI)
+			return
+		}
 	}
 
 	if len(form.Nonce) > 0 {
