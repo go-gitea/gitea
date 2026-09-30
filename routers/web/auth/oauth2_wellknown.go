@@ -31,7 +31,6 @@ func OIDCWellKnown(ctx *context.Context) {
 		"introspection_endpoint": oidcBaseUrl + "/login/oauth/introspect",
 		"response_types_supported": []string{
 			"code",
-			"id_token",
 		},
 		"id_token_signing_alg_values_supported": []string{
 			oauth2_provider.DefaultSigningKey.SigningMethod().Alg(),

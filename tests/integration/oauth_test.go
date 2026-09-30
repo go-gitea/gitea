@@ -108,6 +108,7 @@ func TestOAuth2(t *testing.T) {
 		t.Run("AuthorizeNoClientID", testAuthorizeNoClientID)
 		t.Run("AuthorizeUnregisteredRedirect", testAuthorizeUnregisteredRedirect)
 		t.Run("AuthorizeUnsupportedResponseType", testAuthorizeUnsupportedResponseType)
+		t.Run("AuthorizedUnsupportedResponseTypeIDToken", testAuthorizeUnsupportedResponseTypeIDToken)
 		t.Run("AuthorizeUnsupportedCodeChallengeMethod", testAuthorizeUnsupportedCodeChallengeMethod)
 		t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
 		t.Run("AuthorizeShow", testAuthorizeShow)
@@ -155,6 +156,16 @@ func testAuthorizeUnregisteredRedirect(t *testing.T) {
 
 func testAuthorizeUnsupportedResponseType(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=https://example.com&response_type=UNEXPECTED&state=thestate")
+	ctx := loginUser(t, "user1")
+	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
+	u, err := resp.Result().Location()
+	assert.NoError(t, err)
+	assert.Equal(t, "unsupported_response_type", u.Query().Get("error"))
+	assert.Equal(t, "Only code response type is supported.", u.Query().Get("error_description"))
+}
+
+func testAuthorizeUnsupportedResponseTypeIDToken(t *testing.T) {
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=https://example.com&response_type=id_token&state=thestate")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
 	u, err := resp.Result().Location()
