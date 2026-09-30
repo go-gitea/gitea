@@ -13,7 +13,7 @@ function targetElement(elCode: Element): {target: Element, displayAsBlock: boole
   };
 }
 
-export async function initMarkupCodeMath(elMarkup: HTMLElement): Promise<void> {
+export function initMarkupCodeMath(elMarkup: HTMLElement): void {
   // .markup code.language-math'
   queryElems(elMarkup, 'code.language-math', async (el) => {
     const [{default: katex}] = await Promise.all([
