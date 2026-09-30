@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
@@ -22,6 +23,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -122,7 +124,7 @@ func InfoOAuth(ctx *context.Context) {
 	var accessTokenScope auth.AccessTokenScope
 	if auHead := ctx.Req.Header.Get("Authorization"); auHead != "" {
 		if parsed, ok := httpauth.ParseAuthorizationHeader(auHead); ok && parsed.BearerToken != nil {
-			accessTokenScope, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
+			accessTokenScope, _, _ = auth_service.GetOAuthAccessTokenScopeAndUserID(ctx, parsed.BearerToken.Token)
 		}
 	}
 
@@ -439,6 +441,8 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			}, form.RedirectURI)
 			return
 		}
+
+		audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, "oauth2_application", app.Name, "granted_scope", form.Scope)
 	} else if grant.Scope != form.Scope {
 		if err := auth.UpdateGrantScope(ctx, grant, form.Scope); err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -582,7 +586,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 
 	token, err := oauth2_provider.ParseToken(form.RefreshToken, serverKey)
-	if err != nil {
+	if err != nil || token.Kind != oauth2_provider.KindRefreshToken {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "unable to parse refresh token",

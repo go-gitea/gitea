@@ -6,7 +6,7 @@ package setting
 import (
 	"bytes"
 	"fmt"
-	gotemplate "html/template"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/attribute"
 	"gitea.dev/modules/git/pipeline"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
@@ -267,57 +268,48 @@ func LFSFileGet(ctx *context.Context) {
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
-	// FIXME: there is no IsPlainText set, but template uses it
 	ctx.Data["IsTextFile"] = st.IsText()
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s/%s/%s.git/info/lfs/objects/%s", setting.AppSubURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid))
 	switch {
-	case st.IsRepresentableAsText():
-		if meta.Size >= setting.UI.MaxDisplayFileSize {
-			ctx.Data["IsFileTooLarge"] = true
-			break
-		}
-
-		if st.IsSvgImage() {
-			ctx.Data["IsImageFile"] = true
-		}
-
-		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
-
-		// Building code view blocks with line number on server side.
-		// FIXME: the logic is not right here: it first calls EscapeControlReader then calls HTMLEscapeString: double-escaping
-		escapedContent := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent, ctx.Locale)
-
-		var output bytes.Buffer
-		lines := strings.Split(escapedContent.String(), "\n")
-		// Remove blank line at the end of file
-		if len(lines) > 0 && lines[len(lines)-1] == "" {
-			lines = lines[:len(lines)-1]
-		}
-		for index, line := range lines {
-			line = gotemplate.HTMLEscapeString(line)
-			if index != len(lines)-1 {
-				line += "\n"
-			}
-			fmt.Fprintf(&output, `<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line)
-		}
-		ctx.Data["FileContent"] = gotemplate.HTML(output.String())
-
-		output.Reset()
-		for i := 0; i < len(lines); i++ {
-			fmt.Fprintf(&output, `<span id="L%d">%d</span>`, i+1, i+1)
-		}
-		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
-
 	case st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
 	case st.IsAudio():
 		ctx.Data["IsAudioFile"] = true
 	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
+	case st.IsRepresentableAsText():
+		if meta.Size >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
+			break
+		}
+
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
+		fileContentBytes, _ := io.ReadAll(io.LimitReader(rd, setting.UI.MaxDisplayFileSize))
+		fileContentHTML := htmlutil.EscapeString(util.UnsafeBytesToString(fileContentBytes))
+		escapeStatus, fileContentHTML := charset.EscapeControlHTML(fileContentHTML, ctx.Locale)
+
+		output := &htmlutil.HTMLBuilder{}
+		output.WriteHTML(`<table>`)
+		writeLine := func(lineNum int, line template.HTML) {
+			output.WriteFormatf(`<tr><td class="lines-num">%d</td><td class="lines-code"><code class="code-inner">%s</code></td></tr>`, lineNum, line)
+		}
+		prevLineIndex, prevLine := -1, template.HTML("")
+		for line := range util.StringSplitSeq(fileContentHTML, "\n") {
+			if prevLineIndex >= 0 {
+				writeLine(prevLineIndex+1, prevLine)
+			}
+			prevLineIndex, prevLine = prevLineIndex+1, line
+		}
+		if prevLine != "" { // trim last empty line
+			writeLine(prevLineIndex+1, prevLine)
+		}
+		output.WriteHTML(`</table>`)
+
+		ctx.Data["EscapeStatus"] = escapeStatus
+		ctx.Data["FileContentHTML"] = output.HTMLString()
 	default:
-		// TODO: the logic is not the same as "renderFile" in "view.go"
+		// the logic is not the same as "renderFile" in "view.go" because here it just needs to render a simple view
 	}
 	ctx.HTML(http.StatusOK, tplSettingsLFSFile)
 }

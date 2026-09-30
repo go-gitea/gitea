@@ -19,13 +19,13 @@ import (
 	user_model "gitea.dev/models/user"
 	auth_module "gitea.dev/modules/auth"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/egress"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 	source_service "gitea.dev/services/auth/source"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
@@ -299,21 +299,10 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-// oauth2AvatarAllowList parses the host allow-list applied to avatar fetches from the global
-// [security] ALLOWED_HOST_LIST, defaulting an empty setting to the built-in "external" set. An empty
-// host-match list would otherwise disable the allow-list check entirely and permit any host, including
-// loopback/private addresses (SSRF).
-func oauth2AvatarAllowList() *hostmatcher.HostMatchList {
-	return hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
-}
-
-// oauth2AvatarHTTPClient builds the SSRF-protected client for avatar fetches. It is constructed per call
-// so a changed allowlist takes effect (avatar fetches are infrequent, so this is not a hot path).
 func oauth2AvatarHTTPClient() *http.Client {
-	allowList := oauth2AvatarAllowList()
 	return &http.Client{
 		Timeout:   30 * time.Second,
-		Transport: hostmatcher.NewHTTPTransport("oauth2-avatar", allowList, nil, proxy.Proxy(), setting.Proxy.ProxyURLFixed, nil),
+		Transport: egress.NewSecurityPolicy("oauth2-avatar").NewHTTPTransport(),
 	}
 }
 
@@ -419,7 +408,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		// Register last login
 		opts.SetLastLogin = true
 
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -448,7 +437,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 	}
 
 	if opts.IsActive.Has() || opts.IsAdmin.Has() || opts.IsRestricted.Has() {
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthSourceUser()), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}

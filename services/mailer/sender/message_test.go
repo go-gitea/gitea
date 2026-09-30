@@ -19,7 +19,6 @@ func TestGenerateMessageID(t *testing.T) {
 	}
 
 	setting.MailService = &mailService
-	setting.Domain = "localhost"
 
 	date := time.Date(2000, 1, 2, 3, 4, 5, 6, time.UTC)
 	m := NewMessageFrom("", "display-name", "from-address", "subject", "body")

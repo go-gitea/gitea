@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
@@ -74,9 +75,10 @@ func Routes() *web.Router {
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
 	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
 	r.AfterRouting(setRealIP)
+	r.AfterRouting(common.AuditOrigin(audit_model.OriginSystem))
 
 	r.Get("/dummy", misc.DummyOK)
-	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
+	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyForSSH)
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)
 	r.Post("/ssh/log", bind(private.SSHLogOption{}), SSHLog)
 	r.Post("/hook/pre-receive/{owner}/{repo}", RepoAssignment, bind(private.HookOptions{}), HookPreReceive)

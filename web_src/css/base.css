@@ -324,6 +324,12 @@ a.silenced:hover {
   text-decoration-line: none;
 }
 
+a.disabled {
+  cursor: default;
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+
 a.label,
 .ui .menu a,
 .ui.cards a.card {
@@ -439,11 +445,6 @@ a.label,
   color: var(--color-text) !important;
 }
 
-.user-menu > .item {
-  width: 100%;
-  border-radius: 0 !important;
-}
-
 .color-preview {
   display: inline-block;
   margin-left: 0.4em;
@@ -538,24 +539,22 @@ overflow-menu .overflow-menu-popup::after {
   border-bottom-color: var(--color-menu);
 }
 
-overflow-menu .overflow-menu-popup > .item {
-  display: flex;
-  align-items: center;
-  padding: 9px 18px !important;
-  color: var(--color-text) !important;
-  background: transparent !important;
-  text-decoration: none;
-  gap: 10px;
-  width: 100%;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item { /* doubled class beats the host menu's item styles */
+  margin: 0 4px;
+  padding-inline: 8px !important; /* plus the margin, matches the host's tab padding */
+  border: none;
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  width: calc(100% - 8px);
 }
 
-overflow-menu .overflow-menu-popup > .item:hover,
-overflow-menu .overflow-menu-popup > .item:focus {
-  background: var(--color-hover) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:hover,
+overflow-menu.ui.menu .overflow-menu-popup > .item.item:focus {
+  background: var(--color-hover);
 }
 
-overflow-menu .overflow-menu-popup > .item.active {
-  background: var(--color-active) !important;
+overflow-menu.ui.menu .overflow-menu-popup > .item.item.active {
+  background: var(--color-active);
 }
 
 overflow-menu .overflow-menu-items {
@@ -657,18 +656,6 @@ overflow-menu .ui.label:empty {
   vertical-align: top;
 }
 
-.lines-code pre {
-  background-color: inherit;
-  margin: 0;
-  padding: 0 !important;
-}
-
-.lines-code pre li {
-  display: block;
-  width: calc(100% - 1ch);
-  padding-left: 1ch;
-}
-
 .lines-escape {
   width: 0;
   white-space: nowrap;
@@ -684,6 +671,17 @@ overflow-menu .ui.label:empty {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: inherit; /* needed for inline code preview in markup */
+}
+
+.code-inner:has(.diff-line-truncated) {
+  text-decoration: underline dashed 1px;
+  text-underline-offset: 4px;
+}
+
+.code-inner .diff-line-truncated {
+  margin-left: var(--gap-inline);
+  padding: 0 4px;
+  user-select: none;
 }
 
 .blame .code-inner {
@@ -846,8 +844,8 @@ table th[data-sortt-desc] .svg {
   min-width: 0;
 }
 
-.ui.list.flex-items-block > .item,
-.ui.vertical.menu .item.flex-text-block,
+.ui.ui.ui.ui .item.flex-text-block, /* override .ui.list and .ui.vertical.menu */
+.ui.ui.ui.ui.flex-items-block > .item,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
