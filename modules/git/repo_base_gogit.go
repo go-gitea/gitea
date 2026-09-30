@@ -7,7 +7,9 @@
 package git
 
 import (
+	"errors"
 	"path/filepath"
+	"slices"
 
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
@@ -26,7 +28,28 @@ type Repository struct {
 	RepositoryBase
 
 	gogitRepo    *gogit.Repository
-	gogitStorage *filesystem.Storage
+	gogitStorage *reindexingStorage
+}
+
+// reindexingStorage picks up packs that git wrote after go-git loaded its index
+// https://github.com/go-git/go-git/issues/2439
+type reindexingStorage struct {
+	*filesystem.Storage
+	packs []plumbing.Hash
+}
+
+func (s *reindexingStorage) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	obj, err := s.Storage.EncodedObject(t, h)
+	if !errors.Is(err, plumbing.ErrObjectNotFound) {
+		return obj, err
+	}
+	packs, _ := s.ObjectPacks()
+	if slices.Equal(packs, s.packs) {
+		return obj, err
+	}
+	s.packs = packs
+	s.Reindex()
+	return s.Storage.EncodedObject(t, h)
 }
 
 func openRepositoryInternal(gitRepo *Repository) error {
@@ -48,7 +71,9 @@ func openRepositoryInternal(gitRepo *Repository) error {
 		altFs = osfs.New("/")
 	}
 	gitRepo.objectFormatCache = ParseGogitHash(plumbing.ZeroHash).Type()
-	gitRepo.gogitStorage = filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold, AlternatesFS: altFs})
+	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true, LargeObjectThreshold: setting.Git.LargeObjectThreshold, AlternatesFS: altFs})
+	packs, _ := storage.ObjectPacks()
+	gitRepo.gogitStorage = &reindexingStorage{Storage: storage, packs: packs}
 	gitRepo.gogitRepo, err = gogit.Open(gitRepo.gogitStorage, fs)
 	if err != nil {
 		_ = gitRepo.gogitStorage.Close()

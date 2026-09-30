@@ -1992,6 +1992,7 @@
   "packages.settings.link.button": "Repository link bijwerken",
   "packages.owner.settings.cleanuprules.enabled": "Ingeschakeld",
   "secrets.creation.description": "Omschrijving",
+  "actions.status.pending": "In behandeling",
   "actions.runners.name": "Naam",
   "actions.runners.description": "Omschrijving",
   "actions.runners.task_list.repository": "Opslagplaats",

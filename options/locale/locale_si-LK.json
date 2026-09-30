@@ -2083,6 +2083,7 @@
   "packages.owner.settings.cleanuprules.enabled": "සබල කර ඇත",
   "secrets.creation.description": "සවිස්තරය",
   "audit.details": "වැණුම",
+  "actions.status.pending": "වංගු",
   "actions.runners.name": "නම",
   "actions.runners.owner_type": "වර්ගය",
   "actions.runners.description": "සවිස්තරය",

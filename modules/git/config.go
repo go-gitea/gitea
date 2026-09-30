@@ -42,6 +42,25 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
+	// reject malformed objects on push and fetch, e.g. duplicate tree entries
+	// that the web UI and checkout can resolve differently
+	if err := configSet(ctx, "transfer.fsckObjects", "true"); err != nil {
+		return err
+	}
+	// ignore harmless issues found in real-world histories, same as Gitaly:
+	// https://gitlab.com/gitlab-org/gitaly/-/blob/bd3bba454181f52331cca441b3417bbd2de4b1cb/internal/git/gitcmd/command_description.go#L506-547
+	for _, prefix := range []string{"fsck", "fetch.fsck", "receive.fsck"} {
+		for _, key := range []string{
+			"badTimezone",            // e.g. +051800 written by Grit 2.3.1 to 2.4
+			"missingSpaceBeforeDate", // e.g. dateless tags from git-cvsimport before git 1.5.3
+			"zeroPaddedFilemode",     // e.g. 040000 written by Grit before 2.1
+		} {
+			if err := configSet(ctx, fmt.Sprintf("%s.%s", prefix, key), "ignore"); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := configSet(ctx, "core.commitGraph", "true"); err != nil {
 		return err
 	}

@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	actions_module "gitea.dev/modules/actions"
@@ -53,7 +55,7 @@ func dispatchInputsForRunJobs(run *actions_model.ActionRun, jobs []*actions_mode
 
 // getInputsForJob returns the `inputs.*` top-level expression context for a job's evaluation.
 //   - For top-level jobs, it falls back to the run's dispatch inputs (empty for non-dispatch events)
-//   - For reusable workflow children (and nested callers), this is the direct parent caller's CallPayload.Inputs
+//   - For reusable workflow children (and nested callers), this is calledWorkflowInputs of the direct parent caller
 func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if job.ParentJobID == 0 {
 		return dispatchInputsForJob(run, job)
@@ -63,18 +65,42 @@ func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *act
 	if err != nil {
 		return nil, fmt.Errorf("load caller job %d: %w", job.ParentJobID, err)
 	}
-	if caller.CallPayload == "" {
-		// should not happen - a child job cannot reach this point if its caller's CallPayload hasn't been evaluated
-		return map[string]any{}, nil
+	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
+	if err != nil {
+		return nil, err
 	}
+	return calledWorkflowInputs(ctx, run, caller, workflowCallInputs)
+}
+
+func decodeWorkflowCallInputs(caller *actions_model.ActionRunJob) (map[string]any, error) {
 	var p api.WorkflowCallPayload
-	if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
-		return nil, util.NewInvalidArgumentErrorf("decode caller %d payload: %v", caller.ID, err)
-	}
-	if p.Inputs == nil {
-		return map[string]any{}, nil
+	if caller.CallPayload != "" {
+		if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
+			return nil, util.NewInvalidArgumentErrorf("decode caller %d payload: %v", caller.ID, err)
+		}
 	}
 	return p.Inputs, nil
+}
+
+// calledWorkflowInputs overlays the run's dispatch inputs with `workflowCallInputs`, as GitHub does.
+func calledWorkflowInputs(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, workflowCallInputs map[string]any) (map[string]any, error) {
+	top := caller
+	for run.Event == "workflow_dispatch" && top.ParentJobID != 0 {
+		parent, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, top.ParentJobID)
+		if err != nil {
+			return nil, fmt.Errorf("load caller job %d: %w", top.ParentJobID, err)
+		}
+		top = parent
+	}
+	inputs, err := dispatchInputsForJob(run, top)
+	if err != nil {
+		return nil, err
+	}
+	for name, value := range workflowCallInputs {
+		maps.DeleteFunc(inputs, func(key string, _ any) bool { return strings.EqualFold(key, name) }) // input names are case-insensitive
+		inputs[name] = value
+	}
+	return inputs, nil
 }
 
 // pullRequestTargetBaseSHA returns the base branch commit of a pull_request_target run, and whether the run is one.
