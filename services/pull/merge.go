@@ -6,7 +6,6 @@ package pull
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -242,7 +241,7 @@ func addTestPullRequestTaskAfterWebOperation(pr *issues_model.PullRequest, doer 
 	// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
 	// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
 	go AddTestPullRequestTask(TestPullRequestOptions{
-		RepoID:      pr.BaseRepo.ID,
+		RepoID:      pr.BaseRepoID,
 		Doer:        doer,
 		Branch:      pr.BaseBranch,
 		IsSync:      false,
@@ -252,50 +251,104 @@ func addTestPullRequestTaskAfterWebOperation(pr *issues_model.PullRequest, doer 
 	})
 }
 
-// Merge merges pull request to base repository.
-// Caller should check PR is ready to be merged (review and status checks)
-func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
-	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
-
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("Unable to load base repo: %v", err)
-		return fmt.Errorf("unable to load base repo: %w", err)
-	} else if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("Unable to load head repo: %v", err)
-		return fmt.Errorf("unable to load head repo: %w", err)
-	}
-
-	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-	if err != nil {
-		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
-		return err
-	}
-	prConfig := prUnit.PullRequestsConfig()
-
-	// Check if merge style is correct and allowed
-	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
-		return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
-	}
-
-	err = globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
-		_, err := doMergeAndPush(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message, repo_module.PushTriggerPRMergeToBase)
-		return err
+func recordMergeIntent(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, commitID string, wasAutoMerged bool) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		pr.MergedUnix = timeutil.TimeStampNow()
+		pr.MergedCommitID = commitID
+		pr.MergerID = doer.ID
+		_, err := db.GetEngine(ctx).ID(pr.ID).Cols("merged_unix", "merged_commit_id", "merger_id").Update(pr)
+		if err != nil {
+			return err
+		}
+		if wasAutoMerged {
+			hasScheduledMerge, scheduledMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
+			if err != nil {
+				return err
+			}
+			if hasScheduledMerge {
+				scheduledMerge.MergedCommitID = commitID
+				_, err := db.GetEngine(ctx).ID(scheduledMerge.ID).Cols("merged_commit_id").Update(scheduledMerge)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
 	})
-	defer addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
-	// TODO: the "merge" operation has finished, there could still be some edge cases:
-	// * if the post-process hook isn't executed correctly:
-	//   * the commit has been merged into target branch
-	//   * the PR's status is still "open (unmerged)"
-	// * something wrong happens (e.g.: out of sync?)
-	//   * maybe this is the reason that why the duplicate AddTestPullRequestTask is called in defer func above
-	if err != nil {
-		return err
-	}
-	// TODO: it is questionable whether it should return error here, the "merge" operation has succeeded
-	return handleMergePostProcess(ctx, pr.ID, doer, wasAutoMerged)
 }
 
-func handleMergePostProcess(ctx context.Context, prID int64, doer *user_model.User, wasAutoMerged bool) error {
+func hasPullRequestCommitBeenMerged(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
+	if pr.MergedCommitID == "" {
+		return false, nil
+	}
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return false, err
+	}
+	return git.IsCommitInBranch(ctx, pr.BaseRepo, pr.MergedCommitID, pr.BaseBranch)
+}
+
+// Merge merges pull request to base repository.
+// Caller should check PR is ready to be merged (review and status checks)
+func Merge(prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
+
+	err := globallock.LockAndDo(ctx, getPullWorkingLockKey(prID), func(ctx context.Context) error {
+		pr, err := issues_model.GetPullRequestByID(ctx, prID)
+		if err != nil {
+			return err
+		}
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return fmt.Errorf("unable to load base repo: %w", err)
+		} else if err := pr.LoadHeadRepo(ctx); err != nil {
+			return fmt.Errorf("unable to load head repo: %w", err)
+		} else if err := pr.LoadIssue(ctx); err != nil {
+			return fmt.Errorf("unable to load issue: %w", err)
+		}
+
+		prConfig := pr.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+
+		// Check if merge style is correct and allowed
+		if !prConfig.IsMergeStyleAllowed(mergeStyle) {
+			return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+		}
+
+		hasCommitBeenMerged, err := hasPullRequestCommitBeenMerged(ctx, pr)
+		if err != nil {
+			return err
+		}
+
+		if !hasCommitBeenMerged {
+			_, err = doMergeAndPush(ctx, pr, doer, mergeStyle, message, mergeAndPushOptions{
+				expectedHeadCommitID: expectedHeadCommitID,
+				onMergedIntoTempBase: func(commitID string) error {
+					return recordMergeIntent(ctx, pr, doer, commitID, wasAutoMerged)
+				},
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = MarkAsMerged(ctx, pr, pr.MergedCommitID, pr.MergedUnix, doer, pr.Status)
+		if err != nil {
+			return err
+		}
+
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	pr, err := issues_model.GetPullRequestByID(ctx, prID)
+	if err != nil {
+		return err
+	}
+	addTestPullRequestTaskAfterWebOperation(pr, doer) // keep the same behavior as old code: always call AddTestPullRequestTask
+	return nil
+}
+
+func markAsMergedPostProcess(ctx context.Context, prID int64, doer *user_model.User, wasAutoMerged bool) error {
 	// reload pull request because it has been updated by post receive hook
 	pr, err := issues_model.GetPullRequestByID(ctx, prID)
 	if err != nil {
@@ -325,7 +378,7 @@ func handleMergePostProcess(ctx context.Context, prID int64, doer *user_model.Us
 }
 
 func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) error {
-	// Resolve cross references
+	// Resolve cross-references
 	refs, err := pr.ResolveCrossReferences(ctx)
 	if err != nil {
 		log.Error("ResolveCrossReferences: %v", err)
@@ -355,10 +408,15 @@ func handleCloseCrossReferences(ctx context.Context, pr *issues_model.PullReques
 	return nil
 }
 
+type mergeAndPushOptions struct {
+	expectedHeadCommitID string
+	onMergedIntoTempBase func(commitID string) error
+}
+
 // doMergeAndPush performs the merge operation without changing any pull information in database and pushes it up to the base repository
-func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, pushTrigger repo_module.PushTrigger) (string, error) { //nolint:unparam // non-error result is never used
+func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, message string, opts mergeAndPushOptions) (string, error) { //nolint:unparam // non-error result is never used
 	// Clone base repo.
-	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, expectedHeadCommitID)
+	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, opts.expectedHeadCommitID)
 	if err != nil {
 		return "", err
 	}
@@ -389,15 +447,15 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// OK we should cache our current head and origin/headbranch
 	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "HEAD")
 	if err != nil {
-		return "", fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
+		return "", fmt.Errorf("failed to get full commit id for HEAD: %w", err)
 	}
 	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
 	if err != nil {
-		return "", fmt.Errorf("Failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
+		return "", fmt.Errorf("failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
 	}
 	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
 	if err != nil {
-		return "", fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
+		return "", fmt.Errorf("failed to get full commit id for the new merge: %w", err)
 	}
 
 	// Now it's questionable about where this should go - either after or before the push
@@ -422,6 +480,12 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		headUser = pr.HeadRepo.Owner
 	}
 
+	if opts.onMergedIntoTempBase != nil {
+		if err := opts.onMergedIntoTempBase(mergeCommitID); err != nil {
+			return "", err
+		}
+	}
+
 	mergeCtx.env = repo_module.FullPushingEnvironment(
 		headUser,
 		doer,
@@ -430,8 +494,6 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.ID,
 		pr.Index,
 	)
-
-	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
 	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
@@ -646,15 +708,8 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 }
 
 // MergedManually mark pr as merged manually
-func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
-	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
-	if err != nil {
-		log.Error("lock.Lock(): %v", err)
-		return fmt.Errorf("lock.Lock: %w", err)
-	}
-	defer releaser()
-
-	err = db.WithTx(ctx, func(ctx context.Context) error {
+func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeCommitRef string) error {
+	return globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
 		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
@@ -669,49 +724,41 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
 		}
 
-		objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
-		if len(commitID) != objectFormat.FullLength() {
-			return errors.New("Wrong commit ID")
-		}
-
-		commit, err := baseGitRepo.GetCommit(ctx, commitID)
+		commit, err := baseGitRepo.GetCommit(ctx, mergeCommitRef)
 		if err != nil {
 			if git.IsErrNotExist(err) {
-				return errors.New("Wrong commit ID")
+				return util.NewInvalidArgumentErrorf("commit not found in base repository")
 			}
 			return err
 		}
-		commitID = commit.ID.String()
+		mergeCommitRef = commit.ID.String()
 
-		ok, err := baseGitRepo.IsCommitInBranch(ctx, commitID, pr.BaseBranch)
+		ok, err := git.IsCommitInBranch(ctx, baseGitRepo, mergeCommitRef, pr.BaseBranch)
 		if err != nil {
 			return err
 		}
 		if !ok {
-			return errors.New("Wrong commit ID")
+			return util.NewInvalidArgumentErrorf("commit not found in base branch")
 		}
 
-		var merged bool
-		if merged, err = SetMerged(ctx, pr, commitID, timeutil.TimeStamp(commit.Author.When.Unix()), doer, issues_model.PullRequestStatusManuallyMerged); err != nil {
+		_, err = MarkAsMerged(ctx, pr, mergeCommitRef, timeutil.TimeStamp(commit.Author.When.Unix()), doer, issues_model.PullRequestStatusManuallyMerged)
+		if err != nil {
 			return err
-		} else if !merged {
-			return errors.New("SetMerged failed")
 		}
 		return nil
 	})
-	releaser()
-	if err != nil {
-		return err
-	}
-
-	notify_service.MergePullRequest(ctx, doer, pr)
-	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
-
-	return handleCloseCrossReferences(ctx, pr, doer)
 }
 
-// SetMerged sets a pull request to merged and closes the corresponding issue
-func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID string, mergedTimeStamp timeutil.TimeStamp, merger *user_model.User, mergeStatus issues_model.PullRequestStatus) (bool, error) {
+// MarkAsMerged sets a pull request to merged and closes the corresponding issue
+// To make sure the pull request is marked as merged correctly, the caller uses multiple-stage operations:
+//  1. Create a temp repo from base, merge the head into the temp repo, and get the merged commit ID and timestamp,
+//  2. The merged commit ID and related information are stored into pull request
+//  3. Push the merged commit to the base repo
+//  4. Call MarkAsMerged to mark the pull request as merged and do post-processing (notification, close issues, etc)
+//
+// If failure occurs in step 1/2/3: the pull request is still open, the base repo is not changed, the doer can start a new merge.
+// If failure occurs in step 4: the pull request can be marked as merged by the merged commit ID stored in it later.
+func MarkAsMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID string, mergedTimeStamp timeutil.TimeStamp, merger *user_model.User, mergeStatus issues_model.PullRequestStatus) (bool, error) {
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
@@ -729,7 +776,8 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 		return false, fmt.Errorf("unable to merge PullRequest[%d], some required fields are empty", pr.Index)
 	}
 
-	return db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
+	wasAutoMerged := false
+	ok, err := db.WithTx2(ctx, func(ctx context.Context) (bool, error) {
 		pr.Issue = nil
 		if err := pr.LoadIssue(ctx); err != nil {
 			return false, err
@@ -743,9 +791,16 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 			return false, err
 		}
 
-		// Removing an auto merge pull and ignore if not exist
-		if err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil && !db.IsErrNotExist(err) {
-			return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
+		// Handle the scheduled auto merge
+		_, scheduledAutoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
+		if err != nil {
+			return false, err
+		}
+		if scheduledAutoMerge != nil {
+			wasAutoMerged = scheduledAutoMerge.MergedCommitID == pr.MergedCommitID
+			if _, err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID); err != nil {
+				return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
+			}
 		}
 
 		// Set issue as closed
@@ -765,6 +820,18 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 
 		return true, nil
 	})
+	if err != nil {
+		return false, err
+	} else if !ok {
+		return false, err
+	}
+
+	err = markAsMergedPostProcess(ctx, pr.ID, merger, wasAutoMerged)
+	if err != nil {
+		// the merge has succeeded, so any other errors are not critical (the merge can't be undone), just log them
+		log.Error("markAsMergedPostProcess: %v", err)
+	}
+	return true, nil
 }
 
 func ShouldDeleteBranchAfterMerge(ctx context.Context, userOption *bool, repo *repo_model.Repository, pr *issues_model.PullRequest) (bool, error) {
