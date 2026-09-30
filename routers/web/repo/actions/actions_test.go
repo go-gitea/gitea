@@ -15,8 +15,10 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	web_context "gitea.dev/services/context"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_loadIsRefDeleted(t *testing.T) {
@@ -73,4 +75,29 @@ func newWorkflowBadgeTestContext(t *testing.T) *web_context.Context {
 		DefaultBranch: "release/1.0 & hotfix",
 	}
 	return ctx
+}
+
+func TestPreparePartialRefreshRunsKeepsRequestedOrder(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	refresh := func(t *testing.T, runIDs []int64) []int64 {
+		ctx, _ := contexttest.MockContext(t, "user5/repo4/actions")
+		contexttest.LoadRepo(t, ctx, 4)
+		data := &actionRunListData{refreshRunIDs: runIDs}
+		require.True(t, data.preparePartialRefreshRuns(ctx))
+		ids := make([]int64, 0, len(data.ActionRuns))
+		for _, run := range data.ActionRuns {
+			ids = append(ids, run.ID)
+		}
+		return ids
+	}
+
+	t.Run("newest first, as the runs list renders them", func(t *testing.T) {
+		assert.Equal(t, []int64{794, 793, 792, 791}, refresh(t, []int64{794, 793, 792, 791}))
+	})
+
+	t.Run("runs of other repositories are dropped", func(t *testing.T) {
+		// run 795 belongs to repo 2
+		assert.Equal(t, []int64{794, 791}, refresh(t, []int64{794, 795, 791}))
+	})
 }
