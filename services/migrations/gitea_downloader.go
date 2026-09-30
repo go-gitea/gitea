@@ -128,7 +128,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	}, nil
 }
 
-func pinGiteaVersion(ctx context.Context, client *gitea_sdk.Client) error { // the SDK's checks reject pre-releases and its lazy lookup drops errors: https://gitea.com/gitea/go-sdk/pulls/855
+func pinGiteaVersion(ctx context.Context, client *gitea_sdk.Client) error { // the SDK's checks reject pre-releases
 	rawVersion, _, err := client.Meta.ServerVersion(ctx)
 	if err != nil {
 		return err
