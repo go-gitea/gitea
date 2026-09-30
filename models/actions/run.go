@@ -295,10 +295,8 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	return &run, nil
 }
 
-func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) ([]*ActionRun, error) {
-	var runs []*ActionRun
-	// Use the same order as FindRunOptions.ToOrders, the auto-refreshed runs list relies on it.
-	err := db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).OrderBy("`index` DESC").Find(&runs)
+func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) (runs []*ActionRun, err error) {
+	err = db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).OrderBy("id").Find(&runs)
 	return runs, err
 }
 
