@@ -25,7 +25,6 @@ import (
 	"gitea.dev/modules/util"
 
 	"github.com/dlclark/regexp2/v2"
-	"github.com/kballard/go-shellquote"
 	"xorm.io/builder"
 )
 
@@ -414,11 +413,11 @@ func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
 	LocalBranchArg string
 },
 ) {
-	ret.BaseBranchArg = shellquote.Join(pr.BaseBranch)
-	ret.HeadBranchArg = shellquote.Join(pr.HeadBranch)
+	ret.BaseBranchArg = util.ShellEscape(pr.BaseBranch)
+	ret.HeadBranchArg = util.ShellEscape(pr.HeadBranch)
 	ret.LocalBranchArg = ret.HeadBranchArg
 	if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
-		ret.LocalBranchArg = shellquote.Join(pr.HeadRepo.OwnerName) + "-" + ret.HeadBranchArg
+		ret.LocalBranchArg = util.ShellEscape(pr.HeadRepo.OwnerName) + "-" + ret.HeadBranchArg
 	}
 	return ret
 }
