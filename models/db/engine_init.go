@@ -61,7 +61,8 @@ func InitEngine(ctx context.Context) error {
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 
 	if setting.Database.Type.IsMySQL() {
-		xe.SetDefaultTxOptions(&sql.TxOptions{Isolation: sql.LevelReadCommitted}) // like PostgreSQL and MSSQL, avoids MariaDB snapshot isolation errors
+		// like PostgreSQL and MSSQL, avoids MariaDB snapshot isolation errors
+		xe.SetDefaultTxOptions(&sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	}
 
 	if setting.Database.SlowQueryThreshold > 0 {
