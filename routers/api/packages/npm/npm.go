@@ -98,26 +98,32 @@ func serveMetadata(ctx *context.Context, obj any) {
 func PackageVersionMetadata(ctx *context.Context) {
 	versionOrTag := ctx.PathParam("version")
 
-	if _, err := version.NewVersion(versionOrTag); err != nil { // a tag, since setPackageTag rejects version-like names
-		metadata := packageMetadata(ctx)
-		if metadata == nil {
-			return
-		}
-		if pmv := metadata.Versions[metadata.DistTags[versionOrTag]]; pmv != nil {
-			serveMetadata(ctx, pmv)
-		} else {
-			apiError(ctx, http.StatusNotFound, "tag not found: "+versionOrTag)
-		}
-		return
+	opts := &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNpm,
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageNameFromParams(ctx)},
+		IsInternal: optional.Some(false),
 	}
-
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageNameFromParams(ctx), versionOrTag)
+	if _, err := version.NewVersion(versionOrTag); err == nil {
+		opts.Version = packages_model.SearchValue{ExactMatch: true, Value: versionOrTag}
+	} else { // a tag, since setPackageTag rejects version-like names
+		opts.Properties = map[string]string{npm_module.TagProperty: versionOrTag}
+	}
+	pvs, _, err := packages_model.SearchVersions(ctx, opts)
 	if err != nil {
-		apiError(ctx, helper.PackageErrorStatus(err), err)
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		if versionOrTag != "latest" {
+			apiError(ctx, http.StatusNotFound, "version not found: "+versionOrTag)
+		} else if metadata := packageMetadata(ctx); metadata != nil { // unset, so serve the packument's fallback
+			serveMetadata(ctx, metadata.Versions[metadata.DistTags["latest"]])
+		}
 		return
 	}
 
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
+	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -370,7 +376,27 @@ func DeletePackage(ctx *context.Context) {
 
 // ListPackageTags returns all tags for a package
 func ListPackageTags(ctx *context.Context) {
-	if metadata := packageMetadata(ctx); metadata != nil {
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageNameFromParams(ctx))
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	tags := make(map[string]string)
+	for _, pv := range pvs {
+		pvps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, npm_module.TagProperty)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		for _, pvp := range pvps {
+			tags[pvp.Value] = pv.Version
+		}
+	}
+
+	if _, ok := tags["latest"]; ok {
+		ctx.JSON(http.StatusOK, tags)
+	} else if metadata := packageMetadata(ctx); metadata != nil { // unset, so list the packument's fallback
 		ctx.JSON(http.StatusOK, metadata.DistTags)
 	}
 }

@@ -346,6 +346,11 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 		p.Filename = strings.ToLower(fmt.Sprintf("%s-%s.tgz", name, p.Version))
 
 		attachment := upload.Attachments[meta.Name+"-"+meta.Version+".tgz"] // not the sigstore bundle of `npm publish --provenance`
+		if attachment == nil && len(upload.Attachments) == 1 {
+			for _, a := range upload.Attachments {
+				attachment = a
+			}
+		}
 		if attachment == nil || len(attachment.Data) == 0 {
 			return nil, ErrInvalidAttachment
 		}

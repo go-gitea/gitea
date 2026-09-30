@@ -320,7 +320,7 @@ func TestParsePackage(t *testing.T) {
 		}
 	},
 	"_attachments": {
-		"dev-null-0.1.1.tgz": {
+		"foo": {
 			"data": "AAAA"
 		}
 	}
@@ -345,7 +345,7 @@ func TestParsePackage(t *testing.T) {
 		}
 	},
 	"_attachments": {
-		"dev-null-0.1.1.tgz": {
+		"foo": {
 			"data": "AAAA"
 		}
 	}

@@ -318,6 +318,12 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusBadRequest, "1.0")
 		test(t, http.StatusOK, "dummy")
 		test(t, http.StatusOK, packageTag2)
+		test(t, http.StatusOK, packageTag)
+
+		resp := MakeRequest(t, NewRequest(t, "GET", tagsRoot).AddTokenAuth(token), http.StatusOK)
+		assert.Equal(t, map[string]string{packageTag: packageVersion}, DecodeJSON(t, resp, map[string]string{}))
+		resp = MakeRequest(t, NewRequest(t, "GET", root+"/"+packageTag).AddTokenAuth(token), http.StatusOK)
+		assert.Equal(t, packageVersion, DecodeJSON(t, resp, &npm.PackageMetadataVersion{}).Version)
 	})
 
 	t.Run("Search", func(t *testing.T) {
@@ -519,7 +525,7 @@ func TestPackageNpm(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 2)
 
-			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/-rev/dummy", root, filename))
+			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename))
 			MakeRequest(t, req, http.StatusUnauthorized)
 
 			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/-rev/dummy", root, filename)).

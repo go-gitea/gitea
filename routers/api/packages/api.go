@@ -412,6 +412,7 @@ func CommonRoutes() *web.Router {
 				// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
 				packageId := `/<id:(@` + npm_module.RegexpNamePart + `/)?` + npm_module.RegexpNamePart + ">"
 				g.UseUnescapedPath()
+				g.MatchPath("DELETE", packageId+"/-/<version>/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				g.MatchPath("DELETE", packageId+"/-/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFileByName) // former tarball URL, still in lockfiles
 				g.MatchPath("GET", packageId+"/-/<filename>", npm.DownloadPackageFileByName)
