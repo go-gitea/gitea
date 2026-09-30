@@ -1782,10 +1782,10 @@ func Routes() *web.Router {
 					m.Post("/link/{repo_name}", reqPackageAccess(perm.AccessModeWrite), packages.LinkPackage)
 					m.Post("/unlink", reqPackageAccess(perm.AccessModeWrite), packages.UnlinkPackage)
 				})
-			}, context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
 
-			m.Get("/", packages.ListPackages)
-		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly())
+			m.Get("/", context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead), checkTokenPublicOnly(), packages.ListPackages)
+		}, reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryPackage), context.UserAssignmentAPI())
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), checkTokenPublicOnly(), org.ListMyOrgs)
