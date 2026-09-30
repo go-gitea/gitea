@@ -576,7 +576,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 
 	token, err := oauth2_provider.ParseToken(form.RefreshToken, serverKey)
-	if err != nil {
+	if err != nil || token.Kind != oauth2_provider.KindRefreshToken {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "unable to parse refresh token",
