@@ -30,7 +30,7 @@ func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 		path, _ = url.PathUnescape(path)
 	}
 	for _, m := range g.matchers {
-		if m.matchPath(chiCtx, path) {
+		if m.matchPath(chiCtx, path, g.unescape) {
 			chiCtx.RoutePatterns = append(chiCtx.RoutePatterns, m.pattern)
 			executeMiddlewaresHandler(resp, req, m.middlewares, m.handlerFunc)
 			return
@@ -77,7 +77,7 @@ type routerPathMatcher struct {
 	handlerFunc http.HandlerFunc
 }
 
-func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
+func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string, unescaped bool) bool {
 	if !p.methods.Contains(chiCtx.RouteMethod) {
 		return false
 	}
@@ -110,6 +110,9 @@ func (p *routerPathMatcher) matchPath(chiCtx *chi.Context, path string) bool {
 		val := path[pm[groupIdx]:pm[groupIdx+1]]
 		if p.params[i].pathSepEnd {
 			val = strings.TrimSuffix(val, "/")
+		}
+		if unescaped {
+			val = url.PathEscape(val)
 		}
 		chiCtx.URLParams.Add(p.params[i].name, val)
 	}
