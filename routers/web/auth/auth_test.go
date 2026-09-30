@@ -184,6 +184,30 @@ func TestWebAuthOAuth2(t *testing.T) {
 	})
 }
 
+func TestSignInMethodAfterTwoFactor(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-method")}
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	oauth2Method := map[string]any{session.KeySignInMethod: session.SignInMethodOAuth2}
+
+	// completing an OAuth2 2FA challenge keeps the method
+	ctx, _ := contexttest.MockContext(t, "/user/two_factor", mockOpt)
+	handleTwoFactorRequired(ctx, user, false, oauth2Method)
+	handleSignInWithMethod(ctx, user, false, twoFactorSignInMethod(ctx))
+	assert.Equal(t, session.SignInMethodOAuth2, ctx.Session.Get(session.KeySignInMethod))
+
+	// an abandoned OAuth2 2FA challenge doesn't leak into a later sign-in
+	ctx, _ = contexttest.MockContext(t, "/user/login", mockOpt)
+	handleTwoFactorRequired(ctx, user, false, oauth2Method)
+	handleSignIn(ctx, user, false)
+	assert.Nil(t, ctx.Session.Get(session.KeySignInMethod))
+
+	ctx, _ = contexttest.MockContext(t, "/user/login", mockOpt)
+	handleTwoFactorRequired(ctx, user, false, oauth2Method)
+	handleTwoFactorRequired(ctx, user, false, nil)
+	assert.Nil(t, ctx.Session.Get(session.KeySignInMethod))
+}
+
 func TestOpenIDRequireTwoFactor(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-openid")}
