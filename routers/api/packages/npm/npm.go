@@ -7,7 +7,6 @@ import (
 	"bytes"
 	std_ctx "context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -44,21 +43,12 @@ func apiError(ctx *context.Context, status int, obj any) {
 
 // packageNameFromParams gets the package name from the url parameters
 func packageNameFromParams(ctx *context.Context) string {
-	// Real examples: these 2 both should work:
+	// HINT: NPM-ROUTE-PATH-PATTERN: real examples: these cases all should work:
 	// * "https://registry.npmjs.org/@angular/core"
 	// * "https://registry.npmjs.org/@angular%2Fcore"
+	// * "https://registry.npmjs.org/%40angular%2Fcore"
 	//
-	// HINT: NPM-ROUTE-PATH-PATTERN: The cases for the path parameters:
-	// * ".../TheName/...": id="TheName"
-	// * ".../@TheScope/TheName/...": scope="@TheScope", id="TheName"
-	// * ".../@TheScope%2FTheName/...": id="@TheScope/TheName"
-	scope := ctx.PathParam("scope")
-	fullOrSub := ctx.PathParam("id") // may be a full name or a subpath of the full package name
-	if scope != "" {
-		// now id is the subpath of the full package name, e.g. "core" in "@angular/core"
-		return fmt.Sprintf("%s/%s", scope, fullOrSub)
-	}
-	return fullOrSub // id is the full package name, e.g.: "@angular/core" or "lodash"
+	return ctx.PathParam("id") // id is the full package name, e.g.: "@angular/core" or "lodash"
 }
 
 func buildNpmRegistryURL(ctx std_ctx.Context, owner *user_model.User) string {
