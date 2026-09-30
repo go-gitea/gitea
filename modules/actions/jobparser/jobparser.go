@@ -12,6 +12,7 @@ import (
 	"gitea.dev/actionslib/pkg/expreval"
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
+	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -235,22 +236,13 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombinatio
 	for _, index := range order {
 		matrix := matrixes[index].Values
 		combo := src.Clone()
-		if combo.Name == "" {
-			combo.Name = jobID
-		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
 		replaceScalars(&combo.Strategy.RawMatrix, escapeExpressions)
 		if src.Strategy.RawMatrix.Kind != 0 {
 			combo.Strategy.JobIndex, combo.Strategy.JobTotal = index, len(matrixes)
 		}
 		evaluator := expreval.New(NewInterpeter(jobID, &combo.Strategy, matrix, gitCtx, results, vars, inputs).Evaluate)
-		if len(matrix) == 0 && gitCtx != nil {
-			combo.Name, err = evaluator.Interpolate(combo.Name)
-			combo.Name = escapeExpressions(combo.Name)
-		} else {
-			combo.Name, err = nameWithMatrix(combo.Name, matrix, names[index], evaluator)
-		}
-		if err != nil {
+		if combo.Name, err = jobName(combo.Name, jobID, names[index], evaluator, len(matrix) > 0 || gitCtx != nil); err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
 		if gitCtx != nil { // callers without one don't read runs-on
@@ -323,20 +315,30 @@ func encodeMatrix(matrix map[string]any) yaml.Node {
 	return node
 }
 
-func nameWithMatrix(name string, m map[string]any, suffix string, evaluator expreval.Evaluator) (string, error) {
-	if len(m) == 0 {
+// jobName gives trimmed plain text and lone string literals the suffix and a 100-byte cut, and empty names the job ID
+func jobName(name, jobID, suffix string, evaluator expreval.Evaluator, evaluate bool) (string, error) {
+	name = strings.TrimSpace(name)
+	if literal, ok := expreval.Literal(name); ok {
+		if literal == "" {
+			literal = jobID
+		}
+		if literal += suffix; len(literal) > 100 {
+			literal = util.TruncateStringBytes(literal, 97) + "..."
+		}
+		return escapeExpressions(literal), nil
+	}
+	if !evaluate {
 		return name, nil
 	}
 
-	if !strings.Contains(name, "${{") || !strings.Contains(name, "}}") {
-		return escapeExpressions(name + suffix), nil
-	}
-
 	name, err := evaluator.Interpolate(name)
+	if name == "" {
+		name = jobID
+	}
 	return escapeExpressions(name), err
 }
 
-// matrixName formats the name suffix like GitHub's MatrixBuilder, which skips null and empty values
+// matrixName formats the name suffix, skipping null and empty values
 func matrixName(values []any) string {
 	var names []string
 	for _, value := range values {

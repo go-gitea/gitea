@@ -303,6 +303,48 @@ func TestParseRunsOnFromJSONArray(t *testing.T) {
 	}
 }
 
+func TestParseJobNames(t *testing.T) {
+	result, err := Parse([]byte(`on: push
+jobs:
+  scalars:
+    strategy: {matrix: {value: [[1.0, true, false, 0, 1000000000000000, '', null, {os: linux}], ['', null]]}}
+    steps: [{run: echo}]
+  trimmed:
+    name: '  Trimmed  '
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+  blank:
+    name: '   '
+    steps: [{run: echo}]
+  folded:
+    name: "${{ ' Folded' }}"
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+  computed:
+    name: ${{ matrix.missing }}
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+  long:
+    name: `+strings.Repeat("x", 96)+`é
+    strategy: {matrix: {v: [a]}}
+    steps: [{run: echo}]
+`), WithGitContext(&model.GithubContext{}))
+	require.NoError(t, err)
+	names := map[string][]string{}
+	for _, parsed := range result {
+		id, job := parsed.Job()
+		names[id] = append(names[id], job.DisplayName())
+	}
+	assert.Equal(t, map[string][]string{
+		"scalars":  {"scalars", "scalars (1, true, false, 0, 1E+15, linux)"},
+		"trimmed":  {"Trimmed (a)"},
+		"blank":    {"blank"},
+		"folded":   {" Folded (a)"},
+		"computed": {"computed"},
+		"long":     {strings.Repeat("x", 96) + "..."},
+	}, names)
+}
+
 func TestJobFieldsWithoutMatrix(t *testing.T) {
 	const workflow = `on: push
 jobs:
@@ -403,12 +445,6 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		got, err := expand(t, "\n  include: ${{ fromJson(needs.setup.outputs.include) }}\n")
 		require.NoError(t, err)
 		assert.Len(t, got, 2)
-	})
-
-	t.Run("names coerce scalars and omit empty values", func(t *testing.T) {
-		got, err := expand(t, "\n  value: [[1.0, true, false, 0, 1000000000000000, '', null, {os: linux}], ['', null]]\n")
-		require.NoError(t, err)
-		assert.Equal(t, []string{"build", "build (1, true, false, 0, 1E+15, linux)"}, []string{got[0].Name, got[1].Name})
 	})
 
 	for _, tt := range []struct{ name, matrix, errHas string }{
