@@ -6,6 +6,7 @@ package git
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -40,19 +41,27 @@ func (repo *Repository) GetObjectFormat(ctx context.Context) (ObjectFormat, erro
 	if repo.objectFormatCache != nil {
 		return repo.objectFormatCache, nil
 	}
-
-	str, err := repo.hashObjectBytes(ctx, nil, false)
-	if err != nil {
-		return nil, err
-	}
-	hash, err := NewIDFromString(str)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	repo.objectFormatCache = hash.Type()
-
-	return repo.objectFormatCache, nil
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	for _, objectFormat := range []ObjectFormat{Sha1ObjectFormat, Sha256ObjectFormat} {
+		// git always knows the empty tree of the repository's own object format, a ref named like it resolves to another ID
+		emptyTree := objectFormat.EmptyTree().String()
+		info, err := batch.QueryInfo(emptyTree)
+		if err == nil && info.ID == emptyTree {
+			repo.objectFormatCache = objectFormat
+			return objectFormat, nil
+		} else if err != nil && !IsErrNotExist(err) {
+			return nil, err
+		}
+	}
+	return nil, fmt.Errorf("unknown object format for repository %s", repo.LogString())
 }
 
 // HashObjectBytes returns hash for the content

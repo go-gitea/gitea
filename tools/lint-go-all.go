@@ -122,7 +122,7 @@ func main() {
 	if os.Getenv("CI") != "" {
 		// only lint for other platforms when in CI, to keep local lint fast
 		_, _ = fmt.Fprintln(os.Stdout, "lint for windows ...")
-		succeed = runCmd([]string{"GOOS=windows", "TAGS=gogit"}, "golangci-lint", append([]string{"run", "--build-tags=windows,gogit"}, os.Args[1:]...)) && succeed
+		succeed = runCmd([]string{"GOOS=windows", "TAGS="}, "golangci-lint", append([]string{"run", "--build-tags=windows"}, os.Args[1:]...)) && succeed
 	}
 
 	if !succeed {

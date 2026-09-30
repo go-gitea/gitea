@@ -89,17 +89,17 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 	}
 	defer closer.Close()
 
-	code, err := gitRepo.GetCodeActivityStats(ctx, timeFrom, "")
+	authors, err := gitRepo.GetCodeActivityAuthors(ctx, timeFrom)
 	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %w", err)
 	}
-	if code.Authors == nil {
+	if authors == nil {
 		return nil, nil
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
 	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink(ctx)
-	for _, v := range code.Authors {
+	for _, v := range authors {
 		if len(v.Email) == 0 {
 			continue
 		}
