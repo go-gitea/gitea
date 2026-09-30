@@ -296,6 +296,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 		var jobs []*ActionRunJob
 		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+			if db.IsErrMSSQLDeadlock(err) {
+				continue // SQL Server's locking reads can lose to a concurrent claim, rerun the page
+			}
 			return nil, false, err
 		}
 

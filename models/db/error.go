@@ -4,10 +4,16 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"gitea.dev/modules/util"
 )
+
+func IsErrMSSQLDeadlock(err error) bool {
+	var sqlErr interface{ SQLErrorNumber() int32 }
+	return errors.As(err, &sqlErr) && sqlErr.SQLErrorNumber() == 1205
+}
 
 // ErrCancelled represents an error due to context cancellation
 type ErrCancelled struct {
