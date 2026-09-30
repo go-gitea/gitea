@@ -39,7 +39,7 @@ func TestAdminViewUsers(t *testing.T) {
 func TestAdminViewUsersFilterAuthSource(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	source := &auth_model.Source{Type: auth_model.LDAP, Name: "test-user-list-filter", IsActive: true, Cfg: &ldap.Source{}}
+	source := &auth_model.Source{Type: auth_model.LDAP, Name: "test-user-list-filter", IsActive: false, Cfg: &ldap.Source{}} // users stay attached to a deactivated source
 	require.NoError(t, auth_model.CreateSource(t.Context(), source))
 
 	user2 := &user_model.User{ID: 2, LoginType: auth_model.LDAP, LoginSource: source.ID}
@@ -67,6 +67,16 @@ func TestAdminViewUsersFilterAuthSource(t *testing.T) {
 	_, users = listUsers("source_id=0") // 0 means the "Local" source
 	assert.Contains(t, users, "user1")
 	assert.NotContains(t, users, "user2")
+
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
+	req := NewRequest(t, "GET", "/api/v1/admin/users?source_id=0").AddTokenAuth(token) // the API also treats 0 as local users
+	apiUsers := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), []api.User{})
+	apiUserNames := make([]string, 0, len(apiUsers))
+	for _, u := range apiUsers {
+		apiUserNames = append(apiUserNames, u.UserName)
+	}
+	assert.Contains(t, apiUserNames, "user1")
+	assert.NotContains(t, apiUserNames, "user2")
 }
 
 func TestAdminViewUser(t *testing.T) {
