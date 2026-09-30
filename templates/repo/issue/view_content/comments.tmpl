@@ -236,6 +236,9 @@
 					{{$oldRef := HTMLFormat `<span class="tw-line-through">%s</span>` .OldRef}}
 					{{ctx.Locale.Tr "repo.issues.delete_branch_at" $oldRef $createdStr}}
 				</span>
+				{{if $.RestoreBranchLink}}
+					<button type="button" class="ui tiny basic button link-action tw-ml-auto" data-url="{{$.RestoreBranchLink}}">{{ctx.Locale.Tr "repo.pulls.restore_branch"}}</button>
+				{{end}}
 			</div>
 		{{else if eq .Type 12}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -663,12 +666,24 @@
 					{{end}}
 				</span>
 			</div>
+		{{else if and (eq .Type 35) .Content}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+				<span class="comment-text-line">{{ctx.Locale.Tr "repo.pulls.auto_merge_automatically_disabled_comment" $createdStr}}</span>
+				<div class="detail flex-text-block">
+					<span class="comment-text-line">{{ctx.Locale.Tr (print "repo.pulls.auto_merge_disabled_reason." .Content)}}</span>
+				</div>
+			</div>
 		{{else if or (eq .Type 34) (eq .Type 35)}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+				{{if not .OriginalAuthor}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+				{{end}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
-					{{if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
+					{{if .Content}}{{ctx.Locale.Tr "repo.pulls.auto_merge_enabled_style_comment" (ctx.Locale.Tr (print "repo.pulls.merge_style_short." .Content)) $createdStr}}
+					{{else if eq .Type 34}}{{ctx.Locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr}}
 					{{else}}{{ctx.Locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr}}{{end}}
 				</span>
 			</div>

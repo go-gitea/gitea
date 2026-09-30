@@ -1662,7 +1662,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.SetShowOutdatedComments, repo.ViewPullFilesForSingleCommit)
 			})
 			m.Post("/merge", context.RepoMustNotBeArchived(), web.Bind[*forms.MergePullRequestForm](), repo.MergePullRequest)
-			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
+			m.Post("/cancel_auto_merge", reqSignIn, context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
 			m.Post("/set_allow_maintainer_edit", web.Bind[*forms.UpdateAllowEditsForm](), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), repo.CleanUpPullRequest)

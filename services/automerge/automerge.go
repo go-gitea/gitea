@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -73,7 +74,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message, deleteBranchAfterMerge); err != nil {
 			return err
 		}
-		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
+		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer, string(style))
 		return err
 	})
 	// Old code made "scheduled" to be true after "ScheduleAutoMerge", but it's not right:
@@ -87,15 +88,38 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 	return scheduled, err
 }
 
+var ErrAutoMergeNotScheduled = util.NewNotExistErrorf("auto merge is not scheduled")
+
+// CancelScheduledAutoMerge cancels the auto merge for its enabler, the pull request author or a merger
+func CancelScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, perm access_model.Permission) error {
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	if err != nil {
+		return err
+	} else if !exist {
+		return ErrAutoMergeNotScheduled
+	}
+	if err := pull.LoadIssue(ctx); err != nil {
+		return err
+	}
+	if doer.ID != autoMerge.DoerID && !pull.Issue.IsPoster(doer.ID) {
+		if allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, perm, doer); err != nil {
+			return err
+		} else if !allowed {
+			return util.NewPermissionDeniedErrorf("user has no permission to cancel the scheduled auto merge")
+		}
+	}
+	return RemoveScheduledAutoMerge(ctx, doer, pull, "")
+}
+
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
+func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, reason string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if n, err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		} else if n == 0 {
 			return nil
 		}
-		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer)
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer, reason)
 		return err
 	})
 }
@@ -140,7 +164,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 		return nil
 	}
 
-	if !pr.IsStatusMergeable() || pr.IsWorkInProgress(ctx) {
+	if (!pr.IsStatusMergeable() && !pr.IsEmpty()) || pr.IsUnrelated() || pr.IsWorkInProgress(ctx) {
 		// quick check: if the PR can't be merged, just skip
 		return errors.Join(errSkipAutoMerge, errors.New("pull request is not mergeable or is work in progress"))
 	}

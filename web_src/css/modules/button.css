@@ -245,16 +245,27 @@
   border-color: var(--color-red-dark-2);
 }
 
-.ui.green.button {
+.ui.green.button,
+.ui.green.buttons .button {
   color: var(--color-white);
   background: var(--color-green);
 }
 
-.ui.green.button:hover {
+.ui.green.button:hover,
+.ui.green.buttons .button:hover {
   background: var(--color-green-dark-1);
 }
 
-.ui.green.button:active {
+.ui.green.buttons .button:hover {
+  border-color: var(--color-green-dark-1);
+}
+
+.ui.green.buttons .button:hover + .button {
+  border-left-color: var(--color-green-dark-1);
+}
+
+.ui.green.button:active,
+.ui.green.buttons .button:active {
   background: var(--color-green-dark-2);
 }
 

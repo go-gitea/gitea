@@ -70,6 +70,9 @@
 
 			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
 				{{template "repo/issue/view_content/pull_merge_box".}}
+				{{if .PullMergeBoxData.ShowPullCommands}}
+					{{template "repo/issue/view_content/pull_merge_instruction" dict "PullRequest" .Issue.PullRequest "MergeBoxData" .PullMergeBoxData}}
+				{{end}}
 			{{end}}
 
 			{{if .IsSigned}}

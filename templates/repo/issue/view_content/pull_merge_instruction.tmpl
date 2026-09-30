@@ -1,10 +1,14 @@
 {{$data := $.MergeBoxData}}
 {{$pull := $.PullRequest}}
-<details>
-	<summary class="tw-pl-1">{{/* align with other item icon & text */}}
-		<span class="tw-pl-2">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_hint"}}</span>
-	</summary>
-	<div class="tw-my-[5px]">
+<div class="ui small modal" id="pull-merge-cmd-modal">
+	{{svg "octicon-x" 16 "inside close"}}
+	{{if $data.ShowMergeInstructions}}
+	<div class="header">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_title"}}</div>
+	{{end}}
+	<div class="content">
+		{{if $data.ShowMergeInstructions}}
+		<p>{{ctx.Locale.Tr "repo.pulls.cmd_instruction_modal_desc"}}</p>
+		{{end}}
 		<div>
 			<h3 class="tw-m-0">{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_title"}}</h3>
 			{{ctx.Locale.Tr "repo.pulls.cmd_instruction_checkout_desc"}}
@@ -15,10 +19,13 @@
 		{{end}}
 		<div class="ui secondary segment tw-font-mono">
 			{{$gitRemoteName := ctx.RootData.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
-			{{if eq $pull.Flow 0}}
-			<div>git fetch -u {{if ne $pull.HeadRepo.ID $pull.BaseRepo.ID}}{{$pull.HeadRepo.HTMLURL ctx}}{{else}}{{$gitRemoteName}}{{end}} {{$pull.HeadBranch}}:{{$localBranch}}</div>
-			{{else}}
+			{{if ne $pull.Flow 0}}
 			<div>git fetch -u {{$gitRemoteName}} {{$pull.GetGitHeadRefName}}:{{$localBranch}}</div>
+			{{else if eq $pull.HeadRepo.ID $pull.BaseRepo.ID}}
+			<div>git fetch -u {{$gitRemoteName}} {{$pull.HeadBranch}}:{{$localBranch}}</div>
+			{{else}}
+			{{$cloneLink := $pull.HeadRepo.CloneLink ctx ctx.RootData.SignedUser}}
+			<div>git fetch -u <span data-global-init="initRepoPullCloneUrl"{{if $cloneLink.SupportHTTPS}} data-clone-https="{{$cloneLink.HTTPS}}"{{end}}{{if $cloneLink.SupportSSH}} data-clone-ssh="{{$cloneLink.SSH}}"{{end}}>{{Iif $cloneLink.SupportHTTPS $cloneLink.HTTPS $cloneLink.SSH}}</span> {{$pull.HeadBranch}}:{{$localBranch}}</div>
 			{{end}}
 			<div>git checkout {{$localBranch}}</div>
 		</div>
@@ -31,34 +38,11 @@
 			{{end}}
 		</div>
 		<div class="ui secondary segment tw-font-mono">
-			<div data-pull-merge-style="merge">
-				<div>git checkout {{$pull.BaseBranch}}</div>
-				<div>git merge --no-ff {{$localBranch}}</div>
-			</div>
-			<div class="tw-hidden" data-pull-merge-style="rebase">
-				<div>git checkout {{$pull.BaseBranch}}</div>
-				<div>git merge --ff-only {{$localBranch}}</div>
-			</div>
-			<div class="tw-hidden" data-pull-merge-style="rebase-merge">
-				<div>git checkout {{$localBranch}}</div>
-				<div>git rebase {{$pull.BaseBranch}}</div>
-				<div>git checkout {{$pull.BaseBranch}}</div>
-				<div>git merge --no-ff {{$localBranch}}</div>
-			</div>
-			<div class="tw-hidden" data-pull-merge-style="squash">
-				<div>git checkout {{$pull.BaseBranch}}</div>
-				<div>git merge --squash {{$localBranch}}</div>
-			</div>
-			<div class="tw-hidden" data-pull-merge-style="fast-forward-only">
-				<div>git checkout {{$pull.BaseBranch}}</div>
-				<div>git merge --ff-only {{$localBranch}}</div>
-			</div>
-			<div class="tw-hidden" data-pull-merge-style="manually-merged">
-				<div>git checkout {{$pull.BaseBranch}}</div>
-				<div>git merge {{$localBranch}}</div>
-			</div>
+			<div>git checkout {{$pull.BaseBranch}}</div>
+			<div>git pull {{$gitRemoteName}} {{$pull.BaseBranch}}</div>
+			<div>git merge --no-ff {{$localBranch}}</div>
 			<div>git push {{$gitRemoteName}} {{$pull.BaseBranch}}</div>
 		</div>
 		{{end}}
 	</div>
-</details>
+</div>

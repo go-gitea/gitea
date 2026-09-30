@@ -1220,7 +1220,7 @@ func UpdateCommentsMigrationsByType(ctx context.Context, tp structs.GitServiceTy
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User, content string) (comment *Comment, err error) {
 	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
 		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
 	}
@@ -1237,6 +1237,8 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		Doer:  doer,
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,
+
+		Content: content,
 	})
 	return comment, err
 }
