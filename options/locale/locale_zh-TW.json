@@ -3092,6 +3092,7 @@
   "actions.status.cancelled": "已取消",
   "actions.status.skipped": "已略過",
   "actions.status.blocked": "已阻塞",
+  "actions.status.pending": "待處理",
   "actions.runners": "Runner",
   "actions.runners.runner_manage_panel": "Runner 管理",
   "actions.runners.new": "建立 Runner",

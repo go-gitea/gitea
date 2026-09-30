@@ -1325,6 +1325,7 @@
   "packages.terraform.unlock": "Feloldás",
   "packages.owner.settings.cleanuprules.enabled": "Engedélyezett",
   "secrets.creation.description": "Leírás",
+  "actions.status.pending": "Függőben",
   "actions.runners.name": "Név",
   "actions.runners.owner_type": "Típus",
   "actions.runners.description": "Leírás",
