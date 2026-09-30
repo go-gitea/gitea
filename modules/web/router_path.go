@@ -5,6 +5,7 @@ package web
 
 import (
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -19,11 +20,15 @@ type RouterPathGroup struct {
 	r         *Router
 	pathParam string
 	matchers  []*routerPathMatcher
+	unescape  bool
 }
 
 func (g *RouterPathGroup) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	chiCtx := chi.RouteContext(req.Context())
 	path := chiCtx.URLParam(g.pathParam)
+	if g.unescape {
+		path, _ = url.PathUnescape(path)
+	}
 	for _, m := range g.matchers {
 		if m.matchPath(chiCtx, path) {
 			chiCtx.RoutePatterns = append(chiCtx.RoutePatterns, m.pattern)
@@ -51,6 +56,10 @@ func (g *RouterPathGroup) MatchPath(methods, pattern string, h ...any) {
 
 func (g *RouterPathGroup) MatchPattern(methods string, pattern *RouterPathGroupPattern, h ...any) {
 	g.matchers = append(g.matchers, newRouterPathMatcher(methods, pattern, h...))
+}
+
+func (g *RouterPathGroup) UseUnescapedPath() {
+	g.unescape = true
 }
 
 type routerPathParam struct {

@@ -405,37 +405,24 @@ func CommonRoutes() *web.Router {
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
-			// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
-			scopeRegexp := `^@` + npm_module.RegexpNamePart + `$`
-			idRegexp := `^(@` + npm_module.RegexpNamePart + `%2[fF])?` + npm_module.RegexpNamePart + `$`
-			addPackageHandlers := func() {
-				r.Get("", npm.PackageMetadata)
-				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Get("/{version}", npm.PackageVersionMetadata)
-				r.Group("/-/{version}/{filename}", func() {
-					r.Get("", npm.DownloadPackageFile)
-					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				})
-				r.Get("/-/{filename}", npm.DownloadPackageFileByName)
-				r.Group("/-rev/{revision}", func() {
-					r.Delete("", npm.DeletePackage)
-					r.Put("", npm.DeletePreview)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			}
-			r.Group("/{scope:"+scopeRegexp+"}/{id:"+idRegexp+"}", addPackageHandlers)
-			r.Group("/{id:"+idRegexp+"}", addPackageHandlers)
+			r.Get("/-/v1/search", npm.PackageSearch)
+			r.PathGroup("*", func(g *web.RouterPathGroup) {
+				// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
+				packageId := `/<id:(@` + npm_module.RegexpNamePart + `/)?` + npm_module.RegexpNamePart + ">"
+				g.UseUnescapedPath()
+				g.MatchPath("DELETE", packageId+"/-/<version>/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFile)
+				g.MatchPath("GET", packageId+"/-/<filename>", npm.DownloadPackageFileByName)
+				g.MatchPath("DELETE", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackage)
+				g.MatchPath("PUT", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePreview)
+				g.MatchPath("GET", packageId+"/<version>", npm.PackageVersionMetadata)
+				g.MatchPath("GET", packageId, npm.PackageMetadata)
+				g.MatchPath("PUT", packageId, reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 
-			addPackageDistTagsHandlers := func() {
-				r.Get("", npm.ListPackageTags)
-				r.Group("/{tag}", func() {
-					r.Put("", npm.AddPackageTag)
-					r.Delete("", npm.DeletePackageTag)
-				}, reqPackageAccess(perm.AccessModeWrite))
-			}
-			r.Group("/-/package/{scope:"+scopeRegexp+"}/{id:"+idRegexp+"}/dist-tags", addPackageDistTagsHandlers)
-			r.Group("/-/package/{id:"+idRegexp+"}/dist-tags", addPackageDistTagsHandlers)
-			r.Group("/-/v1/search", func() {
-				r.Get("", npm.PackageSearch)
+				packageDistTags := "/-/package" + packageId + "/dist-tags"
+				g.MatchPath("GET", packageDistTags, npm.ListPackageTags)
+				g.MatchPath("PUT", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.AddPackageTag)
+				g.MatchPath("DELETE", packageDistTags+"/<tag>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageTag)
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pub", func() {

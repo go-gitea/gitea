@@ -170,8 +170,8 @@ func TestPackageNpm(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		rootPaths := []string{
-			fmt.Sprintf("/api/packages/%s/npm/@scope/test-package", user.Name),
-			fmt.Sprintf("/api/packages/%s/npm/@scope%%2ftest-package", user.Name),
+			"/api/packages/user2/npm/%40scope/test-package",
+			"/api/packages/user2/npm/@scope%2Ftest-package",
 		}
 		for _, root := range rootPaths {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).AddTokenAuth(token)
