@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -29,6 +30,9 @@ type escapeStreamer struct {
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
 	allowed         map[rune]bool
+
+	tagHead []byte
+	inMath  bool // MathML operators like U+2212 are intended and wrapping them breaks the math layout
 
 	out io.Writer
 }
@@ -62,6 +66,7 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		for i, part := range parts {
 			if partInTag[i] {
 				lastIsTag = true
+				es.trackMathTag(part)
 				if _, err := out.Write(part); err != nil {
 					return nil, err
 				}
@@ -75,11 +80,36 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 						return nil, err
 					}
 				}
-				if err = es.detectAndWriteRunes(part); err != nil {
+				if es.inMath {
+					if _, err := out.Write(part); err != nil {
+						return nil, err
+					}
+				} else if err = es.detectAndWriteRunes(part); err != nil {
 					return nil, err
 				}
 			}
 		}
+	}
+}
+
+// trackMathTag receives tag parts, a tag might be split into multiple parts
+func (e *escapeStreamer) trackMathTag(part []byte) {
+	const maxHeadLen = len("</math>")
+	if part[0] == '<' {
+		e.tagHead = e.tagHead[:0]
+	}
+	if len(e.tagHead) >= maxHeadLen {
+		return
+	}
+	e.tagHead = append(e.tagHead, part[:min(len(part), maxHeadLen-len(e.tagHead))]...)
+	isTag := func(prefix string) bool {
+		rest, ok := bytes.CutPrefix(e.tagHead, []byte(prefix))
+		return ok && len(rest) > 0 && strings.IndexByte(" \t\n\r\f>", rest[0]) != -1
+	}
+	if isTag("<math") {
+		e.inMath = true
+	} else if isTag("</math") {
+		e.inMath = false
 	}
 }
 
