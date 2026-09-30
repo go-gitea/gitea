@@ -10,12 +10,35 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCreatePushMirrorUsesCallerPermission(t *testing.T) {
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
+	ctx, resp := contexttest.MockAPIContext(t, "user2/repo1")
+	ctx.Doer = &user_model.User{}
+	ctx.ContextUser = &user_model.User{AllowImportLocal: true}
+
+	CreatePushMirror(ctx, &api.CreatePushMirrorOption{RemoteAddress: "local-mirror", Interval: "0"})
+
+	assert.Equal(t, http.StatusUnauthorized, resp.Code)
+}
+
+func TestAddPushMirrorDisabled(t *testing.T) {
+	defer test.MockVariableValue(&setting.Mirror.DisableNewPush, true)()
+	ctx, resp := contexttest.MockAPIContext(t, "user2/repo1")
+
+	AddPushMirror(ctx)
+
+	assert.Equal(t, http.StatusForbidden, resp.Code)
+	assert.Contains(t, resp.Body.String(), "the site administrator has disabled the creation of new push mirrors")
+}
 
 // TestPushMirrorSync verifies the endpoint attempts every push mirror instead
 // of aborting on the first failure, reporting all failed remotes with a 422.

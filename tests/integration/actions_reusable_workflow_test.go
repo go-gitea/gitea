@@ -911,7 +911,7 @@ jobs:
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
 		})
 
-		t.Run("No-needs caller if evaluated inline: false skips, true expands", func(t *testing.T) {
+		t.Run("No-needs callers: if evaluated inline, called job concurrency serializes them", func(t *testing.T) {
 			// A no-needs reusable-workflow caller is processed inline during InsertRun, where its own
 			// `if:` is now evaluated before expansion:
 			//   - a false `if:` skips the caller without inserting any children, and the skip is
@@ -928,6 +928,8 @@ on:
 jobs:
   inner:
     runs-on: ubuntu-latest
+    concurrency:
+      group: called-job
     steps:
       - run: echo inner
 `)
@@ -944,6 +946,9 @@ jobs:
 
   will_run:
     if: ${{ true }}
+    uses: ./.gitea/workflows/lib.yaml
+
+  will_run_too:
     uses: ./.gitea/workflows/lib.yaml
 
   after_skip:
@@ -970,11 +975,16 @@ jobs:
 			willRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "will_run"})
 			assert.True(t, willRun.IsReusableCaller)
 			assert.True(t, willRun.IsExpanded)
-			innerChild := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner"})
-			assert.Equal(t, willRun.ID, innerChild.ParentJobID)
+			unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner", ParentJobID: willRun.ID})
 
 			afterSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "after_skip"})
 			assert.Equal(t, actions_model.StatusSkipped, afterSkip.Status)
+
+			unittest.AssertCount(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner", Status: actions_model.StatusBlocked}, 1)
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+			runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+			runner.fetchTask(t)
 		})
 	})
 }

@@ -15,7 +15,6 @@ import (
 
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/structs"
 )
 
@@ -79,6 +78,7 @@ type CodebaseDownloader struct {
 // NewCodebaseDownloader creates a new downloader
 func NewCodebaseDownloader(_ context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
 	baseURL, _ := url.Parse("https://api3.codebasehq.com")
+	transport := NewMigrationHTTPTransport()
 
 	downloader := &CodebaseDownloader{
 		baseURL:    baseURL,
@@ -86,14 +86,13 @@ func NewCodebaseDownloader(_ context.Context, projectURL *url.URL, project, repo
 		project:    project,
 		repoName:   repoName,
 		client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					if len(username) > 0 && len(password) > 0 {
-						req.SetBasicAuth(username, password)
-					}
-					return proxy.Proxy()(req)
-				},
-			},
+			Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+				if username != "" && password != "" {
+					req = req.Clone(req.Context())
+					req.SetBasicAuth(username, password)
+				}
+				return transport.RoundTrip(req)
+			}),
 		},
 		userMap:   make(map[int64]*codebaseUser),
 		commitMap: make(map[string]string),
