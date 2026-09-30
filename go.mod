@@ -109,7 +109,7 @@ require (
 	modernc.org/sqlite v1.59.0
 	mvdan.cc/xurls/v2 v2.6.0
 	xorm.io/builder v0.3.13
-	xorm.io/xorm v1.4.1
+	xorm.io/xorm v1.4.3
 )
 
 require (
@@ -267,5 +267,3 @@ ignore (
 	./vendor
 	./web_src
 )
-
-replace xorm.io/xorm => gitea.com/silverwind/xorm v1.4.3-0.20260930172606-d6fb4e971393
