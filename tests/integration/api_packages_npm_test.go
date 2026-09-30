@@ -170,8 +170,9 @@ func TestPackageNpm(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		rootPaths := []string{
-			"/api/packages/user2/npm/%40scope/test-package",
+			"/api/packages/user2/npm/@scope/test-package",
 			"/api/packages/user2/npm/@scope%2Ftest-package",
+			"/api/packages/user2/npm/%40scope%2ftest-package",
 		}
 		for _, root := range rootPaths {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename)).AddTokenAuth(token)
@@ -186,7 +187,7 @@ func TestPackageNpm(t *testing.T) {
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(4), pvs[0].DownloadCount)
+		assert.EqualValues(t, 6, pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {

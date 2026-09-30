@@ -406,7 +406,7 @@ func CommonRoutes() *web.Router {
 		})
 		r.Group("/npm", func() {
 			r.Get("/-/v1/search", npm.PackageSearch)
-			r.PathGroup("*", func(g *web.RouterPathGroup) {
+			r.PathGroup("/*", func(g *web.RouterPathGroup) {
 				// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
 				packageId := `/<id:(@` + npm_module.RegexpNamePart + `/)?` + npm_module.RegexpNamePart + ">"
 				g.UseUnescapedPath()
