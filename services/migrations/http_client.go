@@ -19,8 +19,10 @@ import (
 
 // getMigrationHTTPClient returns the shared migration client, so downloads from one host reuse its connections
 var getMigrationHTTPClient = sync.OnceValue(func() *http.Client {
-	return &http.Client{Transport: NewMigrationHTTPTransport()}
+	return &http.Client{Transport: retryAfterTransport{getMigrationTransport()}}
 })
+
+var getMigrationTransport = sync.OnceValue(newMigrationTransport)
 
 func newMigrationHTTPClient(baseURL, authorization string) *http.Client {
 	return &http.Client{Transport: authTransport(getMigrationHTTPClient().Transport, baseURL, authorization)}
@@ -28,9 +30,13 @@ func newMigrationHTTPClient(baseURL, authorization string) *http.Client {
 
 // NewMigrationHTTPTransport returns a HTTP transport for migration, enforcing the migration policy on its direct dials.
 func NewMigrationHTTPTransport() http.RoundTripper {
+	return retryAfterTransport{newMigrationTransport()}
+}
+
+func newMigrationTransport() *http.Transport {
 	t := egress.NewMigrationPolicy().NewHTTPTransport()
 	t.TLSClientConfig = &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify}
-	return retryAfterTransport{t}
+	return t
 }
 
 type retryAfterTransport struct {
@@ -48,7 +54,7 @@ func (t retryAfterTransport) RoundTrip(req *http.Request) (*http.Response, error
 			return resp, nil
 		}
 		delay, ok := parseRetryAfter(resp.Header.Get("Retry-After"))
-		if !ok || waited+delay > time.Hour {
+		if !ok || delay > time.Hour-waited {
 			return resp, nil
 		}
 		waited += delay

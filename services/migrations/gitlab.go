@@ -95,7 +95,8 @@ type GitlabDownloader struct {
 //	Use either a username/password, personal token entered into the username field, or anonymous/public access
 //	Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, token string) (*GitlabDownloader, error) {
-	gitlabClient, err := gitlab.NewAuthSourceClient(gitlab.Unauthenticated{}, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(newMigrationHTTPClient(baseURL, util.Iif(token != "", "Bearer "+token, "")))) // the transport adds the token for the source host only
+	transport := authTransport(getMigrationTransport(), baseURL, util.Iif(token != "", "Bearer "+token, "")) // the SDK retries rate limits itself, the transport adds the token for the source host only
+	gitlabClient, err := gitlab.NewAuthSourceClient(gitlab.Unauthenticated{}, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(&http.Client{Transport: transport}))
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
 		return nil, err

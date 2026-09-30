@@ -286,17 +286,9 @@ func (g *RepositoryDumper) CreateReleases(ctx context.Context, releases ...*base
 			}
 			assets := release.Assets[:0]
 			for _, asset := range release.Assets {
-				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
-				// ... we must assume that they are safe and simply download the attachment
-				var rc io.ReadCloser
-				var err error
-				if asset.DownloadURL == nil {
-					rc, err = asset.DownloadFunc()
-				} else {
-					// use the migration client so the fetch (including any redirect) is
-					// validated against the migration host allow/block list
-					rc, err = downloadAsset(ctx, getMigrationHTTPClient(), *asset.DownloadURL)
-				}
+				// SECURITY: We cannot check the DownloadFunc is safe here
+				// ... we must assume that it is safe and simply download the attachment
+				rc, err := asset.DownloadFunc()
 				if err != nil {
 					if ctx.Err() != nil {
 						return ctx.Err()
