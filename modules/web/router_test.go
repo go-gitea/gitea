@@ -126,7 +126,7 @@ func TestPathProcessor(t *testing.T) {
 	testProcess("/<p1:*>-part/<p2>", "/a-other-part/c", map[string]string{"p1": "a-other", "p2": "c"})
 
 	unescape = true
-	testProcess("/<p1:*>", "/%2f", map[string]string{"p1": "%2F"})
+	testProcess("/<p1:@/x>", "/%40%2fx", map[string]string{"p1": "@%2Fx"})
 }
 
 func TestRouter(t *testing.T) {
