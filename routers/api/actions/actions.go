@@ -13,7 +13,11 @@ import (
 
 func Routes(prefix string) *web.Router {
 	m := web.NewRouter()
-	registerOIDCRoutes(m)
+	m.Group("/oidc", func() {
+		m.Get("/.well-known/openid-configuration", oidcConfiguration)
+		m.Get("/jwks", oidcKeys)
+		m.Get("/token", oidcToken)
+	})
 
 	path, handler := ping.NewPingServiceHandler()
 	m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)

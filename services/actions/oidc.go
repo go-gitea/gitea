@@ -4,346 +4,282 @@
 package actions
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
+	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
-	"unicode"
-	"unicode/utf8"
 	"uuid"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const (
-	actionsOIDCPath              = "/api/actions/oidc"
-	actionsOIDCTokenPath         = actionsOIDCPath + "/token"
-	actionsOIDCTokenExpiry       = 5 * time.Minute
-	actionsOIDCMaxAudienceLength = 255
-)
+const OIDCSigningAlgorithm = "RS256"
 
-var (
-	ErrOIDCInvalidAudience  = errors.New("invalid OIDC audience")
-	ErrOIDCPermissionDenied = errors.New("OIDC token permission not granted")
-	ErrOIDCTaskNotRunning   = errors.New("OIDC task is not running")
-)
-
-type actionsOIDCClaims struct {
-	jwt.RegisteredClaims
-	Actor                   string `json:"actor"`
-	ActorID                 string `json:"actor_id"`
-	Repository              string `json:"repository"`
-	RepositoryID            string `json:"repository_id"`
-	RepositoryOwner         string `json:"repository_owner"`
-	RepositoryOwnerID       string `json:"repository_owner_id"`
-	RunID                   string `json:"run_id"`
-	RunNumber               string `json:"run_number"`
-	RunAttempt              string `json:"run_attempt"`
-	Workflow                string `json:"workflow"`
-	WorkflowRepository      string `json:"workflow_repository"`
-	WorkflowRepositoryID    string `json:"workflow_repository_id"`
-	WorkflowRef             string `json:"workflow_ref,omitempty"`
-	WorkflowSHA             string `json:"workflow_sha,omitempty"`
-	JobWorkflowRepository   string `json:"job_workflow_repository,omitempty"`
-	JobWorkflowRepositoryID string `json:"job_workflow_repository_id,omitempty"`
-	JobWorkflowRef          string `json:"job_workflow_ref,omitempty"`
-	JobWorkflowSHA          string `json:"job_workflow_sha,omitempty"`
-	RepositoryVisibility    string `json:"repository_visibility"`
-	EventName               string `json:"event_name"`
-	Ref                     string `json:"ref,omitempty"`
-	RefType                 string `json:"ref_type,omitempty"`
-	SHA                     string `json:"sha"`
-	JobID                   string `json:"job_id"`
-	BaseRef                 string `json:"base_ref,omitempty"`
-	HeadRef                 string `json:"head_ref,omitempty"`
-	RunnerEnvironment       string `json:"runner_environment"`
+var oidcSigningKey struct {
+	sync.Mutex
+	key oauth2_provider.JWTSigningKey
 }
 
-func OIDCEnabled() bool {
-	key := oauth2_provider.DefaultSigningKey
-	return setting.Actions.Enabled && key != nil && !key.IsSymmetric()
-}
-
-// OIDCIssuer returns the issuer URL for Gitea Actions OIDC tokens.
-func OIDCIssuer() string {
-	return strings.TrimSuffix(setting.AppURL, "/") + actionsOIDCPath
-}
-
-// OIDCTokenRequestURL returns the capability-authenticated OIDC token endpoint.
-func OIDCTokenRequestURL() string {
-	return strings.TrimSuffix(setting.AppURL, "/") + actionsOIDCTokenPath + "?"
-}
-
-// TaskAllowsOIDCToken reports whether the task is eligible for OIDC token issuance.
-func TaskAllowsOIDCToken(ctx context.Context, task *actions_model.ActionTask) (bool, error) {
-	if err := task.LoadJob(ctx); err != nil {
-		return false, err
-	}
-	if task.Job.TokenPermissions == nil || task.Job.TokenPermissions.IDTokenAccessMode != perm.AccessModeWrite {
-		return false, nil
-	}
-	if err := task.Job.LoadRun(ctx); err != nil {
-		return false, err
-	}
-	if task.Job.Run.WorkflowPath == "" {
-		return false, nil
-	}
-	if err := task.Job.LoadRepo(ctx); err != nil {
-		return false, err
-	}
-	effective, err := actions_model.ComputeTaskTokenPermissions(ctx, task, task.Job.Repo)
-	if err != nil {
-		return false, err
-	}
-	return effective.IDTokenAccessMode == perm.AccessModeWrite, nil
-}
-
-// CreateOIDCToken reloads and authorizes a running task before signing its workload identity.
-func CreateOIDCToken(ctx context.Context, taskID int64, audience string) (string, error) {
-	task, err := actions_model.GetTaskByID(ctx, taskID)
-	if err != nil {
-		return "", err
-	}
-	if task.Status != actions_model.StatusRunning {
-		return "", ErrOIDCTaskNotRunning
-	}
-	if err := task.LoadAttributes(ctx); err != nil {
-		return "", err
-	}
-	allowed, err := TaskAllowsOIDCToken(ctx, task)
-	if err != nil {
-		return "", err
-	}
-	if !allowed {
-		return "", ErrOIDCPermissionDenied
-	}
-	if !OIDCEnabled() {
-		return "", errors.New("OIDC signing key is not available")
-	}
-
-	if audience == "" {
-		audience = defaultOIDCAudience(task.Job.Run.Repo)
-	}
-	if err := validateOIDCAudience(audience); err != nil {
-		return "", err
-	}
-
-	claims, err := createOIDCClaims(ctx, task, audience, time.Now().UTC())
-	if err != nil {
-		return "", err
-	}
-	signingKey := oauth2_provider.DefaultSigningKey
-	token := jwt.NewWithClaims(signingKey.SigningMethod(), claims)
-	signingKey.PreProcessToken(token)
-	return token.SignedString(signingKey.SignKey())
-}
-
-func createOIDCClaims(ctx context.Context, task *actions_model.ActionTask, audience string, now time.Time) (*actionsOIDCClaims, error) {
-	job, run := task.Job, task.Job.Run
-	gitCtx := GenerateGiteaContext(ctx, run, nil, job)
-
-	workflowRepo, err := loadOIDCWorkflowRepo(ctx, run.WorkflowRepoID)
-	if err != nil {
-		return nil, fmt.Errorf("load workflow source repository: %w", err)
-	}
-	rootJob, err := rootWorkflowJob(ctx, job)
-	if err != nil {
-		return nil, err
-	}
-	workflow := actions_module.WorkflowDisplayName(run.WorkflowID, rootJob.WorkflowPayload)
-	workflowRef := buildOIDCWorkflowRef(workflowRepo, run.WorkflowPath, workflowSourceRef(run, gitCtx))
-	if run.WorkflowCommitSHA == "" {
-		return nil, errors.New("root workflow source commit is missing")
-	}
-	if workflowRef == "" {
-		return nil, errors.New("root workflow reference has incomplete provenance")
-	}
-	jobWorkflowRepository, jobWorkflowRepositoryID, jobWorkflowRef, jobWorkflowSHA := "", "", "", ""
-	if job.ParentJobID != 0 {
-		jobWorkflowRepo, err := loadOIDCWorkflowRepo(ctx, job.WorkflowSourceRepoID)
-		if err != nil {
-			return nil, fmt.Errorf("load job workflow source repository: %w", err)
-		}
-		jobWorkflowRef, err = buildOIDCJobWorkflowRef(ctx, job, jobWorkflowRepo)
+// OIDCSigningKey retries after errors, another instance sharing the data path may still be writing the key
+func OIDCSigningKey() (oauth2_provider.JWTSigningKey, error) {
+	oidcSigningKey.Lock()
+	defer oidcSigningKey.Unlock()
+	if oidcSigningKey.key == nil {
+		key, err := oauth2_provider.LoadOrCreateAsymmetricKey(filepath.Join(setting.AppDataPath, "jwt", "actions_oidc.pem"), OIDCSigningAlgorithm)
 		if err != nil {
 			return nil, err
 		}
-		jobWorkflowRepository = jobWorkflowRepo.FullName()
-		jobWorkflowRepositoryID = strconv.FormatInt(jobWorkflowRepo.ID, 10)
-		jobWorkflowSHA = job.WorkflowSourceCommitSHA
+		if oidcSigningKey.key, err = oauth2_provider.CreateJWTSigningKey(OIDCSigningAlgorithm, key); err != nil {
+			return nil, err
+		}
+	}
+	return oidcSigningKey.key, nil
+}
+
+type oidcClaims struct {
+	jwt.RegisteredClaims
+	Audience             string `json:"aud"` // a single string like GitHub, jwt.ClaimStrings encodes an array
+	Actor                string `json:"actor"`
+	ActorID              string `json:"actor_id"`
+	Repository           string `json:"repository"`
+	RepositoryID         string `json:"repository_id"`
+	RepositoryOwner      string `json:"repository_owner"`
+	RepositoryOwnerID    string `json:"repository_owner_id"`
+	RepositoryVisibility string `json:"repository_visibility"`
+	RunID                string `json:"run_id"`
+	RunNumber            string `json:"run_number"`
+	RunAttempt           string `json:"run_attempt"`
+	EventName            string `json:"event_name"`
+	Ref                  string `json:"ref"`
+	RefType              string `json:"ref_type"`
+	RefProtected         string `json:"ref_protected"`
+	SHA                  string `json:"sha"`
+	BaseRef              string `json:"base_ref"`
+	HeadRef              string `json:"head_ref"`
+	Workflow             string `json:"workflow"`
+	WorkflowRef          string `json:"workflow_ref"`
+	WorkflowSHA          string `json:"workflow_sha"`
+	JobWorkflowRef       string `json:"job_workflow_ref"`
+	JobWorkflowSHA       string `json:"job_workflow_sha"`
+	RunnerEnvironment    string `json:"runner_environment"`
+}
+
+type workflowFile struct {
+	repo, path, ref, sha string
+}
+
+func (w workflowFile) String() string {
+	return w.repo + "/" + w.path + "@" + w.ref
+}
+
+func OIDCClaimsSupported() []string {
+	claims := []string{"exp", "iat", "iss", "jti", "nbf", "sub"}
+	for field := range reflect.TypeFor[oidcClaims]().Fields() {
+		if name, _, _ := strings.Cut(field.Tag.Get("json"), ","); name != "" {
+			claims = append(claims, name)
+		}
+	}
+	return claims
+}
+
+func OIDCIssuer() string {
+	return setting.AppURL + "api/actions/oidc"
+}
+
+func taskAllowsOIDCToken(ctx context.Context, task *actions_model.ActionTask) (bool, error) {
+	if task.Job.TokenPermissions == nil || !task.Job.TokenPermissions.IDToken {
+		return false, nil
+	}
+	task.Job.Repo = task.Job.Run.Repo
+	perms, err := actions_model.ComputeTaskTokenPermissions(ctx, task, task.Job.Repo)
+	return perms.IDToken, err
+}
+
+func CreateOIDCToken(ctx context.Context, requestToken, audience string) (string, error) {
+	taskID, err := taskIDFromToken(requestToken, true)
+	if err != nil {
+		return "", util.NewPermissionDeniedErrorf("invalid ID token request token")
+	}
+	task, err := actions_model.GetTaskByID(ctx, taskID)
+	if errors.Is(err, util.ErrNotExist) {
+		return "", util.NewPermissionDeniedErrorf("task %d does not exist", taskID)
+	} else if err != nil {
+		return "", err
+	}
+	if task.Status != actions_model.StatusRunning && task.Status != actions_model.StatusCancelling { // cleanup steps of cancelled jobs may still need one
+		return "", util.NewPermissionDeniedErrorf("task %d is not active", taskID)
+	}
+	if err := task.LoadJob(ctx); err != nil {
+		return "", err
+	}
+	if err := task.Job.LoadAttributes(ctx); err != nil {
+		return "", err
+	}
+	if allowed, err := taskAllowsOIDCToken(ctx, task); err != nil {
+		return "", err
+	} else if !allowed {
+		return "", util.NewPermissionDeniedErrorf("task %d lacks the id-token permission", taskID)
 	}
 
-	subject, err := buildOIDCSubject(run, contextString(gitCtx, "ref"))
+	claims, err := createOIDCClaims(ctx, task.Job, audience, time.Now())
+	if err != nil {
+		return "", err
+	}
+	key, err := OIDCSigningKey()
+	if err != nil {
+		return "", err
+	}
+	token := jwt.NewWithClaims(key.SigningMethod(), claims)
+	key.PreProcessToken(token)
+	return token.SignedString(key.SignKey())
+}
+
+func createOIDCClaims(ctx context.Context, job *actions_model.ActionRunJob, audience string, now time.Time) (*oidcClaims, error) {
+	run := job.Run
+	gitCtx := GenerateGiteaContext(ctx, run, nil, job)
+	contextString := func(key string) string {
+		value, _ := gitCtx[key].(string)
+		return value
+	}
+	ref := contextString("ref")
+
+	rootWorkflow, workflowName, err := runWorkflowFile(ctx, run, ref)
+	if err != nil {
+		return nil, err
+	}
+	jobWorkflow, err := jobWorkflowFile(ctx, job, rootWorkflow)
 	if err != nil {
 		return nil, err
 	}
 
-	return &actionsOIDCClaims{
+	// GitHub's immutable format, the IDs keep a recreated owner or repo name from matching
+	subject := fmt.Sprintf("repo:%s@%d/%s@%d", run.Repo.OwnerName, run.Repo.OwnerID, run.Repo.Name, run.RepoID)
+	if run.TriggerEvent == actions_module.GithubEventPullRequest {
+		subject += ":pull_request"
+	} else {
+		subject += ":ref:" + ref
+	}
+	if audience == "" {
+		audience = setting.AppURL + url.PathEscape(run.Repo.OwnerName)
+	}
+	visibility := "internal"
+	if run.Repo.IsPrivate {
+		visibility = "private"
+	} else if run.Repo.Owner.Visibility.IsPublic() {
+		visibility = "public"
+	}
+
+	return &oidcClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    OIDCIssuer(),
 			Subject:   subject,
-			Audience:  jwt.ClaimStrings{audience},
-			ExpiresAt: jwt.NewNumericDate(now.Add(actionsOIDCTokenExpiry)),
-			NotBefore: jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(5 * time.Minute)),
+			NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // backdated like GitHub for relying parties with skewed clocks
 			IssuedAt:  jwt.NewNumericDate(now),
 			ID:        uuid.New().String(),
 		},
-		Actor:                   run.TriggerUser.Name,
-		ActorID:                 strconv.FormatInt(run.TriggerUser.ID, 10),
-		Repository:              run.Repo.FullName(),
-		RepositoryID:            strconv.FormatInt(run.Repo.ID, 10),
-		RepositoryOwner:         run.Repo.OwnerName,
-		RepositoryOwnerID:       strconv.FormatInt(run.Repo.OwnerID, 10),
-		RunID:                   strconv.FormatInt(run.ID, 10),
-		RunNumber:               strconv.FormatInt(run.Index, 10),
-		RunAttempt:              contextString(gitCtx, "run_attempt"),
-		Workflow:                workflow,
-		WorkflowRepository:      workflowRepo.FullName(),
-		WorkflowRepositoryID:    strconv.FormatInt(workflowRepo.ID, 10),
-		WorkflowRef:             workflowRef,
-		WorkflowSHA:             run.WorkflowCommitSHA,
-		JobWorkflowRepository:   jobWorkflowRepository,
-		JobWorkflowRepositoryID: jobWorkflowRepositoryID,
-		JobWorkflowRef:          jobWorkflowRef,
-		JobWorkflowSHA:          jobWorkflowSHA,
-		RepositoryVisibility:    repositoryVisibility(run.Repo),
-		EventName:               run.TriggerEvent,
-		Ref:                     contextString(gitCtx, "ref"),
-		RefType:                 contextString(gitCtx, "ref_type"),
-		SHA:                     contextString(gitCtx, "sha"),
-		JobID:                   job.JobID,
-		BaseRef:                 contextString(gitCtx, "base_ref"),
-		HeadRef:                 contextString(gitCtx, "head_ref"),
-		RunnerEnvironment:       "self-hosted",
+		Audience:             audience,
+		Actor:                contextString("actor"),
+		ActorID:              contextString("actor_id"),
+		Repository:           contextString("repository"),
+		RepositoryID:         contextString("repository_id"),
+		RepositoryOwner:      contextString("repository_owner"),
+		RepositoryOwnerID:    contextString("repository_owner_id"),
+		RepositoryVisibility: visibility,
+		RunID:                contextString("run_id"),
+		RunNumber:            contextString("run_number"),
+		RunAttempt:           contextString("run_attempt"),
+		EventName:            contextString("event_name"),
+		Ref:                  ref,
+		RefType:              contextString("ref_type"),
+		RefProtected:         strconv.FormatBool(gitCtx["ref_protected"] == true),
+		SHA:                  contextString("sha"),
+		BaseRef:              contextString("base_ref"),
+		HeadRef:              contextString("head_ref"),
+		Workflow:             workflowName,
+		WorkflowRef:          rootWorkflow.String(),
+		WorkflowSHA:          rootWorkflow.sha,
+		JobWorkflowRef:       jobWorkflow.String(),
+		JobWorkflowSHA:       jobWorkflow.sha,
+		RunnerEnvironment:    "self-hosted",
 	}, nil
 }
 
-func validateOIDCAudience(audience string) error {
-	if len(audience) == 0 || len(audience) > actionsOIDCMaxAudienceLength || !utf8.ValidString(audience) || strings.TrimSpace(audience) != audience {
-		return ErrOIDCInvalidAudience
-	}
-	for _, r := range audience {
-		if unicode.IsControl(r) {
-			return ErrOIDCInvalidAudience
-		}
-	}
-	return nil
-}
-
-func defaultOIDCAudience(repo *repo_model.Repository) string {
-	return strings.TrimSuffix(setting.AppURL, "/") + "/" + url.PathEscape(repo.OwnerName)
-}
-
-func buildOIDCSubject(run *actions_model.ActionRun, ref string) (string, error) {
-	repositoryIdentity := fmt.Sprintf("%d/%d", run.Repo.OwnerID, run.Repo.ID)
-	switch run.TriggerEvent {
-	case actions_module.GithubEventPullRequest, actions_module.GithubEventPullRequestTarget:
-		return "repo:" + repositoryIdentity + ":pull_request", nil
-	}
-	if ref == "" {
-		return "", errors.New("OIDC subject requires an authoritative ref")
-	}
-	return "repo:" + repositoryIdentity + ":ref:" + escapeOIDCSubjectValue(ref), nil
-}
-
-func escapeOIDCSubjectValue(value string) string {
-	value = strings.ReplaceAll(value, "%", "%25")
-	return strings.ReplaceAll(value, ":", "%3A")
-}
-
-func loadOIDCWorkflowRepo(ctx context.Context, repoID int64) (*repo_model.Repository, error) {
-	if repoID == 0 {
-		return nil, errors.New("workflow source repository is not recorded")
-	}
-	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+// runWorkflowFile repeats the directory choice workflow detection made at the recorded commit, and names the workflow like GitHub
+func runWorkflowFile(ctx context.Context, run *actions_model.ActionRun, ref string) (file workflowFile, name string, err error) {
+	repo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
 	if err != nil {
-		return nil, err
+		return file, "", err
 	}
-	if err := repo.LoadOwner(ctx); err != nil {
-		return nil, err
-	}
-	return repo, nil
-}
-
-func rootWorkflowJob(ctx context.Context, job *actions_model.ActionRunJob) (*actions_model.ActionRunJob, error) {
-	visited := map[int64]struct{}{job.ID: {}}
-	for job.ParentJobID != 0 {
-		if _, ok := visited[job.ParentJobID]; ok {
-			return nil, fmt.Errorf("reusable workflow job parent cycle at job %d", job.ParentJobID)
-		}
-		visited[job.ParentJobID] = struct{}{}
-		parent, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
-		if err != nil {
-			return nil, err
-		}
-		job = parent
-	}
-	return job, nil
-}
-
-func workflowSourceRef(run *actions_model.ActionRun, gitCtx GiteaContext) string {
-	if run.WorkflowRepoID == run.RepoID && !run.IsScopedRun {
-		return contextString(gitCtx, "ref")
-	}
-	return run.WorkflowCommitSHA
-}
-
-func buildOIDCJobWorkflowRef(ctx context.Context, job *actions_model.ActionRunJob, sourceRepo *repo_model.Repository) (string, error) {
-	parent, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
-		return "", err
+		return file, "", err
 	}
-	if job.WorkflowSourceCommitSHA == "" {
-		return "", fmt.Errorf("build reusable workflow reference for job %d: workflow source commit is missing", job.ID)
-	}
-	uses, err := ResolveUses(ctx, parent.CallUses)
+	defer gitRepo.Close()
+	commit, err := gitRepo.GetCommit(ctx, run.WorkflowCommitSHA)
 	if err != nil {
-		return "", fmt.Errorf("resolve reusable workflow uses %q: %w", parent.CallUses, err)
+		return file, "", err
 	}
-	ref := job.WorkflowSourceCommitSHA
-	if uses.Ref != "" {
-		ref = uses.Ref
+
+	listWorkflows := actions_module.ListWorkflows
+	if run.IsScopedRun {
+		listWorkflows = actions_module.ListScopedWorkflows
+		ref = run.WorkflowCommitSHA // the source repo's branch is not recorded
 	}
-	workflowRef := buildOIDCWorkflowRef(sourceRepo, uses.Path, ref)
-	if workflowRef == "" {
-		return "", fmt.Errorf("build reusable workflow reference for job %d: incomplete provenance", job.ID)
+	dir, _, err := listWorkflows(ctx, gitRepo, commit)
+	if err != nil {
+		return file, "", err
 	}
-	return workflowRef, nil
+	file = workflowFile{repo: repo.FullName(), path: path.Join(dir, run.WorkflowID), ref: ref, sha: run.WorkflowCommitSHA}
+	content, err := commit.GetFileContent(ctx, gitRepo, file.path, 1024*1024)
+	if err != nil {
+		return file, "", err
+	}
+	if workflow, err := model.ReadWorkflow(strings.NewReader(content)); err == nil && strings.TrimSpace(workflow.Name) != "" {
+		return file, workflow.Name, nil
+	}
+	return file, file.path, nil
 }
 
-func buildOIDCWorkflowRef(repo *repo_model.Repository, workflowPath, ref string) string {
-	if repo == nil || workflowPath == "" || ref == "" {
-		return ""
+// jobWorkflowFile lets local reusable workflow calls inherit their caller's ref, like on GitHub
+func jobWorkflowFile(ctx context.Context, job *actions_model.ActionRunJob, root workflowFile) (workflowFile, error) {
+	if job.ParentJobID == 0 {
+		return root, nil
 	}
-	return fmt.Sprintf("%s/%s@%s", repo.FullName(), workflowPath, ref)
-}
-
-func contextString(ctx GiteaContext, key string) string {
-	value, _ := ctx[key].(string)
-	return value
-}
-
-func repositoryVisibility(repo *repo_model.Repository) string {
-	if repo.IsPrivate {
-		return "private"
+	caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
+	if err != nil {
+		return workflowFile{}, err
 	}
-	switch repo.Owner.Visibility {
-	case structs.VisibleTypeLimited:
-		return "internal"
-	case structs.VisibleTypePrivate:
-		return "private"
-	default:
-		return "public"
+	uses, err := ResolveUses(ctx, caller.CallUses)
+	if err != nil {
+		return workflowFile{}, err
 	}
+	if uses.IsLocal() {
+		file, err := jobWorkflowFile(ctx, caller, root)
+		file.path, file.sha = uses.Path, job.WorkflowSourceCommitSHA
+		return file, err
+	}
+	repo, err := repo_model.GetRepositoryByID(ctx, job.WorkflowSourceRepoID)
+	if err != nil {
+		return workflowFile{}, err
+	}
+	ref := cmp.Or(caller.ReusableWorkflowRef, job.WorkflowSourceCommitSHA) // callers expanded before the ref was recorded
+	return workflowFile{repo: repo.FullName(), path: uses.Path, ref: ref, sha: job.WorkflowSourceCommitSHA}, nil
 }

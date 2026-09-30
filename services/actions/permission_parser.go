@@ -59,9 +59,7 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 		case "read-all":
 			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeRead))
 		case "write-all":
-			perms := repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite)
-			perms.IDTokenAccessMode = perm.AccessModeWrite
-			return &perms
+			return new(repo_model.MakeWriteAllActionsTokenPermissions())
 		default:
 			// Explicit but unrecognized scalar: return all-none permissions.
 			return new(repo_model.MakeActionsTokenPermissions(perm.AccessModeNone))
@@ -116,9 +114,7 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 			case "projects":
 				result.UnitAccessModes[unit.TypeProjects] = mode
 			case "id-token":
-				if mode == perm.AccessModeWrite {
-					result.IDTokenAccessMode = mode
-				}
+				result.IDToken = mode == perm.AccessModeWrite
 			// Scopes github supports but gitea does not, see url for details
 			// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 			case "artifact-metadata", "attestations", "checks", "deployments",

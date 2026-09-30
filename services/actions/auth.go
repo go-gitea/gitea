@@ -17,6 +17,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const idTokenRequestScope = "Actions.IDTokenRequest" // separate from the runtime token, which runners also send to cache servers
+
 type actionsClaims struct {
 	jwt.RegisteredClaims
 	Scp    string `json:"scp"`
@@ -39,8 +41,6 @@ const (
 )
 
 func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
-	now := time.Now()
-
 	ac, err := json.Marshal(&[]actionsCacheScope{
 		{
 			Scope:      "",
@@ -51,25 +51,22 @@ func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 		return "", err
 	}
 
-	claims := actionsClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(1*time.Hour + setting.Actions.EndlessTaskTimeout)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
+	return signActionsClaims(actionsClaims{
 		Scp:    fmt.Sprintf("Actions.Results:%d:%d", runID, jobID),
 		Ac:     string(ac),
 		TaskID: taskID,
 		RunID:  runID,
 		JobID:  jobID,
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	})
+}
 
-	tokenString, err := token.SignedString(setting.GetGeneralTokenSigningSecret())
-	if err != nil {
-		return "", err
+func signActionsClaims(claims actionsClaims) (string, error) {
+	now := time.Now()
+	claims.RegisteredClaims = jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(now.Add(1*time.Hour + setting.Actions.EndlessTaskTimeout)),
+		NotBefore: jwt.NewNumericDate(now),
 	}
-
-	return tokenString, nil
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(setting.GetGeneralTokenSigningSecret())
 }
 
 func ParseAuthorizationToken(req *http.Request) (int64, error) {
@@ -89,8 +86,12 @@ func ParseAuthorizationToken(req *http.Request) (int64, error) {
 
 // TokenToTaskID returns the TaskID associated with the provided JWT token
 func TokenToTaskID(token string) (int64, error) {
+	return taskIDFromToken(token, false)
+}
+
+func taskIDFromToken(token string, idTokenRequest bool) (int64, error) {
 	parsedToken, err := jwt.ParseWithClaims(token, &actionsClaims{}, func(t *jwt.Token) (any, error) {
-		if t.Method != jwt.SigningMethodHS256 {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return setting.GetGeneralTokenSigningSecret(), nil
@@ -99,10 +100,13 @@ func TokenToTaskID(token string) (int64, error) {
 		return 0, err
 	}
 
-	c, ok := parsedToken.Claims.(*actionsClaims)
+	claims, ok := parsedToken.Claims.(*actionsClaims)
 	if !parsedToken.Valid || !ok {
 		return 0, errors.New("invalid token claim")
 	}
+	if (claims.Scp == idTokenRequestScope) != idTokenRequest {
+		return 0, errors.New("unexpected token scope")
+	}
 
-	return c.TaskID, nil
+	return claims.TaskID, nil
 }

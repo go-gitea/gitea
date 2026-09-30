@@ -495,7 +495,6 @@ jobs:
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
-		assert.Equal(t, ".gitea/workflows/createdelete.yml", run.WorkflowPath)
 
 		// create a tag
 		err = release_service.CreateNewTag(t.Context(), user2, repo, branch.CommitID, "test-create-tag", "test create tag event")
@@ -509,7 +508,6 @@ jobs:
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
-		assert.Equal(t, ".gitea/workflows/createdelete.yml", run.WorkflowPath)
 
 		// delete the branch
 		err = repo_service.DeleteBranch(t.Context(), user2, repo, gitRepo, "test-create-branch")
@@ -973,7 +971,6 @@ jobs:
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
-		assert.Equal(t, ".gitea/workflows/dispatch.yml", run.WorkflowPath)
 
 		// Now trigger with rundetails
 		values.Set("return_run_details", "true")
@@ -995,7 +992,6 @@ jobs:
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
-		assert.Equal(t, ".gitea/workflows/dispatch.yml", run.WorkflowPath)
 	})
 }
 

@@ -10,8 +10,10 @@ import (
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -265,7 +267,7 @@ func TestLoadReusableWorkflowSourceFailsAlikeForMissingAndPrivateRepo(t *testing
 
 	run := &actions_model.ActionRun{RepoID: 4, TriggerUserID: 1}
 	for _, repoName := range []string{"missing", "repo3"} {
-		_, _, _, err := loadReusableWorkflowSource(t.Context(), run, nil, &model.ReusableWorkflowUses{Owner: "org3", Repo: repoName, Path: ".gitea/workflows/build.yml", Ref: "main"})
+		_, _, _, _, err := loadReusableWorkflowSource(t.Context(), run, nil, &model.ReusableWorkflowUses{Owner: "org3", Repo: repoName, Path: ".gitea/workflows/build.yml", Ref: "main"})
 		assert.EqualError(t, err, "reusable workflow repository org3/"+repoName+" does not exist or is not readable")
 	}
 }
@@ -411,4 +413,16 @@ func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
 		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), nested)
 		assert.Equal(t, "tag-v1-sha", got)
 	})
+}
+
+func TestQualifyRef(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	gitRepo, err := git.OpenRepository(t.Context(), unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}))
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	masterSHA := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	assert.Equal(t, "refs/heads/master", qualifyRef(t.Context(), gitRepo, "master", masterSHA))
+	assert.Equal(t, "refs/tags/v1.1", qualifyRef(t.Context(), gitRepo, "v1.1", masterSHA))
+	assert.Equal(t, masterSHA, qualifyRef(t.Context(), gitRepo, masterSHA, masterSHA))
+	assert.Equal(t, "other-sha", qualifyRef(t.Context(), gitRepo, "master", "other-sha"))
 }

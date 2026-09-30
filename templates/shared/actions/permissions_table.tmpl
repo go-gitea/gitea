@@ -79,14 +79,14 @@
 				</td>
 				<td class="tw-text-center">
 					<div class="ui radio checkbox">
-						<input type="radio" name="max_id_token_access_mode" value="none" {{if ne $.MaxTokenPermissions.IDTokenAccessMode 2}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+						<input type="radio" name="max_id_token" value="none" {{if not $.MaxTokenPermissions.IDToken}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
 						<label></label>
 					</div>
 				</td>
 				<td></td>
 				<td class="tw-text-center">
 					<div class="ui radio checkbox">
-						<input type="radio" name="max_id_token_access_mode" value="write" {{if eq $.MaxTokenPermissions.IDTokenAccessMode 2}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+						<input type="radio" name="max_id_token" value="write" {{if $.MaxTokenPermissions.IDToken}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
 						<label></label>
 					</div>
 				</td>

@@ -27,7 +27,6 @@ import (
 
 type DetectedWorkflow struct {
 	EntryName    string
-	WorkflowPath string
 	TriggerEvent *jobparser.Event
 	Content      []byte
 	// SourceCommitSHA is the commit Content was read from, and must always be filled in together with Content.
@@ -186,7 +185,7 @@ func DetectWorkflows(
 	payload api.Payloader,
 	detectSchedule bool,
 ) (workflows, schedules, filtered []*DetectedWorkflow, invalid map[string]error, err error) {
-	workflowDir, entries, err := ListWorkflows(ctx, gitRepo, commit)
+	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -213,7 +212,6 @@ func DetectWorkflows(
 				if detectSchedule {
 					dwf := &DetectedWorkflow{
 						EntryName:       entry.Name(),
-						WorkflowPath:    path.Join(workflowDir, entry.Name()),
 						TriggerEvent:    evt,
 						Content:         content,
 						SourceCommitSHA: commit.ID.String(),
@@ -223,7 +221,6 @@ func DetectWorkflows(
 			} else {
 				dwf := &DetectedWorkflow{
 					EntryName:       entry.Name(),
-					WorkflowPath:    path.Join(workflowDir, entry.Name()),
 					TriggerEvent:    evt,
 					Content:         content,
 					SourceCommitSHA: commit.ID.String(),
@@ -243,7 +240,7 @@ func DetectWorkflows(
 }
 
 func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
-	workflowDir, entries, err := ListWorkflows(ctx, gitRepo, commit)
+	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +263,6 @@ func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, comm
 				log.Trace("detect scheduled workflow: %q", entry.Name())
 				dwf := &DetectedWorkflow{
 					EntryName:       entry.Name(),
-					WorkflowPath:    path.Join(workflowDir, entry.Name()),
 					TriggerEvent:    evt,
 					Content:         content,
 					SourceCommitSHA: commit.ID.String(),

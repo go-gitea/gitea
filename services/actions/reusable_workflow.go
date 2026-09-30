@@ -50,10 +50,10 @@ func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) e
 }
 
 // loadReusableWorkflowSource resolves the workflow file referenced by a caller's `uses:` and returns its raw bytes,
-// along with the (repo_id, commit_sha) the file was loaded from.
-func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, ref *model.ReusableWorkflowUses) (content []byte, sourceRepoID int64, sourceCommitSHA string, err error) {
+// along with the (repo_id, commit_sha, qualified ref) the file was loaded from.
+func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, ref *model.ReusableWorkflowUses) (content []byte, sourceRepoID int64, sourceCommitSHA, sourceRef string, err error) {
 	if err := run.LoadAttributes(ctx); err != nil {
-		return nil, 0, "", err
+		return nil, 0, "", "", err
 	}
 
 	switch {
@@ -61,39 +61,39 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 		// `./` and `$/` are resolved against the workflow file containing the `uses:` - i.e. the caller's own source repo + commit.
 		callerRepo, err := repo_model.GetRepositoryByID(ctx, caller.WorkflowSourceRepoID)
 		if err != nil {
-			return nil, 0, "", fmt.Errorf("look up caller source repo %d: %w", caller.WorkflowSourceRepoID, err)
+			return nil, 0, "", "", fmt.Errorf("look up caller source repo %d: %w", caller.WorkflowSourceRepoID, err)
 		}
 		sourceCommitSHA := resolveSameRepoWorkflowSourceCommit(run, caller)
 		if sourceCommitSHA != caller.WorkflowSourceCommitSHA {
 			log.Warn("run %d (pull_request_target) records workflow source commit %s, resolving %q at base commit %s instead", run.ID, caller.WorkflowSourceCommitSHA, ref.Path, sourceCommitSHA)
 		}
-		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, callerRepo, sourceCommitSHA, ref.Path)
+		bytes, resolvedSHA, resolvedRef, err := readWorkflowFromRepo(ctx, callerRepo, sourceCommitSHA, ref.Path)
 		if err != nil {
-			return nil, 0, "", err
+			return nil, 0, "", "", err
 		}
-		return bytes, callerRepo.ID, resolvedSHA, nil
+		return bytes, callerRepo.ID, resolvedSHA, resolvedRef, nil
 
 	default:
 		unavailable := fmt.Errorf("reusable workflow repository %s/%s does not exist or is not readable", ref.Owner, ref.Repo) // the same for both, so a run cannot tell whether a private one exists
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo)
 		if repo_model.IsErrRepoNotExist(err) {
-			return nil, 0, "", unavailable
+			return nil, 0, "", "", unavailable
 		}
 		if err != nil {
-			return nil, 0, "", fmt.Errorf("look up cross-repo workflow source %q: %w", ref.Owner+"/"+ref.Repo, err)
+			return nil, 0, "", "", fmt.Errorf("look up cross-repo workflow source %q: %w", ref.Owner+"/"+ref.Repo, err)
 		}
 		ok, err := access_model.CanReadWorkflowCrossRepo(ctx, repo, run)
 		if err != nil {
-			return nil, 0, "", err
+			return nil, 0, "", "", err
 		}
 		if !ok {
-			return nil, 0, "", unavailable
+			return nil, 0, "", "", unavailable
 		}
-		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
+		bytes, resolvedSHA, resolvedRef, err := readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
 		if err != nil {
-			return nil, 0, "", err
+			return nil, 0, "", "", err
 		}
-		return bytes, repo.ID, resolvedSHA, nil
+		return bytes, repo.ID, resolvedSHA, resolvedRef, nil
 	}
 }
 
@@ -110,23 +110,36 @@ func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, caller *a
 	return caller.WorkflowSourceCommitSHA
 }
 
-// readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.
-func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, string, error) {
+// readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA and qualified ref.
+func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, string, string, error) {
 	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
-		return nil, "", fmt.Errorf("open repo %s: %w", repo.FullName(), err)
+		return nil, "", "", fmt.Errorf("open repo %s: %w", repo.FullName(), err)
 	}
 	defer gitRepo.Close()
 
 	commit, err := gitRepo.GetCommit(ctx, refOrSHA)
 	if err != nil {
-		return nil, "", fmt.Errorf("get commit %q in %s: %w", refOrSHA, repo.FullName(), err)
+		return nil, "", "", fmt.Errorf("get commit %q in %s: %w", refOrSHA, repo.FullName(), err)
 	}
 	str, err := commit.GetFileContent(ctx, gitRepo, path, 1024*1024)
 	if err != nil {
-		return nil, "", fmt.Errorf("read %s@%s:%s: %w", repo.FullName(), refOrSHA, path, err)
+		return nil, "", "", fmt.Errorf("read %s@%s:%s: %w", repo.FullName(), refOrSHA, path, err)
 	}
-	return []byte(str), commit.ID.String(), nil
+	return []byte(str), commit.ID.String(), qualifyRef(ctx, gitRepo, refOrSHA, commit.ID.String()), nil
+}
+
+// qualifyRef names the ref a short name resolved to, tags first like Git, so a same-named tag can't pose as a branch
+func qualifyRef(ctx context.Context, gitRepo *git.Repository, ref, sha string) string {
+	if ref == sha || strings.HasPrefix(ref, "refs/") {
+		return ref
+	}
+	for _, name := range []string{git.TagPrefix + ref, git.BranchPrefix + ref} {
+		if commit, err := gitRepo.GetCommit(ctx, name); err == nil {
+			return util.Iif(commit.ID.String() == sha, name, sha)
+		}
+	}
+	return sha
 }
 
 // checkCallerChain walks `caller`'s ancestor chain (via ParentJobID) and:
@@ -218,7 +231,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	if err != nil {
 		return fmt.Errorf("resolve uses %q: %w", parsedJob.Uses, err)
 	}
-	content, contentSourceRepoID, contentSourceCommitSHA, err := loadReusableWorkflowSource(ctx, run, caller, ref)
+	content, contentSourceRepoID, contentSourceCommitSHA, contentSourceRef, err := loadReusableWorkflowSource(ctx, run, caller, ref)
 	if err != nil {
 		return err
 	}
@@ -256,6 +269,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		caller.CallSecrets = string(mapBytes)
 	}
 	caller.ReusableWorkflowContent = content
+	caller.ReusableWorkflowRef = contentSourceRef
 
 	// 6. Evaluate caller's `with:`, then match against the callee schema.
 	workflowCallInputs := map[string]any{}
@@ -316,7 +330,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 
 	// 10. Persist the remaining caller metadata (the row is already ours via the claim above).
 	caller.CallPayload = string(callPayload)
-	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "call_secrets", "reusable_workflow_content", "call_payload"); err != nil {
+	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "call_secrets", "reusable_workflow_content", "reusable_workflow_ref", "call_payload"); err != nil {
 		return errors.Join(fmt.Errorf("persist caller %d expansion metadata: %w", caller.ID, err), undoExpansion(ctx, caller))
 	}
 	return nil

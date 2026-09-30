@@ -11,16 +11,13 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddWorkflowPathToActions(_ context.Context, x base.EngineMigration) error {
-	type ActionRun struct {
-		WorkflowPath string `xorm:"TEXT"`
-	}
-	type ActionSchedule struct {
-		WorkflowPath string `xorm:"TEXT"`
+func AddReusableWorkflowRefToActionRunJob(_ context.Context, x base.EngineMigration) error {
+	type ActionRunJob struct {
+		ReusableWorkflowRef string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
-	}, new(ActionRun), new(ActionSchedule))
+		IgnoreDropIndices: true,
+	}, new(ActionRunJob))
 	return err
 }

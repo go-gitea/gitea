@@ -378,7 +378,7 @@ func TestFindTaskNeeds(t *testing.T) {
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
 }
 
-func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
+func TestGenerateGiteaContextPullRequestRefs(t *testing.T) {
 	payload := api.PullRequestPayload{
 		PullRequest: &api.PullRequest{
 			Base: &api.PRBranchInfo{
@@ -408,6 +408,9 @@ func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
 
 	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
 	assert.Equal(t, "main", giteaCtx["ref_name"])
+
+	run.TriggerEvent, run.Ref = string(actions_module.GithubEventPullRequest), "refs/pull/1/head"
+	assert.Equal(t, "branch", GenerateGiteaContext(t.Context(), run, nil, nil)["ref_type"])
 }
 
 func TestGenerateGiteaContextRefProtected(t *testing.T) {

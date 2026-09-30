@@ -429,7 +429,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
 		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
-		newMigration(356, "Add workflow path to Actions runs and schedules", v28.AddWorkflowPathToActions),
+		newMigration(356, "Add reusable_workflow_ref column to action_run_job", v28.AddReusableWorkflowRefToActionRunJob),
 	}
 	return preparedMigrations
 }

@@ -31,7 +31,6 @@ func TestParseRawPermissions_ReadAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeProjects])
-	assert.Equal(t, perm.AccessModeNone, result.IDTokenAccessMode)
 }
 
 // TestParseRawPermissions_GithubScopes verifies that all scopes that github supports are accounted for
@@ -79,19 +78,19 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeProjects])
-	assert.Equal(t, perm.AccessModeWrite, result.IDTokenAccessMode)
+	assert.True(t, result.IDToken)
 }
 
 func TestParseRawPermissions_IndividualScopes(t *testing.T) {
 	yamlContent := `
 contents: write
-id-token: write
 issues: read
 pull-requests: none
 packages: write
 actions: read
 wiki: write
 projects: none
+id-token: write
 `
 	var rawPerms yaml.Node
 	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
@@ -107,23 +106,7 @@ projects: none
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeProjects])
-	assert.Equal(t, perm.AccessModeWrite, result.IDTokenAccessMode)
-}
-
-func TestParseRawPermissions_IDTokenModes(t *testing.T) {
-	for value, expected := range map[string]perm.AccessMode{
-		"none":  perm.AccessModeNone,
-		"read":  perm.AccessModeNone,
-		"write": perm.AccessModeWrite,
-	} {
-		t.Run(value, func(t *testing.T) {
-			var rawPerms yaml.Node
-			require.NoError(t, yaml.Unmarshal([]byte("id-token: "+value), &rawPerms))
-			result := parseRawPermissionsExplicit(&rawPerms)
-			require.NotNil(t, result)
-			assert.Equal(t, expected, result.IDTokenAccessMode)
-		})
-	}
+	assert.True(t, result.IDToken)
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {
