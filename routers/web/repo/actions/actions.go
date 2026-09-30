@@ -642,7 +642,15 @@ func (data *actionRunListData) preparePartialRefreshRuns(ctx *context.Context) b
 		ctx.ServerError("GetRunsByRepoAndID", err)
 		return false
 	}
-	data.ActionRuns = runs
+	runsMap := make(map[int64]*actions_model.ActionRun, len(runs))
+	for _, run := range runs {
+		runsMap[run.ID] = run
+	}
+	for _, id := range data.refreshRunIDs {
+		if run, ok := runsMap[id]; ok {
+			data.ActionRuns = append(data.ActionRuns, run)
+		}
+	}
 	return true
 }
 
