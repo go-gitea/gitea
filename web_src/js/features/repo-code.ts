@@ -58,9 +58,9 @@ function selectRange(range: string): Element | null {
     stopLineNum = tmp;
     range = `${stop}-${start}`;
   }
-  const first = elLineNums[startLineNum - 1];
-  if (!first) return null;
+  if (startLineNum < 1) return null;
 
+  const first = elLineNums[startLineNum - 1] ?? null;
   for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
     elLineNums[i].closest('tr')!.classList.add('active');
   }
@@ -139,8 +139,8 @@ export function initRepoCodeView() {
       // set scrollRestoration to 'manual' when there is a hash in the URL, so that the scroll position will not be remembered after refreshing
       if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
       first.scrollIntoView({block: 'start'});
+      showLineButton();
     }
-    showLineButton();
   };
   onHashChange();
   window.addEventListener('hashchange', onHashChange);

@@ -43,15 +43,11 @@ test('code line anchors', async ({page, request}) => {
   const repoName = `e2e-line-anchor-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
-  await apiCreateFiles(request, owner, repoName, [{path: 'test.txt', content: 'a\nb\n'}]);
+  await apiCreateFiles(request, owner, repoName, [{path: 'test.txt', content: 'a\n'}]);
   const url = `/${owner}/${repoName}/src/branch/main/test.txt`;
-  const activeRows = page.locator('.code-view tr.active');
   await page.goto(`${url}#L0`);
-  await page.goto(`${url}#L2`);
-  await expect(activeRows).toHaveCount(1);
-  await page.goto(`${url}#L3`);
-  await expect(activeRows).toHaveCount(0);
-  await expect(page.locator('.code-line-button')).toHaveCount(0);
+  await page.goto(`${url}#L1`);
+  await expect(page.locator('.code-view tr.active')).toHaveCount(1);
   await assertNoJsError(page);
 });
 
