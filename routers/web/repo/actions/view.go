@@ -786,13 +786,17 @@ func describePendingJobDetail(ctx *context_module.Context, current *actions_mode
 			log.Error("FindRunners for job %d: %v", current.ID, err)
 			return ""
 		}
+		if err := actions_model.RunnerList(runners).LoadGroups(ctx); err != nil {
+			log.Error("LoadGroups for job %d: %v", current.ID, err)
+			return ""
+		}
 		hasOnlineRunner, hasMatchingRunner := false, false
 		for _, runner := range runners {
 			if runner.IsDisabled {
 				continue
 			}
 			hasOnlineRunner = true
-			if runner.CanMatchLabels(current.RunsOn) {
+			if runner.CanRunJob(current.RunsOnGroup, current.RunsOn) {
 				hasMatchingRunner = true
 				break
 			}
@@ -801,7 +805,7 @@ func describePendingJobDetail(ctx *context_module.Context, current *actions_mode
 		case !hasOnlineRunner:
 			return ctx.Locale.TrString("actions.runs.no_runner_online")
 		case !hasMatchingRunner:
-			return ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(current.RunsOn, ", "))
+			return ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(current.RunsOnDisplay(), ", "))
 		default:
 			// A matching runner exists but hasn't claimed the job, so it is busy.
 			return ctx.Locale.TrString("actions.runs.waiting_for_available_runner")

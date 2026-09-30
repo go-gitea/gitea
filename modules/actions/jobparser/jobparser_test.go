@@ -517,3 +517,38 @@ jobs:
 		})
 	}
 }
+
+func TestRunsOnGroupSurvivesMatrixExpansion(t *testing.T) {
+	jobs, err := Parse([]byte(`
+on: push
+jobs:
+  plain:
+    runs-on: [ubuntu-latest]
+    steps: [{run: echo}]
+  grouped:
+    strategy:
+      matrix:
+        v: [1, 2]
+    runs-on:
+      labels: [ubuntu-latest]
+      group: gpu-${{ matrix.v }}
+    steps: [{run: echo}]
+  unset:
+    runs-on:
+      group: ${{ vars.UNSET }}
+    steps: [{run: echo}]
+`), WithGitContext(&model.GithubContext{}))
+	require.NoError(t, err)
+
+	got := map[string][]any{}
+	for _, sw := range jobs {
+		_, job := sw.Job()
+		got[job.DisplayName()] = []any{job.RunsOnGroup(), job.RunsOn()}
+	}
+	assert.Equal(t, map[string][]any{
+		"plain":       {"", []string{"ubuntu-latest"}},
+		"grouped (1)": {"gpu-1", []string{"ubuntu-latest"}},
+		"grouped (2)": {"gpu-2", []string{"ubuntu-latest"}},
+		"unset":       {"", []string{""}},
+	}, got)
+}

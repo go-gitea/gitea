@@ -90,6 +90,7 @@ To make template code maintainable:
 
 - Go code should take over complex logic and prepare template data as much as possible, templates only render the data.
 - Prefer struct types provided by Go code instead of map types for template data.
+- Never reassign `ctx.Data["Link"]`, it always holds the current page's URL (`ctx.Link`). Use a separate key when a template needs another link.
 - Avoid using single word names for non-local variables.
 - Avoid passing `"root" $` or `"." .` to sub-templates, instead pass the specific data needed by the sub-template.
 - Use explicit variable names instead of `.` to access data: ``{{range $item := $.TargetItems}}{{ $item.Name }}{{end}}``

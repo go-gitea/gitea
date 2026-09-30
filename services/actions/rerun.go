@@ -547,6 +547,7 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		AttemptJobID:           templateJob.AttemptJobID,
 		Needs:                  slices.Clone(templateJob.Needs),
 		RunsOn:                 slices.Clone(templateJob.RunsOn),
+		RunsOnGroup:            templateJob.RunsOnGroup,
 		ContinueOnError:        templateJob.ContinueOnError,
 		IsMatrixDeferred:       templateJob.IsMatrixDeferred,
 		DeferredMatrixPayload:  slices.Clone(templateJob.DeferredMatrixPayload),

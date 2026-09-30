@@ -6,6 +6,12 @@
 	{{if eq .PageType "variables"}}
 		{{template "shared/variables/variable_list" .}}
 	{{end}}
+	{{if eq .PageType "runner-group-edit"}}
+		{{template "shared/actions/runner_group_edit" .}}
+	{{end}}
+	{{if eq .PageType "runner-groups"}}
+		{{template "shared/actions/runner_group_list" .}}
+	{{end}}
 	{{if eq .PageType "scoped-workflows"}}
 		{{template "shared/actions/scoped_workflows" .}}
 	{{end}}

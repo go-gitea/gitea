@@ -259,14 +259,14 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx
 			if err := evaluator.EvaluateYamlNode(&rawRunsOn); err != nil {
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
-			runsOn := model.RunsOnFromNode(rawRunsOn)
-			if len(runsOn) == 0 && len(srcRunsOn) > 0 { // match no runner rather than every runner
+			runsOn, group := model.RunsOnLabelsFromNode(rawRunsOn), model.RunsOnGroupFromNode(rawRunsOn)
+			if len(runsOn) == 0 && group == "" && len(srcRunsOn) > 0 { // match no runner rather than every runner
 				runsOn = []string{""}
 			}
 			for i := range runsOn {
 				runsOn[i] = escapeExpressions(runsOn[i])
 			}
-			combo.RawRunsOn = model.RunsOnNode(runsOn, "")
+			combo.RawRunsOn = model.RunsOnNode(runsOn, escapeExpressions(group))
 		}
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)

@@ -176,11 +176,15 @@ func (j *Job) EraseNeeds() *Job {
 
 // RunsOn returns the labels Gitea matches runners against, unescaped like DisplayName.
 func (j *Job) RunsOn() []string {
-	runsOn := model.RunsOnFromNode(j.RawRunsOn)
+	runsOn := model.RunsOnLabelsFromNode(j.RawRunsOn)
 	for i, label := range runsOn {
 		runsOn[i] = unescapeExpressions(label)
 	}
 	return runsOn
+}
+
+func (j *Job) RunsOnGroup() string {
+	return util.TruncateRunes(unescapeExpressions(model.RunsOnGroupFromNode(j.RawRunsOn)), 255)
 }
 
 // DisplayName is the name Gitea stores, without the escaping the payload keeps for runners.
