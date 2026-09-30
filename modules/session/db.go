@@ -17,9 +17,10 @@ import (
 
 // DBStore represents a session store implementation based on the DB.
 type DBStore struct {
-	sid  string
-	lock sync.RWMutex
-	data map[any]any
+	sid   string
+	lock  sync.RWMutex
+	data  map[any]any
+	dirty bool
 }
 
 func dbContext() context.Context {
@@ -40,6 +41,7 @@ func (s *DBStore) Set(key, val any) error {
 	defer s.lock.Unlock()
 
 	s.data[key] = val
+	s.dirty = true
 	return nil
 }
 
@@ -56,6 +58,9 @@ func (s *DBStore) Delete(key any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	if _, ok := s.data[key]; ok {
+		s.dirty = true
+	}
 	delete(s.data, key)
 	return nil
 }
@@ -67,9 +72,15 @@ func (s *DBStore) ID() string {
 
 // Release releases resource and save data to provider.
 func (s *DBStore) Release() error {
-	// Skip encoding if the data is empty
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// Skip empty data, which includes expired rows whose expiry refresh would revive their data
 	if len(s.data) == 0 {
 		return nil
+	}
+	if !s.dirty {
+		return auth.UpdateSessionExpiry(dbContext(), s.sid)
 	}
 
 	data, err := session.EncodeGob(s.data)
@@ -77,7 +88,9 @@ func (s *DBStore) Release() error {
 		return err
 	}
 
-	return auth.UpdateSession(dbContext(), s.sid, data)
+	err = auth.UpdateSession(dbContext(), s.sid, data)
+	s.dirty = err != nil
+	return err
 }
 
 // Flush deletes all session data.
@@ -86,6 +99,7 @@ func (s *DBStore) Flush() error {
 	defer s.lock.Unlock()
 
 	s.data = make(map[any]any)
+	s.dirty = true
 	return nil
 }
 

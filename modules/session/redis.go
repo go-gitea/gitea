@@ -24,6 +24,7 @@ type RedisStore struct {
 	duration    time.Duration
 	lock        sync.RWMutex
 	data        map[any]any
+	dirty       bool
 }
 
 // NewRedisStore creates and returns a redis session store.
@@ -43,6 +44,7 @@ func (s *RedisStore) Set(key, val any) error {
 	defer s.lock.Unlock()
 
 	s.data[key] = val
+	s.dirty = true
 	return nil
 }
 
@@ -59,6 +61,9 @@ func (s *RedisStore) Delete(key any) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	if _, ok := s.data[key]; ok {
+		s.dirty = true
+	}
 	delete(s.data, key)
 	return nil
 }
@@ -70,9 +75,15 @@ func (s *RedisStore) ID() string {
 
 // Release releases resource and save data to provider.
 func (s *RedisStore) Release() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	// Skip encoding if the data is empty
 	if len(s.data) == 0 {
 		return nil
+	}
+	if !s.dirty {
+		return s.c.Expire(graceful.GetManager().HammerContext(), s.prefix+s.sid, s.duration).Err()
 	}
 
 	data, err := session.EncodeGob(s.data)
@@ -80,7 +91,9 @@ func (s *RedisStore) Release() error {
 		return err
 	}
 
-	return s.c.Set(graceful.GetManager().HammerContext(), s.prefix+s.sid, string(data), s.duration).Err()
+	err = s.c.Set(graceful.GetManager().HammerContext(), s.prefix+s.sid, string(data), s.duration).Err()
+	s.dirty = err != nil
+	return err
 }
 
 // Flush deletes all session data.
@@ -89,6 +102,7 @@ func (s *RedisStore) Flush() error {
 	defer s.lock.Unlock()
 
 	s.data = make(map[any]any)
+	s.dirty = true
 	return nil
 }
 

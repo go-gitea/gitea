@@ -267,3 +267,5 @@ ignore (
 	./vendor
 	./web_src
 )
+
+replace gitea.com/go-chi/session => gitea.com/silverwind/session v0.0.0-20260930155612-7784626b8125

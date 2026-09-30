@@ -33,6 +33,12 @@ func UpdateSession(ctx context.Context, key string, data []byte) error {
 	return err
 }
 
+// UpdateSessionExpiry refreshes the expiry of the session with provided id
+func UpdateSessionExpiry(ctx context.Context, key string) error {
+	_, err := db.GetEngine(ctx).ID(key).Cols("expiry").Update(&Session{Expiry: timeutil.TimeStampNow()})
+	return err
+}
+
 // ReadSession reads the data for the provided session
 func ReadSession(ctx context.Context, key string) (*Session, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Session, error) {
