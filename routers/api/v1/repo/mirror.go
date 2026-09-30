@@ -291,6 +291,11 @@ func AddPushMirror(ctx *context.APIContext) {
 		return
 	}
 
+	if setting.Mirror.DisableNewPush {
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new push mirrors")
+		return
+	}
+
 	pushMirror := web.GetForm[*api.CreatePushMirrorOption](ctx)
 	CreatePushMirror(ctx, pushMirror)
 }
@@ -356,7 +361,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 
 	address, err := git.ParseRemoteAddr(mirrorOption.RemoteAddress, mirrorOption.RemoteUsername, mirrorOption.RemotePassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(address, ctx.ContextUser)
+		err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 	}
 	if err != nil {
 		HandleRemoteAddressError(ctx, err)
