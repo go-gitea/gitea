@@ -2284,8 +2284,6 @@
   "repo.settings.event_push_only": "Push Events",
   "repo.settings.event_send_everything": "All Events",
   "repo.settings.event_choose": "Custom Events…",
-  "repo.settings.event_button_select_all": "Select All",
-  "repo.settings.event_button_deselect_all": "Deselect All",
   "repo.settings.event_header_repository": "Repository Events",
   "repo.settings.event_create": "Create",
   "repo.settings.event_create_desc": "Branch or tag created.",

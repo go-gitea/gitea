@@ -22,16 +22,12 @@ export function initCompWebHookEditor() {
     });
   }
 
-  const section = document.querySelector('.events.fields.ui.grid');
-  if (section) {
-    const checkboxes = section.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
-
-    document.querySelector('#event-select-all')?.addEventListener('click', () => {
-      for (const i of checkboxes) { i.checked = true }
-    });
-
-    document.querySelector('#event-deselect-all')?.addEventListener('click', () => {
-      for (const i of checkboxes) { i.checked = false }
+  for (const button of document.querySelectorAll('.events.fields [data-events-checked]')) {
+    button.addEventListener('click', () => {
+      const checked = button.getAttribute('data-events-checked') === 'true';
+      for (const input of document.querySelectorAll<HTMLInputElement>('.events.fields input[type=checkbox]')) {
+        if (input.checked !== checked) input.click(); // fires the change event the form dirty check listens to
+      }
     });
   }
 
