@@ -569,7 +569,7 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 					break
 				}
 			}
-			if job.Status.IsWaiting() {
+			if job.Status.IsWaiting() && !job.IsReusableCaller {
 				hasOnlineRunner := false
 				for _, runner := range runners {
 					if !runner.IsDisabled && runner.CanMatchLabels(job.RunsOn) {
