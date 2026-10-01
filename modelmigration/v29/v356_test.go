@@ -39,9 +39,15 @@ func TestMoveMirrorCredentialsToDatabase(t *testing.T) {
 		return
 	}
 
-	_, err := x.Insert(&Repository{ID: 1, OwnerName: "user2", Name: "repo1"}, &Repository{ID: 2, OwnerName: "user2", Name: "repo2"},
-		&Mirror{ID: 1, RepoID: 1}, &PushMirror{ID: 1, RepoID: 1, RemoteName: "remote_mirror_a"},
-		&PushMirror{ID: 2, RepoID: 2, RemoteName: "remote_mirror_b"}, &PushMirror{ID: 3, RepoID: 2, RemoteName: "missing"})
+	// let the DB assign IDs: MSSQL rejects explicit values for identity columns
+	repo1Row, repo2Row := &Repository{OwnerName: "user2", Name: "repo1"}, &Repository{OwnerName: "user2", Name: "repo2"}
+	_, err := x.Insert(repo1Row, repo2Row)
+	require.NoError(t, err)
+	mirror := &Mirror{RepoID: repo1Row.ID}
+	pushA := &PushMirror{RepoID: repo1Row.ID, RemoteName: "remote_mirror_a"}
+	pushB := &PushMirror{RepoID: repo2Row.ID, RemoteName: "remote_mirror_b"}
+	pushMissing := &PushMirror{RepoID: repo2Row.ID, RemoteName: "missing"}
+	_, err = x.Insert(mirror, pushA, pushB, pushMissing)
 	require.NoError(t, err)
 
 	setRemote := func(repo gitrepo.RepositoryFacade, name, addr string) {
@@ -72,10 +78,10 @@ func TestMoveMirrorCredentialsToDatabase(t *testing.T) {
 		require.NoError(t, err)
 		return s
 	}
-	assert.Equal(t, "https://u:p@example.com/o/r.git", encrypted("mirror", 1))
-	assert.Equal(t, "https://:token@example.com/o/a.git", encrypted("push_mirror", 1))
-	assert.Empty(t, encrypted("push_mirror", 2))
-	assert.Empty(t, encrypted("push_mirror", 3))
+	assert.Equal(t, "https://u:p@example.com/o/r.git", encrypted("mirror", mirror.ID))
+	assert.Equal(t, "https://:token@example.com/o/a.git", encrypted("push_mirror", pushA.ID))
+	assert.Empty(t, encrypted("push_mirror", pushB.ID))
+	assert.Empty(t, encrypted("push_mirror", pushMissing.ID))
 
 	assert.Equal(t, "https://example.com/o/r.git", getRemote(repo1, "origin"))
 	assert.Equal(t, "https://example.com/o/r.wiki.git", getRemote(wiki1, "origin"))
