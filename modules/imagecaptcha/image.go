@@ -98,28 +98,17 @@ func (img *captchaImage) drawHorizLine(fromX, toX, y int, colorIndex uint8) {
 
 func (img *captchaImage) drawCircle(x, y, radius int, colorIndex uint8) {
 	decision := 1 - radius
-	deltaX := 1
-	deltaY := -2 * radius
-	offsetX := 0
 	offsetY := radius
-
-	img.SetColorIndex(x, y+radius, colorIndex)
-	img.SetColorIndex(x, y-radius, colorIndex)
-	img.drawHorizLine(x-radius, x+radius, y, colorIndex)
-
-	for offsetX < offsetY {
-		if decision >= 0 {
-			offsetY--
-			deltaY += 2
-			decision += deltaY
-		}
-		offsetX++
-		deltaX += 2
-		decision += deltaX
+	for offsetX := 0; offsetX <= offsetY; offsetX++ {
 		img.drawHorizLine(x-offsetX, x+offsetX, y+offsetY, colorIndex)
 		img.drawHorizLine(x-offsetX, x+offsetX, y-offsetY, colorIndex)
 		img.drawHorizLine(x-offsetY, x+offsetY, y+offsetX, colorIndex)
 		img.drawHorizLine(x-offsetY, x+offsetY, y-offsetX, colorIndex)
+		if decision >= 0 {
+			offsetY--
+			decision -= 2 * offsetY
+		}
+		decision += 2*(offsetX+1) + 1
 	}
 }
 
@@ -136,10 +125,9 @@ func (img *captchaImage) strikeThrough() {
 	maxX, maxY := img.Bounds().Max.X, img.Bounds().Max.Y
 	y := img.randInt(maxY/3, maxY-maxY/3)
 	amplitude := img.randFloat(5, 20)
-	period := img.randFloat(80, 180)
-	dx := 2.0 * math.Pi / period
+	dx := 2.0 * math.Pi / img.randFloat(80, 180)
+	offsetX := amplitude * math.Cos(float64(y)*dx)
 	for x := range maxX {
-		offsetX := amplitude * math.Cos(float64(y)*dx)
 		offsetY := amplitude * math.Sin(float64(x)*dx)
 		for row := range img.dotSize {
 			radius := img.randInt(0, img.dotSize)

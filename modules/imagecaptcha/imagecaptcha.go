@@ -77,7 +77,6 @@ func Create() (string, error) {
 	return id, nil
 }
 
-// Verify consumes the challenge, so every id can only be checked once
 func Verify(id, answer string) bool {
 	key := cacheKeyPrefix + id
 	digits, ok := cache.GetCache().Get(key)
