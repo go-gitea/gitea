@@ -5,6 +5,7 @@ package gtprof
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -31,6 +32,10 @@ type traceSpanInternal interface {
 type TraceSpan struct {
 	// immutable
 	parent           *TraceSpan
+	traceID          [16]byte // the trace this span belongs to, from the parent span or the incoming W3C "traceparent" header, or random for a new root
+	spanID           [8]byte
+	parentSpanID     [8]byte // zero for a root span without an incoming trace context
+	sampled          bool    // whether this trace should be exported (the caller's sampling decision for an inherited trace)
 	internalSpans    []traceSpanInternal
 	internalContexts []context.Context
 
@@ -108,6 +113,32 @@ func (s *TraceSpan) SetAttributeString(key, value string) *TraceSpan {
 	return s
 }
 
+// SetAttribute records an attribute of any basic type (string, int, int64, float64, bool),
+// for exporters that map the value to its OTel type.
+func (s *TraceSpan) SetAttribute(key string, value any) *TraceSpan {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.attributes = append(s.attributes, &TraceAttribute{Key: key, Value: TraceValue{v: value}})
+	return s
+}
+
+// Traceparent returns the W3C "traceparent" value for this span, to propagate
+// the current trace context to an outgoing request. It returns an empty string
+// when the span has no identity (not started through Tracer.Start).
+func (s *TraceSpan) Traceparent() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.traceID == ([16]byte{}) || s.spanID == ([8]byte{}) {
+		return ""
+	}
+	flags := "00"
+	if s.sampled {
+		flags = "01"
+	}
+	return fmt.Sprintf("00-%s-%s-%s", hex.EncodeToString(s.traceID[:]), hex.EncodeToString(s.spanID[:]), flags)
+}
+
 func (t *Tracer) Start(ctx context.Context, spanName string) (context.Context, *TraceSpan) {
 	starters := t.starters
 	if starters == nil {
@@ -120,6 +151,22 @@ func (t *Tracer) Start(ctx context.Context, spanName string) (context.Context, *
 		parentSpan.children = append(parentSpan.children, ts)
 		parentSpan.mu.Unlock()
 		ts.parent = parentSpan
+		ts.traceID = parentSpan.traceID
+		ts.parentSpanID = parentSpan.spanID
+		ts.sampled = parentSpan.sampled
+	} else if tc, ok := GetIncomingTraceContext(ctx); ok {
+		// the caller propagated a W3C "traceparent": join that trace, keep its
+		// sampling decision, and continue it on outgoing requests. The trace ID
+		// is never derived from an issue number or any business identifier.
+		ts.traceID = tc.TraceID
+		ts.parentSpanID = tc.SpanID
+		ts.sampled = tc.Sampled
+	}
+	if ts.traceID == ([16]byte{}) {
+		ts.traceID = randomTraceID()
+	}
+	if ts.spanID == ([8]byte{}) {
+		ts.spanID = randomSpanID()
 	}
 
 	// FIXME: this ctx handling is not right. The returned ctx should inherit the ctx passed in, but not from span's internal contexts
