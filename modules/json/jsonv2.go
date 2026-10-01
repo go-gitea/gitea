@@ -45,6 +45,10 @@ func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, jsonV2.marshalKeepOptionalEmptyOptions)
 }
 
+func MarshalDeterministic(v any) ([]byte, error) {
+	return jsonv2.Marshal(v, jsonV2.marshalOptions, jsonv2.Deterministic(true))
+}
+
 func (j *JSONv2) Marshal(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, j.marshalOptions)
 }
