@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
-	"gitea.dev/services/migrations"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +23,6 @@ import (
 func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
-	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
-	assert.NoError(t, migrations.Init())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session := loginUser(t, user.Name)

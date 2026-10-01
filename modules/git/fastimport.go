@@ -29,6 +29,8 @@ type FastImportCommit struct {
 	Ref     string
 	Message string
 	Files   []FastImportFile
+
+	Author, Committer *Signature
 }
 
 // ForceFastImportWithInit is for mainly for testing purpose
@@ -48,15 +50,32 @@ func ForceFastImportWithInit(ctx context.Context, repoLocalPath string, commits 
 
 // ForceFastImport is for mainly for testing purpose
 func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastImportCommit) error {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	for i, c := range commits {
-		msg := util.IfZero(c.Message, fmt.Sprintf("commit %d", i+1))
-		_, _ = fmt.Fprintf(&buf, "reset %s\n", c.Ref)
-		_, _ = fmt.Fprintf(&buf, "commit %s\nmark :%d\ncommitter Gitea <gitea@example.com> 1500000000 +0000\n", c.Ref, i+1)
-		_, _ = fmt.Fprintf(&buf, "data %d\n%s\n", len(msg), msg)
+		_, _ = fmt.Fprintf(buf, "reset %s\n", c.Ref)
+		_, _ = fmt.Fprintf(buf, "commit %s\n", c.Ref)
+		_, _ = fmt.Fprintf(buf, "mark :%d\n", i+1)
+
+		if c.Author != nil {
+			buf.WriteString("author ")
+			_ = c.Author.Encode(buf)
+			buf.WriteByte('\n')
+		}
+		if c.Committer != nil {
+			buf.WriteString("committer ")
+			_ = c.Committer.Encode(buf)
+			buf.WriteByte('\n')
+		} else {
+			// "committer" is required, so we use a default one if not provided
+			buf.WriteString("committer Gitea <gitea@example.com> 1500000000 +0000\n")
+		}
+
+		msg := util.IfZero(c.Message, fmt.Sprintf("test commit %d", i+1))
+		_, _ = fmt.Fprintf(buf, "data %d\n%s\n", len(msg), msg)
+
 		for _, f := range c.Files {
 			mode := util.IfZero(f.Mode, EntryModeBlob)
-			_, _ = fmt.Fprintf(&buf, "M %s inline %s\ndata %d\n%s\n", mode.String(), f.Path, len(f.Content), f.Content)
+			_, _ = fmt.Fprintf(buf, "M %s inline %s\ndata %d\n%s\n", mode.String(), f.Path, len(f.Content), f.Content)
 		}
 	}
 	buf.WriteString("done\n")

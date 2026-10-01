@@ -4,14 +4,18 @@
 package validation
 
 import (
+	"net/mail"
 	"net/url"
 	"regexp"
 	"slices"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/setting"
+
+	"golang.org/x/net/idna"
 )
 
 type globalVarsStruct struct {
@@ -107,4 +111,23 @@ func IsValidUsername(name string) bool {
 func IsValidBadgeSlug(slug string) bool {
 	vars := globalVars()
 	return vars.validBadgeSlugPattern.MatchString(slug) && !vars.invalidBadgeSlugPattern.MatchString(slug)
+}
+
+func IsEmailAddressValid(email string) bool {
+	if strings.ContainsFunc(email, func(r rune) bool { return r >= utf8.RuneSelf }) {
+		// At the moment, we don't support UTF8 email address. To support it, need to correctly handle IDN/punycode
+		return false
+	}
+	addr, err := mail.ParseAddress(email)
+	if err != nil || addr.Address != email {
+		// email must be parseable, and the "email" string must be the address, no other parts
+		return false
+	}
+	_, domain, _ := strings.Cut(email, "@")
+	if strings.HasPrefix(domain, "[") {
+		// address like "foo@[192.168.1.2]"
+		return true
+	}
+	_, err = idna.Registration.ToASCII(domain)
+	return err == nil
 }

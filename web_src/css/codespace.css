@@ -33,7 +33,7 @@
   flex: 0 0 auto;
   min-height: 48px;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--color-console-border);
+  border-bottom: 1px solid var(--color-light-border);
 }
 
 .codespace-detail-source,
@@ -389,7 +389,7 @@
   overflow: hidden;
   color: var(--color-console-fg-subtle);
   background: var(--color-console-bg);
-  border: 1px solid var(--color-console-border);
+  border: 1px solid var(--color-light-border);
   border-radius: var(--border-radius);
 }
 
@@ -425,36 +425,10 @@
   background: var(--color-console-hover-bg);
 }
 
-.codespace-log-panel .ui.dropdown .menu {
-  background: var(--color-console-menu-bg);
-  border-color: var(--color-console-menu-border);
-}
-
 .codespace-log-panel .ui.dropdown .menu > .item {
   display: flex;
   align-items: center;
   width: 100%;
-  color: var(--color-console-fg);
-  background: transparent;
-}
-
-.codespace-log-panel .ui.dropdown .menu > .item:hover {
-  color: var(--color-console-fg);
-  background: var(--color-console-hover-bg);
-}
-
-.codespace-log-panel .ui.dropdown .menu > .item:active {
-  color: var(--color-console-fg);
-  background: var(--color-console-active-bg);
-}
-
-.codespace-log-panel .ui.dropdown .menu > .divider {
-  border-top-color: var(--color-console-menu-border);
-}
-
-.codespace-log-panel .ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-console-menu-bg);
-  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
 }
 
 .codespace-log-menu-check {

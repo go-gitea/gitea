@@ -31,6 +31,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers"
+	"gitea.dev/routers/common"
 	gitea_context "gitea.dev/services/context"
 	"gitea.dev/tests"
 
@@ -189,13 +190,8 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
 	}
 	req := NewRequestWithURLValues(t, "POST", "/user/settings/applications", urlValues)
-	session.MakeRequest(t, req, http.StatusSeeOther)
-	flashes := session.GetCookieFlashMessage()
-	assert.NotNil(t, flashes)
-	if flashes != nil {
-		return flashes.InfoMsg
-	}
-	return ""
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	return NewHTMLParser(t, resp.Body).Find("#new-access-token-value").Text()
 }
 
 type RequestWrapper struct {
@@ -293,6 +289,9 @@ func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest
 			logUnexpectedResponse(t, recorder)
 			// don't use "require" which exits the test case and makes "wait group" wait forever
 			assert.Equal(t, expectedStatus, recorder.Code, "Request: %s %s", req.Method, req.URL.String())
+		}
+		if expectedStatus != http.StatusInternalServerError {
+			assert.NotContains(t, recorder.Body.String(), common.PageInternalServerErrorMark, "Request: %s %s, response should not contain internal server error", req.Method, req.URL.String())
 		}
 	}
 	return recorder

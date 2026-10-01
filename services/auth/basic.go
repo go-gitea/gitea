@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	codespace_service "gitea.dev/services/codespace"
 )
 
@@ -85,7 +87,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 	}
 
 	// get oauth2 token's user's ID
-	accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
+	accessTokenScope, uid, grantID := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
@@ -94,9 +96,13 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 			log.Error("GetUserByID:  %v", err)
 			return nil, err
 		}
+		if !u.IsIndividual() {
+			return nil, nil //nolint:nilnil // the auth method is not applicable
+		}
 
 		store.GetData()["LoginMethod"] = OAuth2TokenMethodName
 		store.GetData()["ApiTokenScope"] = accessTokenScope
+		setAuthCredential(store, credentialOAuth2Grant, grantID)
 		return u, nil
 	}
 
@@ -117,6 +123,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 
 		store.GetData()["LoginMethod"] = AccessTokenMethodName
 		store.GetData()["ApiTokenScope"] = token.Scope
+		setAuthCredential(store, credentialAccessToken, token.ID)
 		return u, nil
 	} else if !errors.Is(err, util.ErrNotExist) {
 		log.Error("GetAccessTokenBySHA: %v", err)
@@ -194,6 +201,8 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 	if ok, err := twofa.ValidateAndConsumeTOTP(req.Context(), req.Header.Get("X-Gitea-OTP")); err != nil {
 		return err
 	} else if !ok {
+		audit.RecordAs(req.Context(), u, audit_model.UserAuthenticationFailTwoFactor, u)
+
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
 	}
 	return nil

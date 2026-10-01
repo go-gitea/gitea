@@ -403,6 +403,9 @@ async function appendCodespaceLogLines(logEl: HTMLElement, lines: CodespaceLogLi
       const line = document.createElement('div');
       line.className = 'codespace-log-line';
       switch (command?.name) {
+        case undefined:
+        case 'command':
+          break;
         case 'error':
         case 'warning':
         case 'notice':

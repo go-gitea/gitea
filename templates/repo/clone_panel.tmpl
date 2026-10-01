@@ -6,7 +6,7 @@
 {{$showCodespaces := $.CodespacesEnabled}}
 {{$showMainTabs := and $showCodespaces (or $showCloneLinks $showOpenWithEditorApps $downloadArchiveLinkPrefix)}}
 {{if or $showCloneLinks $showOpenWithEditorApps $downloadArchiveLinkPrefix $showCodespaces}}
-	<button class="ui compact primary button" data-global-init="initRepoClonePanel">
+	<button type="button" class="ui compact primary button" data-global-init="initRepoClonePanel">
 		{{svg "octicon-code" 16}}
 		<span>{{ctx.Locale.Tr "repo.code"}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -14,8 +14,8 @@
 	<div class="clone-panel-popup tippy-target{{if $showCodespaces}} clone-panel-with-codespaces{{end}}">
 		{{if $showMainTabs}}
 			<div class="clone-panel-tab clone-panel-main-tab" role="tablist" aria-label="{{ctx.Locale.Tr "repo.code"}}">
-				<button class="item repo-clone-main active" id="repo-clone-tab" type="button" role="tab" aria-selected="true" aria-controls="repo-clone-section">{{ctx.Locale.Tr "codespace.clone"}}</button>
-				<button class="item repo-codespaces-main" id="repo-codespaces-tab" type="button" role="tab" aria-selected="false" aria-controls="repo-codespaces-section" tabindex="-1">{{ctx.Locale.Tr "codespace.title"}}</button>
+				<button type="button" class="item repo-clone-main active" id="repo-clone-tab" role="tab" aria-selected="true" aria-controls="repo-clone-section">{{ctx.Locale.Tr "codespace.clone"}}</button>
+				<button type="button" class="item repo-codespaces-main" id="repo-codespaces-tab" role="tab" aria-selected="false" aria-controls="repo-codespaces-section" tabindex="-1">{{ctx.Locale.Tr "codespace.title"}}</button>
 			</div>
 			<div class="divider"></div>
 		{{end}}
@@ -26,13 +26,13 @@
 				<div class="clone-panel-tab">
 					<!-- tea clone also uses the git HTTPS/SSH transports, so the whole clone section is hidden when both are disabled -->
 					{{if $cloneLink.SupportHTTPS}}
-						<button class="item repo-clone-https" data-link="{{$cloneLink.HTTPS}}">HTTPS</button>
+						<button type="button" class="item repo-clone-https" data-link="{{$cloneLink.HTTPS}}">HTTPS</button>
 					{{end}}
 					{{if $cloneLink.SupportSSH}}
-						<button class="item repo-clone-ssh" data-link="{{$cloneLink.SSH}}">SSH</button>
+						<button type="button" class="item repo-clone-ssh" data-link="{{$cloneLink.SSH}}">SSH</button>
 					{{end}}
 					{{if not $cloneLink.IsWikiRepo}}
-						<button class="item repo-clone-tea" data-link="{{$cloneLink.Tea}}">Tea CLI</button>
+						<button type="button" class="item repo-clone-tea" data-link="{{$cloneLink.Tea}}">Tea CLI</button>
 					{{end}}
 				</div>
 				<div class="divider"></div>

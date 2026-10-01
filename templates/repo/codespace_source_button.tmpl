@@ -1,5 +1,5 @@
 {{if .Enabled}}
-	<button class="ui {{.ButtonClasses}} button" data-global-init="initRepoClonePanel">
+	<button type="button" class="ui {{.ButtonClasses}} button" data-global-init="initRepoClonePanel">
 		{{svg "octicon-codespaces" 16}}
 		<span>{{ctx.Locale.Tr "codespace.title"}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}

@@ -4,7 +4,7 @@
 <h4 class="ui top attached header flex-left-right">
 	<span>{{ctx.Locale.Tr "settings.organization"}} ({{ctx.Locale.Tr "admin.total" $userOrgsTotal}})</span>
 	{{if $userOrgs}}
-		<button class="ui red tiny button show-modal" data-modal="#remove-all-orgs-modal">{{ctx.Locale.Tr "remove_all"}}</button>
+		<button type="button" class="ui red tiny button show-modal" data-modal="#remove-all-orgs-modal">{{ctx.Locale.Tr "remove_all"}}</button>
 		<form class="ui small modal form-fetch-action" id="remove-all-orgs-modal" method="post" action="{{ctx.RootData.Link}}/orgs/remove-all">
 			<div class="header">
 				{{ctx.Locale.Tr "admin.users.remove_all_orgs_title"}}
@@ -30,7 +30,7 @@
 				</div>
 				<div class="item-main">
 					<div class="item-title">
-						{{template "shared/user/name" $org}}
+						{{template "shared/user/name" $org.AsUser}}
 						{{if $org.Visibility.IsPrivate}}
 							<span class="ui basic tiny label">{{ctx.Locale.Tr "repo.desc.private"}}</span>
 						{{end}}

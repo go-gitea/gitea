@@ -432,7 +432,7 @@ func resolveCreateSourceRef(ctx context.Context, user *user_model.User, repo *re
 			return nil, errors.New("commit is required")
 		}
 		objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-		if len(ref) != objectFormat.FullLength() || !git.IsStringLikelyCommitID(objectFormat, ref) {
+		if !git.IsStringValidObjectID(objectFormat, ref) {
 			return nil, fmt.Errorf("invalid commit: %s", ref)
 		}
 		commit, err := gitRepo.GetCommit(ctx, ref)

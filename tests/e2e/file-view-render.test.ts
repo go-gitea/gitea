@@ -39,6 +39,18 @@ test('pdf file', async ({page, request}) => {
   await assertFlushWithParent(container, page.locator('.file-view'));
 });
 
+test('code line anchors', async ({page, request}) => {
+  const repoName = `e2e-line-anchor-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await apiCreateRepo(request, {name: repoName});
+  await apiCreateFiles(request, owner, repoName, [{path: 'test.txt', content: 'a\n'}]);
+  const url = `/${owner}/${repoName}/src/branch/main/test.txt`;
+  await page.goto(`${url}#L0`);
+  await page.goto(`${url}#L1`);
+  await expect(page.locator('.code-view tr.active')).toHaveCount(1);
+  await assertNoJsError(page);
+});
+
 test('asciicast file', async ({page, request}) => {
   const repoName = `e2e-asciicast-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;

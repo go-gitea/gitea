@@ -17,7 +17,7 @@
 								{{$.CsrfTokenHtml}}
 								<input type="hidden" name="action" value="revoke">
 								<input type="hidden" name="authorization_id" value="{{$authorization.ID}}">
-								<button class="ui red tiny button" data-modal-confirm="{{ctx.Locale.Tr "codespace.permission_revoke_confirm"}}">{{ctx.Locale.Tr "codespace.revoke"}}</button>
+								<button type="submit" class="ui red tiny button" data-modal-confirm="{{ctx.Locale.Tr "codespace.permission_revoke_confirm"}}">{{ctx.Locale.Tr "codespace.revoke"}}</button>
 							</form>
 						{{end}}
 					</div>
@@ -47,7 +47,7 @@
 												<input type="hidden" name="target_repo_id" value="{{$repository.TargetRepoID}}">
 												<input type="hidden" name="unit_type" value="{{$repository.UnitType}}">
 												<input type="hidden" name="mode" value="read">
-												<button class="ui tiny button">{{ctx.Locale.Tr "codespace.reduce_to_read"}}</button>
+												<button type="submit" class="ui tiny button">{{ctx.Locale.Tr "codespace.reduce_to_read"}}</button>
 											</form>
 										{{end}}
 										{{if $repository.CanRevoke}}
@@ -58,7 +58,7 @@
 												<input type="hidden" name="target_repo_id" value="{{$repository.TargetRepoID}}">
 												<input type="hidden" name="unit_type" value="{{$repository.UnitType}}">
 												<input type="hidden" name="mode" value="none">
-												<button class="ui tiny red button">{{ctx.Locale.Tr "codespace.revoke"}}</button>
+												<button type="submit" class="ui tiny red button">{{ctx.Locale.Tr "codespace.revoke"}}</button>
 											</form>
 										{{end}}
 									</td>

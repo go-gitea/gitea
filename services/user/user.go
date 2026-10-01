@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
@@ -24,6 +25,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/agit"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	codespace_service "gitea.dev/services/codespace"
 	org_service "gitea.dev/services/org"
 	"gitea.dev/services/packages"
@@ -57,7 +59,13 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 			u.Name = oldUserName
 			return err
 		}
-		return repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName)
+		if err := repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName); err != nil {
+			return err
+		}
+
+		recordNameChange(ctx, u, oldUserName)
+
+		return nil
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -115,7 +123,18 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 		}
 		return err
 	}
+
+	recordNameChange(ctx, u, oldUserName)
+
 	return nil
+}
+
+func recordNameChange(ctx context.Context, u *user_model.User, oldUserName string) {
+	if u.IsOrganization() {
+		audit.Record(ctx, audit_model.OrganizationName, u, "previous_name", oldUserName)
+	} else {
+		audit.Record(ctx, audit_model.UserName, u, "previous_name", oldUserName)
+	}
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
@@ -261,6 +280,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		}
 	}
+
+	audit.Record(ctx, audit_model.UserDelete, u)
 
 	return nil
 }
