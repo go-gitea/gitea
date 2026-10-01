@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 // BatchChecker provides a reader for check-attribute content that can be long running
@@ -120,26 +121,23 @@ func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 		return fmt.Errorf("CheckPath timeout: %s", debugMsg)
 	}
 
+	timeout := time.NewTimer(5 * time.Second)
+	defer timeout.Stop()
+
 	rs = NewAttributes()
 	for i := 0; i < c.attributesNum; i++ {
-		// A timer rather than time.After: the attribute almost always arrives
-		// first, and an abandoned time.After channel stays in the runtime timer
-		// heap for its whole duration. CheckPath runs once per file and asks for
-		// len(LinguistAttributes) attributes each time, so a language-stats pass
-		// over a repository would hold six pending five-second timers per file.
-		timeout := time.NewTimer(5 * time.Second)
 		select {
 		case <-timeout.C:
 			// there is no "hang" problem now. This code is just used to catch other potential problems.
-			return nil, reportTimeout()
+			err = reportTimeout()
+			setting.PanicInDevOrTesting("Unexpected timeout, need to investigate: %v", err)
+			return nil, err
 		case attr, ok := <-c.stdOut.ReadAttribute():
-			timeout.Stop()
 			if !ok {
 				return nil, c.ctx.Err()
 			}
 			rs.m[attr.Attribute] = Attribute(attr.Value)
 		case <-c.ctx.Done():
-			timeout.Stop()
 			return nil, c.ctx.Err()
 		}
 	}
