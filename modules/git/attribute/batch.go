@@ -122,16 +122,24 @@ func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 
 	rs = NewAttributes()
 	for i := 0; i < c.attributesNum; i++ {
+		// A timer rather than time.After: the attribute almost always arrives
+		// first, and an abandoned time.After channel stays in the runtime timer
+		// heap for its whole duration. CheckPath runs once per file and asks for
+		// len(LinguistAttributes) attributes each time, so a language-stats pass
+		// over a repository would hold six pending five-second timers per file.
+		timeout := time.NewTimer(5 * time.Second)
 		select {
-		case <-time.After(5 * time.Second):
+		case <-timeout.C:
 			// there is no "hang" problem now. This code is just used to catch other potential problems.
 			return nil, reportTimeout()
 		case attr, ok := <-c.stdOut.ReadAttribute():
+			timeout.Stop()
 			if !ok {
 				return nil, c.ctx.Err()
 			}
 			rs.m[attr.Attribute] = Attribute(attr.Value)
 		case <-c.ctx.Done():
+			timeout.Stop()
 			return nil, c.ctx.Err()
 		}
 	}
