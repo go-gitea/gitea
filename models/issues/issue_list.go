@@ -123,24 +123,11 @@ func (issues IssueList) LoadLabels(ctx context.Context) error {
 			return err
 		}
 
-		for rows.Next() {
-			var labelIssue LabelIssue
-			err = rows.Scan(&labelIssue)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
-				}
-				return err
-			}
+		if err1 := db.ScanRows(rows, func(labelIssue *LabelIssue) error {
 			issueLabels[labelIssue.IssueLabel.IssueID] = append(issueLabels[labelIssue.IssueLabel.IssueID], labelIssue.Label)
-		}
-		// When there are no rows left and we try to close it.
-		// Since that is not relevant for us, we can safely ignore it.
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
-		}
-		if err1 := rows.Err(); err1 != nil {
-			return fmt.Errorf("IssueList.LoadLabels: Rows: %w", err1)
+			return nil
+		}); err1 != nil {
+			return fmt.Errorf("IssueList.LoadLabels: %w", err1)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -247,23 +234,11 @@ func (issues IssueList) LoadAssignees(ctx context.Context) error {
 			return err
 		}
 
-		for rows.Next() {
-			var assigneeIssue AssigneeIssue
-			err = rows.Scan(&assigneeIssue)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)
-				}
-				return err
-			}
-
+		if err1 := db.ScanRows(rows, func(assigneeIssue *AssigneeIssue) error {
 			assignees[assigneeIssue.IssueAssignee.IssueID] = append(assignees[assigneeIssue.IssueAssignee.IssueID], assigneeIssue.Assignee)
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)
-		}
-		if err1 := rows.Err(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAssignees: Rows: %w", err1)
+			return nil
+		}); err1 != nil {
+			return fmt.Errorf("IssueList.loadAssignees: %w", err1)
 		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
@@ -307,22 +282,11 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 			return err
 		}
 
-		for rows.Next() {
-			var pr PullRequest
-			err = rows.Scan(&pr)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
-				}
-				return err
-			}
-			pullRequestMaps[pr.IssueID] = &pr
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
-		}
-		if err1 := rows.Err(); err1 != nil {
-			return fmt.Errorf("IssueList.loadPullRequests: Rows: %w", err1)
+		if err1 := db.ScanRows(rows, func(pr *PullRequest) error {
+			pullRequestMaps[pr.IssueID] = pr
+			return nil
+		}); err1 != nil {
+			return fmt.Errorf("IssueList.loadPullRequests: %w", err1)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -355,22 +319,11 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 			return err
 		}
 
-		for rows.Next() {
-			var attachment repo_model.Attachment
-			err = rows.Scan(&attachment)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadAttachments: Close: %w", err1)
-				}
-				return err
-			}
-			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], &attachment)
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAttachments: Close: %w", err1)
-		}
-		if err1 := rows.Err(); err1 != nil {
-			return fmt.Errorf("IssueList.loadAttachments: Rows: %w", err1)
+		if err1 := db.ScanRows(rows, func(attachment *repo_model.Attachment) error {
+			attachments[attachment.IssueID] = append(attachments[attachment.IssueID], attachment)
+			return nil
+		}); err1 != nil {
+			return fmt.Errorf("IssueList.loadAttachments: %w", err1)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -403,22 +356,11 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 			return err
 		}
 
-		for rows.Next() {
-			var comment Comment
-			err = rows.Scan(&comment)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadComments: Close: %w", err1)
-				}
-				return err
-			}
-			comments[comment.IssueID] = append(comments[comment.IssueID], &comment)
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadComments: Close: %w", err1)
-		}
-		if err1 := rows.Err(); err1 != nil {
-			return fmt.Errorf("IssueList.loadComments: Rows: %w", err1)
+		if err1 := db.ScanRows(rows, func(comment *Comment) error {
+			comments[comment.IssueID] = append(comments[comment.IssueID], comment)
+			return nil
+		}); err1 != nil {
+			return fmt.Errorf("IssueList.loadComments: %w", err1)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -472,22 +414,11 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 			return err
 		}
 
-		for rows.Next() {
-			var totalTime totalTimesByIssue
-			err = rows.Scan(&totalTime)
-			if err != nil {
-				if err1 := rows.Close(); err1 != nil {
-					return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %w", err1)
-				}
-				return err
-			}
+		if err1 := db.ScanRows(rows, func(totalTime *totalTimesByIssue) error {
 			trackedTimes[totalTime.IssueID] = totalTime.Time
-		}
-		if err1 := rows.Close(); err1 != nil {
-			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %w", err1)
-		}
-		if err1 := rows.Err(); err1 != nil {
-			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Rows: %w", err1)
+			return nil
+		}); err1 != nil {
+			return fmt.Errorf("IssueList.loadTotalTrackedTimes: %w", err1)
 		}
 		left -= limit
 		ids = ids[limit:]
