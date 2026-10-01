@@ -15,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -97,6 +98,20 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				}
 				// A slot-starved job cannot start, skip the following checks.
 				if !slots.available(job) {
+					continue
+				}
+				if invalid := invalidRunsOn(job); invalid != nil {
+					job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
+					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
+					if err != nil {
+						return err
+					}
+					if n > 0 {
+						updatedJobs = append(updatedJobs, job)
+					}
+					if err := upsertJobErrorSummary(ctx, job, "runs-on", invalid); err != nil {
+						return err
+					}
 					continue
 				}
 				var jobsToCancel []*actions_model.ActionRunJob
