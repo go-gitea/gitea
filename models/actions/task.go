@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -265,6 +266,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if db.InTransaction(ctx) {
 		return nil, false, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
+	e := db.GetEngine(ctx)
 
 	jobCond := builder.NewCond()
 	if runner.RepoID != 0 {
@@ -293,16 +295,22 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			))
 		}
 
-		var jobs []*ActionRunJob
-		if err := db.GetEngine(ctx).Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
-			if db.IsErrMSSQLDeadlock(err) {
-				continue // SQL Server's locking reads can lose to a concurrent claim, rerun the page
-			}
+		// Read only pickup index columns first, SQL Server's locking reads would otherwise deadlock with concurrent claims.
+		var candidates []*ActionRunJob
+		if err := e.Cols("id", "updated").Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&candidates); err != nil {
+			return nil, false, err
+		}
+		if len(candidates) == 0 {
+			return nil, false, nil
+		}
+		jobs := make(map[int64]*ActionRunJob, len(candidates))
+		if err := e.In("id", container.FilterSlice(candidates, func(job *ActionRunJob) (int64, bool) { return job.ID, true })).Find(&jobs); err != nil {
 			return nil, false, err
 		}
 
-		for _, v := range jobs {
-			if !runner.CanMatchLabels(v.RunsOn) {
+		for _, candidate := range candidates {
+			v := jobs[candidate.ID]
+			if v == nil || !runner.CanMatchLabels(v.RunsOn) {
 				continue
 			}
 			task, ok, err := claimJobForRunner(ctx, runner, v)
@@ -316,10 +324,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		}
 
 		// A short page means no waiting jobs remain beyond it.
-		if len(jobs) < pickTaskBatchSize {
+		if len(candidates) < pickTaskBatchSize {
 			return nil, false, nil
 		}
-		last := jobs[len(jobs)-1]
+		last := candidates[len(candidates)-1]
 		cursorUpdated, cursorID = last.Updated, last.ID
 	}
 }
