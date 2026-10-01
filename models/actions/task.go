@@ -265,6 +265,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if db.InTransaction(ctx) {
 		return nil, false, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
+	e := db.GetEngine(ctx)
 
 	jobCond := builder.NewCond()
 	if runner.RepoID != 0 {
@@ -294,9 +295,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		}
 
 		var jobs []*ActionRunJob
-		if err := db.GetEngine(ctx).Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			if db.IsErrMSSQLDeadlock(err) {
-				continue // SQL Server's locking reads can lose to a concurrent claim, rerun the page
+				e = db.GetEngine(ctx) // SQL Server's locking reads can lose to a concurrent claim, rerun the page on a fresh session
+				continue
 			}
 			return nil, false, err
 		}
