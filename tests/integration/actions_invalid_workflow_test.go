@@ -33,7 +33,7 @@ func TestActionsInvalidWorkflowPush(t *testing.T) {
 			content    string
 			wantErrors []string
 		}{
-			{"expression", "on: push\nrun-name: '${{ github.ref'\njobs: {check: {if: unknown.x}}\n", []string{"Unrecognized named-value: &#39;unknown&#39;", "unclosed expression"}},
+			{"expression", "on: push\nrun-name: '${{ github.ref'\njobs: {check: {runs-on: ubuntu-latest, if: unknown.x}}\n", []string{"Unrecognized named-value: &#39;unknown&#39;", "unclosed expression"}},
 			{"trigger", "on:\njobs: {check: {runs-on: ubuntu-latest, steps: [{run: echo hello}]}}\n", []string{"invalid event"}},
 		} {
 			t.Run(testCase.name, func(t *testing.T) {
