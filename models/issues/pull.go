@@ -407,6 +407,21 @@ func (pr *PullRequest) GetGitHeadRefName() string { // TODO: make it return RefN
 	return git.RefNameFromPullIndex(pr.Index).String()
 }
 
+func (pr *PullRequest) GetInstructionsCliArgs() (ret struct {
+	BaseBranchArg  string
+	HeadBranchArg  string
+	LocalBranchArg string
+},
+) {
+	ret.BaseBranchArg = util.ShellEscape(pr.BaseBranch)
+	ret.HeadBranchArg = util.ShellEscape(pr.HeadBranch)
+	ret.LocalBranchArg = ret.HeadBranchArg
+	if pr.HeadRepo != nil && pr.HeadRepoID != pr.BaseRepoID {
+		ret.LocalBranchArg = util.ShellEscape(pr.HeadRepo.OwnerName) + "-" + ret.HeadBranchArg
+	}
+	return ret
+}
+
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
 func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
