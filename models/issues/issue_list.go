@@ -139,6 +139,9 @@ func (issues IssueList) LoadLabels(ctx context.Context) error {
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.LoadLabels: Close: %w", err1)
 		}
+		if err1 := rows.Err(); err1 != nil {
+			return fmt.Errorf("IssueList.LoadLabels: Rows: %w", err1)
+		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
@@ -259,6 +262,9 @@ func (issues IssueList) LoadAssignees(ctx context.Context) error {
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadAssignees: Close: %w", err1)
 		}
+		if err1 := rows.Err(); err1 != nil {
+			return fmt.Errorf("IssueList.loadAssignees: Rows: %w", err1)
+		}
 		left -= limit
 		issueIDs = issueIDs[limit:]
 	}
@@ -315,6 +321,9 @@ func (issues IssueList) LoadPullRequests(ctx context.Context) error {
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadPullRequests: Close: %w", err1)
 		}
+		if err1 := rows.Err(); err1 != nil {
+			return fmt.Errorf("IssueList.loadPullRequests: Rows: %w", err1)
+		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
@@ -360,6 +369,9 @@ func (issues IssueList) LoadAttachments(ctx context.Context) (err error) {
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadAttachments: Close: %w", err1)
 		}
+		if err1 := rows.Err(); err1 != nil {
+			return fmt.Errorf("IssueList.loadAttachments: Rows: %w", err1)
+		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
 	}
@@ -404,6 +416,9 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 		}
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadComments: Close: %w", err1)
+		}
+		if err1 := rows.Err(); err1 != nil {
+			return fmt.Errorf("IssueList.loadComments: Rows: %w", err1)
 		}
 		left -= limit
 		issuesIDs = issuesIDs[limit:]
@@ -470,6 +485,9 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 		}
 		if err1 := rows.Close(); err1 != nil {
 			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Close: %w", err1)
+		}
+		if err1 := rows.Err(); err1 != nil {
+			return fmt.Errorf("IssueList.loadTotalTrackedTimes: Rows: %w", err1)
 		}
 		left -= limit
 		ids = ids[limit:]
