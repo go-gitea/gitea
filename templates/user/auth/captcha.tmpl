@@ -1,9 +1,8 @@
 {{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
 	{{$captchaID := call .CreateImageCaptcha}}
-	<div class="field image-captcha tw-flex tw-items-center tw-justify-center tw-gap-2">
+	<div class="inline field tw-text-center">
 		<input type="hidden" name="captcha_id" value="{{$captchaID}}">
-		<img src="{{AppSubUrl}}/captcha/{{$captchaID}}.png" width="240" height="80" alt="{{ctx.Locale.Tr "captcha_image"}}">
-		<button type="button" class="ui icon button" data-global-click="onImageCaptchaReload" aria-label="{{ctx.Locale.Tr "captcha_reload"}}" data-tooltip-content="{{ctx.Locale.Tr "captcha_reload"}}">{{svg "octicon-sync"}}</button>
+		<img src="{{AppSubUrl}}/captcha/{{$captchaID}}.png" width="240" height="80" alt="{{ctx.Locale.Tr "captcha_image"}}" data-global-click="onImageCaptchaReload">
 	</div>
 	<div class="required field {{if .Err_Captcha}}error{{end}}">
 		<label for="captcha">{{ctx.Locale.Tr "captcha"}}</label>
