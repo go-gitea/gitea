@@ -862,5 +862,5 @@ pgregory.net/rapid v0.4.2 h1:lsi9jhvZTYvzVpeG93WWgimPRmiJQfGFRNTEZh1dtY0=
 pgregory.net/rapid v0.4.2/go.mod h1:UYpPVyjFHzYBGHIxLFoupi8vwk6rXNzRY9OMvVxFIOU=
 xorm.io/builder v0.3.13 h1:a3jmiVVL19psGeXx8GIurTp7p0IIgqeDmwhcR6BAOAo=
 xorm.io/builder v0.3.13/go.mod h1:aUW0S9eb9VCaPohFCH3j7czOx1PMW3i1HrSzbLYGBSE=
-xorm.io/xorm v1.4.1 h1:m7QlNd0eBGb31IV4Q/ow0Du83rtdC1CiwlvJZGvYde8=
-xorm.io/xorm v1.4.1/go.mod h1:cs0ePc8O4a0jD78cNvD+0VFwhqotTvLQZv372QsDw7Q=
+xorm.io/xorm v1.4.3 h1:MwWFWzVr+/6D07qGCDhBAfABcuT0gvqY3XmTy1215BM=
+xorm.io/xorm v1.4.3/go.mod h1:cs0ePc8O4a0jD78cNvD+0VFwhqotTvLQZv372QsDw7Q=
