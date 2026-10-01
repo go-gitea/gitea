@@ -61,29 +61,10 @@ func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.
 	} else {
 		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
-	if err := repo.parseCodeActivityLog(ctx, gitCmd, stats); err != nil {
-		return nil, err
-	}
 
-	return stats, nil
-}
-
-// GetCodeActivityAuthors returns the authors of non-merge commits in all branches since fromTime, sorted by commit count
-func (repo *Repository) GetCodeActivityAuthors(ctx context.Context, fromTime time.Time) ([]*CodeActivityAuthor, error) {
-	stats := &CodeActivityStats{}
-	gitCmd := gitcmd.NewCommand("log", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
-		AddOptionFormat("--since=%s", fromTime.Format(time.RFC3339)).
-		AddArguments("--branches=*")
-	if err := repo.parseCodeActivityLog(ctx, gitCmd, stats); err != nil {
-		return nil, err
-	}
-	return stats.Authors, nil
-}
-
-func (repo *Repository) parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd.Command, stats *CodeActivityStats) error {
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := gitCmd.
+	err = gitCmd.
 		WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
@@ -135,7 +116,7 @@ func (repo *Repository) parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd
 					}
 				}
 			}
-			if err := scanner.Err(); err != nil {
+			if err = scanner.Err(); err != nil {
 				return fmt.Errorf("GetCodeActivityStats scan: %w", err)
 			}
 			a := make([]*CodeActivityAuthor, 0, len(authors))
@@ -153,7 +134,8 @@ func (repo *Repository) parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd
 		}).
 		RunWithStderr(ctx)
 	if err != nil {
-		return fmt.Errorf("GetCodeActivityStats: %w", err)
+		return nil, fmt.Errorf("GetCodeActivityStats: %w", err)
 	}
-	return nil
+
+	return stats, nil
 }

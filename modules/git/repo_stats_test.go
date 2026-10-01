@@ -33,8 +33,4 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	assert.Equal(t, "tris.git@shoddynet.org", code.Authors[1].Email)
 	assert.EqualValues(t, 3, code.Authors[1].Commits)
 	assert.EqualValues(t, 5, code.Authors[0].Commits)
-
-	authors, err := bareRepo1.GetCodeActivityAuthors(t.Context(), timeFrom)
-	assert.NoError(t, err)
-	assert.Equal(t, code.Authors, authors)
 }

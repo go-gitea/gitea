@@ -11,7 +11,6 @@ import (
 	"io"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 
 	"gitea.dev/modules/container"
@@ -21,7 +20,7 @@ import (
 
 // logNameStatusRepo opens git log --raw in the provided repo and returns a parser
 func logNameStatusRepo(ctx context.Context, repo RepositoryFacade, head, treepath string, paths ...string) *logNameStatusRepoParser {
-	cmd := gitcmd.NewCommand().AddConfig("log.follow", "false") // following renames once one path remains would print lines the parser skips
+	cmd := gitcmd.NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
 	var files []string
@@ -259,55 +258,6 @@ diffloop:
 
 var walkGitLogDebugBeforeNext func() // is used to simulate various edge git process cases
 
-const commitGraphTimeLimit = 1 << 34
-
-// linearLogHistory returns head's first-parent commits before a merge or clock skew, git log lists them in the same order for any pathspec
-func linearLogHistory(ctx context.Context, repo *Repository, head string) container.Set[string] {
-	commit, err := repo.GetCommit(ctx, head)
-	for range 32 {
-		if err != nil || commit.ParentCount() != 1 {
-			return nil
-		}
-		commit, err = commit.Parent(ctx, repo, 0)
-	}
-	cmd := gitcmd.NewCommand("rev-list", "--first-parent", "--parents", "--timestamp", "--max-count=1000").AddConfig("core.commitGraph", "false").AddDynamicArguments(head)
-	stdout, stdoutClose := cmd.MakeStdoutPipe()
-	defer stdoutClose()
-	history := make(container.Set[string])
-	var root string
-	err = cmd.WithRepo(repo).WithPipelineFunc(func(ctx gitcmd.Context) error {
-		scanner := bufio.NewScanner(stdout)
-		var child []string
-		for scanner.Scan() {
-			fields := strings.Fields(scanner.Text())
-			if child != nil {
-				if len(fields) < 2 || fields[1] != child[2] {
-					return ctx.CancelPipeline(nil)
-				}
-				childTime, childErr := strconv.ParseInt(child[0], 10, 64)
-				parentTime, parentErr := strconv.ParseInt(fields[0], 10, 64)
-				if childErr != nil || parentErr != nil || childTime <= parentTime || childTime >= commitGraphTimeLimit {
-					return ctx.CancelPipeline(nil)
-				}
-				history.Add(child[1])
-			}
-			switch len(fields) {
-			case 2:
-				root = fields[1] // a truncated line looks the same, so only accept it once git exits successfully
-			case 3:
-				child = fields
-			default:
-				return ctx.CancelPipeline(nil)
-			}
-		}
-		return scanner.Err()
-	}).RunWithStderr(ctx)
-	if err == nil && root != "" {
-		history.Add(root)
-	}
-	return history
-}
-
 // walkGitLog walks the git log --name-status for the head commit in the provided treepath and files
 func walkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
 	headRef := head.ID.String()
@@ -364,21 +314,6 @@ func walkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 	parentRemaining := make(container.Set[string])
 
 	changed := make([]bool, len(paths))
-	restart := func(restartHead string) {
-		remainingPaths := make([]string, 0, remaining)
-		for i, pth := range paths {
-			if results[i] == "" {
-				remainingPaths = append(remainingPaths, pth)
-			}
-		}
-		g.close()
-		g = logNameStatusRepo(ctx, repo, restartHead, treepath, remainingPaths...)
-		parentRemaining = make(container.Set[string])
-	}
-
-	var linearHistory container.Set[string] // restarts in it are only recorded, the log lists its changes in the same order
-	var recordedHead string
-	var recordedResults, writtenResults []string
 
 heaploop:
 	for {
@@ -388,18 +323,6 @@ heaploop:
 		current, err := g.walkNext(treepath, path2idx, changed, maxpathlen)
 		if ctx.Err() != nil {
 			break heaploop // context is either canceled or deadline exceeded - break the loop and return what we have so far
-		} else if recordedResults != nil && (errors.Is(err, io.EOF) || err == nil && !linearHistory.Contains(current.CommitID)) {
-			writtenResults, results, recordedResults, linearHistory = results, recordedResults, nil, nil
-			clear(path2idx)
-			clear(changed)
-			for i, pth := range paths {
-				if results[i] == "" {
-					path2idx[pth] = i
-				}
-			}
-			remaining = len(path2idx)
-			restart(recordedHead)
-			continue heaploop
 		} else if errors.Is(err, io.EOF) {
 			break heaploop // reached to the end of log output
 		} else if err != nil {
@@ -413,19 +336,15 @@ heaploop:
 			changed[i] = false
 			if results[i] == "" {
 				results[i] = current.CommitID
-				if writtenResults == nil || writtenResults[i] == "" {
-					if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
-						return nil, err
-					}
+				if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+					return nil, err
 				}
 				delete(path2idx, paths[i])
 				remaining--
 				if results[0] == "" {
 					results[0] = current.CommitID
-					if writtenResults == nil || writtenResults[0] == "" {
-						if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
-							return nil, err
-						}
+					if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
+						return nil, err
 					}
 					delete(path2idx, "")
 					remaining--
@@ -444,15 +363,16 @@ heaploop:
 		if remaining <= nextRestart {
 			commitSinceNextRestart++
 			if 4*commitSinceNextRestart > 3*commitSinceLastEmptyParent {
+				remainingPaths := make([]string, 0, len(paths))
+				for i, pth := range paths {
+					if results[i] == "" {
+						remainingPaths = append(remainingPaths, pth)
+					}
+				}
+				g.close()
+				g = logNameStatusRepo(ctx, repo, lastEmptyParent, treepath, remainingPaths...)
+				parentRemaining = make(container.Set[string])
 				nextRestart = (remaining * 3) / 4
-				if commitSinceNextRestart == 1 && lastEmptyParent == current.CommitID && remaining >= 8 && head.ParentCount() == 1 {
-					linearHistory = linearLogHistory(ctx, repo, current.CommitID)
-				}
-				if linearHistory.Contains(current.CommitID) {
-					recordedHead, recordedResults = current.CommitID, append(recordedResults[:0], results...)
-				} else {
-					restart(lastEmptyParent)
-				}
 				continue heaploop
 			}
 		}
