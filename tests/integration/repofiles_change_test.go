@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/contexttest"
 	files_service "gitea.dev/services/repository/files"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -690,5 +692,132 @@ func TestChangeRepoFilesErrors(t *testing.T) {
 			expectedError := "repository file already exists [path: " + opts.Files[0].TreePath + "]"
 			assert.EqualError(t, err, expectedError)
 		})
+	})
+}
+
+func TestChangeRepoFilesConcurrentSameRepo(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1")
+		ctx.SetPathParam("id", "1")
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.LoadRepoCommit(t, ctx)
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
+		repo := ctx.Repo.Repository
+		doer := ctx.Doer
+
+		const n = 6
+		var wg sync.WaitGroup
+		errs := make([]error, n)
+		for i := range n {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				opts := &files_service.ChangeRepoFilesOptions{
+					Files: []*files_service.ChangeRepoFile{
+						{
+							Operation:     "create",
+							TreePath:      fmt.Sprintf("concurrent/file-%d.txt", i),
+							ContentReader: strings.NewReader(fmt.Sprintf("content %d", i)),
+						},
+					},
+					OldBranch: repo.DefaultBranch,
+					NewBranch: repo.DefaultBranch,
+					Message:   fmt.Sprintf("create concurrent/file-%d.txt", i),
+				}
+				_, err := files_service.ChangeRepoFiles(t.Context(), repo, doer, opts)
+				errs[i] = err
+			}(i)
+		}
+		wg.Wait()
+
+		for i, err := range errs {
+			assert.NoErrorf(t, err, "goroutine %d failed", i)
+		}
+
+		// All N commits must be present on the branch: if the lock allowed
+		// concurrent clone/push races, some commits would be silently lost
+		// (force-push semantics) or the push would fail outright.
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+
+		for i := range n {
+			lastCommit, err := gitRepo.GetCommitByPath(t.Context(), fmt.Sprintf("concurrent/file-%d.txt", i))
+			require.NoErrorf(t, err, "file %d should have a commit", i)
+			assert.NotNilf(t, lastCommit, "file %d should have a commit", i)
+		}
+	})
+}
+
+func TestChangeRepoFilesConcurrentDifferentRepos(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		ctx1, _ := contexttest.MockContext(t, "user2/repo1")
+		ctx1.SetPathParam("id", "1")
+		contexttest.LoadRepo(t, ctx1, 1)
+		contexttest.LoadRepoCommit(t, ctx1)
+		contexttest.LoadUser(t, ctx1, 2)
+		contexttest.LoadGitRepo(t, ctx1)
+		defer ctx1.Repo.GitRepo.Close()
+
+		ctx2, _ := contexttest.MockContext(t, "user2/repo2")
+		ctx2.SetPathParam("id", "2")
+		contexttest.LoadRepo(t, ctx2, 2)
+		contexttest.LoadUser(t, ctx2, 2)
+		contexttest.LoadGitRepo(t, ctx2)
+		defer ctx2.Repo.GitRepo.Close()
+
+		repo1 := ctx1.Repo.Repository
+		repo2 := ctx2.Repo.Repository
+		doer := ctx1.Doer
+
+		// repo2's branch fixture isn't pre-seeded in the DB (unlike repo1 via
+		// LoadRepoCommit), so sync it from the actual git ref before use.
+		commitID, err := ctx2.Repo.GitRepo.GetBranchCommitID(t.Context(), repo2.DefaultBranch)
+		require.NoError(t, err)
+		require.NoError(t, repo_service.SyncBranchesToDB(t.Context(), repo2.ID, doer.ID, ctx2.Repo.GitRepo, []string{repo2.DefaultBranch}, []string{commitID}))
+
+		opts1 := &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "cross-repo/a.txt",
+					ContentReader: strings.NewReader("repo1 content"),
+				},
+			},
+			OldBranch: repo1.DefaultBranch,
+			NewBranch: repo1.DefaultBranch,
+			Message:   "create cross-repo/a.txt",
+		}
+		opts2 := &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "cross-repo/b.txt",
+					ContentReader: strings.NewReader("repo2 content"),
+				},
+			},
+			OldBranch: repo2.DefaultBranch,
+			NewBranch: repo2.DefaultBranch,
+			Message:   "create cross-repo/b.txt",
+		}
+
+		var wg sync.WaitGroup
+		var err1, err2 error
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			_, err1 = files_service.ChangeRepoFiles(t.Context(), repo1, doer, opts1)
+		}()
+		go func() {
+			defer wg.Done()
+			_, err2 = files_service.ChangeRepoFiles(t.Context(), repo2, doer, opts2)
+		}()
+		wg.Wait()
+
+		assert.NoError(t, err1)
+		assert.NoError(t, err2)
 	})
 }

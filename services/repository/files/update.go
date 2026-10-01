@@ -17,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/attribute"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -26,6 +27,10 @@ import (
 	asymkey_service "gitea.dev/services/asymkey"
 	pull_service "gitea.dev/services/pull"
 )
+
+func getRepoFilesWorkingLockKey(repoID int64) string {
+	return fmt.Sprintf("repo_files_working_%d", repoID)
+}
 
 // IdentityOptions for a person's identity like an author or committer
 type IdentityOptions struct {
@@ -95,6 +100,15 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	if err != nil {
 		return nil, err
 	}
+
+	// Serialize concurrent writes to this repository's working data (e.g. across
+	// multiple app instances sharing storage) to avoid racing temporary clones
+	// and branch updates stepping on each other.
+	releaser, err := globallock.Lock(ctx, getRepoFilesWorkingLockKey(repo.ID))
+	if err != nil {
+		return nil, err
+	}
+	defer releaser()
 
 	// If no branch name is set, assume the default branch
 	if opts.OldBranch == "" {
