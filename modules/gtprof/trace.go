@@ -173,11 +173,3 @@ func GetContextSpan(ctx context.Context) *TraceSpan {
 	ts, _ := ctx.Value(contextKeySpan).(*TraceSpan)
 	return ts
 }
-
-func InheritTraceSpan(ctx context.Context, span *TraceSpan) context.Context {
-	if span == nil {
-		return ctx
-	}
-	ctx = context.WithValue(ctx, contextKeySpan, span)
-	return ctx
-}
