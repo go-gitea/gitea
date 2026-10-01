@@ -225,6 +225,18 @@ func serveInstalled(c *cli.Command) error {
 	}
 
 	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
+	if setting.OtelExporter.OtlpEnabled {
+		gtprof.EnableOtelTracer(&gtprof.OtelTraceConfig{
+			ServiceName:    "gitea",
+			ServiceVersion: setting.AppVer,
+			Endpoint:       setting.OtelExporter.OtlpEndpoint,
+			Headers:        setting.OtelExporter.OtlpHeaders,
+			Timeout:        setting.OtelExporter.OtlpTimeout,
+			GzipEnabled:    setting.OtelExporter.OtlpCompression == "gzip",
+			TLSInsecure:    setting.OtelExporter.OtlpTLSInsecure,
+		})
+		defer gtprof.DisableOtelTracer(5 * time.Second) // flush pending traces on shutdown
+	}
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()

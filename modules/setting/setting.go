@@ -155,6 +155,9 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadAdminFrom(cfg)
 	loadAPIFrom(cfg)
 	loadMetricsFrom(cfg)
+	if err := loadOtelExporterFrom(cfg); err != nil {
+		log.Fatal("Unable to load otel_exporter settings: %v", err)
+	}
 	loadCamoFrom(cfg)
 	loadI18nFrom(cfg)
 	loadGitFrom(cfg)
