@@ -18,8 +18,8 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/contexttest"
-	files_service "gitea.dev/services/repository/files"
 	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

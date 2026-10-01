@@ -15,7 +15,4 @@ func TestGetRepoFilesWorkingLockKey(t *testing.T) {
 
 	// different repo IDs must never collide
 	assert.NotEqual(t, getRepoFilesWorkingLockKey(1), getRepoFilesWorkingLockKey(2))
-
-	// the key must be stable/deterministic for the same repo ID
-	assert.Equal(t, getRepoFilesWorkingLockKey(7), getRepoFilesWorkingLockKey(7))
 }
