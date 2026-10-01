@@ -53,6 +53,7 @@ type TwoFactor struct {
 	ID               int64 `xorm:"pk autoincr"`
 	UID              int64 `xorm:"UNIQUE"`
 	Secret           string
+	SecretSalt       string // empty means the secret is encrypted with the legacy unsalted MD5 key
 	ScratchSalt      string
 	ScratchHash      string
 	LastUsedPasscode string             `xorm:"VARCHAR(10)"`
@@ -90,13 +91,25 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
+const (
+	totpSecretKeyIterations = 10000
+	totpSecretKeyLength     = 32
+	totpSecretSaltSize      = 16
+)
+
+// getEncryptionKey derives the AES key for the stored TOTP secret.
+// Empty SecretSalt keeps the legacy unsalted MD5 key so existing rows still decrypt.
 func (t *TwoFactor) getEncryptionKey() []byte {
-	k := md5.Sum([]byte(setting.SecretKey))
-	return k[:]
+	if t.SecretSalt == "" {
+		k := md5.Sum([]byte(setting.SecretKey))
+		return k[:]
+	}
+	return pbkdf2.Key([]byte(setting.SecretKey), []byte(t.SecretSalt), totpSecretKeyIterations, totpSecretKeyLength, sha256.New)
 }
 
-// SetSecret sets the 2FA secret.
+// SetSecret encrypts and stores the TOTP secret with a fresh per-row PBKDF2 salt.
 func (t *TwoFactor) SetSecret(secretString string) error {
+	t.SecretSalt = hex.EncodeToString(util.CryptoRandomBytes(totpSecretSaltSize))
 	secretBytes, err := secret.AesEncrypt(t.getEncryptionKey(), []byte(secretString))
 	if err != nil {
 		return err
@@ -105,37 +118,49 @@ func (t *TwoFactor) SetSecret(secretString string) error {
 	return nil
 }
 
-// validateTOTP validates the provided passcode. It does not consume the passcode; all login
-// surfaces must go through ValidateAndConsumeTOTP so that a passcode cannot be redeemed twice.
-func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
+// validateTOTP validates the passcode and returns the decrypted TOTP secret on success.
+// It does not consume the passcode; all login surfaces must go through ValidateAndConsumeTOTP.
+func (t *TwoFactor) validateTOTP(passcode string) (bool, string, error) {
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
-		return false, fmt.Errorf("validateTOTP invalid base64: %w", err)
+		return false, "", fmt.Errorf("validateTOTP invalid base64: %w", err)
 	}
 	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
-		return false, fmt.Errorf("validateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
+		return false, "", fmt.Errorf("validateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
 	}
 	secretStr := string(secretBytes)
-	return totp.Validate(passcode, secretStr), nil
+	return totp.Validate(passcode, secretStr), secretStr, nil
 }
 
 // ValidateAndConsumeTOTP validates the passcode and atomically records it as used so that the
 // same passcode cannot be redeemed more than once (RFC 6238 §5.2). It returns false for an
 // invalid passcode as well as for a replay, including the case where a concurrent request with
 // the same passcode won the race first. All TOTP login surfaces must go through this helper.
+//
+// When the stored secret still uses the legacy unsalted MD5 key, a successful validation also
+// re-encrypts it with PBKDF2 and persists the upgrade in the same conditional update.
 func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (bool, error) {
-	ok, err := t.validateTOTP(passcode)
+	ok, secretStr, err := t.validateTOTP(passcode)
 	if err != nil || !ok {
 		return false, err
 	}
+
+	cols := []string{"last_used_passcode"}
+	if t.SecretSalt == "" {
+		if err := t.SetSecret(secretStr); err != nil {
+			return false, err
+		}
+		cols = append(cols, "secret", "secret_salt")
+	}
+
 	// Conditional update: only a row whose stored passcode differs from this one is updated, so a
 	// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
 	// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
 	t.LastUsedPasscode = passcode
 	n, err := db.GetEngine(ctx).ID(t.ID).
 		Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
-		Cols("last_used_passcode").Update(t)
+		Cols(cols...).Update(t)
 	if err != nil {
 		return false, err
 	}
