@@ -32,7 +32,6 @@ func (st *SessionsStore) New(r *http.Request, name string) (*sessions.Session, e
 	return st.getOrNew(r, name, true)
 }
 
-// getOrNew gets the session from the request session if it exists. Override permits the overriding of an unexpected object.
 func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (*sessions.Session, error) {
 	store := session_module.GetContextSession(r)
 

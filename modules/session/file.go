@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// fileBackend stores each session in its own file, using the file's modification time as the last access time
 type fileBackend struct {
 	lock        sync.RWMutex // exclusive for removals, so they never interleave with a load or save
 	rootPath    string

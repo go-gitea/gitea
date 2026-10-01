@@ -21,7 +21,6 @@ type redisBackend struct {
 	maxLifetime time.Duration
 }
 
-// newRedisBackend accepts a connection string like "redis://127.0.0.1:6379/0?prefix=session"
 func newRedisBackend(config string, maxLifetime int64) (*redisBackend, error) {
 	uri := nosql.ToRedisURI(config)
 	b := &redisBackend{

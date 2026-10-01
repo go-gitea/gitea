@@ -12,7 +12,6 @@ import (
 	"xorm.io/builder"
 )
 
-// Session represents the stored data of a web session
 type Session struct {
 	Key    string             `xorm:"pk CHAR(16)"`
 	Data   []byte             `xorm:"BLOB"` // on MySQL this has a maximum size of 64Kb - this may need to be increased
