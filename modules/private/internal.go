@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -96,11 +97,19 @@ Ensure you are running in the correct environment or set the correct configurati
 		log.Fatal("Invalid internal request URL: %q", url)
 	}
 
-	return httplib.NewClientRequest(method, url).
+	req := httplib.NewClientRequest(method, url).
 		SetContext(ctx).
 		SetTransport(internalAPITransport()).
 		Header("X-Real-IP", getClientIP()).
 		Header("X-Gitea-Internal-Auth", "Bearer "+setting.InternalToken)
+	// propagate the caller's trace into the server-side handler, so one
+	// operation's spans stay in one trace across the internal API hop
+	if span := gtprof.GetContextSpan(ctx); span != nil {
+		if tp := span.Traceparent(); tp != "" {
+			req.Header("Traceparent", tp)
+		}
+	}
+	return req
 }
 
 func newInternalRequestAPI(ctx context.Context, url, method string, body ...any) *httplib.ClientRequest {
