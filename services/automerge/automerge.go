@@ -20,6 +20,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
@@ -224,7 +225,7 @@ func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullReques
 
 	// although expectedHeadCommitID is checked before, we should pass it to the Merge function to
 	// make it be checked again in case the head commit id changed after the previous check.
-	if err := pull_service.Merge(pr.ID, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
+	if err := pull_service.Merge(gtprof.GetContextSpan(ctx), pr.ID, doer, scheduledPRM.MergeStyle, expectedHeadCommitID, scheduledPRM.Message, true); err != nil {
 		if pull_service.IsErrSHADoesNotMatch(err) {
 			return errors.Join(errSkipAutoMerge, err)
 		}

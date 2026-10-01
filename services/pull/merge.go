@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/references"
@@ -289,8 +290,9 @@ func hasPullRequestCommitBeenMerged(ctx context.Context, pr *issues_model.PullRe
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func Merge(traceSpan *gtprof.TraceSpan, prID int64, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
 	ctx := graceful.GetManager().HammerContext() // don't abort the git operation even if the user's request is canceled
+	ctx = gtprof.InheritTraceSpan(ctx, traceSpan)
 
 	err := globallock.LockAndDo(ctx, getPullWorkingLockKey(prID), func(ctx context.Context) error {
 		pr, err := issues_model.GetPullRequestByID(ctx, prID)
