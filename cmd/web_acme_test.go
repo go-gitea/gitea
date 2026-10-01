@@ -17,16 +17,18 @@ func TestAcmeExternalAccountBinding(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.AcmeEABKID, ""))
 	t.Cleanup(test.MockVariableValue(&setting.AcmeEABHMAC, ""))
 
-	binding, err := acmeExternalAccountBinding()
+	binding, configured, err := acmeExternalAccountBinding()
 	assert.NoError(t, err)
-	assert.Nil(t, binding)
+	assert.False(t, configured)
+	assert.Empty(t, binding)
 
 	setting.AcmeEABKID = "kid"
-	_, err = acmeExternalAccountBinding()
+	_, _, err = acmeExternalAccountBinding()
 	assert.ErrorContains(t, err, "both ACME_EAB_KID and ACME_EAB_HMAC must be set")
 
 	setting.AcmeEABHMAC = "hmac"
-	binding, err = acmeExternalAccountBinding()
+	binding, configured, err = acmeExternalAccountBinding()
 	assert.NoError(t, err)
-	assert.Equal(t, &acme.EAB{KeyID: "kid", MACKey: "hmac"}, binding)
+	assert.True(t, configured)
+	assert.Equal(t, acme.EAB{KeyID: "kid", MACKey: "hmac"}, binding)
 }

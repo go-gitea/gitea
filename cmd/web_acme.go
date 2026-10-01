@@ -24,14 +24,14 @@ import (
 	"github.com/mholt/acmez/v3/acme"
 )
 
-func acmeExternalAccountBinding() (*acme.EAB, error) {
+func acmeExternalAccountBinding() (acme.EAB, bool, error) {
 	if setting.AcmeEABKID == "" && setting.AcmeEABHMAC == "" {
-		return nil, nil
+		return acme.EAB{}, false, nil
 	}
 	if setting.AcmeEABKID == "" || setting.AcmeEABHMAC == "" {
-		return nil, errors.New("both ACME_EAB_KID and ACME_EAB_HMAC must be set")
+		return acme.EAB{}, false, errors.New("both ACME_EAB_KID and ACME_EAB_HMAC must be set")
 	}
-	return &acme.EAB{KeyID: setting.AcmeEABKID, MACKey: setting.AcmeEABHMAC}, nil
+	return acme.EAB{KeyID: setting.AcmeEABKID, MACKey: setting.AcmeEABHMAC}, true, nil
 }
 
 func getCARoot(path string) (*x509.CertPool, error) {
@@ -77,9 +77,13 @@ func runACME(listenAddr string, m http.Handler) error {
 			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
 		}
 	}
-	externalAccount, err := acmeExternalAccountBinding()
+	externalAccountBinding, hasExternalAccount, err := acmeExternalAccountBinding()
 	if err != nil {
 		return err
+	}
+	var externalAccount *acme.EAB
+	if hasExternalAccount {
+		externalAccount = &externalAccountBinding
 	}
 	// FIXME: this path is not right, it uses "AppWorkPath" incorrectly, and writes the data into "AppWorkPath/https"
 	// Ideally it should migrate to AppDataPath write to "AppDataPath/https"
