@@ -52,10 +52,6 @@ func (b *memoryBackend) save(sid string, data []byte, create bool) error {
 	return nil
 }
 
-func (b *memoryBackend) touch(string) error {
-	return nil
-}
-
 func (b *memoryBackend) destroy(sid string) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()

@@ -57,10 +57,6 @@ func (b *redisBackend) save(sid string, data []byte, create bool) error {
 	return b.client.SetXX(ctx, b.prefix+sid, data, b.maxLifetime).Err()
 }
 
-func (*redisBackend) touch(string) error {
-	return nil
-}
-
 func (b *redisBackend) destroy(sid string) error {
 	return b.client.Del(graceful.GetManager().HammerContext(), b.prefix+sid).Err()
 }

@@ -21,9 +21,8 @@ import (
 )
 
 type backend interface {
-	load(sid string) ([]byte, error)                 // returns nil for missing or expired sessions
+	load(sid string) ([]byte, error)                 // returns nil for missing or expired sessions, refreshes the expiry of others
 	save(sid string, data []byte, create bool) error // without create, only an existing session is updated
-	touch(sid string) error
 	destroy(sid string) error
 	gc()
 }

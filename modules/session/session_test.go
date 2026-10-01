@@ -18,6 +18,7 @@ import (
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,7 +55,6 @@ func TestSession(t *testing.T) {
 	cases := []struct {
 		name         string
 		newBackend   func(t *testing.T) backend
-		expire       func(t *testing.T, sid string)
 		assertStored func(t *testing.T, backend backend, sid string)
 	}{
 		{
@@ -68,9 +68,15 @@ func TestSession(t *testing.T) {
 		{
 			name:       "db",
 			newBackend: func(*testing.T) backend { return &dbBackend{maxLifetime: 3600} },
-			expire: func(t *testing.T, sid string) {
-				_, err := db.GetEngine(t.Context()).ID(sid).Cols("expiry").Update(&auth_model.Session{Expiry: 1})
+			assertStored: func(t *testing.T, backend backend, sid string) {
+				now := timeutil.TimeStampNow()
+				_, err := db.GetEngine(t.Context()).ID(sid).Cols("expiry").Update(&auth_model.Session{Expiry: now - 60})
 				require.NoError(t, err)
+				_, err = backend.load(sid)
+				require.NoError(t, err)
+				sess, _, err := auth_model.GetSession(t.Context(), sid)
+				require.NoError(t, err)
+				assert.GreaterOrEqual(t, sess.Expiry, now)
 			},
 		},
 		{
@@ -219,9 +225,6 @@ func TestSession(t *testing.T) {
 					serve(sid, func(_ http.ResponseWriter, _ *http.Request, writer Store) {
 						require.NoError(t, writer.Set("key", "changed"))
 					})
-					if tc.expire != nil {
-						tc.expire(t, sid)
-					}
 					require.NoError(t, reader.Delete("missing"))
 				})
 				assert.Equal(t, "changed", get(sid, "key"))

@@ -162,7 +162,7 @@ func TestBind(t *testing.T) {
 		},
 		{
 			name: "form type conversion errors", contentType: formType,
-			body:     "int=x&int8=--&uint=-1&uint8=+&bool=maybe&int_pointer=x&map=x",
+			body:     "int=x&int8=128&uint=-1&uint8=256&bool=maybe&int_pointer=x&map=x",
 			expected: Everything{},
 			errs: Errors{
 				{FieldNames: []string{"Int"}, Classification: errTypeCast, Message: "Value could not be parsed as integer"},

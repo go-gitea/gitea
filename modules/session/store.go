@@ -76,14 +76,11 @@ func (s *store) Flush() error {
 	return nil
 }
 
-// Release saves changed data to the backend, or only refreshes the expiry of unchanged data.
 func (s *store) Release() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	var err error
 	switch {
-	case !s.changed && s.stored:
-		return s.backend.touch(s.sid)
 	case !s.changed:
 		return nil
 	case len(s.data) > 0:
@@ -100,7 +97,6 @@ func (s *store) Release() error {
 	return err
 }
 
-// Destroy deletes the session and its cookie, leaving an empty new session.
 func (s *store) Destroy(resp http.ResponseWriter, _ *http.Request) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -132,7 +128,6 @@ func (s *store) Regenerate(resp http.ResponseWriter, req *http.Request) {
 	s.sendCookie(resp)
 }
 
-// sendCookie sets the session cookie once the session holds data under an ID the client doesn't know yet
 func (s *store) sendCookie(resp http.ResponseWriter) {
 	if s.cookieSID != s.sid && len(s.data) > 0 {
 		http.SetCookie(resp, newCookie(s.sid))

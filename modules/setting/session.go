@@ -63,7 +63,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	SessionConfig.CookiePath = util.IfZero(AppSubURL, "/")
 	SessionConfig.Secure = sec.Key("COOKIE_SECURE").MustBool(strings.HasPrefix(strings.ToLower(AppURL), "https://"))
 	SessionConfig.Gclifetime = cmp.Or(max(sec.Key("GC_INTERVAL_TIME").MustInt64(86400), 0), 3600)
-	SessionConfig.Maxlifetime = cmp.Or(sec.Key("SESSION_LIFE_TIME").MustInt64(86400), SessionConfig.Gclifetime)
+	SessionConfig.Maxlifetime = cmp.Or(max(sec.Key("SESSION_LIFE_TIME").MustInt64(86400), 0), SessionConfig.Gclifetime)
 	SessionConfig.Domain = sec.Key("DOMAIN").String()
 	samesiteString := sec.Key("SAME_SITE").In("lax", []string{"none", "lax", "strict"})
 	switch strings.ToLower(samesiteString) {

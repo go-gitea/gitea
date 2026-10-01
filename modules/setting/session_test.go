@@ -79,8 +79,8 @@ PROVIDER = file
 
 func TestSessionNonPositiveLifetimesUseDefaults(t *testing.T) {
 	defer test.MockVariableValue(&SessionConfig)()
-	for _, interval := range []string{"0", "-1"} {
-		cfg, err := NewConfigProviderFromData("[session]\nGC_INTERVAL_TIME = " + interval + "\nSESSION_LIFE_TIME = 0")
+	for _, lifetime := range []string{"0", "-1"} {
+		cfg, err := NewConfigProviderFromData("[session]\nGC_INTERVAL_TIME = " + lifetime + "\nSESSION_LIFE_TIME = " + lifetime)
 		assert.NoError(t, err)
 		loadSessionFrom(cfg)
 		assert.EqualValues(t, 3600, SessionConfig.Gclifetime)

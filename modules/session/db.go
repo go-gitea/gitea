@@ -24,15 +24,11 @@ func (b *dbBackend) load(sid string) ([]byte, error) {
 	if err != nil || !exist || sess.Expiry.Add(b.maxLifetime) <= timeutil.TimeStampNow() {
 		return nil, err
 	}
-	return sess.Data, nil
+	return sess.Data, auth.UpdateSessionExpiry(dbContext(), sid)
 }
 
 func (b *dbBackend) save(sid string, data []byte, create bool) error {
 	return auth.UpdateSession(dbContext(), sid, data, create)
-}
-
-func (b *dbBackend) touch(sid string) error {
-	return auth.UpdateSessionExpiry(dbContext(), sid)
 }
 
 func (b *dbBackend) destroy(sid string) error {

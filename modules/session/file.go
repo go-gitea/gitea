@@ -88,10 +88,6 @@ func (b *fileBackend) save(sid string, data []byte, create bool) error {
 	return err
 }
 
-func (b *fileBackend) touch(string) error {
-	return nil
-}
-
 func (b *fileBackend) destroy(sid string) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()

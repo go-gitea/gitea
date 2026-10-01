@@ -5,11 +5,9 @@ package auth
 
 import (
 	"html/template"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -214,8 +212,7 @@ func TestRegisterOpenIDPostRejectsWrongCaptcha(t *testing.T) {
 	require.NoError(t, sess.Set("openid_verified_uri", "https://example.com/openid"))
 
 	ctx, _ := contexttest.MockContext(t, "POST /user/openid/register", contexttest.MockContextOption{SessionStore: sess})
-	ctx.Req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	ctx.Req.Body = io.NopCloser(strings.NewReader("captcha_id=unknown&captcha=000000"))
+	contexttest.MockRequestPostForm(ctx.Req, url.Values{"captcha_id": {"unknown"}, "captcha": {"000000"}})
 	web.SetForm(ctx, &forms.SignUpOpenIDForm{UserName: "openid-captcha-user", Email: "openid-captcha-user@example.com"})
 	RegisterOpenIDPost(ctx)
 	assert.Equal(t, true, ctx.Data["Err_Captcha"])

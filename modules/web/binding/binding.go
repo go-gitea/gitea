@@ -8,9 +8,10 @@
 package binding
 
 import (
-	"bytes"
+	"bufio"
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -231,15 +232,28 @@ func (b *Binder) bindMultipartForm(req *http.Request, formStruct any) (errs Erro
 func (b *Binder) bindJSON(req *http.Request, jsonStruct any) (errs Errors) {
 	if req.Body != nil {
 		defer req.Body.Close()
-		body, err := io.ReadAll(req.Body)
-		if err == nil && len(bytes.Trim(body, " \t\r\n")) > 0 {
-			err = json.Unmarshal(body, jsonStruct)
+		body := bufio.NewReader(req.Body)
+		err := skipJSONSpace(body)
+		if err == nil {
+			err = json.NewDecoder(body).Decode(jsonStruct)
 		}
-		if err != nil {
+		if err != nil && !errors.Is(err, io.EOF) { // an empty body binds nothing
 			errs.addDeserializationError(err)
 		}
 	}
 	return append(errs, b.Validate(req.Context(), jsonStruct)...)
+}
+
+func skipJSONSpace(body *bufio.Reader) error {
+	for {
+		char, err := body.ReadByte()
+		if err != nil {
+			return err
+		}
+		if char != ' ' && char != '\t' && char != '\r' && char != '\n' {
+			return body.UnreadByte()
+		}
+	}
 }
 
 func (b *Binder) Validate(ctx context.Context, obj any) Errors {
@@ -337,14 +351,13 @@ func mapForm(formStruct reflect.Value, form map[string][]string, formFiles map[s
 
 		if inputValues, exists := form[inputFieldName]; exists {
 			if fieldValue.Kind() == reflect.Slice && len(inputValues) > 0 {
-				sliceElemKind := fieldValue.Type().Elem().Kind()
 				slice := reflect.MakeSlice(fieldValue.Type(), len(inputValues), len(inputValues))
 				for elemIdx, inputValue := range inputValues {
-					errs.addOptional(setWithProperType(typeField, sliceElemKind, inputValue, slice.Index(elemIdx)))
+					errs.addOptional(setWithProperType(typeField, inputValue, slice.Index(elemIdx)))
 				}
 				fieldValue.Set(slice)
 			} else {
-				errs.addOptional(setWithProperType(typeField, typeField.Type.Kind(), inputValues[0], fieldValue))
+				errs.addOptional(setWithProperType(typeField, inputValues[0], fieldValue))
 			}
 			continue
 		}
@@ -363,16 +376,16 @@ func mapForm(formStruct reflect.Value, form map[string][]string, formFiles map[s
 	return errs
 }
 
-func setWithProperType(structField reflect.StructField, valueKind reflect.Kind, val string, fieldValue reflect.Value) *Error {
-	switch valueKind {
+func setWithProperType(structField reflect.StructField, val string, fieldValue reflect.Value) *Error {
+	switch fieldValue.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		intVal, err := strconv.ParseInt(cmp.Or(val, "0"), 10, 64)
+		intVal, err := strconv.ParseInt(cmp.Or(val, "0"), 10, fieldValue.Type().Bits())
 		if err != nil {
 			return newFieldError(structField, errTypeCast, "Value could not be parsed as integer")
 		}
 		fieldValue.SetInt(intVal)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		uintVal, err := strconv.ParseUint(cmp.Or(val, "0"), 10, 64)
+		uintVal, err := strconv.ParseUint(cmp.Or(val, "0"), 10, fieldValue.Type().Bits())
 		if err != nil {
 			return newFieldError(structField, errTypeCast, "Value could not be parsed as unsigned integer")
 		}
@@ -394,12 +407,12 @@ func setWithProperType(structField reflect.StructField, valueKind reflect.Kind, 
 		fieldValue.SetString(val)
 	case reflect.Pointer:
 		newValue := reflect.New(fieldValue.Type().Elem())
-		if err := setWithProperType(structField, fieldValue.Type().Elem().Kind(), val, newValue.Elem()); err != nil {
+		if err := setWithProperType(structField, val, newValue.Elem()); err != nil {
 			return err
 		}
 		fieldValue.Set(newValue)
 	default:
-		return newFieldError(structField, errDeserialization, "unsupported type: "+valueKind.String())
+		return newFieldError(structField, errDeserialization, "unsupported type: "+fieldValue.Kind().String())
 	}
 	return nil
 }
