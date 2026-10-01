@@ -135,7 +135,7 @@ func (repo *Repository) parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd
 				}
 			}
 			if err := scanner.Err(); err != nil {
-				return fmt.Errorf("GetCodeActivityStats scan: %w", err)
+				return fmt.Errorf("parseCodeActivityLog scan: %w", err)
 			}
 			a := make([]*CodeActivityAuthor, 0, len(authors))
 			for _, v := range authors {
@@ -152,7 +152,7 @@ func (repo *Repository) parseCodeActivityLog(ctx context.Context, gitCmd *gitcmd
 		}).
 		RunWithStderr(ctx)
 	if err != nil {
-		return fmt.Errorf("GetCodeActivityStats: %w", err)
+		return fmt.Errorf("parseCodeActivityLog: %w", err)
 	}
 	return nil
 }
