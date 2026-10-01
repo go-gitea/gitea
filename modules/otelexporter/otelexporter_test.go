@@ -6,13 +6,14 @@ package otelexporter
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +82,11 @@ func TestExportTracePostsOTLPJSON(t *testing.T) {
 	require.Len(t, span.Attributes, 3)
 	assert.Equal(t, map[string]any{"intValue": "500"}, span.Attributes[0].Value)
 	assert.Equal(t, map[string]any{"boolValue": true}, span.Attributes[1].Value)
-	assert.Equal(t, "gitea", gotTrace.ResourceSpans[0].Resource.Attributes[0].Value.(map[string]any)["stringValue"])
+	resourceAttrs := gotTrace.ResourceSpans[0].Resource.Attributes
+	require.Len(t, resourceAttrs, 1)
+	resourceValue, ok := resourceAttrs[0].Value.(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "gitea", resourceValue["stringValue"])
 }
 
 func TestExportTraceDropsOnEndpointFailure(t *testing.T) {
@@ -111,7 +116,7 @@ func TestExportTraceNeverBlocksWhenQueueIsFull(t *testing.T) {
 	// the worker is stuck on the first trace; the rest fill the queue and one
 	// more export must drop immediately instead of blocking
 	e.ExportTrace(testTrace())
-	for i := 0; i < queueSize; i++ {
+	for range queueSize {
 		e.ExportTrace(testTrace())
 	}
 	done := make(chan struct{})
@@ -136,7 +141,7 @@ func TestStopDefaultDrainsQueue(t *testing.T) {
 	defer server.Close()
 
 	e := Init(server.URL, nil, time.Second, false, false)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		e.ExportTrace(testTrace())
 	}
 	StopDefault(5 * time.Second)

@@ -44,7 +44,7 @@ func loadOtelExporterFrom(cfg ConfigProvider) error {
 	otlpHeadersString := sec.Key("OTLP_HEADERS").String()
 	if otlpHeadersString != "" {
 		OtelExporter.OtlpHeaders = make(map[string]string)
-		for _, header := range strings.Split(otlpHeadersString, ",") {
+		for header := range strings.SplitSeq(otlpHeadersString, ",") {
 			header = strings.TrimSpace(header)
 			if key, valRaw, ok := strings.Cut(header, "="); ok {
 				val, err := url.QueryUnescape(valRaw)
