@@ -734,18 +734,10 @@ func UsernameSubRoute(ctx *context.Context) {
 			ShowGPGKeys(ctx)
 		}
 	case strings.HasSuffix(username, ".rss"):
-		if !setting.Other.EnableFeed {
-			ctx.HTTPError(http.StatusNotFound)
-			return
-		}
 		if reloadParam(".rss") {
 			feed.ShowUserFeedRSS(ctx)
 		}
 	case strings.HasSuffix(username, ".atom"):
-		if !setting.Other.EnableFeed {
-			ctx.HTTPError(http.StatusNotFound)
-			return
-		}
 		if reloadParam(".atom") {
 			feed.ShowUserFeedAtom(ctx)
 		}
