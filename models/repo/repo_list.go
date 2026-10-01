@@ -600,6 +600,16 @@ func SearchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 	return repos, count, nil
 }
 
+func withIDTiebreaker(orderBy db.SearchOrderBy) db.SearchOrderBy {
+	switch {
+	case orderBy == db.SearchOrderByID || orderBy == db.SearchOrderByIDReverse:
+		return orderBy // MSSQL rejects a column repeated in ORDER BY
+	case strings.HasSuffix(string(orderBy), " DESC"):
+		return orderBy + ", id DESC"
+	}
+	return orderBy + ", id ASC"
+}
+
 func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
 	page := opts.Page
 	if page <= 0 {
@@ -610,6 +620,7 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 	if len(orderBy) == 0 {
 		orderBy = db.SearchOrderByAlphabetically
 	}
+	orderBy = withIDTiebreaker(orderBy)
 
 	args := make([]any, 0)
 	if opts.PriorityOwnerID > 0 {
@@ -825,7 +836,7 @@ func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (Repositor
 		return nil, 0, fmt.Errorf("Count: %w", err)
 	}
 
-	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(withIDTiebreaker(opts.OrderBy).String())
 	repos := make(RepositoryList, 0, opts.PageSize)
 	db.SetSessionPagination(sess, &opts)
 	return repos, count, sess.Find(&repos)
