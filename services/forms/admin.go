@@ -65,6 +65,6 @@ type AdminEditUserForm struct {
 // AdminDashboardForm form for admin dashboard operations
 type AdminDashboardForm struct {
 	middleware.FormDefaultValidator
-	Op   string `binding:"Required"`
+	Op   string `binding:"required"`
 	From string
 }

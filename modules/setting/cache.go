@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"math"
 	"time"
 
 	"gitea.dev/modules/log"
@@ -38,6 +37,9 @@ var CacheService = struct {
 	},
 }
 
+// MemcacheMaxTTL represents the maximum memcache TTL
+const MemcacheMaxTTL = 30 * 24 * time.Hour
+
 func loadCacheFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("cache")
 	if err := sec.MapTo(&CacheService); err != nil {
@@ -58,19 +60,18 @@ func loadCacheFrom(rootCfg ConfigProvider) {
 	}
 }
 
-// TTLSeconds returns the item TTL in seconds, negative when ITEM_TTL disables caching
+// TTLSeconds returns the TTLSeconds or unix timestamp for memcache
 func (c Cache) TTLSeconds() int64 {
-	return ttlSeconds(c.TTL)
-}
-
-// LastCommitCacheTTLSeconds returns the last commit item TTL in seconds, negative when ITEM_TTL disables caching
-func LastCommitCacheTTLSeconds() int64 {
-	return ttlSeconds(CacheService.LastCommit.TTL)
-}
-
-func ttlSeconds(ttl time.Duration) int64 {
-	if ttl < 0 {
-		return -1
+	if c.Adapter == "memcache" && c.TTL > MemcacheMaxTTL {
+		return time.Now().Add(c.TTL).Unix()
 	}
-	return int64(math.Ceil(ttl.Seconds()))
+	return int64(c.TTL.Seconds())
+}
+
+// LastCommitCacheTTLSeconds returns the TTLSeconds or unix timestamp for memcache
+func LastCommitCacheTTLSeconds() int64 {
+	if CacheService.Adapter == "memcache" && CacheService.LastCommit.TTL > MemcacheMaxTTL {
+		return time.Now().Add(CacheService.LastCommit.TTL).Unix()
+	}
+	return int64(CacheService.LastCommit.TTL.Seconds())
 }

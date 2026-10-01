@@ -38,7 +38,7 @@ type InstallForm struct {
 	SMTPAddr        string `binding:"TrimSpace"`
 	SMTPPort        string `binding:"TrimSpace"`
 	SMTPFrom        string `binding:"TrimSpace"`
-	SMTPUser        string `binding:"TrimSpace;MaxSize(254)" locale:"install.mailer_user"`
+	SMTPUser        string `binding:"TrimSpace;OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string
 	RegisterConfirm bool
 	MailNotify      bool
@@ -183,7 +183,7 @@ type AvatarForm struct {
 	middleware.FormDefaultValidator
 	Source   string
 	Avatar   *multipart.FileHeader
-	Gravatar string `binding:"Email;MaxSize(254)"`
+	Gravatar string `binding:"OmitEmpty;Email;MaxSize(254)"`
 }
 
 // AddEmailForm form for adding new email
@@ -215,12 +215,12 @@ type AddOpenIDForm struct {
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
 	middleware.FormDefaultValidator
-	Type        string
+	Type        string `binding:"OmitEmpty"`
 	Title       string `binding:"Required;MaxSize(50)"`
 	Content     string `binding:"Required"`
-	Signature   string
-	KeyID       string
-	Fingerprint string
+	Signature   string `binding:"OmitEmpty"`
+	KeyID       string `binding:"OmitEmpty"`
+	Fingerprint string `binding:"OmitEmpty"`
 	IsWritable  bool
 }
 

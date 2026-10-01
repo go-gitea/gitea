@@ -57,5 +57,5 @@ type CreateTeamForm struct {
 	Permission       string
 	RepoAccess       string
 	CanCreateOrgRepo bool
-	Visibility       string `binding:"In(public,limited,private)"`
+	Visibility       string `binding:"OmitEmpty;In(public,limited,private)"`
 }

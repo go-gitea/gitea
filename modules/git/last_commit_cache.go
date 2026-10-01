@@ -25,20 +25,14 @@ type LastCommitCache struct {
 
 // Put puts the last commit id with commit and entry path
 func (c *LastCommitCache) Put(ref, entryPath, commitID string) error {
-	if c.ttlFn() < 0 {
-		return nil
-	}
 	log.Debug("LastCommitCache save: [%s:%s:%s]", ref, entryPath, commitID)
 	return c.cache.Put(getCacheKey(c.repo, ref, entryPath), commitID, c.ttlFn())
 }
 
 // Get gets the last commit information by commit id and entry path
 func (c *LastCommitCache) Get(ctx context.Context, ref, entryPath string) (*Commit, error) {
-	var lastCommitID string
-	if c.ttlFn() >= 0 {
-		lastCommitID, _ = c.cache.Get(getCacheKey(c.repo, ref, entryPath))
-	}
-	if lastCommitID == "" {
+	lastCommitID, ok := c.cache.Get(getCacheKey(c.repo, ref, entryPath))
+	if !ok || lastCommitID == "" {
 		return nil, nil //nolint:nilnil // return nil when cache miss
 	}
 

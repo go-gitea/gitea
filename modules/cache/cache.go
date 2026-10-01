@@ -13,6 +13,8 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+
+	_ "gitea.com/go-chi/cache/memcache" //nolint:depguard // memcache plugin for cache, it is required for config "ADAPTER=memcache"
 )
 
 var defaultCache StringCache
@@ -81,7 +83,7 @@ func GetCache() StringCache {
 
 // GetString returns the key value from cache with callback when no key exists in cache
 func GetString(key string, getFunc func() (string, error)) (string, error) {
-	if defaultCache == nil || setting.CacheService.TTL <= 0 {
+	if defaultCache == nil || setting.CacheService.TTL == 0 {
 		return getFunc()
 	}
 	cached, exist := defaultCache.Get(key)

@@ -5,7 +5,8 @@ package structs
 
 import (
 	"gitea.dev/modules/translation/i18n"
-	"gitea.dev/modules/web/binding"
+
+	"gitea.com/go-chi/binding" //nolint:depguard // avoid cycle import
 )
 
 // ValidateContext is a special context for form validation middleware

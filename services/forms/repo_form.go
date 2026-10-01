@@ -350,7 +350,7 @@ type CreateIssueForm struct {
 type CreateCommentForm struct {
 	middleware.FormDefaultValidator
 	Content string
-	Status  string `binding:"In(reopen,close)"`
+	Status  string `binding:"OmitEmpty;In(reopen,close)"`
 	Files   []string
 }
 
@@ -569,6 +569,12 @@ type AddTimeManuallyForm struct {
 	middleware.FormDefaultValidator
 	Hours   int `binding:"Range(0,1000)"`
 	Minutes int `binding:"Range(0,1000)"`
+}
+
+// SaveTopicForm form for save topics for repository
+type SaveTopicForm struct {
+	middleware.FormDefaultValidator
+	Topics []string `binding:"topics;Required;"`
 }
 
 // AddDeployTokenForm form for adding a deploy token to a repository

@@ -53,7 +53,7 @@ type EditUserOption struct {
 	// Whether the user must change password on next login
 	MustChangePassword *bool `json:"must_change_password"`
 	// The user's personal website URL
-	Website *string `json:"website" binding:"ValidUrl;MaxSize(255)"`
+	Website *string `json:"website" binding:"OmitEmpty;ValidUrl;MaxSize(255)"`
 	// The user's location or address
 	Location *string `json:"location" binding:"MaxSize(50)"`
 	// The user's personal description or bio

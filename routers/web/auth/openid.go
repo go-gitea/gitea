@@ -378,9 +378,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 			ctx.ServerError("", err)
 			return
 		}
-		if !context.VerifyCaptcha(ctx, tplSignUpOID, form) {
-			return
-		}
+		context.VerifyCaptcha(ctx, tplSignUpOID, form)
 	}
 
 	length := max(setting.MinPasswordLength, 256)

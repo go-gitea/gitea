@@ -173,7 +173,7 @@ type CreateRepoOption struct {
 type EditRepoOption struct {
 	// name of the repository
 	// unique: true
-	Name *string `json:"name,omitempty" binding:"AlphaDashDot;MaxSize(100)"`
+	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.

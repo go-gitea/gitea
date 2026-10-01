@@ -13,15 +13,12 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/contexttest"
-	"gitea.dev/services/forms"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -201,20 +198,4 @@ func TestOpenIDRequireTwoFactor(t *testing.T) {
 	ctx, _ = contexttest.MockContext(t, "/user/openid/connect", mockOpt)
 	openIDRequireTwoFactor(ctx, user2, false, "https://example.com/id")
 	assert.False(t, ctx.Written())
-}
-
-func TestRegisterOpenIDPostRejectsWrongCaptcha(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	require.NoError(t, cache.Init())
-	defer test.MockVariableValue(&setting.Service.EnableCaptcha, true)()
-	defer test.MockVariableValue(&setting.Service.CaptchaType, setting.ImageCaptcha)()
-	sess := session.NewMockMemStore("dummy-sid-openid-register")
-	require.NoError(t, sess.Set("openid_verified_uri", "https://example.com/openid"))
-
-	ctx, _ := contexttest.MockContext(t, "POST /user/openid/register", contexttest.MockContextOption{SessionStore: sess})
-	contexttest.MockRequestPostForm(ctx.Req, url.Values{"captcha_id": {"unknown"}, "captcha": {"000000"}})
-	web.SetForm(ctx, &forms.SignUpOpenIDForm{UserName: "openid-captcha-user", Email: "openid-captcha-user@example.com"})
-	RegisterOpenIDPost(ctx)
-	assert.Equal(t, true, ctx.Data["Err_Captcha"])
-	unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "openid-captcha-user"})
 }

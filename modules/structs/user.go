@@ -89,7 +89,7 @@ type UserSettings struct {
 // swagger:model
 type UserSettingsOptions struct {
 	FullName      *string `json:"full_name" binding:"MaxSize(100)"`
-	Website       *string `json:"website" binding:"ValidUrl;MaxSize(255)"`
+	Website       *string `json:"website" binding:"OmitEmpty;ValidUrl;MaxSize(255)"`
 	Description   *string `json:"description" binding:"MaxSize(255)"`
 	Location      *string `json:"location" binding:"MaxSize(50)"`
 	Language      *string `json:"language"`
