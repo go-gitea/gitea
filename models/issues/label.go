@@ -439,6 +439,7 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
@@ -514,6 +515,7 @@ func GetLabelsByOrgID(ctx context.Context, orgID int64, sortType string, listOpt
 	default:
 		sess.Asc("name")
 	}
+	sess.Asc("id")
 
 	if listOptions.Page > 0 {
 		db.SetSessionPagination(sess, &listOptions)
