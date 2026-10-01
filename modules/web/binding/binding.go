@@ -78,16 +78,12 @@ type ValidationField struct {
 	ruleArgs     []string
 }
 
-func (f *ValidationField) valueIndirect() reflect.Value {
-	return reflect.Indirect(f.reflectValue)
-}
-
 func (f *ValidationField) valueAsString() string {
-	return fmt.Sprint(f.valueIndirect().Interface())
+	return fmt.Sprint(reflect.Indirect(f.reflectValue).Interface())
 }
 
 func (f *ValidationField) ValueMustString() string {
-	value := f.valueIndirect()
+	value := reflect.Indirect(f.reflectValue)
 	if value.Kind() != reflect.String {
 		panic("field value must be a string")
 	}
@@ -95,7 +91,7 @@ func (f *ValidationField) ValueMustString() string {
 }
 
 func (f *ValidationField) valueSize() int {
-	value := f.valueIndirect()
+	value := reflect.Indirect(f.reflectValue)
 	switch value.Kind() {
 	case reflect.String:
 		return utf8.RuneCountInString(value.String())
@@ -118,7 +114,7 @@ func (f *ValidationField) assignValue(newValue any) {
 type RuleValidator func(ctx context.Context, field *ValidationField) *Error
 
 type ruleValidatorItem struct {
-	forZeroValue bool // otherwise the rule only applies to non-zero values
+	forZeroValue bool
 	validatorFn  RuleValidator
 }
 
@@ -130,7 +126,7 @@ func NewBinder() *Binder {
 	binder := &Binder{rules: map[string]ruleValidatorItem{}}
 	binder.AddRuleNonZero("TrimSpace", func(_ context.Context, field *ValidationField) *Error {
 		stringType := reflect.TypeFor[string]()
-		value := field.valueIndirect()
+		value := reflect.Indirect(field.reflectValue)
 		if !value.CanConvert(stringType) {
 			return newFieldError(field.StructField, errTypeCast, "TrimSpace")
 		}
@@ -195,7 +191,6 @@ func (b *Binder) AddRuleNonZero(name string, ruleValidator RuleValidator) {
 func (b *Binder) Bind(req *http.Request, obj any) Errors {
 	ensurePointer(obj)
 	contentType := req.Header.Get("Content-Type")
-	// GET and HEAD have no body to parse whatever their Content-Type says, POST and PUT require a Content-Type
 	if req.Method == http.MethodGet || req.Method == http.MethodHead ||
 		(contentType == "" && req.Method != http.MethodPost && req.Method != http.MethodPut) {
 		return b.bindForm(req, obj)
@@ -303,13 +298,8 @@ func (b *Binder) validateField(ctx context.Context, errs Errors, field *Validati
 			errs = append(errs, *newFieldError(field.StructField, errRule, fmt.Sprintf("Invalid rule: %q", ruleName)))
 			continue
 		}
-		var isNilOrZero bool
-		if field.reflectValue.Kind() == reflect.Pointer {
-			isNilOrZero = field.reflectValue.IsNil() || field.reflectValue.Elem().IsZero()
-		} else {
-			isNilOrZero = field.reflectValue.IsZero()
-		}
-		if item.forZeroValue != isNilOrZero {
+		value := reflect.Indirect(field.reflectValue)
+		if item.forZeroValue != (!value.IsValid() || value.IsZero()) {
 			continue
 		}
 		if err := item.validatorFn(ctx, field); err != nil {
@@ -322,9 +312,7 @@ func (b *Binder) validateField(ctx context.Context, errs Errors, field *Validati
 var nonAlphaDashDotPattern = regexp.MustCompile(`[^\w-.]`)
 
 func mapForm(formStruct reflect.Value, form map[string][]string, formFiles map[string][]*multipart.FileHeader, errs Errors) Errors {
-	if formStruct.Kind() == reflect.Pointer {
-		formStruct = formStruct.Elem()
-	}
+	formStruct = reflect.Indirect(formStruct)
 	structType := formStruct.Type()
 
 	for fieldIdx := range structType.NumField() {
@@ -395,10 +383,7 @@ func setWithProperType(structField reflect.StructField, val string, fieldValue r
 			fieldValue.SetBool(true)
 			break
 		}
-		if val == "" {
-			val = "false"
-		}
-		boolVal, err := strconv.ParseBool(val)
+		boolVal, err := strconv.ParseBool(cmp.Or(val, "false"))
 		if err != nil {
 			return newFieldError(structField, errTypeCast, "Value could not be parsed as boolean")
 		}

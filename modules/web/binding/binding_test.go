@@ -108,6 +108,7 @@ func TestBind(t *testing.T) {
 	const formType, jsonType = "application/x-www-form-urlencoded", "application/json"
 	requiredTitle := Error{FieldNames: []string{"Title"}, Classification: ErrRequired, Message: "Required"}
 	unsupported := Errors{{Classification: errContentType, Message: "Unsupported Content-Type"}}
+	assert.Equal(t, "Required", requiredTitle.Error())
 	cases := []struct {
 		name        string
 		method      string
@@ -117,15 +118,14 @@ func TestBind(t *testing.T) {
 		expected    any
 		errs        Errors
 	}{
-		{name: "form", contentType: formType, body: "title=T&content=C", expected: Post{Title: "T", Content: "C"}},
 		{name: "form missing required", contentType: formType, body: "content=C", expected: Post{Content: "C"}, errs: Errors{requiredTitle}},
 		{
 			name: "form malformed", contentType: formType, body: "title=%2", expected: Post{},
 			errs: Errors{{Classification: errDeserialization, Message: `invalid URL escape "%2"`}, requiredTitle},
 		},
 		{
-			name: "form nested and embedded", contentType: formType, body: "title=T&id=1&name=N&rating=4&rating=3&-=x&ignored=x",
-			expected: BlogPost{Post: Post{Title: "T"}, ID: 1, Ratings: []int{4, 3}, Author: Person{Name: "N"}},
+			name: "form nested and embedded", contentType: formType, body: "title=T&content=C&id=1&name=N&rating=4&rating=3&-=x&ignored=x",
+			expected: BlogPost{Post: Post{Title: "T", Content: "C"}, ID: 1, Ratings: []int{4, 3}, Author: Person{Name: "N"}},
 		},
 		{name: "query on POST", target: "/?title=T", contentType: formType, expected: Post{Title: "T"}},
 		{name: "query on GET", method: http.MethodGet, target: "/?title=T&content=C", expected: Post{Title: "T", Content: "C"}},
@@ -136,10 +136,9 @@ func TestBind(t *testing.T) {
 		{name: "DELETE without content type", method: http.MethodDelete, target: "/?title=T", expected: Post{Title: "T"}},
 		{name: "POST without content type", target: "/?title=T", expected: Post{}, errs: unsupported},
 		{name: "unsupported content type", method: http.MethodPatch, contentType: "text/plain", body: "title=T", expected: Post{}, errs: unsupported},
-		{name: "json", method: http.MethodPut, contentType: jsonType, body: `{"title":"T","content":"C"}`, expected: Post{Title: "T", Content: "C"}},
 		{
-			name: "json ignores form tags", contentType: jsonType, body: `{"title":"T","id":1,"rating":[1],"ratings":[4,3],"author":{"name":"N"}}`,
-			expected: BlogPost{Post: Post{Title: "T"}, ID: 1, Ratings: []int{4, 3}, Author: Person{Name: "N"}},
+			name: "json ignores form tags", method: http.MethodPut, contentType: jsonType, body: `{"title":"T","content":"C","id":1,"rating":[1],"ratings":[4,3],"author":{"name":"N"}}`,
+			expected: BlogPost{Post: Post{Title: "T", Content: "C"}, ID: 1, Ratings: []int{4, 3}, Author: Person{Name: "N"}},
 		},
 		{name: "json whitespace body", contentType: jsonType, body: " \n", expected: Post{}, errs: Errors{requiredTitle}},
 		{
@@ -189,23 +188,6 @@ func TestBind(t *testing.T) {
 }
 
 func TestBindMultipartForm(t *testing.T) {
-	newRequest := func(t *testing.T) *http.Request {
-		body := &bytes.Buffer{}
-		writer := multipart.NewWriter(body)
-		for _, field := range [][2]string{{"title", "T"}, {"id", "1"}, {"rating", "3"}, {"rating", "5"}, {"name", "N"}} {
-			require.NoError(t, writer.WriteField(field[0], field[1]))
-		}
-		for _, file := range [][2]string{{"header_image", "header.txt"}, {"picture", "a.txt"}, {"picture", "b.txt"}} {
-			fileWriter, err := writer.CreateFormFile(file[0], file[1])
-			require.NoError(t, err)
-			_, err = fileWriter.Write([]byte("content of " + file[1]))
-			require.NoError(t, err)
-		}
-		require.NoError(t, writer.Close())
-		req := httptest.NewRequest(http.MethodPost, "/", body)
-		req.Header.Set("Content-Type", writer.FormDataContentType())
-		return req
-	}
 	readFile := func(t *testing.T, fileHeader *multipart.FileHeader) string {
 		file, err := fileHeader.Open()
 		require.NoError(t, err)
@@ -217,7 +199,20 @@ func TestBindMultipartForm(t *testing.T) {
 
 	for _, parsedBefore := range []bool{false, true} {
 		t.Run(fmt.Sprintf("parsed before %v", parsedBefore), func(t *testing.T) {
-			req := newRequest(t)
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+			for _, field := range [][2]string{{"title", "T"}, {"id", "1"}, {"rating", "3"}, {"rating", "5"}, {"name", "N"}} {
+				require.NoError(t, writer.WriteField(field[0], field[1]))
+			}
+			for _, file := range [][2]string{{"header_image", "header.txt"}, {"picture", "a.txt"}, {"picture", "b.txt"}} {
+				fileWriter, err := writer.CreateFormFile(file[0], file[1])
+				require.NoError(t, err)
+				_, err = fileWriter.Write([]byte("content of " + file[1]))
+				require.NoError(t, err)
+			}
+			require.NoError(t, writer.Close())
+			req := httptest.NewRequest(http.MethodPost, "/", body)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
 			if parsedBefore {
 				assert.Equal(t, "T", req.FormValue("title"))
 			}
@@ -323,7 +318,4 @@ func TestValidate(t *testing.T) {
 			}
 		})
 	}
-
-	errs := NewBinder().Validate(t.Context(), &Post{})
-	assert.Equal(t, "[Title]: Required", fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
 }
