@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/secret"
@@ -53,7 +54,6 @@ type TwoFactor struct {
 	ID               int64 `xorm:"pk autoincr"`
 	UID              int64 `xorm:"UNIQUE"`
 	Secret           string
-	SecretSalt       string // empty means the secret is encrypted with the legacy unsalted MD5 key
 	ScratchSalt      string
 	ScratchHash      string
 	LastUsedPasscode string             `xorm:"VARCHAR(10)"`
@@ -95,37 +95,55 @@ const (
 	totpSecretKeyIterations = 10000
 	totpSecretKeyLength     = 32
 	totpSecretSaltSize      = 16
+	totpSecretPBKDF2Prefix  = "pbkdf2$"
 )
 
-// getEncryptionKey derives the AES key for the stored TOTP secret.
-// Empty SecretSalt keeps the legacy unsalted MD5 key so existing rows still decrypt.
-func (t *TwoFactor) getEncryptionKey() []byte {
-	if t.SecretSalt == "" {
+func totpEncryptionKey(salt string) []byte {
+	if salt == "" {
 		k := md5.Sum([]byte(setting.SecretKey))
 		return k[:]
 	}
-	return pbkdf2.Key([]byte(setting.SecretKey), []byte(t.SecretSalt), totpSecretKeyIterations, totpSecretKeyLength, sha256.New)
+	return pbkdf2.Key([]byte(setting.SecretKey), []byte(salt), totpSecretKeyIterations, totpSecretKeyLength, sha256.New)
 }
 
-// SetSecret encrypts and stores the TOTP secret with a fresh per-row PBKDF2 salt.
+// parseStoredSecret returns the PBKDF2 salt (empty for legacy MD5 rows) and AES ciphertext.
+// New values are stored as "pbkdf2$<hex-salt>$<base64-ciphertext>" in the existing Secret column.
+func (t *TwoFactor) parseStoredSecret() (salt string, ciphertext []byte, err error) {
+	if after, ok := strings.CutPrefix(t.Secret, totpSecretPBKDF2Prefix); ok {
+		salt, b64, ok := strings.Cut(after, "$")
+		if !ok || salt == "" || b64 == "" {
+			return "", nil, fmt.Errorf("validateTOTP invalid pbkdf2 secret format")
+		}
+		ciphertext, err = base64.StdEncoding.DecodeString(b64)
+		return salt, ciphertext, err
+	}
+	ciphertext, err = base64.StdEncoding.DecodeString(t.Secret)
+	return "", ciphertext, err
+}
+
+func (t *TwoFactor) usesLegacySecret() bool {
+	return !strings.HasPrefix(t.Secret, totpSecretPBKDF2Prefix)
+}
+
+// SetSecret encrypts and stores the TOTP secret with a fresh per-row PBKDF2 salt in Secret.
 func (t *TwoFactor) SetSecret(secretString string) error {
-	t.SecretSalt = hex.EncodeToString(util.CryptoRandomBytes(totpSecretSaltSize))
-	secretBytes, err := secret.AesEncrypt(t.getEncryptionKey(), []byte(secretString))
+	salt := hex.EncodeToString(util.CryptoRandomBytes(totpSecretSaltSize))
+	secretBytes, err := secret.AesEncrypt(totpEncryptionKey(salt), []byte(secretString))
 	if err != nil {
 		return err
 	}
-	t.Secret = base64.StdEncoding.EncodeToString(secretBytes)
+	t.Secret = totpSecretPBKDF2Prefix + salt + "$" + base64.StdEncoding.EncodeToString(secretBytes)
 	return nil
 }
 
 // validateTOTP validates the passcode and returns the decrypted TOTP secret on success.
 // It does not consume the passcode; all login surfaces must go through ValidateAndConsumeTOTP.
 func (t *TwoFactor) validateTOTP(passcode string) (bool, string, error) {
-	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
+	salt, decodedStoredSecret, err := t.parseStoredSecret()
 	if err != nil {
-		return false, "", fmt.Errorf("validateTOTP invalid base64: %w", err)
+		return false, "", fmt.Errorf("validateTOTP invalid stored secret: %w", err)
 	}
-	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
+	secretBytes, err := secret.AesDecrypt(totpEncryptionKey(salt), decodedStoredSecret)
 	if err != nil {
 		return false, "", fmt.Errorf("validateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
 	}
@@ -147,11 +165,11 @@ func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string)
 	}
 
 	cols := []string{"last_used_passcode"}
-	if t.SecretSalt == "" {
+	if t.usesLegacySecret() {
 		if err := t.SetSecret(secretStr); err != nil {
 			return false, err
 		}
-		cols = append(cols, "secret", "secret_salt")
+		cols = append(cols, "secret")
 	}
 
 	// Conditional update: only a row whose stored passcode differs from this one is updated, so a

@@ -429,7 +429,6 @@ func prepareMigrationTasks() []*migration {
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
 		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
-		newMigration(356, "Add secret_salt to two_factor", v28.AddSecretSaltToTwoFactor),
 	}
 	return preparedMigrations
 }

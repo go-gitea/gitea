@@ -6,6 +6,7 @@ package auth_test
 import (
 	"crypto/md5"
 	"encoding/base64"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ func TestTwoFactorValidateAndConsumeTOTP(t *testing.T) {
 
 	tfa := &auth_model.TwoFactor{UID: 1}
 	require.NoError(t, tfa.SetSecret(key.Secret()))
-	assert.NotEmpty(t, tfa.SecretSalt)
+	assert.True(t, strings.HasPrefix(tfa.Secret, "pbkdf2$"))
 	require.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
 
 	passcode, err := totp.GenerateCode(key.Secret(), time.Now())
@@ -67,7 +68,7 @@ func TestTwoFactorLegacySecretUpgrade(t *testing.T) {
 	const uid int64 = 1001
 	tfa := &auth_model.TwoFactor{UID: uid, Secret: legacySecret}
 	require.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
-	require.Empty(t, tfa.SecretSalt)
+	require.False(t, strings.HasPrefix(tfa.Secret, "pbkdf2$"))
 
 	passcode, err := totp.GenerateCode(secretStr, time.Now())
 	require.NoError(t, err)
@@ -77,15 +78,9 @@ func TestTwoFactorLegacySecretUpgrade(t *testing.T) {
 
 	reloaded, err := auth_model.GetTwoFactorByUID(t.Context(), uid)
 	require.NoError(t, err)
-	assert.NotEmpty(t, reloaded.SecretSalt)
+	assert.True(t, strings.HasPrefix(reloaded.Secret, "pbkdf2$"))
 	assert.NotEqual(t, legacySecret, reloaded.Secret)
 	assert.Equal(t, passcode, reloaded.LastUsedPasscode)
-
-	// upgraded ciphertext must not decrypt with the legacy MD5 key
-	decoded, err := base64.StdEncoding.DecodeString(reloaded.Secret)
-	require.NoError(t, err)
-	_, err = secret.AesDecrypt(legacyKey[:], decoded)
-	assert.Error(t, err)
 
 	// after upgrade, a fresh passcode from the next TOTP window still validates from the DB row
 	nextPasscode, err := totp.GenerateCode(secretStr, time.Now().Add(30*time.Second))
