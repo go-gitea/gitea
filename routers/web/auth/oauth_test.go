@@ -13,6 +13,10 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/egress/policy"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -104,4 +108,28 @@ func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, policy.ErrDenied,
 		"avatar client must refuse a link-local cloud-metadata address")
+}
+
+func TestOAuth2ScopeChange(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("oauth2-scope-change")}
+	authorize := func(scope string) int {
+		ctx, resp := contexttest.MockContext(t, "/login/oauth/authorize", mockOpt)
+		ctx.Doer = doer
+		web.SetForm(ctx, &forms.AuthorizationForm{ResponseType: "code", ClientID: app.ClientID, RedirectURI: app.RedirectURIs[0], State: "state", Scope: scope})
+		AuthorizeOAuth(ctx)
+		return resp.Code
+	}
+	assert.Equal(t, http.StatusSeeOther, authorize(""))
+	assert.Equal(t, http.StatusSeeOther, authorize("profile openid"))
+	assert.Equal(t, http.StatusOK, authorize("openid profile email"))
+
+	ctx, resp := contexttest.MockContext(t, "/login/oauth/grant", mockOpt)
+	ctx.Doer = doer
+	web.SetForm(ctx, &forms.GrantApplicationForm{ClientID: app.ClientID, Granted: true, RedirectURI: app.RedirectURIs[0], State: "state", Scope: "openid profile email"})
+	GrantApplicationOAuth(ctx)
+	assert.Equal(t, http.StatusSeeOther, resp.Code)
+	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, Scope: "openid profile email"})
 }
