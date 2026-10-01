@@ -45,6 +45,9 @@ func handleSignInNonInteractive(resp http.ResponseWriter, req *http.Request, ses
 	if err := sess.Set(session.KeyUID, user.ID); err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
+	if err := sess.Release(); err != nil { // save before a long-lived handler like a websocket runs
+		log.Error("Error saving session: %v", err)
+	}
 
 	opts := &user_service.UpdateOptions{SetLastLogin: true}
 	// Language setting of the user overwrites the one previously set

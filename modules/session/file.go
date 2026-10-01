@@ -66,13 +66,12 @@ func (b *fileBackend) save(sid string, data []byte, create bool) error {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	filename := b.filepath(sid)
-	if !create {
-		if _, err := os.Lstat(filename); err != nil {
-			return ignoreNotExist(err)
+	if create {
+		if err := os.MkdirAll(filepath.Dir(filename), 0o700); err != nil {
+			return err
 		}
-	}
-	if err := os.MkdirAll(filepath.Dir(filename), 0o700); err != nil {
-		return err
+	} else if _, err := os.Lstat(filename); err != nil {
+		return ignoreNotExist(err)
 	}
 	tmpFile, err := os.CreateTemp(filepath.Dir(filename), sid+".*.tmp")
 	if err != nil {
