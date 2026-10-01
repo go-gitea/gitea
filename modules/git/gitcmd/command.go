@@ -49,8 +49,8 @@ type Command struct {
 	cmd *process.Cmd
 
 	cmdCtx       context.Context
-	cmdCancel    process.CancelCauseFunc
-	cmdFinished  process.FinishedFunc
+	cmdCtxCancel process.CancelCauseFunc
+	cmdFinished  func()
 	cmdStartTime time.Time
 
 	pipelineFunc func(Context) error
@@ -430,19 +430,24 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	if c.callerInfo == "" {
 		c.WithParentCallerInfo()
 	}
+
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
 	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.gitDir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
-	defer span.End()
 	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
+	var cmdCtxFinished func()
 	if c.cmdTimeout <= 0 {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContext(ctx, desc)
+		c.cmdCtx, c.cmdCtxCancel, cmdCtxFinished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
+		c.cmdCtx, c.cmdCtxCancel, cmdCtxFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
+	}
+	c.cmdFinished = func() {
+		cmdCtxFinished()
+		span.End()
 	}
 
 	c.cmdStartTime = time.Now()
