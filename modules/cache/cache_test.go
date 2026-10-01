@@ -43,38 +43,16 @@ func TestNewContext(t *testing.T) {
 func TestStringCacheAdapters(t *testing.T) {
 	now := time.Now()
 	defer test.MockVariableValue(&timeNow, func() time.Time { return now })()
-	assertClockExpiry := func(t *testing.T, cache StringCache, _ string) {
-		require.NoError(t, cache.Put("expiring", "value", 10))
-		now = now.Add(9 * time.Second)
-		assert.True(t, cache.IsExist("expiring"))
-		now = now.Add(time.Second)
-		assert.False(t, cache.IsExist("expiring"))
-		_, ok := cache.Get("expiring")
-		assert.False(t, ok)
-		require.NoError(t, cache.Put("expiring", "renewed", 0))
-		value, ok := cache.Get("expiring")
-		assert.True(t, ok)
-		assert.Equal(t, "renewed", value)
-	}
-	assertRedisExpiry := func(t *testing.T, cache StringCache, conn string) {
-		require.NoError(t, cache.Put("expiring", "value", 10))
-		uri := nosql.ToRedisURI(conn)
-		ttl := nosql.GetManager().GetRedisClient(uri.String()).TTL(t.Context(), uri.Query().Get("prefix")+"expiring").Val()
-		assert.Positive(t, ttl)
-		assert.LessOrEqual(t, ttl, 10*time.Second)
-		require.NoError(t, cache.Delete("expiring"))
-	}
 	cases := []struct {
-		adapter      string
-		conns        func(t *testing.T) (string, string)
-		assertExpiry func(t *testing.T, cache StringCache, conn string)
+		adapter string
+		conns   func(t *testing.T) (string, string)
 	}{
-		{adapter: "memory", conns: func(*testing.T) (string, string) { return "", "" }, assertExpiry: assertClockExpiry},
-		{adapter: "twoqueue", conns: func(*testing.T) (string, string) { return "100", `{"size":100}` }, assertExpiry: assertClockExpiry},
+		{adapter: "memory", conns: func(*testing.T) (string, string) { return "", "" }},
+		{adapter: "twoqueue", conns: func(*testing.T) (string, string) { return "100", `{"size":100}` }},
 		{adapter: "redis", conns: func(t *testing.T) (string, string) {
 			conn := test.PrepareTestRedis(t) + "?prefix=gitea-test-cache-"
 			return conn + "first:", conn + "second:"
-		}, assertExpiry: assertRedisExpiry},
+		}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.adapter, func(t *testing.T) {
@@ -105,7 +83,25 @@ func TestStringCacheAdapters(t *testing.T) {
 			_, ok = first.GetAndDelete("key")
 			assert.False(t, ok)
 
-			tc.assertExpiry(t, first, firstConn)
+			require.NoError(t, first.Put("expiring", "value", 10))
+			if tc.adapter == "redis" {
+				uri := nosql.ToRedisURI(firstConn)
+				ttl := nosql.GetManager().GetRedisClient(uri.String()).TTL(t.Context(), uri.Query().Get("prefix")+"expiring").Val()
+				assert.Positive(t, ttl)
+				assert.LessOrEqual(t, ttl, 10*time.Second)
+				require.NoError(t, first.Delete("expiring"))
+				return
+			}
+			now = now.Add(9 * time.Second)
+			assert.True(t, first.IsExist("expiring"))
+			now = now.Add(time.Second)
+			assert.False(t, first.IsExist("expiring"))
+			_, ok = first.Get("expiring")
+			assert.False(t, ok)
+			require.NoError(t, first.Put("expiring", "renewed", 0))
+			value, ok = first.Get("expiring")
+			assert.True(t, ok)
+			assert.Equal(t, "renewed", value)
 		})
 	}
 }

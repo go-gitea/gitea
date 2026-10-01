@@ -32,12 +32,10 @@ func (c *redisCache) Get(key string) (string, bool) {
 
 func (c *redisCache) GetAndDelete(key string) (string, bool) {
 	ctx := graceful.GetManager().HammerContext()
-	var get *redis.StringCmd
-	_, err := c.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-		get = pipe.Get(ctx, c.prefix+key)
-		pipe.Del(ctx, c.prefix+key)
-		return nil
-	})
+	pipe := c.client.TxPipeline()
+	get := pipe.Get(ctx, c.prefix+key)
+	pipe.Del(ctx, c.prefix+key)
+	_, err := pipe.Exec(ctx)
 	return get.Val(), err == nil
 }
 

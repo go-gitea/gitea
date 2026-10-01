@@ -71,43 +71,12 @@ ADAPTER = memcache
 }
 
 func TestCacheItemTTLSeconds(t *testing.T) {
-	tests := []struct {
-		name                 string
-		iniStr               string
-		wantTTL, wantLastTTL int64
-	}{
-		{
-			name: "negative ITEM_TTL disables caching",
-			iniStr: `
-[cache]
-ITEM_TTL = -1
-[cache.last_commit]
-ITEM_TTL = -1
-`,
-			wantTTL:     -1,
-			wantLastTTL: -1,
-		},
-		{
-			name: "sub-second ITEM_TTL rounds up instead of caching forever",
-			iniStr: `
-[cache]
-ITEM_TTL = 500ms
-[cache.last_commit]
-ITEM_TTL = 500ms
-`,
-			wantTTL:     1,
-			wantLastTTL: 1,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			defer test.MockVariableValue(&CacheService)()
-			cfg, err := NewConfigProviderFromData(tt.iniStr)
-			assert.NoError(t, err)
-
-			loadCacheFrom(cfg)
-			assert.Equal(t, tt.wantTTL, CacheService.TTLSeconds())
-			assert.Equal(t, tt.wantLastTTL, LastCommitCacheTTLSeconds())
-		})
+	for ttl, want := range map[string]int64{"-1": -1, "500ms": 1} {
+		defer test.MockVariableValue(&CacheService)()
+		cfg, err := NewConfigProviderFromData("[cache]\nITEM_TTL = " + ttl + "\n[cache.last_commit]\nITEM_TTL = " + ttl)
+		assert.NoError(t, err)
+		loadCacheFrom(cfg)
+		assert.Equal(t, want, CacheService.TTLSeconds())
+		assert.Equal(t, want, LastCommitCacheTTLSeconds())
 	}
 }
