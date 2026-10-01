@@ -58,6 +58,7 @@ function selectRange(range: string): Element | null {
     stopLineNum = tmp;
     range = `${stop}-${start}`;
   }
+  if (startLineNum < 1) return null;
 
   const first = elLineNums[startLineNum - 1] ?? null;
   for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {

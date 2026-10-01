@@ -576,6 +576,15 @@ func testRefreshTokenInvalidation(t *testing.T) {
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
 		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
 		"redirect_uri":  "https://example.com",
+		"refresh_token": parsed.AccessToken,
+	})
+	MakeRequest(t, req, http.StatusBadRequest)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "https://example.com",
 		"refresh_token": parsed.RefreshToken,
 	})
 
