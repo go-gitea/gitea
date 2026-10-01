@@ -258,12 +258,16 @@ func servePprof() {
 	finished()
 }
 
+func newGracefulManagerContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithCancel(context.WithoutCancel(ctx))
+}
+
 func runWeb(ctx context.Context, cmd *cli.Command) error {
 	if subCmdName, valid := isValidDefaultSubCommand(cmd); !valid {
 		return fmt.Errorf("unknown command: %s", subCmdName)
 	}
 
-	managerCtx, cancel := context.WithCancel(ctx)
+	managerCtx, cancel := newGracefulManagerContext(ctx)
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
