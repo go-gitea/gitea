@@ -55,7 +55,6 @@ func TestImageCaptcha(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, first, second)
 
-	id, _ = createWithAnswer()
 	require.NoError(t, cache.GetCache().Delete(cacheKeyPrefix+id))
 	_, err = renderImage(id, true)
 	require.NoError(t, err)

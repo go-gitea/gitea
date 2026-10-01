@@ -77,7 +77,6 @@ func Create() (string, error) {
 	return id, nil
 }
 
-// Verify consumes the challenge, so every id can only be checked once
 func Verify(id, answer string) bool {
 	digits, ok := cache.GetCache().GetAndDelete(cacheKeyPrefix + id)
 	return ok && answer == strings.Map(func(digit rune) rune { return digit + '0' }, digits)
