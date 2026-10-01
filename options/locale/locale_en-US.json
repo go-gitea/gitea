@@ -33,6 +33,8 @@
   "access_token": "Access Token",
   "re_type": "Confirm Password",
   "captcha": "CAPTCHA",
+  "captcha_image": "CAPTCHA image showing the digits to enter",
+  "captcha_reload": "Show a new CAPTCHA image",
   "twofa": "Two-Factor Authentication",
   "twofa_scratch": "Two-Factor Scratch Code",
   "passcode": "Passcode",

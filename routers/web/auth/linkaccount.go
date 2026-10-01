@@ -198,8 +198,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha {
-		context.VerifyCaptcha(ctx, tplLinkAccount, form)
-		if ctx.Written() {
+		if !context.VerifyCaptcha(ctx, tplLinkAccount, form) {
 			return
 		}
 	}
