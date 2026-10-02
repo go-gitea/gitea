@@ -30,15 +30,6 @@ func (c *redisCache) Get(key string) (string, bool) {
 	return value, err == nil
 }
 
-func (c *redisCache) GetAndDelete(key string) (string, bool) {
-	ctx := graceful.GetManager().HammerContext()
-	pipe := c.client.TxPipeline()
-	get := pipe.Get(ctx, c.prefix+key)
-	pipe.Del(ctx, c.prefix+key)
-	_, err := pipe.Exec(ctx)
-	return get.Val(), err == nil
-}
-
 func (c *redisCache) Put(key, value string, ttl int64) error {
 	return c.client.Set(graceful.GetManager().HammerContext(), c.prefix+key, value, time.Duration(ttl)*time.Second).Err()
 }

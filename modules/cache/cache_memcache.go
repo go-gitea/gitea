@@ -45,14 +45,6 @@ func (c *memcacheCache) Get(key string) (string, bool) {
 	return string(item.Value), true
 }
 
-func (c *memcacheCache) GetAndDelete(key string) (string, bool) {
-	item, err := c.client.Get(key)
-	if err != nil || c.client.Delete(key) != nil {
-		return "", false
-	}
-	return string(item.Value), true
-}
-
 func (c *memcacheCache) Put(key, value string, ttl int64) error {
 	return c.client.Set(&memcache.Item{Key: key, Value: []byte(value), Expiration: memcacheExpiration(ttl)})
 }

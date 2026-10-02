@@ -30,7 +30,6 @@ type StringCache interface {
 	Ping() error
 
 	Get(key string) (string, bool)
-	GetAndDelete(key string) (string, bool) // atomic, so concurrent callers can't both get the value
 	Put(key, value string, ttl int64) error // ttl in seconds, 0 never expires, negative removes the key
 	Delete(key string) error
 	IsExist(key string) bool
@@ -41,7 +40,6 @@ type StringCache interface {
 
 type backend interface {
 	Get(key string) (string, bool)
-	GetAndDelete(key string) (string, bool)
 	Put(key, value string, ttl int64) error
 	Delete(key string) error
 	IsExist(key string) bool

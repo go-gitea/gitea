@@ -76,13 +76,6 @@ func TestStringCacheAdapters(t *testing.T) {
 			assert.False(t, first.IsExist("key"))
 			require.NoError(t, first.Delete("key"))
 
-			require.NoError(t, first.Put("key", "value", 0))
-			value, ok = first.GetAndDelete("key")
-			assert.True(t, ok)
-			assert.Equal(t, "value", value)
-			_, ok = first.GetAndDelete("key")
-			assert.False(t, ok)
-
 			require.NoError(t, first.Put("expiring", "value", 10))
 			if tc.adapter == "redis" {
 				uri := nosql.ToRedisURI(firstConn)

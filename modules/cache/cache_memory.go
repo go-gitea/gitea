@@ -58,14 +58,6 @@ func (c *memoryCache) Get(key string) (string, bool) {
 	return item.value, true
 }
 
-func (c *memoryCache) GetAndDelete(key string) (string, bool) {
-	c.mutex.Lock()
-	item, ok := c.items[key]
-	delete(c.items, key)
-	c.mutex.Unlock()
-	return item.value, ok && !item.expired(timeNow())
-}
-
 func (c *memoryCache) Put(key, value string, ttl int64) error {
 	item := newMemoryItem(value, ttl)
 	c.mutex.Lock()

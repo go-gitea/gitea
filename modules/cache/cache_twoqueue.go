@@ -14,6 +14,9 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
+// The 2Q (two-queue) cache is a type of cache replacement algorithm
+// that maintains two separate queues to manage frequently and recently used items efficiently.
+
 const twoQueueDefaultSize = 50000
 
 type twoQueueCache struct {
@@ -68,14 +71,6 @@ func (c *twoQueueCache) Get(key string) (string, bool) {
 		return "", false
 	}
 	return item.value, true
-}
-
-func (c *twoQueueCache) GetAndDelete(key string) (string, bool) {
-	c.mutex.Lock()
-	item, ok := c.cache.Peek(key)
-	c.cache.Remove(key)
-	c.mutex.Unlock()
-	return item.value, ok && !item.expired(timeNow())
 }
 
 func (c *twoQueueCache) Put(key, value string, ttl int64) error {
