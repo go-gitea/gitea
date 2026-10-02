@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
@@ -48,6 +49,15 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	if !ctx.Org.Organization.IsArchived {
+		mirrors, err := org_service.GetMirrorNames(ctx, ctx.Org.Organization.ID)
+		if err != nil {
+			ctx.ServerError("GetMirrorNames", err)
+			return
+		}
+		ctx.Data["OrgMirrors"] = mirrors
+	}
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
@@ -242,6 +252,10 @@ func SettingsRenamePost(ctx *context.Context) {
 // SettingsArchivePost archives or unarchives the organization
 func SettingsArchivePost(ctx *context.Context) {
 	if err := org_service.SetOrganizationArchived(ctx, ctx.Org.Organization, ctx.FormBool("archive")); err != nil {
+		if errHasMirrors, ok := errors.AsType[org_service.ErrOrgHasMirrors](err); ok {
+			ctx.JSONError(ctx.Tr("org.settings.archive_has_mirrors", strings.Join(errHasMirrors.Mirrors, ", ")))
+			return
+		}
 		ctx.ServerError("SetOrganizationArchived", err)
 		return
 	}

@@ -11,7 +11,9 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	api "gitea.dev/modules/structs"
 	org_service "gitea.dev/services/org"
@@ -21,10 +23,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func archiveOrg3(t *testing.T) *organization.Organization {
+	t.Helper()
+	_, err := db.GetEngine(t.Context()).ID(5).Cols("is_mirror").Update(&repo_model.Repository{IsMirror: false})
+	require.NoError(t, err)
+	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	require.NoError(t, org_service.SetOrganizationArchived(t.Context(), org3, true))
+	return org3
+}
+
+func TestArchiveOrgWithMirrorsRefused(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	const errMsg = "This organization has mirror repositories (repo5). Convert them to regular repositories before archiving."
+
+	session := loginUser(t, "user2")
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/org/org3/settings"), http.StatusOK)
+	assert.Contains(t, resp.Body.String(), errMsg)
+	assert.True(t, NewHTMLParser(t, resp.Body).Find(`button[data-url$="/archive?archive=true"]`).HasClass("disabled"))
+
+	resp = session.MakeRequest(t, NewRequest(t, "POST", "/org/org3/settings/archive?archive=true"), http.StatusBadRequest)
+	assert.Contains(t, resp.Body.String(), errMsg)
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &api.EditOrgOption{Archived: new(true), Description: new("changed")}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	assert.False(t, org3.IsArchived)
+	assert.NotEqual(t, "changed", org3.Description)
+}
+
 func TestCreateRepoInArchivedOrg(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-		require.NoError(t, org_service.SetOrganizationArchived(t.Context(), org3, true))
+		org3 := archiveOrg3(t)
 
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
@@ -69,13 +99,6 @@ func TestCreateRepoInArchivedOrg(t *testing.T) {
 			assert.Contains(t, resp.Body.String(), errMsg)
 		})
 	})
-}
-
-func archiveOrg3(t *testing.T) *organization.Organization {
-	t.Helper()
-	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
-	require.NoError(t, org_service.SetOrganizationArchived(t.Context(), org3, true))
-	return org3
 }
 
 func TestArchivedOrgProjectsReadOnly(t *testing.T) {
