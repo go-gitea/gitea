@@ -45,7 +45,7 @@ func TestSignup(t *testing.T) {
 
 		resp := MakeRequest(t, NewRequest(t, "GET", "/user/sign_up"), http.StatusOK)
 		captchaID := NewHTMLParser(t, resp.Body).GetInputValueByName("captcha_id")
-		resp = MakeRequest(t, NewRequest(t, "GET", "/captcha/"+captchaID+".png"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, "GET", "/captcha?id="+captchaID), http.StatusOK)
 		assert.Equal(t, "image/png", resp.Header().Get("Content-Type"))
 		assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
 
@@ -62,8 +62,8 @@ func TestSignup(t *testing.T) {
 		assert.Equal(t, translation.NewLocale("en-US").TrString("form.captcha_incorrect"), strings.TrimSpace(htmlDoc.Find(".ui.message").Text()))
 
 		values["captcha_id"] = htmlDoc.GetInputValueByName("captcha_id")
-		digits, _ := cache.GetCache().Get("captcha_" + values["captcha_id"])
-		values["captcha"] = strings.Map(func(digit rune) rune { return digit + '0' }, digits)
+		captchaCode, _ := cache.GetCache().Get("captcha_" + values["captcha_id"])
+		values["captcha"] = captchaCode
 		MakeRequest(t, NewRequestWithValues(t, "POST", "/user/sign_up", values), http.StatusSeeOther)
 	})
 }
