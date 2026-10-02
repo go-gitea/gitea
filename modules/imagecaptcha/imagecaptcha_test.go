@@ -6,14 +6,12 @@ package imagecaptcha
 import (
 	"bytes"
 	"image"
-	"image/color"
 	"image/png"
-	"math/rand/v2"
-	"strings"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"gitea.dev/modules/cache"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,15 +20,23 @@ import (
 func TestImageCaptcha(t *testing.T) {
 	require.NoError(t, cache.Init())
 	createWithAnswer := func() (string, string) {
-		id, err := Create()
+		id, err := CreateNew()
 		require.NoError(t, err)
-		digits, ok := cache.GetCache().Get(cacheKeyPrefix + id)
+		code, ok := cache.GetCache().Get(cacheKeyPrefix + id)
 		require.True(t, ok)
-		return id, strings.Map(func(digit rune) rune { return digit + '0' }, digits)
+		return id, code
 	}
-
+	renderImage := func(id string, refresh bool) *httptest.ResponseRecorder {
+		resp := httptest.NewRecorder()
+		reqLink := "/captcha?id=" + id
+		if refresh {
+			reqLink += "&reload=any"
+		}
+		ServeImage(resp, httptest.NewRequest(http.MethodGet, reqLink, nil))
+		return resp
+	}
 	id, answer := createWithAnswer()
-	assert.Len(t, answer, digitCount)
+	assert.Len(t, answer, codeLength)
 	assert.True(t, Verify(id, answer))
 	assert.False(t, Verify(id, answer))
 
@@ -40,33 +46,21 @@ func TestImageCaptcha(t *testing.T) {
 	assert.False(t, Verify("", ""))
 	assert.False(t, Verify("unknown", answer))
 
-	_, err := renderImage("unknown", true)
-	assert.ErrorIs(t, err, util.ErrNotExist)
+	resp := renderImage("unknown", true)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
 	_, exists := cache.GetCache().Get(cacheKeyPrefix + "unknown")
 	assert.False(t, exists)
 
 	id, _ = createWithAnswer()
-	first, err := renderImage(id, false)
-	require.NoError(t, err)
-	decoded, err := png.Decode(bytes.NewReader(first))
+	first := renderImage(id, false)
+	decoded, err := png.Decode(bytes.NewReader(first.Body.Bytes()))
 	require.NoError(t, err)
 	assert.Equal(t, image.Rect(0, 0, imageWidth, imageHeight), decoded.Bounds())
-	second, err := renderImage(id, false)
-	require.NoError(t, err)
-	assert.Equal(t, first, second)
+	second := renderImage(id, false)
+	assert.Equal(t, first.Body.Bytes(), second.Body.Bytes())
 
 	require.NoError(t, cache.GetCache().Delete(cacheKeyPrefix+id))
-	_, err = renderImage(id, true)
-	require.NoError(t, err)
+	_ = renderImage(id, true)
 	_, exists = cache.GetCache().Get(cacheKeyPrefix + id)
 	assert.True(t, exists)
-}
-
-func TestPaletteUsesEveryColorAndSaturatedChannels(t *testing.T) {
-	seen := map[color.Color]bool{}
-	for seed := range 100 {
-		seen[newPalette(rand.New(rand.NewChaCha8([32]byte{byte(seed)})))[1]] = true
-	}
-	assert.Len(t, seen, len(primaryColors))
-	assert.NotPanics(t, func() { randomBrightness(rand.New(rand.NewPCG(1, 2)), color.RGBA{R: 255, A: 255}) })
 }

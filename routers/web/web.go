@@ -294,7 +294,7 @@ func Routes() *web.Router {
 	}
 
 	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha {
-		routes.Methods("GET,HEAD", "/captcha/{id}.png", append(mid, imagecaptcha.ServeImage)...)
+		routes.Methods("GET,HEAD", `/captcha`, append(mid, imagecaptcha.ServeImage)...)
 	}
 
 	if setting.Metrics.Enabled {

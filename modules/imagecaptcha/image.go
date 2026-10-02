@@ -9,7 +9,6 @@ import (
 	"image/color"
 	"math"
 	"math/rand/v2"
-	"strings"
 )
 
 const (
@@ -29,19 +28,17 @@ type captchaImage struct {
 	dotSize   int
 }
 
-func drawImage(rng *rand.Rand, digits []byte) *image.Paletted {
-	img := &captchaImage{
-		Paletted: image.NewPaletted(image.Rect(0, 0, imageWidth, imageHeight), newPalette(rng)),
-		rng:      rng,
-	}
-	img.calculateSizes(len(digits))
+func drawImage(rng *rand.Rand, code string) *image.Paletted {
+	img := &captchaImage{rng: rng}
+	img.initPalette()
+	img.calculateSizes(len(code))
 	border := imageHeight / 5
-	maxX := imageWidth - (img.numWidth+img.dotSize)*len(digits) - img.dotSize
+	maxX := imageWidth - (img.numWidth+img.dotSize)*len(code) - img.dotSize
 	maxY := imageHeight - img.numHeight - img.dotSize*2
 	x := img.randInt(border, maxX-border)
 	y := img.randInt(border, maxY-border)
-	for _, digit := range digits {
-		img.drawDigit(digit, x, y)
+	for i := range code {
+		img.drawDigit(code[i], x, y)
 		x += img.numWidth + img.dotSize
 	}
 	img.strikeThrough()
@@ -50,18 +47,18 @@ func drawImage(rng *rand.Rand, digits []byte) *image.Paletted {
 	return img.Paletted
 }
 
-func newPalette(rng *rand.Rand) color.Palette {
-	primary := primaryColors[rng.IntN(len(primaryColors))]
+func (img *captchaImage) initPalette() {
+	primary := primaryColors[img.rng.IntN(len(primaryColors))]
 	palette := color.Palette{color.Transparent, primary}
 	for range circleCount - 1 {
-		palette = append(palette, randomBrightness(rng, primary))
+		palette = append(palette, img.randomBrightness(primary))
 	}
-	return palette
+	img.Paletted = image.NewPaletted(image.Rect(0, 0, imageWidth, imageHeight), palette)
 }
 
-func randomBrightness(rng *rand.Rand, c color.RGBA) color.RGBA {
+func (img *captchaImage) randomBrightness(c color.RGBA) color.RGBA {
 	minChannel, maxChannel := min(c.R, c.G, c.B), max(c.R, c.G, c.B)
-	shift := rng.IntN(math.MaxUint8-int(maxChannel)+1) - int(minChannel)
+	shift := img.rng.IntN(math.MaxUint8-int(maxChannel)+1) - int(minChannel)
 	return color.RGBA{R: uint8(int(c.R) + shift), G: uint8(int(c.G) + shift), B: uint8(int(c.B) + shift), A: c.A}
 }
 
@@ -136,11 +133,16 @@ func (img *captchaImage) strikeThrough() {
 	}
 }
 
-func (img *captchaImage) drawDigit(digit byte, x, y int) {
+func (img *captchaImage) drawDigit(c byte, x, y int) {
+	if c < '0' || c > '9' {
+		return
+	}
+	digit := c - '0'
 	skew := img.randFloat(-maxSkew, maxSkew)
 	skewedX := float64(x)
 	radius := img.dotSize / 2
 	y += img.randInt(-radius, radius)
+	fontRows := fontData()
 	for row := range fontHeight {
 		for col := range fontWidth {
 			if fontRows[int(digit)*fontHeight+row][col] == '#' {
@@ -168,195 +170,3 @@ func (img *captchaImage) distort(amplitude, period float64) {
 	}
 	img.Paletted = distorted
 }
-
-var fontRows = strings.Fields(`
-...#####...
-..#######..
-.###...###.
-.##.....##.
-###.....##.
-##.......##
-##.......##
-##.......##
-##.......##
-##.......##
-##.......##
-##.......##
-##.......##
-##......###
-.##.....##.
-.###...###.
-..#######..
-...#####...
-
-.....##....
-....###....
-...####....
-..#####....
-..##.##....
-..#..##....
-.....##....
-.....##....
-.....##....
-.....##....
-.....##....
-.....##....
-.....##....
-.....##....
-.....##....
-.....##....
-.##########
-.##########
-
-...####....
-.########..
-###....###.
-.#......##.
-........##.
-........##.
-........##.
-.......##..
-.......##..
-......##...
-.....##....
-....###....
-...###.....
-..###......
-.###.......
-.##........
-###########
-###########
-
-..######...
-#########..
-##.....###.
-........##.
-........##.
-........##.
-......###..
-..#####....
-..#######..
-.......###.
-........###
-.........##
-.........##
-.........##
-........###
-#......###.
-#########..
-.#######...
-
-.......##..
-......###..
-.....####..
-.....#.##..
-....##.##..
-...##..##..
-...##..##..
-..##...##..
-.##....##..
-.##....##..
-##.....##..
-#......##..
-###########
-###########
-.......##..
-.......##..
-.......##..
-.......##..
-
-.#########.
-.#########.
-.##........
-.##........
-.##........
-.##........
-.#######...
-.########..
-.......###.
-........###
-.........##
-.........##
-.........##
-.........##
-........###
-##.....###.
-#########..
-..######...
-
-.....#####.
-...#######.
-..###......
-.##........
-.##........
-.#.........
-##..####...
-##.#######.
-####....##.
-###.....###
-##.......##
-##.......##
-##.......##
-##.......##
-.##.....###
-.###...###.
-..#######..
-...#####...
-
-###########
-###########
-###......##
-##......##.
-........##.
-.......###.
-.......##..
-.......##..
-......##...
-......##...
-.....###...
-.....##....
-....###....
-....##.....
-....##.....
-...###.....
-...##......
-..###......
-
-...#####...
-..########.
-.###....###
-.##......##
-.##......##
-.##......##
-..##....##.
-..#######..
-....####...
-..###.###..
-.###...###.
-###.....###
-##.......##
-##.......##
-##.......##
-###.....##.
-.#########.
-...#####...
-
-...#####...
-.########..
-.##....###.
-##......##.
-##.......##
-##.......##
-##.......##
-##......###
-.##....####
-.#######.##
-...####..##
-.........##
-........##.
-........##.
-.......###.
-......###..
-.#######...
-.#####.....
-`)

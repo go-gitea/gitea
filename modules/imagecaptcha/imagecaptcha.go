@@ -4,29 +4,25 @@
 package imagecaptcha
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"errors"
 	"image/color"
 	"image/png"
 	"math/rand/v2"
 	"net/http"
 	"regexp"
-	"strings"
+	"strconv"
 	"sync"
 
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
-
-	"github.com/go-chi/chi/v5"
 )
 
 const (
 	cacheKeyPrefix = "captcha_"
 	ttlSeconds     = 600
-	digitCount     = 6
+	codeLength     = 6
 )
 
 var primaryColors = []color.RGBA{ // readable on both light and dark backgrounds
@@ -36,8 +32,6 @@ var primaryColors = []color.RGBA{ // readable on both light and dark backgrounds
 	{R: 251, G: 188, B: 5, A: 255},
 	{R: 171, G: 71, B: 188, A: 255},
 }
-
-var idPattern = regexp.MustCompile(`^[0-9A-Za-z]{20}$`)
 
 type pngBufferPool struct{ sync.Pool }
 
@@ -50,71 +44,79 @@ func (p *pngBufferPool) Put(buf *png.EncoderBuffer) {
 	p.Pool.Put(buf)
 }
 
-var pngEncoder = png.Encoder{BufferPool: &pngBufferPool{}}
-
-func randomDigits() string {
-	digits := make([]byte, digitCount)
-	for i := range digits {
-		digits[i] = byte(util.CryptoRandomInt(10))
-	}
-	return string(digits)
+func randomCode() string {
+	s := "000000" + strconv.Itoa(util.FastCryptoRandomInt(1000000))
+	return s[len(s)-6:]
 }
 
-var noiseKey = util.CryptoRandomBytes(32)
+var globalVars = sync.OnceValue(func() (ret struct {
+	IdLength int
+	IdRegexp *regexp.Regexp
+	NoiseKey []byte
+},
+) {
+	ret.IdLength = 40
+	ret.IdRegexp = regexp.MustCompile(`^[0-9a-f]{40}$`)
+	ret.NoiseKey = util.FastCryptoRandomBytes(32)
+	return
+})
 
 // noiseRand makes refetches of an image identical, so averaging them does not remove the noise
-func noiseRand(id, digits string) *rand.Rand {
-	mac := hmac.New(sha256.New, noiseKey)
-	_, _ = mac.Write([]byte(id + "\x00" + digits))
-	return rand.New(rand.NewChaCha8([32]byte(mac.Sum(nil))))
+func noiseRand(id, code string) *rand.Rand {
+	mac := hmac.New(sha256.New, globalVars().NoiseKey)
+	_, _ = mac.Write([]byte(id + "\x00" + code))
+	return util.FastCryptoRand([32]byte(mac.Sum(nil)))
 }
 
-func Create() (string, error) {
-	id := util.CryptoRandomString(20)
-	if err := cache.GetCache().Put(cacheKeyPrefix+id, randomDigits(), ttlSeconds); err != nil {
-		return "", err
+func CreateNew() (string, error) {
+	id := util.FastCryptoRandomHex(globalVars().IdLength)
+	_, err := PrepareCode(id, true)
+	return id, err
+}
+
+func PrepareCode(id string, generateNew bool) (code string, err error) {
+	if !globalVars().IdRegexp.MatchString(id) {
+		return "", nil
 	}
-	return id, nil
+	cacheKey := cacheKeyPrefix + id
+	if generateNew {
+		code = randomCode()
+		if err = cache.GetCache().Put(cacheKey, code, ttlSeconds); err != nil {
+			return "", err
+		}
+	} else {
+		code, _ = cache.GetCache().Get(cacheKey)
+	}
+	return code, nil
 }
 
 func Verify(id, answer string) bool {
-	digits, ok := cache.GetCache().GetAndDelete(cacheKeyPrefix + id)
-	return ok && answer == strings.Map(func(digit rune) rune { return digit + '0' }, digits)
-}
-
-func renderImage(id string, reload bool) ([]byte, error) {
-	key := cacheKeyPrefix + id
-	var digits string
-	if reload {
-		if !idPattern.MatchString(id) {
-			return nil, util.ErrNotExist
-		}
-		digits = randomDigits() // also for an expired id, so the form's captcha_id stays usable
-		if err := cache.GetCache().Put(key, digits, ttlSeconds); err != nil {
-			return nil, err
-		}
-	} else {
-		var ok bool
-		if digits, ok = cache.GetCache().Get(key); !ok {
-			return nil, util.ErrNotExist
-		}
+	if !globalVars().IdRegexp.MatchString(id) {
+		return false
 	}
-	var buf bytes.Buffer
-	err := pngEncoder.Encode(&buf, drawImage(noiseRand(id, digits), []byte(digits)))
-	return buf.Bytes(), err
+	key := cacheKeyPrefix + id
+	code, ok := cache.GetCache().Get(key)
+	_ = cache.GetCache().Delete(key)
+	return ok && answer == code
 }
 
 func ServeImage(resp http.ResponseWriter, req *http.Request) {
-	resp.Header().Set("Cache-Control", "no-store")
-	img, err := renderImage(chi.URLParam(req, "id"), req.URL.Query().Get("reload") != "")
-	switch {
-	case errors.Is(err, util.ErrNotExist):
+	urlQuery := req.URL.Query()
+	id, reload := urlQuery.Get("id"), urlQuery.Get("reload") != ""
+	code, err := PrepareCode(id, reload)
+	if err != nil {
+		log.Error("Failed to prepare captcha code for id %s: %v", id, err)
+		http.Error(resp, "Failed to prepare captcha code", http.StatusInternalServerError)
+		return
+	} else if code == "" {
 		http.NotFound(resp, req)
-	case err != nil:
-		log.Error("Unable to render captcha: %v", err)
-		http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	default:
-		resp.Header().Set("Content-Type", "image/png")
-		_, _ = resp.Write(img)
+		return
+	}
+
+	resp.Header().Set("Cache-Control", "no-store")
+	resp.Header().Set("Content-Type", "image/png")
+	if req.Method == http.MethodGet {
+		pngEncoder := png.Encoder{BufferPool: &pngBufferPool{}}
+		_ = pngEncoder.Encode(resp, drawImage(noiseRand(id, code), code))
 	}
 }
