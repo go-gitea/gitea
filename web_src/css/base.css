@@ -2,7 +2,7 @@
   /* fonts */
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial;
   --fonts-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
-  /* Chromium's "math" is a font Linux and ChromeOS don't ship, so fall back to the math fonts they do */
+  /* Chromium's "math" is a font Linux and ChromeOS don't ship, so fall back to the math fonts they do, https://issues.chromium.org/issues/40069293 */
   --fonts-math: math, "STIX Two Math", "DejaVu Math TeX Gyre", "Noto Sans Math";
   /* GitHub explicitly sets font names like: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   Actually "Twemoji Mozilla" emoji font is widely used by browsers like Firefox, Pale Moon, and it is more likely up-to-dated than the system emoji font.
@@ -111,6 +111,7 @@ samp,
 
 math {
   font-family: var(--fonts-math);
+  font-size-adjust: ex-height 0.52; /* match KaTeX's x-height (0.431 × 1.21em) regardless of math font, https://github.com/w3c/mathml-core/issues/41 */
 }
 
 /* there are many <code> blocks in non-markup(.markup code) / non-code-diff(code.code-inner) containers, for example: translation strings, etc,
