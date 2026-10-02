@@ -38,6 +38,7 @@ func prepareLinkAccountPageData(ctx *context.Context) {
 	ctx.Data["ShowRegistrationButton"] = false
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 
+	// FIXME: this logic is not right: captcha is enabled, but LinkAccountPostSignIn never checks for captcha
 	prepareCommonAuthPageData(ctx, CommonAuthOptions{
 		EnableCaptcha: setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha,
 	})
