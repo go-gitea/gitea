@@ -65,7 +65,7 @@ const searchModes = new Map<RepoFilter, string>([
 
 const pageDataDefaults = {
   subUrl: appSubUrl,
-  organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string}>,
+  organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string, is_archived: boolean}>,
   isOrganization: true,
   canCreateOrganization: false,
   organizationsTotalCount: 0,
@@ -103,6 +103,11 @@ const pageDataDefaults = {
   textNewOrg: '',
   textOrgVisibilityLimited: '',
   textOrgVisibilityPrivate: '',
+  textOrgArchived: '',
+  textShowArchivedOrgs: '',
+  textAllOrgsArchived: '',
+  textSearchOrgs: '',
+  textNoMatchingOrgs: '',
 };
 
 const {
@@ -114,7 +119,8 @@ const {
   textShowBothPrivatePublic, textShowOnlyPublic, textShowOnlyPrivate,
   textAll, textSources, textForks, textMirrors, textCollaborative,
   textFirstPage, textPreviousPage, textNextPage, textLastPage,
-  textMyOrgs, textNewOrg, textOrgVisibilityLimited, textOrgVisibilityPrivate,
+  textMyOrgs, textNewOrg, textOrgVisibilityLimited, textOrgVisibilityPrivate, textOrgArchived,
+  textShowArchivedOrgs, textAllOrgsArchived, textSearchOrgs, textNoMatchingOrgs,
 }: typeof pageDataDefaults = {...pageDataDefaults, ...pageData.dashboardRepoList};
 
 const textArchivedFilterTitles = new Map<ArchivedFilter, string>([
@@ -136,6 +142,8 @@ const privateFilter = shallowRef((initialParams.get('repo-search-private') || 'b
 const archivedFilter = shallowRef((initialParams.get('repo-search-archived') || 'unarchived') as ArchivedFilter);
 const searchQuery = shallowRef(initialParams.get('repo-search-query') || '');
 const page = shallowRef(Number(initialParams.get('repo-search-page')) || 1);
+const showArchivedOrgs = shallowRef(initialParams.get('show-archived-orgs') === 'true');
+const orgSearchQuery = shallowRef(initialParams.get('org-search-query') || '');
 
 const repos = shallowRef<DashboardRepo[]>([]);
 const reposTotalCount = shallowRef<number | null>(null);
@@ -153,6 +161,14 @@ const showMoreReposLink = computed(() => repos.value.length > 0 && repos.value.l
 const checkboxArchivedFilterTitle = computed(() => textArchivedFilterTitles.get(archivedFilter.value));
 const checkboxArchivedFilterProps = computed(() => ({checked: archivedFilter.value === 'archived', indeterminate: archivedFilter.value === 'both'}));
 const checkboxPrivateFilterTitle = computed(() => textPrivateFilterTitles.get(privateFilter.value));
+const hasArchivedOrgs = organizations.some((org) => org.is_archived);
+const visibleOrganizations = computed(() => showArchivedOrgs.value ? organizations : organizations.filter((org) => !org.is_archived));
+const filteredOrganizations = computed(() => {
+  const query = orgSearchQuery.value.trim().toLowerCase();
+  if (!query) return visibleOrganizations.value;
+  return visibleOrganizations.value.filter((org) => org.name.toLowerCase().includes(query) || org.full_name.toLowerCase().includes(query));
+});
+const visibleOrganizationsCount = computed(() => organizationsTotalCount - (organizations.length - visibleOrganizations.value.length));
 const checkboxPrivateFilterProps = computed(() => ({checked: privateFilter.value === 'private', indeterminate: privateFilter.value === 'both'}));
 
 // unknown query string values fall back to no mode
@@ -209,6 +225,18 @@ function updateHistory() {
     params.set('repo-search-archived', archivedFilter.value);
   }
 
+  if (showArchivedOrgs.value) {
+    params.set('show-archived-orgs', 'true');
+  } else {
+    params.delete('show-archived-orgs');
+  }
+
+  if (orgSearchQuery.value === '') {
+    params.delete('org-search-query');
+  } else {
+    params.set('org-search-query', orgSearchQuery.value);
+  }
+
   if (searchQuery.value === '') {
     params.delete('repo-search-query');
   } else {
@@ -240,6 +268,13 @@ function toggleArchivedFilter() {
   page.value = 1;
   repos.value = [];
   searchRepos();
+}
+
+// reload so the server-rendered context switcher picks up the same filter
+function toggleShowArchivedOrgs() {
+  showArchivedOrgs.value = !showArchivedOrgs.value;
+  updateHistory();
+  window.location.reload();
 }
 
 function togglePrivateFilter() {
@@ -514,7 +549,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
       <h4 class="ui top attached header tw-flex tw-items-center">
         <div class="tw-flex-1 tw-flex tw-items-center">
           {{ textMyOrgs }}
-          <span class="ui grey label tw-ml-2">{{ organizationsTotalCount }}</span>
+          <span class="ui grey label tw-ml-2">{{ visibleOrganizationsCount }}</span>
         </div>
         <a class="tw-flex tw-items-center muted" v-if="canCreateOrganization" :href="subUrl + '/org/create'" :data-tooltip-content="textNewOrg">
           <svg-icon name="octicon-plus"/>
@@ -526,16 +561,44 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
           <p>{{ textNoOrg }}</p>
         </div>
       </div>
-      <div v-else class="ui attached table segment tw-rounded-b">
+      <div v-else class="ui attached segment">
+        <div class="ui small fluid left icon input" :class="{action: hasArchivedOrgs}">
+          <input type="search" spellcheck="false" maxlength="255" v-model="orgSearchQuery" @input="updateHistory()" :placeholder="textSearchOrgs" :aria-label="textSearchOrgs">
+          <i class="icon"><svg-icon name="octicon-search" :size="16"/></i>
+          <div v-if="hasArchivedOrgs" class="ui dropdown icon button" :title="textFilter">
+            <svg-icon name="octicon-filter" :size="16"/>
+            <div class="menu">
+              <a class="item" @click="toggleShowArchivedOrgs()">
+                <div class="ui checkbox" :title="textShowArchivedOrgs">
+                  <!-- the patched label forwards its click to the input; stop it so the item doesn't toggle twice -->
+                  <input type="checkbox" class="tw-pointer-events-none" :checked="showArchivedOrgs" @click.stop>
+                  <label>
+                    <svg-icon name="octicon-archive" :size="16" class="tw-mr-1"/>
+                    {{ textShowArchived }}
+                  </label>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="organizations.length && !filteredOrganizations.length" class="ui attached segment">
+        <div class="empty-repo-or-org">
+          <svg-icon name="octicon-organization" :size="24"/>
+          <p>{{ visibleOrganizations.length ? textNoMatchingOrgs : textAllOrgsArchived }}</p>
+        </div>
+      </div>
+      <div v-else-if="organizations.length" class="ui attached table segment tw-rounded-b">
         <ul class="repo-owner-name-list">
-          <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
+          <li class="tw-flex tw-items-center tw-py-2" v-for="org in filteredOrganizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
               <div class="tw-inline-block tw-truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
-              <div><!-- div to prevent underline of label on hover -->
+              <div class="tw-flex tw-gap-1"><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
+                <span class="ui tiny basic label" v-if="org.is_archived">{{ textOrgArchived }}</span>
               </div>
             </a>
             <div class="tw-text-grey-light tw-flex tw-items-center tw-ml-2">

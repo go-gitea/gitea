@@ -24,16 +24,18 @@
 		</div>
 
 		<div class="item tw-items-center">
+			{{$archiveTitle := ctx.Locale.Tr "org.settings.archive"}}
+			{{$archiveDesc := ctx.Locale.Tr "org.settings.archive_desc"}}
+			{{if .Org.IsArchived}}
+				{{$archiveTitle = ctx.Locale.Tr "org.settings.unarchive"}}
+				{{$archiveDesc = ctx.Locale.Tr "org.settings.unarchive_desc"}}
+			{{end}}
 			<div class="item-main">
-				<div class="item-title">{{ctx.Locale.Tr "org.settings.archive"}}</div>
-				<div class="item-body">{{ctx.Locale.Tr "org.settings.archive_desc"}}</div>
+				<div class="item-title">{{$archiveTitle}}</div>
+				<div class="item-body">{{$archiveDesc}}</div>
 			</div>
 			<div class="item-trailing">
-				{{if .Org.IsArchived}}
-				<button type="button" class="ui basic red button link-action" data-url="{{.Link}}/archive?archive=false" data-modal-confirm="{{ctx.Locale.Tr "org.settings.unarchive_desc"}}">{{ctx.Locale.Tr "org.settings.unarchive"}}</button>
-				{{else}}
-				<button type="button" class="ui basic red button link-action" data-url="{{.Link}}/archive?archive=true" data-modal-confirm="{{ctx.Locale.Tr "org.settings.archive_desc"}}">{{ctx.Locale.Tr "org.settings.archive"}}</button>
-				{{end}}
+				<button type="button" class="ui basic red button link-action" data-url="{{.Link}}/archive?archive={{not .Org.IsArchived}}" data-modal-confirm="{{$archiveDesc}}">{{$archiveTitle}}</button>
 			</div>
 		</div>
 

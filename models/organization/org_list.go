@@ -122,6 +122,7 @@ func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg,
 		"avatar",
 		"avatar_email",
 		"use_custom_avatar",
+		"is_archived",
 	}
 
 	selectColumns := &strings.Builder{}
