@@ -8,7 +8,6 @@
 package binding
 
 import (
-	"bufio"
 	"cmp"
 	"context"
 	"errors"
@@ -226,13 +225,9 @@ func (b *Binder) bindMultipartForm(req *http.Request, formStruct any) (errs Erro
 }
 
 func (b *Binder) bindJSON(req *http.Request, jsonStruct any) (errs Errors) {
-	if req.Body != nil {
-		defer req.Body.Close()
-		body := bufio.NewReader(req.Body)
-		err := json.NewDecoder(body).Decode(jsonStruct)
-		if err != nil && !errors.Is(err, io.EOF) { // an empty body binds nothing
-			errs.addDeserializationError(err)
-		}
+	err := json.NewDecoder(req.Body).Decode(jsonStruct)
+	if err != nil && !errors.Is(err, io.EOF) { // an empty body binds nothing
+		errs.addDeserializationError(err)
 	}
 	return append(errs, b.Validate(req.Context(), jsonStruct)...)
 }
