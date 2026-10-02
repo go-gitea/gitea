@@ -394,6 +394,14 @@ func buildApproveAndInsertRun(
 		IsScopedRun:       isScopedRun,
 	}
 
+	if err := validateCalledWorkflows(ctx, run, dwf.Content); err != nil {
+		if isScopedRun {
+			return err
+		}
+		insertInvalidWorkflowRun(ctx, run, err)
+		return nil
+	}
+
 	approvalUsers, err := getApprovalUsers(ctx, input, isForkPullRequest)
 	if err != nil {
 		return err

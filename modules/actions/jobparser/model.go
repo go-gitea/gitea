@@ -174,6 +174,14 @@ func (j *Job) EraseNeeds() *Job {
 	return j
 }
 
+// RunsOnProblem returns github.com's error for the job's runs-on, "" if valid.
+func (j *Job) RunsOnProblem() string {
+	if j.RawRunsOn.Kind == 0 {
+		return ""
+	}
+	return runsOnProblem(&j.RawRunsOn)
+}
+
 // RunsOn returns the labels Gitea matches runners against, unescaped like DisplayName.
 func (j *Job) RunsOn() []string {
 	runsOn := model.RunsOnFromNode(j.RawRunsOn)
