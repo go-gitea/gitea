@@ -444,7 +444,9 @@ func extractUserNameFromOAuth2(gothUser *goth.User) (string, error) {
 // HandleSignOut resets the session and sets the cookies
 func HandleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Flush()
-	_ = ctx.Session.Destroy(ctx.Resp, ctx.Req)
+	if err := ctx.Session.Destroy(ctx.Resp, ctx.Req); err != nil {
+		log.Error("Unable to destroy session: %v", err)
+	}
 	ctx.DeleteSiteCookie(setting.CookieRememberName)
 	middleware.DeleteRedirectToCookie(ctx.Resp)
 }
@@ -931,10 +933,8 @@ func ActivateEmail(ctx *context.Context) {
 }
 
 func regenerateSession(ctx *context.Context, updates map[string]any) error {
-	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
-		return fmt.Errorf("regenerate session: %w", err)
-	}
 	sess := ctx.Session
+	sess.Regenerate(ctx.Resp, ctx.Req)
 	sessID := sess.ID()
 	for k, v := range updates {
 		if err := sess.Set(k, v); err != nil {
