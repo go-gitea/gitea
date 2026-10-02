@@ -1,0 +1,17 @@
+name: giteabot-review
+
+on:
+  pull_request_review:
+    types:
+      - submitted
+      - edited
+      - dismissed
+
+permissions: {}
+
+jobs:
+  # Only the run's creation matters, it triggers giteabot.yml through workflow_run
+  relay:
+    runs-on: ubuntu-latest
+    steps:
+      - run: "true"
