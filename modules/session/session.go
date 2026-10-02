@@ -114,7 +114,7 @@ func isValidSessionID(sid string) bool {
 	}
 	for i := range len(sid) {
 		c := sid[i]
-		valid := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'Z')
+		valid := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 		if !valid {
 			return false
 		}

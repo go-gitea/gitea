@@ -13,7 +13,7 @@ import (
 )
 
 type Session struct {
-	Key            string             `xorm:"pk CHAR(16)"` // size the limit is from legacy go-chi/session
+	Key            string             `xorm:"pk CHAR(16)"` // the limit is from legacy go-chi/session
 	Data           []byte             `xorm:"BLOB"`        // on MySQL this has a maximum size of 64Kb
 	LastAccessTime timeutil.TimeStamp `xorm:"expiry"`      // last access time, the field name is from legacy go-chi/session, we don't want to change it at the moment
 }
