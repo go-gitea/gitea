@@ -1,5 +1,8 @@
 name: giteabot-review
 
+# Relays PR reviews to giteabot.yml through its workflow_run trigger, because review
+# runs on fork PRs get no secrets and a read-only token. The job itself does nothing.
+
 on:
   pull_request_review:
     types:
@@ -10,7 +13,6 @@ on:
 permissions: {}
 
 jobs:
-  # Only the run's creation matters, it triggers giteabot.yml through workflow_run
   relay:
     runs-on: ubuntu-latest
     steps:
