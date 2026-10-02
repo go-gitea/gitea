@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type ShallowRef} from 'vue';
+import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type PropType, type ShallowRef} from 'vue';
 import {generateElemId} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
-import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import SvgIcon from './SvgIcon.vue';
 import {throttle} from '../utils/func.ts';
+import type {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
 
 const props = defineProps({
   repoLink: {type: String, required: true},
@@ -13,6 +13,7 @@ const props = defineProps({
   treeListUrl: {type: String, required: true},
   noResultsText: {type: String, required: true},
   placeholder: {type: String, required: true},
+  filterFiles: {type: Function as PropType<typeof filterRepoFilesWeighted>, required: true},
 });
 
 const refElemInput = useTemplateRef('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
@@ -28,7 +29,7 @@ const showPopup = computed(() => searchQuery.value.length > 0);
 
 const filteredFiles = computed(() => {
   if (!searchQuery.value) return [];
-  return filterRepoFilesWeighted(allFiles.value, searchQuery.value);
+  return props.filterFiles(allFiles.value, searchQuery.value);
 });
 
 const applySearchQuery = throttle(() => {

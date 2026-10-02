@@ -1,4 +1,3 @@
-import {createApp} from 'vue';
 import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
@@ -100,24 +99,12 @@ export function initGlobalDropdown() {
   });
 }
 
-async function initRepoFileSearch(el: HTMLElement) {
-  const {default: RepoFileSearch} = await import('../components/RepoFileSearch.vue');
-  createApp(RepoFileSearch, {
-    repoLink: el.getAttribute('data-repo-link'),
-    currentRefNameSubURL: el.getAttribute('data-current-ref-name-sub-url'),
-    treeListUrl: el.getAttribute('data-tree-list-url'),
-    noResultsText: el.getAttribute('data-no-results-text'),
-    placeholder: el.getAttribute('data-placeholder'),
-  }).mount(el);
-}
-
 export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
   registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
   registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
-  registerGlobalInitFunc('initRepoFileSearch', initRepoFileSearch);
 }
 
 // for performance considerations, it only uses performant syntax
