@@ -29,7 +29,7 @@ func newMemcacheCache(conn string) (backend, error) {
 	return &memcacheCache{client: memcache.NewFromSelector(servers)}, nil
 }
 
-// memcacheExpiration converts a TTL beyond memcached's 30 day relative limit into an absolute unix time
+// memcacheExpiration converts a TTL beyond memcached's 30-day relative limit into an absolute unix time
 func memcacheExpiration(ttl int64) int32 {
 	if ttl > memcacheMaxRelativeTTL {
 		ttl += timeNow().Unix()

@@ -90,6 +90,8 @@ func (c *twoQueueCache) deleteExpired() {
 	now := timeNow()
 	for _, key := range c.cache.Keys() {
 		if item, ok := c.cache.Peek(key); ok && item.expired(now) {
+			// here might be a slight data-race: the item might have been removed or updated by another goroutine between the Peek and Remove calls,
+			// but it's acceptable since the cache is not guaranteed to be 100% accurate and any item can be evicted at any time
 			c.cache.Remove(key)
 		}
 	}

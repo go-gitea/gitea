@@ -64,7 +64,7 @@ func newBackend(cacheConfig setting.Cache) (backend, error) {
 	switch adapter := util.IfZero(cacheConfig.Adapter, "memory"); adapter {
 	case "memory":
 		// also use two-queue cache for in-memory cache, but with a fixed size of 100M items
-		return newTwoQueueCache(strconv.FormatInt(100*1024*1240, 10), gcInterval)
+		return newTwoQueueCache(strconv.FormatInt(100*1024*1024, 10), gcInterval)
 	case "twoqueue":
 		return newTwoQueueCache(cacheConfig.Conn, gcInterval)
 	case "redis":
