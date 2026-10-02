@@ -14,6 +14,7 @@ import {localUserSettings} from '../modules/user-settings.ts';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {
+  type ActionRunJobViewLocale,
   type ActionRunViewStore,
   createLogLineMessage,
   type LogLine,
@@ -21,35 +22,24 @@ import {
   parseLogLineCommand,
 } from './ActionRunView.ts';
 
-function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
+function isLogElementInViewport(el: Element, {extraViewPortHeight} = {extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
   // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
-  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
+  return rect.bottom >= 0 && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
-
-export type ActionRunJobViewLocale = {
-  status: Record<ActionsStatus, string>,
-  showTimeStamps: string,
-  showLogSeconds: string,
-  showFullScreen: string,
-  logsAlwaysAutoScroll: string,
-  logsAlwaysExpandRunning: string,
-  downloadLogs: string,
-  copyOutput: string,
-};
 
 type Step = {
   summary: string,
   duration: string,
   status: ActionsStatus,
-}
+};
 
 type JobStepState = {
-  cursor: string|null,
+  cursor: string | null,
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
   firstLogTime?: number, // the step's first log line time, what "Show seconds" counts from
-}
+};
 
 // one ANSI renderer per step, so an unterminated color carries between that step's lines only
 const stepAnsiRenderers: AnsiLineRenderer[] = [];
@@ -59,7 +49,7 @@ type StepContainerElement = HTMLElement & {
   // then the following batches of logs should still use the same group (active logs container).
   // maybe it can be refactored to decouple from the HTML element in the future.
   _stepLogsActiveContainer?: HTMLElement;
-}
+};
 
 type LocaleStorageOptions = {
   autoScroll: boolean;
@@ -176,8 +166,8 @@ onMounted(async () => {
     }, 0);
   });
 
-  intervalID = setInterval(() => void loadJob(), 1000);
-  void hashChangeListener();
+  intervalID = setInterval(() => loadJob(), 1000);
+  hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
 });
 
@@ -256,7 +246,7 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
 function toggleStepLogs(idx: number) {
   currentJobStepsStates.value[idx].expanded = !currentJobStepsStates.value[idx].expanded;
   if (currentJobStepsStates.value[idx].expanded) {
-    void loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+    loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
   } else if (currentJob.value.steps[idx].status === 'running') {
     currentJobStepsStates.value[idx].manuallyCollapsed = true;
   }
@@ -293,15 +283,14 @@ function shouldAutoScroll(stepIndex: number): boolean {
 function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   for (const line of logLines) {
     const cmd = parseLogLineCommand(line);
-    switch (cmd?.name) {
-      case 'hidden':
-        continue;
-      case 'group':
-        beginLogGroup(stepIndex, startTime, line, cmd);
-        continue;
-      case 'endgroup':
-        endLogGroup(stepIndex);
-        continue;
+    if (cmd?.name === 'hidden') continue;
+    if (cmd?.name === 'group') {
+      beginLogGroup(stepIndex, startTime, line, cmd);
+      continue;
+    }
+    if (cmd?.name === 'endgroup') {
+      endLogGroup(stepIndex);
+      continue;
     }
     // the active logs container may change during the loop, for example: entering and leaving a group
     const el = getActiveLogsContainer(stepIndex);

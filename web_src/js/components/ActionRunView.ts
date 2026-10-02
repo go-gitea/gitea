@@ -213,3 +213,35 @@ export function createActionRunViewStore(viewUrl: string) {
 }
 
 export type ActionRunViewStore = ReturnType<typeof createActionRunViewStore>;
+
+export type WorkflowGraphLocale = {
+  graphJobsCount1: string,
+  graphJobsCountN: string,
+  graphDependenciesCount1: string,
+  graphDependenciesCountN: string,
+  graphSuccessRate: string,
+  graphZoomIn: string,
+  graphZoomMax: string,
+  graphZoomOut: string,
+  graphResetView: string,
+};
+
+export type ActionRunSummaryViewLocale = WorkflowGraphLocale & {
+  status: Record<ActionsStatus, string>,
+  statusLabel: string,
+  totalDuration: string,
+  artifactsTitle: string,
+  triggeredVia: string,
+  rerunTriggered: string,
+};
+
+export type ActionRunJobViewLocale = {
+  status: Record<ActionsStatus, string>,
+  showTimeStamps: string,
+  showLogSeconds: string,
+  showFullScreen: string,
+  logsAlwaysAutoScroll: string,
+  logsAlwaysExpandRunning: string,
+  downloadLogs: string,
+  copyOutput: string,
+};

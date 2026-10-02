@@ -2,17 +2,17 @@
 import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type ShallowRef} from 'vue';
 import {generateElemId} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
-import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
+import {filterRepoFilesWeighted} from '../utils/file-search.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import SvgIcon from './SvgIcon.vue';
 import {throttle} from '../utils/func.ts';
 
 const props = defineProps({
-  repoLink: { type: String, required: true },
-  currentRefNameSubURL: { type: String, required: true },
-  treeListUrl: { type: String, required: true },
-  noResultsText: { type: String, required: true },
-  placeholder: { type: String, required: true },
+  repoLink: {type: String, required: true},
+  currentRefNameSubURL: {type: String, required: true},
+  treeListUrl: {type: String, required: true},
+  noResultsText: {type: String, required: true},
+  placeholder: {type: String, required: true},
 });
 
 const refElemInput = useTemplateRef('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
@@ -52,16 +52,17 @@ const handleKeyDown = (e: KeyboardEvent) => {
   if (!searchQuery.value || filteredFiles.value.length === 0) return;
 
   const handleSelectedItem = (idx: number) => {
-    e.preventDefault();
     selectedIndex.value = idx;
-    const el = refElemPopup.value.querySelector(`.file-search-results > :nth-child(${idx+1} of .item)`);
-    el?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    const el = refElemPopup.value.querySelector(`.file-search-results > :nth-child(${idx + 1} of .item)`);
+    el?.scrollIntoView({block: 'nearest', behavior: 'instant'});
   };
 
   if (e.key === 'ArrowDown') {
+    e.preventDefault();
     handleSelectedItem(Math.min(selectedIndex.value + 1, filteredFiles.value.length - 1));
   } else if (e.key === 'ArrowUp') {
-    handleSelectedItem(Math.max(selectedIndex.value - 1, 0))
+    e.preventDefault();
+    handleSelectedItem(Math.max(selectedIndex.value - 1, 0));
   } else if (e.key === 'Enter') {
     e.preventDefault();
     const selectedFile = filteredFiles.value[selectedIndex.value];
@@ -71,11 +72,10 @@ const handleKeyDown = (e: KeyboardEvent) => {
   }
 };
 
-const clearSearch = () => {
+function clearSearch() {
   searchQuery.value = '';
   refElemInput.value.value = '';
-};
-
+}
 
 const handleClickOutside = (e: MouseEvent) => {
   if (!searchQuery.value) return;
@@ -85,7 +85,7 @@ const handleClickOutside = (e: MouseEvent) => {
   if (!clickInside) clearSearch();
 };
 
-const loadFileListForSearch = async () => {
+async function loadFileListForSearch() {
   if (hasLoadedFileList.value || isLoadingFileList.value) return;
 
   isLoadingFileList.value = true;
@@ -96,11 +96,11 @@ const loadFileListForSearch = async () => {
   } finally {
     isLoadingFileList.value = false;
   }
-};
+}
 
 function handleSearchResultClick(filePath: string) {
   clearSearch();
-  window.location.href = `${props.repoLink}/src/${pathEscapeSegments(props.currentRefNameSubURL)}/${pathEscapeSegments(filePath)}`;
+  window.location.assign(`${props.repoLink}/src/${pathEscapeSegments(props.currentRefNameSubURL)}/${pathEscapeSegments(filePath)}`);
 }
 
 const updatePosition = () => {
@@ -121,17 +121,19 @@ const updatePosition = () => {
   }
 };
 
+const resizeObserver = new ResizeObserver(updatePosition);
+
 onMounted(() => {
   const searchPopupId = generateElemId('file-search-popup-');
   refElemPopup.value.setAttribute('id', searchPopupId);
   refElemInput.value.setAttribute('aria-controls', searchPopupId);
   document.addEventListener('click', handleClickOutside);
-  window.addEventListener('resize', updatePosition);
+  resizeObserver.observe(document.documentElement);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
-  window.removeEventListener('resize', updatePosition);
+  resizeObserver.disconnect();
 });
 
 // Position search results below the input

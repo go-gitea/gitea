@@ -134,7 +134,7 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST)
 GO_DIRS := build cmd modelmigration models modules routers services tests tools
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.ts tests/e2e
+ESLINT_FILES := web_src tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json

@@ -7,7 +7,7 @@ import {isPlainClick} from '../utils/dom.ts';
 import {trN, trString} from '../modules/i18n.ts';
 import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
-import type {ActionRunViewStore} from './ActionRunView.ts';
+import type {ActionRunViewStore, WorkflowGraphLocale} from './ActionRunView.ts';
 import {
   boxBottom,
   boxCenterY,
@@ -18,24 +18,12 @@ import {
   type RoutedEdge,
 } from './WorkflowGraph.utils.ts';
 
-export type WorkflowGraphLocale = {
-  graphJobsCount1: string,
-  graphJobsCountN: string,
-  graphDependenciesCount1: string,
-  graphDependenciesCountN: string,
-  graphSuccessRate: string,
-  graphZoomIn: string,
-  graphZoomMax: string,
-  graphZoomOut: string,
-  graphResetView: string,
-};
-
-interface StoredState {
+type StoredState = {
   scale: number;
   translateX: number;
   translateY: number;
   timestamp: number;
-}
+};
 
 const props = defineProps<{
   store: ActionRunViewStore;
@@ -233,14 +221,14 @@ function isJobLinked(job: ActionsJob) {
 }
 
 function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
-  const target = 'jobs' in job ? job.jobs[0]! : job;
+  const target = 'jobs' in job ? job.jobs[0] : job;
   if (!isJobLinked(target)) return;
   const link = `${props.runLink}/jobs/${target.id}`;
   if (event.ctrlKey || event.metaKey) {
     window.open(link, '_blank');
     return;
   }
-  window.location.href = link;
+  window.location.assign(link);
 }
 </script>
 
