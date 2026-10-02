@@ -6,6 +6,7 @@ package cache
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -62,7 +63,8 @@ func newBackend(cacheConfig setting.Cache) (backend, error) {
 	gcInterval := time.Duration(util.IfZero(cacheConfig.Interval, 60)) * time.Second
 	switch adapter := util.IfZero(cacheConfig.Adapter, "memory"); adapter {
 	case "memory":
-		return newMemoryCache(gcInterval), nil
+		// also use two-queue cache for in-memory cache, but with a fixed size of 100M items
+		return newTwoQueueCache(strconv.FormatInt(100*1024*1240, 10), gcInterval)
 	case "twoqueue":
 		return newTwoQueueCache(cacheConfig.Conn, gcInterval)
 	case "redis":

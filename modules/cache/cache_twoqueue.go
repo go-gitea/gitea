@@ -6,7 +6,6 @@ package cache
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"gitea.dev/modules/json"
@@ -14,14 +13,10 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-// The 2Q (two-queue) cache is a type of cache replacement algorithm
-// that maintains two separate queues to manage frequently and recently used items efficiently.
-
 const twoQueueDefaultSize = 50000
 
 type twoQueueCache struct {
-	mutex sync.Mutex // makes check-then-remove atomic against concurrent puts
-	cache *lru.TwoQueueCache[string, memoryItem]
+	cache *lru.TwoQueueCache[string, memoryItem] // wrap the existing thread-safe 2Q (two-queue) cache directly
 }
 
 type twoQueueCacheConfig struct {
@@ -48,7 +43,7 @@ func newTwoQueueLRU(conn string) (*lru.TwoQueueCache[string, memoryItem], error)
 		return lru.New2Q[string, memoryItem](size)
 	}
 	if !json.Valid([]byte(conn)) {
-		return nil, fmt.Errorf("invalid twoqueue cache HOST %q, expected a size or a JSON config", conn)
+		return nil, fmt.Errorf("invalid two-queue cache HOST %q, expected a size or a JSON config", conn)
 	}
 	config := twoQueueCacheConfig{
 		Size:        twoQueueDefaultSize,
@@ -60,8 +55,6 @@ func newTwoQueueLRU(conn string) (*lru.TwoQueueCache[string, memoryItem], error)
 }
 
 func (c *twoQueueCache) Get(key string) (string, bool) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 	item, ok := c.cache.Get(key)
 	if !ok {
 		return "", false
@@ -75,23 +68,17 @@ func (c *twoQueueCache) Get(key string) (string, bool) {
 
 func (c *twoQueueCache) Put(key, value string, ttl int64) error {
 	item := newMemoryItem(value, ttl)
-	c.mutex.Lock()
 	c.cache.Add(key, item)
-	c.mutex.Unlock()
 	return nil
 }
 
 func (c *twoQueueCache) Delete(key string) error {
-	c.mutex.Lock()
 	c.cache.Remove(key)
-	c.mutex.Unlock()
 	return nil
 }
 
 func (c *twoQueueCache) IsExist(key string) bool {
-	c.mutex.Lock()
 	item, ok := c.cache.Peek(key)
-	c.mutex.Unlock()
 	return ok && !item.expired(timeNow())
 }
 
@@ -102,10 +89,36 @@ func (c *twoQueueCache) Ping() error {
 func (c *twoQueueCache) deleteExpired() {
 	now := timeNow()
 	for _, key := range c.cache.Keys() {
-		c.mutex.Lock()
 		if item, ok := c.cache.Peek(key); ok && item.expired(now) {
 			c.cache.Remove(key)
 		}
-		c.mutex.Unlock()
 	}
+}
+
+type memoryItem struct {
+	value     string
+	expiresAt time.Time
+}
+
+func newMemoryItem(value string, ttl int64) memoryItem {
+	item := memoryItem{value: value}
+	if ttl > 0 {
+		item.expiresAt = timeNow().Add(time.Duration(ttl) * time.Second)
+	}
+	return item
+}
+
+func (item memoryItem) expired(now time.Time) bool {
+	return !item.expiresAt.IsZero() && !now.Before(item.expiresAt)
+}
+
+func startGC(interval time.Duration, deleteExpired func()) {
+	if interval <= 0 {
+		return
+	}
+	go func() {
+		for range time.Tick(interval) {
+			deleteExpired()
+		}
+	}()
 }
