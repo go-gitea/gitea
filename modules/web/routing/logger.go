@@ -84,8 +84,20 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 			logLevel = log.INFO
 		}
 		// lower the log level for some specific requests, in most cases these logs are not useful
-		if status > 0 && status < 400 &&
-			req.RequestURI == "/api/actions/runner.v1.RunnerService/FetchTask" /* Actions Runner polling */ {
+		routineControlPlaneRequest := false
+		switch req.RequestURI {
+		case "/api/actions/runner.v1.RunnerService/FetchTask",
+			"/api/codespace/codespace.v1.ManagerService/DeclareManager",
+			"/api/codespace/codespace.v1.ManagerService/FetchOperations",
+			"/api/codespace/codespace.v1.ManagerService/ReportInstances",
+			"/api/codespace/codespace.v1.ManagerService/UpdateLog",
+			"/api/codespace/codespace.v1.ManagerService/ReportRuntimeMetadata",
+			"/api/codespace/codespace.v1.ManagerService/ValidatePublicEndpoint",
+			"/api/codespace/codespace.v1.ManagerService/RevalidateGatewaySession":
+			routineControlPlaneRequest = true
+		}
+		// Successful polling and client-cancelled polling do not carry useful information at the default level.
+		if routineControlPlaneRequest && ((status > 0 && status < 400) || (status == 0 && req.Context().Err() != nil)) {
 			logLevel = log.TRACE
 		}
 		message := completedMessage

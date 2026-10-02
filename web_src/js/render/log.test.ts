@@ -1,5 +1,5 @@
-import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
-import {AnsiLineRenderer} from '../render/ansi.ts';
+import {createLogLineMessage, parseLogLineCommand} from './log.ts';
+import {AnsiLineRenderer} from './ansi.ts';
 
 test('LogLineMessage', () => {
   const cases = {

@@ -6,6 +6,9 @@ package asymkey
 import (
 	"testing"
 
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	"gitea.dev/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -35,5 +38,19 @@ func TestUserHasPubkeys(t *testing.T) {
 	})
 	t.Run("DenyUserWithNoKeys", func(t *testing.T) {
 		test(t, 1, false, false) // no pubkey
+	})
+	t.Run("DenyUserWithOnlyCodespaceSSHKey", func(t *testing.T) {
+		const keyContent = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH6Y4idVaW3E+bLw1uqoAfJD7o5Siu+HqS51E9oQLPE9"
+		fingerprint, err := asymkey_model.CalcFingerprint(keyContent)
+		require.NoError(t, err)
+		require.NoError(t, db.Insert(t.Context(), &asymkey_model.PublicKey{
+			OwnerID:     1,
+			Name:        "codespace-test",
+			Fingerprint: fingerprint,
+			Content:     keyContent,
+			Mode:        perm.AccessModeWrite,
+			Type:        asymkey_model.KeyTypeCodespace,
+		}))
+		test(t, 1, false, false)
 	})
 }

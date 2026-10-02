@@ -12,6 +12,7 @@ require (
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	gitea.dev/actionslib v1.2.1
+	gitea.dev/codespace-proto-go v0.0.0-20260907082402-c2857d30f25f
 	gitea.dev/sdk v1.2.0
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
@@ -54,6 +55,7 @@ require (
 	github.com/google/go-github/v92 v92.0.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20260906184651-6331bc6350fe
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/hashicorp/go-version v1.9.0
@@ -85,6 +87,7 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/stretchr/testify v1.12.1
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/tailscale/hujson v0.0.0-20260727124030-b80ff77dac4f
 	github.com/ulikunitz/xz v0.5.17
 	github.com/urfave/cli-docs/v3 v3.1.0
 	github.com/urfave/cli/v3 v3.13.0
@@ -180,7 +183,6 @@ require (
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
