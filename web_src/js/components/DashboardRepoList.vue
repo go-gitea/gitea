@@ -289,7 +289,10 @@ async function searchRepos() {
       }
     };
     // independent of the search, so both requests go out together
-    [, response] = await Promise.all([loadTotalCount(), GET(searchedURL)]);
+    const searchRequest = GET(searchedURL);
+    const [totalCountResult] = await Promise.allSettled([loadTotalCount(), searchRequest]); // a failed search must not show the empty state before the count is known
+    if (totalCountResult.status === 'rejected') throw totalCountResult.reason;
+    response = await searchRequest;
     json = await response.json();
   } catch {
     if (searchedURL === searchURL.value) {
