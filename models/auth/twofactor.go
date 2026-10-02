@@ -97,7 +97,7 @@ func (t *TwoFactor) SetSecret(secretString string) (err error) {
 // validateTOTP validates the provided passcode. It does not consume the passcode; all login
 // surfaces must go through ValidateAndConsumeTOTP so that a passcode cannot be redeemed twice.
 func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
-	secretStr, err := secret.DecryptSecret(setting.SecretKey, t.Secret)
+	secretStr, err := secret.DecryptSecretWithMD5Fallback(setting.SecretKey, t.Secret)
 	if err != nil {
 		return false, fmt.Errorf("validateTOTP: %w", err)
 	}

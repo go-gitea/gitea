@@ -6,6 +6,7 @@ package secret
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -111,6 +112,23 @@ func DecryptSecret(key, encrypted string) (string, error) {
 		return "", fmt.Errorf("failed to decrypt by secret, invalid hex string: %w", err)
 	}
 	plaintext, err := openSecret(key, ciphertext, !ok)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt by secret, the key (maybe SECRET_KEY?) might be incorrect: %w", err)
+	}
+	return string(plaintext), nil
+}
+
+// DecryptSecretWithMD5Fallback also reads the base64 format with an md5 key that 2FA secrets used before migration 356
+func DecryptSecretWithMD5Fallback(key, encrypted string) (string, error) {
+	if strings.HasPrefix(encrypted, encryptedPrefix) {
+		return DecryptSecret(key, encrypted)
+	}
+	ciphertext, err := base64.StdEncoding.DecodeString(encrypted)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt by secret, invalid base64 string: %w", err)
+	}
+	md5Key := md5.Sum([]byte(key))
+	plaintext, err := AesDecrypt(md5Key[:], ciphertext)
 	if err != nil {
 		return "", fmt.Errorf("failed to decrypt by secret, the key (maybe SECRET_KEY?) might be incorrect: %w", err)
 	}

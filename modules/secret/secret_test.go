@@ -21,6 +21,13 @@ func TestEncryptDecrypt(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "baz", str)
 
+	str, err = DecryptSecretWithMD5Fallback("foo", "nxI7/oUK+jfcYxj4fxB/2bYF+Us=")
+	assert.NoError(t, err)
+	assert.Equal(t, "baz", str)
+	str, err = DecryptSecretWithMD5Fallback("foo", encrypted)
+	assert.NoError(t, err)
+	assert.Equal(t, "baz", str)
+
 	_, err = DecryptSecret("a", "b")
 	assert.ErrorContains(t, err, "invalid hex string")
 

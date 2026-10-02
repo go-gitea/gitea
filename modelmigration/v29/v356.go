@@ -5,8 +5,6 @@ package v29
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
@@ -71,15 +69,7 @@ func reencryptHex(value string) (string, error) {
 }
 
 func reencryptTOTP(value string) (string, error) {
-	return reencryptValue(value, func(key, encrypted string) (string, error) {
-		ciphertext, err := base64.StdEncoding.DecodeString(encrypted)
-		if err != nil {
-			return "", err
-		}
-		md5Key := md5.Sum([]byte(key))
-		plaintext, err := secret.AesDecrypt(md5Key[:], ciphertext)
-		return string(plaintext), err
-	})
+	return reencryptValue(value, secret.DecryptSecretWithMD5Fallback)
 }
 
 func reencryptJSONFields(value string, fields ...string) (string, error) {
