@@ -100,22 +100,24 @@ export function initGlobalDropdown() {
   });
 }
 
+async function initRepoFileSearch(el: HTMLElement) {
+  const {default: RepoFileSearch} = await import('../components/RepoFileSearch.vue');
+  createApp(RepoFileSearch, {
+    repoLink: el.getAttribute('data-repo-link'),
+    currentRefNameSubURL: el.getAttribute('data-current-ref-name-sub-url'),
+    treeListUrl: el.getAttribute('data-tree-list-url'),
+    noResultsText: el.getAttribute('data-no-results-text'),
+    placeholder: el.getAttribute('data-placeholder'),
+  }).mount(el);
+}
+
 export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
   registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
   registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
-  registerGlobalInitFunc('initRepoFileSearch', async (el) => {
-    const {default: RepoFileSearch} = await import('../components/RepoFileSearch.vue');
-    createApp(RepoFileSearch, {
-      repoLink: el.getAttribute('data-repo-link'),
-      currentRefNameSubURL: el.getAttribute('data-current-ref-name-sub-url'),
-      treeListUrl: el.getAttribute('data-tree-list-url'),
-      noResultsText: el.getAttribute('data-no-results-text'),
-      placeholder: el.getAttribute('data-placeholder'),
-    }).mount(el);
-  });
+  registerGlobalInitFunc('initRepoFileSearch', initRepoFileSearch);
 }
 
 // for performance considerations, it only uses performant syntax
