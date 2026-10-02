@@ -1102,7 +1102,6 @@
   "repo.migrate.github_token_desc": "Is féidir leat comhartha amháin nó níos mó a chur anseo, scartha le camóga, chun an t-aistriú a dhéanamh níos tapúla trí theorainn ráta API GitHub a sheachaint. RABHADH: D’fhéadfadh mí-úsáid a bhaint as an ngné seo sárú a dhéanamh ar pholasaí an tsoláthraí seirbhíse agus d’fhéadfadh sé go gcuirfí bac ar do chuntas(í).",
   "repo.migrate.clone_local_path": "nó cosán freastalaí áitiúil",
   "repo.migrate.permission_denied": "Ní cheadaítear duit stórais áitiúla a iompórtáil.",
-  "repo.migrate.permission_denied_blocked": "Ní féidir leat iompórtáil ó óstaigh neamhcheadaithe. Iarr ar an riarthóir socruithe ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS a sheiceáil.",
   "repo.migrate.invalid_local_path": "Tá an cosán áitiúil neamhbhailí. Níl sé ann nó ní eolaire é.",
   "repo.migrate.invalid_lfs_endpoint": "Níl an críochphointe LFS bailí.",
   "repo.migrate.failed": "Theip ar an imirce:% v",

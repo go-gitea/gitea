@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	act_model "gitea.dev/actionslib/pkg/model"
@@ -12,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
@@ -185,6 +187,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	id, job := workflowJob.Job()
 	needs := job.Needs()
 	isMatrixDeferred := jobparser.HasDeferredMatrix(job)
+	runsOnProblem := job.RunsOnProblem() // SetJob's encoding drops the node's null tag
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}
@@ -238,9 +241,14 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	}
 
 	// a skipped job must neither cancel its group peers nor take a slot
-	invalidIf, err := decideJobIf(ctx, run, runAttempt, runJob, vars)
+	invalidErr, err := decideJobIf(ctx, run, runAttempt, runJob, vars)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("evaluate job if: %w", err)
+	}
+	invalidKey := "if"
+	if runsOnProblem != "" && runJob.Status.IsWaiting() && slots.available(runJob) {
+		invalidKey, invalidErr = "runs-on", errors.New(runsOnProblem)
+		runJob.Status, runJob.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
 	}
 
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
@@ -275,8 +283,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 	if err := db.Insert(ctx, runJob); err != nil {
 		return nil, nil, false, err
 	}
-	if invalidIf != nil {
-		if err := upsertJobErrorSummary(ctx, runJob, "if", invalidIf); err != nil {
+	if invalidErr != nil {
+		if err := upsertJobErrorSummary(ctx, runJob, invalidKey, invalidErr); err != nil {
 			return nil, nil, false, err
 		}
 	}
@@ -287,8 +295,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		}
 	}
 
-	// the emitter resolves an expanded caller's children and a skipped job's dependents
-	return runJob, cancelledConcurrencyJobs, runJob.IsExpanded || runJob.Status == actions_model.StatusSkipped, nil
+	// the emitter resolves an expanded caller's children and a skipped or failed job's dependents
+	return runJob, cancelledConcurrencyJobs, runJob.IsExpanded || runJob.Status.In(actions_model.StatusSkipped, actions_model.StatusFailure), nil
 }
 
 func expandInlineReusableCaller(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
