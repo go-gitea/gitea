@@ -2,7 +2,7 @@
 	{{$captchaID := call .CreateImageCaptcha}}
 	<div class="inline field tw-text-center">
 		<input type="hidden" name="captcha_id" value="{{$captchaID}}">
-		<img src="{{AppSubUrl}}/captcha/{{$captchaID}}.png" width="240" height="80" alt="{{ctx.Locale.Tr "captcha_image"}}" data-global-click="onImageCaptchaReload">
+		<img src="{{AppSubUrl}}/captcha?id={{$captchaID}}" width="240" height="80" alt="{{ctx.Locale.Tr "captcha_image"}}" data-global-click="onImageCaptchaReload">
 	</div>
 	<div class="required field {{if .Err_Captcha}}error{{end}}">
 		<label for="captcha">{{ctx.Locale.Tr "captcha"}}</label>
