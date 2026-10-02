@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -18,6 +19,7 @@ import (
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	mirror_service "gitea.dev/services/mirror"
+	org_service "gitea.dev/services/org"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -504,6 +506,35 @@ func TestAPIRepoEdit(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, token, password)
 	})
+}
+
+func TestAPIRepoUnarchiveInArchivedOrg(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	require.NoError(t, org_service.SetOrganizationArchived(t.Context(), org3, true))
+
+	session := loginUser(t, "user1")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	bFalse := false
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/repo3", &api.EditRepoOption{Archived: &bFalse}).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/org3"), http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 0, htmlDoc.Find(`a[href$="/repo/create?org=3"]`).Length())
+	_, disabled := htmlDoc.Find(".ui.primary.button.tw-grow").Attr("disabled")
+	assert.True(t, disabled)
+
+	resp = session.MakeRequest(t, NewRequest(t, "GET", "/org3/repo3/settings"), http.StatusOK)
+	_, disabled = NewHTMLParser(t, resp.Body).Find(`button[data-modal="#archive-repo-modal"]`).Attr("disabled")
+	assert.True(t, disabled)
+
+	req = NewRequestWithValues(t, "POST", "/org3/repo3/settings", map[string]string{"action": "unarchive"})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
 }
 
 func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
