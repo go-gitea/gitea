@@ -21,6 +21,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"gitea.dev/modules/json"
@@ -141,7 +142,7 @@ func NewBinder() *Binder {
 		return newFieldError(field.StructField, ErrRequired, "Required")
 	}}
 	binder.AddRuleNonZero("AlphaDashDot", func(_ context.Context, field *ValidationField) *Error {
-		if nonAlphaDashDotPattern.MatchString(field.ValueMustString()) {
+		if nonAlphaDashDotPattern().MatchString(field.ValueMustString()) {
 			return newFieldError(field.StructField, ErrAlphaDashDot, "AlphaDashDot")
 		}
 		return nil
@@ -228,27 +229,12 @@ func (b *Binder) bindJSON(req *http.Request, jsonStruct any) (errs Errors) {
 	if req.Body != nil {
 		defer req.Body.Close()
 		body := bufio.NewReader(req.Body)
-		err := skipJSONSpace(body)
-		if err == nil {
-			err = json.NewDecoder(body).Decode(jsonStruct)
-		}
+		err := json.NewDecoder(body).Decode(jsonStruct)
 		if err != nil && !errors.Is(err, io.EOF) { // an empty body binds nothing
 			errs.addDeserializationError(err)
 		}
 	}
 	return append(errs, b.Validate(req.Context(), jsonStruct)...)
-}
-
-func skipJSONSpace(body *bufio.Reader) error {
-	for {
-		char, err := body.ReadByte()
-		if err != nil {
-			return err
-		}
-		if char != ' ' && char != '\t' && char != '\r' && char != '\n' {
-			return body.UnreadByte()
-		}
-	}
 }
 
 func (b *Binder) Validate(ctx context.Context, obj any) Errors {
@@ -295,8 +281,7 @@ func (b *Binder) validateField(ctx context.Context, errs Errors, field *Validati
 		}
 		item, ok := b.rules[ruleName]
 		if !ok {
-			errs = append(errs, *newFieldError(field.StructField, errRule, fmt.Sprintf("Invalid rule: %q", ruleName)))
-			continue
+			panic(fmt.Sprintf("Invalid binding rule: %q", ruleName))
 		}
 		value := reflect.Indirect(field.reflectValue)
 		if item.forZeroValue != (!value.IsValid() || value.IsZero()) {
@@ -309,7 +294,9 @@ func (b *Binder) validateField(ctx context.Context, errs Errors, field *Validati
 	return errs
 }
 
-var nonAlphaDashDotPattern = regexp.MustCompile(`[^\w-.]`)
+var nonAlphaDashDotPattern = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`[^\w-.]`)
+})
 
 func mapForm(formStruct reflect.Value, form map[string][]string, formFiles map[string][]*multipart.FileHeader, errs Errors) Errors {
 	formStruct = reflect.Indirect(formStruct)

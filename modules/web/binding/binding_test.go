@@ -85,8 +85,6 @@ type (
 		Slice         []int   `binding:"Required"`
 		Pointer       *string `binding:"Required"`
 		PointerToZero *string `binding:"Required"`
-		Unknown       string  `binding:"Nope;MaxSize(1)"`
-		StopsAtFirst  string  `binding:"Required;Nope"`
 	}
 
 	AnyString string
@@ -101,6 +99,10 @@ type (
 		Nested       Trimmed
 		Items        []Trimmed
 		PointerItems []*Trimmed
+	}
+
+	InvalidRule struct {
+		Field string `binding:"InvalidRule"`
 	}
 )
 
@@ -140,7 +142,6 @@ func TestBind(t *testing.T) {
 			name: "json ignores form tags", method: http.MethodPut, contentType: jsonType, body: `{"title":"T","content":"C","id":1,"rating":[1],"ratings":[4,3],"author":{"name":"N"}}`,
 			expected: BlogPost{Post: Post{Title: "T", Content: "C"}, ID: 1, Ratings: []int{4, 3}, Author: Person{Name: "N"}},
 		},
-		{name: "json whitespace body", contentType: jsonType, body: " \n", expected: Post{}, errs: Errors{requiredTitle}},
 		{
 			name: "json malformed", contentType: jsonType, body: `{"title":"T"`, expected: Post{Title: "T"},
 			errs: Errors{{Classification: errDeserialization, Message: "jsontext: unexpected EOF after offset 12"}},
@@ -270,17 +271,14 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{
-			name: "required and unknown rules",
-			data: &RequiredForm{PointerToZero: new(""), Unknown: "ab"},
+			name: "required",
+			data: &RequiredForm{PointerToZero: new("")},
 			errs: Errors{
 				{FieldNames: []string{"String"}, Classification: ErrRequired, Message: "Required"},
 				{FieldNames: []string{"Int"}, Classification: ErrRequired, Message: "Required"},
 				{FieldNames: []string{"Bool"}, Classification: ErrRequired, Message: "Required"},
 				{FieldNames: []string{"Slice"}, Classification: ErrRequired, Message: "Required"},
 				{FieldNames: []string{"PointerToZero"}, Classification: ErrRequired, Message: "Required"},
-				{FieldNames: []string{"Unknown"}, Classification: errRule, Message: `Invalid rule: "Nope"`},
-				{FieldNames: []string{"Unknown"}, Classification: ErrMaxSize, Message: "MaxSize"},
-				{FieldNames: []string{"StopsAtFirst"}, Classification: ErrRequired, Message: "Required"},
 			},
 		},
 		{
@@ -318,4 +316,8 @@ func TestValidate(t *testing.T) {
 			}
 		})
 	}
+
+	assert.PanicsWithValue(t, `Invalid binding rule: "InvalidRule"`, func() {
+		NewBinder().Validate(t.Context(), &InvalidRule{})
+	})
 }
