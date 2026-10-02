@@ -673,7 +673,7 @@ func (Action) ListWorkflowJobs(ctx *context.APIContext) {
 	//   required: true
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: page
@@ -737,7 +737,7 @@ func (Action) ListWorkflowRuns(ctx *context.APIContext) {
 	//   required: false
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: actor
@@ -984,7 +984,7 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//   required: false
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: actor
@@ -1624,7 +1624,7 @@ func ListWorkflowRunJobs(ctx *context.APIContext) {
 	//   required: true
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: page
@@ -1701,7 +1701,7 @@ func ListWorkflowRunAttemptJobs(ctx *context.APIContext) {
 	//   required: true
 	// - name: status
 	//   in: query
-	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   description: workflow status (requested, pending, queued, in_progress, failure, success, skipped)
 	//   type: string
 	//   required: false
 	// - name: page

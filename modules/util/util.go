@@ -111,7 +111,7 @@ func FastCryptoRandomBytes(length int) []byte {
 	// ChaCha8 is about 20x times faster than system's crypto/rand.
 	// It is suitable for UUIDs, session IDs, etc
 	pool := chaCha8RandPool()
-	chaCha8Rand := pool.Get().(*rand2.ChaCha8) //nolint:forcetypeassert // the pool's New only ever makes *rand2.ChaCha8
+	chaCha8Rand, _ := pool.Get().(*rand2.ChaCha8)
 	defer pool.Put(chaCha8Rand)
 	buf := make([]byte, length)
 	_, _ = chaCha8Rand.Read(buf)
@@ -121,6 +121,17 @@ func FastCryptoRandomBytes(length int) []byte {
 func FastCryptoRandomHex(length int) string {
 	buf := FastCryptoRandomBytes(length / 2)
 	return hex.EncodeToString(buf)
+}
+
+func FastCryptoRandomInt[T int | int64](n T) T {
+	pool := chaCha8RandPool()
+	chaCha8Rand, _ := pool.Get().(*rand2.ChaCha8)
+	defer pool.Put(chaCha8Rand)
+	return rand2.New(chaCha8Rand).N(n)
+}
+
+func FastCryptoRand(seed [32]byte) *rand2.Rand {
+	return rand2.New(rand2.NewChaCha8(seed))
 }
 
 // ToLowerASCII returns s with all ASCII letters mapped to their lower case.

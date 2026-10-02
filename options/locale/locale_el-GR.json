@@ -2816,6 +2816,7 @@
   "actions.status.cancelled": "Ακυρώθηκε",
   "actions.status.skipped": "Παρακάμφθηκε",
   "actions.status.blocked": "Αποκλείστηκε",
+  "actions.status.pending": "Εκκρεμεί",
   "actions.runners": "Εκτελεστές",
   "actions.runners.runner_manage_panel": "Διαχείριση Εκτελεστών",
   "actions.runners.new": "Δημιουργία νέου Εκτελεστή",
