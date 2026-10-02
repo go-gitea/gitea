@@ -136,7 +136,7 @@ WEB_DIRS := web_src/js web_src/css
 
 ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(wildcard *.go *.md *.yml *.yaml *.toml)
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
 
 GO_SOURCES := $(wildcard *.go)
@@ -516,14 +516,6 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
-
-.PHONY: release-changelog
-release-changelog: node_modules ## prepare changes since the branch's last release tag (RELEASE_VERSION required)
-	RELEASE_VERSION="$(RELEASE_VERSION)" RELEASE_PREVIOUS="$(RELEASE_PREVIOUS)" RELEASE_DATE="$(RELEASE_DATE)" node tools/release-changelog.ts
-
-.PHONY: release-changelog-pr
-release-changelog-pr: node_modules ## preview the changelog PR; set RELEASE_PR_DRY_RUN=false to open it
-	RELEASE_VERSION="$(RELEASE_VERSION)" RELEASE_BRANCH="$(RELEASE_BRANCH)" RELEASE_PR_DRY_RUN="$(RELEASE_PR_DRY_RUN)" node tools/release-changelog.ts pr
 
 # Release builds always use Go's native cross compilation. To cross-compile with CGO,
 # use "build" target with proper TAGS/LDFLAGS/CGO_CFLAGS to make "$(EXECUTABLE)" target run the "go build" command.

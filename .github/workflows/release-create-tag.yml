@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       dry-run:
-        description: Validate and preview without signing or pushing a tag
+        description: Validate and preview without signing or pushing a commit or tag
         type: boolean
         default: true
 
@@ -27,7 +27,6 @@ jobs:
     env:
       RELEASE_VERSION: ${{ inputs.version }}
       RELEASE_DRY_RUN: ${{ inputs.dry-run }}
-      RELEASE_MAINTAINERS_TEAM: ${{ vars.RELEASE_MAINTAINERS_TEAM }}
       RELEASE_NOTES_FILE: release.notes
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -38,9 +37,17 @@ jobs:
       - name: Authorize and validate release
         id: prepare
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_TEAM_TOKEN: ${{ secrets.RELEASE_TEAM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: python3 tools/release-tag.py prepare
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4
+        with:
+          version: v2.13.1
+          args: --offline --tag ${{ steps.prepare.outputs.tag }} --output release.notes ${{ steps.prepare.outputs.previous }}..${{ github.sha }}
+      - name: Preview release
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: python3 tools/release-tag.py preview
       - name: Import release tag signing key
         if: ${{ !inputs.dry-run }}
         id: gpg
@@ -52,19 +59,20 @@ jobs:
           git_tag_gpgsign: true
           git_committer_name: Gitea Release Bot
           git_committer_email: giteabot@users.noreply.github.com
-      - name: Sign release tag
+      - name: Sign release commit and tag
         if: ${{ !inputs.dry-run }}
         env:
           TAG: ${{ steps.prepare.outputs.tag }}
           GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
         run: |
-          git -c gpg.format=openpgp tag -s --cleanup=verbatim -u "$GPG_FINGERPRINT" -F "$RELEASE_NOTES_FILE" "$TAG" "$GITHUB_SHA"
+          git -c gpg.format=openpgp commit --allow-empty --cleanup=verbatim -S"$GPG_FINGERPRINT" -F release.commit
+          git -c gpg.format=openpgp verify-commit HEAD
+          git -c gpg.format=openpgp tag -s --cleanup=verbatim -u "$GPG_FINGERPRINT" -F "$RELEASE_NOTES_FILE" "$TAG" HEAD
           git -c gpg.format=openpgp verify-tag "$TAG"
-      - name: Recheck and push release tag
+      - name: Recheck and push release commit and tag
         if: ${{ !inputs.dry-run }}
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          RELEASE_TEAM_TOKEN: ${{ secrets.RELEASE_TEAM_TOKEN }}
           TAG: ${{ steps.prepare.outputs.tag }}
         run: |
           python3 tools/release-tag.py check
@@ -72,4 +80,4 @@ jobs:
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
           export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTHORIZATION"
-          git push origin "refs/tags/$TAG:refs/tags/$TAG"
+          git push --atomic origin "HEAD:refs/heads/$GITHUB_REF_NAME" "refs/tags/$TAG:refs/tags/$TAG"

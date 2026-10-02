@@ -14,3 +14,17 @@ filter_unconventional = false
 filter_commits = false
 tag_pattern = "^$"
 sort_commits = "newest"
+commit_parsers = [
+  { message = "^(chore|ci)(\\([^)]*\\))?!?:", skip = true },
+  { message = "^\\[skip ci\\] Updated translations via Crowdin", skip = true },
+  { message = "^v[0-9]+\\.[0-9]+\\.[0-9]+", skip = true },
+  { message = "^[a-z]+(\\([^)]*\\))?!:", group = "00:BREAKING" },
+  { body = "BREAKING CHANGE:", group = "00:BREAKING" },
+  { message = "^feat", group = "10:FEATURES" },
+  { message = "^enhance", group = "20:ENHANCEMENTS" },
+  { message = "^fix\\(security\\)", group = "30:SECURITY" },
+  { message = "^fix", group = "40:BUGFIXES" },
+  { message = "^perf", group = "50:PERFORMANCE" },
+  { message = "^docs", group = "60:DOCS" },
+  { message = ".*", group = "70:MISC" },
+]

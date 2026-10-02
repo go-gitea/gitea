@@ -25,24 +25,6 @@ def validate_branch(branch, tag):
         raise ValueError(f"Version {tag} does not belong to {branch}")
 
 
-def release_notes(changelog, tag):
-    version = tag.removeprefix("v")
-    sections = list(re.finditer(r"^## .+$", changelog, re.MULTILINE))
-    pattern = rf"## (?:{re.escape(version)}|\[{re.escape(version)}\]\([^\n]+\)) - \d{{4}}-\d{{2}}-\d{{2}}"
-    matches = [index for index, section in enumerate(sections) if re.fullmatch(pattern, section.group())]
-    if len(matches) != 1:
-        raise ValueError(f"CHANGELOG.md must contain exactly one release section for {version}")
-    index = matches[0]
-    if index != 0:
-        raise ValueError(f"{version} must be the first release in CHANGELOG.md")
-    start = sections[index].start()
-    end = sections[index + 1].start() if index + 1 < len(sections) else len(changelog)
-    notes = changelog[start:end].strip()
-    if not re.search(r"^  \* \S", notes, re.MULTILINE):
-        raise ValueError(f"The changelog for {version} has no entries")
-    return f"{notes}\n"
-
-
 def api(path, token, missing_ok=False):
     if not token:
         raise ValueError("A required GitHub API token is missing")
@@ -59,15 +41,15 @@ def api(path, token, missing_ok=False):
         raise ValueError(f"GitHub API check failed: HTTP {error.code} for {path}") from error
 
 
-def authorize(repository, team, actors, token):
-    if not re.fullmatch(r"[\w.-]+/[\w.-]+", repository) or not re.fullmatch(r"[\w-]+", team):
-        raise ValueError("Configure RELEASE_MAINTAINERS_TEAM with the release team's slug")
+def authorize(repository, actors, token):
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", repository):
+        raise ValueError("Invalid repository")
     for actor in set(actors):
         if not re.fullmatch(r"[\w-]+", actor):
             raise ValueError("Missing or invalid workflow actor")
-        membership = api(f"orgs/{repository.split('/')[0]}/teams/{team}/memberships/{actor}", token)
-        if membership.get("state") != "active":
-            raise ValueError(f"{actor} is not an active member of the release-maintainers team")
+        permission = api(f"repos/{repository}/collaborators/{actor}/permission", token)
+        if permission.get("role_name") not in {"maintain", "admin"}:
+            raise ValueError(f"{actor} must have the Maintain or Admin repository role")
 
 
 def check_version(repository, tag, token):
@@ -82,7 +64,7 @@ def git(*args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["prepare", "check"])
+    parser.add_argument("command", choices=["prepare", "preview", "check"])
     args = parser.parse_args()
     tag = version_tag(os.environ["RELEASE_VERSION"])
     branch = os.environ["GITHUB_REF_NAME"]
@@ -90,25 +72,34 @@ def main():
         raise ValueError("This workflow must run on a release branch")
     validate_branch(branch, tag)
     repository = os.environ["GITHUB_REPOSITORY"]
-    authorize(repository, os.environ.get("RELEASE_MAINTAINERS_TEAM", ""),
-              [os.environ["GITHUB_ACTOR"], os.environ["GITHUB_TRIGGERING_ACTOR"]],
-              os.environ.get("RELEASE_TEAM_TOKEN", ""))
+    authorize(repository, [os.environ["GITHUB_ACTOR"], os.environ["GITHUB_TRIGGERING_ACTOR"]],
+              os.environ.get("GITHUB_TOKEN", ""))
     check_version(repository, tag, os.environ.get("GITHUB_TOKEN", ""))
     commit = os.environ["GITHUB_SHA"]
-    if git("rev-parse", "HEAD") != commit:
+    if args.command != "check" and git("rev-parse", "HEAD") != commit:
         raise ValueError("Checkout does not match the workflow's selected commit")
     remote = git("ls-remote", "origin", f"refs/heads/{branch}").split()
     if not remote or remote[0] != commit:
         raise ValueError("The release branch has moved; start a new workflow run")
-    notes = release_notes(git("show", f"{commit}:CHANGELOG.md"), tag)
     if args.command == "prepare":
-        Path(os.environ["RELEASE_NOTES_FILE"]).write_text(notes)
+        candidates = [value for value in git("tag", "--merged", commit).splitlines()
+                      if re.fullmatch(r"v\d+\.\d+\.\d+(?:-rc\d+)?", value)]
+        if not candidates:
+            raise ValueError("No previous release tag is reachable from this branch")
+        matches = [argument for value in candidates for argument in ("--match", value)]
+        previous = git("describe", "--tags", "--abbrev=0", *matches, commit)
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-            output.write(f"tag={tag}\n")
+            output.write(f"tag={tag}\nprevious={previous}\n")
+    elif args.command == "preview":
+        notes = Path(os.environ["RELEASE_NOTES_FILE"]).read_text().strip()
+        if not re.search(r"^  \* \S", notes, re.MULTILINE):
+            raise ValueError("Generated release notes have no entries")
+        Path("release.commit").write_text(f"{tag}\n\n{notes}\n")
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
-            summary.write(f"## Release tag preview\n\nBranch: `{branch}`\n\nCommit: `{commit}`\n\n")
-            summary.write(f"Tag: `{tag}`\n\nDry-run: `{os.environ['RELEASE_DRY_RUN']}`\n\n{notes}")
-        print(f"Validated {tag} at {commit}. Dry-run: {os.environ['RELEASE_DRY_RUN']}")
+            summary.write(f"## Release preview\n\nBranch: `{branch}`\n\nBase commit: `{commit}`\n\n")
+            summary.write(f"Tag and commit title: `{tag}`\n\nDry-run: `{os.environ['RELEASE_DRY_RUN']}`\n\n{notes}\n")
+    elif git("rev-parse", "HEAD^") != commit or git("rev-parse", "HEAD^{tree}") != git("rev-parse", f"{commit}^{{tree}}"):
+        raise ValueError("Release commit must be an empty marker on the selected commit")
 
 
 if __name__ == "__main__":

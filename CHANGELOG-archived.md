@@ -2,7 +2,7 @@
 
 This changelog (archived) contains changes for old releases.
 
-* Recent changelogs: [CHANGELOG.md](CHANGELOG.md)
+* Recent changelogs: [GitHub releases](https://github.com/go-gitea/gitea/releases)
 * Release blogs with highlights: [blog.gitea.com](https://blog.gitea.com).
 
 ## [1.15.11](https://github.com/go-gitea/gitea/releases/tag/v1.15.11) - 2022-01-29

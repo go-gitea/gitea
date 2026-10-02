@@ -101,105 +101,57 @@ be reviewed by two maintainers and must pass the automatic tests.
 ## Releasing Gitea
 
 Confirm the release milestone is ready and agree on the release with the maintainers before publishing.
-Release preparation and tagging are separate steps. The version is selected by the release manager.
 
-### Prepare the changelog locally
-
-Install [git-cliff](https://git-cliff.org/docs/installation/) (2.13.1 or newer), Node.js, and pnpm.
-Fetch the release branch and tags, then create a changelog branch from the release branch:
-
-```sh
-git fetch origin --tags
-git switch -c docs/changelog-28.0.1 origin/release/v28
-make release-changelog RELEASE_VERSION=28.0.1
-```
-
-The command finds the nearest stable or release-candidate tag reachable from the current branch,
-ignoring development tags and tags on unrelated branches. It generates only that tag-to-HEAD range
-and inserts a new release section above the existing releases in `CHANGELOG.md`.
-The header and historical changelog remain unchanged. It does not commit, tag, or push anything.
-Set `RELEASE_PREVIOUS=v28.0.0` to override the starting tag, or `RELEASE_DATE=2026-10-02` to select the date.
-
-PR labels are fetched from GitHub to retain the groups in `.changelog.yml`, including SECURITY and BREAKING.
-Set `GITHUB_TOKEN` in your environment for authenticated API requests, especially for large release ranges.
-The command excludes `chore`, `ci`, translation synchronization commits, and `skip-changelog` entries.
-On release branches, backport scheduling labels do not exclude shipped fixes: the Git range already limits entries to included commits.
-API failures stop generation before writing `CHANGELOG.md`.
-
-Review and edit the new section, commit it, and push the changelog branch.
-Then preview the PR targeting the release branch:
-
-```sh
-make release-changelog-pr RELEASE_VERSION=28.0.1 RELEASE_BRANCH=release/v28
-```
-
-The preview prints the exact title, body, and target without posting.
-After reviewing them, create the PR with:
-
-```sh
-make release-changelog-pr RELEASE_VERSION=28.0.1 RELEASE_BRANCH=release/v28 RELEASE_PR_DRY_RUN=false
-```
-
-Posting requires `GITHUB_TOKEN` with Pull requests write permission.
-It opens a PR titled `docs(changelog): prepare v28.0.1`, with a description explaining that
-the release-maintainer workflow will create the signed release tag after review and merge.
-It requires a clean, pushed branch that changes only `CHANGELOG.md` against the selected release branch.
-If an open PR already exists for the same branches, it prints that PR's URL instead of creating a duplicate.
-It does not commit or push the branch, or start a release.
-
-Merge the reviewed changelog before tagging. For a new release line, create its release branch through the normal reviewed process first.
-
-### Preview and create the signed release tag
+### Preview and publish
 
 In GitHub Actions, select **release-create-tag**, then **Run workflow**:
 
 1. Select the release branch, such as `release/v28` or `release/v1.27`.
 2. Enter the chosen version, such as `28.0.1` or `29.0.0-rc0` (an initial `v` is optional).
-3. Leave **dry-run** enabled for the first run.
+3. Leave **dry-run** enabled and review the generated release notes in the workflow summary.
+4. Run again with **dry-run** disabled to sign and push the release commit and tag.
 
-Both dry-run and publication require active membership in the configured release-maintainers team.
-The original actor and the actor rerunning the workflow are both checked; API errors deny authorization.
-The workflow rejects non-release branches, versions outside the selected release line, existing remote tags or GitHub releases,
-and missing, duplicate, empty, or non-current changelog sections.
-It pins the selected branch's commit and fails if the branch moves before tagging.
+Both the original actor and the actor rerunning the workflow must have the Maintain or Admin repository role.
+API failures deny authorization. The workflow rejects non-release branches, versions outside the selected
+release line, existing remote tags or GitHub releases, and release branches that have moved during the run.
 
-Dry-run writes the commit, tag, and exact tag message to the workflow summary.
-It does not import the signing key, sign, push, or create a GitHub release.
-After reviewing the preview, run the workflow again on the same branch and version with **dry-run** disabled.
-The workflow creates and verifies a GPG-signed annotated tag containing that release's changelog,
-rechecks authorization and remote version availability, and pushes only the new tag without force.
-If the branch moved since the preview, review a fresh preview first.
+[git-cliff](https://git-cliff.org/) generates notes from the nearest stable or release-candidate tag reachable
+from the selected branch to the selected commit. Development tags and tags on unrelated branches are ignored.
+`cliff.toml` groups Conventional Commits and excludes `chore`, `ci`, translation synchronization,
+and previous release marker commits. Historical commits without a conventional type appear under MISC.
+Release notes are stored in the signed commit, tag annotation, and GitHub release; there is no `CHANGELOG.md`.
 
-The existing tag-triggered workflows then build and sign assets, upload them to the download server,
+Dry-run does not import the signing key, create a commit or tag, or push anything.
+Publication creates an empty GPG-signed commit titled with the version, with the notes in its body,
+and a GPG-signed annotated tag with the same notes. After verifying both signatures and repeating the
+permission and version checks, it atomically pushes the branch and tag without force.
+If the branch changed after a preview, review a fresh preview before publishing.
+
+The existing tag-triggered workflows build and sign assets, upload them to `dl.gitea.com` through R2,
 publish containers, and create the GitHub release using the tag annotation as release notes.
 Stable versions create published releases; release candidates currently create draft releases.
+Snap publishing and GitHub release immutability configuration remain managed as before.
 A retry after the tag has been pushed intentionally fails the version check; retry the existing build workflow instead.
 
 ### GitHub configuration
 
-Before enabling publication, configure the following in GitHub:
-
-- Create an explicit organization team for release maintainers.
-- Protect the `release/v*` branches with the required PR reviews and checks, including workflow changes.
+- Protect `release/v*` branches with the required reviews and checks, including workflow changes.
 - Create the **release-signing** environment and restrict its deployment branches to `release/v*`.
-  Configure the release-maintainers team as a required reviewer, prevent self-review, and disable administrator bypass.
-  These environment rules protect the signing secrets even if another workflow is edited to reference the environment.
-- Set the environment variable `RELEASE_MAINTAINERS_TEAM` to that team's slug.
-- Add environment secret `RELEASE_TEAM_TOKEN`: a token able to read organization team membership
-  (organization Members read permission for a fine-grained token, or `read:org` for a classic token).
-- Add environment secrets `RELEASE_TAG_GPG_KEY` and `RELEASE_TAG_GPG_PASSPHRASE` for a dedicated release-tag signing key.
-  The key's primary identity must use `giteabot@users.noreply.github.com`, matching the workflow's public bot identity.
+  Configure trusted release reviewers and the appropriate environment protection rules for the signing secrets.
+- Add environment secrets `RELEASE_TAG_GPG_KEY` and `RELEASE_TAG_GPG_PASSPHRASE` for a dedicated release signing key.
+  Its primary identity must use `giteabot@users.noreply.github.com`, matching the workflow's public bot identity.
   Register the public key with the corresponding GitHub bot account for verified signatures.
-- Add environment secret `RELEASE_TOKEN`: a GitHub App token or PAT with repository Contents write permission,
-  allowed by the repository's tag rules. A PAT or App token is necessary because a tag pushed with `GITHUB_TOKEN`
-  does not trigger the existing push workflows.
+- Add environment secret `RELEASE_TOKEN`: a GitHub App token or PAT with repository Contents write permission.
+  It must be able to read collaborator permissions and be allowed by branch and tag rules to push the signed marker commit
+  and tag. A PAT or App token is necessary because pushes with `GITHUB_TOKEN` do not trigger the existing push workflows.
 
-The workflow does not create the team, configure environment protection, or install secrets automatically.
-The existing build workflows still need their current signing, R2, and container registry credentials.
+The workflow must be present on the default branch to appear in the Actions dispatch menu,
+and on the selected release branch to run there. Install it through the normal reviewed process.
+The workflow does not configure repository settings or install secrets automatically.
+The existing build workflows still need their current signing, R2, and registry credentials.
 
 ### After publication
 
 Verify the binaries, signatures, checksums, containers, and GitHub release before updating
 `https://dl.gitea.com/gitea/version.json` or announcing the release.
-Frontport the changelog to `main` if needed, prepare the [blog post](https://gitea.com/gitea/blog),
-and announce the release in Discord after publication is confirmed.
+The [blog post](https://gitea.com/gitea/blog) remains an optional manual step.
