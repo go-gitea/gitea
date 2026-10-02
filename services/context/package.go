@@ -76,15 +76,16 @@ func packageAssignment(ctx *packageAssignmentCtx, pType string, errCb func(int, 
 		if _, ok := privatablePackages[ctx.PathParam("type")]; ok {
 			dbPkg, err = packages_model.GetPackageByName(ctx, ctx.ContextUser.ID, packages_model.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 		}
-	}
-	if lookup, ok := privatablePackages[pType]; ok {
+	} else if lookup, ok := privatablePackages[pType]; ok {
 		dbPkg, err = lookup(ctx)
 	}
 	if err == nil && dbPkg != nil {
 		ctx.Package = dbPkg
 		if dbPkg.RepoID != 0 {
 			repo, err := repo_model.GetRepositoryByID(ctx, dbPkg.RepoID)
-			if err == nil {
+			if err != nil {
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetRepositoryByID: %v", err))
+			} else {
 				ctx.Repository = repo
 			}
 		}
