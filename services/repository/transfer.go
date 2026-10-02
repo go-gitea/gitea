@@ -179,6 +179,12 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("update owner: %w", err)
 	}
 
+	if newOwner.IsOrganization() && newOwner.IsArchived && !repo.IsArchived && !repo.IsMirror {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+			return fmt.Errorf("archive repo: %w", err)
+		}
+	}
+
 	// Remove redundant collaborators.
 	collaborators, _, err := repo_model.GetCollaborators(ctx, &repo_model.FindCollaborationOptions{RepoID: repo.ID})
 	if err != nil {

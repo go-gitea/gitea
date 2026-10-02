@@ -164,6 +164,9 @@ type User struct {
 	// Whether a repo admin can add/remove a team to/from the repo on the collaboration page
 	RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
 
+	IsArchived   bool               `xorm:"NOT NULL DEFAULT false"`
+	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
+
 	// FIXME: ORG-REPO-ADMIN-DANGER-ZONE: it needs a new field to decide whether a repo admin can manage the repo's danger zone
 	// Team won't work for this case, because a newly create org repo isn't in any team (same as above)
 

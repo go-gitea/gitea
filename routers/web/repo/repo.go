@@ -193,6 +193,8 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 	case errors.As(err, &errNamePatternNotAllowed):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
+	case errors.Is(err, util.ErrPermissionDenied):
+		ctx.RenderWithErrDeprecated(ctx.Tr("org.settings.archived_create_repo_not_allowed"), tpl, form)
 	default:
 		ctx.ServerError(name, err)
 	}

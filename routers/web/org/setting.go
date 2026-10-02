@@ -239,6 +239,15 @@ func SettingsRenamePost(ctx *context.Context) {
 	ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(newOrgName) + "/settings")
 }
 
+// SettingsArchivePost archives or unarchives the organization
+func SettingsArchivePost(ctx *context.Context) {
+	if err := org_service.SetOrganizationArchived(ctx, ctx.Org.Organization, ctx.FormBool("archive")); err != nil {
+		ctx.ServerError("SetOrganizationArchived", err)
+		return
+	}
+	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
+}
+
 // SettingsChangeVisibilityPost response for change organization visibility
 func SettingsChangeVisibilityPost(ctx *context.Context) {
 	visibilityStr := ctx.FormString("visibility")
