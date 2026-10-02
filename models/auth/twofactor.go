@@ -5,14 +5,11 @@ package auth
 
 import (
 	"context"
-	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base32"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/secret"
@@ -91,94 +88,38 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
-const (
-	totpSecretKeyIterations = 10000
-	totpSecretKeyLength     = 32
-	totpSecretSaltSize      = 16
-	totpSecretPBKDF2Prefix  = "pbkdf2$"
-)
-
-func totpEncryptionKey(salt string) []byte {
-	if salt == "" {
-		k := md5.Sum([]byte(setting.SecretKey))
-		return k[:]
-	}
-	return pbkdf2.Key([]byte(setting.SecretKey), []byte(salt), totpSecretKeyIterations, totpSecretKeyLength, sha256.New)
+// SetSecret sets the 2FA secret.
+func (t *TwoFactor) SetSecret(secretString string) (err error) {
+	t.Secret, err = secret.EncryptSecret(setting.SecretKey, secretString)
+	return err
 }
 
-// parseStoredSecret returns the PBKDF2 salt (empty for legacy MD5 rows) and AES ciphertext.
-// New values are stored as "pbkdf2$<hex-salt>$<base64-ciphertext>" in the existing Secret column.
-func (t *TwoFactor) parseStoredSecret() (salt string, ciphertext []byte, err error) {
-	if after, ok := strings.CutPrefix(t.Secret, totpSecretPBKDF2Prefix); ok {
-		salt, b64, ok := strings.Cut(after, "$")
-		if !ok || salt == "" || b64 == "" {
-			return "", nil, fmt.Errorf("validateTOTP invalid pbkdf2 secret format")
-		}
-		ciphertext, err = base64.StdEncoding.DecodeString(b64)
-		return salt, ciphertext, err
-	}
-	ciphertext, err = base64.StdEncoding.DecodeString(t.Secret)
-	return "", ciphertext, err
-}
-
-func (t *TwoFactor) usesLegacySecret() bool {
-	return !strings.HasPrefix(t.Secret, totpSecretPBKDF2Prefix)
-}
-
-// SetSecret encrypts and stores the TOTP secret with a fresh per-row PBKDF2 salt in Secret.
-func (t *TwoFactor) SetSecret(secretString string) error {
-	salt := hex.EncodeToString(util.CryptoRandomBytes(totpSecretSaltSize))
-	secretBytes, err := secret.AesEncrypt(totpEncryptionKey(salt), []byte(secretString))
+// validateTOTP validates the provided passcode. It does not consume the passcode; all login
+// surfaces must go through ValidateAndConsumeTOTP so that a passcode cannot be redeemed twice.
+func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
+	secretStr, err := secret.DecryptSecretWithMD5Fallback(setting.SecretKey, t.Secret)
 	if err != nil {
-		return err
+		return false, fmt.Errorf("validateTOTP: %w", err)
 	}
-	t.Secret = totpSecretPBKDF2Prefix + salt + "$" + base64.StdEncoding.EncodeToString(secretBytes)
-	return nil
-}
-
-// validateTOTP validates the passcode and returns the decrypted TOTP secret on success.
-// It does not consume the passcode; all login surfaces must go through ValidateAndConsumeTOTP.
-func (t *TwoFactor) validateTOTP(passcode string) (bool, string, error) {
-	salt, decodedStoredSecret, err := t.parseStoredSecret()
-	if err != nil {
-		return false, "", fmt.Errorf("validateTOTP invalid stored secret: %w", err)
-	}
-	secretBytes, err := secret.AesDecrypt(totpEncryptionKey(salt), decodedStoredSecret)
-	if err != nil {
-		return false, "", fmt.Errorf("validateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
-	}
-	secretStr := string(secretBytes)
-	return totp.Validate(passcode, secretStr), secretStr, nil
+	return totp.Validate(passcode, secretStr), nil
 }
 
 // ValidateAndConsumeTOTP validates the passcode and atomically records it as used so that the
 // same passcode cannot be redeemed more than once (RFC 6238 §5.2). It returns false for an
 // invalid passcode as well as for a replay, including the case where a concurrent request with
 // the same passcode won the race first. All TOTP login surfaces must go through this helper.
-//
-// When the stored secret still uses the legacy unsalted MD5 key, a successful validation also
-// re-encrypts it with PBKDF2 and persists the upgrade in the same conditional update.
 func (t *TwoFactor) ValidateAndConsumeTOTP(ctx context.Context, passcode string) (bool, error) {
-	ok, secretStr, err := t.validateTOTP(passcode)
+	ok, err := t.validateTOTP(passcode)
 	if err != nil || !ok {
 		return false, err
 	}
-
-	cols := []string{"last_used_passcode"}
-	if t.usesLegacySecret() {
-		if err := t.SetSecret(secretStr); err != nil {
-			return false, err
-		}
-		cols = append(cols, "secret")
-	}
-
 	// Conditional update: only a row whose stored passcode differs from this one is updated, so a
 	// replay (or a concurrent duplicate) matches zero rows and is rejected. The row lock taken by
 	// the UPDATE serializes racing requests, closing the read-validate-write TOCTOU window.
 	t.LastUsedPasscode = passcode
 	n, err := db.GetEngine(ctx).ID(t.ID).
 		Where(builder.Or(builder.IsNull{"last_used_passcode"}, builder.Neq{"last_used_passcode": passcode})).
-		Cols(cols...).Update(t)
+		Cols("last_used_passcode").Update(t)
 	if err != nil {
 		return false, err
 	}

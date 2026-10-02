@@ -4,21 +4,27 @@
 package secret
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEncryptDecrypt(t *testing.T) {
-	hex, err := EncryptSecret("foo", "baz")
+	encrypted, err := EncryptSecret("foo", "baz")
 	assert.NoError(t, err)
-	str, _ := DecryptSecret("foo", hex)
+	str, _ := DecryptSecret("foo", encrypted)
 	assert.Equal(t, "baz", str)
-
-	hex, err = EncryptSecret("bar", "baz")
-	assert.NoError(t, err)
-	str, _ = DecryptSecret("foo", hex)
+	str, _ = DecryptSecret("bar", encrypted)
 	assert.NotEqual(t, "baz", str)
+
+	legacyKey := sha256.Sum256([]byte("foo"))
+	legacy, err := AesEncrypt(legacyKey[:], []byte("baz"))
+	assert.NoError(t, err)
+	str, err = DecryptSecret("foo", hex.EncodeToString(legacy))
+	assert.NoError(t, err)
+	assert.Equal(t, "baz", str)
 
 	_, err = DecryptSecret("a", "b")
 	assert.ErrorContains(t, err, "invalid hex string")

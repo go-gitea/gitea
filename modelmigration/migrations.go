@@ -429,6 +429,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
 		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
+		newMigration(356, "Re-encrypt secrets with an Argon2id-derived SECRET_KEY", v28.ReencryptSecrets),
 	}
 	return preparedMigrations
 }
