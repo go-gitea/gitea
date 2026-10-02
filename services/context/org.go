@@ -153,7 +153,6 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			is, _ := organization.IsPublicMembership(ctx, ctx.Org.Organization.ID, uid)
 			return is
 		}
-		ctx.Org.CanCreateOrgRepo = ctx.Org.CanCreateOrgRepo && !org.IsArchived
 		ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
 
 		ctx.Org.OrgLink = org.AsUser().OrganisationLink()

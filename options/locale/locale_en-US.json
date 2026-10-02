@@ -2530,6 +2530,7 @@
   "repo.settings.unarchive.text": "Unarchiving the repo will restore its ability to receive commits and pushes, as well as new issues and pull requests.",
   "repo.settings.unarchive.success": "The repo was successfully unarchived.",
   "repo.settings.unarchive.error": "An error occurred while trying to unarchive the repo. See the log for more details.",
+  "repo.settings.unarchive.error_org_archived": "This repo belongs to an archived organization. Unarchive the organization first.",
   "repo.settings.update_avatar_success": "The repository avatar has been updated.",
   "repo.settings.lfs": "LFS",
   "repo.settings.lfs_filelist": "LFS files stored in this repository",

@@ -416,6 +416,8 @@ func Generate(ctx *context.APIContext) {
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -1000,6 +1002,11 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
+			if ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsArchived {
+				err := errors.New("repo belongs to an archived organization, cannot un-archive")
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+				return err
+			}
 			if err := repo_model.SetArchiveRepoState(ctx, repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.APIErrorInternal(err)
