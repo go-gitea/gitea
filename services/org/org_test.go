@@ -4,6 +4,7 @@
 package org
 
 import (
+	"errors"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -100,10 +101,20 @@ func TestSetOrganizationArchived(t *testing.T) {
 		Update(&repo_model.Repository{IsArchived: true, ArchivedUnix: 1})
 	require.NoError(t, err)
 
+	err = SetOrganizationArchived(ctx, org, true)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	errHasMirrors, ok := errors.AsType[ErrOrgHasMirrors](err)
+	require.True(t, ok)
+	assert.Equal(t, []string{"repo5"}, errHasMirrors.Mirrors)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: false})
+
+	_, err = db.GetEngine(ctx).ID(5).Cols("is_mirror").Update(&repo_model.Repository{IsMirror: false})
+	require.NoError(t, err)
 	require.NoError(t, SetOrganizationArchived(ctx, org, true))
 	assert.True(t, unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).IsArchived)
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
-	assert.False(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5}).IsArchived)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5, IsArchived: true})
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32, IsArchived: true, ArchivedUnix: 1})
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

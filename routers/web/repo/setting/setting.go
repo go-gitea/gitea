@@ -904,6 +904,8 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 			ctx.JSONError(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer.blocked_user"))
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.JSONError(ctx.Tr("repo.settings.transfer.archived_org_mirror"))
 		} else {
 			ctx.ServerError("TransferOwnership", err)
 		}

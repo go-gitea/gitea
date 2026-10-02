@@ -13145,6 +13145,9 @@
           "404": {
             "$ref": "#/components/responses/notFound"
           },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          },
           "423": {
             "$ref": "#/components/responses/orgArchivedError"
           }
