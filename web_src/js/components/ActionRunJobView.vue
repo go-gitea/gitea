@@ -277,18 +277,14 @@ function shouldAutoScroll(stepIndex: number): boolean {
 function appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
   for (const line of logLines) {
     const cmd = parseLogLineCommand(line);
-    if (cmd?.name === 'hidden') continue;
     if (cmd?.name === 'group') {
       beginLogGroup(stepIndex, startTime, line, cmd);
-      continue;
-    }
-    if (cmd?.name === 'endgroup') {
+    } else if (cmd?.name === 'endgroup') {
       endLogGroup(stepIndex);
-      continue;
+    } else if (cmd?.name !== 'hidden') {
+      // the active logs container may change during the loop, for example: entering and leaving a group
+      getActiveLogsContainer(stepIndex).append(createLogLine(stepIndex, startTime, line, cmd));
     }
-    // the active logs container may change during the loop, for example: entering and leaving a group
-    const el = getActiveLogsContainer(stepIndex);
-    el.append(createLogLine(stepIndex, startTime, line, cmd));
   }
 }
 
