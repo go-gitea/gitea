@@ -23,6 +23,20 @@
 			</div>
 		</div>
 
+		<div class="item tw-items-center">
+			<div class="item-main">
+				<div class="item-title">{{ctx.Locale.Tr "org.settings.archive"}}</div>
+				<div class="item-body">{{ctx.Locale.Tr "org.settings.archive_desc"}}</div>
+			</div>
+			<div class="item-trailing">
+				{{if .Org.IsArchived}}
+				<button type="button" class="ui basic red button link-action" data-url="{{.Link}}/archive?archive=false" data-modal-confirm="{{ctx.Locale.Tr "org.settings.unarchive_desc"}}">{{ctx.Locale.Tr "org.settings.unarchive"}}</button>
+				{{else}}
+				<button type="button" class="ui basic red button link-action" data-url="{{.Link}}/archive?archive=true" data-modal-confirm="{{ctx.Locale.Tr "org.settings.archive_desc"}}">{{ctx.Locale.Tr "org.settings.archive"}}</button>
+				{{end}}
+			</div>
+		</div>
+
 		<div class="item">
 			<div class="item-main">
 				<div class="item-title">{{ctx.Locale.Tr "org.settings.delete_account"}}</div>

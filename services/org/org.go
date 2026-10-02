@@ -24,6 +24,8 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
+
+	"xorm.io/builder"
 )
 
 // deleteOrganization deletes models associated to an organization.
@@ -189,6 +191,42 @@ func ChangeOrganizationVisibility(ctx context.Context, org *org_model.Organizati
 	audit.Record(ctx, audit_model.OrganizationVisibility, org.AsUser(),
 		"old_visibility", oldVisibility.String(), "new_visibility", visibility.String())
 
+	return nil
+}
+
+// SetOrganizationArchived archives the organization and its repositories; unarchiving leaves the repositories archived
+func SetOrganizationArchived(ctx context.Context, org *org_model.Organization, archived bool) error {
+	var repos []*repo_model.Repository
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := org_model.SetArchiveOrgState(ctx, org, archived); err != nil {
+			return err
+		}
+		if !archived {
+			return nil
+		}
+		// mirrors can't be archived
+		if err := db.GetEngine(ctx).Where(builder.Eq{"owner_id": org.ID, "is_archived": false, "is_mirror": false}).Find(&repos); err != nil {
+			return err
+		}
+		for _, repo := range repos {
+			if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if !archived {
+		audit.Record(ctx, audit_model.OrganizationUnarchive, org.AsUser())
+		return nil
+	}
+	audit.Record(ctx, audit_model.OrganizationArchive, org.AsUser())
+	for _, repo := range repos {
+		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
+		audit.Record(ctx, audit_model.RepositoryArchive, repo)
+	}
 	return nil
 }
 
