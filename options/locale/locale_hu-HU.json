@@ -1325,6 +1325,7 @@
   "packages.terraform.unlock": "Feloldás",
   "packages.owner.settings.cleanuprules.enabled": "Engedélyezett",
   "secrets.creation.description": "Leírás",
+  "actions.status.pending": "Függőben",
   "actions.runners.name": "Név",
   "actions.runners.owner_type": "Típus",
   "actions.runners.description": "Leírás",
@@ -1334,5 +1335,6 @@
   "actions.runners.version": "Verzió",
   "actions.runs.summary": "Összefoglaló",
   "actions.workflow.scope_owner": "Tulajdonos",
+  "actions.job_queue.filter_repo_no_select": "Minden tároló",
   "actions.general.token_permissions.mode.restricted": "Korlátozott"
 }
