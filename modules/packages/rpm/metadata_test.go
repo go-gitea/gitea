@@ -7,9 +7,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/binary"
+	"io"
 	"testing"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParsePackage(t *testing.T) {
@@ -46,8 +51,10 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 
 	zr, err := gzip.NewReader(bytes.NewReader(rpmPackageContent))
 	assert.NoError(t, err)
+	decompressed, err := io.ReadAll(zr)
+	assert.NoError(t, err)
 
-	p, err := ParsePackage(zr)
+	p, err := ParsePackage(bytes.NewReader(decompressed))
 	assert.NotNil(t, p)
 	assert.NoError(t, err)
 
@@ -160,4 +167,49 @@ Mu0UFYgZ/bYnuvn/vz4wtCz8qMwsHUvP0PX3tbYFUctAPdrY6tiiDtcCddDECahx7SuVNP5dpmb5
 		},
 		p.FileMetadata.Changelogs,
 	)
+
+	_, sig, h, err := readHeaders(bytes.NewReader(decompressed))
+	require.NoError(t, err)
+	headerStart := leadSize + len(sig.raw) + signaturePadding(len(sig.raw))
+
+	t.Run("RejectsInvalidHeaders", func(t *testing.T) {
+		for _, corrupt := range []func([]byte){
+			func(b []byte) { binary.BigEndian.PutUint32(b[leadSize+12:], maxHeaderData) },
+			func(b []byte) { binary.BigEndian.PutUint32(b[leadSize+12:], maxHeaderData+1) },
+			func(b []byte) { b[headerStart+len(h.raw)-1] ^= 1 },
+			func(b []byte) {
+				binary.BigEndian.PutUint32(b[leadSize+headerIntroSize+3*indexEntrySize+8:], maxHeaderData)
+			},
+			func(b []byte) {
+				copy(b[leadSize+headerIntroSize+4*indexEntrySize+8:][:4], b[leadSize+headerIntroSize+3*indexEntrySize+8:])
+			},
+		} {
+			content := bytes.Clone(decompressed)
+			corrupt(content)
+			_, err := ParsePackage(bytes.NewReader(content))
+			assert.ErrorIs(t, err, ErrInvalidPackage)
+		}
+	})
+
+	t.Run("SignPackage", func(t *testing.T) {
+		entity, err := openpgp.NewEntity("", "", "", &packet.Config{RSABits: 1024})
+		require.NoError(t, err)
+		signed, err := SignPackage(bytes.NewReader(decompressed), entity.PrivateKey)
+		require.NoError(t, err)
+		content, err := io.ReadAll(signed)
+		require.NoError(t, err)
+
+		_, signedSig, signedHeader, err := readHeaders(bytes.NewReader(content))
+		require.NoError(t, err)
+		_, err = openpgp.CheckDetachedSignature(openpgp.EntityList{entity}, bytes.NewReader(signedHeader.raw), bytes.NewReader(signedSig.entries[sigTagRSA].data), nil)
+		assert.NoError(t, err)
+		_, err = openpgp.CheckDetachedSignature(openpgp.EntityList{entity}, bytes.NewReader(decompressed[headerStart:]), bytes.NewReader(signedSig.entries[sigTagPGP].data), nil)
+		assert.NoError(t, err)
+		assert.Equal(t, decompressed[:leadSize], content[:leadSize])
+		assert.Equal(t, decompressed[headerStart:], content[leadSize+len(signedSig.raw)+signaturePadding(len(signedSig.raw)):])
+
+		signedPackage, err := ParsePackage(bytes.NewReader(content))
+		require.NoError(t, err)
+		assert.Equal(t, p, signedPackage)
+	})
 }
