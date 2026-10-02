@@ -887,22 +887,20 @@
 						<div class="item-main">
 							{{if .Repository.IsArchived}}
 								<div class="item-title">{{ctx.Locale.Tr "repo.settings.unarchive.header"}}</div>
-								<div class="item-body">{{ctx.Locale.Tr "repo.settings.unarchive.text"}}</div>
+								<div class="item-body">{{if $orgArchived}}{{ctx.Locale.Tr "repo.settings.unarchive.error_org_archived"}}{{else}}{{ctx.Locale.Tr "repo.settings.unarchive.text"}}{{end}}</div>
 							{{else}}
 								<div class="item-title">{{ctx.Locale.Tr "repo.settings.archive.header"}}</div>
 								<div class="item-body">{{ctx.Locale.Tr "repo.settings.archive.text"}}</div>
 							{{end}}
 						</div>
 						<div class="item-trailing">
-							<span {{if $orgArchived}}data-tooltip-content="{{ctx.Locale.Tr "repo.settings.unarchive.error_org_archived"}}"{{end}}>
-								<button type="button" class="ui basic red show-modal button {{if $orgArchived}}disabled{{end}}" data-modal="#archive-repo-modal" {{if $orgArchived}}disabled{{end}}>
-									{{if .Repository.IsArchived}}
-										{{ctx.Locale.Tr "repo.settings.unarchive.button"}}
-									{{else}}
-										{{ctx.Locale.Tr "repo.settings.archive.button"}}
-									{{end}}
-								</button>
-							</span>
+							<button type="button" class="ui basic red show-modal button{{if $orgArchived}} disabled{{end}}" data-modal="#archive-repo-modal">
+								{{if .Repository.IsArchived}}
+									{{ctx.Locale.Tr "repo.settings.unarchive.button"}}
+								{{else}}
+									{{ctx.Locale.Tr "repo.settings.archive.button"}}
+								{{end}}
+							</button>
 						</div>
 					</div>
 				{{end}}

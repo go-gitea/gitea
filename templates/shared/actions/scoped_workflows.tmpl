@@ -5,6 +5,7 @@
 	<p>{{.ScopedWorkflowsDesc}}</p>
 	<p>{{ctx.Locale.Tr "actions.scoped_workflows.add_help" .ScopedWorkflowDirs}}</p>
 	<div class="ui warning message">{{ctx.Locale.Tr "actions.scoped_workflows.security_note"}}</div>
+	{{if not $.IsOrgArchived}}
 	<form class="ui form form-fetch-action flex-text-block" method="post" action="{{.Link}}/add">
 		<div data-global-init="initSearchRepoBox" data-uid="{{.RepoSearchUID}}"{{if .ScopedWorkflowsSearchExclusive}} data-exclusive="true"{{end}}{{if .ScopedWorkflowsSearchFullName}} data-full-name="true"{{end}} class="ui search tw-flex-1">
 			<div class="ui input tw-w-full">
@@ -13,6 +14,7 @@
 		</div>
 		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "actions.scoped_workflows.source.add"}}</button>
 	</form>
+	{{end}}
 </div>
 
 {{if .ScopedWorkflowSources}}
@@ -21,10 +23,12 @@
 		{{if $i}}<div class="ui divider"></div>{{end}}
 		<div class="flex-text-block tw-justify-between">
 			<a class="tw-font-semibold gt-ellipsis tw-min-w-0" href="{{$src.Repo.Link}}">{{$src.Repo.FullName}}</a>
+			{{if not $.IsOrgArchived}}
 			<form class="ui form form-fetch-action" method="post" action="{{$.Link}}/remove">
 				<input type="hidden" name="repo_id" value="{{$src.Repo.ID}}">
 				<button type="submit" class="ui red tiny button">{{ctx.Locale.Tr "remove"}}</button>
 			</form>
+			{{end}}
 		</div>
 		{{if $src.ScopedWorkflowInfos}}
 			<form class="ui form form-fetch-action tw-mt-3" method="post" action="{{$.Link}}/required" data-global-init="initScopedWorkflowRequired">
@@ -78,7 +82,9 @@
 					</tbody>
 				</table>
 				<div class="text grey tw-mb-2">{{ctx.Locale.Tr "actions.scoped_workflows.required.patterns_help"}}</div>
+				{{if not $.IsOrgArchived}}
 				<button type="submit" class="ui tiny primary button">{{ctx.Locale.Tr "save"}}</button>
+				{{end}}
 			</form>
 		{{else}}
 			<div class="text grey tw-mt-2">{{ctx.Locale.Tr "actions.scoped_workflows.no_files"}}</div>

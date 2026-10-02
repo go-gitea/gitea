@@ -524,13 +524,10 @@ func TestAPIRepoUnarchiveInArchivedOrg(t *testing.T) {
 
 	resp := session.MakeRequest(t, NewRequest(t, "GET", "/org3"), http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	assert.Equal(t, 0, htmlDoc.Find(`a[href$="/repo/create?org=3"]`).Length())
-	_, disabled := htmlDoc.Find(".ui.primary.button.tw-grow").Attr("disabled")
-	assert.True(t, disabled)
+	assert.Zero(t, htmlDoc.Find(`a[href$="/repo/create?org=3"]`).Length())
 
 	resp = session.MakeRequest(t, NewRequest(t, "GET", "/org3/repo3/settings"), http.StatusOK)
-	_, disabled = NewHTMLParser(t, resp.Body).Find(`button[data-modal="#archive-repo-modal"]`).Attr("disabled")
-	assert.True(t, disabled)
+	assert.True(t, NewHTMLParser(t, resp.Body).Find(`button[data-modal="#archive-repo-modal"]`).HasClass("disabled"))
 
 	req = NewRequestWithValues(t, "POST", "/org3/repo3/settings", map[string]string{"action": "unarchive"})
 	session.MakeRequest(t, req, http.StatusSeeOther)

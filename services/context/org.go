@@ -5,6 +5,7 @@
 package context
 
 import (
+	"net/http"
 	"strings"
 
 	"gitea.dev/models/organization"
@@ -66,6 +67,16 @@ type OrgAssignmentOptions struct {
 	RequireMember     bool
 	RequireOwner      bool
 	RequireTeamMember bool
+}
+
+// OrgMustNotBeArchived rejects write requests when the context user is an archived organization
+func OrgMustNotBeArchived() func(ctx *Context) {
+	return func(ctx *Context) {
+		if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() && ctx.ContextUser.IsArchived &&
+			ctx.Req.Method != http.MethodGet && ctx.Req.Method != http.MethodHead {
+			ctx.HTTPError(http.StatusForbidden, "organization is archived")
+		}
+	}
 }
 
 // OrgAssignment returns a middleware to handle organization assignment
@@ -154,6 +165,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			return is
 		}
 		ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
+		ctx.Data["IsOrgArchived"] = org.IsArchived
 
 		ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 		ctx.Data["OrgLink"] = ctx.Org.OrgLink

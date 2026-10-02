@@ -106,6 +106,8 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
@@ -155,6 +157,8 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	s, err := secret_service.DeleteSecretByName(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"))
 	if err != nil {
@@ -184,6 +188,8 @@ func (Action) CreateRegistrationToken(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RegistrationToken"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	shared.GetRegistrationToken(ctx, ctx.Org.Organization.ID, 0)
 }
@@ -317,6 +323,8 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	if err := actions_service.DeleteVariableByName(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("variablename")); err != nil {
 		ctx.APIErrorAuto(err)
@@ -359,6 +367,8 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//     description: variable name already exists.
 	//   "500":
 	//     "$ref": "#/responses/error"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	opt := web.GetForm[*api.CreateVariableOption](ctx)
 
@@ -419,6 +429,8 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
@@ -528,6 +540,8 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 
@@ -564,6 +578,8 @@ func (Action) UpdateRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 	shared.UpdateRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
 }
 

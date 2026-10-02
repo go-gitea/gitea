@@ -2810,6 +2810,7 @@
   "org.settings.archive_desc": "Archiving makes all repositories in this organization read-only. New repositories can't be created here, and repositories transferred in are archived.",
   "org.settings.unarchive": "Unarchive organization",
   "org.settings.unarchive_desc": "Unarchiving allows new repositories to be created in this organization again. Its repositories stay archived and can be unarchived one by one.",
+  "org.settings.archived_read_only": "This organization is archived. Its settings are read-only until it is unarchived; members, teams, visibility, rename and delete still work.",
   "org.settings.archived_create_repo_not_allowed": "Cannot create repositories in an archived organization.",
   "org.settings.rename_success": "Organization %[1]s has been renamed to %[2]s successfully.",
   "org.settings.rename_no_change": "Organization name is not changed.",

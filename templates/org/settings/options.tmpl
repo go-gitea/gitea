@@ -49,10 +49,13 @@
 			{{end}}
 
 			<div class="field">
+				{{if not $.IsOrgArchived}}
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "org.settings.update_settings"}}</button>
+				{{end}}
 			</div>
 		</form>
 
+		{{if not $.IsOrgArchived}}
 		<div class="divider"></div>
 
 		<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
@@ -64,6 +67,7 @@
 				<button type="button" class="ui red button link-action" data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
 			</div>
 		</form>
+		{{end}}
 	</div>
 
 {{template "org/settings/options_dangerzone" .}}
