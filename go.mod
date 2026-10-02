@@ -6,7 +6,6 @@ toolchain go1.27.1
 
 require (
 	connectrpc.com/connect v1.21.0
-	gitea.com/go-chi/cache v0.2.1
 	gitea.com/go-chi/session v0.0.0-20260708011333-ebced8a7a2d6
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
@@ -23,6 +22,7 @@ require (
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.6.1
 	github.com/bohde/codel v0.2.0
+	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c
 	github.com/buildkite/terminal-to-html/v3 v3.17.1
 	github.com/caddyserver/certmagic v0.25.4
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260812203852-971c0284dc33
@@ -146,7 +146,6 @@ require (
 	github.com/bodgit/sevenzip v1.6.4 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
 	github.com/boombuler/barcode v1.1.0 // indirect
-	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c // indirect
 	github.com/caddyserver/zerossl v0.1.5 // indirect
 	github.com/cention-sany/utf7 v0.0.0-20170124080048-26cad61bd60a // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -236,7 +235,6 @@ require (
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
-	github.com/unknwon/com v1.0.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
