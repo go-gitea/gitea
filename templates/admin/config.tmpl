@@ -237,7 +237,7 @@
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
-				{{if eq .CacheAdapter "memory"}}
+				{{if or (eq .CacheAdapter "memory") (eq .CacheAdapter "twoqueue")}}
 					<dt>{{ctx.Locale.Tr "admin.config.cache_interval"}}</dt>
 					<dd>{{.CacheInterval}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
 				{{end}}
