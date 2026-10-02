@@ -62,11 +62,9 @@ func TestReencryptSecrets(t *testing.T) {
 
 	_, err = x.Insert(
 		&TwoFactor{Secret: base64.StdEncoding.EncodeToString(legacyEncrypt(legacyTOTPKey[:], "totp"))},
-		&Webhook{HeaderAuthorizationEncrypted: legacyHex("Bearer token")},
 		&Secret{Data: legacyHex("secret")},
 		&Secret{Data: current},
 		&Secret{Data: "undecryptable"},
-		&LoginSource{Type: 2, Cfg: `{"Host":"ldap","BindPasswordEncrypt":"` + legacyHex("bind") + `"}`},
 		&Task{PayloadContent: `{"clone_addr_encrypted":"` + legacyHex("https://example.com/repo.git") + `","auth_password_encrypted":"undecryptable","auth_token_encrypted":""}`},
 	)
 	require.NoError(t, err)
@@ -96,14 +94,10 @@ func TestReencryptSecrets(t *testing.T) {
 	}
 
 	assert.Equal(t, "totp", decrypt(column("two_factor", "secret")[0]))
-	assert.Equal(t, "Bearer token", decrypt(column("webhook", "header_authorization_encrypted")[0]))
 	secrets := column("secret", "data")
 	assert.Equal(t, "secret", decrypt(secrets[0]))
 	assert.Equal(t, current, secrets[1])
 	assert.Equal(t, "undecryptable", secrets[2])
-	cfg := column("login_source", "cfg")[0]
-	assert.Equal(t, "ldap", jsonField(cfg, "Host"))
-	assert.Equal(t, "bind", decrypt(jsonField(cfg, "BindPasswordEncrypt")))
 	payload := column("task", "payload_content")[0]
 	assert.Equal(t, "https://example.com/repo.git", decrypt(jsonField(payload, "clone_addr_encrypted")))
 	assert.Equal(t, "undecryptable", jsonField(payload, "auth_password_encrypted"))

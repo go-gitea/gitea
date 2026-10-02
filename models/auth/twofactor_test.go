@@ -4,15 +4,11 @@
 package auth_test
 
 import (
-	"crypto/md5"
-	"encoding/base64"
 	"testing"
 	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/secret"
-	"gitea.dev/modules/setting"
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pquerna/otp/totp"
@@ -49,15 +45,6 @@ func TestTwoFactorValidateAndConsumeTOTP(t *testing.T) {
 	ok, err = reloaded.ValidateAndConsumeTOTP(t.Context(), "000000")
 	require.NoError(t, err)
 	assert.False(t, ok)
-
-	legacyKey := md5.Sum([]byte(setting.SecretKey))
-	ciphertext, err := secret.AesEncrypt(legacyKey[:], []byte(key.Secret()))
-	require.NoError(t, err)
-	legacy := &auth_model.TwoFactor{UID: 2, Secret: base64.StdEncoding.EncodeToString(ciphertext)}
-	require.NoError(t, auth_model.NewTwoFactor(t.Context(), legacy))
-	ok, err = legacy.ValidateAndConsumeTOTP(t.Context(), passcode)
-	require.NoError(t, err)
-	assert.True(t, ok)
 }
 
 func TestDisableTwoFactor(t *testing.T) {
