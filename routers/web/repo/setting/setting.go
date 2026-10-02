@@ -1036,6 +1036,12 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 	}
 
 	repo := ctx.Repo.Repository
+	if ctx.Repo.Owner.IsOrganization() && ctx.Repo.Owner.IsArchived {
+		ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error_org_archived"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+		return
+	}
+
 	if err := repo_model.SetArchiveRepoState(ctx, repo, false); err != nil {
 		log.Error("Tried to unarchive a repo: %s", err)
 		ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))

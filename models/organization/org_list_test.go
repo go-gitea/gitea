@@ -4,6 +4,7 @@
 package organization_test
 
 import (
+	"slices"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -87,4 +88,20 @@ func testDoerViewOtherVisibility(t *testing.T) {
 	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(viewer, viewer))
 	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(restrictedViewer, restrictedViewer))
 	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 4, IsAdmin: true, IsRestricted: true}, other))
+}
+
+func TestGetOrgsCanCreateRepoByUserIDSkipsArchived(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	hasOrg3 := func() bool {
+		orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx, 2)
+		assert.NoError(t, err)
+		return slices.ContainsFunc(orgs, func(o *organization.Organization) bool { return o.ID == 3 })
+	}
+	assert.True(t, hasOrg3())
+
+	org3 := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	assert.NoError(t, organization.SetArchiveOrgState(ctx, org3, true))
+	assert.False(t, hasOrg3())
 }

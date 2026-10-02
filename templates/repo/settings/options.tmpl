@@ -882,6 +882,7 @@
 					</div>
 				</div>
 				{{if not .Repository.IsMirror}}
+					{{$orgArchived := and .Repository.IsArchived .Owner.IsOrganization .Owner.IsArchived}}
 					<div class="item tw-items-center">
 						<div class="item-main">
 							{{if .Repository.IsArchived}}
@@ -893,13 +894,15 @@
 							{{end}}
 						</div>
 						<div class="item-trailing">
-							<button type="button" class="ui basic red show-modal button" data-modal="#archive-repo-modal">
-								{{if .Repository.IsArchived}}
-									{{ctx.Locale.Tr "repo.settings.unarchive.button"}}
-								{{else}}
-									{{ctx.Locale.Tr "repo.settings.archive.button"}}
-								{{end}}
-							</button>
+							<span {{if $orgArchived}}data-tooltip-content="{{ctx.Locale.Tr "repo.settings.unarchive.error_org_archived"}}"{{end}}>
+								<button type="button" class="ui basic red show-modal button {{if $orgArchived}}disabled{{end}}" data-modal="#archive-repo-modal" {{if $orgArchived}}disabled{{end}}>
+									{{if .Repository.IsArchived}}
+										{{ctx.Locale.Tr "repo.settings.unarchive.button"}}
+									{{else}}
+										{{ctx.Locale.Tr "repo.settings.archive.button"}}
+									{{end}}
+								</button>
+							</span>
 						</div>
 					</div>
 				{{end}}
