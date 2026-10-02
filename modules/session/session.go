@@ -7,11 +7,9 @@ package session
 
 import (
 	"context"
-	"encoding/base32"
 	"encoding/gob"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"gitea.dev/modules/graceful"
@@ -104,24 +102,24 @@ func startSession(backend backend, resp http.ResponseWriter, req *http.Request) 
 	return sess, nil
 }
 
-var sessionIdEncoder = sync.OnceValue(func() *base32.Encoding {
-	const lowerBase32Chars = "abcdefghijklmnopqrstuvwxyz234567"
-	return base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadding)
-})
-
 func newSessionID() string {
-	return sessionIdEncoder().EncodeToString(util.CryptoRandomBytes(16))
+	// lower case (in case the file system is case-insensitive) and length=16 (db session's primary key is fixed size 16)
+	// the entropy is about 36^16 > 80 bits
+	return util.FastCryptoRandomString(16, "abcdefghijklmnopqrstuvwxyz0123456789")
 }
 
 func isValidSessionID(sid string) bool {
+	if len(sid) != 16 { // db session has a primary key with fixed size 16
+		return false
+	}
 	for i := range len(sid) {
 		c := sid[i]
-		valid := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		valid := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'Z')
 		if !valid {
 			return false
 		}
 	}
-	return 16 < len(sid) && len(sid) < 100
+	return true
 }
 
 func newCookie(value string) *http.Cookie {

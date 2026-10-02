@@ -118,6 +118,16 @@ func FastCryptoRandomBytes(length int) []byte {
 	return buf
 }
 
+func FastCryptoRandomString(length int, chars string) string {
+	buf := make([]byte, length)
+	limit := int64(len(chars))
+	for i := range buf {
+		num := FastCryptoRandomInt(limit)
+		buf[i] = chars[num]
+	}
+	return string(buf)
+}
+
 func FastCryptoRandomHex(length int) string {
 	buf := FastCryptoRandomBytes(length / 2)
 	return hex.EncodeToString(buf)
