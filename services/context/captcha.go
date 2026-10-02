@@ -55,6 +55,7 @@ func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) bool {
 	if !valid {
 		ctx.Data["Err_Captcha"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.captcha_incorrect"), tpl, form)
+		return false
 	}
-	return valid
+	return true
 }

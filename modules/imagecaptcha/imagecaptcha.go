@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"gitea.dev/modules/cache"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 )
 
@@ -104,6 +105,7 @@ func ServeImage(resp http.ResponseWriter, req *http.Request) {
 	id, reload := urlQuery.Get("id"), urlQuery.Get("reload") != ""
 	code, err := PrepareCode(id, reload)
 	if err != nil {
+		log.Error("Failed to prepare captcha code for id %s: %v", id, err)
 		http.Error(resp, "Failed to prepare captcha code", http.StatusInternalServerError)
 		return
 	} else if code == "" {
@@ -111,8 +113,10 @@ func ServeImage(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	pngEncoder := png.Encoder{BufferPool: &pngBufferPool{}}
 	resp.Header().Set("Cache-Control", "no-store")
 	resp.Header().Set("Content-Type", "image/png")
-	_ = pngEncoder.Encode(resp, drawImage(noiseRand(id, code), code))
+	if req.Method == http.MethodGet {
+		pngEncoder := png.Encoder{BufferPool: &pngBufferPool{}}
+		_ = pngEncoder.Encode(resp, drawImage(noiseRand(id, code), code))
+	}
 }
