@@ -7,11 +7,11 @@ package session
 
 import (
 	"context"
+	"encoding/base32"
 	"encoding/gob"
-	"encoding/hex"
 	"fmt"
 	"net/http"
-	"strings"
+	"sync"
 	"time"
 
 	"gitea.dev/modules/graceful"
@@ -104,13 +104,24 @@ func startSession(backend backend, resp http.ResponseWriter, req *http.Request) 
 	return sess, nil
 }
 
+var sessionIdEncoder = sync.OnceValue(func() *base32.Encoding {
+	const lowerBase32Chars = "abcdefghijklmnopqrstuvwxyz234567"
+	return base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadding)
+})
+
 func newSessionID() string {
-	return hex.EncodeToString(util.CryptoRandomBytes(8))
+	return sessionIdEncoder().EncodeToString(util.CryptoRandomBytes(16))
 }
 
-// isValidSessionID also keeps the file provider's paths inside its directory
 func isValidSessionID(sid string) bool {
-	return len(sid) == 16 && strings.Trim(sid, "0123456789abcdef") == ""
+	for i := range len(sid) {
+		c := sid[i]
+		valid := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+		if !valid {
+			return false
+		}
+	}
+	return 16 < len(sid) && len(sid) < 100
 }
 
 func newCookie(value string) *http.Cookie {
