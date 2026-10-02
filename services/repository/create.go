@@ -339,6 +339,10 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return err
 	}
 
+	if u.IsOrganization() && u.IsArchived {
+		return util.NewPermissionDeniedErrorf("organization %s is archived", u.Name)
+	}
+
 	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)

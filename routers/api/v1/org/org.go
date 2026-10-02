@@ -425,6 +425,13 @@ func Edit(ctx *context.APIContext) {
 		return
 	}
 
+	if form.Archived != nil {
+		if err := org.SetOrganizationArchived(ctx, ctx.Org.Organization, *form.Archived); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx, ctx.Org.Organization))
 }
 

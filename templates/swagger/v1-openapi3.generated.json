@@ -5711,6 +5711,11 @@
       "EditOrgOption": {
         "description": "EditOrgOption options for editing an organization",
         "properties": {
+          "archived": {
+            "description": "Archive or unarchive the organization and its repositories",
+            "type": "boolean",
+            "x-go-name": "Archived"
+          },
           "description": {
             "description": "The description of the organization",
             "type": "string",
@@ -8185,6 +8190,11 @@
       "Organization": {
         "description": "Organization represents an organization",
         "properties": {
+          "archived": {
+            "description": "Whether the organization is archived",
+            "type": "boolean",
+            "x-go-name": "Archived"
+          },
           "avatar_url": {
             "description": "The URL of the organization's avatar",
             "format": "uri",
