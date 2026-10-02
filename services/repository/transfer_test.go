@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/feed"
 	notify_service "gitea.dev/services/notify"
 
@@ -211,4 +212,20 @@ func TestRepositoryTransferRejection(t *testing.T) {
 	err = AcceptTransferOwnership(t.Context(), repo, doer)
 	assert.Error(t, err)
 	assert.True(t, IsRepositoryLimitReached(err))
+}
+
+func TestTransferMirrorIntoArchivedOrg(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	require.NoError(t, organization.SetArchiveOrgState(t.Context(), org, true))
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, repo.LoadOwner(t.Context()))
+	repo.IsMirror = true
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.ErrorIs(t, StartRepositoryTransfer(t.Context(), admin, org.AsUser(), repo, nil), util.ErrPermissionDenied)
+	assert.ErrorIs(t, transferOwnership(t.Context(), admin, org.Name, repo, nil), util.ErrPermissionDenied)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerID: 2})
 }

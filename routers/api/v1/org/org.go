@@ -400,6 +400,8 @@ func Edit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Organization"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/orgArchivedError"
 
@@ -410,6 +412,18 @@ func Edit(ctx *context.APIContext) {
 		form.Website != nil || form.Location != nil || form.Email != nil || form.RepoAdminChangeTeamAccess != nil) {
 		ctx.APIError(http.StatusLocked, "organization is archived")
 		return
+	}
+
+	if form.Archived != nil && *form.Archived && !ctx.Org.Organization.IsArchived {
+		mirrors, err := org.GetMirrorNames(ctx, ctx.Org.Organization.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if len(mirrors) > 0 {
+			ctx.APIError(http.StatusUnprocessableEntity, org.ErrOrgHasMirrors{Mirrors: mirrors}.Error())
+			return
+		}
 	}
 
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
@@ -436,6 +450,10 @@ func Edit(ctx *context.APIContext) {
 
 	if form.Archived != nil {
 		if err := org.SetOrganizationArchived(ctx, ctx.Org.Organization, *form.Archived); err != nil {
+			if errors.Is(err, util.ErrInvalidArgument) {
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+				return
+			}
 			ctx.APIErrorInternal(err)
 			return
 		}
