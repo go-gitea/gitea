@@ -120,13 +120,13 @@ func TestSession(t *testing.T) {
 				switch sessionBackend := backend.backend.(type) {
 				case *dbBackend:
 					now := timeutil.TimeStampNow()
-					_, err := db.GetEngine(t.Context()).ID(sid).Cols("expiry").Update(&auth_model.Session{Expiry: now - 60})
+					_, err := db.GetEngine(t.Context()).ID(sid).Cols(auth_model.DbSessionLastAccessTime).Update(&auth_model.Session{LastAccessTime: now - 60})
 					require.NoError(t, err)
 					_, err = sessionBackend.load(sid)
 					require.NoError(t, err)
 					sess, _, err := auth_model.GetSession(t.Context(), sid)
 					require.NoError(t, err)
-					assert.GreaterOrEqual(t, sess.Expiry, now)
+					assert.GreaterOrEqual(t, sess.LastAccessTime, now)
 				case *redisBackend:
 					require.NoError(t, sessionBackend.client.Expire(t.Context(), "gitea-test-session-"+sid, time.Minute).Err())
 					_, err := sessionBackend.load(sid)

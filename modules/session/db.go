@@ -21,10 +21,10 @@ func dbContext() context.Context {
 
 func (b *dbBackend) load(sid string) ([]byte, error) {
 	sess, exist, err := auth.GetSession(dbContext(), sid)
-	if err != nil || !exist || sess.Expiry.Add(b.maxLifetime) <= timeutil.TimeStampNow() {
+	if err != nil || !exist || sess.LastAccessTime.Add(b.maxLifetime) <= timeutil.TimeStampNow() {
 		return nil, err
 	}
-	return sess.Data, auth.UpdateSessionExpiry(dbContext(), sid)
+	return sess.Data, auth.UpdateSessionLastAccessTime(dbContext(), sid)
 }
 
 func (b *dbBackend) save(sid string, data []byte, create bool) error {

@@ -13,10 +13,12 @@ import (
 )
 
 type Session struct {
-	Key    string             `xorm:"pk CHAR(16)"`
-	Data   []byte             `xorm:"BLOB"` // on MySQL this has a maximum size of 64Kb - this may need to be increased
-	Expiry timeutil.TimeStamp // last access time
+	Key            string             `xorm:"pk CHAR(16)"` // size the limit is from legacy go-chi/session
+	Data           []byte             `xorm:"BLOB"`        // on MySQL this has a maximum size of 64Kb
+	LastAccessTime timeutil.TimeStamp `xorm:"expiry"`      // last access time, the field name is from legacy go-chi/session, we don't want to change it at the moment
 }
+
+const DbSessionLastAccessTime = "expiry" // maybe we can make a deeper clean up in the future, just keep this PR focused
 
 func init() {
 	db.RegisterModel(new(Session))
@@ -24,9 +26,9 @@ func init() {
 
 // UpdateSession stores the data of the session with provided id, creating the session only if create is set
 func UpdateSession(ctx context.Context, key string, data []byte, create bool) error {
-	session := &Session{Key: key, Data: data, Expiry: timeutil.TimeStampNow()}
+	session := &Session{Key: key, Data: data, LastAccessTime: timeutil.TimeStampNow()}
 	update := func() (int64, error) {
-		return db.GetEngine(ctx).ID(key).Cols("data", "expiry").Update(session)
+		return db.GetEngine(ctx).ID(key).Cols("data", DbSessionLastAccessTime).Update(session)
 	}
 	if updated, err := update(); err != nil || updated > 0 || !create {
 		return err
@@ -43,8 +45,8 @@ func UpdateSession(ctx context.Context, key string, data []byte, create bool) er
 	return err
 }
 
-func UpdateSessionExpiry(ctx context.Context, key string) error {
-	_, err := db.GetEngine(ctx).ID(key).Cols("expiry").Update(&Session{Expiry: timeutil.TimeStampNow()})
+func UpdateSessionLastAccessTime(ctx context.Context, key string) error {
+	_, err := db.GetEngine(ctx).ID(key).Cols(DbSessionLastAccessTime).Update(&Session{LastAccessTime: timeutil.TimeStampNow()})
 	return err
 }
 
@@ -62,6 +64,6 @@ func DestroySession(ctx context.Context, key string) error {
 
 // CleanupSessions cleans up expired sessions
 func CleanupSessions(ctx context.Context, maxLifetime int64) error {
-	_, err := db.GetEngine(ctx).Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
+	_, err := db.GetEngine(ctx).Where(DbSessionLastAccessTime+" <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
 	return err
 }
