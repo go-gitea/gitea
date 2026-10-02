@@ -2016,6 +2016,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -2130,6 +2133,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RegistrationToken"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -2206,6 +2212,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -2256,6 +2265,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -2423,6 +2435,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -2463,6 +2478,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -2596,6 +2614,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -2644,6 +2665,9 @@
           "409": {
             "description": "variable name already exists."
           },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
+          },
           "500": {
             "$ref": "#/responses/error"
           }
@@ -2689,6 +2713,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -2773,6 +2800,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -2800,6 +2830,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3024,6 +3057,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3096,6 +3132,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -3141,6 +3180,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3222,6 +3264,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3291,6 +3336,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -3339,6 +3387,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3543,6 +3594,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3612,6 +3666,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -3660,6 +3717,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3760,6 +3820,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3811,6 +3874,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -3903,6 +3969,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       },
@@ -3962,6 +4031,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -4008,6 +4080,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/orgArchivedError"
           }
         }
       }
@@ -35208,6 +35283,17 @@
     },
     "notFound": {
       "description": "APINotFound is a not found empty response"
+    },
+    "orgArchivedError": {
+      "description": "APIOrgArchivedError is an error that is raised when an archived organization should be modified",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
     },
     "repoArchivedError": {
       "description": "APIRepoArchivedError is an error that is raised when an archived repo should be modified",

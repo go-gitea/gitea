@@ -86,6 +86,8 @@ func CreateLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 	form := web.GetForm[*api.CreateLabelOption](ctx)
 	form.Color = strings.Trim(form.Color, " ")
 	color, err := label.NormalizeColor(form.Color)
@@ -189,6 +191,8 @@ func EditLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 	form := web.GetForm[*api.EditLabelOption](ctx)
 	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id"))
 	if err != nil {
@@ -248,6 +252,8 @@ func DeleteLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id")); err != nil {
 		ctx.APIErrorInternal(err)
