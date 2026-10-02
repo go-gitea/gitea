@@ -73,12 +73,8 @@ func TestReencryptSecrets(t *testing.T) {
 	require.NoError(t, ReencryptSecrets(t.Context(), x))
 
 	column := func(table, col string) []string {
-		rows, err := x.Table(table).Cols(col).OrderBy("id").QueryString()
-		require.NoError(t, err)
-		values := make([]string, 0, len(rows))
-		for _, row := range rows {
-			values = append(values, row[col])
-		}
+		var values []string
+		require.NoError(t, x.Table(table).Cols(col).OrderBy("id").Find(&values))
 		return values
 	}
 	decrypt := func(encrypted string) string {
@@ -87,19 +83,15 @@ func TestReencryptSecrets(t *testing.T) {
 		require.NoError(t, err)
 		return plaintext
 	}
-	jsonField := func(value, field string) string {
-		var obj map[string]string
-		require.NoError(t, json.Unmarshal([]byte(value), &obj))
-		return obj[field]
-	}
 
 	assert.Equal(t, "totp", decrypt(column("two_factor", "secret")[0]))
 	secrets := column("secret", "data")
 	assert.Equal(t, "secret", decrypt(secrets[0]))
 	assert.Equal(t, current, secrets[1])
 	assert.Equal(t, "undecryptable", secrets[2])
-	payload := column("task", "payload_content")[0]
-	assert.Equal(t, "https://example.com/repo.git", decrypt(jsonField(payload, "clone_addr_encrypted")))
-	assert.Equal(t, "undecryptable", jsonField(payload, "auth_password_encrypted"))
-	assert.Empty(t, jsonField(payload, "auth_token_encrypted"))
+	var payload map[string]string
+	require.NoError(t, json.Unmarshal([]byte(column("task", "payload_content")[0]), &payload))
+	assert.Equal(t, "https://example.com/repo.git", decrypt(payload["clone_addr_encrypted"]))
+	assert.Equal(t, "undecryptable", payload["auth_password_encrypted"])
+	assert.Empty(t, payload["auth_token_encrypted"])
 }

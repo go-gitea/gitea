@@ -4,8 +4,6 @@
 package secret
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,13 +14,10 @@ func TestEncryptDecrypt(t *testing.T) {
 	assert.NoError(t, err)
 	str, _ := DecryptSecret("foo", encrypted)
 	assert.Equal(t, "baz", str)
-	str, _ = DecryptSecret("bar", encrypted)
-	assert.NotEqual(t, "baz", str)
+	_, err = DecryptSecret("bar", encrypted)
+	assert.ErrorContains(t, err, "message authentication failed")
 
-	legacyKey := sha256.Sum256([]byte("foo"))
-	legacy, err := AesEncrypt(legacyKey[:], []byte("baz"))
-	assert.NoError(t, err)
-	str, err = DecryptSecret("foo", hex.EncodeToString(legacy))
+	str, err = DecryptSecret("foo", "8bb399fd5f08040e80f328c056fbdac7a12a7a37")
 	assert.NoError(t, err)
 	assert.Equal(t, "baz", str)
 

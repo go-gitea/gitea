@@ -97,15 +97,12 @@ func reencryptJSONFields(value string, fields ...string) (string, error) {
 		reencrypted, err := reencryptHex(encrypted)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", field, err))
-			continue
+		} else if reencrypted != encrypted {
+			if obj[field], err = json.Marshal(reencrypted); err != nil {
+				return value, err
+			}
+			changed = true
 		}
-		if reencrypted == encrypted {
-			continue
-		}
-		if obj[field], err = json.Marshal(reencrypted); err != nil {
-			return value, err
-		}
-		changed = true
 	}
 	if !changed {
 		return value, errors.Join(errs...)
@@ -118,13 +115,13 @@ func reencryptJSONFields(value string, fields ...string) (string, error) {
 }
 
 func ReencryptSecrets(_ context.Context, x base.EngineMigration) error {
-	if err := reencryptColumn(x, "two_factor", "secret", builder.NewCond(), reencryptTOTP); err != nil {
+	if err := reencryptColumn(x, "two_factor", "secret", nil, reencryptTOTP); err != nil {
 		return err
 	}
-	if err := reencryptColumn(x, "webhook", "header_authorization_encrypted", builder.NewCond(), reencryptHex); err != nil {
+	if err := reencryptColumn(x, "webhook", "header_authorization_encrypted", nil, reencryptHex); err != nil {
 		return err
 	}
-	if err := reencryptColumn(x, "secret", "data", builder.NewCond(), reencryptHex); err != nil {
+	if err := reencryptColumn(x, "secret", "data", nil, reencryptHex); err != nil {
 		return err
 	}
 	if err := reencryptColumn(x, "login_source", "cfg", builder.In("type", 2, 5), func(value string) (string, error) {
