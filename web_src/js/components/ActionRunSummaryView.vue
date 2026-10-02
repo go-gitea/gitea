@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import WorkflowGraph from './WorkflowGraph.vue';
-import type {ActionRunSummaryViewLocale, ActionRunViewStore} from './ActionRunView.ts';
 import {computed, onBeforeUnmount, onMounted, toRefs} from 'vue';
 import {trString} from '../modules/i18n.ts';
+import type {ActionRunSummaryViewLocale, ActionRunViewStore} from './ActionRunView.ts';
 
 defineOptions({
   name: 'ActionRunSummaryView',

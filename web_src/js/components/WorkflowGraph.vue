@@ -7,7 +7,6 @@ import {isPlainClick} from '../utils/dom.ts';
 import {trN, trString} from '../modules/i18n.ts';
 import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
-import type {ActionRunViewStore, WorkflowGraphLocale} from './ActionRunView.ts';
 import {
   boxBottom,
   boxCenterY,
@@ -17,6 +16,7 @@ import {
   type GraphNode,
   type RoutedEdge,
 } from './WorkflowGraph.utils.ts';
+import type {ActionRunViewStore, WorkflowGraphLocale} from './ActionRunView.ts';
 
 type StoredState = {
   scale: number;
