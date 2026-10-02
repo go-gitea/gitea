@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/openid"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -37,7 +38,13 @@ func openIDRequireTwoFactor(ctx *context.Context, u *user_model.User, remember b
 	if !hasTwoFactor {
 		return
 	}
-	handleTwoFactorRequired(ctx, u, remember, map[string]any{"openidPendingURI": pendingURI})
+	// clear even if unset: a stale OAuth2 sign-in method/id_token from an earlier session
+	// on this browser must not survive a legacy-OpenID-initiated 2FA flow
+	handleTwoFactorRequired(ctx, u, remember, map[string]any{
+		"openidPendingURI":      pendingURI,
+		session.KeySignInMethod: "",
+		session.KeyOIDCIDToken:  "",
+	})
 }
 
 func openIDConnectFromContext(ctx *context.Context, u *user_model.User) error {
