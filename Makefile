@@ -517,6 +517,14 @@ $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
 
+.PHONY: release-changelog
+release-changelog: node_modules ## prepare changes since the branch's last release tag (RELEASE_VERSION required)
+	RELEASE_VERSION="$(RELEASE_VERSION)" RELEASE_PREVIOUS="$(RELEASE_PREVIOUS)" RELEASE_DATE="$(RELEASE_DATE)" node tools/release-changelog.ts
+
+.PHONY: release-changelog-pr
+release-changelog-pr: node_modules ## preview the changelog PR; set RELEASE_PR_DRY_RUN=false to open it
+	RELEASE_VERSION="$(RELEASE_VERSION)" RELEASE_BRANCH="$(RELEASE_BRANCH)" RELEASE_PR_DRY_RUN="$(RELEASE_PR_DRY_RUN)" node tools/release-changelog.ts pr
+
 # Release builds always use Go's native cross compilation. To cross-compile with CGO,
 # use "build" target with proper TAGS/LDFLAGS/CGO_CFLAGS to make "$(EXECUTABLE)" target run the "go build" command.
 .PHONY: release

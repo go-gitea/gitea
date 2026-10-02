@@ -1,0 +1,16 @@
+[changelog]
+body = """
+## {{ version | trim_start_matches(pat="v") }} - {{ timestamp | date(format="%Y-%m-%d") }}
+{% for group, commits in commits | group_by(attribute="group") %}
+* {{ group | split(pat=":") | last }}
+{% for commit in commits %}  * {{ commit.raw_message | split(pat="\n") | first | upper_first }}
+{% endfor %}{% endfor %}
+"""
+trim = true
+
+[git]
+conventional_commits = false
+filter_unconventional = false
+filter_commits = false
+tag_pattern = "^$"
+sort_commits = "newest"
