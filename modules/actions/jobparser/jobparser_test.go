@@ -290,16 +290,25 @@ func TestParseInterpolatesRunName(t *testing.T) {
 	assert.Empty(t, result[0].RunName)
 }
 
-func TestParseRunsOnFromJSONArray(t *testing.T) {
+func TestParseRunsOnFromJSONKeepsWhatGitHubRejectsForTheJobToFail(t *testing.T) {
 	content := []byte("on: push\njobs:\n  build:\n    runs-on: ${{ fromJSON(vars.RUNNER) }}\n    steps: [{run: echo}]\n")
 	_, err := Parse(content)
 	require.NoError(t, err)
-	for runner, want := range map[string][]string{`["self-hosted", "linux"]`: {"self-hosted", "linux"}, "[]": {""}} {
+	for runner, want := range map[string][]string{`["self-hosted", "linux"]`: {"self-hosted", "linux"}, "[]": {}, "{}": {}} {
 		result, err := Parse(content, WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"RUNNER": runner}))
 		require.NoError(t, err)
 		require.Len(t, result, 1)
 		_, job := result[0].Job()
 		assert.Equal(t, want, job.RunsOn(), runner)
+	}
+	for runner, problem := range map[string]string{`["a"]`: "", `""`: "Unexpected value ''", `[["a"]]`: "A sequence was not expected"} {
+		result, err := Parse(content, WithGitContext(&model.GithubContext{}), WithVars(map[string]string{"RUNNER": runner}))
+		require.NoError(t, err)
+		payload, err := result[0].Marshal()
+		require.NoError(t, err)
+		_, job, err := ParseRawSingleWorkflow(payload)
+		require.NoError(t, err)
+		assert.Equal(t, problem, job.RunsOnProblem(), runner)
 	}
 }
 
@@ -496,6 +505,37 @@ func TestReadWorkflowJobConditionContexts(t *testing.T) {
 			assert.NoError(t, err, condition)
 		} else {
 			assert.ErrorContains(t, err, "Unrecognized named-value: '"+unavailable+"'", condition)
+		}
+	}
+}
+
+func TestValidateWorkflowStaticJobKindAndRunsOnLikeGitHub(t *testing.T) {
+	for job, want := range map[string]string{
+		"{runs-on: x, steps: [{run: echo}]}":      "",
+		"{uses: o/r/.gitea/workflows/c.yml@main}": "",
+		"{runs-on: []}": "",
+		"{runs-on: {}}": "",
+		"{runs-on: {group: org/g, labels: [a, 1]}}":           "",
+		"{runs-on: {group: '${{ vars.G }}'}}":                 "",
+		"{steps: [{run: echo}]}":                              "Required property is missing: runs-on",
+		"{with: {}}":                                          "Required property is missing: uses",
+		"{runs-on: x, uses: o/r/.gitea/workflows/c.yml@main}": "Unexpected value 'uses'",
+		"{Runs-On: x}":                                        "Unexpected value 'Runs-On'",
+		"{runs-on: ~}":                                        "runs-on: Unexpected value ''",
+		"{runs-on: ['']}":                                     "runs-on: Unexpected value ''",
+		"{runs-on: [[a]]}":                                    "runs-on: A sequence was not expected",
+		"{runs-on: {labels: {a: b}}}":                         "runs-on: A mapping was not expected",
+		"{runs-on: {foo: x}}":                                 "runs-on: Unexpected value 'foo'",
+		"{runs-on: {group: org/}}":                            "runs-on: Invalid runs-on group name 'org/'.",
+		"{runs-on: {group: a/b/c}}":                           "runs-on: Invalid runs-on group name 'a/b/c'. Please use 'organization/' or 'enterprise/' prefix to target a single runner group.",
+		"{if: true}": "There's not enough info to determine what you meant. Add one of these properties: " +
+			"cancel-timeout-minutes, container, continue-on-error, defaults, env, environment, outputs, runs-on, secrets, services, snapshot, steps, timeout-minutes, uses, with",
+	} {
+		_, err := ValidateWorkflowStatic([]byte("on: push\njobs:\n  build: " + job + "\n"))
+		if want == "" {
+			assert.NoError(t, err, job)
+		} else {
+			assert.EqualError(t, err, "job build: "+want, job)
 		}
 	}
 }

@@ -19,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/imagecaptcha"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/session"
@@ -70,7 +71,7 @@ func prepareCommonAuthPageData(ctx *context.Context, opt CommonAuthOptions) {
 		ctx.Data["McaptchaURL"] = strings.TrimSuffix(setting.Service.McaptchaURL, "/")
 		ctx.Data["CfTurnstileSitekey"] = setting.Service.CfTurnstileSitekey
 		if setting.Service.CaptchaType == setting.ImageCaptcha {
-			ctx.Data["Captcha"] = context.GetImageCaptcha()
+			ctx.Data["CreateImageCaptcha"] = imagecaptcha.CreateNew
 		}
 	}
 }
@@ -298,8 +299,7 @@ func SignInPost(ctx *context.Context) {
 	form := web.GetForm[*forms.SignInForm](ctx)
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
-		context.VerifyCaptcha(ctx, tplSignIn, form)
-		if ctx.Written() {
+		if !context.VerifyCaptcha(ctx, tplSignIn, form) {
 			return
 		}
 	}
@@ -553,8 +553,7 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 
-	context.VerifyCaptcha(ctx, tplSignUp, form)
-	if ctx.Written() {
+	if !context.VerifyCaptcha(ctx, tplSignUp, form) {
 		return
 	}
 
