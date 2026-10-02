@@ -1,20 +1,20 @@
 <script lang="ts" setup>
-import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type PropType, type ShallowRef} from 'vue';
+import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type ShallowRef} from 'vue';
 import {generateElemId} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import SvgIcon from './SvgIcon.vue';
 import {throttle} from '../utils/func.ts';
-import type {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
+import type {RepoFilesFilter} from '../features/repo-findfile.ts';
 
-const props = defineProps({
-  repoLink: {type: String, required: true},
-  currentRefNameSubURL: {type: String, required: true},
-  treeListUrl: {type: String, required: true},
-  noResultsText: {type: String, required: true},
-  placeholder: {type: String, required: true},
-  filterFiles: {type: Function as PropType<typeof filterRepoFilesWeighted>, required: true},
-});
+const props = defineProps<{
+  repoLink: string;
+  currentRefNameSubURL: string;
+  treeListUrl: string;
+  noResultsText: string;
+  placeholder: string;
+  filterFiles: RepoFilesFilter;
+}>();
 
 const refElemInput = useTemplateRef('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
 const refElemPopup = useTemplateRef('searchPopup') as Readonly<ShallowRef<HTMLDivElement>>;

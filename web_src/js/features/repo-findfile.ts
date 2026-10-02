@@ -67,6 +67,8 @@ export function filterRepoFilesWeighted(files: Array<string>, filter: string) {
   return filterResult;
 }
 
+export type RepoFilesFilter = typeof filterRepoFilesWeighted;
+
 export function initRepoFileSearch() {
   registerGlobalInitFunc('initRepoFileSearch', async (el) => {
     const {default: RepoFileSearch} = await import('../components/RepoFileSearch.vue');
