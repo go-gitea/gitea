@@ -47,3 +47,20 @@ func TestPushMirrorsIterate(t *testing.T) {
 		return nil
 	})
 }
+
+func TestUpdatePushMirrorSyncStatusKeepsOtherColumns(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	m := &repo_model.PushMirror{Interval: time.Hour, LastError: "previous error"}
+	assert.NoError(t, db.Insert(t.Context(), m))
+
+	m.LastUpdateUnix = timeutil.TimeStampNow()
+	m.LastError = ""
+	m.Interval = time.Minute
+	assert.NoError(t, repo_model.UpdatePushMirrorSyncStatus(t.Context(), m))
+
+	stored := unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: m.ID})
+	assert.Equal(t, m.LastUpdateUnix, stored.LastUpdateUnix)
+	assert.Empty(t, stored.LastError)
+	assert.Equal(t, time.Hour, stored.Interval)
+}

@@ -80,7 +80,7 @@ func (m *PushMirror) GetRemoteName() string {
 
 // UpdatePushMirrorSyncStatus updates the sync status (last update time and last error) of the push-mirror
 func UpdatePushMirrorSyncStatus(ctx context.Context, m *PushMirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_update_unix", "last_error").Update(m)
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_update", "last_error").Update(m)
 	return err
 }
 
