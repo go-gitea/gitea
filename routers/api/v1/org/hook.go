@@ -109,6 +109,8 @@ func CreateHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Hook"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	utils.AddOwnerHook(
 		ctx,
@@ -147,6 +149,8 @@ func EditHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Hook"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	utils.EditOwnerHook(
 		ctx,
@@ -180,6 +184,8 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	utils.DeleteOwnerHook(
 		ctx,

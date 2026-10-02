@@ -57,6 +57,7 @@ data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};
 {{else}}
 data.organizationId = {{.ContextUser.ID}};
+data.canCreateRepo = {{not .ContextUser.IsArchived}};
 {{end}}
 
 window.config.pageData.dashboardRepoList = data;

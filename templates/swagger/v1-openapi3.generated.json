@@ -1686,6 +1686,21 @@
       "notFound": {
         "description": "APINotFound is a not found empty response"
       },
+      "orgArchivedError": {
+        "description": "APIOrgArchivedError is an error that is raised when an archived organization should be modified",
+        "headers": {
+          "message": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "url": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "repoArchivedError": {
         "description": "APIRepoArchivedError is an error that is raised when an archived repo should be modified",
         "headers": {
@@ -13195,6 +13210,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Edit an organization",
@@ -13314,6 +13332,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/RegistrationToken"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Get an organization's actions runner registration token",
@@ -13354,6 +13375,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete an org-level runner",
@@ -13443,6 +13467,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Update an org-level runner",
@@ -13614,6 +13641,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete a secret in an organization",
@@ -13665,6 +13695,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Create or Update a secret value in an organization",
@@ -13758,6 +13791,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete an org-level variable",
@@ -13845,6 +13881,9 @@
           "409": {
             "description": "variable name already exists."
           },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
+          },
           "500": {
             "$ref": "#/components/responses/error"
           }
@@ -13898,6 +13937,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Update an org-level variable",
@@ -13979,6 +14021,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete Avatar",
@@ -14015,6 +14060,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Update Avatar",
@@ -14258,6 +14306,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Create a hook",
@@ -14296,6 +14347,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete a hook",
@@ -14378,6 +14432,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Update a hook",
@@ -14461,6 +14518,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Create a label for an organization",
@@ -14499,6 +14559,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete a label",
@@ -14584,6 +14647,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Update a label",
@@ -14800,6 +14866,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Create a project owned by an organization",
@@ -14838,6 +14907,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete a project",
@@ -14923,6 +14995,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Edit a project",
@@ -15029,6 +15104,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Create a column in a project",
@@ -15084,6 +15162,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Reorder a project's columns",
@@ -15139,6 +15220,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Delete a project column",
@@ -15247,6 +15331,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Edit a project column",
@@ -15299,6 +15386,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/orgArchivedError"
           }
         },
         "summary": "Set a project's default column",

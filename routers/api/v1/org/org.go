@@ -400,8 +400,17 @@ func Edit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Organization"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	form := web.GetForm[*api.EditOrgOption](ctx)
+
+	unarchiving := form.Archived != nil && !*form.Archived
+	if ctx.Org.Organization.IsArchived && !unarchiving && (form.FullName != nil || form.Description != nil ||
+		form.Website != nil || form.Location != nil || form.Email != nil || form.RepoAdminChangeTeamAccess != nil) {
+		ctx.APIError(http.StatusLocked, "organization is archived")
+		return
+	}
 
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {

@@ -458,6 +458,8 @@ func CreateProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation POST /user/projects user userCurrentCreateProject
 	// ---
@@ -579,6 +581,8 @@ func EditProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation PATCH /user/projects/{id} user userCurrentEditProject
 	// ---
@@ -696,6 +700,8 @@ func DeleteProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation DELETE /user/projects/{id} user userCurrentDeleteProject
 	// ---
@@ -913,6 +919,8 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation POST /user/projects/{id}/columns user userCurrentCreateProjectColumn
 	// ---
@@ -1141,6 +1149,8 @@ func EditProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation PATCH /user/projects/{id}/columns/{column_id} user userCurrentEditProjectColumn
 	// ---
@@ -1274,6 +1284,8 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation DELETE /user/projects/{id}/columns/{column_id} user userCurrentDeleteProjectColumn
 	// ---
@@ -1380,6 +1392,8 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation POST /user/projects/{id}/columns/{column_id}/default user userCurrentSetDefaultProjectColumn
 	// ---
@@ -1488,6 +1502,8 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/orgArchivedError"
 
 	// swagger:operation POST /user/projects/{id}/columns/move user userCurrentMoveProjectColumns
 	// ---

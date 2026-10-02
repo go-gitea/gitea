@@ -123,6 +123,12 @@ type APIRepoArchivedError struct {
 	APIError
 }
 
+// APIOrgArchivedError is an error that is raised when an archived organization should be modified
+// swagger:response orgArchivedError
+type APIOrgArchivedError struct {
+	APIError
+}
+
 // APIErrorInternal responds with error message, status is 500
 func (ctx *APIContext) APIErrorInternal(err error) {
 	ctx.apiErrorInternal(1, err)
