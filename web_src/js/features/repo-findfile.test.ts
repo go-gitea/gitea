@@ -1,4 +1,4 @@
-import {strSubMatch, calcMatchedWeight, filterRepoFilesWeighted} from './file-search.ts';
+import {strSubMatch, calcMatchedWeight, filterRepoFilesWeighted} from './repo-findfile.ts';
 
 describe('Repo Find Files', () => {
   test('strSubMatch', () => {

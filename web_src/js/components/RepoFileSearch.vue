@@ -2,7 +2,7 @@
 import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type ShallowRef} from 'vue';
 import {generateElemId} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
-import {filterRepoFilesWeighted} from '../utils/file-search.ts';
+import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import SvgIcon from './SvgIcon.vue';
 import {throttle} from '../utils/func.ts';
