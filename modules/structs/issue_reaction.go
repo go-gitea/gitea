@@ -17,6 +17,10 @@ type EditReactionOption struct {
 type Reaction struct {
 	// The user who created the reaction
 	User *User `json:"user"`
+	// OriginalAuthor is the original author name (for imported reactions)
+	OriginalAuthor string `json:"original_author"`
+	// OriginalAuthorID is the original author ID (for imported reactions)
+	OriginalAuthorID int64 `json:"original_author_id"`
 	// The reaction content (e.g., emoji or reaction type)
 	Reaction string `json:"content"`
 	// swagger:strfmt date-time

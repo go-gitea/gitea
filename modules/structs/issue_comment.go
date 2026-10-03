@@ -62,6 +62,10 @@ type TimelineComment struct {
 	IssueURL string `json:"issue_url"`
 	// Poster is the user who created the timeline event
 	Poster *User `json:"user"`
+	// OriginalAuthor is the original author name (for imported comments)
+	OriginalAuthor string `json:"original_author"`
+	// OriginalAuthorID is the original author ID (for imported comments)
+	OriginalAuthorID int64 `json:"original_author_id"`
 	// Body contains the timeline event content
 	Body string `json:"body"`
 	// swagger:strfmt date-time

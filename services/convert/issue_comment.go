@@ -17,15 +17,17 @@ import (
 // ToAPIComment converts a issues_model.Comment to the api.Comment format for API usage
 func ToAPIComment(ctx context.Context, repo *repo_model.Repository, c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
-		ID:          c.ID,
-		Poster:      ToUser(ctx, c.Poster, nil),
-		HTMLURL:     c.HTMLURL(ctx),
-		IssueURL:    c.IssueURL(ctx),
-		PRURL:       c.PRURL(ctx),
-		Body:        c.Content,
-		Attachments: ToAPIAttachments(ctx, repo, c.Attachments),
-		Created:     c.CreatedUnix.AsTime(),
-		Updated:     c.UpdatedUnix.AsTime(),
+		ID:               c.ID,
+		Poster:           ToUser(ctx, c.Poster, nil),
+		OriginalAuthor:   c.OriginalAuthor,
+		OriginalAuthorID: c.OriginalAuthorID,
+		HTMLURL:          c.HTMLURL(ctx),
+		IssueURL:         c.IssueURL(ctx),
+		PRURL:            c.PRURL(ctx),
+		Body:             c.Content,
+		Attachments:      ToAPIAttachments(ctx, repo, c.Attachments),
+		Created:          c.CreatedUnix.AsTime(),
+		Updated:          c.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -84,15 +86,17 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 	}
 
 	comment := &api.TimelineComment{
-		ID:       c.ID,
-		Type:     c.Type.String(),
-		Poster:   ToUser(ctx, c.Poster, nil),
-		HTMLURL:  c.HTMLURL(ctx),
-		IssueURL: c.IssueURL(ctx),
-		PRURL:    c.PRURL(ctx),
-		Body:     c.Content,
-		Created:  c.CreatedUnix.AsTime(),
-		Updated:  c.UpdatedUnix.AsTime(),
+		ID:               c.ID,
+		Type:             c.Type.String(),
+		Poster:           ToUser(ctx, c.Poster, nil),
+		OriginalAuthor:   c.OriginalAuthor,
+		OriginalAuthorID: c.OriginalAuthorID,
+		HTMLURL:          c.HTMLURL(ctx),
+		IssueURL:         c.IssueURL(ctx),
+		PRURL:            c.PRURL(ctx),
+		Body:             c.Content,
+		Created:          c.CreatedUnix.AsTime(),
+		Updated:          c.UpdatedUnix.AsTime(),
 
 		OldProjectID: c.OldProjectID,
 		ProjectID:    c.ProjectID,

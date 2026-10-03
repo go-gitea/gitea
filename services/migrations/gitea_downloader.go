@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
@@ -290,6 +291,7 @@ func (g *GiteaDownloader) GetLabels(ctx context.Context) ([]*base.Label, error) 
 }
 
 func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Release {
+	publisher := originalUser(rel.Publisher, rel.OriginalAuthor)
 	r := &base.Release{
 		TagName:         rel.TagName,
 		TargetCommitish: rel.Target,
@@ -297,9 +299,9 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 		Body:            rel.Note,
 		Draft:           rel.IsDraft,
 		Prerelease:      rel.IsPrerelease,
-		PublisherID:     rel.Publisher.ID,
-		PublisherName:   rel.Publisher.UserName,
-		PublisherEmail:  rel.Publisher.Email,
+		PublisherID:     publisher.ID,
+		PublisherName:   publisher.UserName,
+		PublisherEmail:  publisher.Email,
 		Published:       rel.PublishedAt,
 		Created:         rel.CreatedAt,
 	}
@@ -379,9 +381,10 @@ func (g *GiteaDownloader) getIssueReactions(ctx context.Context, index int64) ([
 		}
 
 		for _, reaction := range reactions {
+			user := originalUser(reaction.User, reaction.OriginalAuthor)
 			allReactions = append(allReactions, &base.Reaction{
-				UserID:   reaction.User.ID,
-				UserName: reaction.User.UserName,
+				UserID:   user.ID,
+				UserName: user.UserName,
 				Content:  reaction.Reaction,
 			})
 		}
@@ -405,9 +408,10 @@ func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction
 	}
 
 	for i := range rl {
+		user := originalUser(rl[i].User, rl[i].OriginalAuthor)
 		reactions = append(reactions, &base.Reaction{
-			UserID:   rl[i].User.ID,
-			UserName: rl[i].User.UserName,
+			UserID:   user.ID,
+			UserName: user.UserName,
 			Content:  rl[i].Reaction,
 		})
 	}
@@ -453,12 +457,13 @@ func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*
 			assignees = append(assignees, issue.Assignees[i].UserName)
 		}
 
+		poster := originalUser(issue.Poster, issue.OriginalAuthor)
 		allIssues = append(allIssues, &base.Issue{
 			Title:        issue.Title,
 			Number:       issue.Index,
-			PosterID:     issue.Poster.ID,
-			PosterName:   issue.Poster.UserName,
-			PosterEmail:  issue.Poster.Email,
+			PosterID:     poster.ID,
+			PosterName:   poster.UserName,
+			PosterEmail:  poster.Email,
 			Content:      issue.Body,
 			Milestone:    milestone,
 			State:        string(issue.State),
@@ -515,12 +520,13 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %v", commentable.GetForeignIndex(), comment.ID, g, err)
 			}
 
+			poster := originalUser(comment.Poster, comment.OriginalAuthor)
 			allComments = append(allComments, &base.Comment{
 				IssueIndex:  commentable.GetLocalIndex(),
 				Index:       comment.ID,
-				PosterID:    comment.Poster.ID,
-				PosterName:  comment.Poster.UserName,
-				PosterEmail: comment.Poster.Email,
+				PosterID:    poster.ID,
+				PosterName:  poster.UserName,
+				PosterEmail: poster.Email,
 				Content:     comment.Body,
 				Created:     comment.Created,
 				Updated:     comment.Updated,
@@ -612,12 +618,13 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 			closedAt = pr.Merged
 		}
 
+		poster := originalUser(pr.Poster, pr.OriginalAuthor)
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
 			Number:         pr.Index,
-			PosterID:       pr.Poster.ID,
-			PosterName:     pr.Poster.UserName,
-			PosterEmail:    pr.Poster.Email,
+			PosterID:       poster.ID,
+			PosterName:     poster.UserName,
+			PosterEmail:    poster.Email,
 			Content:        pr.Body,
 			State:          string(pr.State),
 			Created:        createdAt,
@@ -656,6 +663,13 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 		isEnd = len(prs) == 0
 	}
 	return allPRs, isEnd, nil
+}
+
+func originalUser(user *gitea_sdk.User, originalAuthor string) *gitea_sdk.User { // the original_author_id of items the source imported belongs to another platform
+	if originalAuthor == "" {
+		return user
+	}
+	return &gitea_sdk.User{ID: user_model.GhostUserID, UserName: originalAuthor}
 }
 
 func convertGiteaReviewState(state gitea_sdk.ReviewStateType) string {
@@ -721,17 +735,18 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 					DiffHunk:  rcl[i].DiffHunk,
 					Line:      line,
 					CommitID:  rcl[i].CommitID,
-					PosterID:  rcl[i].Reviewer.ID,
+					PosterID:  originalUser(rcl[i].Reviewer, rcl[i].OriginalAuthor).ID,
 					CreatedAt: rcl[i].Created,
 					UpdatedAt: rcl[i].Updated,
 				})
 			}
 
+			reviewer := originalUser(pr.Reviewer, pr.OriginalAuthor)
 			review := &base.Review{
 				ID:           pr.ID,
 				IssueIndex:   reviewable.GetLocalIndex(),
-				ReviewerID:   pr.Reviewer.ID,
-				ReviewerName: pr.Reviewer.UserName,
+				ReviewerID:   reviewer.ID,
+				ReviewerName: reviewer.UserName,
 				Official:     pr.Official,
 				CommitID:     pr.CommitID,
 				Content:      pr.Body,

@@ -267,3 +267,5 @@ ignore (
 	./vendor
 	./web_src
 )
+
+replace gitea.dev/sdk => gitea.com/silverwind/go-sdk v1.2.1-0.20261003113744-ce4eddeaa3c2

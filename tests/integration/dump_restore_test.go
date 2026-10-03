@@ -11,10 +11,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -25,6 +28,7 @@ import (
 	"gitea.dev/services/migrations"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -46,6 +50,21 @@ func TestDumpRestore(t *testing.T) {
 		//
 
 		ctx := t.Context()
+		for _, imported := range []struct {
+			id   int64
+			bean any
+		}{
+			{1, &issues_model.Issue{}},
+			{2, &issues_model.Issue{}},
+			{2, &issues_model.Comment{}},
+			{3, &issues_model.Reaction{}},
+			{4, &issues_model.Reaction{}},
+			{1, &issues_model.Review{}},
+			{1, &repo_model.Release{}},
+		} {
+			_, err := db.GetEngine(ctx).Table(imported.bean).ID(imported.id).Update(map[string]any{"original_author": "octocat", "original_author_id": 583231})
+			require.NoError(t, err)
+		}
 		opts := migrations.MigrateOptions{
 			GitServiceType: structs.GiteaService,
 			Issues:         true,
@@ -53,6 +72,7 @@ func TestDumpRestore(t *testing.T) {
 			Labels:         true,
 			Milestones:     true,
 			Comments:       true,
+			Releases:       true,
 			AuthToken:      token,
 			CloneAddr:      repo.CloneLinkGeneral(t.Context()).HTTPS,
 			RepoName:       reponame,
@@ -66,6 +86,39 @@ func TestDumpRestore(t *testing.T) {
 		d := filepath.Join(basePath, repo.OwnerName, repo.Name)
 		for _, f := range []string{"repo.yml", "topic.yml", "label.yml", "milestone.yml", "issue.yml"} {
 			assert.FileExists(t, filepath.Join(d, f))
+		}
+		loadDump := func(name string, out any) {
+			data, err := os.ReadFile(filepath.Join(d, name))
+			require.NoError(t, err)
+			require.NoError(t, yaml.Unmarshal(data, out))
+		}
+		var issues []*base.Issue
+		var comments []*base.Comment
+		var prs []*base.PullRequest
+		var reviews []*base.Review
+		var releases []*base.Release
+		loadDump("issue.yml", &issues)
+		loadDump("comments/1.yml", &comments)
+		loadDump("pull_request.yml", &prs)
+		loadDump("reviews/2.yml", &reviews)
+		loadDump("release.yml", &releases)
+		issue := issues[slices.IndexFunc(issues, func(issue *base.Issue) bool { return issue.Number == 1 })]
+		reaction := issue.Reactions[slices.IndexFunc(issue.Reactions, func(reaction *base.Reaction) bool { return reaction.Content == "eyes" })]
+		comment := comments[slices.IndexFunc(comments, func(comment *base.Comment) bool { return comment.Index == 2 })]
+		commentReaction := comment.Reactions[slices.IndexFunc(comment.Reactions, func(reaction *base.Reaction) bool { return reaction.UserName == "octocat" })]
+		pr := prs[slices.IndexFunc(prs, func(pr *base.PullRequest) bool { return pr.Number == 2 })]
+		review := reviews[slices.IndexFunc(reviews, func(review *base.Review) bool { return review.ID == 1 })]
+		release := releases[slices.IndexFunc(releases, func(release *base.Release) bool { return release.TagName == "v1.1" })]
+		for _, poster := range [][2]any{
+			{issue.PosterID, issue.PosterName},
+			{reaction.UserID, reaction.UserName},
+			{comment.PosterID, comment.PosterName},
+			{commentReaction.UserID, commentReaction.UserName},
+			{pr.PosterID, pr.PosterName},
+			{review.ReviewerID, review.ReviewerName},
+			{release.PublisherID, release.PublisherName},
+		} {
+			assert.Equal(t, [2]any{user_model.GhostUserID, "octocat"}, poster)
 		}
 
 		//

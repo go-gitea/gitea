@@ -24,6 +24,8 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 	result := &api.PullReview{
 		ID:                r.ID,
 		Reviewer:          ToUser(ctx, r.Reviewer, doer),
+		OriginalAuthor:    r.OriginalAuthor,
+		OriginalAuthorID:  r.OriginalAuthorID,
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
 		CommitID:          r.CommitID,
@@ -102,19 +104,21 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 // ToPullReviewComment convert a single code review comment to api format
 func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doer *user_model.User) *api.PullReviewComment {
 	apiComment := &api.PullReviewComment{
-		ID:           comment.ID,
-		Body:         comment.Content,
-		Poster:       ToUser(ctx, comment.Poster, doer),
-		Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
-		ReviewID:     comment.ReviewID,
-		Created:      comment.CreatedUnix.AsTime(),
-		Updated:      comment.UpdatedUnix.AsTime(),
-		Path:         comment.TreePath,
-		CommitID:     comment.CommitSHA,
-		OrigCommitID: comment.OldRef,
-		DiffHunk:     patch2diff(comment.Patch),
-		HTMLURL:      comment.HTMLURL(ctx),
-		HTMLPullURL:  comment.Issue.HTMLURL(ctx),
+		ID:               comment.ID,
+		Body:             comment.Content,
+		Poster:           ToUser(ctx, comment.Poster, doer),
+		OriginalAuthor:   comment.OriginalAuthor,
+		OriginalAuthorID: comment.OriginalAuthorID,
+		Resolver:         ToUser(ctx, comment.ResolveDoer, doer),
+		ReviewID:         comment.ReviewID,
+		Created:          comment.CreatedUnix.AsTime(),
+		Updated:          comment.UpdatedUnix.AsTime(),
+		Path:             comment.TreePath,
+		CommitID:         comment.CommitSHA,
+		OrigCommitID:     comment.OldRef,
+		DiffHunk:         patch2diff(comment.Patch),
+		HTMLURL:          comment.HTMLURL(ctx),
+		HTMLPullURL:      comment.Issue.HTMLURL(ctx),
 	}
 
 	if comment.Line < 0 {

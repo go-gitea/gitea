@@ -17,6 +17,10 @@ type PullRequest struct {
 	Index int64 `json:"number"`
 	// The user who created the pull request
 	Poster *User `json:"user"`
+	// OriginalAuthor is the original author name (for imported pull requests)
+	OriginalAuthor string `json:"original_author"`
+	// OriginalAuthorID is the original author ID (for imported pull requests)
+	OriginalAuthorID int64 `json:"original_author_id"`
 	// The title of the pull request
 	Title string `json:"title"`
 	// The description body of the pull request
