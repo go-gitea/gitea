@@ -1,0 +1,180 @@
+<div class="app-nav-toolbar">
+	<button type="button" class="btn app-nav-toggle" aria-controls="app-sidebar" aria-expanded="true" aria-label="{{ctx.Locale.Tr "navigation.toggle"}}">{{svg "octicon-sidebar-collapse"}}</button>
+	<a href="{{AppSubUrl}}/">{{if eq AppName "Gitea: Git with a cup of tea"}}Gitea{{else}}{{AppName}}{{end}}</a>
+</div>
+<div id="app-sidebar">
+	<nav class="sidebar-inner" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
+		<a class="sidebar-brand" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
+			<img width="26" height="26" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
+			<span>{{if eq AppName "Gitea: Git with a cup of tea"}}Gitea{{else}}{{AppName}}{{end}}</span>
+		</a>
+		<button type="button" class="btn sidebar-collapse app-nav-toggle" aria-controls="app-sidebar" aria-expanded="true" aria-label="{{ctx.Locale.Tr "navigation.toggle"}}">{{svg "octicon-sidebar-collapse"}}</button>
+
+		<button type="button" class="btn sidebar-search-toggle app-nav-toggle" data-sidebar-search-toggle aria-controls="app-sidebar" aria-expanded="true" aria-label="{{ctx.Locale.Tr "search.repo_kind"}}">{{svg "octicon-search"}}</button>
+		<div class="sidebar-main">
+			<form class="sidebar-search" action="{{AppSubUrl}}/explore/repos" method="get" role="search">
+				{{svg "octicon-search"}}
+				<input type="search" name="q" autocomplete="off" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" aria-label="{{ctx.Locale.Tr "search.repo_kind"}}">
+			</form>
+
+			{{if and .IsSigned (not .MustChangePassword)}}
+				<div class="sidebar-label">{{ctx.Locale.Tr "navigation.workspace"}}</div>
+				<div class="sidebar-nav">
+					<a class="sidebar-item{{if .PageIsDashboard}} active{{end}}" href="{{AppSubUrl}}/">
+						{{svg "octicon-home"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "dashboard"}}</span>
+					</a>
+					{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
+						<a class="sidebar-item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">
+							{{svg "octicon-issue-opened"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "issues"}}</span>
+						</a>
+					{{end}}
+					{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
+						<a class="sidebar-item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">
+							{{svg "octicon-git-pull-request"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "pull_requests"}}</span>
+						</a>
+					{{end}}
+					{{if not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled)}}
+						{{if .ShowMilestonesDashboardPage}}
+							<a class="sidebar-item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">
+								{{svg "octicon-milestone"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "milestones"}}</span>
+							</a>
+						{{end}}
+					{{end}}
+					<a class="sidebar-item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">
+						{{svg "octicon-telescope"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "explore_title"}}</span>
+					</a>
+					{{template "custom/extra_links" .}}
+				</div>
+			{{else if not .IsSigned}}
+				<div class="sidebar-label">{{ctx.Locale.Tr "navigation.workspace"}}</div>
+				<div class="sidebar-nav">
+					{{if .IsLandingPageOrganizations}}
+						<a class="sidebar-item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">
+							{{svg "octicon-telescope"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "explore_title"}}</span>
+						</a>
+					{{else}}
+						<a class="sidebar-item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">
+							{{svg "octicon-telescope"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "explore_title"}}</span>
+						</a>
+					{{end}}
+					{{template "custom/extra_links" .}}
+					<a class="sidebar-item" target="_blank" href="https://docs.gitea.com">
+						{{svg "octicon-question"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "help"}}</span>
+					</a>
+				</div>
+			{{end}}
+
+			{{/* the repository units live here now instead of in a tab bar under the repo header */}}
+			{{if .Repository}}
+				{{template "repo/sidebar_nav" .}}
+			{{end}}
+
+		</div>
+		{{if and .ContextUser (or .PageIsDashboard .PageIsIssues .PageIsPulls .PageIsMilestonesDashboard)}}
+			<div class="sidebar-context-area">
+				{{template "user/dashboard/navbar" .}}
+			</div>
+		{{end}}
+		<div class="sidebar-foot">
+			{{if and .IsSigned .MustChangePassword}}
+				<div class="ui dropdown jump sidebar-user" tabindex="0" role="button" aria-label="{{ctx.Locale.Tr "user_profile_and_more"}}" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}" data-signed-in-username="{{.SignedUser.Name}}">
+					{{ctx.AvatarUtils.Avatar .SignedUser 24}}
+					<span class="sidebar-user-name">{{.SignedUser.Name}}</span>
+					{{svg "octicon-triangle-down"}}
+					<div class="menu user-menu">
+						<div class="header">{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong></div>
+						<div class="divider"></div>
+						<a class="item" href="{{AppSubUrl}}/user/logout">
+							{{svg "octicon-sign-out"}}
+							{{ctx.Locale.Tr "sign_out"}}
+						</a>
+					</div>
+				</div>
+			{{else if .IsSigned}}
+				<div class="sidebar-foot-row">
+				<div class="ui dropdown jump sidebar-user" tabindex="0" role="button" aria-label="{{ctx.Locale.Tr "user_profile_and_more"}}" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}" data-signed-in-username="{{.SignedUser.Name}}">
+					<span class="navbar-avatar">
+						{{ctx.AvatarUtils.Avatar .SignedUser 24}}
+						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
+					</span>
+					<span class="sidebar-user-name">{{.SignedUser.Name}}</span>
+					{{svg "octicon-triangle-down"}}
+					<div class="menu user-menu">
+						<div class="header">
+							{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+						</div>
+
+						<div class="divider"></div>
+						<a class="item" href="{{.SignedUser.HomeLink}}">
+							{{svg "octicon-person"}}
+							{{ctx.Locale.Tr "your_profile"}}
+						</a>
+						{{if not .DisableStars}}
+							<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars">
+								{{svg "octicon-star"}}
+								{{ctx.Locale.Tr "your_starred"}}
+							</a>
+						{{end}}
+						<a class="item" href="{{AppSubUrl}}/notifications/subscriptions">
+							{{svg "octicon-bell"}}
+							{{ctx.Locale.Tr "notification.subscriptions"}}
+						</a>
+						<a class="{{if .PageIsUserSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings">
+							{{svg "octicon-tools"}}
+							{{ctx.Locale.Tr "your_settings"}}
+						</a>
+						<a class="item" target="_blank" href="https://docs.gitea.com">
+							{{svg "octicon-question"}}
+							{{ctx.Locale.Tr "help"}}
+						</a>
+						{{if .IsAdmin}}
+							<div class="divider"></div>
+							<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
+								{{svg "octicon-server"}}
+								{{ctx.Locale.Tr "admin_panel"}}
+							</a>
+						{{end}}
+						<div class="divider"></div>
+						<a class="item" href="{{AppSubUrl}}/user/logout">
+							{{svg "octicon-sign-out"}}
+							{{ctx.Locale.Tr "sign_out"}}
+						</a>
+					</div>
+				</div>
+
+				<div class="sidebar-icons">
+					{{template "base/head_navbar_icons"}}
+					<div class="ui dropdown jump item" tabindex="0" role="button" aria-label="{{ctx.Locale.Tr "create_new"}}" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
+						{{svg "octicon-plus"}}
+						<div class="menu">
+							<a class="item" href="{{AppSubUrl}}/repo/create">
+								{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
+							</a>
+							{{if not .DisableMigrations}}
+								<a class="item" href="{{AppSubUrl}}/repo/migrate">
+									{{svg "octicon-repo-push"}} {{ctx.Locale.Tr "new_migrate"}}
+								</a>
+							{{end}}
+							{{if .SignedUser.CanCreateOrganization}}
+								<a class="item" href="{{AppSubUrl}}/org/create">
+									{{svg "octicon-organization"}} {{ctx.Locale.Tr "new_org"}}
+								</a>
+							{{end}}
+						</div>
+					</div>
+				</div>
+				</div><!-- end .sidebar-foot-row -->
+			{{else}}
+				<a class="sidebar-item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login">
+					{{svg "octicon-sign-in"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "sign_in"}}</span>
+				</a>
+				{{if .ShowRegistrationButton}}
+					<a class="sidebar-item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
+						{{svg "octicon-person-add"}}<span class="sidebar-item-text">{{ctx.Locale.Tr "register"}}</span>
+					</a>
+				{{end}}
+			{{end}}
+		</div>
+
+	</nav>
+</div>

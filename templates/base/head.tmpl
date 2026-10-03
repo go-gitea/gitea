@@ -29,12 +29,17 @@
 		{{template "custom/body_inner_pre" .}}
 
 		{{if not .PageIsInstall}}
-			{{template "base/head_navbar" .}}
+			{{template "base/app_sidebar" .}}
 		{{end}}
+
+		<div id="app-content">
+		{{template "base/head_impersonate_banner"}}
+		{{template "base/head_banner"}}
 
 {{if false}}
 	{{/* to make html structure "likely" complete to prevent IDE warnings */}}
-	</div>
+		</div>{{/* #app-content */}}
+	</div>{{/* .full.height */}}
 </body>
 </html>
 {{end}}

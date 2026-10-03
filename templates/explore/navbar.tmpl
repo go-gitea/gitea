@@ -1,22 +1,28 @@
-<overflow-menu class="ui secondary pointing tabular top attached borderless menu secondary-nav">
-	<div class="overflow-menu-items tw-justify-center">
-		<a class="{{if .PageIsExploreRepositories}}active {{end}}item" href="{{AppSubUrl}}/explore/repos">
-			{{svg "octicon-repo"}} {{ctx.Locale.Tr "explore.repos"}}
-		</a>
-		{{if not .UsersPageIsDisabled}}
-			<a class="{{if .PageIsExploreUsers}}active {{end}}item" href="{{AppSubUrl}}/explore/users">
-				{{svg "octicon-person"}} {{ctx.Locale.Tr "explore.users"}}
-			</a>
-		{{end}}
-		{{if not .OrganizationsPageIsDisabled}}
-		<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
-			{{svg "octicon-organization"}} {{ctx.Locale.Tr "explore.organizations"}}
-		</a>
-		{{end}}
-		{{if and (not ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled (not .CodePageIsDisabled)}}
-		<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
-			{{svg "octicon-code"}} {{ctx.Locale.Tr "explore.code"}}
-		</a>
-		{{end}}
+<div class="secondary-nav">
+	{{/* the shell already has a sidebar, so the page's own tabs are left-aligned and share
+	     the container of the content below them rather than floating in the centre */}}
+	<div class="ui container">
+		<overflow-menu class="ui secondary pointing tabular borderless menu">
+			<div class="overflow-menu-items">
+				<a class="{{if .PageIsExploreRepositories}}active {{end}}item" href="{{AppSubUrl}}/explore/repos">
+					{{svg "octicon-repo"}} {{ctx.Locale.Tr "explore.repos"}}
+				</a>
+				{{if not .UsersPageIsDisabled}}
+					<a class="{{if .PageIsExploreUsers}}active {{end}}item" href="{{AppSubUrl}}/explore/users">
+						{{svg "octicon-person"}} {{ctx.Locale.Tr "explore.users"}}
+					</a>
+				{{end}}
+				{{if not .OrganizationsPageIsDisabled}}
+					<a class="{{if .PageIsExploreOrganizations}}active {{end}}item" href="{{AppSubUrl}}/explore/organizations">
+						{{svg "octicon-organization"}} {{ctx.Locale.Tr "explore.organizations"}}
+					</a>
+				{{end}}
+				{{if and (not ctx.Consts.RepoUnitTypeCode.UnitGlobalDisabled) .IsRepoIndexerEnabled (not .CodePageIsDisabled)}}
+					<a class="{{if .PageIsExploreCode}}active {{end}}item" href="{{AppSubUrl}}/explore/code">
+						{{svg "octicon-code"}} {{ctx.Locale.Tr "explore.code"}}
+					</a>
+				{{end}}
+			</div>
+		</overflow-menu>
 	</div>
-</overflow-menu>
+</div>

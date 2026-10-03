@@ -16,7 +16,7 @@
   padding: 0.67857143em 1em;
   border: 1px solid var(--color-input-border);
   color: var(--color-input-text);
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   line-height: var(--line-height-default);
   text-align: start;
 }
@@ -49,7 +49,7 @@
   height: 100%;
   width: 2.67142857em;
   opacity: 0.5;
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
   pointer-events: none;
   padding: 4px;
 }
@@ -71,7 +71,7 @@
 .ui[class*="left icon"].input > i.icon {
   right: auto;
   left: 1px;
-  border-radius: 0.28571429rem 0 0 0.28571429rem;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 .ui.ui.ui.ui[class*="left icon"].input > input {
   padding-left: 2.67142857em;
@@ -105,7 +105,7 @@
 
 .ui.action.input > .dropdown:first-child,
 .ui.action.input > .button:first-child {
-  border-radius: 0.28571429rem 0 0 0.28571429rem;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 .ui.action.input > .dropdown:not(:first-child),
 .ui.action.input > .button:not(:first-child) {
@@ -113,7 +113,7 @@
 }
 .ui.action.input > .dropdown:last-child,
 .ui.action.input > .button:last-child {
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
 .ui.fluid.input {

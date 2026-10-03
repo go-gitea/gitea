@@ -206,7 +206,7 @@ a.ui.ui.ui.grey.label:hover {
   padding: 0.5em !important;
   line-height: 1;
   text-align: center;
-  border-radius: 500rem;
+  border-radius: var(--border-radius-full);
   justify-content: center;
 }
 

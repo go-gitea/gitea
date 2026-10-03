@@ -194,7 +194,7 @@ export function formatBytes(num: number, precision = 2): string {
 
 export function toggleFullScreen(fullScreenEl: HTMLElement, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
-  const headerEl = document.querySelector('#navbar')!;
+  const headerEl = document.querySelector('#app-sidebar')!;
   const contentEl = document.querySelector('.page-content')!;
   const footerEl = document.querySelector('.page-footer')!;
   toggleElem(headerEl, !isFullScreen);

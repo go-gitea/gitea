@@ -3997,5 +3997,8 @@
   "actions.general.cross_repo_selected": "Selected repositories",
   "actions.general.cross_repo_target_repos": "Target Repositories",
   "actions.general.cross_repo_add": "Add Target Repository",
-  "packages.owner.settings.cleanuprules.type.already_exists": "A cleanup rule for this package type already exists."
+  "packages.owner.settings.cleanuprules.type.already_exists": "A cleanup rule for this package type already exists.",
+  "navigation.toggle": "Toggle navigation",
+  "navigation.workspace": "Workspace",
+  "navigation.more": "More details and actions"
 }

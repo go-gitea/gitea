@@ -2,6 +2,7 @@
 	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
 	<div class="issue-content-left">
 		<div class="comment-list">
+			<div class="issue-timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment issue-content-comment">
 				{{if .Issue.OriginalAuthor}}
 				<span class="timeline-avatar">
@@ -72,6 +73,7 @@
 				{{template "repo/issue/view_content/pull_merge_box".}}
 			{{end}}
 
+			</div>
 			{{if .IsSigned}}
 				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
 				<div class="timeline-item comment form">

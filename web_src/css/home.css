@@ -1,23 +1,31 @@
 .home .logo {
   max-width: 220px;
+  width: 96px;
+  height: 96px;
 }
 
-@media (max-width: 767.98px) {
-  .home .hero h1 {
-    font-size: 3.5em;
-  }
-  .home .hero h2 {
-    font-size: 2em;
-  }
+.home-welcome {
+  padding-top: clamp(40px, 7vh, 96px);
 }
 
-@media (min-width: 768px) {
-  .home .hero h1 {
-    font-size: 5.5em;
-  }
-  .home .hero h2 {
-    font-size: 3em;
-  }
+.home .hero h1 {
+  font-size: clamp(28px, 3vw, 44px);
+  margin-top: 24px;
+}
+
+.home .hero h2 {
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-light-1);
+}
+
+.home-actions {
+  margin-top: 28px;
+}
+
+.home .page.grid {
+  max-width: 1000px;
+  margin-inline: auto;
 }
 
 .home .hero .svg {
@@ -46,23 +54,34 @@
 .page-footer {
   display: flex;
   justify-content: space-between;
-  background-color: var(--color-footer);
   border-top: 1px solid var(--color-secondary);
   padding: 8px 20px;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--color-text-light-2);
+  background: transparent;
 }
 
 .page-footer .left-links {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
   gap: 0.5em;
 }
 
+.page-footer .left-links > * {
+  flex: none;
+}
+
 .page-footer .right-links {
-  min-width: 180px; /* make sure the menu dropdown doesn't overflow horizontally when language name is short */
+  flex: none;
+  white-space: nowrap;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
   gap: 1em;
@@ -98,9 +117,15 @@ Then the inner one needs to get padding and parent "item" padding needs to be re
   margin-bottom: 10px;
 }
 
-@media (max-width: 880px) {
+@media (max-width: 767.98px) {
   .page-footer {
-    flex-direction: column;
-    gap: 0.5em;
+    padding-inline: 8px;
+    gap: 8px;
+  }
+  .page-footer .right-links {
+    gap: 8px;
+  }
+  .page-footer .right-links > a {
+    padding-left: 8px;
   }
 }

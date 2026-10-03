@@ -87,7 +87,7 @@ h4.ui.header {
 }
 
 .ui.top.attached.header {
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .ui.attached.header:not(h1,h2,h3,h4,h5,h6) {

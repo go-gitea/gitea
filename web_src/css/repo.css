@@ -20,7 +20,7 @@
 .issue-content {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 24px;
 }
 
 @media (max-width: 767.98px) {
@@ -31,12 +31,14 @@
 
 .issue-content-left {
   margin: 0 !important;
-  width: calc(100% - 316px);
+  flex: 1;
+  min-width: 0;
 }
 
 .issue-content-right {
   margin: 0 !important;
-  width: 300px;
+  width: 280px;
+  flex: none;
 }
 
 .issue-content-right .ui.dropdown.full-width {
@@ -93,6 +95,7 @@
 
 .issue-content-right .empty-list {
   font-size: 12px;
+  color: var(--color-text-light-2);
 }
 
 @media (max-width: 767.98px) {
@@ -323,7 +326,7 @@
   flex: 1;
   width: 100%;
   font-weight: var(--font-weight-normal);
-  font-size: 32px;
+  font-size: 28px;
   line-height: 36px; /* vertically center single-line text with .issue-title-buttons */
   margin: 0;
   padding-right: 0.25rem;
@@ -394,7 +397,7 @@
   padding-left: 16px;
 }
 
-.repository.view.issue .comment-list::before {
+.repository.view.issue .issue-timeline::before {
   display: block;
   content: "";
   position: absolute;
@@ -402,7 +405,7 @@
   margin-bottom: 14px;
   top: 0;
   bottom: 0;
-  left: 30px;
+  left: 14px;
   width: 2px;
   background-color: var(--color-timeline);
   z-index: -1;
@@ -1426,8 +1429,8 @@ tbody.commit-list {
 
 /* fomantic's last-child selector does not work with hidden last child */
 .ui.buttons .unescape-button {
-  border-top-right-radius: 0.28571429rem;
-  border-bottom-right-radius: 0.28571429rem;
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }
 
 .webhook-info {
@@ -1636,8 +1639,8 @@ tbody.commit-list {
   .repository.view.issue .comment-list .timeline-item {
     margin-left: 0;
   }
-  .repository.view.issue .comment-list::before {
-    left: 14px;
+  .repository.view.issue .issue-timeline::before {
+    left: -2px;
   }
   .repository.view.issue .comment-list .inline-timeline-avatar {
     display: flex;
@@ -1785,4 +1788,89 @@ tbody.commit-list {
 
 .branch-selector-dropdown .scrolling.menu .loading-indicator {
   height: 4em;
+}
+
+.repository.view.issue .issue-content-right.ui.segment {
+  background: transparent;
+  border: none;
+  padding: 0 0 0 20px;
+  border-left: 1px solid var(--color-secondary);
+}
+
+.issue-content-right .issue-sidebar-combo:has(.empty-list:not(.tw-hidden)) .ui.list {
+  margin: 2px 0 8px;
+}
+
+.issue-sidebar-more {
+  margin-top: 20px;
+}
+
+.issue-sidebar-more > summary {
+  color: var(--color-text-light-1);
+  cursor: pointer;
+  padding-block: 8px;
+}
+
+.repository.view.issue .timeline-item.form > .content > .ui.segment {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.repository.view.issue .timeline-item.form > .content > .ui.segment::before,
+.repository.view.issue .timeline-item.form > .content > .ui.segment::after {
+  display: none;
+}
+
+.repository.view.issue .comment-header {
+  background: transparent;
+}
+
+.repository.view.issue .pull-merge-box .merge-section > .item {
+  padding-block: 14px;
+}
+
+@media (max-width: 767.98px) {
+  .repository.view.issue .issue-content-right.ui.segment {
+    width: 100%;
+    padding: 20px 0 0;
+    border-left: none;
+    border-top: 1px solid var(--color-secondary);
+  }
+}
+
+.issue-timeline {
+  position: relative;
+}
+
+.repository .secondary-nav {
+  background: transparent;
+  border-bottom: none;
+  padding-top: 12px;
+}
+
+.repository .repo-header {
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--color-secondary);
+  gap: 20px;
+}
+
+.repository .repo-heading {
+  font-size: 16px;
+}
+
+.repository .repo-heading > a:nth-of-type(2) {
+  font-weight: var(--font-weight-semibold);
+}
+
+.repository > .ui.container:not(.medium-width),
+.repository > .secondary-nav > .ui.container {
+  width: calc(100% - 2 * var(--page-margin-x));
+  max-width: none;
+}
+
+.repository.view.issue .comment-body .markup > p,
+.repository.view.issue .comment-body .markup > ul,
+.repository.view.issue .comment-body .markup > ol {
+  max-width: 80ch;
 }

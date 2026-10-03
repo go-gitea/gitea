@@ -17,7 +17,7 @@ test.describe('events', () => {
       loginUser(page, owner),
     ]);
     await page.goto('/');
-    const badge = page.locator('#navbar .notification_count');
+    const badge = page.locator('.notification_count');
     await expect(badge).toBeHidden();
 
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();

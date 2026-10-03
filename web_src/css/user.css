@@ -1,6 +1,8 @@
 .user.profile img.profile-avatar-image {
+  width: 180px;
   max-width: 100%;
   height: auto;
+  border-radius: var(--border-radius-medium);
 }
 
 @media (max-width: 767.98px) {

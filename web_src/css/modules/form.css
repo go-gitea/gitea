@@ -52,7 +52,7 @@
   padding: 0.67857143em 1em;
   font-size: 1em;
   color: var(--color-text);
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
 }
 
 .ui.form textarea {
@@ -60,7 +60,7 @@
   padding: 0.78571429em 1em;
   outline: none;
   color: var(--color-text);
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   font-size: 1em;
   font-family: var(--fonts-regular);
   line-height: 1.2857;
@@ -362,21 +362,30 @@ input:-webkit-autofill:active {
   margin: 0.25em 0 0.25em 1em;
 }
 
+/* the label sits above its field, as in any modern form, rather than in a right-aligned
+   250px column with the input floating at half width beside it */
+.ui.form.left-right-form .inline.field {
+  display: block;
+}
+
 .ui.form.left-right-form .inline.field > label {
-  text-align: right;
-  width: 250px;
-  margin-right: 10px;
+  display: block;
+  width: auto;
+  margin: 0 0 6px;
+  text-align: left;
 }
 
 .ui.form.left-right-form .inline.field > .help {
   display: block;
-  margin-left: calc(250px + 15px);
+  margin-left: 0;
+  max-width: 640px;
 }
 
 .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
 .ui.form.left-right-form .inline.field .ui.dropdown,
 .ui.form.left-right-form .inline.field textarea {
-  width: 50%;
+  width: 100%;
+  max-width: 640px; /* keep the measure readable on a wide screen */
 }
 
 .ui.form.left-right-form .inline.field .ui.dropdown input.search {

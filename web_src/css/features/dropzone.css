@@ -102,3 +102,18 @@
 .dropzone .dz-preview:hover .dz-image img {
   filter: opacity(0.5) !important;
 }
+
+#comment-form .dropzone.dropzone {
+  border-width: 1px;
+  border-style: solid;
+}
+
+#comment-form .dropzone.dropzone.dz-drag-hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-alpha-10);
+}
+
+#comment-form .dropzone .dz-message {
+  margin: 6px 0;
+  font-size: 12px;
+}

@@ -7,7 +7,7 @@ import {registerGlobalEventFunc} from '../modules/observer.ts';
 const {appSubUrl} = window.config;
 
 function isUserSignedIn() {
-  return Boolean(document.querySelector('#navbar .user-menu'));
+  return Boolean(document.querySelector('#app-sidebar .user-menu'));
 }
 
 async function toggleSidebar(btn: HTMLElement) {

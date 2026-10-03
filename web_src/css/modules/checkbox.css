@@ -127,7 +127,7 @@ input[type="checkbox"]:indeterminate::before {
   top: 0;
   width: 49px;
   height: 21px;
-  border-radius: 500rem;
+  border-radius: var(--border-radius-full);
   left: 0;
 }
 .ui.toggle.checkbox label::after {
@@ -141,7 +141,7 @@ input[type="checkbox"]:indeterminate::before {
   height: 18px;
   top: 1.5px;
   left: 1.5px;
-  border-radius: 500rem;
+  border-radius: var(--border-radius-full);
   transition: background 0.3s ease, left 0.3s ease;
 }
 .ui.toggle.checkbox input ~ label::after {

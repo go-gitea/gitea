@@ -14,7 +14,7 @@
   background: var(--color-body);
   margin-top: 0.5em;
   width: 18em;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   box-shadow: 0 2px 4px 0 var(--color-shadow), 0 2px 10px 0 var(--color-shadow);
   border: 1px solid var(--color-secondary);
   z-index: 998;
@@ -23,13 +23,13 @@
 }
 
 .ui.search > .results > :first-child {
-  border-top-left-radius: 0.28571429rem;
-  border-top-right-radius: 0.28571429rem;
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
 }
 
 .ui.search > .results > :last-child {
-  border-bottom-left-radius: 0.28571429rem;
-  border-bottom-right-radius: 0.28571429rem;
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }
 
 .ui.search > .results .result {

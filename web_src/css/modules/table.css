@@ -5,7 +5,7 @@
   width: 100%;
   margin: 1em 0;
   border: 1px solid var(--color-secondary);
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   vertical-align: middle;
   border-collapse: separate;
   border-spacing: 0;
@@ -41,13 +41,13 @@
   border-left: none;
 }
 .ui.table > thead > tr:first-child > th:first-child {
-  border-radius: 0.28571429rem 0 0;
+  border-radius: var(--border-radius) 0 0;
 }
 .ui.table > thead > tr:first-child > th:last-child {
-  border-radius: 0 0.28571429rem 0 0;
+  border-radius: 0 var(--border-radius) 0 0;
 }
 .ui.table > thead > tr:first-child > th:only-child {
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .ui.table > tfoot > tr > th {
@@ -63,10 +63,10 @@
   border-left: none;
 }
 .ui.table > tfoot > tr:first-child > th:first-child {
-  border-radius: 0 0 0 0.28571429rem;
+  border-radius: 0 0 0 var(--border-radius);
 }
 .ui.table > tfoot > tr:first-child > th:last-child {
-  border-radius: 0 0 0.28571429rem;
+  border-radius: 0 0 var(--border-radius);
 }
 
 .ui.table > tr > td,
@@ -162,7 +162,7 @@
   margin-top: 0;
   top: 0;
   margin-bottom: 1em;
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 .ui[class*="bottom attached"].table:last-child {
   margin-bottom: 0;

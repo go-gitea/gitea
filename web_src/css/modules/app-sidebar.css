@@ -1,0 +1,507 @@
+#app-sidebar {
+  position: relative;
+  z-index: 20;
+  background: var(--color-nav-bg);
+  border-right: 1px solid var(--color-secondary);
+}
+
+/* the outer element stretches with the shell so the background is continuous; this inner
+   one sticks to the viewport. it must be a full 100vh, otherwise the foot's margin-top:auto
+   has no free space to push against and the user block rides up under the nav */
+#app-sidebar .sidebar-inner {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 10px;
+}
+
+/* brand */
+#app-sidebar .sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 36px 16px 8px;
+  min-width: 0; /* so the name can ellipsis instead of pushing the user menu off-screen */
+  color: var(--color-text-dark);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+#app-sidebar .sidebar-brand:hover {
+  color: var(--color-primary);
+}
+
+#app-sidebar .sidebar-brand img {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+
+#app-sidebar .sidebar-brand span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* search */
+#app-sidebar .sidebar-search {
+  margin-bottom: 10px;
+  position: relative;
+}
+
+#app-sidebar .sidebar-search input {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px 0 34px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--border-radius);
+  background: var(--color-input-background);
+  color: var(--color-input-text);
+}
+
+/* section labels */
+#app-sidebar .sidebar-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px 5px;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-light-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app-sidebar .sidebar-label a {
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#app-sidebar .sidebar-label a:hover {
+  color: var(--color-primary);
+}
+
+/* the dashboard context switcher and org team filter */
+#app-sidebar .sidebar-context.ui.dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--border-radius);
+  background: var(--color-input-background);
+  color: var(--color-nav-text);
+  cursor: pointer;
+  min-width: 0;
+}
+
+#app-sidebar .sidebar-context.ui.dropdown:hover {
+  border-color: var(--color-secondary-dark-3);
+}
+
+#app-sidebar .sidebar-context > .text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+#app-sidebar .sidebar-context .sidebar-context-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app-sidebar .sidebar-context > .dropdown.icon {
+  flex: none;
+  color: var(--color-text-light-2);
+}
+
+/* nav items */
+#app-sidebar .sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border-radius: var(--border-radius);
+  color: var(--color-nav-text);
+  text-decoration: none;
+  min-width: 0;
+}
+
+#app-sidebar .sidebar-item:hover {
+  background: var(--color-nav-hover-bg);
+}
+
+#app-sidebar .sidebar-item.active {
+  background: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+#app-sidebar .sidebar-item .svg {
+  flex: none;
+  color: var(--color-text-light-2);
+}
+
+#app-sidebar .sidebar-item.active .svg {
+  color: var(--color-primary);
+}
+
+#app-sidebar .sidebar-item .sidebar-item-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app-sidebar .sidebar-item .sidebar-item-count {
+  flex: none;
+  font-size: 11px;
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-light-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the user block, always pinned to the bottom */
+#app-sidebar .sidebar-foot {
+  position: relative;
+  flex: none;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* signed in: the user menu and the icon cluster share one row */
+#app-sidebar .sidebar-foot-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#app-sidebar .sidebar-foot .sidebar-user {
+  flex: 1;
+  min-width: 0;
+}
+
+/* the user and create-new menus are fomantic dropdowns, so they keep the .ui.dropdown hook */
+#app-sidebar .sidebar-foot .ui.dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--border-radius);
+  color: var(--color-nav-text);
+  cursor: pointer;
+}
+
+#app-sidebar .sidebar-foot .ui.dropdown:hover {
+  background: var(--color-nav-hover-bg);
+}
+
+#app-sidebar .sidebar-foot .sidebar-user-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app-sidebar :is(.sidebar-foot, .sidebar-context-area) .ui.dropdown > .menu {
+  inset: auto 0 100% auto;
+  margin-bottom: 4px;
+}
+
+#app-sidebar .sidebar-icons {
+  display: flex;
+  align-items: center;
+}
+
+#app-sidebar .sidebar-icons .item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 38px;
+  border-radius: var(--border-radius);
+  color: var(--color-text-light-1);
+}
+
+#app-sidebar .sidebar-icons .item:hover {
+  background: var(--color-nav-hover-bg);
+}
+
+/* notification count, stopwatch dot and admin badge, which ride on top of their icon */
+#app-sidebar .item,
+#app-sidebar .sidebar-user {
+  position: relative;
+}
+
+#app-sidebar a.item:hover .notification_count,
+#app-sidebar a.item:hover .header-stopwatch-dot,
+#app-sidebar .navbar-admin-badge {
+  border-color: var(--color-nav-hover-bg);
+}
+
+#app-sidebar a.item .notification_count,
+#app-sidebar a.item .header-stopwatch-dot,
+#app-sidebar .navbar-admin-badge {
+  color: var(--color-nav-bg);
+  padding: 0 3.75px;
+  font-size: 12px;
+  line-height: 12px;
+  font-weight: var(--font-weight-bold);
+  background: var(--color-primary);
+  border: 2px solid var(--color-nav-bg);
+  position: absolute;
+  left: calc(100% - 9px);
+  bottom: calc(100% - 9px);
+  min-width: 17px;
+  height: 17px;
+  border-radius: var(--border-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1; /* prevent the button background from overlaying the icon */
+  user-select: none;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.navbar-avatar {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+#app-sidebar .navbar-admin-badge {
+  bottom: calc(100% - 29px);
+  left: calc(100% - 18px);
+  padding: 1.5px;
+}
+
+#app-sidebar .sidebar-search > .svg {
+  position: absolute;
+  left: 11px;
+  top: 11px;
+  color: var(--color-text-light-2);
+  pointer-events: none;
+}
+
+#app-sidebar .sidebar-repo-label {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-secondary);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  color: var(--color-text);
+  overflow: visible;
+}
+
+#app-sidebar .sidebar-repo-nav {
+  padding-top: 8px;
+}
+
+.app-nav-toggle {
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+}
+
+.app-nav-toggle:hover {
+  background: var(--color-nav-hover-bg);
+}
+
+#app-sidebar .sidebar-search-toggle {
+  display: none;
+}
+
+.sidebar-collapse {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+}
+
+.app-nav-toolbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--color-nav-bg);
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+@media (min-width: 1000px) {
+  .app-nav-collapsed #app-sidebar {
+    flex-basis: 64px;
+    width: 64px;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-inner {
+    padding-inline: 8px;
+    align-items: stretch;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-brand {
+    padding: 4px 0 8px;
+    justify-content: center;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-brand span,
+  .app-nav-collapsed #app-sidebar .sidebar-item-text,
+  .app-nav-collapsed #app-sidebar .sidebar-item-count,
+  .app-nav-collapsed #app-sidebar .sidebar-user-name,
+  .app-nav-collapsed #app-sidebar .sidebar-user > .svg,
+  .app-nav-collapsed #app-sidebar .sidebar-label,
+  .app-nav-collapsed #app-sidebar .sidebar-search,
+  .app-nav-collapsed #app-sidebar .sidebar-context-name {
+    display: none;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-collapse {
+    position: static;
+    align-self: center;
+    margin-bottom: 12px;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-search-toggle {
+    display: block;
+    align-self: center;
+    margin-bottom: 8px;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-collapse > .svg {
+    transform: scaleX(-1);
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-item {
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-repo-nav {
+    margin-top: 16px;
+    border-top: 1px solid var(--color-secondary);
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-foot-row {
+    flex-direction: column;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-icons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-icons .item {
+    min-height: 32px;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-context.ui.dropdown {
+    padding: 8px;
+    justify-content: center;
+    border: none;
+    background: transparent;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-context > .dropdown.icon,
+  .app-nav-collapsed #app-sidebar .sidebar-context > .text > .org-visibility,
+  .app-nav-collapsed #app-sidebar .sidebar-context .text > .label {
+    display: none;
+  }
+
+  .app-nav-collapsed #app-sidebar :is(.sidebar-foot, .sidebar-context-area) .ui.dropdown {
+    position: static;
+  }
+
+  .app-nav-collapsed #app-sidebar :is(.sidebar-foot, .sidebar-context-area) .ui.dropdown > .menu {
+    left: calc(100% + 12px);
+    right: auto;
+    bottom: 0;
+    min-width: 220px;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-main {
+    overflow-x: hidden;
+    scrollbar-width: none;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-main::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-nav-collapsed #app-sidebar .sidebar-user {
+    justify-content: center;
+  }
+}
+
+#app-sidebar :focus-visible,
+.app-nav-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 999.98px) {
+  .app-nav-collapsed #app-sidebar {
+    display: none;
+  }
+  .app-nav-toolbar {
+    display: flex;
+  }
+
+  #app-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(300px, 90vw);
+    z-index: 1001;
+    box-shadow: 0 0 0 100vmax #0008;
+  }
+
+  .app-nav-open {
+    overflow: hidden;
+  }
+
+  #app-sidebar .sidebar-inner {
+    height: 100dvh;
+  }
+}
+
+#app-sidebar .sidebar-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+#app-sidebar .sidebar-context-area .sidebar-label {
+  padding-top: 4px;
+  font-size: 10px;
+}
+
+#app-sidebar .sidebar-context-area .sidebar-context > .menu {
+  min-width: 220px;
+}
+
+#app-sidebar .sidebar-context-area {
+  position: relative;
+  flex: none;
+  padding-block: 8px;
+}

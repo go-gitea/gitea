@@ -24,9 +24,10 @@
   --octicon-x: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.75.75 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.75.75 0 0 1-.734-.215L8 9.06l-3.22 3.22a.75.75 0 0 1-1.042-.018.75.75 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06"/></svg>');
   --select-arrows: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m4.074 9.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.043 9H4.251a.25.25 0 0 0-.177.427m0-1.957L7.47 4.073a.25.25 0 0 1 .354 0L11.22 7.47a.25.25 0 0 1-.177.426H4.251a.25.25 0 0 1-.177-.426"/></svg>');
   /* other variables */
-  --border-radius: 4px;
-  --border-radius-medium: 6px;
+  --border-radius: 6px;
+  --border-radius-medium: 8px;
   --border-radius-full: 99999px; /* TODO: use calc(infinity * 1px) */
+  --sidebar-width: 240px; /* width of the app sidebar; below the mobile breakpoint it collapses to a top bar */
   --opacity-disabled: 0.55;
   --height-loading: 16rem;
   --min-height-textarea: 132px; /* padding + 6 lines + border = calc(1.57142em + 6lh + 2px), but lh is not fully supported */
@@ -34,6 +35,7 @@
   --checkbox-size: 14px; /* height and width of checkbox and radio inputs */
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
+  --page-space-top: 24px; /* space above the first page element; the page no longer sits under a navbar, so it needs its own */
   --page-space-bottom: 64px; /* space between last page element and footer */
   --transition-hover-fade: opacity 0.2s ease; /* fade transition for elements that show on hover */
 
@@ -401,7 +403,46 @@ a.label,
 
 .full.height {
   flex-grow: 1;
+  display: flex;
+  align-items: stretch;
+}
+
+#app-sidebar {
+  flex: 0 0 var(--sidebar-width);
+}
+
+#app-content {
+  flex: 1;
+  min-width: 0; /* let long content shrink instead of pushing the sidebar */
+  display: flex;
+  flex-direction: column;
+}
+
+/* the footer is the last child of the content column, so auto margin drops it to the
+   bottom of the viewport on short pages instead of hiding it below the fold */
+#app-content > .page-footer {
+  margin-top: auto;
+}
+
+/* the breathing room that used to sit under the whole shell now sits under the page,
+   above the footer */
+.page-content {
   padding-bottom: var(--page-space-bottom);
+}
+
+/* The sidebar collapses to a top bar well before the phone breakpoint. Gitea's own
+   responsive rules are tuned for a full-width page; leaving a 240px sidebar in place on a
+   tablet leaves the content column ~240px narrower than those rules expect, which pushes
+   wide pages (settings, admin) into horizontal overflow. Giving the page its full width
+   back at this size lets the existing breakpoints work as designed. Keep this value in
+   sync with the one in modules/app-sidebar.css. */
+@media (max-width: 999.98px) {
+  .full.height {
+    flex-direction: column;
+  }
+  #app-sidebar {
+    flex: none;
+  }
 }
 
 .status-page-error {
@@ -419,18 +460,31 @@ a.label,
 }
 
 /* add margin below .secondary nav when it is the first child */
+/* a full-bleed header bar. it stays flush with the top of the content column, but needs its
+   own padding now that nothing sits above it */
+.secondary-nav {
+  background: var(--color-secondary-nav-bg);
+  border-bottom: 1px solid var(--color-secondary);
+  padding-top: 8px;
+}
+
 .page-content > :first-child.secondary-nav {
   margin-bottom: 14px;
 }
 
+.issue-navbar {
+  display: flex;
+  justify-content: space-between;
+}
+
 /* add margin to all pages when there is no .secondary.nav */
 .page-content > :first-child:not(.secondary-nav) {
-  margin-top: var(--page-spacing);
+  margin-top: var(--page-space-top);
 }
 /* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
    to compensate here */
 .page-content > :first-child.ui.grid {
-  margin-top: calc(var(--page-spacing) - 1rem);
+  margin-top: calc(var(--page-space-top) - 1rem);
 }
 
 .ui .sha.label {

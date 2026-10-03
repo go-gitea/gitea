@@ -1,0 +1,7 @@
+@import "./theme-atlas-light.css" (prefers-color-scheme: light);
+@import "./theme-atlas-dark.css" (prefers-color-scheme: dark);
+
+gitea-theme-meta-info {
+  --theme-display-name: "Atlas";
+  --theme-color-scheme: "auto";
+}

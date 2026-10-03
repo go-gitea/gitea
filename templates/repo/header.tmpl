@@ -5,8 +5,9 @@
 			{{/* left part */}}
 			<div class="flex-text-block">
 				{{template "repo/icon" .}}
-				<div class="flex-text-block tw-flex-wrap tw-text-18">
+				<div class="repo-heading flex-text-block tw-flex-wrap">
 					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+
 					{{if $.IsSigned}}{{/* actually the switch also works for anonymous users, GitHub only shows it for sign-in users */}}
 						<div class="ui custom dropdown" data-global-init="initRepoSwitcher" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}"
 							data-query-url="{{AppSubUrl}}/repo/search?q={query}&uid={{.Owner.ID}}&exclusive=true" {{/* only search the repo owned by "uid" */}}
@@ -92,117 +93,5 @@
 	{{end}}
 	{{if .IsSigned}}{{template "repo/watch_options_modal"}}{{end}}
 
-	<div class="ui container">
-		<overflow-menu class="ui secondary pointing menu">
-			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
-				<div class="overflow-menu-items">
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
-						{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
-					</a>
-					{{end}}
-
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
-							{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
-							{{if .Repository.NumOpenIssues}}
-								<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
-							{{end}}
-						</a>
-					{{end}}
-
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker}}
-						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank">
-							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
-						</a>
-					{{end}}
-
-					{{if and .Repository.CanEnablePulls (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests)}}
-						<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls">
-							{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls"}}
-							{{if .Repository.NumOpenPulls}}
-								<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
-							{{end}}
-						</a>
-					{{end}}
-
-					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
-							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
-							{{if .Repository.NumOpenActionRuns}}
-								<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
-							{{end}}
-						</a>
-					{{end}}
-
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypePackages}}
-						<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active {{end}}item">
-							{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
-						</a>
-					{{end}}
-
-					{{$projectsUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeProjects}}
-					{{if and (not ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
-						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active {{end}}item">
-							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.projects"}}
-							{{if .Repository.NumOpenProjects}}
-								<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
-							{{end}}
-						</a>
-					{{end}}
-
-					{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeReleases) (not .IsEmptyRepo)}}
-					<a class="{{if or .PageIsReleaseList .PageIsTagList}}active {{end}}item" href="{{.RepoLink}}/releases">
-						{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.releases"}}
-						{{if .NumReleases}}
-							<span class="ui small label">{{CountFmt .NumReleases}}</span>
-						{{end}}
-					</a>
-					{{end}}
-
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
-						<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
-							{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
-						</a>
-					{{end}}
-
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalWiki}}
-						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank">
-							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.wiki"}}
-						</a>
-					{{end}}
-
-					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActivity}}active {{end}}item" href="{{.RepoLink}}/activity">
-							{{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity"}}
-						</a>
-					{{end}}
-
-					{{template "custom/extra_tabs" .}}
-
-					{{if .Permission.IsAdmin}}
-						<span class="item-flex-space"></span>
-						<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
-							{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
-						</a>
-					{{end}}
-				</div>
-			{{else}}
-				<div class="overflow-menu-items">
-					{{if(and .Repository.IsBeingCreated (.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}
-					<a class="{{if not .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}">
-						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.migration_status"}}
-					</a>
-					{{end}}
-
-					{{if .Permission.IsAdmin}}
-					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
-						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
-					</a>
-					{{end}}
-				</div>
-			{{end}}
-		</overflow-menu>
-	</div>
-	<div class="ui tabs divider"></div>
+	{{/* the repository units are rendered in the app sidebar, see "repo/sidebar_nav" */}}
 </div>

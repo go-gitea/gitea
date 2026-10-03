@@ -5,7 +5,7 @@
   position: relative;
   margin: 1rem 0;
   padding: 1em;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   border: 1px solid var(--color-secondary);
   background: var(--color-box-body);
   color: var(--color-text);
@@ -19,7 +19,7 @@
 
 .ui.grid.segment {
   margin: 1rem 0;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
 }
 
 .ui.segment.tab:last-child {
@@ -31,7 +31,7 @@
   position: relative;
   margin: 1rem 0;
   border: 1px solid var(--color-secondary);
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   background: var(--color-box-body);
   color: var(--color-text);
 }
@@ -58,7 +58,7 @@
   border-top: none;
   margin-top: 0;
   margin-bottom: 0;
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
 .ui.segments:not(.horizontal) > .segment:last-child {
@@ -66,12 +66,12 @@
   bottom: 0;
   margin-top: 0;
   margin-bottom: 0;
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .ui.segments:not(.horizontal) > .segment:only-child,
 .ui.segments:not(.horizontal) > .segment:has(~ .tw-hidden) { /* workaround issue with :last-child ignoring hidden elements */
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
 }
 
 .ui.horizontal.segments {
@@ -80,7 +80,7 @@
   background-color: transparent;
   padding: 0;
   margin: 1rem 0;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   border: 1px solid var(--color-secondary);
 }
 
@@ -97,10 +97,10 @@
   border-left: none;
 }
 .ui.horizontal.segments > .segment:first-child {
-  border-radius: 0.28571429rem 0 0 0.28571429rem;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 .ui.horizontal.segments > .segment:last-child {
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 
 .ui.clearing.segment::after {
@@ -132,8 +132,8 @@
 
 .ui.attached.segment:last-child,
 .ui.attached.segment:has(+ :not(.ui.attached.segment)) {
-  border-bottom-left-radius: 0.28571429rem;
-  border-bottom-right-radius: 0.28571429rem;
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }
 
 .ui[class*="top attached"].segment {
@@ -141,14 +141,14 @@
   margin-bottom: 0;
   top: 0;
   margin-top: 1rem;
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 .ui.segment[class*="top attached"]:first-child {
   margin-top: 0;
 }
 .ui[class*="top attached"].segment:last-child {
-  border-top-left-radius: 0.28571429rem;
-  border-top-right-radius: 0.28571429rem;
+  border-top-left-radius: var(--border-radius);
+  border-top-right-radius: var(--border-radius);
 }
 
 .ui.segment[class*="bottom attached"] {
@@ -156,7 +156,7 @@
   margin-top: 0;
   top: 0;
   margin-bottom: 1rem;
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 .ui.segment[class*="bottom attached"]:last-child {
   margin-bottom: 1rem;

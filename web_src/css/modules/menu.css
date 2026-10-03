@@ -6,7 +6,7 @@
   font-weight: var(--font-weight-normal);
   background: var(--color-menu);
   border: 1px solid var(--color-secondary);
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   min-height: 2.85714286em;
   font-size: 1rem;
 }
@@ -42,7 +42,7 @@
   font-weight: var(--font-weight-normal);
 }
 .ui.menu > .item:first-child {
-  border-radius: 0.28571429rem 0 0 0.28571429rem;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
 }
 
 .ui.menu .item::before {
@@ -91,7 +91,7 @@
 
 .ui.menu .dropdown.item .menu {
   min-width: calc(100% - 1px);
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
   background: var(--color-body);
   margin: 0;
   flex-direction: column !important;
@@ -102,7 +102,7 @@
 }
 
 .ui.secondary.menu .dropdown.item > .menu {
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
   margin-top: 0.35714286em;
 }
 
@@ -129,10 +129,12 @@
   background: none;
 }
 
+/* "you are here" reads the same everywhere: a primary tint, as in the app sidebar,
+   rather than a neutral grey block */
 .ui.menu .active.item {
-  color: var(--color-text);
-  background: var(--color-active);
-  font-weight: var(--font-weight-normal);
+  color: var(--color-primary);
+  background: var(--color-primary-alpha-10);
+  font-weight: var(--font-weight-semibold);
 }
 
 .ui.ui.menu .item.disabled {
@@ -174,10 +176,10 @@
   border-right: none;
 }
 .ui.vertical.menu > .item:first-child {
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 .ui.vertical.menu > .item:last-child {
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 .ui.vertical.menu .item::before {
@@ -214,10 +216,11 @@
   color: var(--color-text-light-1);
 }
 
+/* a nested "you are here" reads like the top-level one, just without the fill */
 .ui.vertical.menu .item .menu .active.item {
   background-color: transparent;
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
 }
 
 .ui.vertical.menu .item .menu a.item:hover {
@@ -228,17 +231,19 @@
 }
 
 .ui.vertical.menu .active.item {
-  background: var(--color-active);
+  color: var(--color-primary);
+  background: var(--color-primary-alpha-10);
+  font-weight: var(--font-weight-semibold);
   border-radius: 0;
 }
 .ui.vertical.menu > .active.item:first-child {
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 .ui.vertical.menu > .active.item:last-child {
-  border-radius: 0 0 0.28571429rem 0.28571429rem;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 .ui.vertical.menu > .active.item:only-child {
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
 }
 
 .ui.tabular.menu {
@@ -247,12 +252,12 @@
   background: none transparent;
   border-bottom: 1px solid var(--color-secondary);
 }
+/* tabs are an underline rule, not a boxed "folder tab" */
 .ui.tabular.menu .item {
   background: transparent;
-  border-bottom: none;
-  border-left: 1px solid transparent;
-  border-right: 1px solid transparent;
-  border-top: 2px solid transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
   color: var(--color-text-light-2);
 }
 .ui.tabular.menu .item::before {
@@ -261,16 +266,18 @@
 
 .ui.tabular.menu .item:hover {
   background-color: transparent;
+  color: var(--color-text-dark);
 }
 
 .ui.tabular.menu .active.item,
 .ui.tabular.menu .active.item:hover {
-  background: var(--color-body);
-  border-top-width: 1px;
-  border-color: var(--color-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-primary);
   color: var(--color-text-dark);
+  font-weight: var(--font-weight-semibold);
   margin-bottom: -1px;
-  border-radius: 0.28571429rem 0.28571429rem 0 0 !important;
+  border-radius: 0;
 }
 
 .ui.tabular.menu + .attached:not(.top).segment,
@@ -288,10 +295,10 @@
   vertical-align: middle;
 }
 .ui.pagination.menu .item:last-child {
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 .ui.compact.menu .item:last-child {
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 .ui.pagination.menu .item:last-child::before {
   display: none;
@@ -338,7 +345,7 @@
   padding: 0.78571429em 0.92857143em;
   margin: 0;
   background: none;
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
 }
 
 .ui.secondary.menu .item::before {
@@ -352,7 +359,7 @@
 }
 
 .ui.secondary.menu .active.item {
-  border-radius: 0.28571429rem;
+  border-radius: var(--border-radius);
 }
 
 .ui.secondary.menu .active.item,
@@ -364,7 +371,7 @@
 .ui.secondary.vertical.menu > .item {
   border: none;
   margin: 0 0 0.35714286em;
-  border-radius: 0.28571429rem !important;
+  border-radius: var(--border-radius) !important;
 }
 
 .ui.secondary.pointing.menu {
@@ -443,7 +450,7 @@
   flex-shrink: 0;
 }
 .ui.compact.menu:not(.secondary) .item:last-child {
-  border-radius: 0 0.28571429rem 0.28571429rem 0;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
 }
 .ui.compact.menu .item:last-child::before {
   display: none;
@@ -515,14 +522,14 @@
   margin-bottom: 0;
   top: 0;
   margin-top: 1rem;
-  border-radius: 0.28571429rem 0.28571429rem 0 0;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 .ui.menu[class*="top attached"]:first-child {
   margin-top: 0;
 }
 
 .ui.top.attached.menu > .item:first-child {
-  border-radius: 0.28571429rem 0 0;
+  border-radius: var(--border-radius) 0 0;
 }
 
 .ui.attached.tabular.menu {
