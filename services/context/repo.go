@@ -190,7 +190,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 	protectionRequireSigned := false
 	if protectedBranch != nil {
 		protectedBranch.Repo = targetRepo
-		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer)
+		canPushWithProtection = protectedBranch.CanUserPush(ctx, doer, doerRepoPerm)
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 		// If branch-wide push is restricted, allow direct commit when the
 		// URL-derived tree path matches an unprotected file pattern. The
