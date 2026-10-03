@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/session"
 )
 
 // UserAssignmentWeb returns a middleware to handle context-user assignment for web routes
@@ -57,4 +58,8 @@ func userAssignment(ctx *Base, doer *user_model.User, errCb func(int, string)) (
 		}
 	}
 	return contextUser
+}
+
+func IsDoerSessionImpersonated(sess session.Store) bool {
+	return sess.Get(session.KeyImpersonatorData) != nil
 }

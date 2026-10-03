@@ -445,11 +445,6 @@ func (u *User) IsTypeBot() bool {
 	return u.Type == UserTypeBot
 }
 
-// NeedsPasswordChange reports whether the user must change their password before continuing.
-func (u *User) NeedsPasswordChange() bool {
-	return u != nil && u.MustChangePassword && !u.IsTypeBot()
-}
-
 // IsTokenAccessAllowed returns whether the user is an individual or a bot (which allows for token access)
 func (u *User) IsTokenAccessAllowed() bool {
 	return u.Type == UserTypeIndividual || u.Type == UserTypeBot

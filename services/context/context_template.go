@@ -69,7 +69,7 @@ func (c TemplateContext) CurrentWebTheme() *webtheme.ThemeMetaInfo {
 
 func (c TemplateContext) ImpersonatedUser() *user_model.User {
 	webCtx := GetWebContext(c)
-	if webCtx == nil || webCtx.Doer == nil || !webCtx.DoerIsImpersonated() {
+	if webCtx == nil || webCtx.Doer == nil || !IsDoerSessionImpersonated(webCtx.Session) {
 		return nil
 	}
 	return webCtx.Doer

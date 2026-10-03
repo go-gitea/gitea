@@ -172,31 +172,24 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	return webAuth
 }
 
-func doerMustChangePassword(ctx *context.Context) bool {
-	// an impersonating admin must not be forced to set the impersonated user's password
-	return ctx.Doer.NeedsPasswordChange() && !ctx.DoerIsImpersonated()
-}
-
-// verifyAuthWithOptions checks authentication according to options
-func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
+// verifyAuthWithOptionsWeb checks authentication according to options
+func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.Context) {
 	crossOriginProtection := http.NewCrossOriginProtection()
 
 	return func(ctx *context.Context) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
-			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+			check := common.CheckSignedInUser(ctx.Doer, ctx.Session)
+			if check.NeedActivateAccount {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
-			}
-			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+			} else if check.LoginIsProhibited {
 				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
-			}
-
-			if doerMustChangePassword(ctx) {
+			} else if check.NeedChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
@@ -333,7 +326,7 @@ func Routes() *web.Router {
 //     The CORS mechanism already protects cross-origin requests, and the CrossOriginProtection has no "allowed origin" list, so disable CrossOriginProtection.
 //   - For non-browser client requests: git clone via http, no Sec-Fetch-Site header.
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
-var optSignInFromAnyOrigin = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
+var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
@@ -352,13 +345,14 @@ func addProjectBoardRoutes(m *web.Router) {
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// middleware: required to be signed in or signed out
-	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
-	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
+	reqSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: true})
+	reqSignOut := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignOutRequired: true})
 	// middleware: optional sign in (if signed in, use the user as doer, if not, no doer)
-	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
-	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
+	optSignInHome := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: false}) // site home doesn't need "require sign-in" protection
+	optSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
+	optExploreSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 	// middleware: only apply CrossOriginProtection
-	crossOriginProtect := verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: false})
+	crossOriginProtect := verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: false})
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
@@ -530,7 +524,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
-	m.Get("/", Home)
+	m.Get("/", optSignInHome, Home)
 	m.Get("/sitemap.xml", sitemapEnabled, optExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
@@ -777,7 +771,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/-/admin", func() {

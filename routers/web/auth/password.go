@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -282,10 +283,11 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	// Make sure only requests for users who are eligible to change their password via
-	// this method passes through
-	if !ctx.Doer.NeedsPasswordChange() {
-		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password. Please visit the settings page"))
+	check := common.CheckSignedInUser(ctx.Doer, ctx.Session)
+	// Make sure only requests for users who are eligible to change their password via this method passes through
+	if !check.NeedChangePassword {
+		log.Debug("User %s attempted to access the must change password page, but they are not required to change their password", ctx.Doer.Name)
+		ctx.NotFound(nil)
 		return
 	}
 
