@@ -30,6 +30,14 @@ jobs:
           check-latest: true
           cache: false
       - uses: ./.github/actions/node-setup
+      - name: Select release notes range
+        id: notes
+        run: node tools/release-tag.ts range
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4
+        with:
+          version: v2.13.1
+          args: --offline --tag ${{ steps.notes.outputs.tag }} --output release.notes ${{ steps.notes.outputs.previous }}..${{ github.sha }}
       - run: make deps-frontend deps-backend
       - run: make release
       - name: Install Cosign
@@ -77,7 +85,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" --title "$TAG" --notes-from-tag dist/release/*
+          gh release create "$TAG" --title "$TAG" --notes-file release.notes dist/release/*
 
   container:
     runs-on: namespace-profile-gitea-release-docker

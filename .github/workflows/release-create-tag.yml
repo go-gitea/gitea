@@ -34,11 +34,14 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - uses: ./.github/actions/node-setup
+        with:
+          cache: "false"
       - name: Authorize and validate release
         id: prepare
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: python3 tools/release-tag.py prepare
+        run: node tools/release-tag.ts prepare
       - name: Generate release notes
         uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4
         with:
@@ -47,7 +50,7 @@ jobs:
       - name: Preview release
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: python3 tools/release-tag.py preview
+        run: node tools/release-tag.ts preview
       - name: Import release tag signing key
         if: ${{ !inputs.dry-run }}
         id: gpg
@@ -65,9 +68,9 @@ jobs:
           TAG: ${{ steps.prepare.outputs.tag }}
           GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
         run: |
-          git -c gpg.format=openpgp commit --allow-empty --cleanup=verbatim -S"$GPG_FINGERPRINT" -F release.commit
+          git -c gpg.format=openpgp commit --allow-empty --cleanup=verbatim -S"$GPG_FINGERPRINT" -m "$TAG"
           git -c gpg.format=openpgp verify-commit HEAD
-          git -c gpg.format=openpgp tag -s --cleanup=verbatim -u "$GPG_FINGERPRINT" -F "$RELEASE_NOTES_FILE" "$TAG" HEAD
+          git -c gpg.format=openpgp tag -s --cleanup=verbatim -u "$GPG_FINGERPRINT" -m "$TAG" "$TAG" HEAD
           git -c gpg.format=openpgp verify-tag "$TAG"
       - name: Recheck and push release commit and tag
         if: ${{ !inputs.dry-run }}
@@ -75,7 +78,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ steps.prepare.outputs.tag }}
         run: |
-          python3 tools/release-tag.py check
+          node tools/release-tag.ts check
           AUTHORIZATION=$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)
           export GIT_CONFIG_COUNT=1
           export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
