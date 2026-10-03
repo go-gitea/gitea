@@ -23,6 +23,7 @@ jobs:
           gpg_private_key: ${{ secrets.GPGSIGN_KEY }}
           passphrase: ${{ secrets.GPGSIGN_PASSPHRASE }}
           git_user_signingkey: true
+          git_committer_email: teabot@gitea.io
       - env:
           VERSION: ${{ inputs.version }}
         run: |
