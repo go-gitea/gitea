@@ -330,11 +330,11 @@ jobs:
     strategy: {matrix: {v: [a]}}
     steps: [{run: echo}]
   computed:
-    name: ${{ matrix.missing }}
+    name: ${{ format('  {0}  ', matrix.missing) }}
     strategy: {matrix: {v: [a]}}
     steps: [{run: echo}]
-  long:
-    name: `+strings.Repeat("x", 96)+`é
+  padded:
+    name: ${{ format('  {0}  ', matrix.v) }}
     strategy: {matrix: {v: [a]}}
     steps: [{run: echo}]
 `), WithGitContext(&model.GithubContext{}))
@@ -350,7 +350,7 @@ jobs:
 		"blank":    {"blank"},
 		"folded":   {" Folded (a)"},
 		"computed": {"computed"},
-		"long":     {strings.Repeat("x", 96) + "..."},
+		"padded":   {"a"},
 	}, names)
 }
 

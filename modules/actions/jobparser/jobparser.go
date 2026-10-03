@@ -12,7 +12,6 @@ import (
 	"gitea.dev/actionslib/pkg/expreval"
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
-	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -315,24 +314,21 @@ func encodeMatrix(matrix map[string]any) yaml.Node {
 	return node
 }
 
-// jobName gives trimmed plain text and lone string literals the suffix and a 100-byte cut, and empty names the job ID
+// jobName trims names, gives plain text and lone string literals the suffix, and blank names the job ID
 func jobName(name, jobID, suffix string, evaluator expreval.Evaluator, evaluate bool) (string, error) {
 	name = strings.TrimSpace(name)
 	if literal, ok := expreval.Literal(name); ok {
 		if literal == "" {
 			literal = jobID
 		}
-		if literal += suffix; len(literal) > 100 {
-			literal = util.TruncateStringBytes(literal, 97) + "..."
-		}
-		return escapeExpressions(literal), nil
+		return escapeExpressions(literal + suffix), nil
 	}
 	if !evaluate {
 		return name, nil
 	}
 
 	name, err := evaluator.Interpolate(name)
-	if name == "" {
+	if name = strings.TrimSpace(name); name == "" {
 		name = jobID
 	}
 	return escapeExpressions(name), err
