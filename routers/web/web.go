@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/imagecaptcha"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/metrics"
 	"gitea.dev/modules/public"
@@ -48,9 +49,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
-	_ "gitea.dev/modules/session" // to register all internal adapters
-
-	"gitea.com/go-chi/captcha"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/klauspost/compress/gzhttp"
@@ -293,9 +291,8 @@ func Routes() *web.Router {
 		mid = append(mid, wrapper)
 	}
 
-	if setting.Service.EnableCaptcha {
-		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.Methods("GET,HEAD", "/captcha/*", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha {
+		routes.Methods("GET,HEAD", `/captcha`, append(mid, imagecaptcha.ServeImage)...)
 	}
 
 	if setting.Metrics.Enabled {
