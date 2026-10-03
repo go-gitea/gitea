@@ -17,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -40,6 +41,7 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	ProjectIDs         []int64
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
+	IsWIP              optional.Option[bool] // filter by WIP title prefix, only meaningful for pulls
 	LabelIDs           []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
@@ -197,6 +199,36 @@ func applyMilestoneCondition(sess db.Session, opts *IssuesOptions) {
 	}
 }
 
+// applyWIPCondition filters by the WIP title prefixes (same matching as HasWorkInProgressPrefix).
+// SUBSTRING is used because it exists on all supported databases, unlike LEFT.
+func applyWIPCondition(sess db.Session, isWIP optional.Option[bool]) {
+	if !isWIP.Has() {
+		return
+	}
+	prefixes := setting.Repository.PullRequest.WorkInProgressPrefixes
+	if len(prefixes) == 0 {
+		if isWIP.Value() {
+			sess.Where(builder.Expr("1=0"))
+		}
+		return
+	}
+	byLen := map[int][]string{}
+	for _, prefix := range prefixes {
+		byLen[len(prefix)] = append(byLen[len(prefix)], strings.ToLower(prefix))
+	}
+	if isWIP.Value() {
+		cond := builder.NewCond()
+		for length, lowered := range byLen {
+			cond = cond.Or(builder.Eq{fmt.Sprintf("LOWER(SUBSTRING(issue.name, 1, %d))", length): lowered})
+		}
+		sess.And(cond)
+	} else {
+		for length, lowered := range byLen {
+			sess.And(builder.NotIn(fmt.Sprintf("LOWER(SUBSTRING(issue.name, 1, %d))", length), lowered))
+		}
+	}
+}
+
 func applyProjectCondition(sess db.Session, opts *IssuesOptions) {
 	projectIDs := util.SliceRemoveAll(opts.ProjectIDs, 0)
 	if len(projectIDs) == 1 && projectIDs[0] == db.NoConditionID { // show those that are in no project
@@ -272,6 +304,8 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 	if opts.IsPull.Has() {
 		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
+
+	applyWIPCondition(sess, opts.IsWIP)
 
 	if opts.IsArchived.Has() {
 		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.Value()})
