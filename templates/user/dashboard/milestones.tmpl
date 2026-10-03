@@ -67,6 +67,7 @@
 								<a class="{{if eq .SortType "mostissues"}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
 								<a class="{{if eq .SortType "leastissues"}}active {{end}}item" href="?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
 								<a class="{{if eq .SortType "name"}}active {{end}}item" href="{{$.Link}}?sort=name&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.name"}}</a>
+								<a class="{{if eq .SortType "namedesc"}}active {{end}}item" href="{{$.Link}}?sort=namedesc&state={{$.State}}&q={{$.Keyword}}">{{ctx.Locale.Tr "repo.milestones.filter_sort.namedesc"}}</a>
 							</div>
 						</div>
 					</div>
