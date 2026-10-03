@@ -190,12 +190,22 @@ func reactionToEmoji(reaction string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
-func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML {
-	output, err := markdown.RenderString(markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), input)
+func (ut *RenderUtils) renderMarkdownToHtml(input string, feedExcerpt bool) template.HTML {
+	rctx := markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas())
+	rctx.RenderOptions.FeedExcerpt = feedExcerpt
+	output, err := markdown.RenderString(rctx, input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
 	}
 	return output
+}
+
+func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML {
+	return ut.renderMarkdownToHtml(input, false)
+}
+
+func (ut *RenderUtils) FeedExcerptToHtml(input string) template.HTML {
+	return ut.renderMarkdownToHtml(input, true)
 }
 
 // RenderPackageMarkdown renders package page Markdown so relative links resolve against the
@@ -227,7 +237,7 @@ func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink strin
 		if label == nil {
 			continue
 		}
-		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteFormatf(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
 		htmlCode.WriteHTML(ut.RenderLabel(label))
 		htmlCode.WriteHTML("</a>")
 	}
@@ -347,7 +357,7 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 	var b htmlutil.HTMLBuilder
 	b.WriteHTML(`<span class="avatar-stack">`)
 	if overflow > 0 {
-		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+		b.WriteFormatf(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
 	}
 
 	// FIXME: such "backward" breaks a11y like screen readers
@@ -361,9 +371,9 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, data *user_model.AvatarStackData, participant *user_model.CommitParticipant) {
 	avatar := ut.participantAvatar(participant)
 	if href := ut.participantHref(data, participant); href != "" {
-		b.WriteFormat(`<a href="%s">%s</a>`, href, avatar)
+		b.WriteFormatf(`<a href="%s">%s</a>`, href, avatar)
 	} else {
-		b.WriteFormat(`<span>%s</span>`, avatar)
+		b.WriteFormatf(`<span>%s</span>`, avatar)
 	}
 }
 
@@ -392,10 +402,10 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 		b.WriteHTML(ut.participantNameLink(data, participants[0]))
 	case 2:
 		b.WriteHTML(ut.participantNameLink(data, participants[0]))
-		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
+		b.WriteFormatf(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
 		b.WriteHTML(ut.participantNameLink(data, participants[1]))
 	default:
-		b.WriteFormat(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
+		b.WriteFormatf(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
 			locale.Tr("repo.commits.avatar_stack_people", len(participants)))
 		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
 		for _, participant := range participants {
@@ -411,22 +421,21 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 // participantNameLink prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
 func (ut *RenderUtils) participantNameLink(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
 	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
-		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, participantName(participant))
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>%s`, href, participantName(participant), ut.UserTypeLabel(participant.GiteaUser))
 	}
 	if participant.GiteaUser != nil {
-		return participant.GiteaUser.GetShortDisplayNameLinkHTML()
+		return participant.GiteaUser.GetShortDisplayNameLinkHTML() + ut.UserTypeLabel(participant.GiteaUser)
 	}
 	if participant.GitIdentity.Email != "" {
 		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, participant.GitIdentity.Email, participant.GitIdentity.Name)
 	}
-	return template.HTML(template.HTMLEscapeString(participant.GitIdentity.Name))
+	return htmlutil.HTMLFormat(`<span class="avatar-stack-name">%s</span>`, participant.GitIdentity.Name)
 }
 
 func (ut *RenderUtils) participantPopupRow(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
-	avatar := ut.participantAvatar(participant)
-	name := participantName(participant)
+	avatar, name, label := ut.participantAvatar(participant), participantName(participant), ut.UserTypeLabel(participant.GiteaUser)
 	if href := ut.participantHref(data, participant); href != "" {
-		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>`, href, avatar, name)
+		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>%s`, href, avatar, name, label)
 	}
-	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>`, avatar, name)
+	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>%s`, avatar, name, label)
 }

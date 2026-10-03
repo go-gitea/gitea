@@ -127,7 +127,7 @@ func isInternalLFSURL(s string) bool {
 	return true
 }
 
-func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.Request {
+func newInternalRequestLFS(ctx context.Context, internalURL, method string, headers map[string]string, body any) *httplib.ClientRequest {
 	if !isInternalLFSURL(internalURL) {
 		return nil
 	}

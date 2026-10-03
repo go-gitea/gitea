@@ -3,8 +3,8 @@
 		{{$attachments := index $.Page.issuesAttachmentMap .ID}}
 		{{if $attachments}}
 		<div class="card-attachment-images">
-			{{range $attachments}}
-				<img loading="lazy" src="{{.DownloadURL}}" alt="{{.Name}}" />
+			{{range $att := $attachments}}
+				<img loading="lazy" src="{{$att.DownloadURL ctx}}" alt="{{$att.Name}}" />
 			{{end}}
 		</div>
 		{{end}}

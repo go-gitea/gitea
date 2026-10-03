@@ -74,6 +74,10 @@ type AssignedIssuesOptions struct {
 	RepoOwnerID int64
 }
 
+func (opts *AssignedIssuesOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts *AssignedIssuesOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.AssigneeID != 0 {

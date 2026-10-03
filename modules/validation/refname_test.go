@@ -5,38 +5,35 @@ package validation
 
 import (
 	"testing"
-
-	"gitea.com/go-chi/binding"
 )
 
 func Test_GitRefNameValidation(t *testing.T) {
-	AddBindingRules()
 	gitRefNameValidationTestCases := []validationTestCase{
 		{
 			description: "Reference name contains only characters",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "test",
 			},
 		},
 		{
 			description: "Reference name contains single slash",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "feature/test",
 			},
 		},
 		{
 			description: "Reference name has allowed special characters",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "debian/1%1.6.0-2",
 			},
 		},
 		{
 			description: "Reference name contains backslash",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "feature\\test",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -45,11 +42,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name starts with dot",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: ".test",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -58,11 +55,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name ends with dot",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "test.",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -71,11 +68,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name starts with slash",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "/test",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -84,11 +81,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name ends with slash",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "test/",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -97,11 +94,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name ends with .lock",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "test.lock",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -110,11 +107,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name contains multiple consecutive dots",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "te..st",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -123,11 +120,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name contains multiple consecutive slashes",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "te//st",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -136,11 +133,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name is single @",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "@",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -149,11 +146,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has @{",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "branch@{",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -162,11 +159,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has unallowed special character ~",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "~debian/1%1.6.0-2",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -175,11 +172,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has unallowed special character *",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "*debian/1%1.6.0-2",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -188,11 +185,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has unallowed special character ?",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "?debian/1%1.6.0-2",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -201,11 +198,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has unallowed special character ^",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "^debian/1%1.6.0-2",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -214,11 +211,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has unallowed special character :",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "debian:jessie",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -227,11 +224,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has unallowed special character (whitespace)",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "debian jessie",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",
@@ -240,11 +237,11 @@ func Test_GitRefNameValidation(t *testing.T) {
 		},
 		{
 			description: "Reference name has unallowed special character [",
-			data: TestForm{
+			data: &TestForm{
 				BranchName: "debian[jessie",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"BranchName"},
 					Classification: ErrGitRefName,
 					Message:        "GitRefName",

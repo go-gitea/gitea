@@ -140,6 +140,14 @@ func isHeader(lof string, inHunk bool) bool {
 	return strings.HasPrefix(lof, cmdDiffHead) || (!inHunk && (strings.HasPrefix(lof, "---") || strings.HasPrefix(lof, "+++")))
 }
 
+func NewGitDiffScanner(r io.Reader) *bufio.Scanner {
+	// TODO: GIT-DIFF-PARSE-LONG-LINE: ideally it shouldn't use bufio.Scanner which has a limit.
+	// It will cause errors if a line is very long.
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(nil, max(512*1024, int(setting.UI.MaxDisplayFileSize/16)))
+	return scanner
+}
+
 // CutDiffAroundLine cuts a diff of a file in way that only the given line + numberOfLine above it will be shown
 // it also recalculates hunks and adds the appropriate headers to the new diff.
 // Warning: Only one-file diffs are allowed.
@@ -149,7 +157,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 		return "", nil
 	}
 
-	scanner := bufio.NewScanner(originalDiff)
+	scanner := NewGitDiffScanner(originalDiff)
 	hunk := make([]string, 0)
 
 	// begin is the start of the hunk containing searched line
@@ -329,4 +337,12 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 	}
 
 	return affectedFiles, err
+}
+
+// GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
+func GetReverseRawDiff(ctx context.Context, repo RepositoryFacade, commitID string, writer io.Writer) error {
+	return gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
+		AddDynamicArguments(commitID).
+		WithStdoutCopy(writer).
+		WithRepo(repo).RunWithStderr(ctx)
 }

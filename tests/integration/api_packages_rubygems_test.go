@@ -7,10 +7,13 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"compress/zlib"
+	"crypto/md5"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"testing"
@@ -180,6 +183,7 @@ func TestPackageRubyGems(t *testing.T) {
 
 	testAnotherGemName := "gitea-another"
 	testAnotherGemVersion := "0.99"
+	contentTestAnother := makeRubyGem(testAnotherGemName, testAnotherGemVersion)
 
 	root := fmt.Sprintf("/api/packages/%s/rubygems", user.Name)
 
@@ -243,11 +247,12 @@ func TestPackageRubyGems(t *testing.T) {
 			AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		b, _ := base64.StdEncoding.DecodeString(`eJxi4Si1EndPzbWyCi5ITc5My0xOLMnMz2M8zMIRLeGpxGWsZ6RnzGbF5hqSyempxJWeWZKayGbN
-EBJqJQjWFZZaVJyZnxfN5qnEZahnoGcKkjTwVBJyB6lUKEhMzk5MTwULGngqcRaVJlWCONEMBp5K
-DGAWSKc7zFhPJamg0qRK99TcYphehZLU4hKInFhGSUlBsZW+PtgZepn5+iDxECRzDUDGcfh6hoA4
-gAAAAP//MS06Gw==`)
-		assert.Equal(t, b, resp.Body.Bytes())
+		r, err := zlib.NewReader(resp.Body)
+		assert.NoError(t, err)
+		b, err := io.ReadAll(r)
+		assert.NoError(t, err)
+		expected := "\x04\bu:\x17Gem::Specification\x01\xc3\x04\b[\x18I\"\n3.2.3\x06:\x06ETi\tI\"\ngitea\x06;\x00TU:\x11Gem::Version[\x06I\"\n1.0.5\x06;\x00T0I\"\x12Gitea package\x06;\x00T00I\"\truby\x06;\x00T[\x000I\"\x00\x06;\x00T[\x06I\"\nGitea\x06;\x00TI\"\x1aRubyGems package test\x06;\x00TI\"\x16https://gitea.io/\x06;\x00TTI\"\truby\x06;\x00T0[\x06I\"\bMIT\x06;\x00T"
+		assert.Contains(t, expected, string(b)) // the content is from rubygems_module.NewMarshalEncoder
 
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
@@ -258,12 +263,19 @@ gAAAAP//MS06Gw==`)
 	t.Run("EnumeratePackages", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		enumeratePackages := func(t *testing.T, endpoint string, expectedContent []byte) {
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, endpoint)).
-				AddBasicAuth(user.Name)
+		readGzBytes := func(t *testing.T, in []byte) []byte {
+			r, err := gzip.NewReader(bytes.NewReader(in))
+			assert.NoError(t, err)
+			b, err := io.ReadAll(r)
+			assert.NoError(t, err)
+			return b
+		}
+		enumeratePackages := func(t *testing.T, endpoint string, expectedGzip []byte) {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, endpoint)).AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
-
-			assert.Equal(t, expectedContent, resp.Body.Bytes())
+			expectedBytes := readGzBytes(t, expectedGzip)
+			actualBytes := readGzBytes(t, resp.Body.Bytes())
+			assert.Equal(t, expectedBytes, actualBytes)
 		}
 
 		b, _ := base64.StdEncoding.DecodeString(`H4sICAAAAAAA/3NwZWNzLjQuOABi4Yhmi+bwVOJKzyxJTWSzYnMNCbUSdE/NtbIKSy0qzszPi2bzVOIy1DPQM2WzZgjxVOIsKk2qBDEBAQAA///xOEYKOwAAAA==`)
@@ -276,7 +288,7 @@ gAAAAP//MS06Gw==`)
 
 	t.Run("UploadAnother", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		uploadFile(t, makeRubyGem(testAnotherGemName, testAnotherGemVersion), http.StatusCreated)
+		uploadFile(t, contentTestAnother, http.StatusCreated)
 	})
 
 	t.Run("PackageInfo", func(t *testing.T) {
@@ -288,16 +300,21 @@ gAAAAP//MS06Gw==`)
 1.0.5 runtime-dep:>= 1.2.0&< 2.0|checksum:%s,ruby:>= 2.3.0,rubygems:>= 1.0
 `, testGemContentChecksum)
 		assert.Equal(t, expected, resp.Body.String())
-	})
+		testGemInfoMd5 := fmt.Sprintf("%x", md5.Sum(resp.Body.Bytes()))
 
-	t.Run("Versions", func(t *testing.T) {
-		defer tests.PrintCurrentTest(t)()
-		req := NewRequest(t, "GET", root+"/versions").AddBasicAuth(user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, `---
-gitea 1.0.5 08843c2dd0ea19910e6b056b98e38f1c
-gitea-another 0.99 8b639e4048d282941485368ec42609be
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/info/%s", root, testAnotherGemName)).AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+		testAnotherGemInfoMd5 := fmt.Sprintf("%x", md5.Sum(resp.Body.Bytes()))
+
+		t.Run("Versions", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			req := NewRequest(t, "GET", root+"/versions").AddBasicAuth(user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, `---
+gitea 1.0.5 `+testGemInfoMd5+`
+gitea-another 0.99 `+testAnotherGemInfoMd5+`
 `, resp.Body.String())
+		})
 	})
 
 	deleteGemPackage := func(t *testing.T, packageName, packageVersion string) {

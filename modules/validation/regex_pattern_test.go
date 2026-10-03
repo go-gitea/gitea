@@ -6,8 +6,6 @@ package validation
 import (
 	"regexp"
 	"testing"
-
-	"gitea.com/go-chi/binding"
 )
 
 func getRegexPatternErrorString(pattern string) string {
@@ -18,29 +16,27 @@ func getRegexPatternErrorString(pattern string) string {
 }
 
 func Test_RegexPatternValidation(t *testing.T) {
-	AddBindingRules()
-
 	regexValidationTestCases := []validationTestCase{
 		{
 			description: "Empty regex pattern",
-			data: TestForm{
+			data: &TestForm{
 				RegexPattern: "",
 			},
 		},
 		{
 			description: "Valid regex",
-			data: TestForm{
+			data: &TestForm{
 				RegexPattern: `(\d{1,3})+`,
 			},
 		},
 
 		{
 			description: "Invalid regex",
-			data: TestForm{
+			data: &TestForm{
 				RegexPattern: "[a-",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"RegexPattern"},
 					Classification: ErrRegexPattern,
 					Message:        getRegexPatternErrorString("[a-"),

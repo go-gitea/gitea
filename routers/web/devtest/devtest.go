@@ -58,7 +58,7 @@ func prepareMockDataGiteaUI(_ *context.Context) {}
 
 func prepareMockDataBadgeCommitSign(ctx *context.Context) {
 	var commits []*asymkey.SignCommit
-	mockUsers, _ := db.Find[user_model.User](ctx, user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 1}})
+	mockUsers, _ := db.Find[user_model.User](ctx, &user_model.SearchUserOptions{ListOptions: db.ListOptions{PageSize: 1}})
 	mockUser := mockUsers[0]
 	commits = append(commits, &asymkey.SignCommit{
 		Verification: &asymkey.CommitVerification{},

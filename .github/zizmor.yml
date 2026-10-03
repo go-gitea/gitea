@@ -5,3 +5,5 @@ rules:
     disable: true
   concurrency-limits:
     disable: true
+  self-repository:
+    disable: true # actionlint rejects "$/" uses, https://github.com/rhysd/actionlint/issues/711

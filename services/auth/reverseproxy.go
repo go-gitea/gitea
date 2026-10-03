@@ -7,14 +7,15 @@ package auth
 import (
 	"net/http"
 	"strings"
+	"uuid"
 
+	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
-
-	gouuid "github.com/google/uuid"
+	"gitea.dev/services/audit"
 )
 
 // Ensure the struct implements the interface.
@@ -113,15 +114,15 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 	if user == nil {
 		user = r.getUserFromAuthEmail(req)
-		if user == nil {
-			return nil, nil //nolint:nilnil // the auth method is not applicable
-		}
+	}
+	if user == nil || !user.IsIndividual() {
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	if r.CreateSession && sess != nil {
 		sessionUID, ok := sess.Get(session.KeyUID).(int64)
 		if !ok || sessionUID != user.ID {
-			handleSignIn(w, req, sess, user)
+			handleSignInNonInteractive(w, req, sess, user)
 		}
 	}
 	store.GetData()["IsReverseProxy"] = true
@@ -143,7 +144,7 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		return nil
 	}
 
-	email := gouuid.New().String() + "@localhost"
+	email := uuid.New().String() + "@localhost"
 	if setting.Service.EnableReverseProxyEmail {
 		webAuthEmail := req.Header.Get(setting.ReverseProxyAuthEmail)
 		if len(webAuthEmail) > 0 {
@@ -171,6 +172,8 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
+
+	audit.RecordAs(req.Context(), user_model.NewAuthSourceUser(), audit_model.UserCreate, user)
 
 	return user
 }

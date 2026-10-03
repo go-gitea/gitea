@@ -225,6 +225,17 @@ func TestLinguist(t *testing.T) {
 				},
 				ExpectedLanguageOrder: []string{"YAML"},
 			},
+			// case 15: linguist-language alias should resolve to its canonical language
+			{
+				GitAttributesContent: "*.cpp linguist-language=golang",
+				FilesToAdd: []*files_service.ChangeRepoFile{
+					{
+						TreePath:      "cplusplus.cpp",
+						ContentReader: strings.NewReader(cppContent),
+					},
+				},
+				ExpectedLanguageOrder: []string{"Go"},
+			},
 		}
 
 		for i, c := range cases {

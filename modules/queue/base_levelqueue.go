@@ -15,6 +15,7 @@ import (
 )
 
 type baseLevelQueue struct {
+	*baseLevelQueueCommonImpl
 	internal atomic.Pointer[levelqueue.Queue]
 
 	conn string
@@ -22,7 +23,10 @@ type baseLevelQueue struct {
 	db   *leveldb.DB
 }
 
-var _ baseQueue = (*baseLevelQueue)(nil)
+var (
+	_ baseQueue                    = (*baseLevelQueue)(nil)
+	_ baseQueueNotifiableInterface = (*baseLevelQueue)(nil)
+)
 
 func newBaseLevelQueueGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
 	if unique {
@@ -42,17 +46,8 @@ func newBaseLevelQueueSimple(cfg *BaseConfig) (baseQueue, error) {
 		return nil, err
 	}
 	q.internal.Store(lq)
+	q.baseLevelQueueCommonImpl = baseLevelQueueCommon(q.cfg, nil, func() baseLevelQueuePushPoper { return q.internal.Load() })
 	return q, nil
-}
-
-func (q *baseLevelQueue) PushItem(ctx context.Context, data []byte) error {
-	c := baseLevelQueueCommon(q.cfg, nil, func() baseLevelQueuePushPoper { return q.internal.Load() })
-	return c.PushItem(ctx, data)
-}
-
-func (q *baseLevelQueue) PopItem(ctx context.Context) ([]byte, error) {
-	c := baseLevelQueueCommon(q.cfg, nil, func() baseLevelQueuePushPoper { return q.internal.Load() })
-	return c.PopItem(ctx)
 }
 
 func (q *baseLevelQueue) HasItem(ctx context.Context, data []byte) (bool, error) {

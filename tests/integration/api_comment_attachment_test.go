@@ -52,7 +52,7 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 
 	apiAttachment := DecodeJSON(t, resp, &api.Attachment{})
 
-	expect := convert.ToAPIAttachment(repo, attachment)
+	expect := convert.ToAPIAttachment(t.Context(), repo, attachment)
 	assert.Equal(t, expect.ID, apiAttachment.ID)
 	assert.Equal(t, expect.Name, apiAttachment.Name)
 	assert.Equal(t, expect.UUID, apiAttachment.UUID)

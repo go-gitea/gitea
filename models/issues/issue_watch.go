@@ -82,7 +82,7 @@ func CheckIssueWatch(ctx context.Context, user *user_model.User, issue *Issue) (
 	if err != nil {
 		return false, err
 	}
-	if repo_model.IsWatchMode(w.Mode) && util.Iif(issue.IsPull, w.PullRequests, w.Issues) {
+	if repo_model.IsWatchModeWatching(w.Mode) && util.Iif(issue.IsPull, w.IncludePullRequests, w.IncludeIssues) {
 		return true, nil
 	}
 	return IsUserParticipantsOfIssue(ctx, user, issue), nil

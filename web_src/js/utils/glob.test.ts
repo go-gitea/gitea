@@ -1,10 +1,8 @@
-import {readFile} from 'node:fs/promises';
-import * as path from 'node:path';
+import globTestData from './glob.test.txt';
 import {globCompile} from './glob.ts';
 
-async function loadGlobTestData(): Promise<{caseNames: string[], caseDataMap: Record<string, string>}> {
-  const fileContent = await readFile(path.join(import.meta.dirname, 'glob.test.txt'), 'utf8');
-  const fileLines = fileContent.split('\n');
+function loadGlobTestData(): {caseNames: string[], caseDataMap: Record<string, string>} {
+  const fileLines = globTestData.split('\n');
   const caseDataMap: Record<string, string> = {};
   const caseNameMap: Record<string, boolean> = {};
   for (let line of fileLines) {
@@ -103,8 +101,8 @@ function loadGlobGolangCases() {
   ];
 }
 
-test('GlobCompiler', async () => {
-  const {caseNames, caseDataMap} = await loadGlobTestData();
+test('GlobCompiler', () => {
+  const {caseNames, caseDataMap} = loadGlobTestData();
   expect(caseNames.length).toBe(10); // should have 10 test cases
   for (const caseName of caseNames) {
     const pattern = caseDataMap[`pattern_${caseName}`];

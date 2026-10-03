@@ -16,7 +16,7 @@
 									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
 								</div>
 							</div>
-							<button class="ui primary button">{{ctx.Locale.Tr "org.teams.add_team_member"}}</button>
+							<button type="submit" class="ui primary button">{{ctx.Locale.Tr "org.teams.add_team_member"}}</button>
 						</form>
 					</div>
 				{{end}}
@@ -34,7 +34,7 @@
 								</div>
 								<div class="item-trailing">
 									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
-										<button class="ui red button show-modal" data-modal="#remove-team-member"
+										<button type="button" class="ui red button show-modal" data-modal="#remove-team-member"
 											data-modal-form.url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove?uid={{.ID}}"
 											data-modal-name="{{.DisplayName}}"
 											data-modal-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
@@ -60,7 +60,7 @@
 								<div class="item-trailing">
 									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
 										<input type="hidden" name="iid" value="{{.ID}}">
-										<button class="ui red button">{{ctx.Locale.Tr "org.members.remove"}}</button>
+										<button type="submit" class="ui red button">{{ctx.Locale.Tr "org.members.remove"}}</button>
 									</form>
 								</div>
 							</div>

@@ -7,18 +7,23 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/setting"
 
-	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-// AddShowPrivateActivityUserColumn adds the show_private_activity column to user
-func AddShowPrivateActivityUserColumn(_ context.Context, x base.EngineMigration) error {
-	type User struct {
-		ShowPrivateActivity bool `xorm:"NOT NULL DEFAULT false"`
+func ExpandActionScheduleContent(ctx context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-		IgnoreConstrains:  true,
-	}, new(User))
-	return err
+
+	return base.ModifyColumn(ctx, x, "action_schedule", &schemas.Column{
+		Name: "content",
+		SQLType: schemas.SQLType{
+			Name: "LONGBLOB",
+		},
+		Length:         0,
+		Nullable:       true,
+		DefaultIsEmpty: true,
+	})
 }

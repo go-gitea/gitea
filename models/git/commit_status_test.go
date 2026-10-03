@@ -4,11 +4,9 @@
 package git_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
-	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
@@ -34,27 +32,14 @@ func TestGetCommitStatuses(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 5, int(maxResults))
-	assert.Len(t, statuses, 5)
-
-	assert.Equal(t, "ci/awesomeness", statuses[0].Context)
-	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
+	var indexes []int64
+	for _, status := range statuses {
+		indexes = append(indexes, status.Index)
+	}
+	assert.Equal(t, []int64{5, 4, 3, 2, 1}, indexes)
+	assert.Equal(t, "deploy/awesomeness", statuses[0].Context)
+	assert.Equal(t, commitstatus.CommitStatusError, statuses[0].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(t.Context()))
-
-	assert.Equal(t, "cov/awesomeness", statuses[1].Context)
-	assert.Equal(t, commitstatus.CommitStatusWarning, statuses[1].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[1].APIURL(t.Context()))
-
-	assert.Equal(t, "cov/awesomeness", statuses[2].Context)
-	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[2].APIURL(t.Context()))
-
-	assert.Equal(t, "ci/awesomeness", statuses[3].Context)
-	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[3].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[3].APIURL(t.Context()))
-
-	assert.Equal(t, "deploy/awesomeness", statuses[4].Context)
-	assert.Equal(t, commitstatus.CommitStatusError, statuses[4].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(t.Context()))
 
 	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
 		ListOptions: db.ListOptions{Page: 2, PageSize: 50},
@@ -233,17 +218,23 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 	}
 }
 
-func TestCommitStatusesHideActionsURL(t *testing.T) {
+func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	// repo4 is public and has the actions unit, repo2 is private and owned by someone else
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 791, RepoID: repo.ID})
-	assert.NoError(t, run.LoadAttributes(t.Context()))
+	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
+	visibleURL := repo.Link() + "/actions/runs/1/jobs/1"
 	statuses := []*git_model.CommitStatus{
 		{
 			RepoID:    repo.ID,
-			TargetURL: fmt.Sprintf("%s/jobs/%d", run.Link(), run.ID),
+			TargetURL: visibleURL,
+		},
+		{
+			RepoID:    otherRepo.ID,
+			TargetURL: otherRepo.Link() + "/actions/runs/1/jobs/1",
 		},
 		{
 			RepoID:    repo.ID,
@@ -251,9 +242,10 @@ func TestCommitStatusesHideActionsURL(t *testing.T) {
 		},
 	}
 
-	git_model.CommitStatusesHideActionsURL(t.Context(), statuses)
-	assert.Empty(t, statuses[0].TargetURL)
-	assert.Equal(t, "https://mycicd.org/1", statuses[1].TargetURL)
+	git_model.CommitStatusesApplyDoerPermission(t.Context(), doer, statuses)
+	assert.Equal(t, visibleURL, statuses[0].TargetURL)
+	assert.Empty(t, statuses[1].TargetURL)
+	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
 }
 
 func TestGetCountLatestCommitStatus(t *testing.T) {

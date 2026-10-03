@@ -79,6 +79,10 @@ type FindVariablesOpts struct {
 	Name    string
 }
 
+func (opts FindVariablesOpts) ToOrders() string {
+	return "name"
+}
+
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
 

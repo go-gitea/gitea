@@ -54,6 +54,9 @@ type swaggerParameterBodies struct {
 	CreateKeyOption api.CreateKeyOption
 
 	// in:body
+	CreateDeployKeyTokenOption api.CreateDeployKeyTokenOption
+
+	// in:body
 	RenameUserOption api.RenameUserOption
 
 	// in:body

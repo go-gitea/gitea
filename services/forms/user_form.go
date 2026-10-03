@@ -14,58 +14,47 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web/middleware"
-
-	"gitea.com/go-chi/binding"
 )
 
 // InstallForm form for installation page
 type InstallForm struct {
 	middleware.FormDefaultValidator
-	DbType   string `binding:"Required"`
-	DbHost   string
-	DbUser   string
+	DbType   string `binding:"TrimSpace;Required"`
+	DbHost   string `binding:"TrimSpace"`
+	DbUser   string `binding:"TrimSpace"`
 	DbPasswd string
-	DbName   string
-	SSLMode  string
-	DbPath   string
-	DbSchema string
+	DbName   string `binding:"TrimSpace"`
+	SSLMode  string `binding:"TrimSpace"`
+	DbPath   string `binding:"TrimSpace"`
+	DbSchema string `binding:"TrimSpace"`
 
-	AppName      string `binding:"Required" locale:"install.app_name"`
-	RepoRootPath string `binding:"Required"`
-	LFSRootPath  string
-	RunUser      string `binding:"Required"`
-	Domain       string `binding:"Required"`
-	SSHPort      int
-	HTTPPort     string `binding:"Required"`
-	AppURL       string `binding:"Required"`
-	LogRootPath  string `binding:"Required"`
+	AppName     string `binding:"TrimSpace;Required" locale:"install.app_name"`
+	AppDataPath string `binding:"TrimSpace;Required"`
+	RunUser     string `binding:"TrimSpace;Required"`
+	SSHPort     int
+	HTTPPort    string `binding:"TrimSpace;Required"`
+	AppURL      string `binding:"TrimSpace;Required"`
 
-	SMTPAddr        string
-	SMTPPort        string
-	SMTPFrom        string
-	SMTPUser        string `binding:"OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
+	SMTPAddr        string `binding:"TrimSpace"`
+	SMTPPort        string `binding:"TrimSpace"`
+	SMTPFrom        string `binding:"TrimSpace"`
+	SMTPUser        string `binding:"TrimSpace;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string
 	RegisterConfirm bool
 	MailNotify      bool
 
-	EnableOpenIDSignIn             bool
-	EnableOpenIDSignUp             bool
 	DisableRegistration            bool
-	AllowOnlyExternalRegistration  bool
 	EnableCaptcha                  bool
 	RequireSignInView              bool
 	DefaultKeepEmailPrivate        bool
 	DefaultAllowCreateOrganization bool
-	DefaultEnableTimetracking      bool
 	EnableUpdateChecker            bool
-	NoReplyAddress                 string
+	NoReplyAddress                 string `binding:"TrimSpace"`
 
-	PasswordAlgorithm string
-
-	AdminName          string `binding:"OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
-	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
+	AdminName          string `binding:"TrimSpace;Username;MaxSize(30)" locale:"install.admin_name"`
+	AdminPasswd        string `binding:"MaxSize(255)" locale:"install.admin_password"`
 	AdminConfirmPasswd string
-	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
+	AdminEmail         string `binding:"TrimSpace;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
 
 	// ReinstallConfirmFirst we can not use 1/2/3 or A/B/C here, there is a framework bug, can not parse "reinstall_confirm_1" or "reinstall_confirm_a"
 	ReinstallConfirmFirst  bool
@@ -195,7 +184,7 @@ type AvatarForm struct {
 	middleware.FormDefaultValidator
 	Source   string
 	Avatar   *multipart.FileHeader
-	Gravatar string `binding:"OmitEmpty;Email;MaxSize(254)"`
+	Gravatar string `binding:"Email;MaxSize(254)"`
 }
 
 // AddEmailForm form for adding new email
@@ -227,12 +216,12 @@ type AddOpenIDForm struct {
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
 	middleware.FormDefaultValidator
-	Type        string `binding:"OmitEmpty"`
+	Type        string
 	Title       string `binding:"Required;MaxSize(50)"`
 	Content     string `binding:"Required"`
-	Signature   string `binding:"OmitEmpty"`
-	KeyID       string `binding:"OmitEmpty"`
-	Fingerprint string `binding:"OmitEmpty"`
+	Signature   string
+	KeyID       string
+	Fingerprint string
 	IsWritable  bool
 }
 
@@ -276,10 +265,10 @@ func DetectInvalidOAuth2ApplicationRedirectURI(uris []string) (invalidURL string
 	return ""
 }
 
-func (f *EditOAuth2ApplicationForm) Validate(ctx *middleware.ValidateContext, errs binding.Errors) binding.Errors {
+func (f *EditOAuth2ApplicationForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	invalidURI := DetectInvalidOAuth2ApplicationRedirectURI(util.SplitTrimSpace(f.RedirectURIs, "\n"))
 	if invalidURI != "" {
-		errs = middleware.AddValidationError(errs, "RedirectURIs", "RedirectURIs: "+ctx.Locale.TrString("form.url_error", `"`+invalidURI+`"`))
+		errs = validation.AddValidationError(errs, "RedirectURIs", "RedirectURIs: "+ctx.Locale.TrString("form.url_error", `"`+invalidURI+`"`))
 	}
 	return errs
 }

@@ -31,7 +31,7 @@ runs:
       with:
         path: ~/go/pkg/mod
         key: gomod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}
-        restore-keys: gomod-${{ runner.os }}-${{ runner.arch }}
+        restore-keys: gomod-${{ runner.os }}-${{ runner.arch }}-
     - if: ${{ github.workflow == 'cache-seeder' && inputs.lint-cache != 'true' }}
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:

@@ -107,12 +107,13 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/actions"
-	"gitea.dev/services/context"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -130,9 +131,7 @@ type artifactV4Routes struct {
 func ArtifactV4Contexter() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base := context.NewBaseContext(resp, req)
-			ctx := &ArtifactContext{Base: base}
-			ctx.SetContextValue(artifactContextKey, ctx)
+			ctx := newArtifactContext(resp, req)
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
@@ -332,9 +331,9 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 
 	artifactName := req.Name
 
-	retentionDays := setting.Actions.ArtifactRetentionDays
+	var expiry optional.Option[timeutil.TimeStamp]
 	if req.ExpiresAt != nil {
-		retentionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
+		expiry = optional.Some(timeutil.TimeStamp(req.ExpiresAt.AsTime().Unix()))
 	}
 	encoding := req.GetMimeType().GetValue()
 	// Validate media type
@@ -347,7 +346,7 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		fileName = artifactName + ".zip"
 	}
 	// create or get artifact with name and path
-	artifact, err := actions_model.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, retentionDays)
+	artifact, err := actions_model.CreateArtifact(ctx, ctx.ActionTask, artifactName, fileName, expiry)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
@@ -383,7 +382,8 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 		}
 	}
 
-	if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+	if err := actions_model.UpdateArtifact(ctx, artifact,
+		"content_encoding", "file_size", "file_compressed_size", "storage_path", "status"); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 		return
@@ -418,7 +418,7 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 			}
 			artifact.FileCompressedSize += uploadedLength
 			artifact.FileSize += uploadedLength
-			if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+			if err := actions_model.UpdateArtifact(ctx, artifact, "file_size", "file_compressed_size"); err != nil {
 				log.Error("Error UpdateArtifactByID: %v", err)
 				ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 				return
@@ -448,10 +448,6 @@ func (r *artifactV4Routes) uploadArtifact(ctx *ArtifactContext) {
 
 type BlockList struct {
 	Latest []string `xml:"Latest"`
-}
-
-type Latest struct {
-	Value string `xml:",chardata"`
 }
 
 func (r *artifactV4Routes) readBlockList(runID, artifactID int64) (*BlockList, error) {
@@ -531,9 +527,22 @@ func (r *artifactV4Routes) finalizeDefaultArtifact(ctx *ArtifactContext, req *Fi
 		return
 	}
 
-	if err := mergeChunksForArtifact(ctx, chunks, r.fs, artifact, req.GetHash().GetValue()); err != nil {
+	storagePath, err := mergeChunksForArtifact(chunks, r.fs, artifact, req.GetHash().GetValue())
+	if err != nil {
 		log.Error("Error merge chunks: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
+		return
+	}
+	if storagePath == "" {
+		return
+	}
+
+	artifact.StoragePath = storagePath
+	artifact.Status = actions_model.ArtifactStatusUploadConfirmed
+	if err := actions_model.UpdateArtifact(ctx, artifact,
+		"storage_path", "status", "file_size", "file_compressed_size"); err != nil {
+		log.Error("Error UpdateArtifact: %v", err)
+		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifact")
 		return
 	}
 }
@@ -583,7 +592,7 @@ func (r *artifactV4Routes) finalizeAzureServeDirect(ctx *ArtifactContext, req *F
 	artifact.FileSize = actualLength
 	artifact.FileCompressedSize = actualLength
 	artifact.Status = actions_model.ArtifactStatusUploadConfirmed
-	if err := actions_model.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+	if err := actions_model.UpdateArtifact(ctx, artifact, "file_size", "file_compressed_size", "status"); err != nil {
 		log.Error("Error UpdateArtifactByID: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error UpdateArtifactByID")
 		return
@@ -608,7 +617,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 	artifacts, err := actions_model.FindReadableArtifacts(ctx, actions_model.FindArtifactsOptions{
 		RunID:                runID,
 		RunAttemptIDs:        attemptIDs,
-		Status:               int(actions_model.ArtifactStatusUploadConfirmed),
+		Status:               actions_model.ArtifactStatusUploadConfirmed,
 		FinalizedArtifactsV4: true,
 	})
 	if err != nil {

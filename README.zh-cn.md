@@ -72,7 +72,7 @@
 
 您也可以创建一个 issue 来添加语言，或者在 discord 的 #translation 频道上询问。如果您需要上下文或发现一些翻译问题，可以在字符串上留言或在 Discord 上询问。对于一般的翻译问题，文档中有一个部分。目前有点空，但我们希望随着问题的出现而填充它。
 
-更多信息请参阅 [文件](https://docs.gitea.com/contributing/localization)。
+更多信息请参阅 [文件](https://docs.gitea.com/zh-cn/contributing/localization)。
 
 ## 官方和第三方项目
 

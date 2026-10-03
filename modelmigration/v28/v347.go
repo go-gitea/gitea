@@ -13,9 +13,9 @@ import (
 
 func AddWatchOptions(_ context.Context, x base.EngineMigration) error {
 	type Watch struct {
-		PullRequests bool `xorm:"NOT NULL DEFAULT true"`
-		Issues       bool `xorm:"NOT NULL DEFAULT true"`
-		Releases     bool `xorm:"NOT NULL DEFAULT true"`
+		IncludePullRequests bool `xorm:"NOT NULL DEFAULT true"`
+		IncludeIssues       bool `xorm:"NOT NULL DEFAULT true"`
+		IncludeReleases     bool `xorm:"NOT NULL DEFAULT true"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains: true,

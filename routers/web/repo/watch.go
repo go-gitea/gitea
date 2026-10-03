@@ -16,14 +16,18 @@ const tplWatch templates.TplName = "repo/header/watch"
 func ActionWatch(ctx *context.Context) {
 	action := ctx.PathParam("action")
 	var err error
-	if action == "ignore" {
-		err = repo_model.WatchIgnoreRepo(ctx, ctx.Doer, ctx.Repo.Repository)
-	} else {
-		all := action == "watch" // "participate" is a watch that subscribes to no event on its own
-		err = repo_model.WatchRepoWithOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{PullRequests: all, Issues: all, Releases: all})
+	switch action {
+	case "ignore":
+		err = repo_model.WatchRepoWithOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{Mode: repo_model.WatchModeDont})
+	case "participate":
+		err = repo_model.WatchRepoWithOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{Mode: repo_model.WatchModeNone})
+	case "watch":
+		err = repo_model.WatchRepoWithOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchPullRequests: true, WatchIssues: true, WatchReleases: true})
+	default:
+		return // impossible
 	}
 	if err != nil {
-		handleActionError(ctx, err)
+		handleRepoActionError(ctx, err)
 		return
 	}
 
@@ -45,12 +49,13 @@ func ActionWatch(ctx *context.Context) {
 // ActionWatchOptions watches the repository with a custom selection of events
 func ActionWatchOptions(ctx *context.Context) {
 	opts := repo_model.WatchOptions{ // clearing every event is allowed, it leaves the participating state
-		PullRequests: ctx.FormBool(string(repo_model.WatchPullRequests)),
-		Issues:       ctx.FormBool(string(repo_model.WatchIssues)),
-		Releases:     ctx.FormBool(string(repo_model.WatchReleases)),
+		Mode:              repo_model.WatchModeNormal,
+		WatchPullRequests: ctx.FormBool("pull_requests"),
+		WatchIssues:       ctx.FormBool("issues"),
+		WatchReleases:     ctx.FormBool("releases"),
 	}
 	if err := repo_model.WatchRepoWithOptions(ctx, ctx.Doer, ctx.Repo.Repository, opts); err != nil {
-		handleActionError(ctx, err)
+		handleRepoActionError(ctx, err)
 		return
 	}
 	ctx.JSONRedirect("")

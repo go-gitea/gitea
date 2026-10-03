@@ -297,21 +297,6 @@ func TestDisplayName(t *testing.T) {
 	}
 }
 
-func TestCreateUserInvalidEmail(t *testing.T) {
-	user := &user_model.User{
-		Name:               "GiteaBot",
-		Email:              "GiteaBot@gitea.io\r\n",
-		Passwd:             ";p['////..-++']",
-		IsAdmin:            false,
-		Theme:              setting.UI.DefaultTheme,
-		MustChangePassword: false,
-	}
-
-	err := user_model.CreateUser(t.Context(), user, &user_model.Meta{})
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrEmailCharIsNotSupported(err))
-}
-
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

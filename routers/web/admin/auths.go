@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/ldap"
@@ -210,7 +209,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 }
 
 func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*sspi.Source, error) {
-	if util.IsEmptyString(form.SSPISeparatorReplacement) {
+	if form.SSPISeparatorReplacement == "" {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
 		return nil, errors.New(ctx.Locale.TrString("form.require_error", ctx.Locale.TrString("form.SSPISeparatorReplacement")))
 	}
@@ -302,7 +301,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.CreateSource(ctx, &auth.Source{
+	if err := auth_service.CreateSource(ctx, &auth.Source{
 		Type:            auth.Type(form.Type),
 		Name:            form.Name,
 		IsActive:        form.IsActive,
@@ -420,7 +419,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	source.TwoFactorPolicy = form.TwoFactorPolicy
-	if err := auth.UpdateSource(ctx, source); err != nil {
+	if err := auth_service.UpdateSource(ctx, source); err != nil {
 		if errExist, ok := errors.AsType[auth.ErrSourceAlreadyExist](err); ok {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", errExist.Name), tplAuthEdit, form)

@@ -4,17 +4,14 @@
   min-width: 200px;
 }
 
-.dashboard.feeds .context.user.menu .ui.header,
 .dashboard.issues .context.user.menu .ui.header {
   font-size: 1rem;
 }
 
-.dashboard.feeds .filter.menu,
 .dashboard.issues .filter.menu {
   width: initial;
 }
 
-.dashboard.feeds .filter.menu .item,
 .dashboard.issues .filter.menu .item {
   text-align: left;
   display: flex;
@@ -23,13 +20,11 @@
 }
 
 /* Sort */
-.dashboard.feeds .filter.menu .jump.item,
 .dashboard.issues .filter.menu .jump.item {
   margin: 1px;
   padding-right: 0;
 }
 
-.dashboard.feeds .filter.menu .menu,
 .dashboard.issues .filter.menu .menu {
   max-height: 300px;
   overflow-x: auto;
@@ -38,13 +33,11 @@
 }
 
 @media (max-width: 767.98px) {
-  .dashboard.feeds .filter.menu,
   .dashboard.issues .filter.menu {
     width: 100%;
   }
 }
 
-.dashboard.feeds .right.stackable.menu > .item.active,
 .dashboard.issues .right.stackable.menu > .item.active {
   color: var(--color-red);
 }

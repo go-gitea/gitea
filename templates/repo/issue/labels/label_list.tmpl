@@ -51,7 +51,7 @@
 							data-label-num-issues="{{.NumIssues}}" data-label-description="{{.Description}}"
 							data-label-exclusive-order="{{.ExclusiveOrder}}"
 						>{{svg "octicon-pencil"}} {{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
-						<a class="link-action" href="#" data-url="{{$.Link}}/delete?id={{.ID}}"
+						<a class="link-action negative" href="#" data-url="{{$.Link}}/delete?id={{.ID}}"
 							data-modal-confirm-header="{{ctx.Locale.Tr "repo.issues.label_deletion"}}"
 							data-modal-confirm-content="{{ctx.Locale.Tr "repo.issues.label_deletion_desc"}}"
 						>{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.label_delete"}}</a>

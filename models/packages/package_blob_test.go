@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,4 +49,26 @@ func TestGetOrInsertBlobConcurrent(t *testing.T) {
 		}
 	}
 	assert.Equal(t, numGoroutines-1, existedCount)
+}
+
+func TestIsBlobAccessibleForRestrictedUser(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 33})
+	pkg, err := TryInsertPackage(t.Context(), &Package{OwnerID: owner.ID, Type: TypeContainer, Name: "limited", LowerName: "limited"})
+	require.NoError(t, err)
+	version, err := GetOrInsertVersion(t.Context(), &PackageVersion{PackageID: pkg.ID, Version: "1", LowerVersion: "1"})
+	require.NoError(t, err)
+	blob, _, err := GetOrInsertBlob(t.Context(), &PackageBlob{Size: 1, HashMD5: "md5", HashSHA1: "sha1", HashSHA256: "sha256", HashSHA512: "sha512"})
+	require.NoError(t, err)
+	_, err = TryInsertFile(t.Context(), &PackageFile{VersionID: version.ID, BlobID: blob.ID, Name: "blob", LowerName: "blob"})
+	require.NoError(t, err)
+
+	accessible, err := IsBlobAccessibleForUser(t.Context(), blob.ID, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}))
+	require.NoError(t, err)
+	assert.True(t, accessible)
+
+	accessible, err = IsBlobAccessibleForUser(t.Context(), blob.ID, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}))
+	require.NoError(t, err)
+	assert.False(t, accessible)
 }

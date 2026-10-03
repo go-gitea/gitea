@@ -54,6 +54,9 @@ func newAuthCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "auth",
 		Usage: "Modify external auth providers",
+		Before: func(ctx context.Context, _ *cli.Command) (context.Context, error) {
+			return cliAuditContext(ctx), nil
+		},
 		Commands: []*cli.Command{
 			microcmdAuthAddOauth(),
 			microcmdAuthUpdateOauth(),

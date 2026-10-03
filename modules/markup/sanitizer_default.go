@@ -34,6 +34,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Line numbers on codepreview
 	policy.AllowAttrs("data-line-number").OnElements("span")
 
+	// emoji aliases for dark theme inversion
+	policy.AllowAttrs("data-alias").OnElements("span")
+
 	// HINT: CUSTOM-URL-SCHEMES-ALLOW: setting custom means also allow them besides http/https, no custom means "allow all"
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
@@ -70,6 +73,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		"mi", "mn", "mo", "mtext", "mspace", "ms",
 		// layout elements
 		"mrow", "mfrac", "msqrt", "mroot", "mstyle", "merror", "mpadded", "mphantom",
+		"maction", // although MDN says "maction" is deprecated, we still need to allow it, otherwise, if it is removed, the layout will be wrong
 		// scripting elements
 		"msub", "msup", "msubsup", "munder", "mover", "munderover", "mmultiscripts", "mprescripts", "none",
 		// tabular elements
@@ -77,10 +81,11 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		// semantic annotations
 		"semantics", "annotation", "annotation-xml",
 	}
+	policy.AllowNoAttrs().OnElements(mathMLElements...) // most MathML elements carry no attributes
 	policy.AllowAttrs("display", "alttext").OnElements("math")
 	policy.AllowAttrs(
-		// global presentation attributes
-		"dir", "displaystyle", "mathbackground", "mathcolor", "mathsize", "mathvariant", "scriptlevel",
+		// global attributes
+		"dir", "displaystyle", "mathbackground", "mathcolor", "mathsize", "mathvariant", "scriptlevel", "intent", "arg",
 		// operator attributes
 		"accent", "accentunder", "fence", "form", "largeop", "lspace", "maxsize", "minsize", "movablelimits", "rspace", "separator", "stretchy", "symmetric",
 		// space and padding attributes
@@ -90,7 +95,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 		// table attributes
 		"columnalign", "columnlines", "columnspacing", "frame", "framespacing", "rowalign", "rowlines", "rowspacing",
 		// cell attributes
-		"columnspan",
+		"columnspan", "rowspan",
+		// maction attributes
+		"actiontype", "selection",
 		// annotation attribute
 		"encoding",
 	).OnElements(mathMLElements...)

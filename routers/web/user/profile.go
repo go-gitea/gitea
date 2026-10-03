@@ -330,17 +330,23 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		return
 	}
 
-	pager := context.NewPagination(total, pagingNum, page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(total).PerPageLimit(pagingNum).CurPage(page).Build()
 	if tab == "activity" {
 		// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: see another comment
 		pager.WithUnlimitedPaging(curRows, curRows == pagingNum)
 	}
-	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 
 // ActionUserFollow is for follow/unfollow user request
 func ActionUserFollow(ctx *context.Context) {
+	isOrg := ctx.ContextUser.IsOrganization()
+	if isOrg && !organization.HasOrgOrUserVisible(ctx, ctx.ContextUser, ctx.Doer) ||
+		!isOrg && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.NotFound(nil)
+		return
+	}
+
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":

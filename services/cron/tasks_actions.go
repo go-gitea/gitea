@@ -20,6 +20,7 @@ func initActionsTasks() {
 	registerCancelAbandonedJobs()
 	registerScheduleTasks()
 	registerActionsCleanup()
+	registerCleanupActionRuns()
 }
 
 func registerStopZombieTasks() {
@@ -72,5 +73,15 @@ func registerActionsCleanup() {
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.Cleanup(ctx)
+	})
+}
+
+func registerCleanupActionRuns() {
+	RegisterTaskFatal("cleanup_action_runs", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: false,
+		Schedule:   "@midnight",
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		return actions_service.CleanupOldRuns(ctx)
 	})
 }

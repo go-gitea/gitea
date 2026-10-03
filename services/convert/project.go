@@ -130,9 +130,9 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 		Description:     p.Description,
 		OwnerID:         p.OwnerID,
 		RepoID:          p.RepoID,
-		CreatorID:       p.CreatorID,
+		CreatorID:       p.CreatorID, //nolint:staticcheck // deprecated but useful to API response
 		State:           state,
-		IsClosed:        p.IsClosed,
+		IsClosed:        p.IsClosed, //nolint:staticcheck // deprecated but useful to API response
 		TemplateType:    projectTemplateTypeToString(p.TemplateType),
 		CardType:        projectCardTypeToString(p.CardType),
 		Type:            projectTypeToString(p.Type),

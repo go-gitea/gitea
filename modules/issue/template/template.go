@@ -11,12 +11,20 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/container"
 	api "gitea.dev/modules/structs"
-
-	"gitea.com/go-chi/binding"
 )
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	nonAlphaDashPattern, minQuotesRegex *regexp.Regexp
+},
+) {
+	ret.nonAlphaDashPattern = regexp.MustCompile(`[^\w-]`)
+	ret.minQuotesRegex = regexp.MustCompilePOSIX("^`{3,}")
+	return ret
+})
 
 // Validate checks whether an IssueTemplate is considered valid, and returns the first error
 func Validate(template *api.IssueTemplate) error {
@@ -150,7 +158,7 @@ func validateID(field *api.IssueFormField, idx int, ids container.Set[string]) e
 		// If the ID is empty in yaml, template.Unmarshal will auto autofill it, so it cannot be empty
 		return position.Errorf("'id' is required")
 	}
-	if binding.AlphaDashPattern.MatchString(field.ID) {
+	if globalVars().nonAlphaDashPattern.MatchString(field.ID) {
 		return position.Errorf("'id' should contain only alphanumeric, '-' and '_'")
 	}
 	if !ids.Add(field.ID) {
@@ -471,13 +479,11 @@ func (o *valuedOption) VisibleInContent() bool {
 	return true
 }
 
-var minQuotesRegex = regexp.MustCompilePOSIX("^`{3,}")
-
 // minQuotes return 3 or more back-quotes.
 // If n back-quotes exists, use n+1 back-quotes to quote.
 func minQuotes(value string) string {
 	ret := "```"
-	for _, v := range minQuotesRegex.FindAllString(value, -1) {
+	for _, v := range globalVars().minQuotesRegex.FindAllString(value, -1) {
 		if len(v) >= len(ret) {
 			ret = v + "`"
 		}

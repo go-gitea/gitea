@@ -186,3 +186,30 @@ func TestAPIRepoTopic(t *testing.T) {
 		AddTokenAuth(token4)
 	MakeRequest(t, req, http.StatusForbidden)
 }
+
+func TestAPIRepoTopicArchived(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 30}) // owner of the archived repo51
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 51})
+	assert.True(t, repo.IsArchived)
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
+
+	// writing topics on an archived repo must be rejected, matching the web UI
+	req := NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s", user.Name, repo.Name, "archivedtopic").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusLocked)
+
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s", user.Name, repo.Name, "archivedtopic").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusLocked)
+
+	req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/topics", user.Name, repo.Name),
+		&api.RepoTopicOptions{Topics: []string{"archivedtopic"}}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusLocked)
+
+	// reading topics stays allowed on an archived repo
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/topics", user.Name, repo.Name)).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+}

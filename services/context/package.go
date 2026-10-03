@@ -14,7 +14,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 )
 
@@ -155,10 +154,10 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 			// 1. Check if user is package owner
 			if doer.ID == pkgOwner.ID {
 				accessMode = perm.AccessModeOwner
-			} else if pkgOwner.Visibility == structs.VisibleTypePublic || pkgOwner.Visibility == structs.VisibleTypeLimited { // 2. Check if package owner is public or limited
+			} else if pkgOwner.Visibility.IsPublic() || (pkgOwner.Visibility.IsLimited() && !doer.IsRestricted) { // 2. Check if package owner is visible to the doer
 				accessMode = perm.AccessModeRead
 			}
-		} else if pkgOwner.Visibility == structs.VisibleTypePublic { // 3. Check if package owner is public
+		} else if pkgOwner.Visibility.IsPublic() { // 3. Check if package owner is public
 			accessMode = perm.AccessModeRead
 		}
 	}

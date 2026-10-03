@@ -145,7 +145,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		if _, _, err := repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, u.ID); err != nil {
-			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %v", err)
+			return repo, fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 		}
 
 		// if releases migration are not requested, we will sync all tags here

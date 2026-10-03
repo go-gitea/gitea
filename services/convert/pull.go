@@ -5,7 +5,6 @@ package convert
 
 import (
 	"context"
-	"fmt"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -55,12 +54,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		return nil
 	}
 
-	var doerID int64
-	if doer != nil {
-		doerID = doer.ID
-	}
-
-	repoUserPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, fmt.Sprintf("%d-%d", pr.BaseRepoID, doerID),
+	repoUserPerm, err := cache.GetWithContextCache(ctx, cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(pr.BaseRepoID, doer),
 		func(ctx context.Context, _ string) (access_model.Permission, error) {
 			return access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
 		},
@@ -235,7 +229,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		// Calculate diff
 		startCommitID = pr.MergeBase
 
-		diffShortStats, err := gitdiff.GetDiffShortStat(ctx, gitRepo, startCommitID, endCommitID)
+		diffShortStats, err := gitdiff.GetDiffShortStat(ctx, gitRepo, &gitdiff.DiffCommonOptions{BeforeCommitID: startCommitID, AfterCommitID: endCommitID})
 		if err != nil {
 			log.Error("GetDiffShortStat: %v", err)
 		} else {

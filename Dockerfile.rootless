@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build frontend on the native platform to avoid QEMU-related issues with nodejs ecosystem
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.24 AS frontend-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine3.24 AS frontend-build
 RUN apk --no-cache add build-base git nodejs pnpm
 WORKDIR /src
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -9,7 +9,7 @@ COPY --exclude=.git/ . .
 RUN make frontend
 
 # Build backend for each target platform
-FROM docker.io/library/golang:1.26-alpine3.24 AS build-env
+FROM docker.io/library/golang:1.27-alpine3.24 AS build-env
 
 ARG GITEA_VERSION
 ARG TAGS=""
