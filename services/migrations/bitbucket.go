@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 )
 
 var (
