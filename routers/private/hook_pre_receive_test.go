@@ -9,9 +9,7 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -43,8 +41,9 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 			RepoAssignment(ctx.PrivateContext)
 			require.False(t, ctx.Written())
 			defer ctx.Repo.GitRepo.Close()
-			ctx.Doer = user_model.NewActionsUser()
-			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeCode}}, perm.AccessModeWrite)
+
+			doer := user_model.NewActionsUserWithTaskID(53)
+			loadContextDoerPermission(ctx.PrivateContext, doer.ID, doer.ExtDoerData.EncodeToString())
 
 			protection := tc.protection
 			protection.RepoID = ctx.Repo.Repository.ID
