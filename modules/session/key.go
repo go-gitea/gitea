@@ -15,4 +15,7 @@ const (
 	KeySignInMethod = "signInMethod"
 
 	SignInMethodOAuth2 = "oauth2"
+
+	// KeyPersistSessionCookie marks an OAuth2 session whose cookie should outlive the browser like the provider's session.
+	KeyPersistSessionCookie = "persistSessionCookie"
 )
