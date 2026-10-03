@@ -69,6 +69,21 @@ func prepareDashboardContextUserOrgTeams(ctx *context.Context) *user_model.User 
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs
+	ctx.Data["HasArchivedOrgs"] = slices.ContainsFunc(orgs, func(org *organization.MinimalOrg) bool { return org.IsArchived })
+
+	showArchivedOrgs := ctx.FormBool("show-archived-orgs")
+	query := ctx.Req.URL.Query()
+	if showArchivedOrgs {
+		query.Del("show-archived-orgs")
+		ctx.Data["ArchivedOrgsQuery"] = "?show-archived-orgs=true"
+	} else {
+		query.Set("show-archived-orgs", "true")
+	}
+	ctx.Data["ShowArchivedOrgs"] = showArchivedOrgs
+	ctx.Data["ToggleArchivedOrgsLink"] = ctx.Link
+	if len(query) > 0 {
+		ctx.Data["ToggleArchivedOrgsLink"] = ctx.Link + "?" + query.Encode()
+	}
 
 	return ctxUser
 }

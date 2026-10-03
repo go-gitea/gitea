@@ -1019,9 +1019,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 			m.Group("/settings", func() {
 				m.Combo("").Get(org.Settings).
-					Post(web.Bind[*forms.UpdateOrgSettingForm](), org.SettingsPost)
-				m.Post("/avatar", web.Bind[*forms.AvatarForm](), org.SettingsAvatar)
-				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
+					Post(context.OrgMustNotBeArchived(), web.Bind[*forms.UpdateOrgSettingForm](), org.SettingsPost)
+				m.Group("/avatar", func() {
+					m.Post("", web.Bind[*forms.AvatarForm](), org.SettingsAvatar)
+					m.Post("/delete", org.SettingsDeleteAvatar)
+				}, context.OrgMustNotBeArchived())
 				m.Group("/applications", func() {
 					m.Get("", org.Applications)
 					m.Post("/oauth2", web.Bind[*forms.EditOAuth2ApplicationForm](), org.OAuthApplicationsPost)
@@ -1030,7 +1032,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/regenerate_secret", org.OAuthApplicationsRegenerateSecret)
 						m.Post("/delete", org.DeleteOAuth2Application)
 					})
-				}, oauth2Enabled)
+				}, oauth2Enabled, context.OrgMustNotBeArchived())
 
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)
@@ -1041,7 +1043,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 					})
 					addWebhookEditRoutes()
-				}, webhooksEnabled)
+				}, webhooksEnabled, context.OrgMustNotBeArchived())
 
 				m.Group("/labels", func() {
 					m.Get("", org.RetrieveLabels, org.Labels)
@@ -1049,7 +1051,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/edit", web.Bind[*forms.CreateLabelForm](), org.UpdateLabel)
 					m.Post("/delete", org.DeleteLabel)
 					m.Post("/initialize", web.Bind[*forms.InitializeLabelsForm](), org.InitializeLabels)
-				})
+				}, context.OrgMustNotBeArchived())
 
 				m.Group("/actions", func() {
 					m.Get("", misc.LocationRedirect("./actions/general"))
@@ -1061,12 +1063,13 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
 					addSettingsScopedWorkflowsRoutes()
-				}, actions.MustEnableActions)
+				}, actions.MustEnableActions, context.OrgMustNotBeArchived())
 
 				m.Get("/audit_logs", org_setting.ViewAuditLogs)
 
 				m.Post("/rename", web.Bind[*forms.RenameOrgForm](), org.SettingsRenamePost)
 				m.Post("/delete", org.SettingsDeleteOrgPost)
+				m.Post("/archive", org.SettingsArchivePost)
 				m.Post("/visibility", org.SettingsChangeVisibilityPost)
 
 				m.Group("/packages", func() {
@@ -1086,7 +1089,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/initialize", org.InitializeCargoIndex)
 						m.Post("/rebuild", org.RebuildCargoIndex)
 					})
-				}, packagesEnabled)
+				}, packagesEnabled, context.OrgMustNotBeArchived())
 
 				m.Group("/blocked_users", func() {
 					m.Get("", org.BlockedUsers)
@@ -1154,7 +1157,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 					addProjectBoardRoutes(m)
 				})
-			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
+			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), context.OrgMustNotBeArchived(), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound(nil)
 					return

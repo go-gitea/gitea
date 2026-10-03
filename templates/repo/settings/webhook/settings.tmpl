@@ -349,6 +349,7 @@
 	</div>
 </div>
 
+{{if not ctx.RootData.IsOrgArchived}}
 <div class="field">
 	{{if $isNew}}
 		<button type="submit" class="ui primary button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</button>
@@ -360,3 +361,4 @@
 		>{{ctx.Locale.Tr "repo.settings.delete_webhook"}}</a>
 	{{end}}
 </div>
+{{end}}

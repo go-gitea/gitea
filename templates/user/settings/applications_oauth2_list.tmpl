@@ -19,7 +19,7 @@
 				<div class="item-trailing">
 					{{if $isBuiltin}}
 						<span class="ui basic label" data-tooltip-content="{{ctx.Locale.Tr "settings.oauth2_application_locked"}}">{{ctx.Locale.Tr "locked"}}</span>
-					{{else}}
+					{{else if not $.IsOrgArchived}}
 						<a href="{{$.Link}}/oauth2/{{.ID}}" class="ui primary tiny button">
 							{{svg "octicon-pencil"}}
 							{{ctx.Locale.Tr "settings.oauth2_application_edit"}}
@@ -47,6 +47,7 @@
 	</div>
 </div>
 
+{{if not $.IsOrgArchived}}
 <div class="ui bottom attached segment">
 	<details {{if .application_name}}open{{end}}>
 		<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.create_oauth2_application"}}</h4></summary>
@@ -77,3 +78,4 @@
 		</form>
 	</details>
 </div>
+{{end}}

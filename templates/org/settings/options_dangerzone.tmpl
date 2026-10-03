@@ -23,6 +23,22 @@
 			</div>
 		</div>
 
+		<div class="item tw-items-center">
+			{{$archiveTitle := ctx.Locale.Tr "org.settings.archive"}}
+			{{$archiveDesc := ctx.Locale.Tr "org.settings.archive_desc"}}
+			{{if .Org.IsArchived}}
+				{{$archiveTitle = ctx.Locale.Tr "org.settings.unarchive"}}
+				{{$archiveDesc = ctx.Locale.Tr "org.settings.unarchive_desc"}}
+			{{end}}
+			<div class="item-main">
+				<div class="item-title">{{$archiveTitle}}</div>
+				<div class="item-body">{{if .OrgMirrors}}{{ctx.Locale.Tr "org.settings.archive_has_mirrors" (StringUtils.Join .OrgMirrors ", ")}}{{else}}{{$archiveDesc}}{{end}}</div>
+			</div>
+			<div class="item-trailing">
+				<button type="button" class="ui basic red button link-action{{if .OrgMirrors}} disabled{{end}}" data-url="{{.Link}}/archive?archive={{not .Org.IsArchived}}" data-modal-confirm="{{$archiveDesc}}">{{$archiveTitle}}</button>
+			</div>
+		</div>
+
 		<div class="item">
 			<div class="item-main">
 				<div class="item-title">{{ctx.Locale.Tr "org.settings.delete_account"}}</div>

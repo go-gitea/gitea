@@ -8,6 +8,7 @@
 					<span class="org-visibility">
 						{{if .ContextUser.Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 						{{if .ContextUser.Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+						{{if .ContextUser.IsArchived}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "repo.desc.archived"}}</div>{{end}}
 					</span>
 					{{svg "octicon-triangle-down" 14 "dropdown icon tw-ml-1"}}
 				</span>
@@ -16,7 +17,7 @@
 						{{ctx.Locale.Tr "home.switch_dashboard_context"}}
 					</div>
 					<div class="scrolling menu">
-						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}">
+						<a class="{{if eq .ContextUser.ID .SignedUser.ID}}active selected{{end}} item" href="{{AppSubUrl}}/{{if .PageIsIssues}}issues{{else if .PageIsPulls}}pulls{{else if .PageIsMilestonesDashboard}}milestones{{end}}{{.ArchivedOrgsQuery}}">
 							{{ctx.AvatarUtils.Avatar .SignedUser}}
 							<span class="gt-ellipsis">{{.SignedUser.ShortName 40}}</span>
 							<span class="org-visibility">
@@ -25,16 +26,24 @@
 							</span>
 						</a>
 						{{range .Orgs}}
-							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
-								{{ctx.AvatarUtils.Avatar .}}
-								<span class="gt-ellipsis">{{.ShortName 40}}</span>
-								<span class="org-visibility">
-									{{if .Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-									{{if .Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
-								</span>
-							</a>
+							{{if or (not .IsArchived) $.ShowArchivedOrgs (eq $.ContextUser.ID .ID)}}
+								<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item" title="{{.Name}}" href="{{.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}{{$.ArchivedOrgsQuery}}">
+									{{ctx.AvatarUtils.Avatar .}}
+									<span class="gt-ellipsis">{{.ShortName 40}}</span>
+									<span class="org-visibility">
+										{{if .Visibility.IsLimited}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+										{{if .Visibility.IsPrivate}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+										{{if .IsArchived}}<div class="ui basic tiny horizontal label">{{ctx.Locale.Tr "repo.desc.archived"}}</div>{{end}}
+									</span>
+								</a>
+							{{end}}
 						{{end}}
 					</div>
+					{{if .HasArchivedOrgs}}
+					<a class="item" href="{{.ToggleArchivedOrgsLink}}">
+						{{svg "octicon-archive" 16 "tw-ml-1 tw-mr-5"}}{{if .ShowArchivedOrgs}}{{ctx.Locale.Tr "home.hide_archived_orgs"}}{{else}}{{ctx.Locale.Tr "home.show_archived_orgs"}}{{end}}
+					</a>
+					{{end}}
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
 						{{svg "octicon-plus" 16 "tw-ml-1 tw-mr-5"}}{{ctx.Locale.Tr "new_org"}}
@@ -60,12 +69,12 @@
 							{{ctx.Locale.Tr "home.filter_by_team_repositories"}}
 						</div>
 						<div class="scrolling menu items">
-							<a class="{{if not $.Team}}active selected{{end}} item" title="{{ctx.Locale.Tr "all"}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+							<a class="{{if not $.Team}}active selected{{end}} item" title="{{ctx.Locale.Tr "all"}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}{{$.ArchivedOrgsQuery}}">
 								{{ctx.Locale.Tr "all"}}
 							</a>
 							{{range .Teams}}
 								{{if not .IncludesAllRepositories}}
-									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
+									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}{{$.ArchivedOrgsQuery}}">
 										{{.Name}}
 									</a>
 								{{end}}

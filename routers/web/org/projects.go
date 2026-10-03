@@ -118,7 +118,7 @@ func Projects(ctx *context.Context) {
 
 func canWriteProjects(ctx *context.Context) bool {
 	if ctx.ContextUser.IsOrganization() {
-		return ctx.Org.CanWriteAnyRepoUnit(ctx, unit.TypeProjects)
+		return !ctx.ContextUser.IsArchived && ctx.Org.CanWriteAnyRepoUnit(ctx, unit.TypeProjects)
 	}
 	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }

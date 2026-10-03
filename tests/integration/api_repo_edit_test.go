@@ -506,6 +506,31 @@ func TestAPIRepoEdit(t *testing.T) {
 	})
 }
 
+func TestAPIRepoUnarchiveInArchivedOrg(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	archiveOrg3(t)
+
+	session := loginUser(t, "user1")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	bFalse := false
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/repo3", &api.EditRepoOption{Archived: &bFalse}).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/org3"), http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Zero(t, htmlDoc.Find(`a[href$="/repo/create?org=3"]`).Length())
+
+	resp = session.MakeRequest(t, NewRequest(t, "GET", "/org3/repo3/settings"), http.StatusOK)
+	assert.True(t, NewHTMLParser(t, resp.Body).Find(`button[data-modal="#archive-repo-modal"]`).HasClass("disabled"))
+
+	req = NewRequestWithValues(t, "POST", "/org3/repo3/settings", map[string]string{"action": "unarchive"})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3, IsArchived: true})
+}
+
 func TestAPIRepoEditPullUpdateSettingsValidation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

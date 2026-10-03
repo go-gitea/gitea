@@ -103,7 +103,7 @@ func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organiz
 	return orgs, db.GetEngine(ctx).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
 		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
-		Where(builder.Eq{"`team_user`.uid": userID}).
+		Where(builder.Eq{"`team_user`.uid": userID, "`user`.is_archived": false}).
 		And(builder.Eq{"`team`.authorize": perm.AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
 		Asc("`user`.name").
 		Find(&orgs)
@@ -122,6 +122,7 @@ func GetUserOrgsList(ctx context.Context, user *user_model.User) ([]*MinimalOrg,
 		"avatar",
 		"avatar_email",
 		"use_custom_avatar",
+		"is_archived",
 	}
 
 	selectColumns := &strings.Builder{}

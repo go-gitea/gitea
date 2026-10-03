@@ -39,6 +39,11 @@ const data = {
 
 	textOrgVisibilityLimited: {{ctx.Locale.Tr "org.settings.visibility.limited_shortname"}},
 	textOrgVisibilityPrivate: {{ctx.Locale.Tr "org.settings.visibility.private_shortname"}},
+	textOrgArchived: {{ctx.Locale.Tr "repo.desc.archived"}},
+	textShowArchivedOrgs: {{ctx.Locale.Tr "home.show_archived_orgs"}},
+	textAllOrgsArchived: {{ctx.Locale.Tr "home.all_orgs_archived"}},
+	textSearchOrgs: {{ctx.Locale.Tr "search.org_kind"}},
+	textNoMatchingOrgs: {{ctx.Locale.Tr "search.no_results"}},
 };
 
 {{if .Team}}
@@ -46,12 +51,13 @@ data.teamId = {{.Team.ID}};
 {{end}}
 
 {{if not .ContextUser.IsOrganization}}
-data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'full_name': {{.FullName}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}},{{end}}];
+data.organizations = [{{range .Orgs}}{'name': {{.Name}}, 'full_name': {{.FullName}}, 'num_repos': {{.NumRepos}}, 'org_visibility': {{.Visibility}}, 'is_archived': {{.IsArchived}}},{{end}}];
 data.isOrganization = false;
 data.organizationsTotalCount = {{.UserOrgsCount}};
 data.canCreateOrganization = {{.SignedUser.CanCreateOrganization}};
 {{else}}
 data.organizationId = {{.ContextUser.ID}};
+data.canCreateRepo = {{not .ContextUser.IsArchived}};
 {{end}}
 
 window.config.pageData.dashboardRepoList = data;

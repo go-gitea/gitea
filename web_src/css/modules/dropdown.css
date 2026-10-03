@@ -598,6 +598,7 @@ select.ui.dropdown {
 }
 
 .ui.disabled.dropdown,
+fieldset:disabled .ui.dropdown,
 .ui.dropdown .menu > .disabled.item {
   cursor: default;
   pointer-events: none;

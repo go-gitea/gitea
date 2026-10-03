@@ -1,11 +1,13 @@
 <h4 class="ui top attached header">
 	{{.Title}}
+	{{if not $.IsOrgArchived}}
 	<div class="ui right">
 		<div class="ui jump dropdown">
 			<div class="ui primary tiny button">{{ctx.Locale.Tr "repo.settings.add_webhook"}}</div>
 			{{template "repo/settings/webhook/link_menu" .}}
 		</div>
 	</div>
+	{{end}}
 </h4>
 <div class="ui attached segment">
 	<div>{{.Description}}</div>
@@ -19,10 +21,12 @@
 					<span class="tw-ml-2 tw-text-grey-light">{{.URL}}</span>
 				</div>
 				<a class="muted" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+				{{if not $.IsOrgArchived}}
 				<a class="tw-text-red tw-pr-2 link-action negative"
 					data-url="{{$.Link}}/delete?id={{.ID}}"
 					data-modal-confirm="{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}"
 				>{{svg "octicon-trash"}}</a>
+				{{end}}
 			</div>
 		{{end}}
 	</div>

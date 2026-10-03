@@ -155,6 +155,10 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
+	if err := checkTransferIntoArchivedOrg(newOwner, repo); err != nil {
+		return err
+	}
+
 	// Check if new owner has repository with same name.
 	if has, err := isRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
@@ -177,6 +181,12 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	// Update repository.
 	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
+	}
+
+	if newOwner.IsOrganization() && newOwner.IsArchived && !repo.IsArchived {
+		if err := repo_model.SetArchiveRepoState(ctx, repo, true); err != nil {
+			return fmt.Errorf("archive repo: %w", err)
+		}
 	}
 
 	// Remove redundant collaborators.
@@ -433,6 +443,13 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	return nil
 }
 
+func checkTransferIntoArchivedOrg(newOwner *user_model.User, repo *repo_model.Repository) error {
+	if newOwner.IsOrganization() && newOwner.IsArchived && repo.IsMirror {
+		return util.NewPermissionDeniedErrorf("cannot transfer a mirror into archived organization %s", newOwner.Name)
+	}
+	return nil
+}
+
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
 func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
@@ -448,6 +465,10 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 	if !doer.CanForkRepoIn(newOwner) {
 		return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
+	}
+
+	if err := checkTransferIntoArchivedOrg(newOwner, repo); err != nil {
+		return err
 	}
 
 	var isDirectTransfer bool

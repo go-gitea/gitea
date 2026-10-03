@@ -3,6 +3,7 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.runners.runner_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		<div class="ui right">
+			{{if not $.IsOrgArchived}}
 			<div class="ui top right pointing dropdown jump">
 				<button type="button" class="ui primary tiny button">
 					{{ctx.Locale.Tr "actions.runners.new"}}
@@ -32,6 +33,7 @@
 					</div>
 				</div>
 			</div>
+			{{end}}
 
 		</div>
 	</h4>
@@ -40,7 +42,7 @@
 			{{template "shared/search/combo" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.runner_kind")}}
 		</form>
 	</div>
-	{{if .AllowBulkActions}}
+	{{if and .AllowBulkActions (not $.IsOrgArchived)}}
 	<div class="ui attached segment tw-hidden" data-global-init="initRunnerBulkToolbar">
 		<form action="{{$.Link}}/bulk" method="post" class="form-fetch-action">
 			<input type="hidden" name="ids">
@@ -59,7 +61,7 @@
 		<table class="ui very basic table unstackable">
 			<thead>
 				<tr>
-					{{if .AllowBulkActions}}
+					{{if and .AllowBulkActions (not $.IsOrgArchived)}}
 					<th class="tw-w-8"><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select-all" aria-label="{{ctx.Locale.Tr "admin.notices.select_all"}}"></div></th>
 					{{end}}
 					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
@@ -84,7 +86,7 @@
 			<tbody>
 				{{range .Runners}}
 					<tr>
-						{{if $.AllowBulkActions}}
+						{{if and $.AllowBulkActions (not $.IsOrgArchived)}}
 						<td><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select" data-runner-id="{{.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{.Name}}"></div></td>
 						{{end}}
 						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
@@ -100,7 +102,7 @@
 						</td>
 						<td>{{if .LastOnline}}{{DateUtils.TimeSince .LastOnline}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 						<td>
-							{{if .EditableInContext $.RunnerOwnerID $.RunnerRepoID}}
+							{{if and (.EditableInContext $.RunnerOwnerID $.RunnerRepoID) (not $.IsOrgArchived)}}
 								<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
 							{{end}}
 						</td>
