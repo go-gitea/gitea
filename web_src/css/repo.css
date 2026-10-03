@@ -131,17 +131,13 @@
   margin-bottom: 12px;
 }
 
-.commit-summary {
+.latest-commit .commit-summary,
+.repo-file-item .commit-summary {
   flex: 1;
   overflow-wrap: anywhere;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.commit-header .commit-summary,
-td .commit-summary {
-  white-space: normal;
 }
 
 .latest-commit {
@@ -304,11 +300,6 @@ td .commit-summary {
   width: 100%;
   padding-bottom: 4px;
   margin-bottom: 1rem;
-}
-
-.issue-title-meta {
-  display: flex;
-  align-items: center;
 }
 
 .repository.view.issue .issue-title-buttons {
@@ -999,24 +990,13 @@ td .commit-summary {
   background: var(--color-secondary);
 }
 
-#cite-repo-modal #citation-panel {
-  display: flex;
-  width: 100%;
-}
-
-#cite-repo-modal #citation-panel input {
-  border-radius: 0;
-  padding: 5px 10px;
-  width: 50%;
-  line-height: 1.4;
-}
-
-#cite-repo-modal #citation-panel .citation.button {
+#cite-repo-modal .citation.button {
   font-size: 13px;
   padding: 7.5px 5px;
+  border-right: none;
 }
 
-#cite-repo-modal #citation-panel #citation-copy-content {
+#cite-repo-modal input {
   border-radius: 0;
   padding: 5px 10px;
   font-size: 1.2em;
@@ -1024,24 +1004,19 @@ td .commit-summary {
   flex: 1;
 }
 
-#cite-repo-modal #citation-panel #citation-copy-apa,
-#cite-repo-modal #citation-panel #citation-copy-bibtex {
-  border-right: none;
-}
-
-#cite-repo-modal #citation-panel #goto-citation-btn {
+#cite-repo-modal .jump.button {
   border-left: none;
 }
 
-#cite-repo-modal #citation-panel > :first-child {
+#cite-repo-modal .action.input > :first-child {
   border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
 }
 
-#cite-repo-modal #citation-panel > :last-child {
+#cite-repo-modal .action.input > :last-child {
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 }
 
-#cite-repo-modal #citation-panel .icon.button {
+#cite-repo-modal .icon.button {
   padding: 0 10px;
 }
 
@@ -1686,10 +1661,6 @@ tbody.commit-list {
   .repository.view.issue .comment-list .comment-header-right .role-label {
     display: none;
   }
-  .commit-header h3 {
-    flex-basis: auto !important;
-    margin-bottom: 0.5rem !important;
-  }
   .commit-table {
     overflow-x: auto;
   }
@@ -1793,6 +1764,7 @@ tbody.commit-list {
   padding: 10px;
   border: 1px solid transparent;
   border-bottom: none;
+  border-radius: 0;
 }
 
 .branch-selector-dropdown .branch-tag-item.active {

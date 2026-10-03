@@ -1,0 +1,4 @@
+Content-Length: 577
+Content-Type: application/x-amz-json-1.1
+
+{"commentsForPullRequestData":[{"afterCommitId":"43bddef3095d527c6d95d89d0ce992e2e79eeb76","beforeCommitId":"73bb36ac7a26a4d595f5b0bb892aeaa85a078ee7","comments":[{"authorArn":"arn:aws:iam::123456789012:user/gitea-codecommit","callerReactions":[],"clientRequestToken":"00000000-0000-0000-0000-000000000000","commentId":"00000000-0000-0000-0000-000000000000:00000000-0000-0000-0000-000000000000","content":"Test comment","creationDate":1.789574710911E9,"deleted":false,"lastModifiedDate":1.789574710911E9,"reactionCounts":{}}],"pullRequestId":"4","repositoryName":"test_repo"}]}

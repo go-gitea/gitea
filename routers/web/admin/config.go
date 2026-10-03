@@ -18,8 +18,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
-
-	"gitea.com/go-chi/session"
 )
 
 const (
@@ -93,20 +91,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
 	sessionCfg := setting.SessionConfig
-	if sessionCfg.Provider == "VirtualSession" {
-		var realSession session.Options
-		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
-			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
-		}
-		sessionCfg.Provider = realSession.Provider
-		sessionCfg.ProviderConfig = realSession.ProviderConfig
-		sessionCfg.CookieName = realSession.CookieName
-		sessionCfg.CookiePath = realSession.CookiePath
-		sessionCfg.Gclifetime = realSession.Gclifetime
-		sessionCfg.Maxlifetime = realSession.Maxlifetime
-		sessionCfg.Secure = realSession.Secure
-		sessionCfg.Domain = realSession.Domain
-	}
 	sessionCfg.ProviderConfig = ""
 	ctx.Data["SessionConfig"] = sessionCfg
 

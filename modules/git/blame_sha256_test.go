@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -14,13 +13,7 @@ import (
 
 func TestReadingBlameOutputSha256(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-
-	if DefaultFeatures().UsingGogit {
-		t.Skip("Skipping test since gogit does not support sha256")
-		return
-	}
+	ctx := t.Context()
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
 		storage := mockRepository("repo5_pulls_sha256")

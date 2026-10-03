@@ -46,8 +46,11 @@ type Context struct {
 
 	TemplateContext TemplateContext
 
-	Render   Render
-	PageData map[string]any // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render Render
+
+	// PageData is used by JavaScript modules, it is `window.config.pageData`.
+	// Deprecated: it was introduced for refactoring some legacy JS code, it should not be used in new code anymore.
+	PageData map[string]any
 
 	Cache   cache.StringCache
 	Flash   *middleware.Flash
@@ -267,8 +270,12 @@ func (ctx *Context) JSONErrorAuto(err error) {
 		ctx.JSON(httpCode, buildJsonErrorMap(errMsg))
 		return
 	}
-	log.ErrorWithSkip(1, "JSONErrorAuto: server internal error: %v", err)
-	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(ctx.Locale.TrString("error.occurred")))
+
+	logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, err), log.DEBUG, log.ERROR)
+	log.Log(1, logLevel, "JSONErrorAuto: server internal error: %v", err)
+
+	userErrorMsg := ctx.buildUserErrorMessage("internal server error", err)
+	ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
 }
 
 func (ctx *Context) JSONError[T string | template.HTML](msg T) {

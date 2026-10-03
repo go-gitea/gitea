@@ -5,7 +5,9 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -59,6 +61,11 @@ func InitEngine(ctx context.Context) error {
 	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 
+	if setting.Database.Type.IsMySQL() {
+		// like PostgreSQL and MSSQL, avoids MariaDB snapshot isolation errors
+		xe.SetDefaultTxOptions(&sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	}
+
 	if setting.Database.SlowQueryThreshold > 0 {
 		xe.AddHook(&EngineHook{
 			Threshold: setting.Database.SlowQueryThreshold,
@@ -103,6 +110,10 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 
 	preprocessDatabaseCollation(xormEngine)
 
+	if setting.Database.Type.IsMSSQL() {
+		enableMSSQLReadCommittedSnapshot(ctx, xormEngine)
+	}
+
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
 	//
@@ -124,4 +135,13 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	return nil
+}
+
+// enableMSSQLReadCommittedSnapshot stops MSSQL reads waiting on writers, like PostgreSQL and MySQL
+func enableMSSQLReadCommittedSnapshot(ctx context.Context, engine EngineMigration) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // ALTER waits for all other connections to close
+	defer cancel()
+	if _, err := engine.Context(ctx).Exec("IF (SELECT is_read_committed_snapshot_on FROM sys.databases WHERE database_id = DB_ID()) = 0 ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON"); err != nil {
+		log.Error("Unable to set READ_COMMITTED_SNAPSHOT=ON: %v", err)
+	}
 }

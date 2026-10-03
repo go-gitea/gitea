@@ -10,6 +10,7 @@ jobs:
       matrix:
         experimental:
           - false
+      job-total: 2
 ---
 name: test
 jobs:
@@ -23,3 +24,5 @@ jobs:
       matrix:
         experimental:
           - true
+      job-index: 1
+      job-total: 2

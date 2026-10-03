@@ -67,8 +67,8 @@ function onModalApproveDefault(this: HTMLElement) {
   const $modal = $(this);
   const selectors = $modal.modal('setting', 'selector');
   const elModal = $modal[0];
-  const elApprove = elModal.querySelector(selectors.approve);
-  const elForm = elApprove?.closest('form');
+  const elApprove = elModal.querySelector<HTMLElement>(selectors.approve);
+  const elForm = elApprove?.closest<HTMLFormElement>('form');
   if (!elForm) return true; // no form, just allow closing the modal
 
   // "form-fetch-action" can handle network errors gracefully,
@@ -78,6 +78,7 @@ function onModalApproveDefault(this: HTMLElement) {
   // There is an abuse for the "modal" + "form" combination, the "Approve" button is a traditional form submit button in the form.
   // Then "approve" and "submit" occur at the same time, the modal will be closed immediately before the form is submitted.
   // So here we prevent the modal from closing automatically by returning false, add the "is-loading" class to the form element.
+  if (!elForm.reportValidity()) return false;
   elForm.classList.add('is-loading');
   return false;
 }

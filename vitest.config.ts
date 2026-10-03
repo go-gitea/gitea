@@ -10,9 +10,9 @@ export default defineConfig({
     passWithNoTests: true,
     globals: true,
     watch: false,
+    maxWorkers: '50%',
     projects: [
       {
-        extends: true,
         test: {
           name: 'browser',
           include: ['web_src/**/*.test.ts'],
@@ -29,7 +29,6 @@ export default defineConfig({
         },
       },
       {
-        extends: true,
         test: {
           name: 'node',
           include: ['tools/**/*.test.ts'],

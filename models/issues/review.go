@@ -223,7 +223,7 @@ func (r *Review) HTMLTypeColorClass() string {
 	case ReviewTypeReject:
 		return "tw-text-red"
 	case ReviewTypeRequest:
-		return "tw-text-yellow"
+		return util.Iif(r.Official, "tw-text-yellow", "tw-text-text-light")
 	}
 	return "tw-text-text-light"
 }
@@ -456,7 +456,7 @@ func ReviewExists(ctx context.Context, issue *Issue, treePath string, line int64
 type ContentEmptyErr struct{}
 
 func (ContentEmptyErr) Error() string {
-	return "Review content is empty"
+	return "review requires a body or a comment"
 }
 
 // IsContentEmptyErr returns true if err is a ContentEmptyErr

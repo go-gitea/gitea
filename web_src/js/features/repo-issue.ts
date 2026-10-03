@@ -16,7 +16,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
-import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {ignoreAreYouSure} from '../modules/are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {FomanticApiResponse} from '../types.ts';
 
@@ -399,6 +399,17 @@ export function initRepoIssueTitleEdit() {
   const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
 
+  pullDescEditor?.querySelector('#branch-select')?.addEventListener('click', (e: Event) => {
+    const el = (e.target as HTMLElement).closest('.item[data-branch]');
+    if (!el) return;
+    const pullTargetBranch = pullDescEditor.querySelector('#pull-target-branch')!;
+    const textCompareBase = pullTargetBranch.getAttribute('data-text-compare-base')!;
+    const baseUserName = pullTargetBranch.getAttribute('data-base-user-name')!;
+    const branchNameNew = el.getAttribute('data-branch')!;
+    pullTargetBranch.textContent = `${textCompareBase}: ${baseUserName}:${branchNameNew}`;
+    pullTargetBranch.setAttribute('data-branch', branchNameNew);
+  });
+
   const editSaveButton = issueTitleEditor.querySelector('.ui.primary.button')!;
   issueTitleEditor.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -426,19 +437,6 @@ export function initRepoIssueTitleEdit() {
       console.error(error);
       showErrorToast(errorMessage(error));
     }
-  });
-}
-
-export function initRepoIssueBranchSelect() {
-  document.querySelector<HTMLElement>('#branch-select')?.addEventListener('click', (e: Event) => {
-    const el = (e.target as HTMLElement).closest('.item[data-branch]');
-    if (!el) return;
-    const pullTargetBranch = document.querySelector('#pull-target-branch')!;
-    const baseName = pullTargetBranch.getAttribute('data-basename');
-    const branchNameNew = el.getAttribute('data-branch')!;
-    const branchNameOld = pullTargetBranch.getAttribute('data-branch');
-    pullTargetBranch.textContent = pullTargetBranch.textContent.replace(`${baseName}:${branchNameOld}`, `${baseName}:${branchNameNew}`);
-    pullTargetBranch.setAttribute('data-branch', branchNameNew);
   });
 }
 

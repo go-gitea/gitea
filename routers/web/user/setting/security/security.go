@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"sort"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
 )
@@ -58,6 +60,8 @@ func DeleteAccountLink(ctx *context.Context) {
 		if _, err := user_model.RemoveAccountLink(ctx, ctx.Doer, id); err != nil {
 			ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		} else {
+			audit.Record(ctx, audit_model.UserExternalLoginRemove, ctx.Doer, "auth_source_id", id)
+
 			ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
 		}
 	}

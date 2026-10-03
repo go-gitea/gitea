@@ -66,6 +66,28 @@ func TestCreateOrUpdateIssueNotificationsIgnored(t *testing.T) {
 	assert.Empty(t, notified)
 }
 
+func TestNotificationsSkipBots(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	for _, id := range []int64{4, 28} {
+		assert.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{ID: id, Type: user_model.UserTypeBot}, "type"))
+	}
+
+	notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 0)
+	assert.NoError(t, err)
+	assert.Contains(t, notifiedIDs, int64(1))
+	assert.NotContains(t, notifiedIDs, int64(4))
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.NoError(t, activities_model.CreateRepoTransferNotification(t.Context(), doer, org, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 2, RepoID: 3, Source: activities_model.NotificationSourceRepository})
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 28, RepoID: 3, Source: activities_model.NotificationSourceRepository})
+
+	bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	assert.NoError(t, activities_model.CreateRepoTransferNotification(t.Context(), doer, bot, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})))
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: 4, RepoID: 1, Source: activities_model.NotificationSourceRepository})
+}
+
 func TestNotificationsForUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

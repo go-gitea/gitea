@@ -17,6 +17,8 @@ type User struct {
 	ID int64 `json:"id"`
 	// login of the user, same as `username`
 	UserName string `json:"login"`
+	// the user type
+	Type UserTypeString `json:"type"`
 	// identifier of the user, provided by the external authenticator (if configured)
 	LoginName string `json:"login_name"`
 	// The ID of the user's Authentication Source
@@ -87,7 +89,7 @@ type UserSettings struct {
 // swagger:model
 type UserSettingsOptions struct {
 	FullName      *string `json:"full_name" binding:"MaxSize(100)"`
-	Website       *string `json:"website" binding:"OmitEmpty;ValidUrl;MaxSize(255)"`
+	Website       *string `json:"website" binding:"ValidUrl;MaxSize(255)"`
 	Description   *string `json:"description" binding:"MaxSize(255)"`
 	Location      *string `json:"location" binding:"MaxSize(50)"`
 	Language      *string `json:"language"`

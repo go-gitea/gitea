@@ -4,11 +4,14 @@
 package git
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -163,4 +166,41 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 		// since there is no refURL, it means that the submodule info doesn't exist, so it won't have a web link
 		assert.Nil(t, cisf.SubmoduleWebLinkTree(t.Context()))
 	})
+}
+
+func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
+	repoPath, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", repoPath))
+	require.NoError(t, err)
+	defer repo.Close()
+
+	commit, err := repo.GetCommit(t.Context(), "feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
+	require.NoError(t, err)
+	entries, err := commit.Tree().ListEntries(t.Context(), repo)
+	require.NoError(t, err)
+
+	countCommitInfosCommit := func(infos []CommitInfo) (nilCommits, nonNilCommits int) {
+		for _, info := range infos {
+			nilCommits += util.Iif(info.Commit == nil, 1, 0)
+			nonNilCommits += util.Iif(info.Commit != nil, 1, 0)
+		}
+		return nilCommits, nonNilCommits
+	}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer test.MockVariableValue(&walkGitLogDebugBeforeNext)()
+
+	walkGitLogDebugBeforeNext = cancel
+	commitInfos, _, err := entries.GetCommitsInfo(ctx, time.Second, "/any/repo-link", repo, commit, "")
+	assert.NoError(t, err)
+	nilCommits, nonNilCommits := countCommitInfosCommit(commitInfos)
+	assert.Equal(t, 0, nonNilCommits) // no commit info due to canceled (or deadline-exceeded) context
+	assert.Equal(t, 3, nilCommits)
+
+	walkGitLogDebugBeforeNext = nil
+	commitInfos, _, err = entries.GetCommitsInfo(t.Context(), time.Second, "/any/repo-link", repo, commit, "")
+	assert.NoError(t, err)
+	nilCommits, nonNilCommits = countCommitInfosCommit(commitInfos)
+	assert.Equal(t, 3, nonNilCommits)
+	assert.Equal(t, 0, nilCommits)
 }

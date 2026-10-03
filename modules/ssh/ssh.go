@@ -159,9 +159,9 @@ func keyPermissions(keyID int64) *gossh.Permissions {
 // returned Permissions to the ssh conn once it verified the signature for that key, so a user
 // offering keys A (with a private key) and B (without one) authenticates and is served as A.
 func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.PublicKey) (*gossh.Permissions, error) {
-	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
-		log.Debug("Handle Public Key: Fingerprint: %s from %s", gossh.FingerprintSHA256(key), conn.RemoteAddr())
-	}
+	sshPubKey := string(gossh.MarshalAuthorizedKey(key))
+	fingerprint := gossh.FingerprintSHA256(key)
+	log.Debug("Handle Public Key: Fingerprint: %s from %s", fingerprint, conn.RemoteAddr())
 
 	if conn.User() != setting.SSH.BuiltinServerUser {
 		log.Warn("Invalid SSH username %s - must use %s for all git operations via ssh", conn.User(), setting.SSH.BuiltinServerUser)
@@ -171,9 +171,7 @@ func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.Pu
 
 	// check if we have a certificate
 	if cert, ok := key.(*gossh.Certificate); ok {
-		if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
-			log.Debug("Handle Certificate: %s Fingerprint: %s is a certificate", conn.RemoteAddr(), gossh.FingerprintSHA256(key))
-		}
+		log.Debug("Handle Certificate: %s Fingerprint: %s is a certificate", conn.RemoteAddr(), fingerprint)
 
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
 			log.Warn("Certificate Rejected: No trusted certificate authorities for this server")
@@ -187,78 +185,68 @@ func publicKeyHandler(ctx context.Context, conn gossh.ConnMetadata, key gossh.Pu
 			return nil, util.ErrPermissionDenied
 		}
 
-		// look for the exact principal
-	principalLoop:
+		certChecker := &gossh.CertChecker{
+			IsUserAuthority: func(auth gossh.PublicKey) bool {
+				marshaled := auth.Marshal()
+				for _, k := range setting.SSH.TrustedUserCAKeysParsed {
+					if bytes.Equal(marshaled, k.Marshal()) {
+						return true
+					}
+				}
+				return false
+			},
+		}
+
+		// check the CA of the cert
+		if !certChecker.IsUserAuthority(cert.SignatureKey) {
+			log.Warn("Principal Rejected: %s Untrusted Authority Signature Fingerprint %s", conn.RemoteAddr(), gossh.FingerprintSHA256(cert.SignatureKey))
+			log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
+			return nil, util.ErrPermissionDenied
+		}
+
+	principalLoop: // look for the exact principal
 		for _, principal := range cert.ValidPrincipals {
-			pkey, err := asymkey_model.SearchPublicKeyByContentExact(ctx, principal)
+			pkey, err := asymkey_model.SearchPrincipalKey(ctx, principal)
 			if err != nil {
 				if asymkey_model.IsErrKeyNotExist(err) {
 					log.Debug("Principal Rejected: %s Unknown Principal: %s", conn.RemoteAddr(), principal)
 					continue principalLoop
 				}
-				log.Error("SearchPublicKeyByContentExact: %v", err)
+				log.Error("SearchPrincipalKey: %v", err)
 				return nil, util.ErrPermissionDenied
-			}
-
-			c := &gossh.CertChecker{
-				IsUserAuthority: func(auth gossh.PublicKey) bool {
-					marshaled := auth.Marshal()
-					for _, k := range setting.SSH.TrustedUserCAKeysParsed {
-						if bytes.Equal(marshaled, k.Marshal()) {
-							return true
-						}
-					}
-
-					return false
-				},
-			}
-
-			// check the CA of the cert
-			if !c.IsUserAuthority(cert.SignatureKey) {
-				if log.IsDebug() {
-					log.Debug("Principal Rejected: %s Untrusted Authority Signature Fingerprint %s for Principal: %s", conn.RemoteAddr(), gossh.FingerprintSHA256(cert.SignatureKey), principal)
-				}
-				continue principalLoop
 			}
 
 			// validate the cert for this principal
-			if err := c.CheckCert(principal, cert); err != nil {
+			if err := certChecker.CheckCert(principal, cert); err != nil {
 				// User is presenting an invalid certificate - STOP any further processing
-				log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, conn.RemoteAddr())
+				log.Warn("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, conn.RemoteAddr())
 				log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
-
 				return nil, util.ErrPermissionDenied
 			}
 
-			if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
-				log.Debug("Successfully authenticated: %s Certificate Fingerprint: %s Principal: %s", conn.RemoteAddr(), gossh.FingerprintSHA256(key), principal)
-			}
+			log.Debug("Successfully authenticated: %s Certificate Fingerprint: %s Principal: %s", conn.RemoteAddr(), fingerprint, principal)
 			return keyPermissions(pkey.ID), nil
 		}
 
-		log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", conn.RemoteAddr(), gossh.FingerprintSHA256(key))
+		log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", conn.RemoteAddr(), fingerprint)
 		log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 		return nil, util.ErrPermissionDenied
 	}
 
-	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
-		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", conn.RemoteAddr(), gossh.FingerprintSHA256(key))
-	}
+	log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", conn.RemoteAddr(), fingerprint)
 
-	pkey, err := asymkey_model.SearchPublicKeyByContent(ctx, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
+	pkey, err := asymkey_model.SearchPublicKeyForSSH(ctx, sshPubKey)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), conn.RemoteAddr())
+			log.Warn("Unknown public key: %s from %s", fingerprint, conn.RemoteAddr())
 			log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 			return nil, util.ErrPermissionDenied
 		}
-		log.Error("SearchPublicKeyByContent: %v", err)
+		log.Error("SearchPublicKeyForSSH: %v", err)
 		return nil, util.ErrPermissionDenied
 	}
 
-	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
-		log.Debug("Successfully authenticated: %s Public Key Fingerprint: %s", conn.RemoteAddr(), gossh.FingerprintSHA256(key))
-	}
+	log.Debug("Successfully authenticated: %s Public Key Fingerprint: %s", conn.RemoteAddr(), fingerprint)
 	return keyPermissions(pkey.ID), nil
 }
 
