@@ -1,6 +1,19 @@
 import {isDarkTheme} from '../utils.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 export async function initCaptcha() {
+  registerGlobalInitFunc('initImageCaptcha', (el: HTMLElement) => {
+    const a = el.querySelector('a')!;
+    a.removeAttribute('href'); // remove href="javascript:"
+    const img = el.querySelector('img')!; // remove onclick="...."
+    img.removeAttribute('onclick');
+    img.addEventListener('click', () => {
+      const url = new URL(img.src);
+      url.searchParams.set('reload', String(Date.now()));
+      img.src = url.href;
+    });
+  });
+
   const captchaEl = document.querySelector('#captcha');
   if (!captchaEl) return;
 
