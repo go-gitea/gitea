@@ -44,7 +44,7 @@ type license string
 func (l *license) UnmarshalYAML(node *yaml.Node) error {
 	*l = license(node.Value)
 	if node.Kind != yaml.ScalarNode {
-		*l = license(rubyInspect(node))
+		*l = license(inspectNode(node))
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func FormatCFF(content string) (apa, bibtex string) {
 	if yaml.Unmarshal([]byte(content), &node) != nil {
 		return "", ""
 	}
-	normalize(&node)
+	retagTimestamps(&node)
 	var file struct {
 		TopLevel          metadata   `yaml:",inline"`
 		PreferredCitation *reference `yaml:"preferred-citation"`
@@ -135,63 +135,30 @@ func FormatCFF(content string) (apa, bibtex string) {
 	return ref.formatAPA(), ref.formatBibTeX()
 }
 
-var (
-	psychTrue  = regexp.MustCompile(`(?i)^(yes|true|on)$`)
-	psychFalse = regexp.MustCompile(`(?i)^(no|false|off)$`)
-	psychInt   = regexp.MustCompile(`^[-+]?(0b[_,]*[01][01_,]*|0[_,]*[0-7][0-7_,]*|0|[1-9](?:[0-9]|,[0-9]|_[0-9])*|0x[_,]*[0-9a-fA-F][0-9a-fA-F_,]*)$`)
-	psychFloat = regexp.MustCompile(`^[-+]?([0-9][0-9_,]*)?\.[0-9]*([eE][-+][0-9]+)?$`)
-	psychDigit = strings.NewReplacer(",", "", "_", "")
-)
-
-func rubyString(plain string) string {
-	switch {
-	case psychTrue.MatchString(plain):
-		return "true"
-	case psychFalse.MatchString(plain):
-		return "false"
-	case psychFloat.MatchString(plain) && strings.Trim(plain, "+-") != ".":
-		if num, err := strconv.ParseFloat(psychDigit.Replace(plain), 64); err == nil {
-			formatted := strconv.FormatFloat(num, 'f', -1, 64)
-			if !strings.Contains(formatted, ".") {
-				formatted += ".0"
-			}
-			return formatted
-		}
-	case psychInt.MatchString(plain):
-		if num, err := strconv.ParseInt(psychDigit.Replace(plain), 0, 64); err == nil {
-			return strconv.FormatInt(num, 10)
-		}
-	}
-	return plain
-}
-
-func normalize(node *yaml.Node) {
-	if node.Kind == yaml.ScalarNode && node.Style == 0 {
-		node.Value = rubyString(node.Value)
-	}
+func retagTimestamps(node *yaml.Node) {
 	if node.ShortTag() == "!!timestamp" {
 		node.Tag = "!!str"
 	}
 	for _, child := range node.Content {
-		normalize(child)
+		retagTimestamps(child)
 	}
 }
 
-func rubyInspect(node *yaml.Node) string {
+func inspectNode(node *yaml.Node) string {
 	var parts []string
 	switch node.Kind {
 	case yaml.AliasNode:
 		if node.Alias.Kind == yaml.ScalarNode { // collection aliases can be recursive
-			return rubyInspect(node.Alias)
+			return inspectNode(node.Alias)
 		}
 	case yaml.SequenceNode:
 		for _, child := range node.Content {
-			parts = append(parts, rubyInspect(child))
+			parts = append(parts, inspectNode(child))
 		}
 		return "[" + strings.Join(parts, ", ") + "]"
 	case yaml.MappingNode:
 		for i := 0; i < len(node.Content); i += 2 {
-			parts = append(parts, rubyInspect(node.Content[i])+" => "+rubyInspect(node.Content[i+1]))
+			parts = append(parts, inspectNode(node.Content[i])+" => "+inspectNode(node.Content[i+1]))
 		}
 		return "{" + strings.Join(parts, ", ") + "}"
 	}

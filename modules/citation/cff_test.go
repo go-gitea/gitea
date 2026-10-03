@@ -91,7 +91,7 @@ year = {2016}
     - family-names: Editor
       given-names: Eve
 `,
-			apa: "van Ørsted, J̌. C., Jr. (2020, June 30–July 2). Über tools (Version 1.1) [Conference paper]. Proceedings of X & Y, 10–20",
+			apa: "van Ørsted, J̌. C., Jr. (2020, June 30–July 2). Über tools (Version 1.10) [Conference paper]. Proceedings of X & Y, 10–20",
 			bibtex: `@inproceedings{van_Orsted_Uber_tools_2020,
 address = {Berlin, DE},
 author = {van Ørsted, Jr., ǰan christian},
