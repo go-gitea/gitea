@@ -52,13 +52,21 @@ func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, 
 		Exist(new(ProjectIssue))
 }
 
-// GetColumnIssueIDs returns the IDs of the issues placed in a column.
-func GetColumnIssueIDs(ctx context.Context, column *Column) ([]int64, error) {
-	issueIDs := make([]int64, 0, 10)
-	return issueIDs, db.GetEngine(ctx).Table("project_issue").
+// GetColumnIssueSortings returns the sorting value of every issue placed in a column,
+// keyed by issue ID.
+func GetColumnIssueSortings(ctx context.Context, column *Column) (map[int64]int64, error) {
+	placements := make([]*ProjectIssue, 0, 10)
+	if err := db.GetEngine(ctx).Table("project_issue").
 		Where("project_id=?", column.ProjectID).
 		In("project_board_id", columnIssueIDs(column)).
-		Cols("issue_id").Find(&issueIDs)
+		Cols("issue_id", "sorting").Find(&placements); err != nil {
+		return nil, err
+	}
+	sortings := make(map[int64]int64, len(placements))
+	for _, placement := range placements {
+		sortings[placement.IssueID] = placement.Sorting
+	}
+	return sortings, nil
 }
 
 // GetColumnIssueNextSorting returns the sorting value to append an issue at the end of the column.
