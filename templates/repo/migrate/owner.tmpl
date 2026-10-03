@@ -1,4 +1,5 @@
-<div class="inline required field {{if .Err_Owner}}error{{end}}">
+{{/* Params: HasError, ContextUser, SignedUser, Orgs */}}
+<div class="inline required field {{if .HasError}}error{{end}}">
 	<label>{{ctx.Locale.Tr "repo.owner"}}</label>
 	<div class="ui selection owner dropdown ellipsis-text-items">
 		<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>

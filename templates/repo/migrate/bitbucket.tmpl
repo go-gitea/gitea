@@ -73,7 +73,7 @@
 
 				<div class="divider"></div>
 
-				{{template "repo/migrate/owner" .}}
+				{{template "repo/migrate/owner" dict "HasError" .Err_Owner "ContextUser" .ContextUser "SignedUser" .SignedUser "Orgs" .Orgs}}
 
 				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
@@ -98,7 +98,7 @@
 
 				<div class="inline field">
 					<label></label>
-					<button class="ui primary button">
+					<button type="submit" class="ui primary button">
 						{{ctx.Locale.Tr "repo.migrate_repo"}}
 					</button>
 				</div>
