@@ -11,8 +11,8 @@ from pathlib import Path
 
 def version_tag(version):
     version = version.removeprefix("v")
-    if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-rc\d+)?", version):
-        raise ValueError("Version must be a stable or rc version, for example 28.0.1 or 29.0.0-rc0")
+    if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", version):
+        raise ValueError("Version must be a stable version, for example 28.0.1 or 29.0.0")
     return f"v{version}"
 
 
@@ -83,7 +83,7 @@ def main():
         raise ValueError("The release branch has moved; start a new workflow run")
     if args.command == "prepare":
         candidates = [value for value in git("tag", "--merged", commit).splitlines()
-                      if re.fullmatch(r"v\d+\.\d+\.\d+(?:-rc\d+)?", value)]
+                      if re.fullmatch(r"v\d+\.\d+\.\d+", value)]
         if not candidates:
             raise ValueError("No previous release tag is reachable from this branch")
         matches = [argument for value in candidates for argument in ("--match", value)]

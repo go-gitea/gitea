@@ -8,10 +8,9 @@ This document describes the release cycle, backports, versioning, and the releas
 
 We backport PRs given the following circumstances:
 
-1. Feature freeze is active, but `<version>-rc0` has not been released yet. Here, we backport as much as possible. <!-- TODO: Is that our definition with the new backport bot? -->
-2. `rc0` has been released. Here, we only backport bug- and security-fixes, and small enhancements. Large PRs such as refactors are not backported anymore. <!-- TODO: Is that our definition with the new backport bot? -->
-3. We never backport new features.
-4. We never backport breaking changes except when
+1. During feature freeze, we backport bug- and security-fixes and small enhancements. Large changes such as refactors are not backported.
+2. We never backport new features.
+3. We never backport breaking changes except when
     1. The breaking change has no effect on the vast majority of users
     2. The component triggering the breaking change is marked as experimental
 
@@ -67,14 +66,13 @@ We will try to publish a new major version every three months:
 
 #### How is the release handled?
 
-- The release manager will tag the release candidate (e.g. `v1.26.0-rc0`) and publish it for testing in the **first week of the release month**.
-- If there are no major issues, the release manager will check with the other maintainers and then tag the final release (e.g. `v1.26.0`) in the **one or two weeks following the release candidate**.
+- The release manager checks with the other maintainers before tagging and publishing the stable release (e.g. `v28.0.1`).
 
 ### Feature freeze
 
 - Merge feature PRs before the freeze when you can.
 - Feature PRs still open at the freeze move to the next milestone. Watch Discord for the freeze announcement.
-- During the freeze, a **release branch** takes fixes backported from `main`. Release candidates ship for testing; the final release for that line is maintained from that branch.
+- During the freeze, a **release branch** takes fixes backported from `main`. Stable releases for that line are maintained from that branch.
 
 ### Patch releases
 
@@ -107,7 +105,7 @@ Confirm the release milestone is ready and agree on the release with the maintai
 In GitHub Actions, select **release-create-tag**, then **Run workflow**:
 
 1. Select the release branch, such as `release/v28` or `release/v1.27`.
-2. Enter the chosen version, such as `28.0.1` or `29.0.0-rc0` (an initial `v` is optional).
+2. Enter the chosen version, such as `28.0.1` or `29.0.0` (an initial `v` is optional).
 3. Leave **dry-run** enabled and review the generated release notes in the workflow summary.
 4. Run again with **dry-run** disabled to sign and push the release commit and tag.
 
@@ -115,7 +113,7 @@ Both the original actor and the actor rerunning the workflow must have the Maint
 API failures deny authorization. The workflow rejects non-release branches, versions outside the selected
 release line, existing remote tags or GitHub releases, and release branches that have moved during the run.
 
-[git-cliff](https://git-cliff.org/) generates notes from the nearest stable or release-candidate tag reachable
+[git-cliff](https://git-cliff.org/) generates notes from the nearest stable tag reachable
 from the selected branch to the selected commit. Development tags and tags on unrelated branches are ignored.
 `cliff.toml` groups Conventional Commits and excludes `chore`, `ci`, translation synchronization,
 and previous release marker commits. Historical commits without a conventional type appear under MISC.
@@ -129,7 +127,7 @@ If the branch changed after a preview, review a fresh preview before publishing.
 
 The existing tag-triggered workflows build and sign assets, upload them to `dl.gitea.com` through R2,
 publish containers, and create the GitHub release using the tag annotation as release notes.
-Stable versions create published releases; release candidates currently create draft releases.
+Stable versions create published releases.
 Snap publishing and GitHub release immutability configuration remain managed as before.
 A retry after the tag has been pushed intentionally fails the version check; retry the existing build workflow instead.
 

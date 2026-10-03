@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example 28.0.1 or 29.0.0-rc0)
+        description: Release version (for example 28.0.1 or 29.0.0)
         required: true
         type: string
       dry-run:
