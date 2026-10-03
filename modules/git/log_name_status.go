@@ -21,26 +21,17 @@ import (
 // logNameStatusRepo opens git log --raw in the provided repo and returns a parser
 func logNameStatusRepo(ctx context.Context, repo RepositoryFacade, head, treepath string, paths ...string) *logNameStatusRepoParser {
 	cmd := gitcmd.NewCommand()
-	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
+	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "--no-follow", "-t", "-z").AddDynamicArguments(head)
 
 	var files []string
-	if len(paths) < 70 {
-		if treepath != "" {
-			files = append(files, treepath)
-			for _, pth := range paths {
-				if pth != "" {
-					files = append(files, path.Join(treepath, pth))
-				}
-			}
-		} else {
-			for _, pth := range paths {
-				if pth != "" {
-					files = append(files, pth)
-				}
+	if treepath != "" {
+		files = append(files, treepath) // matches all entries, adding them would not narrow the log
+	} else if len(paths) < 70 {
+		for _, pth := range paths {
+			if pth != "" {
+				files = append(files, pth)
 			}
 		}
-	} else if treepath != "" {
-		files = append(files, treepath)
 	}
 	// Use the :(literal) pathspec magic to handle edge cases with files named like ":file.txt" or "*.jpg"
 	for i, file := range files {
