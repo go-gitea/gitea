@@ -1,0 +1,38 @@
+{{$canWriteProject := and .CanWriteProjects (or (not .Repository) (not .Repository.IsArchived))}}
+<div class="project-swimlane-columns project-swimlane-headers">
+	{{range $column := .Columns}}
+		<div class="project-column" data-id="{{$column.ID}}" data-issue-order="[{{range $i, $issue := index $.IssuesMap $column.ID}}{{if $i}},{{end}}{{$issue.ID}}{{end}}]" {{if $column.Color}}style="background: {{$column.Color}} !important; color: {{ContrastColor $column.Color}} !important"{{end}}>
+			{{template "projects/column_header" dict "Column" $column "CanWriteProject" $canWriteProject "Link" $.Link "Grouped" true}}
+		</div>
+	{{end}}
+</div>
+{{range $lane := .Swimlanes}}
+	<section class="project-swimlane" data-label-id="{{$lane.LabelID}}" aria-labelledby="project-swimlane-title-{{$lane.LabelID}}">
+		<h3 class="project-swimlane-title flex-text-block" id="project-swimlane-title-{{$lane.LabelID}}">
+			{{if $lane.Label}}
+				{{ctx.RenderUtils.RenderLabel $lane.Label}}
+			{{else}}
+				{{ctx.Locale.Tr "repo.issues.filter_label_select_no_label"}}
+			{{end}}
+			<span class="ui circular label">{{$lane.NumIssues}}</span>
+		</h3>
+		<div class="project-swimlane-columns">
+			{{range $column := $.Columns}}
+				<div class="project-swimlane-cell" {{if $column.Color}}style="background: {{$column.Color}} !important"{{end}}>
+					<div class="ui cards" data-url="{{$.Link}}/{{$column.ID}}" data-board="{{$column.ID}}" data-label-id="{{$lane.LabelID}}" aria-label="{{$column.Title}}">
+						{{range (index $lane.Issues $column.ID)}}
+							<div class="issue-card tw-break-anywhere {{if $canWriteProject}}tw-cursor-grab{{end}}" data-issue="{{.ID}}">
+								{{template "repo/issue/card" dict "Issue" . "Page" $}}
+							</div>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+		</div>
+	</section>
+{{else}}
+	<div class="project-swimlanes-empty tw-text-center tw-p-8">
+		<h3 class="tw-my-4">{{ctx.Locale.Tr "repo.issues.filter_no_results"}}</h3>
+		<p class="tw-text-placeholder-text">{{ctx.Locale.Tr "repo.issues.filter_no_results_placeholder"}}</p>
+	</div>
+{{end}}
