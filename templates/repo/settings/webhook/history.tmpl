@@ -45,7 +45,7 @@
 									<span class="ui label">-</span>
 								{{end}}
 							</a>
-							{{if or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin $.PageIsUserSettings}}
+							{{if and (or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin $.PageIsUserSettings) (not $.IsOrgArchived)}}
 							<div class="right menu">
 								<form class="tw-py-2" action="{{$.Link}}/replay/{{.UUID}}" method="post">
 									<span data-tooltip-content="{{if $.Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.replay.description_disabled"}}{{end}}">

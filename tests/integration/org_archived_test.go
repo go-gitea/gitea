@@ -168,3 +168,40 @@ func TestArchivedOrgPackagesReadOnly(t *testing.T) {
 	MakeRequest(t, NewRequest(t, "DELETE", url).AddBasicAuth("user2"), http.StatusUnauthorized)
 	MakeRequest(t, NewRequest(t, "GET", url).AddBasicAuth("user2"), http.StatusOK)
 }
+
+func TestArchivedOrgSettingsDetailPagesReadOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/hooks", &api.CreateHookOption{
+		Type: "gitea", Config: api.CreateHookOptionConfig{"url": "http://example.com", "content_type": "json"},
+	}).AddTokenAuth(token)
+	hook := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Hook{})
+	archiveOrg3(t)
+
+	session := loginUser(t, "user2")
+	for page, selector := range map[string]string{
+		"/org/org3/settings/hooks/" + strconv.FormatInt(hook.ID, 10): `[data-url$="/delete?id=` + strconv.FormatInt(hook.ID, 10) + `"]`,
+		"/org/org3/settings/actions/runners/34347":                   `[data-url$="/delete"]`,
+	} {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", page), http.StatusOK)
+		assert.Zero(t, NewHTMLParser(t, resp.Body).Find(selector).Length(), page)
+	}
+
+	for _, page := range []string{
+		"/org/org3/settings",
+		"/org/org3/settings/hooks/" + strconv.FormatInt(hook.ID, 10),
+		"/org/org3/settings/hooks/gitea/new",
+		"/org/org3/settings/actions/runners/34347",
+		"/org/org3/settings/actions/general",
+		"/org/org3/settings/packages/rules/add",
+		"/org3/-/projects/new",
+	} {
+		resp := session.MakeRequest(t, NewRequest(t, "GET", page), http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		assert.NotZero(t, doc.Find("fieldset[disabled]").Length(), page)
+		if strings.Contains(page, "/hooks/") {
+			assert.True(t, doc.Find(".ui.right.type.dropdown").HasClass("disabled"), page)
+		}
+	}
+}

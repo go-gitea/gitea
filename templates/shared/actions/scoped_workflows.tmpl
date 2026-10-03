@@ -32,6 +32,7 @@
 		</div>
 		{{if $src.ScopedWorkflowInfos}}
 			<form class="ui form form-fetch-action tw-mt-3" method="post" action="{{$.Link}}/required" data-global-init="initScopedWorkflowRequired">
+				<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 				<input type="hidden" name="repo_id" value="{{$src.Repo.ID}}">
 				<div class="text grey tw-mb-2">{{ctx.Locale.Tr "actions.scoped_workflows.required.label"}}</div>
 				<table class="ui table tw-table-fixed">
@@ -85,6 +86,7 @@
 				{{if not $.IsOrgArchived}}
 				<button type="submit" class="ui tiny primary button">{{ctx.Locale.Tr "save"}}</button>
 				{{end}}
+				</fieldset>
 			</form>
 		{{else}}
 			<div class="text grey tw-mt-2">{{ctx.Locale.Tr "actions.scoped_workflows.no_files"}}</div>
