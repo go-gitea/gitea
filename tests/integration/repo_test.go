@@ -44,6 +44,7 @@ func TestRepoView(t *testing.T) {
 	t.Run("ViewRepoDirectory", testViewRepoDirectory)
 	t.Run("ViewRepoDirectoryReadme", testViewRepoDirectoryReadme)
 	t.Run("ViewRepoSymlink", testViewRepoSymlink)
+	t.Run("ViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink", testViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink)
 	t.Run("MarkDownReadmeImage", testMarkDownReadmeImage)
 	t.Run("MarkDownReadmeImageSubfolder", testMarkDownReadmeImageSubfolder)
 	t.Run("GeneratedSourceLink", testGeneratedSourceLink)
@@ -510,6 +511,24 @@ func testViewRepoSymlink(t *testing.T) {
 	req = NewRequest(t, "GET", followSymbolLinkHref)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/user2/repo1/src/branch/symlink/some/other/path/awefulcake.txt?follow_symlink=1", resp.Header().Get("Location"))
+}
+
+func testViewRepoCitationPicksCFFCaseInsensitivelyThroughSymlink(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 2, ID: 1})
+	require.NoError(t, git.ForceFastImport(t.Context(), repo.CodeStorageRepo(), []git.FastImportCommit{
+		{
+			Ref: "refs/heads/citation", Message: "test", Files: []git.FastImportFile{
+				{Path: "CITATION.CFF/README.md", Content: "not a citation"},
+				{Path: "CITATION.bib", Content: "@misc{key}"},
+				{Mode: git.EntryModeSymlink, Path: "citation.cff", Content: "meta/citation.yaml"},
+				{Path: "meta/citation.yaml", Content: "title: Tool\nauthors: [{name: Team}]\n"},
+			},
+		},
+	}))
+	resp := MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/src/branch/citation"), http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, "Team. Tool [Computer software]", htmlDoc.Find("#cite-repo-modal .citation-apa").AttrOr("data-text", ""))
+	assert.Equal(t, "/user2/repo1/src/branch/citation/citation.cff", htmlDoc.Find("#cite-repo-modal a.jump").AttrOr("href", ""))
 }
 
 func testMarkDownReadmeImage(t *testing.T) {
