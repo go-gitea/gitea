@@ -84,18 +84,20 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
 		lastLeft += expandLimit
 		lastRight += expandLimit
-	} else /* "single" or [ ("up" or "down") and (remainingLines <= expandLimit) ] */ {
-		if direction == "up" || direction == "single" {
+	} else /* "single", "all", or [ ("up" or "down") and (remainingLines <= expandLimit) ] */ {
+		// "all" expands the whole gap at once, its last line is inclusive only when the gap runs to the end of the file
+		isGapToFileEnd := leftHunkSize <= 0 && rightHunkSize <= 0
+		if direction == "down" || (direction == "all" && isGapToFileEnd) {
+			// if the direction is "down": either the hidden lines are too many in the middle (otherwise "single"), or are at the bottom
+			// * "last" line is already rendered, so just render the remaining lines from the next line
+			expandLimit = remainingLines
+		} else {
 			// if the direction is "up" or "single":
 			// * top: last=0, idx=11, chunk=11: line 11 is already rendered, line 0 can be considered as a "virtually rendered line"
 			//   * then need to expand line 10 lines (1-10), so "-1".
 			// * middle: last=100, idx=106, chunk=6: line 100 and 106 are both already rendered
 			//   * then need to expand 5 lines (101-105), so "-1".
 			expandLimit = remainingLines - 1
-		} else {
-			// if the direction is "down": either the hidden lines are too many in the middle (otherwise "single"), or are at the bottom
-			// * "last" line is already rendered, so just render the remaining lines from the next line
-			expandLimit = remainingLines
 		}
 		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
 		// now, the hidden lines are fewer than "expand limit", after expand, no hidden lines anymore,

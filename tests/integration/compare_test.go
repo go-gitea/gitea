@@ -15,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
@@ -301,6 +302,7 @@ func TestCompareCodeExpand(t *testing.T) {
 		session = loginUser(t, user2.Name)
 		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork", "")
 		testCreateBranch(t, session, user2.Name, "test_blob_excerpt-fork", "branch/main", "forked-branch", http.StatusSeeOther)
+		// the fork's README has 31 lines: 15 "a" lines, then "CHANGED", then 15 more "a" lines
 		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 15)+"CHANGED\n"+strings.Repeat("a\n", 15))
 
 		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
@@ -314,5 +316,69 @@ func TestCompareCodeExpand(t *testing.T) {
 			link := els.Eq(i).AttrOr("data-fetch-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
+
+		// there are two expandable gaps around the single-line change at line 16: the leading gap
+		// (lines 1-12) and the end-of-file/tail gap (lines 20-31, through the last line of the file)
+		gapDivs := htmlDoc.Find(`div.code-expander-buttons[data-expand-all-url]`)
+		require.Equal(t, 2, gapDivs.Length())
+		require.Equal(t, 2, els.Length())
+		chunkedURL := els.Eq(0).AttrOr("data-fetch-url", "")
+		require.NotEmpty(t, chunkedURL)
+
+		// identify the tail gap by its query parameters rather than by document order: per
+		// BuildBlobExcerptDiffSection, a gap with no following hunk on either side (left_hunk_size and
+		// right_hunk_size both 0) is the end-of-file gap, which derives an inclusive last line.
+		var leadingGapURL, tailGapURL string
+		for i := 0; i < gapDivs.Length(); i++ {
+			rawURL := gapDivs.Eq(i).AttrOr("data-expand-all-url", "")
+			require.NotEmpty(t, rawURL)
+			parsed, err := url.Parse(rawURL)
+			require.NoError(t, err)
+			if parsed.Query().Get("left_hunk_size") == "0" && parsed.Query().Get("right_hunk_size") == "0" {
+				tailGapURL = rawURL
+			} else {
+				leadingGapURL = rawURL
+			}
+		}
+		require.NotEmpty(t, leadingGapURL)
+		require.NotEmpty(t, tailGapURL)
+
+		gapCases := []struct {
+			name         string
+			url          string
+			hiddenFirst  int
+			hiddenLast   int
+			alreadyShown int // the line already shown on the page, just outside the hidden range
+		}{
+			{name: "leading gap", url: leadingGapURL, hiddenFirst: 1, hiddenLast: 12, alreadyShown: 13},
+			{name: "end-of-file gap", url: tailGapURL, hiddenFirst: 20, hiddenLast: 31, alreadyShown: 19},
+		}
+		for _, gc := range gapCases {
+			t.Run("full gap expansion fills the whole gap in one response/"+gc.name, func(t *testing.T) {
+				defer tests.PrintCurrentTest(t)()
+				req := NewRequest(t, "GET", gc.url)
+				resp := session.MakeRequest(t, req, http.StatusOK)
+				frag := resp.Body.String()
+				for n := gc.hiddenFirst; n <= gc.hiddenLast; n++ {
+					assert.Containsf(t, frag, fmt.Sprintf(`class="lines-num lines-num-new" data-line-num="%d"`, n), "missing line %d", n)
+				}
+				assert.NotContains(t, frag, fmt.Sprintf(`class="lines-num lines-num-new" data-line-num="%d"`, gc.alreadyShown))
+				assert.NotContains(t, frag, "code-expander-button", "a full-gap expansion must not leave another expand button behind")
+			})
+		}
+
+		t.Run("expanding a file at or above the display size limit returns 413", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			defer test.MockVariableValue(&setting.UI.MaxDisplayFileSize, int64(1))()
+			req := NewRequest(t, "GET", leadingGapURL)
+			session.MakeRequest(t, req, http.StatusRequestEntityTooLarge)
+		})
+
+		t.Run("the size guard only applies to direction=all", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			defer test.MockVariableValue(&setting.UI.MaxDisplayFileSize, int64(1))()
+			req := NewRequest(t, "GET", chunkedURL)
+			session.MakeRequest(t, req, http.StatusOK)
+		})
 	})
 }
