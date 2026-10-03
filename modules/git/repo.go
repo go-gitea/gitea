@@ -113,7 +113,7 @@ func (repo *Repository) Close() error {
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(url, "HEAD").RunStdString(ctx)
+	_, _, err := gitcmd.NewCommand("ls-remote", "-q", "-h").AddDynamicArguments(gitcmd.RemoteAddressWithoutCredentials(url), "HEAD").WithRemoteCredentials(url).RunStdString(ctx)
 	return err == nil
 }
 
@@ -211,13 +211,13 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
-	cmd.AddDashesAndList(from, to)
+	cmd.AddDashesAndList(gitcmd.RemoteAddressWithoutCredentials(from), to)
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
 	}
 
-	return cmd.WithTimeout(opts.Timeout).WithEnv(opts.Env).RunWithStderr(ctx)
+	return cmd.WithTimeout(opts.Timeout).WithEnv(opts.Env).WithRemoteCredentials(from).RunWithStderr(ctx)
 }
 
 // PushOptions options when push to remote
@@ -230,11 +230,13 @@ type PushOptions struct {
 	Mirror         bool
 	Env            []string
 	Timeout        time.Duration
+
+	CredentialsAddress string // an address with credentials for the remote, see gitcmd.Command.WithRemoteCredentials
 }
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
-	cmd := gitcmd.NewCommand("push")
+	cmd := gitcmd.NewCommand("push").WithRemoteCredentials(opts.CredentialsAddress)
 	if opts.ForceWithLease != "" {
 		cmd.AddOptionFormat("--force-with-lease=%s", opts.ForceWithLease)
 	} else if opts.Force {

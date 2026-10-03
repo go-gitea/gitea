@@ -52,7 +52,7 @@ func testRepoWikiCloneHTTP(t *testing.T, u *url.URL) {
 
 	// reader can clone
 	wikiURL.User = url.UserPassword("user20", userPassword)
-	require.NoError(t, git.Clone(t.Context(), wikiURL.String(), dstLocalPath, git.CloneRepoOptions{}))
+	require.NoError(t, gitCloneWithCredentials(t.Context(), &wikiURL, dstLocalPath, git.CloneRepoOptions{}))
 	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(dstLocalPath).WithStdinBytes([]byte(`commit refs/heads/master
 committer unauthorized-user <user20@example.com> 1714310400 +0000
 data <<EOM

@@ -211,6 +211,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				}
 			}
 
+			if err = mirrorModel.SetRemoteAddressWithCredentials(opts.CloneAddr); err != nil {
+				return repo, err
+			}
 			if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
 				return repo, fmt.Errorf("InsertOne: %w", err)
 			}
