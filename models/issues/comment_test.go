@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateComment(t *testing.T) {
@@ -43,6 +44,32 @@ func TestCreateComment(t *testing.T) {
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID})
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
+}
+
+func TestUpdateCommentSyncReviewContent(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 10})
+	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: comment.ReviewID})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: comment.PosterID})
+
+	for _, content := range []string{"edited review", ""} {
+		stale := *comment
+		comment.Content = content
+		now := time.Now().Unix()
+		require.NoError(t, issues_model.UpdateComment(t.Context(), comment, comment.ContentVersion, doer))
+
+		updated := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+		unittest.AssertInt64InRange(t, now, time.Now().Unix(), int64(updated.UpdatedUnix))
+		review.Content, review.UpdatedUnix = content, updated.UpdatedUnix
+		assert.Equal(t, review, updated)
+
+		stale.Content = "stale edit"
+		require.ErrorIs(t, issues_model.UpdateComment(t.Context(), &stale, stale.ContentVersion, doer), issues_model.ErrCommentAlreadyChanged)
+		stored := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
+		assert.Equal(t, content, stored.Content)
+		assert.Equal(t, comment.ContentVersion, stored.ContentVersion)
+		assert.Equal(t, updated, unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID}))
+	}
 }
 
 func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {
