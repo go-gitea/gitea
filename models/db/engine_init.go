@@ -103,6 +103,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	preprocessDatabaseCollation(xormEngine)
+
 	if setting.Database.Type.IsMSSQL() {
 		enableMSSQLReadCommittedSnapshot(ctx, xormEngine)
 	}
