@@ -5,15 +5,17 @@ package setting
 
 // Metrics settings
 var Metrics = struct {
-	Enabled                  bool
-	Token                    string
-	EnabledIssueByLabel      bool
-	EnabledIssueByRepository bool
+	Enabled                   bool
+	Token                     string
+	EnabledIssueByLabel       bool
+	EnabledIssueByRepository  bool
+	EnabledMirrorSyncDuration bool
 }{
-	Enabled:                  false,
-	Token:                    "",
-	EnabledIssueByLabel:      false,
-	EnabledIssueByRepository: false,
+	Enabled:                   false,
+	Token:                     "",
+	EnabledIssueByLabel:       false,
+	EnabledIssueByRepository:  false,
+	EnabledMirrorSyncDuration: false,
 }
 
 func loadMetricsFrom(rootCfg ConfigProvider) {
