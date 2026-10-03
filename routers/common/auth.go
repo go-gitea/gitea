@@ -68,6 +68,6 @@ func CheckSignedInUser(doer *user_model.User, sess session.Store) (ret struct {
 	ret.NeedActivateAccount = !doer.IsActive && setting.Service.RegisterEmailConfirm
 	ret.LoginIsProhibited = !doer.IsActive || doer.ProhibitLogin
 	isImpersonated := sess != nil && context.IsDoerSessionImpersonated(sess)
-	ret.NeedChangePassword = doer.MustChangePassword && !isImpersonated
+	ret.NeedChangePassword = doer.MustChangePassword && !isImpersonated && !doer.IsTypeBot()
 	return ret
 }
