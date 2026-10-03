@@ -227,6 +227,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		} else {
 			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 		}
+	} else if ctx.Doer.ID == user_model.ActionsUserID {
+		canPush = !changedProtectedfiles && protectBranch.CanPush && !protectBranch.EnableWhitelist && ctx.canWriteCodeUnit()
+		if isForcePush {
+			canPush = canPush && protectBranch.CanForcePush && !protectBranch.EnableForcePushAllowlist
+		}
 	} else {
 		if isForcePush {
 			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.Doer)
