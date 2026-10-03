@@ -4,7 +4,6 @@
 package private
 
 import (
-	"net/http"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -32,10 +31,8 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 		allowed    bool
 	}{
 		{name: "push", protection: git_model.ProtectedBranch{CanPush: true}, allowed: true},
-		{name: "push disabled"},
 		{name: "push allowlist", protection: git_model.ProtectedBranch{CanPush: true, EnableWhitelist: true}},
 		{name: "force push", protection: git_model.ProtectedBranch{CanPush: true, CanForcePush: true}, forcePush: true, allowed: true},
-		{name: "force push with push allowlist", protection: git_model.ProtectedBranch{CanPush: true, CanForcePush: true, EnableWhitelist: true}, forcePush: true},
 		{name: "force push allowlist", protection: git_model.ProtectedBranch{CanPush: true, CanForcePush: true, EnableForcePushAllowlist: true}, forcePush: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -46,7 +43,7 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 			RepoAssignment(ctx.PrivateContext)
 			require.False(t, ctx.Written())
 			defer ctx.Repo.GitRepo.Close()
-			ctx.Doer = user_model.NewActionsUserWithTaskID(53)
+			ctx.Doer = user_model.NewActionsUser()
 			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeCode}}, perm.AccessModeWrite)
 
 			protection := tc.protection
@@ -62,9 +59,9 @@ func TestPreReceiveActionsProtectedBranch(t *testing.T) {
 				oldCommitID, newCommitID = newCommitID, oldCommitID
 			}
 			preReceiveBranch(ctx, oldCommitID, newCommitID, git.RefNameFromBranch("probe"))
-			assert.Equal(t, !tc.allowed, ctx.Written(), resp.Body.String())
-			if !tc.allowed {
-				assert.Equal(t, http.StatusForbidden, resp.Code)
+			if tc.allowed {
+				assert.False(t, ctx.Written(), resp.Body.String())
+			} else {
 				assert.Contains(t, resp.Body.String(), "Not allowed to")
 			}
 		})

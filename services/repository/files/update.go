@@ -668,7 +668,6 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, gi
 		protectedBranch.Repo = repo
 		globUnprotected := protectedBranch.GetUnprotectedFilePatterns()
 		globProtected := protectedBranch.GetProtectedFilePatterns()
-
 		perm, err := access.GetDoerRepoPermission(ctx, repo, doer)
 		if err != nil {
 			return err

@@ -122,18 +122,14 @@ func (protectBranch *ProtectedBranch) LoadRepo(ctx context.Context) (err error) 
 	return err
 }
 
-func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User, perm access_model.Permission) bool {
+// CanUserPush returns if some user could push to this protected branch
+func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *user_model.User, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.CanPush {
 		return false
 	}
 
 	if !protectBranch.EnableWhitelist {
-		if err := protectBranch.LoadRepo(ctx); err != nil {
-			log.Error("LoadRepo: %v", err)
-			return false
-		}
-
-		return perm.CanWrite(unit.TypeCode)
+		return permissionInRepo.CanWrite(unit.TypeCode)
 	}
 
 	if slices.Contains(protectBranch.WhitelistUserIDs, user.ID) {
@@ -154,17 +150,17 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 
 // CanUserForcePush returns if some user could force push to this protected branch
 // Since force-push extends normal push, we also check if user has regular push access
-func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user *user_model.User, perm access_model.Permission) bool {
+func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user *user_model.User, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.CanForcePush {
 		return false
 	}
 
 	if !protectBranch.EnableForcePushAllowlist {
-		return protectBranch.CanUserPush(ctx, user, perm)
+		return protectBranch.CanUserPush(ctx, user, permissionInRepo)
 	}
 
 	if slices.Contains(protectBranch.ForcePushAllowlistUserIDs, user.ID) {
-		return protectBranch.CanUserPush(ctx, user, perm)
+		return protectBranch.CanUserPush(ctx, user, permissionInRepo)
 	}
 
 	if len(protectBranch.ForcePushAllowlistTeamIDs) == 0 {
@@ -176,7 +172,7 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 		log.Error("IsUserInTeams: %v", err)
 		return false
 	}
-	return in && protectBranch.CanUserPush(ctx, user, perm)
+	return in && protectBranch.CanUserPush(ctx, user, permissionInRepo)
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
