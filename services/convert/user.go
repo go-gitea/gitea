@@ -50,6 +50,13 @@ func ToUser(ctx context.Context, user, doer *user_model.User) *api.User {
 	return toUser(ctx, user, signed, authed)
 }
 
+func ToAuthor(ctx context.Context, author *user_model.User, originalAuthor string, doer *user_model.User) *api.User {
+	if originalAuthor == "" {
+		return ToUser(ctx, author, doer)
+	}
+	return &api.User{ID: user_model.GhostUserID, UserName: originalAuthor, Type: api.UserTypeStringUser, Visibility: api.VisibilityStringPublic, AvatarURL: user_model.NewGhostUser().AvatarLink(ctx)}
+}
+
 // ToUsers convert list of user_model.User to list of api.User
 func ToUsers(ctx context.Context, doer *user_model.User, users []*user_model.User) []*api.User {
 	result := make([]*api.User, len(users))

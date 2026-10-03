@@ -71,7 +71,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
 func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
-	httpTransport *http.Transport,
+	httpTransport http.RoundTripper,
 ) (*repo_model.Repository, error) {
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)

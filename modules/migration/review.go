@@ -40,7 +40,8 @@ type Review struct {
 	CommitID     string `yaml:"commit_id"`
 	Content      string
 	CreatedAt    time.Time `yaml:"created_at"`
-	State        string    // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
+	State        string
+	Dismissed    bool
 	Comments     []*ReviewComment
 }
 

@@ -26361,17 +26361,6 @@
           "type": "string",
           "x-go-name": "IssueURL"
         },
-        "original_author": {
-          "description": "OriginalAuthor is the original author name (for imported comments)",
-          "type": "string",
-          "x-go-name": "OriginalAuthor"
-        },
-        "original_author_id": {
-          "description": "OriginalAuthorID is the original author ID (for imported comments)",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "OriginalAuthorID"
-        },
         "pull_request_url": {
           "description": "PRURL is the API URL for the pull request (if applicable)",
           "type": "string",
@@ -30320,15 +30309,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Index"
-        },
-        "original_author": {
-          "type": "string",
-          "x-go-name": "OriginalAuthor"
-        },
-        "original_author_id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "OriginalAuthorID"
         },
         "pin_order": {
           "type": "integer",
