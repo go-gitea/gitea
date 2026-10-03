@@ -314,6 +314,8 @@ type NewMSTeamsHookForm struct {
 type NewFeishuHookForm struct {
 	middleware.FormDefaultValidator
 	PayloadURL string `binding:"Required;ValidUrl"`
+	AppID      string `binding:"Required"`
+	AppSecret  string `binding:"Required"`
 	WebhookForm
 }
 
