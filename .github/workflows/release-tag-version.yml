@@ -18,7 +18,6 @@ jobs:
     permissions:
       contents: read
       packages: write # to publish to ghcr.io
-      pull-requests: read # for git-cliff to skip PRs labeled skip-changelog
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -74,22 +73,19 @@ jobs:
         with:
           gh-cli-version: 2.39.1
       - id: range
-        env:
-          TAG: ${{ github.ref_name }}
         run: |
-          previous=$(git describe --tags --abbrev=0 --match "${TAG%.*}.*" --exclude "$TAG" 2> /dev/null || git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' --exclude "$TAG") # same minor line incl. its -dev tag, else nearest stable
-          echo "range=$previous..$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" # a sha, not HEAD, so git-cliff fetches PR labels of this branch
-      - id: cliff
-        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
+          previous=$(git tag --list --sort=-v:refname | grep -xE 'v[0-9]+\.[0-9]+\.[0-9]+' | grep -A1 -xF "$GITHUB_REF_NAME" | tail -1) # highest stable version below this one
+          echo "range=$previous..$GITHUB_SHA" >> "$GITHUB_OUTPUT" # a sha, not HEAD, so git-cliff fetches PR labels of this branch
+      - uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         with:
+          github_token: ${{ secrets.RELEASE_TOKEN }}
           args: --github-repo ${{ github.repository }} --tag ${{ github.ref_name }} ${{ steps.range.outputs.range }}
       - name: create github release
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
-          NOTES: ${{ steps.cliff.outputs.changelog }}
         run: |
-          gh release create "$TAG" --title "$TAG" --notes-file "$NOTES" dist/release/*
+          gh release create "$TAG" --title "$TAG" --notes-file git-cliff/CHANGELOG.md dist/release/*
 
   container:
     runs-on: namespace-profile-gitea-release-docker

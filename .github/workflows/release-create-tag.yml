@@ -8,8 +8,7 @@ on:
         description: Version to release, for example 28.0.1
         required: true
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   tag:
@@ -29,4 +28,4 @@ jobs:
         run: |
           [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           git tag -s -m "v$VERSION" "v$VERSION"
-          git push origin "refs/tags/v$VERSION"
+          git push origin tag "v$VERSION"
