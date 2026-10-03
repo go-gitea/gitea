@@ -1,7 +1,7 @@
 {{if and ctx.RootData.SignedUserID (not ctx.RootData.Repository.IsArchived)}}
 	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
-		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
+		<input type="hidden" name="latest_commit_id" value="{{$.root.ReviewCommitID}}">
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
 		<input type="hidden" name="line" value="{{if $.Line}}{{$.Line}}{{end}}">
 		<input type="hidden" name="path" value="{{if $.File}}{{$.File}}{{end}}">
