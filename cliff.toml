@@ -1,0 +1,10 @@
+[git]
+commit_parsers = [
+  { field = "remote.pr_labels", pattern = "^skip-changelog$", skip = true },
+  { message = "^feat", group = "Features" },
+  { message = "^enhance", group = "Enhancements" },
+  { message = "^perf", group = "Performance" },
+  { message = "^fix", group = "Bug Fixes" },
+  { message = "^docs", group = "Documentation" },
+  { message = ".*", group = "Miscellaneous" },
+]
