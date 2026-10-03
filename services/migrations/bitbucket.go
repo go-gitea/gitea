@@ -49,7 +49,8 @@ func (f *BitbucketDownloaderFactory) New(ctx context.Context, opts base.MigrateO
 
 	workspace := fields[0]
 	repoSlug := strings.TrimSuffix(fields[1], ".git")
-	webBaseURL := u.Scheme + "://" + u.Host
+	// only Bitbucket Cloud is supported (Bitbucket Server/Data Center has a different API)
+	webBaseURL := "https://bitbucket.org"
 	apiBaseURL := "https://api.bitbucket.org/2.0"
 
 	return NewBitbucketDownloader(ctx, apiBaseURL, webBaseURL, workspace, repoSlug, opts.AuthUsername, opts.AuthPassword, opts.AuthToken)
@@ -461,16 +462,22 @@ func bitbucketClosedTime(state string, updated time.Time) *time.Time {
 }
 
 func bitbucketIssueLabels(issue bitbucketIssue) []*base.Label {
-	labels := make([]*base.Label, 0, 4)
-	for _, label := range []string{
-		util.Iif(issue.Kind == "", "", "kind/"+issue.Kind),
-		util.Iif(issue.Priority == "", "", "priority/"+issue.Priority),
-		util.Iif(issue.Component == nil || issue.Component.Name == "", "", "component/"+issue.Component.Name),
-		util.Iif(issue.Version == nil || issue.Version.Name == "", "", "version/"+issue.Version.Name),
-	} {
-		if label != "" {
-			labels = append(labels, &base.Label{Name: label, Color: bitbucketLabelColor(label)})
-		}
+	var names []string
+	if issue.Kind != "" {
+		names = append(names, "kind/"+issue.Kind)
+	}
+	if issue.Priority != "" {
+		names = append(names, "priority/"+issue.Priority)
+	}
+	if issue.Component != nil && issue.Component.Name != "" {
+		names = append(names, "component/"+issue.Component.Name)
+	}
+	if issue.Version != nil && issue.Version.Name != "" {
+		names = append(names, "version/"+issue.Version.Name)
+	}
+	labels := make([]*base.Label, 0, len(names))
+	for _, name := range names {
+		labels = append(labels, &base.Label{Name: name, Color: bitbucketLabelColor(name)})
 	}
 	return labels
 }
