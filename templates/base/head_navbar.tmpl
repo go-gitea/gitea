@@ -144,36 +144,6 @@
 			</a>
 		{{end}}
 	</div>
-
-{{if and EnableTimetracking .IsSigned}}
-	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
-	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
-	{{if not $activeStopwatch}}{{$activeStopwatch = dict}}{{end}}{{/* mock an empty stopwatch */}}
-	<div data-global-init="initActiveStopwatchNotification" class="tw-hidden" data-seconds="{{$activeStopwatch.Seconds}}">
-		<div class="active-stopwatch-popup flex-text-block tw-p-3">
-			<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
-				{{svg "octicon-issue-opened" 16}}
-				<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
-			</a>
-			<div class="flex-text-inline">
-				<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
-					<button
-						type="submit"
-						class="ui button mini compact basic icon"
-						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
-					>{{svg "octicon-square-fill"}}</button>
-				</form>
-				<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
-					<button
-						type="submit"
-						class="ui button mini compact basic icon"
-						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
-					>{{svg "octicon-trash"}}</button>
-				</form>
-			</div>
-		</div>
-	</div>
-{{end}}
 </nav>
 {{template "base/head_impersonate_banner"}}
 {{template "base/head_banner"}}

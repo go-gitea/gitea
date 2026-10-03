@@ -1,42 +1,78 @@
 import {createTippy} from '../modules/tippy.ts';
 import {GET} from '../modules/fetch.ts';
-import {hideElem, queryElems, showElem} from '../utils/dom.ts';
+import {hideElem, showElem} from '../utils/dom.ts';
 import {onUserEvent} from '../modules/worker.ts';
 import type {StopwatchData} from '../types.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 
-export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNotification', (el: HTMLElement) => {
+export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNotification', (btn: HTMLElement) => {
   // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
-  const seconds = el.getAttribute('data-seconds')!;
-  if (seconds) updateStopwatchTime(parseInt(seconds));
+  const popup = btn.nextElementSibling!;
+  const tippy = createTippy(btn, {
+    content: popup,
+    placement: 'bottom-end',
+    trigger: 'click',
+    maxWidth: 'none',
+    interactive: true,
+    hideOnClick: true,
+    theme: 'default',
+  });
 
-  const stopwatchPopup = el.querySelector('.active-stopwatch-popup')!;
-  const stopwatchEls = document.querySelectorAll('.active-stopwatch');
-  if (!stopwatchEls.length) return;
+  // TODO: This flickers on page load, we could avoid this by making a custom element to render time periods.
+  const updateStopwatchTime = (seconds: number) => {
+    const hours = seconds / 3600 || 0;
+    const minutes = seconds / 60 || 0;
+    btn.querySelector('.header-stopwatch-dot')!.textContent = hours >= 1 ? `${Math.round(hours)}h` : `${Math.round(minutes)}m`;
+  };
 
-  for (const stopwatchEl of stopwatchEls) {
-    createTippy(stopwatchEl, {
-      content: stopwatchPopup.cloneNode(true) as Element,
-      placement: 'bottom-end',
-      trigger: 'click',
-      maxWidth: 'none',
-      interactive: true,
-      hideOnClick: true,
-      theme: 'default',
-      onShow(instance) {
-        // Re-clone on every open so the popup reflects the latest stopwatch state,
-        // including the case where the icon became visible via a real-time push.
-        instance.setContent(stopwatchPopup.cloneNode(true) as Element);
-      },
-    });
-  }
+  const updateStopwatchData = (data: Array<StopwatchData>) => {
+    const watch = data[0];
+    if (!watch) {
+      tippy.hide();
+      hideElem(btn);
+      return false;
+    }
+    const {repo_owner_name, repo_name, issue_index, seconds} = watch;
+    const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
+    popup.querySelector('.stopwatch-link')!.setAttribute('href', issueUrl);
+    popup.querySelector('.stopwatch-commit')!.setAttribute('action', `${issueUrl}/times/stopwatch/stop`);
+    popup.querySelector('.stopwatch-cancel')!.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
+    popup.querySelector('.stopwatch-issue')!.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
+    updateStopwatchTime(seconds);
+    showElem(btn);
+    return true;
+  };
+
+  const updateStopwatch = async () => {
+    try {
+      const response = await GET(`${appSubUrl}/user/stopwatches`);
+      if (!response.ok) {
+        console.error('Failed to fetch stopwatch data');
+        return false;
+      }
+      return updateStopwatchData(await response.json());
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  };
 
   const startPeriodicPoller = (timeout: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
-    setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
+    setTimeout(async () => {
+      if (!await updateStopwatch()) {
+        timeout = notificationSettings.MinTimeout;
+      } else if (timeout < notificationSettings.MaxTimeout) {
+        timeout += notificationSettings.TimeoutStep;
+      }
+      startPeriodicPoller(timeout);
+    }, timeout);
   };
+
+  const seconds = btn.getAttribute('data-seconds');
+  if (seconds) updateStopwatchTime(parseInt(seconds));
 
   let pollerStarted = false;
   onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.eventData));
@@ -48,59 +84,3 @@ export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNo
     startPeriodicPoller(notificationSettings.MinTimeout);
   });
 });
-
-async function updateStopwatchWithCallback(callback: (timeout: number) => void, timeout: number) {
-  const isSet = await updateStopwatch();
-
-  if (!isSet) {
-    timeout = notificationSettings.MinTimeout;
-  } else if (timeout < notificationSettings.MaxTimeout) {
-    timeout += notificationSettings.TimeoutStep;
-  }
-
-  callback(timeout);
-}
-
-async function updateStopwatch() {
-  try {
-    const response = await GET(`${appSubUrl}/user/stopwatches`);
-    if (!response.ok) {
-      console.error('Failed to fetch stopwatch data');
-      return false;
-    }
-    const data = await response.json();
-    return updateStopwatchData(data);
-  } catch (error) {
-    console.error(error);
-    return false;
-  }
-}
-
-function updateStopwatchData(data: Array<StopwatchData>) {
-  if (!data) return;
-  const watch = data[0];
-  const btnEls = document.querySelectorAll('.active-stopwatch');
-  if (!watch) {
-    hideElem(btnEls);
-  } else {
-    // TODO: the logic is still dirty, can be refactored in the future
-    const {repo_owner_name, repo_name, issue_index, seconds} = watch;
-    const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
-    document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);
-    document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/stop`);
-    document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
-    const stopwatchIssue = document.querySelector('.stopwatch-issue');
-    if (stopwatchIssue) stopwatchIssue.textContent = `${repo_owner_name}/${repo_name}#${issue_index}`;
-    updateStopwatchTime(seconds);
-    showElem(btnEls);
-  }
-  return Boolean(data.length);
-}
-
-// TODO: This flickers on page load, we could avoid this by making a custom element to render time periods.
-function updateStopwatchTime(seconds: number) {
-  const hours = seconds / 3600 || 0;
-  const minutes = seconds / 60 || 0;
-  const timeText = hours >= 1 ? `${Math.round(hours)}h` : `${Math.round(minutes)}m`;
-  queryElems(document, '.header-stopwatch-dot', (el) => el.textContent = timeText);
-}

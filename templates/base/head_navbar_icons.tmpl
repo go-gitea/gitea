@@ -3,12 +3,37 @@
 	{{if EnableTimetracking}}
 		{{$activeStopwatch := call $data.GetActiveStopwatch -}}
 		{{/* always rendered so a real-time push can reveal it without a reload */}}
-		<a class="item active-stopwatch {{if not $activeStopwatch}}tw-hidden{{end}}" tabindex="0" title="{{ctx.Locale.Tr "active_stopwatch"}}">
-			<div class="tw-relative flex-text-block">
+		<button type="button" class="item btn active-stopwatch {{if not $activeStopwatch}}tw-hidden{{end}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-global-init="initActiveStopwatchNotification" {{if $activeStopwatch}}data-seconds="{{$activeStopwatch.Seconds}}"{{end}}>
+			<span class="tw-relative flex-text-block">
 				{{svg "octicon-stopwatch"}}
 				<span class="header-stopwatch-dot"></span>
+			</span>
+		</button>
+		{{if not $activeStopwatch}}{{$activeStopwatch = dict}}{{end}}{{/* mock an empty stopwatch */}}
+		<div class="tippy-target">
+			<div class="flex-text-block tw-p-3">
+				<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
+					{{svg "octicon-issue-opened" 16}}
+					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
+				</a>
+				<div class="flex-text-inline">
+					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
+						<button
+							type="submit"
+							class="ui button mini compact basic icon"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
+						>{{svg "octicon-square-fill"}}</button>
+					</form>
+					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
+						<button
+							type="submit"
+							class="ui button mini compact basic icon"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
+						>{{svg "octicon-trash"}}</button>
+					</form>
+				</div>
 			</div>
-		</a>
+		</div>
 	{{end}}
 
 	{{$notificationUnreadCount := call $data.GetNotificationUnreadCount -}}
