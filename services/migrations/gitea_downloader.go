@@ -658,17 +658,6 @@ func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int
 	return allPRs, isEnd, nil
 }
 
-func convertGiteaReviewState(state gitea_sdk.ReviewStateType) string {
-	switch state {
-	case gitea_sdk.ReviewStateComment:
-		return base.ReviewStateCommented
-	case gitea_sdk.ReviewStateRequestChanges:
-		return base.ReviewStateChangesRequested
-	default:
-		return string(state)
-	}
-}
-
 // GetReviews returns pull requests review
 func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
 	if err := g.client.CheckServerVersionConstraint(g.ctx, ">=1.12"); err != nil {
@@ -736,9 +725,15 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 				CommitID:     pr.CommitID,
 				Content:      pr.Body,
 				CreatedAt:    pr.Submitted,
-				State:        convertGiteaReviewState(pr.State),
+				State:        string(pr.State),
 				Dismissed:    pr.Dismissed,
 				Comments:     reviewComments,
+			}
+			switch pr.State {
+			case gitea_sdk.ReviewStateComment:
+				review.State = base.ReviewStateCommented
+			case gitea_sdk.ReviewStateRequestChanges:
+				review.State = base.ReviewStateChangesRequested
 			}
 
 			allReviews = append(allReviews, review)

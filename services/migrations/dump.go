@@ -306,6 +306,7 @@ func (g *RepositoryDumper) CreateReleases(ctx context.Context, releases ...*base
 						return fmt.Errorf("create: %w", err)
 					}
 					defer fw.Close()
+
 					_, err = io.Copy(fw, rc)
 					return err
 				}()

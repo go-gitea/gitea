@@ -84,9 +84,10 @@ func NewCodebaseDownloader(_ context.Context, projectURL *url.URL, project, repo
 		projectURL: projectURL,
 		project:    project,
 		repoName:   repoName,
-		client:     newMigrationHTTPClient(baseURL.String(), basicAuthorization(username, password)),
-		userMap:    make(map[int64]*codebaseUser),
-		commitMap:  make(map[string]string),
+
+		client:    newMigrationHTTPClient(baseURL.String(), basicAuthorization(username, password)),
+		userMap:   make(map[int64]*codebaseUser),
+		commitMap: make(map[string]string),
 	}
 
 	log.Trace("Create Codebase downloader. BaseURL: %s Project: %s RepoName: %s", baseURL, project, repoName)

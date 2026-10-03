@@ -82,8 +82,9 @@ type OneDevDownloader struct {
 // NewOneDevDownloader creates a new downloader
 func NewOneDevDownloader(_ context.Context, baseURL *url.URL, username, password, repoPath string) *OneDevDownloader {
 	return &OneDevDownloader{
-		baseURL:      baseURL,
-		repoPath:     repoPath,
+		baseURL:  baseURL,
+		repoPath: repoPath,
+
 		client:       newMigrationHTTPClient(baseURL.String(), basicAuthorization(username, password)),
 		userMap:      make(map[int64]*onedevUser),
 		milestoneMap: make(map[int64]string),

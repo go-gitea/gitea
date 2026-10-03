@@ -95,7 +95,7 @@ type GitlabDownloader struct {
 //	Use either a username/password, personal token entered into the username field, or anonymous/public access
 //	Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, token string) (*GitlabDownloader, error) {
-	transport := authTransport(getMigrationTransport(), baseURL, util.Iif(token != "", "Bearer "+token, "")) // the SDK retries rate limits itself, the transport adds the token for the source host only
+	transport := authTransport(getMigrationTransport(), baseURL, util.Iif(token != "", "Bearer "+token, "")) // not retrying, the SDK retries rate limits itself
 	gitlabClient, err := gitlab.NewAuthSourceClient(gitlab.Unauthenticated{}, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(&http.Client{Transport: transport}))
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
@@ -742,14 +742,14 @@ func (g *GitlabDownloader) GetReviews(ctx context.Context, reviewable base.Revie
 	}
 
 	reviews := make([]*base.Review, 0, len(approvals.ApprovedBy))
-	for _, approver := range approvals.ApprovedBy {
-		if approver.User == nil {
+	for _, user := range approvals.ApprovedBy {
+		if user.User == nil {
 			continue
 		}
 		reviews = append(reviews, &base.Review{
 			IssueIndex:   reviewable.GetLocalIndex(),
-			ReviewerID:   approver.User.ID,
-			ReviewerName: approver.User.Username,
+			ReviewerID:   user.User.ID,
+			ReviewerName: user.User.Username,
 			CreatedAt:    createdAt,
 			// All we get are approvals
 			State: base.ReviewStateApproved,

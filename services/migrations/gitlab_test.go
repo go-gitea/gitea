@@ -530,11 +530,11 @@ func TestGitlabSkipsConfidentialIssuesAndInternalNotes(t *testing.T) {
 	const timestamps = `"created_at": "2020-01-01T00:00:00Z", "updated_at": "2020-01-01T00:00:00Z"`
 	empty := func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `[]`) }
 	mux.HandleFunc("/api/v4/projects/1/issues", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `[{"iid": 1, "author": {}, `+timestamps+`}, {"iid": 2, "confidential": true, "author": {}, `+timestamps+`}]`)
+		fmt.Fprint(w, `[{"iid": 1, "author": {}, `+timestamps+`}, {"iid": 2, "confidential": true}]`)
 	})
 	mux.HandleFunc("/api/v4/projects/1/issues/1/award_emoji", empty)
 	mux.HandleFunc("/api/v4/projects/1/issues/1/discussions", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, `[{"notes": [{"id": 1, `+timestamps+`}, {"id": 2, "internal": true, `+timestamps+`}]}]`)
+		fmt.Fprint(w, `[{"notes": [{"id": 1, `+timestamps+`}, {"internal": true}]}]`)
 	})
 	mux.HandleFunc("/api/v4/projects/1/issues/1/resource_state_events", empty)
 
