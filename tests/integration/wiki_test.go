@@ -40,9 +40,6 @@ func TestRepoWikiPages(t *testing.T) {
 }
 
 func testRepoWikiCloneHTTP(t *testing.T, u *url.URL) {
-	// When proc-receive support is enabled globally, the HTTP receive-pack pre-check
-	// must still require write access for wiki repositories. Exercise this with a
-	// normal wiki push because the regression is about the pre-check, not agit refs.
 	wikiURL := *u
 	wikiURL.Path = "/user2/repo1.wiki.git"
 
