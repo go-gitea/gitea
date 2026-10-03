@@ -412,7 +412,6 @@ var cgnatRange = netip.MustParsePrefix("100.64.0.0/10") // RFC 6598
 var reservedRanges = func() (ranges []netip.Prefix) {
 	for _, cidr := range []string{
 		"0.0.0.0/8",          // "this network"
-		"100.100.100.200/32", // Alibaba Cloud metadata
 		"168.63.129.16/32",   // Azure WireServer
 		"169.254.169.254/32", // cloud metadata services on link local
 		"192.0.0.0/24",       // IETF protocol assignments

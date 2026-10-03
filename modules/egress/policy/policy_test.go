@@ -117,7 +117,7 @@ func TestCheckHostIPs(t *testing.T) {
 	builtins := NewPolicy("test", Lax, WithAllow("private, loopback", ""))
 	assert.NoError(t, builtins.checkHostIPs(hostURL(t, "http://example.com"), ips("8.8.8.8", "100.64.0.1", "::1")))
 	for _, ip := range []string{
-		"0.1.2.3", "100.100.100.200", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
+		"0.1.2.3", "168.63.129.16", "169.254.169.254", "192.0.2.1", "192.88.99.1", "198.18.0.1",
 		"198.51.100.1", "203.0.113.1", "::7f00:1", "::ffff:0:a00:5", "64:ff9b::a9fe:a9fe", "64:ff9b::808:808", "2001::1", "2001:db8::1",
 		"2002::1", "fe80::1",
 	} {
