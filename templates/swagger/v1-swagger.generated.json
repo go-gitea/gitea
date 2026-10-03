@@ -10355,6 +10355,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/hash-algorithm": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the hash algorithm used to store repository objects",
+        "operationId": "repoGetHashAlgorithm",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoHashAlgorithm"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/hooks": {
       "get": {
         "produces": [
@@ -27819,7 +27855,7 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
+          "description": "ObjectFormatName of the underlying git repository, empty string for the instance default",
           "type": "string",
           "enum": [
             "sha1",
@@ -31504,7 +31540,7 @@
           "$ref": "#/definitions/PayloadUser"
         },
         "id": {
-          "description": "sha1 hash of the commit",
+          "description": "hash of the commit",
           "type": "string",
           "x-go-name": "ID"
         },
@@ -32574,6 +32610,25 @@
         },
         "verification": {
           "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "RepoHashAlgorithm": {
+      "description": "RepoHashAlgorithm is the git hash algorithm used to store repository objects",
+      "type": "object",
+      "required": [
+        "hash_algorithm"
+      ],
+      "properties": {
+        "hash_algorithm": {
+          "type": "string",
+          "enum": [
+            "sha1",
+            "sha256"
+          ],
+          "x-go-enum-desc": "sha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "x-go-name": "HashAlgorithm"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -34888,6 +34943,12 @@
       "description": "RepoCollaboratorPermission",
       "schema": {
         "$ref": "#/definitions/RepoCollaboratorPermission"
+      }
+    },
+    "RepoHashAlgorithm": {
+      "description": "RepoHashAlgorithm",
+      "schema": {
+        "$ref": "#/definitions/RepoHashAlgorithm"
       }
     },
     "RepoIssueConfig": {

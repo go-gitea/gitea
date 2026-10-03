@@ -651,8 +651,7 @@ Gitea or set your environment appropriately.`, "")
 		if err != nil {
 			return err
 		}
-		commitID, _ := git.NewIDFromString(rs.OldOID)
-		if !commitID.IsZero() {
+		if !git.IsEmptyCommitID(rs.OldOID) {
 			err = writeDataPktLine(ctx, os.Stdout, []byte("option old-oid "+rs.OldOID))
 			if err != nil {
 				return err

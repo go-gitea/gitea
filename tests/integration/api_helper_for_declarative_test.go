@@ -24,11 +24,12 @@ import (
 )
 
 type APITestContext struct {
-	Reponame     string
-	Session      *TestSession
-	Token        string
-	Username     string
-	ExpectedCode int
+	Reponame         string
+	Session          *TestSession
+	Token            string
+	Username         string
+	ExpectedCode     int
+	ObjectFormatName api.ObjectFormatName
 }
 
 func NewAPITestContext(t *testing.T, username, reponame string, scope ...auth.AccessTokenScope) APITestContext {
@@ -61,6 +62,8 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			Gitignores:  "",
 			License:     "WTFPL",
 			Readme:      "Default",
+
+			ObjectFormatName: ctx.ObjectFormatName,
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", createRepoOption).
 			AddTokenAuth(ctx.Token)
@@ -91,6 +94,15 @@ func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption,
 		if len(callback) > 0 {
 			callback[0](t, *repository)
 		}
+	}
+}
+
+func doAPIGetHashAlgorithm(ctx APITestContext) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hash-algorithm", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)).
+			AddTokenAuth(ctx.Token)
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, ctx.ObjectFormatName, DecodeJSON(t, resp, &api.RepoHashAlgorithm{}).HashAlgorithm)
 	}
 }
 

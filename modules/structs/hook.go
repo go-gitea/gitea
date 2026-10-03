@@ -108,7 +108,7 @@ type PayloadUser struct {
 
 // PayloadCommit represents a commit
 type PayloadCommit struct {
-	// sha1 hash of the commit
+	// hash of the commit
 	ID string `json:"id"`
 	// The commit message
 	Message string `json:"message"`
