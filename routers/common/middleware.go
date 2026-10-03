@@ -73,16 +73,26 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 			ctx, finished := reqctx.NewRequestContext(req.Context(), profDesc)
 			defer finished()
 
+			// A caller-propagated W3C trace context makes this request's spans
+			// join the caller's trace. Invalid or absent headers are ignored.
+			if tc, ok := gtprof.ParseTraceparent(req.Header.Get("Traceparent")); ok {
+				ctx = gtprof.WithIncomingTraceContext(ctx, tc)
+			}
+
 			ctx, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanHTTP)
 			req = req.WithContext(ctx)
 			defer func() {
 				chiCtx := chi.RouteContext(req.Context())
 				span.SetAttributeString(gtprof.TraceAttrHTTPRoute, chiCtx.RoutePattern())
+				if status := respWriter.WrittenStatus(); status > 0 {
+					span.SetAttribute("http.response.status_code", status)
+				}
 				span.End()
 			}()
 
 			defer func() {
 				if recovered := recover(); recovered != nil {
+					span.RecordError(fmt.Errorf("panic: %v", recovered))
 					renderPanicErrorPage(respWriter, req, recovered) // it should never panic, and it handles the stack trace internally
 				}
 			}()

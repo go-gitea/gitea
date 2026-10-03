@@ -73,11 +73,15 @@ func (t *traceBuiltinSpan) end() {
 		// TODO: debug purpose only
 		// TODO: it should distinguish between http response network lag and actual processing time
 		threshold := time.Duration(traceBuiltinThreshold.Load())
-		if threshold != 0 && t.ts.endTime.Sub(t.ts.startTime) > threshold {
+		slow := threshold != 0 && t.ts.endTime.Sub(t.ts.startTime) > threshold
+		if slow {
 			sb := &strings.Builder{}
 			t.toString(sb, 0)
 			tailmsg.GetManager().GetTraceRecorder().Record(sb.String())
 		}
+		// OTLP export (when enabled): slow traces always, sampled caller
+		// traces regardless of their duration (see otelExportIfEligible).
+		otelExportIfEligible(t, slow)
 	}
 }
 
