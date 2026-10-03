@@ -773,7 +773,7 @@ func describePendingJobDetail(ctx *context_module.Context, current *actions_mode
 		if pending := pendingNeeds(current, jobs); len(pending) > 0 {
 			return ctx.Locale.TrString("actions.runs.waiting_for_dependent_jobs", strings.Join(pending, ", "))
 		}
-	case current.Status.IsWaiting():
+	case current.Status.IsWaiting() && !current.IsReusableCaller: // a caller waits on its called jobs, never on a runner
 		// A waiting job has no runner to pick it up yet. A busy runner is still
 		// "online", so distinguish three cases: no runner online at all, online
 		// runners but none match the labels, and a matching runner that is busy.

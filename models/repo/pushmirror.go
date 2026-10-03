@@ -78,13 +78,13 @@ func (m *PushMirror) GetRemoteName() string {
 	return m.RemoteName
 }
 
-// UpdatePushMirror updates the push-mirror
-func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
+// UpdatePushMirrorSyncStatus updates the sync status (last update time and last error) of the push-mirror
+func UpdatePushMirrorSyncStatus(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_update", "last_error").Update(m)
 	return err
 }
 
-// UpdatePushMirrorInterval updates the push-mirror
+// UpdatePushMirrorInterval updates the sync interval of the push-mirror
 func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
 	return err

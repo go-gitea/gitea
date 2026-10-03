@@ -12,13 +12,13 @@ type Commit = {
   committer_or_author_name: string,
   time: string,
   short_sha: string,
-}
+};
 
 type CommitListResult = {
   commits: Array<Commit>,
   last_review_commit_sha: string,
   locale: Record<string, string>,
-}
+};
 
 const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;
 const elExpandBtn = useTemplateRef('elExpandBtn') as Readonly<ShallowRef<HTMLButtonElement>>;
@@ -154,7 +154,7 @@ async function fetchCommits() {
   commits.value.push(...results.commits);
   commits.value.reverse();
   lastReviewCommitSha.value = results.last_review_commit_sha || null;
-  if (lastReviewCommitSha.value && !commits.value.some((x) => x.id === lastReviewCommitSha.value)) {
+  if (lastReviewCommitSha.value && commits.value.every((x) => x.id !== lastReviewCommitSha.value)) {
     // the lastReviewCommit is not available (probably due to a force push)
     // reset the last review commit sha
     lastReviewCommitSha.value = null;
