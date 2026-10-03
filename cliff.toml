@@ -18,7 +18,7 @@ commit_parsers = [
   { message = "^(chore|ci)(\\([^)]*\\))?!?:", skip = true },
   { message = "^\\[skip ci\\] Updated translations via Crowdin", skip = true },
   { message = "^v[0-9]+\\.[0-9]+\\.[0-9]+", skip = true },
-  { message = "^[a-z]+(\\([^)]*\\))?!:", group = "00:BREAKING" },
+  { message = "^[a-z]+(\\([^)]*\\))!:", group = "00:BREAKING" },
   { body = "BREAKING CHANGE:", group = "00:BREAKING" },
   { message = "^feat", group = "10:FEATURES" },
   { message = "^enhance", group = "20:ENHANCEMENTS" },
