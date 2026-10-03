@@ -68,8 +68,7 @@ func testViewRepoPublic(t *testing.T) {
 	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
-	session = loginUser(t, "user1")
-	session.MakeRequest(t, req, http.StatusNotFound)
+	loginUser(t, "user1").MakeRequest(t, NewRequest(t, "GET", "/org3/repo3"), http.StatusOK)
 }
 
 func testViewRepoWithCache(t *testing.T) {

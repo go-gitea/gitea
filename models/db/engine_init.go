@@ -5,6 +5,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -59,6 +60,11 @@ func InitEngine(ctx context.Context) error {
 	xe.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	xe.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	xe.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+
+	if setting.Database.Type.IsMySQL() {
+		// like PostgreSQL and MSSQL, avoids MariaDB snapshot isolation errors
+		xe.SetDefaultTxOptions(&sql.TxOptions{Isolation: sql.LevelReadCommitted})
+	}
 
 	if setting.Database.SlowQueryThreshold > 0 {
 		xe.AddHook(&EngineHook{
