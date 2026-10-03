@@ -87,11 +87,13 @@ be reviewed by two maintainers and must pass the automatic tests.
 
 ## Releasing Gitea
 
+Track each release using the [release issue template](https://github.com/go-gitea/gitea/issues/new?template=release.yaml).
+
 - Before releasing, confirm all the version's milestone issues or PRs have been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody is against it in about several hours.
 - When creating a release branch, tag its fork point on `main` as the next version's `-dev` tag, e.g. `v30.0.0-dev` for `release/v29`.
 - In the GitHub Actions tab, open the `release-create-tag` workflow, click "Run workflow", select the release branch and enter a version such as `28.0.1`. After maintainer approval, it pushes a signed tag and CI publishes the release with generated notes.
 - Optionally send a PR to the [blog repository](https://gitea.com/gitea/blog) announcing the release.
 - Verify all release assets were correctly published through CI on dl.gitea.com and GitHub releases. Once ACKed:
-  - bump the version of https://dl.gitea.com/gitea/version.json
+  - verify the automated update of https://dl.gitea.com/gitea/version.json, where applicable to the release line
   - merge the blog post PR
   - announce the release in discord `#announcements`
