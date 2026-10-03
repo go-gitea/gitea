@@ -53,7 +53,6 @@ interface Window {
       TimeoutStep: number,
       MaxTimeout: number,
     },
-    enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
     frontendInited: boolean,
