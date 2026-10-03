@@ -67,7 +67,7 @@ func TestDeleteOwnerRepositoriesDirectly(t *testing.T) {
 	})
 }
 
-func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
+func TestDeleteRepositoryDirectlyPurgesRepoScopedRowsButKeepsImmutableTags(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// One row per table that repository deletion used to leave behind (#38494).
@@ -78,6 +78,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 		&git_model.RenamedBranch{RepoID: 1, From: "old-name", To: "new-name"},
 		&git_model.CommitStatusSummary{RepoID: 1, SHA: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", State: "success"},
 		&repo_model.RepoTransfer{RepoID: 1, DoerID: 2, RecipientID: 3},
+		&repo_model.ImmutableTag{LowerOwnerName: "user2", LowerRepoName: "repo1", TagName: "v1.0.0"},
 	))
 	unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 
@@ -90,4 +91,6 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusSummary{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{RepoID: 1})
+
+	unittest.AssertExistsAndLoadBean(t, &repo_model.ImmutableTag{LowerOwnerName: "user2", LowerRepoName: "repo1"})
 }

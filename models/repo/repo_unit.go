@@ -116,6 +116,21 @@ func (cfg *IssuesConfig) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// ReleasesConfig describes releases config
+type ReleasesConfig struct {
+	ImmutableReleases bool
+}
+
+// FromDB fills up a ReleasesConfig from serialized format.
+func (cfg *ReleasesConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a ReleasesConfig to a serialized format.
+func (cfg *ReleasesConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // PullRequestsConfig describes pull requests config
 type PullRequestsConfig struct {
 	IgnoreWhitespaceConflicts     bool
@@ -278,7 +293,9 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(ActionsConfig)
 		case unit.TypeProjects:
 			r.Config = new(ProjectsConfig)
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
+		case unit.TypeReleases:
+			r.Config = new(ReleasesConfig)
+		case unit.TypeCode, unit.TypeWiki, unit.TypePackages:
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
@@ -319,8 +336,8 @@ func (r *RepoUnit) PullRequestsConfig() *PullRequestsConfig {
 }
 
 // ReleasesConfig returns config for unit.TypeReleases
-func (r *RepoUnit) ReleasesConfig() *UnitConfig {
-	return unitConfig[*UnitConfig](r)
+func (r *RepoUnit) ReleasesConfig() *ReleasesConfig {
+	return unitConfig[*ReleasesConfig](r)
 }
 
 // ExternalWikiConfig returns config for unit.TypeExternalWiki

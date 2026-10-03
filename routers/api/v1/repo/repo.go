@@ -938,14 +938,17 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasReleases != nil && !unit_model.TypeReleases.UnitGlobalDisabled() {
-		if *opts.HasReleases {
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypeReleases,
-			})
-		} else {
+	if (opts.HasReleases != nil || opts.ImmutableReleases != nil) && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		if opts.HasReleases != nil && !*opts.HasReleases {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		} else if opts.HasReleases != nil || repo.UnitEnabled(ctx, unit_model.TypeReleases) { // immutable_releases alone must not enable the unit
+			unit := repo.MustGetUnit(ctx, unit_model.TypeReleases)
+			config := unit.ReleasesConfig()
+			optional.AssignPtrValue(new(bool), &config.ImmutableReleases, opts.ImmutableReleases)
+			units = append(units, repo_model.RepoUnit{ // the row is rewritten, so its public access settings have to survive
+				RepoID: repo.ID, Type: unit_model.TypeReleases, Config: config,
+				AnonymousAccessMode: unit.AnonymousAccessMode, EveryoneAccessMode: unit.EveryoneAccessMode,
+			})
 		}
 	}
 

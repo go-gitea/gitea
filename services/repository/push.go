@@ -336,20 +336,18 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	if err != nil {
 		return fmt.Errorf("db.Find[repo_model.Release]: %w", err)
 	}
-	relMap := make(map[string]*repo_model.Release)
+	// a case-insensitive collation cannot hold both cases, so that row is the one to update
+	relMap := make(map[string]*repo_model.Release, len(releases))
+	relMapFolded := make(map[string]*repo_model.Release, len(releases))
 	for _, rel := range releases {
-		relMap[rel.LowerTagName] = rel
+		relMap[rel.TagName] = rel
+		relMapFolded[strings.ToLower(rel.TagName)] = rel
 	}
 
-	lowerTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		lowerTags = append(lowerTags, strings.ToLower(tag))
-	}
+	newReleases := make([]*repo_model.Release, 0, len(tags)-len(relMap))
 
-	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
-
-	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(ctx, tags[i])
+	for _, tagName := range tags {
+		tag, err := gitRepo.GetTag(ctx, tagName)
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}
@@ -364,14 +362,16 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			publishedUnix = timeutil.TimeStamp(tag.Tagger.When.Unix())
 		}
 
-		rel, has := relMap[lowerTag]
+		rel, has := relMap[tagName]
+		if !has {
+			rel, has = relMapFolded[strings.ToLower(tagName)]
+		}
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
 				RepoID:        repo.ID,
 				Title:         title,
-				TagName:       tags[i],
-				LowerTagName:  lowerTag,
+				TagName:       tagName,
 				Target:        "",
 				Sha1:          commit.ID.String(),
 				NumCommits:    -1, // the commits count will be updated when the UI needs it
@@ -385,6 +385,8 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			}
 
 			newReleases = append(newReleases, rel)
+		} else if rel.IsImmutable && !rel.IsTag {
+			continue // the pre-receive hook rejects moving this tag, a push around it must not either
 		} else {
 			rel.Sha1 = commit.ID.String()
 			rel.CreatedUnix = createdUnix
@@ -393,7 +395,20 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				rel.Note = note
 				rel.PublishedUnix = publishedUnix
 			} else {
-				rel.IsDraft = false
+				if rel.IsDraft {
+					// the name may have been claimed since the hook checked it
+					immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
+					if err != nil {
+						return fmt.Errorf("IsTagImmutable: %w", err)
+					}
+					if immutable {
+						continue
+					}
+					rel.IsDraft = false
+					if err = repo_model.LockRelease(ctx, repo, rel); err != nil {
+						return fmt.Errorf("LockRelease: %w", err)
+					}
+				}
 				if rel.PublishedUnix.IsZero() {
 					rel.PublishedUnix = timeutil.TimeStampNow()
 				}

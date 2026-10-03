@@ -10,6 +10,7 @@ import (
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -107,7 +108,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
-			preReceiveTag(ourCtx, refFullName)
+			preReceiveTag(ourCtx, newCommitID, refFullName)
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
@@ -314,15 +315,28 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 }
 
-func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
+func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.RefName) {
 	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 
 	tagName := refFullName.TagName()
 
+	// a live release owns its tag name, a claimed name can never be created or moved again
+	immutable, err := repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName)
+	if err == nil && !immutable && !git.IsEmptyCommitID(newCommitID) {
+		immutable, err = repo_model.IsTagImmutable(ctx, ctx.Repo.Repository, tagName)
+	}
+	if err != nil {
+		ctx.PrivateInternalErrorf("unable to check immutable tag %s: %v", tagName, err)
+		return
+	}
+	if immutable {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Tag %s is immutable", tagName)
+		return
+	}
+
 	if ctx.protectedTags == nil {
-		var err error
 		ctx.protectedTags, err = git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.PrivateInternalErrorf("Unable to get protected tags: %v", err)
