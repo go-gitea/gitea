@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   tag:
@@ -19,27 +18,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 0
           token: ${{ secrets.RELEASE_TOKEN }}
-      - id: range
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          previous=$(git describe --tags --abbrev=0 --match "v${VERSION%.*}.*" 2> /dev/null || git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*') # same minor line incl. its -dev tag, else nearest stable
-          echo "range=$previous..$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT" # a sha, not HEAD, so git-cliff fetches PR labels of this branch
-      - id: cliff
-        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
-        with:
-          args: --github-repo ${{ github.repository }} --tag v${{ inputs.version }} ${{ steps.range.outputs.range }}
       - uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         with:
           gpg_private_key: ${{ secrets.RELEASE_TAG_GPG_KEY }}
           passphrase: ${{ secrets.RELEASE_TAG_GPG_PASSPHRASE }}
           git_user_signingkey: true
       - env:
-          TAG: v${{ inputs.version }}
-          NOTES: ${{ steps.cliff.outputs.content }}
+          VERSION: ${{ inputs.version }}
         run: |
-          git tag -s --cleanup=whitespace -m "$TAG" -m "$NOTES" "$TAG"
-          git push origin "refs/tags/$TAG"
+          [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          git tag -s -m "v$VERSION" "v$VERSION"
+          git push origin "refs/tags/v$VERSION"
