@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 )
 
@@ -151,7 +152,7 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		Metadata: &Metadata{},
 	}
 
-	scanner := bufio.NewScanner(r)
+	scanner := bufio.NewScanner(packages.NewLimitedReader(r, packages.MaxMetadataSize))
 
 	var b strings.Builder
 	for scanner.Scan() {
@@ -173,11 +174,11 @@ func ParseDescription(r io.Reader) (*Package, error) {
 		b.WriteString(line)
 	}
 
-	if err := setField(p, b.String()); err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	if err := scanner.Err(); err != nil {
+	if err := setField(p, b.String()); err != nil {
 		return nil, err
 	}
 
