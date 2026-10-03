@@ -4,9 +4,11 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -18,9 +20,11 @@ import (
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/gitdiff"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -295,24 +299,79 @@ func TestCompareCodeExpand(t *testing.T) {
 		assert.NoError(t, err)
 
 		session := loginUser(t, user1.Name)
-		testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 30))
+		testEditFile(t, session, user1.Name, repo.Name, "main", "README.md", strings.Repeat("a\n", 60))
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		session = loginUser(t, user2.Name)
 		testRepoFork(t, session, user1.Name, repo.Name, user2.Name, "test_blob_excerpt-fork", "")
 		testCreateBranch(t, session, user2.Name, "test_blob_excerpt-fork", "branch/main", "forked-branch", http.StatusSeeOther)
-		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 15)+"CHANGED\n"+strings.Repeat("a\n", 15))
+		testEditFile(t, session, user2.Name, "test_blob_excerpt-fork", "forked-branch", "README.md", strings.Repeat("a\n", 30)+"CHANGED\n"+strings.Repeat("a\n", 30))
 
 		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		els := htmlDoc.Find(`button.code-expander-button[data-fetch-url]`)
-
-		// all the links in the comparison should be to the forked repo&branch
+		// the frontend builds its excerpt requests from this, so it must point at the forked repo&branch
+		els := htmlDoc.Find(`table[data-excerpt-url]`)
 		assert.NotZero(t, els.Length())
 		for i := 0; i < els.Length(); i++ {
-			link := els.Eq(i).AttrOr("data-fetch-url", "")
+			link := els.Eq(i).AttrOr("data-excerpt-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
+		// and every gap carries the numbers the frontend needs to work out what is left to expand
+		assert.NotZero(t, htmlDoc.Find(`.code-expander-buttons[data-gap]`).Length())
+
+		// the numbers the frontend reads off a gap and sends back to expand it
+		gapNumbers := htmlDoc.Find(`.code-expander-buttons[data-gap]`).First().AttrOr("data-gap", "")
+		excerptURL := els.First().AttrOr("data-excerpt-url", "")
+
+		t.Run("ExpandGaps", func(t *testing.T) {
+			// one request expands whole gaps, so that showing a file takes one request rather than one per gap
+			req := NewRequest(t, "GET", excerptURL+"&gap="+gapNumbers)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			// the response is a fragment of rows, which only parse inside a table
+			htmlDoc := NewHTMLParser(t, bytes.NewBufferString("<table>"+resp.Body.String()+"</table>"))
+
+			// the leading gap of the head file runs from line 1 up to the first line the diff shows
+			var rendered []string
+			htmlDoc.Find(`tr.line-expanded .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
+				rendered = append(rendered, el.AttrOr("data-line-num", ""))
+			})
+			assert.NotEmpty(t, rendered)
+			assert.Equal(t, "1", rendered[0])
+			for i, num := range rendered {
+				assert.Equal(t, strconv.Itoa(i+1), num) // contiguous, from the start of the file
+			}
+		})
+
+		t.Run("ExpandGapChunk", func(t *testing.T) {
+			// an arrow asks the same way, naming the end it expands from in the gap itself
+			req := NewRequest(t, "GET", excerptURL+"&gap="+gapNumbers+",up")
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, bytes.NewBufferString("<table>"+resp.Body.String()+"</table>"))
+
+			var rendered []string
+			htmlDoc.Find(`tr.line-expanded .lines-num-new[data-line-num]`).Each(func(_ int, el *goquery.Selection) {
+				rendered = append(rendered, el.AttrOr("data-line-num", ""))
+			})
+			// "up" takes the chunk nearest the hunk below the gap, so it stops where the diff starts
+			firstLineAfterGap, err := strconv.Atoi(strings.Split(gapNumbers, ",")[3])
+			require.NoError(t, err)
+			assert.Len(t, rendered, gitdiff.BlobExcerptChunkSize)
+			assert.Equal(t, strconv.Itoa(firstLineAfterGap-gitdiff.BlobExcerptChunkSize), rendered[0])
+		})
+
+		t.Run("ExpandGapsRejectsNonsense", func(t *testing.T) {
+			// the gap numbers come back from the browser, so they are checked rather than trusted
+			for _, gap := range []string{"1,2,3", "a,b,c,d,e,f", "-1,0,17,17,7,7", gapNumbers + ",sideways"} {
+				req := NewRequest(t, "GET", excerptURL+"&gap="+gap)
+				session.MakeRequest(t, req, http.StatusBadRequest)
+			}
+			// a heavily rewritten file has many gaps, and naming them all is fine
+			req := NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 200))
+			session.MakeRequest(t, req, http.StatusOK)
+			// but absurd input is still turned away
+			req = NewRequest(t, "GET", excerptURL+strings.Repeat("&gap="+gapNumbers, 1001))
+			session.MakeRequest(t, req, http.StatusBadRequest)
+		})
 	})
 }
