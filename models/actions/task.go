@@ -301,7 +301,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		// A short page means no waiting jobs remain beyond it.
 		isLastPage := len(jobs) < pickTaskBatchSize
 		if !isLastPage {
-			last := jobs[len(jobs)-1] // read before claimJobForRunner bumps Updated, even on a lost claim
+			last := jobs[len(jobs)-1] // read before a lost claim bumps Updated
 			cursorUpdated, cursorID = last.Updated, last.ID
 		}
 

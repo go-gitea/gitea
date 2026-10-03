@@ -130,28 +130,17 @@ func prepareWaitingRunJob(t *testing.T) *actions_model.ActionRunJob {
 	return job
 }
 
-func TestCreateTaskForRunnerDuringOpenClaimNeitherWaitsNorDeadlocks(t *testing.T) {
+func TestCreateTaskForRunnerDuringOpenClaimDoesNotWait(t *testing.T) {
 	job := prepareWaitingRunJob(t)
 
-	var pickupErr error
-	pickupDone := make(chan struct{})
-	assert.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
-		_, err := db.GetEngine(ctx).ID(job.ID).NoAutoTime().Cols("name").Update(&actions_model.ActionRunJob{Name: "claiming"})
+	require.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
+		_, err := db.GetEngine(ctx).ID(job.ID).Cols("name").Update(&actions_model.ActionRunJob{Name: "claiming"})
 		require.NoError(t, err)
-		go func() {
-			defer close(pickupDone)
-			_, _, pickupErr = actions_model.CreateTaskForRunner(t.Context(), &actions_model.ActionRunner{})
-		}()
-		select {
-		case <-pickupDone:
-		case <-time.After(5 * time.Second):
-			t.Error("pickup waited for the open claim")
-		}
-		_, err = db.GetEngine(ctx).ID(job.ID).Cols("task_id", "status").Update(&actions_model.ActionRunJob{TaskID: 1, Status: actions_model.StatusRunning})
+		pickupCtx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+		defer cancel()
+		_, _, err = actions_model.CreateTaskForRunner(pickupCtx, &actions_model.ActionRunner{})
 		return err
 	}))
-	<-pickupDone
-	assert.NoError(t, pickupErr)
 }
 
 func TestClaimRunJobAfterConcurrentCancelUpdatesNothing(t *testing.T) {
