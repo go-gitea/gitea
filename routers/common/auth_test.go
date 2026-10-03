@@ -33,13 +33,11 @@ func TestCheckSignedInUser(t *testing.T) {
 	ret = CheckSignedInUser(&user_model.User{IsActive: true}, nil)
 	assert.False(t, ret.NeedActivateAccount)
 	assert.False(t, ret.LoginIsProhibited)
+	assert.False(t, ret.NeedChangePassword)
 
 	ret = CheckSignedInUser(&user_model.User{IsActive: true, ProhibitLogin: true}, nil)
 	assert.False(t, ret.NeedActivateAccount)
 	assert.True(t, ret.LoginIsProhibited)
-
-	ret = CheckSignedInUser(&user_model.User{MustChangePassword: false}, nil)
-	assert.False(t, ret.NeedChangePassword)
 
 	ret = CheckSignedInUser(&user_model.User{MustChangePassword: true}, nil)
 	assert.True(t, ret.NeedChangePassword)

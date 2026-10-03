@@ -283,9 +283,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	check := common.CheckSignedInUser(ctx.Doer, ctx.Session)
-	// Make sure only requests for users who are eligible to change their password via this method passes through
-	if !check.NeedChangePassword {
+	if !common.CheckSignedInUser(ctx.Doer, ctx.Session).NeedChangePassword {
 		log.Debug("User %s attempted to access the must change password page, but they are not required to change their password", ctx.Doer.Name)
 		ctx.NotFound(nil)
 		return

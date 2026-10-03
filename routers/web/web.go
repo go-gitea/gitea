@@ -195,8 +195,6 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
-					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
@@ -221,15 +219,9 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 			}
 		}
 
-		if options.SignInRequired {
-			if !ctx.IsSigned {
-				ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
-				return
-			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(http.StatusOK, "user/auth/activate")
-				return
-			}
+		if options.SignInRequired && !ctx.IsSigned {
+			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			return
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.

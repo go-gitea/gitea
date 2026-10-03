@@ -941,15 +941,16 @@ func verifyAuthWithOptionsAPI(options *common.VerifyOptions) func(ctx *context.A
 	return func(ctx *context.APIContext) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
-			check := common.CheckSignedInUser(ctx.Doer, nil /* no session */)
+			check := common.CheckSignedInUser(ctx.Doer, nil)
 			if check.NeedActivateAccount {
 				ctx.JSON(http.StatusForbidden, map[string]string{"message": "This account is not activated."})
 				return
 			} else if check.LoginIsProhibited {
+				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.JSON(http.StatusForbidden, map[string]string{"message": "This account is prohibited from signing in, please contact your site administrator."})
 				return
 			} else if check.NeedChangePassword {
-				msg := "You must change your password. Change it at: " + httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/user/change_password")
+				msg := "You must change your password. Change it at: " + httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/user/settings/change_password")
 				ctx.JSON(http.StatusForbidden, map[string]string{"message": msg})
 				return
 			}
@@ -961,20 +962,12 @@ func verifyAuthWithOptionsAPI(options *common.VerifyOptions) func(ctx *context.A
 			return
 		}
 
-		if options.SignInRequired {
-			if !ctx.IsSigned {
-				// Restrict API calls with error message.
-				ctx.JSON(http.StatusForbidden, map[string]string{
-					"message": "Only signed in user is allowed to call APIs.",
-				})
-				return
-			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.JSON(http.StatusForbidden, map[string]string{
-					"message": "This account is not activated.",
-				})
-				return
-			}
+		if options.SignInRequired && !ctx.IsSigned {
+			// Restrict API calls with error message.
+			ctx.JSON(http.StatusForbidden, map[string]string{
+				"message": "Only signed in user is allowed to call APIs.",
+			})
+			return
 		}
 
 		if options.AdminRequired {
