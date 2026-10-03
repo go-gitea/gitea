@@ -6,6 +6,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -102,6 +103,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	preprocessDatabaseCollation(xormEngine)
+	enableMSSQLReadCommittedSnapshot(ctx, xormEngine)
 
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
@@ -124,4 +126,26 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	return nil
+}
+
+// enableMSSQLReadCommittedSnapshot makes MSSQL's READ COMMITTED read row versions instead of taking shared locks, like PostgreSQL and MySQL do
+func enableMSSQLReadCommittedSnapshot(ctx context.Context, engine EngineMigration) {
+	if !setting.Database.Type.IsMSSQL() {
+		return
+	}
+	var enabled bool
+	if _, err := engine.SQL("SELECT is_read_committed_snapshot_on FROM sys.databases WHERE database_id = DB_ID()").Get(&enabled); err != nil {
+		log.Error("Failed to check READ_COMMITTED_SNAPSHOT: %v", err)
+		return
+	} else if enabled {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // the change waits for every other connection to the database to close
+	defer cancel()
+	if _, err := engine.Context(ctx).Exec("ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON"); err != nil {
+		log.Warn("Failed to enable READ_COMMITTED_SNAPSHOT, concurrent requests may fail with deadlocks. Run `ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON` while no other connections use the database: %v", err)
+		return
+	}
+	log.Info("Enabled READ_COMMITTED_SNAPSHOT on the database")
 }

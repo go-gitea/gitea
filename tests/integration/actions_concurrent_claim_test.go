@@ -4,16 +4,20 @@
 package integration
 
 import (
+	"context"
 	"sync"
 	"testing"
+	"time"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"xorm.io/builder"
 )
 
 // minimalWorkflowPayload returns the minimal YAML for a single-job workflow with no steps.
@@ -115,4 +119,54 @@ func TestCreateTaskForRunnerConcurrentClaim(t *testing.T) {
 		assert.Equal(t, actions_model.StatusRunning, updated.Status)
 		assert.NotZero(t, updated.TaskID)
 	}
+}
+
+func prepareWaitingRunJob(t *testing.T) *actions_model.ActionRunJob {
+	if setting.Database.Type.IsSQLite3() {
+		t.Skip("SQLite serializes write transactions")
+	}
+	job := &actions_model.ActionRunJob{RepoID: 1, Status: actions_model.StatusWaiting, RunsOn: []string{"ubuntu-latest"}}
+	require.NoError(t, db.Insert(t.Context(), job))
+	return job
+}
+
+func TestCreateTaskForRunnerDuringOpenClaimNeitherWaitsNorDeadlocks(t *testing.T) {
+	job := prepareWaitingRunJob(t)
+
+	var pickupErr error
+	pickupDone := make(chan struct{})
+	assert.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
+		_, err := db.GetEngine(ctx).ID(job.ID).NoAutoTime().Cols("name").Update(&actions_model.ActionRunJob{Name: "claiming"})
+		require.NoError(t, err)
+		go func() {
+			defer close(pickupDone)
+			_, _, pickupErr = actions_model.CreateTaskForRunner(t.Context(), &actions_model.ActionRunner{})
+		}()
+		select {
+		case <-pickupDone:
+		case <-time.After(5 * time.Second):
+			t.Error("pickup waited for the open claim")
+		}
+		_, err = db.GetEngine(ctx).ID(job.ID).Cols("task_id", "status").Update(&actions_model.ActionRunJob{TaskID: 1, Status: actions_model.StatusRunning})
+		return err
+	}))
+	<-pickupDone
+	assert.NoError(t, pickupErr)
+}
+
+func TestClaimRunJobAfterConcurrentCancelUpdatesNothing(t *testing.T) {
+	job := prepareWaitingRunJob(t)
+
+	require.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
+		claimed, err := actions_model.GetRunJobByRepoAndID(ctx, job.RepoID, job.ID)
+		require.NoError(t, err)
+		_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("status").Update(&actions_model.ActionRunJob{Status: actions_model.StatusCancelled})
+		require.NoError(t, err)
+
+		claimed.TaskID, claimed.Status = 1, actions_model.StatusRunning
+		affected, err := actions_model.UpdateRunJob(ctx, claimed, builder.Eq{"task_id": 0, "status": actions_model.StatusWaiting}, "task_id", "status")
+		require.NoError(t, err)
+		assert.Zero(t, affected)
+		return nil
+	}))
 }

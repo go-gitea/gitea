@@ -15,7 +15,6 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions/jobparser"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -295,22 +294,19 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			))
 		}
 
-		// Read only pickup index columns first, SQL Server's locking reads would otherwise deadlock with concurrent claims.
-		var candidates []*ActionRunJob
-		if err := e.Cols("id", "updated").Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&candidates); err != nil {
+		var jobs []*ActionRunJob
+		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, false, err
 		}
-		if len(candidates) == 0 {
-			return nil, false, nil
-		}
-		jobs := make(map[int64]*ActionRunJob, len(candidates))
-		if err := e.In("id", container.FilterSlice(candidates, func(job *ActionRunJob) (int64, bool) { return job.ID, true })).Find(&jobs); err != nil {
-			return nil, false, err
+		// A short page means no waiting jobs remain beyond it.
+		isLastPage := len(jobs) < pickTaskBatchSize
+		if !isLastPage {
+			last := jobs[len(jobs)-1] // read before claimJobForRunner bumps Updated, even on a lost claim
+			cursorUpdated, cursorID = last.Updated, last.ID
 		}
 
-		for _, candidate := range candidates {
-			v := jobs[candidate.ID]
-			if v == nil || !runner.CanMatchLabels(v.RunsOn) {
+		for _, v := range jobs {
+			if !runner.CanMatchLabels(v.RunsOn) {
 				continue
 			}
 			task, ok, err := claimJobForRunner(ctx, runner, v)
@@ -323,12 +319,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			// Another runner claimed this job concurrently; try the next one.
 		}
 
-		// A short page means no waiting jobs remain beyond it.
-		if len(candidates) < pickTaskBatchSize {
+		if isLastPage {
 			return nil, false, nil
 		}
-		last := candidates[len(candidates)-1]
-		cursorUpdated, cursorID = last.Updated, last.ID
 	}
 }
 
