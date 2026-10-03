@@ -1,4 +1,3 @@
-import {diffTreeStore, diffTreeStoreSetViewed} from '../modules/diff-file.ts';
 import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
 import {trString} from '../modules/i18n.ts';
@@ -43,9 +42,6 @@ export function initDiffFileViewedForm(el: Element) {
     hasChangedLabel?.remove();
 
     const fileName = checkbox.getAttribute('name')!;
-
-    // check if the file is in our diffTreeStore and if we find it -> change the IsViewed status
-    diffTreeStoreSetViewed(diffTreeStore(), fileName, this.checked);
 
     // Unfortunately, actual forms cause too many problems, hence another approach is needed
     const files: Record<string, boolean> = {};

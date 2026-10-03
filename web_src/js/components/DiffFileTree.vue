@@ -2,8 +2,8 @@
 import SvgIcon from './SvgIcon.vue';
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import DiffFileExtensionFilter from './DiffFileExtensionFilter.vue';
-import {onInputDebounce, toggleElem} from '../utils/dom.ts';
-import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes, extensionFilterToUrl, type DiffFileTreeLocale} from '../modules/diff-file.ts';
+import {addDelegatedEventListener, onInputDebounce, toggleElem} from '../utils/dom.ts';
+import {diffTreeStore, diffTreeStoreSetViewed, filterDiffTree, applyFiltersToFileBoxes, extensionFilterToUrl, type DiffFileTreeLocale} from '../modules/diff-file.ts';
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -13,6 +13,7 @@ const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 const props = defineProps<{locale: DiffFileTreeLocale}>();
 
 const store = diffTreeStore();
+const viewedFileAbort = new AbortController();
 
 const visibleTreeItems = computed(() => filterDiffTree(store)?.Children ?? []);
 
@@ -28,12 +29,15 @@ onMounted(() => {
   // while the tree is hidden there is no control to clear a filter restored from the URL
   if (store.fileTreeIsVisible) applyFiltersToFileBoxes(store); else store.activeExtensions = 'all';
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
+  addDelegatedEventListener(document.querySelector('#diff-file-boxes')!, 'input', '.viewed-file-form input[type=checkbox]',
+    (el: HTMLInputElement) => diffTreeStoreSetViewed(store, el.name, el.checked), {signal: viewedFileAbort.signal});
   hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
 });
 
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
+  viewedFileAbort.abort();
   window.removeEventListener('hashchange', hashChangeListener);
 });
 
@@ -104,7 +108,7 @@ function updateState(visible: boolean) {
       <DiffFileExtensionFilter :locale="props.locale"/>
     </div>
     <div class="diff-file-tree-items">
-      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.FullName" :item="item"/>
+      <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.Name" :item="item" :path="item.Name"/>
     </div>
   </div>
 </template>
