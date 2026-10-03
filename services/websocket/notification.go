@@ -8,32 +8,30 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
-	notify_service "gitea.dev/services/notify"
-	"gitea.dev/services/pubsub"
 )
 
-type notificationCountEventData struct {
-	Count int64 `json:"count"`
-}
+const eventNotificationCount = "notification-count" // keep in sync with web_src/js/types.ts
 
-type wsNotifier struct {
-	notify_service.NullNotifier
+func init() {
+	registerUserData(func(ctx context.Context, user *user_model.User) []byte { return notificationCountEvent(ctx, user.ID) })
 }
-
-var _ notify_service.Notifier = &wsNotifier{}
 
 func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) {
-	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(userID)) {
-		return
-	}
+	publishUserEvent(userID, func() []byte { return notificationCountEvent(ctx, userID) })
+}
+
+func notificationCountEvent(ctx context.Context, userID int64) []byte {
 	count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 		UserID: userID,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
 	})
 	if err != nil {
 		log.Error("websocket: count notifications for user %d: %v", userID, err)
-		return
+		return nil
 	}
-	publishUserEvent(userID, EventNotificationCount, notificationCountEventData{Count: count})
+	return makeUserEventMessage(eventNotificationCount, struct {
+		Count int64 `json:"count"`
+	}{count})
 }
