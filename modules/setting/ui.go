@@ -52,10 +52,9 @@ var UI = struct {
 	DefaultShowFullName bool
 
 	Notification struct {
-		MinTimeout            time.Duration
-		TimeoutStep           time.Duration
-		MaxTimeout            time.Duration
-		EventSourceUpdateTime time.Duration
+		MinTimeout  time.Duration
+		TimeoutStep time.Duration
+		MaxTimeout  time.Duration
 	} `ini:"ui.notification"`
 
 	SVG struct {
@@ -107,15 +106,13 @@ var UI = struct {
 	AmbiguousUnicodeDetection: true,
 
 	Notification: struct {
-		MinTimeout            time.Duration
-		TimeoutStep           time.Duration
-		MaxTimeout            time.Duration
-		EventSourceUpdateTime time.Duration
+		MinTimeout  time.Duration
+		TimeoutStep time.Duration
+		MaxTimeout  time.Duration
 	}{
-		MinTimeout:            10 * time.Second,
-		TimeoutStep:           10 * time.Second,
-		MaxTimeout:            60 * time.Second,
-		EventSourceUpdateTime: 10 * time.Second,
+		MinTimeout:  10 * time.Second,
+		TimeoutStep: 10 * time.Second,
+		MaxTimeout:  60 * time.Second,
 	},
 	SVG: struct {
 		Enabled bool `ini:"ENABLE_RENDER"`

@@ -5,9 +5,11 @@
 package issues
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -184,11 +186,47 @@ func (l *Label) ExclusiveScope() string {
 	if !l.Exclusive {
 		return ""
 	}
-	lastIndex := strings.LastIndex(l.Name, "/")
-	if lastIndex == -1 || lastIndex == 0 || lastIndex == len(l.Name)-1 {
+	scope, name, found := strings.CutLast(l.Name, "/")
+	if !found || scope == "" || name == "" {
 		return ""
 	}
-	return l.Name[:lastIndex]
+	return scope
+}
+
+// CompareLabelForDisplay compares labels for displaying them in dropdowns or lists.
+// Labels are grouped by their exclusive scope, and labels within the same scope
+// are sorted by their exclusive order, where unordered labels (order 0) come last.
+// Labels without a scope are listed first and everything else falls back to name order.
+func CompareLabelForDisplay(a, b *Label) int {
+	scopeA, scopeB := a.ExclusiveScope(), b.ExclusiveScope()
+	if scopeA != scopeB {
+		if scopeA == "" {
+			return -1
+		}
+		if scopeB == "" {
+			return 1
+		}
+		return strings.Compare(scopeA, scopeB)
+	}
+	if scopeA != "" {
+		orderA, orderB := a.ExclusiveOrder, b.ExclusiveOrder
+		if orderA <= 0 {
+			orderA = math.MaxInt
+		}
+		if orderB <= 0 {
+			orderB = math.MaxInt
+		}
+		if orderA != orderB {
+			return cmp.Compare(orderA, orderB)
+		}
+	}
+	return strings.Compare(a.Name, b.Name)
+}
+
+// SortLabelsForDisplay sorts labels in place for displaying them in dropdowns or lists,
+// grouping them by their exclusive scope and respecting the exclusive order within each scope.
+func SortLabelsForDisplay(labels []*Label) {
+	slices.SortStableFunc(labels, CompareLabelForDisplay)
 }
 
 // NewLabel creates a new label

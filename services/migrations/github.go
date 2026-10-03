@@ -17,10 +17,9 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/structs"
 
-	"github.com/google/go-github/v89/github"
+	"github.com/google/go-github/v92/github"
 	"golang.org/x/oauth2"
 )
 
@@ -107,13 +106,8 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 			}
 		}
 	} else {
-		transport := NewMigrationHTTPTransport()
-		transport.Proxy = func(req *http.Request) (*url.URL, error) {
-			req.SetBasicAuth(userName, password)
-			return proxy.Proxy()(req)
-		}
 		client := &http.Client{
-			Transport: transport,
+			Transport: &github.BasicAuthTransport{Transport: NewMigrationHTTPTransport(), Username: userName, Password: password},
 		}
 		if err := downloader.addClient(client, baseURL); err != nil {
 			return nil, err
@@ -152,12 +146,16 @@ func (g *GithubDownloaderV3) waitAndPickClient(ctx context.Context) {
 	var recentIdx int
 	var maxRemaining int
 	for i := 0; i < len(g.clients); i++ {
-		if g.rates[i] != nil && g.rates[i].Remaining > maxRemaining {
+		if g.rates[i] == nil { // probe unknown clients once, else their rate never gets learned
+			g.curClientIdx = i
+			return
+		}
+		if g.rates[i].Remaining > maxRemaining {
 			maxRemaining = g.rates[i].Remaining
 			recentIdx = i
 		}
 	}
-	g.curClientIdx = recentIdx // if no max remain, it will always pick the first client.
+	g.curClientIdx = recentIdx
 
 	for g.rates[g.curClientIdx] != nil && g.rates[g.curClientIdx].Remaining <= GithubLimitRateRemaining {
 		timer := time.NewTimer(time.Until(g.rates[g.curClientIdx].Reset.Time))

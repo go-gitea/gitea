@@ -3,9 +3,13 @@
 
 package v1_16
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func UseBase32HexForCredIDInWebAuthnCredential(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func UseBase32HexForCredIDInWebAuthnCredential(_ context.Context, x base.EngineMigration) error {
 	// noop
 	return nil
 }

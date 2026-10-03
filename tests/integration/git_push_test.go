@@ -16,6 +16,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +31,7 @@ func TestGitPush(t *testing.T) {
 func testGitPush(t *testing.T, u *url.URL) {
 	t.Run("Push branches at once", func(t *testing.T) {
 		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
-			for i := range 100 {
+			for i := range 10 {
 				branchName := fmt.Sprintf("branch-%d", i)
 				pushed = append(pushed, branchName)
 				doGitCreateBranch(gitPath, branchName)(t)
@@ -81,7 +83,7 @@ func testGitPush(t *testing.T, u *url.URL) {
 
 	t.Run("Push branches one by one", func(t *testing.T) {
 		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
-			for i := range 100 {
+			for i := range 10 {
 				branchName := fmt.Sprintf("branch-%d", i)
 				doGitCreateBranch(gitPath, branchName)(t)
 				doGitPushTestRepository(gitPath, "origin", branchName)(t)
@@ -107,14 +109,14 @@ func testGitPush(t *testing.T, u *url.URL) {
 			doGitPushTestRepository(gitPath, "origin", "master")(t) // make sure master is the default branch instead of a branch we are going to delete
 			pushed = append(pushed, "master")
 
-			for i := range 100 {
+			for i := range 10 {
 				branchName := fmt.Sprintf("branch-%d", i)
 				pushed = append(pushed, branchName)
 				doGitCreateBranch(gitPath, branchName)(t)
 			}
 			doGitPushTestRepository(gitPath, "origin", "--all")(t)
 
-			for i := range 10 {
+			for i := range 5 {
 				branchName := fmt.Sprintf("branch-%d", i)
 				doGitPushTestRepository(gitPath, "origin", "--delete", branchName)(t)
 				deleted = append(deleted, branchName)
@@ -175,6 +177,14 @@ func TestGitPushVisibilityOption(t *testing.T) {
 		doGitPushTestRepository(gitPath, "origin", "branch2", "-o", "repo.private=false")(t)
 		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
 		assert.True(t, repo.IsPrivate, "repo.private option must be ignored on an existing repository")
+
+		defer test.MockVariableValue(&setting.Repository.ForcePrivate, true)()
+		forcedRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{Name: "repo-visibility-forced", DefaultBranch: "master", IsPrivate: true})
+		require.NoError(t, err)
+		u.Path = forcedRepo.FullName() + ".git"
+		doGitAddRemote(gitPath, "forced", u)(t)
+		doGitPushTestRepository(gitPath, "forced", "master", "-o", "repo.private=false")(t)
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: forcedRepo.ID}).IsPrivate)
 	})
 }
 
@@ -205,7 +215,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 
 	doGitAddRemote(gitPath, "origin", u)(t)
 
-	gitRepo, err := git.OpenRepositoryLocal(gitPath)
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), gitPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

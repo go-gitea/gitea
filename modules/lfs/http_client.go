@@ -249,7 +249,7 @@ func createRequest(ctx context.Context, method, url string, headers map[string]s
 }
 
 // performRequest sends a request, optionally performs a callback on the request and returns the response.
-// If the status code is 200, the response is returned, and it will contain a non-nil Body.
+// If the status code is in the 2xx range, the response is returned, and it will contain a non-nil Body.
 // Otherwise, it will return an error, and the Body will be nil or closed.
 func performRequest(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error) {
 	log.Trace("performRequest: %s", req.URL)
@@ -264,7 +264,7 @@ func performRequest(ctx context.Context, client *http.Client, req *http.Request)
 		return res, err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		defer res.Body.Close()
 		return res, handleErrorResponse(res)
 	}

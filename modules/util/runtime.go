@@ -3,7 +3,12 @@
 
 package util
 
-import "runtime"
+import (
+	"runtime"
+	"strings"
+)
+
+const isOSWindows = runtime.GOOS == "windows"
 
 func CallerFuncName(optSkipParent ...int) string {
 	pc := make([]uintptr, 1)
@@ -13,5 +18,9 @@ func CallerFuncName(optSkipParent ...int) string {
 	}
 	runtime.Callers(skipParent+1 /*this*/ +1 /*runtime*/, pc)
 	funcName := runtime.FuncForPC(pc[0]).Name()
+	if pos := strings.LastIndex(funcName, "/"); pos >= 0 {
+		// only keep the last package name and func name
+		funcName = funcName[pos+1:]
+	}
 	return funcName
 }

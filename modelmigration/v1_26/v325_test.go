@@ -41,5 +41,5 @@ func Test_FixMissedRepoIDWhenMigrateAttachments(t *testing.T) {
 	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(Attachment), new(Issue), new(Release))
 	defer deferrable()
 
-	require.NoError(t, FixMissedRepoIDWhenMigrateAttachments(x))
+	require.NoError(t, FixMissedRepoIDWhenMigrateAttachments(t.Context(), x))
 }

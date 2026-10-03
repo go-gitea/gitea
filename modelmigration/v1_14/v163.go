@@ -4,10 +4,12 @@
 package v1_14
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 )
 
-func ConvertTopicNameFrom25To50(x base.EngineMigration) error {
+func ConvertTopicNameFrom25To50(_ context.Context, x base.EngineMigration) error {
 	type Topic struct {
 		ID          int64  `xorm:"pk autoincr"`
 		Name        string `xorm:"UNIQUE VARCHAR(50)"`

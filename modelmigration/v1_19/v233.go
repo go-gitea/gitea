@@ -4,6 +4,7 @@
 package v1_19
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -51,7 +52,7 @@ func batchProcess[T any](x base.EngineMigration, buf []T, query func(limit, star
 	}
 }
 
-func AddHeaderAuthorizationEncryptedColWebhook(x base.EngineMigration) error {
+func AddHeaderAuthorizationEncryptedColWebhook(_ context.Context, x base.EngineMigration) error {
 	// Add the column to the table
 	type Webhook struct {
 		ID   int64  `xorm:"pk autoincr"`

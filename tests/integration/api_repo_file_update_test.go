@@ -62,6 +62,7 @@ func getExpectedFileResponseForUpdate(info apiFileResponseInfo) *api.FileRespons
 			LastCommitterDate: new(info.lastCommitterWhen),
 			LastAuthorDate:    new(info.lastAuthorWhen),
 			Type:              "file",
+			Mode:              "100644",
 			Size:              20,
 			Encoding:          &encoding,
 			Content:           &content,
@@ -136,7 +137,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-			gitRepo, _ := git.OpenRepository(repo1)
+			gitRepo, _ := git.OpenRepository(t.Context(), repo1)
 			defer gitRepo.Close()
 			commitID, _ := gitRepo.GetBranchCommitID(t.Context(), updateFileOptions.NewBranchName)
 			lasCommit, _ := gitRepo.GetCommitByPath(t.Context(), treePath)

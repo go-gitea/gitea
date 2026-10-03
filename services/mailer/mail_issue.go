@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const MailBatchSize = 100 // batch size used in mailIssueCommentBatch
@@ -66,7 +67,8 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(comment.Issue.IsPull && comment.Issue.PullRequest.IsWorkInProgress(ctx) && comment.ActionType != activities_model.ActionCreatePullRequest) {
-		ids, err = repo_model.GetRepoWatchersIDs(ctx, comment.Issue.RepoID)
+		watchType := util.Iif(comment.Issue.IsPull, repo_model.WatchPullRequests, repo_model.WatchIssues)
+		ids, err = repo_model.GetRepoWatchersIDs(ctx, comment.Issue.RepoID, watchType)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %w", comment.Issue.RepoID, err)
 		}
@@ -74,6 +76,13 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	}
 
 	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
+
+	// muting the repository outranks every other source, including mentions
+	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, comment.Issue.RepoID)
+	if err != nil {
+		return fmt.Errorf("GetRepoIgnorersIDs(%d): %w", comment.Issue.RepoID, err)
+	}
+	visited.AddMultiple(ignorers...)
 
 	// Avoid mailing the doer
 	if comment.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn && !comment.ForceDoerNotification {
@@ -111,8 +120,7 @@ func mailIssueCommentBatch(ctx context.Context, comment *mailComment, users []*u
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range users {
-		if !user.IsActive {
-			// Exclude deactivated users
+		if !user.IsMailable() {
 			continue
 		}
 		// At this point we exclude:
@@ -196,8 +204,7 @@ func SendIssueAssignedMail(ctx context.Context, issue *issues_model.Issue, doer 
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
-		if !user.IsActive {
-			// don't send emails to inactive users
+		if !user.IsMailable() {
 			continue
 		}
 		langMap[user.Language] = append(langMap[user.Language], user)

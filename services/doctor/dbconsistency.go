@@ -222,6 +222,9 @@ func prepareDBConsistencyChecks() []consistencyCheck {
 		// find action without repository
 		genericOrphanCheck("Action entries without existing repository",
 			"action", "repository", "action.repo_id=repository.id"),
+		// find action runs without repository
+		genericOrphanCheck("Action runs without existing repository",
+			"action_run", "repository", "action_run.repo_id=repository.id"),
 		// find action without user
 		genericOrphanCheck("Action entries without existing user",
 			"action", "user", "action.act_user_id=`user`.id"),

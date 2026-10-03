@@ -52,7 +52,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 empty commit`
 
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -116,7 +116,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 ISO-8859-1`
 	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -158,7 +158,7 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	repo, err := OpenRepositoryLocal(bareRepo1Path)
+	repo, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -183,7 +183,7 @@ func TestHasPreviousCommit(t *testing.T) {
 
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepositoryLocal(bareRepo1Path)
+	repo, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 	commit, err := repo.GetBranchCommit(t.Context(), "branch1")
@@ -194,11 +194,4 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
-}
-
-func TestIsStringLikelyCommitID(t *testing.T) {
-	assert.True(t, IsStringLikelyCommitID(nil, "abc", 3))
-	assert.False(t, IsStringLikelyCommitID(nil, "abc", 4))
-	assert.True(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 64), 4))
-	assert.False(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 65), 4))
 }

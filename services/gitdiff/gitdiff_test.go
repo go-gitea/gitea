@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -201,7 +202,7 @@ func TestParsePatch_singlefile(t *testing.T) {
 
 	tests := []testcase{
 		{
-			name: "readme.md2readme.md",
+			name: "same name",
 			gitdiff: `diff --git "\\a/README.md" "\\b/README.md"
 --- "\\a/README.md"
 +++ "\\b/README.md"
@@ -220,7 +221,7 @@ func TestParsePatch_singlefile(t *testing.T) {
 			oldFilename: "README.md",
 		},
 		{
-			name: "A \\ B",
+			name: `A \ B`,
 			gitdiff: `diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
 +++ "b/A \\ B"
@@ -234,8 +235,8 @@ func TestParsePatch_singlefile(t *testing.T) {
 + cut off`,
 			addition:    4,
 			deletion:    1,
-			filename:    "A \\ B",
-			oldFilename: "A \\ B",
+			filename:    `A \ B`,
+			oldFilename: `A \ B`,
 		},
 		{
 			name: "really weird filename",
@@ -325,7 +326,7 @@ index 0000000..92e798b
 			deletion:    0,
 		},
 		{
-			name: "rename",
+			name: "ambiguous rename 1",
 			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
 similarity index 100%
 rename from b b/b b/b b/b b/b
@@ -335,17 +336,7 @@ rename to b
 			filename:    "b",
 		},
 		{
-			name: "ambiguous 1",
-			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
-similarity index 100%
-rename from b b/b b/b b/b b/b
-rename to b
-`,
-			oldFilename: "b b/b b/b b/b b/b",
-			filename:    "b",
-		},
-		{
-			name: "ambiguous 2",
+			name: "ambiguous rename 2",
 			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
 similarity index 100%
 rename from b b/b b/b b/b
@@ -440,8 +431,8 @@ index 0000000..6bb8f39
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
-	if !result.Files[0].IsIncomplete {
-		t.Errorf("Files should be incomplete! %v", result.Files[0])
+	if result.Files[0].IsIncomplete {
+		t.Errorf("Files should not be incomplete! %v", result.Files[0])
 	}
 
 	// Test max characters
@@ -478,8 +469,8 @@ index 0000000..6bb8f39
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
-	if !result.Files[0].IsIncomplete {
-		t.Errorf("Files should be incomplete! %v", result.Files[0])
+	if result.Files[0].IsIncomplete {
+		t.Errorf("Files should not be incomplete! %v", result.Files[0])
 	}
 
 	diff = `diff --git "a/README.md" "b/README.md"
@@ -547,6 +538,98 @@ index 0000000..6bb8f39
 	}
 }
 
+func TestParsePatchLongLines(t *testing.T) {
+	overSizedContent := strings.Repeat("a", defaultDiffLineBufferSize*2)
+	for _, test := range []struct {
+		name, full string
+		limit      int
+		result     string
+	}{
+		{name: "below", limit: 8, full: "short", result: "short"},
+		{name: "exact", limit: 8, full: "1234567", result: "1234567"},
+		{name: "above", limit: 8, full: "12345678", result: "1234567"},
+		{name: "multiple fragments", limit: 101, full: overSizedContent, result: overSizedContent[:100]},
+		{name: "cutoff-truncate", limit: 8, full: "a🙂b🙂", result: "a🙂b"},
+		{name: "cutoff-no-truncate", limit: 12, full: "a🙂b🙂", result: "a🙂b🙂"},
+	} {
+		for _, eol := range []string{"\n", "\r\n"} {
+			t.Run(test.name+"/"+strconv.Quote(eol), func(t *testing.T) {
+				patch := strings.Join([]string{
+					"diff --git a/first b/first",
+					"--- a/first",
+					"+++ b/first",
+					"@@ -1,3 +1,3 @@",
+					"-" + test.full,
+					"+" + test.full,
+					" " + test.full,
+					" short",
+					"@@ -10 +10 @@",
+					" next",
+					"diff --git a/second b/second",
+					"--- a/second", "+++ b/second",
+					"@@ -1 +1 @@",
+					" final",
+					"",
+				}, eol)
+				maxLines, maxFiles, skipToFile := 20, 10, ""
+				diff, err := ParsePatch(t.Context(), maxLines, test.limit, maxFiles, strings.NewReader(patch), skipToFile)
+				require.NoError(t, err)
+				require.Len(t, diff.Files, 2)
+				file := diff.Files[0]
+				assert.False(t, file.IsIncomplete)
+				assert.Equal(t, test.result != test.full, file.HasTruncatedLines)
+				require.Len(t, file.Sections, 2)
+				lines := file.Sections[0].Lines
+				require.Len(t, lines, 5)
+				for i, marker := range []string{"-", "+", " "} {
+					assert.Equal(t, marker+test.result, lines[i+1].Content)
+					assert.Equal(t, test.result != test.full, lines[i+1].IsTruncated)
+				}
+				assert.Equal(t, 2, lines[1].Match)
+				assert.Equal(t, 1, lines[2].Match)
+				assert.Equal(t, &DiffLine{Type: DiffLinePlain, LeftIdx: 3, RightIdx: 3, Content: " short"}, lines[4])
+				assert.Equal(t, &DiffLine{Type: DiffLinePlain, LeftIdx: 10, RightIdx: 10, Content: " next"}, file.Sections[1].Lines[1])
+				assert.False(t, diff.Files[1].IsIncomplete)
+				assert.False(t, diff.Files[1].HasTruncatedLines)
+				assert.Equal(t, &DiffLine{Type: DiffLinePlain, LeftIdx: 1, RightIdx: 1, Content: " final"}, diff.Files[1].Sections[0].Lines[1])
+			})
+		}
+	}
+}
+
+func TestParsePatchExactLineLimit(t *testing.T) {
+	for _, test := range []struct {
+		name, hunk   string
+		limit, lines int
+		incomplete   bool
+	}{
+		{name: "zero", limit: 0, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "one", limit: 1, lines: 1, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N plus one", limit: 2, lines: 2, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N", limit: 3, lines: 3, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n"},
+		{name: "addition", limit: 1, lines: 1, hunk: "@@ -0,0 +1 @@\n+one\n"},
+		{name: "deletion", limit: 1, lines: 1, hunk: "@@ -1 +0,0 @@\n-one\n"},
+		{name: "marker has no cost", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n line\n\\ No newline at end of file\n"},
+		{name: "hunk at capacity", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n one\n@@ -3 +3 @@\n three\n", incomplete: true},
+		{name: "long line after capacity", limit: 1, lines: 1, hunk: "@@ -0,0 +1,3 @@\n+one\n+" + strings.Repeat("x", 10000) + "\n+three\n", incomplete: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			patch := "diff --git a/file b/file\n--- a/file\n+++ b/file\n" + test.hunk
+			diff, err := ParsePatch(t.Context(), test.limit, 5000, 10, strings.NewReader(patch), "")
+			require.NoError(t, err)
+			require.Len(t, diff.Files, 1)
+			diffFile := diff.Files[0]
+			assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
+			if test.limit == 0 {
+				require.Len(t, diffFile.Sections, 0)
+			} else {
+				require.Len(t, diffFile.Sections, 1)
+				assert.Len(t, diffFile.Sections[0].Lines, test.lines+1) // lines with a section
+			}
+		})
+	}
+}
+
 func setupDefaultDiff() *Diff {
 	return &Diff{
 		Files: []*DiffFile{
@@ -600,8 +683,18 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 	assert.Equal(t, "proposed", (&DiffLine{Comments: []*issues_model.Comment{{Line: 3}}}).GetCommentSide())
 }
 
+func TestDiffLine_GetLineTypeMarker(t *testing.T) {
+	assert.Equal(t, "", (&DiffLine{Content: ""}).GetLineTypeMarker())
+	assert.Equal(t, "+", (&DiffLine{Content: "+added line"}).GetLineTypeMarker())
+	assert.Equal(t, "-", (&DiffLine{Content: "-deleted line"}).GetLineTypeMarker())
+	assert.Equal(t, " ", (&DiffLine{Content: " unchanged line"}).GetLineTypeMarker())
+	// for a real diff line (including hunk header) from diff output, "Content" should always have a prefix char in [" ", "+", "-"].
+	// for other cases, e.g.: a diff line constructed by our code without real diff output, it is undefined behavior at the moment.
+	assert.Equal(t, "", (&DiffLine{Content: "any-content"}).GetLineTypeMarker())
+}
+
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepositoryLocal("../../modules/git/tests/repos/repo5_pulls")
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
@@ -1109,6 +1202,31 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 	}
 }
 
+func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
+	t.Run("Section", func(t *testing.T) {
+		diffLine := &DiffLine{Type: DiffLineSection, Content: "@@ -1,3 +1,3 @@ func \u202ename() <b>"}
+		diffInline := (&DiffSection{}).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.True(t, diffInline.EscapeStatus.Escaped)
+		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
+	})
+	t.Run("ShortLineUseHighlight", func(t *testing.T) {
+		diffFile := &DiffFile{}
+		diffFile.highlightedRightLines.value = map[int]template.HTML{0: "highlighted short line"}
+		diffLine := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " short line", IsTruncated: false}
+		inline := newDiffSectionForDiffFile(diffFile).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.Equal(t, template.HTML("highlighted short line"), inline.Content)
+		assert.False(t, inline.IsTruncated)
+	})
+	t.Run("LongLineTruncated", func(t *testing.T) {
+		diffFile := &DiffFile{}
+		diffFile.highlightedRightLines.value = map[int]template.HTML{0: "highlighted line"}
+		diffLine := &DiffLine{Type: DiffLinePlain, RightIdx: 1, Content: " truncated line", IsTruncated: true}
+		inline := newDiffSectionForDiffFile(diffFile).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.Equal(t, template.HTML(`truncated line<span class="ui label diff-line-truncated">repo.diff.line_truncated</span>`), inline.Content)
+		assert.True(t, inline.IsTruncated)
+	})
+}
+
 func TestHighlightCodeLines(t *testing.T) {
 	t.Run("CharsetDetecting", func(t *testing.T) {
 		diffFile := &DiffFile{
@@ -1156,6 +1274,19 @@ func TestHighlightCodeLines(t *testing.T) {
 		assert.Equal(t, "a␍b\n", string(ret[0]))
 		assert.Equal(t, `c`, string(ret[1]))
 	})
+
+	t.Run("LongLineTruncated", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name: "a.c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1, IsTruncated: true}},
+				},
+			},
+		}
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// anything"))
+		assert.Empty(t, ret)
+	})
 }
 
 func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {
@@ -1186,9 +1317,9 @@ revert
 from :2
 D test2.txt
 D test10.txt`
-	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(pull.BaseRepo.RepoPath()).WithStdinBytes([]byte(stdin)).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithRepo(pull.BaseRepo).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 
-	gitRepo, err := git.OpenRepositoryLocal(pull.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -1249,4 +1380,38 @@ D test10.txt`
 	assert.NotNil(t, thirdReview)
 	assert.Equal(t, thirdReviewUpdatedFiles, thirdReview.UpdatedFiles)
 	assert.Equal(t, 1, thirdReview.GetViewedFileCount())
+}
+
+func TestGetDiffShortStatWithOptions(t *testing.T) {
+	repo, err := git.ForceFastImportWithInit(t.Context(), t.TempDir(), []git.FastImportCommit{
+		{Ref: "refs/heads/base", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "a1\na2\n"},
+			{Path: "whitespace.txt", Content: "b\n"},
+		}},
+		{Ref: "refs/heads/head", Files: []git.FastImportFile{
+			{Path: "real.txt", Content: "A1\nA2\nA3\n"},
+			{Path: "whitespace.txt", Content: "b   \n"},
+		}},
+	})
+	require.NoError(t, err)
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	t.Run("NoParent", func(t *testing.T) {
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &DiffCommonOptions{AfterCommitID: "refs/heads/head"})
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 2, TotalAddition: 4, TotalDeletion: 0}, stat)
+	})
+	diffOptions := DiffCommonOptions{BeforeCommitID: "refs/heads/base", AfterCommitID: "refs/heads/head"}
+	t.Run("NormalDiff", func(t *testing.T) {
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &diffOptions)
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 2, TotalAddition: 4, TotalDeletion: 3}, stat)
+	})
+	t.Run("IgnoreSpace", func(t *testing.T) {
+		diffOptions.WhitespaceBehavior = GetWhitespaceFlag("ignore-all")
+		stat, err := GetDiffShortStat(t.Context(), gitRepo, &diffOptions)
+		require.NoError(t, err)
+		assert.Equal(t, &DiffShortStat{NumFiles: 1, TotalAddition: 3, TotalDeletion: 2}, stat)
+	})
 }

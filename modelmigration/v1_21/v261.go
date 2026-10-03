@@ -4,11 +4,13 @@
 package v1_21
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func CreateVariableTable(x base.EngineMigration) error {
+func CreateVariableTable(_ context.Context, x base.EngineMigration) error {
 	type ActionVariable struct {
 		ID          int64              `xorm:"pk autoincr"`
 		OwnerID     int64              `xorm:"UNIQUE(owner_repo_name)"`

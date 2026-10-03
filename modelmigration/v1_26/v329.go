@@ -4,6 +4,7 @@
 package v1_26
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -28,7 +29,7 @@ func (n *UserBadge) TableIndices() []*schemas.Index {
 
 // AddUniqueIndexForUserBadge adds a compound unique indexes for user badge table
 // and it replaces an old index on user_id
-func AddUniqueIndexForUserBadge(x base.EngineMigration) error {
+func AddUniqueIndexForUserBadge(_ context.Context, x base.EngineMigration) error {
 	// remove possible duplicated records in table user_badge
 	type result struct {
 		UserID  int64

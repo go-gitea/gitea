@@ -127,7 +127,7 @@ func SearchPackages(ctx *context.Context) {
 		crates = append(crates, &SearchResultCrate{
 			Name:          pd.Package.Name,
 			LatestVersion: pd.Version.Version,
-			Description:   pd.Metadata.(*cargo_module.Metadata).Description,
+			Description:   packages_model.DescriptorMetadata[*cargo_module.Metadata](pd).Description,
 		})
 	}
 
@@ -178,11 +178,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		ctx.Req.Method,
 	)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
+		apiError(ctx, helper.PackageErrorStatus(err), err)
 		return
 	}
 

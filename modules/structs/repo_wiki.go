@@ -43,7 +43,7 @@ type WikiPageMetaData struct {
 // CreateWikiPageOptions form for creating wiki
 type CreateWikiPageOptions struct {
 	// page title. leave empty to keep unchanged
-	Title string `json:"title"`
+	Title string `json:"title" binding:"TrimSpace;Required"`
 	// content must be base64 encoded
 	ContentBase64 string `json:"content_base64"`
 	// optional commit message summarizing the change

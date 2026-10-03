@@ -4,6 +4,7 @@
 package v1_22
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -11,7 +12,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-func AddCombinedIndexToIssueUser(x base.EngineMigration) error {
+func AddCombinedIndexToIssueUser(_ context.Context, x base.EngineMigration) error {
 	type OldIssueUser struct {
 		IssueID int64
 		UID     int64

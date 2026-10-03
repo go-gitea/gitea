@@ -3,9 +3,13 @@
 
 package v1_17
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddAutoMergeTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddAutoMergeTable(_ context.Context, x base.EngineMigration) error {
 	type MergeStyle string
 	type PullAutoMerge struct {
 		ID          int64      `xorm:"pk autoincr"`

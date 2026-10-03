@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 )
@@ -33,10 +34,17 @@ func BuildAvatarStackData(ctx context.Context, allParticipants []*git.CommitIden
 	ret := &AvatarStackData{
 		Participants: make([]*CommitParticipant, 0, len(allParticipants)),
 	}
+	uniqueUserIDs := make(container.Set[int64])
 	for _, p := range allParticipants {
 		var giteaUser *user.User
 		if emailUserMap != nil {
 			giteaUser = emailUserMap.GetByEmail(p.Email)
+		}
+		if giteaUser != nil {
+			// identities without a Gitea account can only be compared by their git identity
+			if !uniqueUserIDs.Add(giteaUser.ID) {
+				continue
+			}
 		}
 		ret.Participants = append(ret.Participants, &CommitParticipant{GiteaUser: giteaUser, GitIdentity: p})
 	}

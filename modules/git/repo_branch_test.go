@@ -13,7 +13,7 @@ import (
 
 func TestRepository_GetBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -41,7 +41,7 @@ func TestRepository_GetBranches(t *testing.T) {
 
 func BenchmarkRepository_GetBranches(b *testing.B) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(b.Context(), bareRepo1Path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func BenchmarkRepository_GetBranches(b *testing.B) {
 
 func TestGetRefsBySha(t *testing.T) {
 	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
-	bareRepo5, err := OpenRepositoryLocal(bareRepo5Path)
+	bareRepo5, err := OpenRepositoryLocal(t.Context(), bareRepo5Path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestGetRefsBySha(t *testing.T) {
 
 func BenchmarkGetRefsBySha(b *testing.B) {
 	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
-	bareRepo5, err := OpenRepositoryLocal(bareRepo5Path)
+	bareRepo5, err := OpenRepositoryLocal(b.Context(), bareRepo5Path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -98,13 +98,9 @@ func BenchmarkGetRefsBySha(b *testing.B) {
 
 func TestRepository_IsObjectExist(t *testing.T) {
 	ctx := t.Context()
-	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
-
-	// FIXME: Inconsistent behavior between gogit and nogogit editions
-	// See the comment of IsObjectExist in gogit edition for more details.
-	supportShortHash := !isGogit
 
 	tests := []struct {
 		name string
@@ -129,7 +125,7 @@ func TestRepository_IsObjectExist(t *testing.T) {
 		{
 			name: "short commit hash",
 			arg:  "ce06481",
-			want: supportShortHash,
+			want: true,
 		},
 		{
 			name: "blob hash",
@@ -139,7 +135,7 @@ func TestRepository_IsObjectExist(t *testing.T) {
 		{
 			name: "short blob hash",
 			arg:  "153f451",
-			want: supportShortHash,
+			want: true,
 		},
 	}
 	for _, tt := range tests {
@@ -151,13 +147,9 @@ func TestRepository_IsObjectExist(t *testing.T) {
 
 func TestRepository_IsReferenceExist(t *testing.T) {
 	ctx := t.Context()
-	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepositoryLocal(ctx, filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
-
-	// FIXME: Inconsistent behavior between gogit and nogogit editions
-	// See the comment of IsReferenceExist in gogit edition for more details.
-	supportBlobHash := !isGogit
 
 	tests := []struct {
 		name string
@@ -187,12 +179,12 @@ func TestRepository_IsReferenceExist(t *testing.T) {
 		{
 			name: "blob hash",
 			arg:  "153f451b9ee7fa1da317ab17a127e9fd9d384310",
-			want: supportBlobHash,
+			want: true,
 		},
 		{
 			name: "short blob hash",
 			arg:  "153f451",
-			want: supportBlobHash,
+			want: true,
 		},
 	}
 	for _, tt := range tests {

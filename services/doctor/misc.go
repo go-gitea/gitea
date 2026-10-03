@@ -71,7 +71,7 @@ func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) erro
 func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
-	cache, err := lru.New[int64, any](512)
+	cache, err := lru.New[int64, *user_model.User](512)
 	if err != nil {
 		logger.Critical("Unable to create cache: %v", err)
 		return err
@@ -80,7 +80,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		numRepos++
 
 		if owner, has := cache.Get(repo.OwnerID); has {
-			repo.Owner = owner.(*user_model.User)
+			repo.Owner = owner
 		} else {
 			if err := repo.LoadOwner(ctx); err != nil {
 				return err

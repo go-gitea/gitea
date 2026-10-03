@@ -7,13 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"net"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	user_model "gitea.dev/models/user"
@@ -90,7 +88,7 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 	}
 
 	err := ctx.Render.HTML(ctx.Resp, status, name, ctx.Data, ctx.TemplateContext)
-	if err == nil || errors.Is(err, syscall.EPIPE) {
+	if err == nil || httplib.IsClientOrNetworkError(ctx, err) {
 		return
 	}
 
@@ -101,20 +99,6 @@ func (ctx *Context) HTML(status int, name templates.TplName) {
 	} else {
 		ctx.PlainText(http.StatusInternalServerError, "Unable to render status/500 page, the template system is broken, or Gitea can't find your template files.")
 		return
-	}
-}
-
-// JSONTemplate renders the template as JSON response
-// keep in mind that the template is processed in HTML context, so JSON things should be handled carefully, e.g.: use JSEscape
-func (ctx *Context) JSONTemplate(tmpl templates.TplName) {
-	t, err := ctx.Render.TemplateLookup(string(tmpl), nil)
-	if err != nil {
-		ctx.ServerError("unable to find template", err)
-		return
-	}
-	ctx.Resp.Header().Set("Content-Type", "application/json")
-	if err = t.Execute(ctx.Resp, ctx.Data); err != nil {
-		ctx.ServerError("unable to execute template", err)
 	}
 }
 
@@ -140,13 +124,13 @@ func (ctx *Context) RenderWithErrDeprecated(msg any, tpl templates.TplName, form
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
 func (ctx *Context) NotFound(logErr error) {
-	ctx.notFoundInternal("", logErr)
+	ctx.notFoundInternal(1, "", logErr)
 }
 
-func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
+func (ctx *Context) notFoundInternal(skip int, logMsg string, logErr error) {
 	// TODO: it's safe to show the error message to end users if the error is fully controlled by our error system
 	if logErr != nil {
-		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
+		log.Log(skip+1, log.DEBUG, "%s: %v", logMsg, logErr)
 	}
 
 	// response simple message if Accept isn't text/html
@@ -169,32 +153,41 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
+func (ctx *Context) buildUserErrorMessage(msg string, err error) (userErrorMsg string) {
+	// it's safe to show internal error to admin users, and it helps
+	if !setting.IsProd || setting.IsInTesting || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
+		userErrorMsg = msg
+		if err != nil {
+			userErrorMsg += ", error: " + err.Error()
+		}
+	}
+	return util.IfZero(userErrorMsg, ctx.Locale.TrString("error.occurred"))
+}
+
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.
 // If the error is controlled by our error system, a related 404 page can be displayed instead.
 func (ctx *Context) ServerError(logMsg string, logErr error) {
 	if errors.Is(logErr, util.ErrNotExist) {
-		ctx.notFoundInternal(logMsg, logErr)
+		ctx.notFoundInternal(1, logMsg, logErr)
 		return
 	}
-	ctx.serverErrorInternal(logMsg, logErr)
+	ctx.serverErrorInternal(1, logMsg, logErr)
 }
 
-func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
+func (ctx *Context) serverErrorInternal(skip int, logMsg string, logErr error) {
 	if logErr != nil {
-		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
-		if _, ok := logErr.(*net.OpError); ok || errors.Is(logErr, &net.OpError{}) {
-			// This is an error within the underlying connection
-			// and further rendering will not work so just return
-			return
-		}
+		logLevel := util.Iif(httplib.IsClientOrNetworkError(ctx, logErr), log.DEBUG, log.ERROR)
+		log.Log(skip+1, logLevel, "%s: %v", logMsg, logErr)
+	}
 
-		// it's safe to show internal error to admin users, and it helps
-		if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
-			ctx.Data["ErrorMsg"] = fmt.Sprintf("%s, %s", logMsg, logErr)
-		}
+	userErrorMsg := ctx.buildUserErrorMessage(logMsg, logErr)
+	if httplib.IsGiteaFetchActionRequest(ctx.Req) {
+		ctx.JSON(http.StatusInternalServerError, buildJsonErrorMap(userErrorMsg))
+		return
 	}
 
 	ctx.Data["Title"] = "Internal Server Error"
+	ctx.Data["ErrorMsg"] = userErrorMsg
 	ctx.HTML(http.StatusInternalServerError, tplStatus500)
 }
 
@@ -204,8 +197,8 @@ func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 // TODO: remove the "errCheck" and use util.ErrNotFound to check
 func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bool, logErr error) {
 	if errCheck(logErr) {
-		ctx.notFoundInternal(logMsg, logErr)
+		ctx.notFoundInternal(1, logMsg, logErr)
 		return
 	}
-	ctx.serverErrorInternal(logMsg, logErr)
+	ctx.serverErrorInternal(1, logMsg, logErr)
 }

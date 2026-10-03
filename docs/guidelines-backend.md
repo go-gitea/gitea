@@ -62,6 +62,10 @@ Operations that must roll back together should run inside `db.WithTx()` (or
 Functions that participate in a transaction take a `context.Context` as their first
 parameter so the transaction can be propagated.
 
+PostgreSQL, MySQL and MSSQL (via `READ_COMMITTED_SNAPSHOT`) read the last committed
+row version, so reads never wait for writers. Guard read-then-write logic with a
+conditional `UPDATE` or a lock.
+
 ### XORM gotchas
 
 - Never call `x.Update(exemplar)` without an explicit `WHERE` clause — it updates
@@ -82,6 +86,24 @@ be touched by pull requests whose sole purpose is updating dependencies. Run
 
 Any `go.mod` / `go.sum` update must be justified in the PR description and must be
 verified by reviewers and the merger to reference an existing upstream commit.
+
+## Golang HTML template
+
+Gitea uses Go's built-in HTML template engine which is dynamically & weakly typed.
+To make template code maintainable:
+
+- Go code should take over complex logic and prepare template data as much as possible, templates only render the data.
+- Prefer struct types provided by Go code instead of map types for template data.
+- Avoid using single word names for non-local variables.
+- Avoid passing `"root" $` or `"." .` to sub-templates, instead pass the specific data needed by the sub-template.
+- Use explicit variable names instead of `.` to access data: ``{{range $item := $.TargetItems}}{{ $item.Name }}{{end}}``
+- Use Go code to implement render helpers if the render logic is too complex.
+
+Using a modern and statically & strongly typed template engine to replace Golang HTML template might be good,
+but the challenge is huge, the requisites are:
+
+- A working and maintainable proof-of-concept for the most complex templates (like "PR View" and "PR Diff").
+- A firm commitment of sufficient engineering resources.
 
 ## API v1
 
@@ -120,7 +142,7 @@ In general, choose HTTP methods as follows:
 - **POST** creates a new object (e.g. a user) and returns **201 Created** with the
   created object.
 - **PUT** adds or assigns an existing object (e.g. a user to a team) and returns
-  **204 No Content** with no body.
+  **204 No Content** with no response body.
 - **PATCH** edits an existing object and returns the changed object with **200 OK**.
 - **DELETE** removes an object and returns **204 No Content** with no body.
 

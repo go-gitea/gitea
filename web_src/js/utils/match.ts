@@ -1,4 +1,4 @@
-import emojis from '../../../assets/emoji.json' with {type: 'json'};
+import emojis from '../../../public/assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {parseIssuePageInfo} from '../utils.ts';
@@ -71,11 +71,11 @@ export async function matchMention(mentionsUrl: string, queryText: string): Prom
   return sortAndReduce(results);
 }
 
-export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Issue[]> {
-  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`);
+export async function matchIssue(owner: string, repo: string, issueIndexStr: string | undefined, query: string, signal: AbortSignal): Promise<Issue[]> {
+  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`, {signal});
 
   const issues: Issue[] = await res.json();
-  const issueNumber = parseInt(issueIndexStr);
+  const issueNumber = parseInt(issueIndexStr || '');
 
   // filter out issue with same id
   return issues.filter((i) => i.number !== issueNumber);

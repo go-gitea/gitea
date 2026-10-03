@@ -52,6 +52,28 @@ func (s Set[T]) Remove(value T) bool {
 	return false
 }
 
+// RemoveFromSet removes the specified elements from the set.
+// Returns the number of elements successfully removed.
+func (s Set[T]) RemoveFromSet(o Set[T]) (n int) {
+	for value := range o {
+		if s.Remove(value) {
+			n++
+		}
+	}
+	return n
+}
+
+// RemoveFromSlice removes the specified elements from the slice.
+// Returns the number of elements successfully removed.
+func (s Set[T]) RemoveFromSlice(o []T) (n int) {
+	for _, value := range o {
+		if s.Remove(value) {
+			n++
+		}
+	}
+	return n
+}
+
 // Values gets a list of all elements in the set.
 func (s Set[T]) Values() []T {
 	keys := make([]T, 0, len(s))

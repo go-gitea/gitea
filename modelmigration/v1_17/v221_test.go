@@ -44,7 +44,7 @@ func Test_StoreWebauthnCredentialIDAsBytes(t *testing.T) {
 		return
 	}
 
-	if err := StoreWebauthnCredentialIDAsBytes(x); err != nil {
+	if err := StoreWebauthnCredentialIDAsBytes(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

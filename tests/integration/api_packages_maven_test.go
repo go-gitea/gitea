@@ -199,8 +199,9 @@ func TestPackageMaven(t *testing.T) {
 
 		pd, err = packages.GetPackageDescriptor(t.Context(), pvs[0])
 		require.NoError(t, err)
-		assert.IsType(t, &maven.Metadata{}, pd.Metadata)
-		assert.Equal(t, packageDescription, pd.Metadata.(*maven.Metadata).Description)
+		metadata, ok := pd.Metadata.(*maven.Metadata)
+		require.True(t, ok)
+		assert.Equal(t, packageDescription, metadata.Description)
 
 		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		require.NoError(t, err)

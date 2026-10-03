@@ -45,7 +45,7 @@ func Test_AddHeaderAuthorizationEncryptedColWebhook(t *testing.T) {
 		return
 	}
 
-	if err := AddHeaderAuthorizationEncryptedColWebhook(x); err != nil {
+	if err := AddHeaderAuthorizationEncryptedColWebhook(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

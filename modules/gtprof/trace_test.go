@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // "vendor span" is a simple demo for a span from a vendor library
@@ -82,7 +83,9 @@ func TestTraceStarter(t *testing.T) {
 			collectSpanNames(fullName, c)
 		}
 	}
-	collectSpanNames("", span.internalSpans[0].(*testTraceSpan).vendorSpan)
+	rootSpan, ok := span.internalSpans[0].(*testTraceSpan)
+	require.True(t, ok)
+	collectSpanNames("", rootSpan.vendorSpan)
 	assert.Equal(t, []string{
 		"/root",
 		"/root/span1",

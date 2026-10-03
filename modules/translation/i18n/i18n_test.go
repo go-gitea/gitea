@@ -16,6 +16,7 @@ func TestLocaleStore(t *testing.T) {
 {
 ".dot.name": "Dot Name",
 "fmt": "%[1]s %[2]s",
+"only_in_default": "",
 
 "section.sub": "Sub String",
 "section.mixed": "test value; <span style=\"color: red; background: none;\">%s</span>"
@@ -60,6 +61,9 @@ func TestLocaleStore(t *testing.T) {
 
 	found := lang1.HasKey("no-such")
 	assert.False(t, found)
+	found = lang2.HasKey("only_in_default")
+	assert.True(t, found)
+
 	assert.NoError(t, ls.Close())
 
 	res := lang1.TrHTML("<no-such>")

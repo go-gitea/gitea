@@ -1,4 +1,4 @@
-import {throttle} from 'throttle-debounce';
+import {throttle} from '../utils/func.ts';
 import {addDelegatedEventListener, generateElemId, isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
@@ -37,7 +37,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     }
   };
 
-  updateItems = throttle(100, () => {
+  updateItems = throttle(() => {
     if (!this.popup) {
       const div = document.createElement('div');
       div.classList.add('overflow-menu-popup');
@@ -183,7 +183,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     this.append(this.button);
     this.append(this.popup);
     this.updateButtonActivationState();
-  });
+  }, 100);
 
   init() {
     // for horizontal menus where fomantic boldens active items, prevent this bold text from
@@ -213,6 +213,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         if (newWidth !== this.lastWidth) {
           requestAnimationFrame(() => {
             this.updateItems();
+            this.setAttribute('data-ready', ''); // reveal via CSS [data-ready]
           });
           this.lastWidth = newWidth;
         }
@@ -235,9 +236,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     // check whether the mandatory `.overflow-menu-items` element is present initially which happens
     // with Vue which renders differently than browsers. If it's not there, like in the case of browser
     // template rendering, wait for its addition.
-    // The eslint rule is not sophisticated enough or aware of this problem, see
-    // https://github.com/43081j/eslint-plugin-wc/pull/130
-    const menuItemsEl = this.querySelector<HTMLElement>('.overflow-menu-items'); // eslint-disable-line wc/no-child-traversal-in-connectedcallback
+    const menuItemsEl = this.querySelector<HTMLElement>('.overflow-menu-items'); // eslint-disable-line wc/no-child-traversal-in-connectedcallback -- the observer below covers the case the rule warns about, see https://github.com/43081j/eslint-plugin-wc/pull/130
     if (menuItemsEl) {
       this.menuItemsEl = menuItemsEl;
       this.init();

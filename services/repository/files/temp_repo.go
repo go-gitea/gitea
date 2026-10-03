@@ -76,7 +76,7 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 		}
 		return fmt.Errorf("temp repo clone error: %w, %s", err, stderr)
 	}
-	gitRepo, err := git.OpenRepositoryLocal(t.basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, t.basePath)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (t *TemporaryUploadRepository) Init(ctx context.Context, objectFormatName s
 	if err := git.InitRepositoryLocal(ctx, t.basePath, false, objectFormatName); err != nil {
 		return err
 	}
-	gitRepo, err := git.OpenRepositoryLocal(t.basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, t.basePath)
 	if err != nil {
 		return err
 	}

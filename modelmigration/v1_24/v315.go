@@ -4,12 +4,14 @@
 package v1_24
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddEphemeralToActionRunner(x base.EngineMigration) error {
+func AddEphemeralToActionRunner(_ context.Context, x base.EngineMigration) error {
 	type ActionRunner struct {
 		Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	}

@@ -120,7 +120,7 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 func convertToInternal(s string) ([]actions_model.Status, error) {
 	switch s {
 	case "pending", "waiting", "requested", "action_required":
-		return []actions_model.Status{actions_model.StatusBlocked}, nil
+		return []actions_model.Status{actions_model.StatusBlocked, actions_model.StatusPending}, nil
 	case "queued":
 		return []actions_model.Status{actions_model.StatusWaiting}, nil
 	case "in_progress":
@@ -205,7 +205,6 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 
 	res := new(api.ActionWorkflowRunsResponse)
-	res.TotalCount = total
 
 	runList := actions_model.RunList(runs)
 	if err := runList.LoadTriggerUser(ctx); err != nil {
@@ -225,16 +224,23 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
-	for i := range runs {
+	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
+	for _, run := range runs {
+		if run.Repo == nil {
+			// Orphaned row: drop it rather than failing the page, so total stays an upper bound
+			// until "doctor check --run check-db-consistency" removes it.
+			total--
+			continue
+		}
 		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil, excludePullRequests)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		res.Entries[i] = convertedRun
+		res.Entries = append(res.Entries, convertedRun)
 	}
+	res.TotalCount = total
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)

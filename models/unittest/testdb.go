@@ -61,7 +61,6 @@ func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	}
 
 	setting.AppURL = "https://try.gitea.io/"
-	setting.Domain = "try.gitea.io"
 	setting.RunUser = "runuser"
 	setting.SSH.User = "sshuser"
 	setting.SSH.BuiltinServerUser = "builtinuser"

@@ -11,9 +11,9 @@
 				<a href="{{.HomeLink}}">
 					{{ctx.AvatarUtils.Avatar . 48}}
 				</a>
-				<h3 class="name"><a href="{{.HomeLink}}">{{.DisplayName}}</a></h3>
+				<h3 class="name flex-text-block"><a href="{{.HomeLink}}">{{.DisplayName}}</a>{{template "shared/user/user_type_label" .}}</h3>
 
-				<div class="meta">
+				<div class="meta flex-text-block">
 					{{if .Website}}
 						{{svg "octicon-link"}} <a href="{{.Website}}" target="_blank">{{.Website}}</a>
 					{{else if .Location}}

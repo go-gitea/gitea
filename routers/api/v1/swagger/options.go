@@ -54,6 +54,9 @@ type swaggerParameterBodies struct {
 	CreateKeyOption api.CreateKeyOption
 
 	// in:body
+	CreateDeployKeyTokenOption api.CreateDeployKeyTokenOption
+
+	// in:body
 	RenameUserOption api.RenameUserOption
 
 	// in:body
@@ -236,6 +239,22 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	LockIssueOption api.LockIssueOption
+
+	// in:body
+	CreateProjectOption api.CreateProjectOption
+	// in:body
+	EditProjectOption api.EditProjectOption
+
+	// in:body
+	CreateProjectColumnOption api.CreateProjectColumnOption
+	// in:body
+	EditProjectColumnOption api.EditProjectColumnOption
+
+	// in:body
+	MoveProjectColumnsOption api.MoveProjectColumnsOption
+
+	// in:body
+	MoveProjectIssueOption api.MoveProjectIssueOption
 
 	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest

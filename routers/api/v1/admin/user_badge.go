@@ -66,7 +66,7 @@ func AddUserBadges(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	form := web.GetForm(ctx).(*api.UserBadgeOption)
+	form := web.GetForm[*api.UserBadgeOption](ctx)
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.AddUserBadges(ctx, ctx.ContextUser, badges); err != nil {
@@ -102,7 +102,7 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.UserBadgeOption)
+	form := web.GetForm[*api.UserBadgeOption](ctx)
 	badges := prepareBadgesForReplaceOrAdd(*form)
 
 	if err := user_model.RemoveUserBadges(ctx, ctx.ContextUser, badges); err != nil {

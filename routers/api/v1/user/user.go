@@ -58,16 +58,13 @@ func Search(ctx *context.APIContext) {
 	uid := ctx.FormInt64("uid")
 	var users []*user_model.User
 	var maxResults int64
-	var err error
-
-	switch uid {
-	case user_model.GhostUserID:
-		maxResults = 1
-		users = []*user_model.User{user_model.NewGhostUser()}
-	case user_model.ActionsUserID:
-		maxResults = 1
-		users = []*user_model.User{user_model.NewActionsUser()}
-	default:
+	if uid < 0 {
+		_, sysUser, _ := user_model.GetPossibleUserByID(ctx, uid)
+		if sysUser != nil && sysUser.ID == uid {
+			maxResults = 1
+			users = []*user_model.User{sysUser}
+		}
+	} else {
 		opts := user_model.SearchUserOptions{
 			Actor:         ctx.Doer,
 			Keyword:       ctx.FormTrim("q"),
@@ -77,6 +74,7 @@ func Search(ctx *context.APIContext) {
 			ListOptions:   listOptions,
 		}
 		opts.ApplyPublicOnly(ctx.PublicOnly)
+		var err error
 		users, maxResults, err = user_model.SearchUsers(ctx, opts)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, map[string]any{

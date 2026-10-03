@@ -161,7 +161,7 @@ func Runners(ctx *context.Context) {
 	ctx.Data["SortType"] = opts.Sort
 	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
 
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 
 	ctx.Data["Page"] = pager
 
@@ -222,7 +222,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Tasks"] = tasks
-	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
+	pager := context.NewPagerBuilder(ctx).TotalCount(count).PerPageLimit(opts.PageSize).CurPage(opts.Page).Build()
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
@@ -251,7 +251,7 @@ func RunnersEditPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditRunnerForm)
+	form := web.GetForm[*forms.EditRunnerForm](ctx)
 	runner.Description = form.Description
 
 	err = actions_model.UpdateRunner(ctx, runner, "description")

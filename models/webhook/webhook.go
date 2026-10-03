@@ -291,6 +291,10 @@ type ListWebhookOptions struct {
 	IsActive optional.Option[bool]
 }
 
+func (opts ListWebhookOptions) ToOrders() string {
+	return "id"
+}
+
 func (opts ListWebhookOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID != 0 {

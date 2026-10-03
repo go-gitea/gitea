@@ -111,6 +111,11 @@ type ActionWorkflowRun struct {
 	// It is set only when the current attempt is > 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.
 	PreviousAttemptURL *string `json:"previous_attempt_url"`
 	HTMLURL            string  `json:"html_url"`
+	JobsURL            string  `json:"jobs_url"`
+	LogsURL            string  `json:"logs_url"`
+	ArtifactsURL       string  `json:"artifacts_url"`
+	CancelURL          string  `json:"cancel_url"`
+	RerunURL           string  `json:"rerun_url"`
 	DisplayTitle       string  `json:"display_title"`
 	Path               string  `json:"path"`
 	Event              string  `json:"event"`
@@ -129,6 +134,10 @@ type ActionWorkflowRun struct {
 	HeadRepository *Repository           `json:"head_repository,omitempty"`
 	Conclusion     string                `json:"conclusion,omitempty"`
 	PullRequests   []*PullRequestMinimal `json:"pull_requests"`
+	// swagger:strfmt date-time
+	CreatedAt time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	UpdatedAt time.Time `json:"updated_at"`
 	// swagger:strfmt date-time
 	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time

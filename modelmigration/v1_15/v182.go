@@ -3,9 +3,13 @@
 
 package v1_15
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIssueResourceIndexTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIssueResourceIndexTable(_ context.Context, x base.EngineMigration) error {
 	type ResourceIndex struct {
 		GroupID  int64 `xorm:"pk"`
 		MaxIndex int64 `xorm:"index"`

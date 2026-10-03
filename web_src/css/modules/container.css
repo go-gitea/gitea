@@ -15,19 +15,24 @@
   width: 800px;
 }
 
-.ui.message.web-banner-container {
+.ui.message.site-banner-container {
   position: relative;
   margin: 0;
   border-radius: 0;
 }
 
-.ui.message.web-banner-container > .web-banner-content {
+#navbar + .ui.message.site-banner-container,
+.ui.message.site-banner-container + .ui.message.site-banner-container {
+  border-top: none;
+}
+
+.ui.message.site-banner-container > .site-banner-content {
   width: 1280px;
   max-width: calc(100% - calc(2 * var(--page-margin-x)));
   margin: auto;
 }
 
-.ui.message.web-banner-container > button.dismiss-banner {
+.ui.message.site-banner-container > button.site-banner-close {
   position: absolute;
   right: 20px;
   top: 15px;

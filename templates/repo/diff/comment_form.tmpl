@@ -20,7 +20,7 @@
 		</div>
 		{{if $.root.IsAttachmentEnabled}}
 			<div class="field">
-				{{template "repo/upload" $.root}}
+				{{template "repo/upload" dict "UploadOptions" ctx.RootData.UploadOptions}}
 			</div>
 		{{end}}
 

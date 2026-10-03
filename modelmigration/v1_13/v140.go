@@ -4,13 +4,14 @@
 package v1_13
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 )
 
-func FixLanguageStatsToSaveSize(x base.EngineMigration) error {
+func FixLanguageStatsToSaveSize(_ context.Context, x base.EngineMigration) error {
 	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		Size int64 `xorm:"NOT NULL DEFAULT 0"`

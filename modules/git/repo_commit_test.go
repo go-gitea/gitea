@@ -18,7 +18,7 @@ import (
 
 func TestRepository_GetCommitBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -45,7 +45,7 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 
 func TestGetTagCommitWithSignature(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -60,7 +60,7 @@ func TestGetTagCommitWithSignature(t *testing.T) {
 
 func TestGetCommitWithBadCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -72,22 +72,22 @@ func TestGetCommitWithBadCommitID(t *testing.T) {
 
 func TestIsCommitInBranch(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	result, err := bareRepo1.IsCommitInBranch(t.Context(), "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch1")
+	result, err := IsCommitInBranch(t.Context(), bareRepo1, "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch1")
 	assert.NoError(t, err)
 	assert.True(t, result)
 
-	result, err = bareRepo1.IsCommitInBranch(t.Context(), "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
+	result, err = IsCommitInBranch(t.Context(), bareRepo1, "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
 	assert.NoError(t, err)
 	assert.False(t, result)
 }
 
 func TestRepository_CommitsBetween(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo4_commitsbetween")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -109,7 +109,7 @@ func TestRepository_CommitsBetween(t *testing.T) {
 
 func TestGetRefCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -136,7 +136,7 @@ func TestCommitsByFileAndRange(t *testing.T) {
 	defer test.MockVariableValue(&setting.Git.CommitsRangeSize, 2)()
 
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	require.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -179,7 +179,7 @@ M 100644 :1 b.txt
 	`))).RunStdString(t.Context())
 	require.NoError(t, runErr)
 
-	repoFollowRename, err := OpenRepositoryLocal(repoFollowRenameDir)
+	repoFollowRename, err := OpenRepositoryLocal(t.Context(), repoFollowRenameDir)
 	require.NoError(t, err)
 	defer repoFollowRename.Close()
 

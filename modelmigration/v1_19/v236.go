@@ -4,11 +4,13 @@
 package v1_19
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func CreateSecretsTable(x base.EngineMigration) error {
+func CreateSecretsTable(_ context.Context, x base.EngineMigration) error {
 	type Secret struct {
 		ID          int64
 		OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`

@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
+	"gitea.dev/models/db"       //nolint:depguard // allow to access db in migration tests
+	"gitea.dev/models/unittest" //nolint:depguard // allow to access db in migration tests
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/testlogger"

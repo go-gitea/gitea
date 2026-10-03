@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddDismissedReviewColumn(x base.EngineMigration) error {
+func AddDismissedReviewColumn(_ context.Context, x base.EngineMigration) error {
 	type Review struct {
 		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
 	}

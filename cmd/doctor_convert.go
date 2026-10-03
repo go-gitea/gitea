@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
@@ -40,15 +39,15 @@ func runDoctorConvert(ctx context.Context, cmd *cli.Command) error {
 			log.Fatal("Failed to convert database & table: %v", err)
 			return err
 		}
-		fmt.Println("Converted successfully, please confirm your database's character set is now utf8mb4")
+		cprintln(cmd, "Converted successfully, please confirm your database's character set is now utf8mb4")
 	case setting.Database.Type.IsMSSQL():
 		if err := db.ConvertVarcharToNVarchar(); err != nil {
 			log.Fatal("Failed to convert database from varchar to nvarchar: %v", err)
 			return err
 		}
-		fmt.Println("Converted successfully, please confirm your database's all columns character is NVARCHAR now")
+		cprintln(cmd, "Converted successfully, please confirm your database's all columns character is NVARCHAR now")
 	default:
-		fmt.Println("This command can only be used with a MySQL or MSSQL database")
+		cprintln(cmd, "This command can only be used with a MySQL or MSSQL database")
 	}
 
 	return nil

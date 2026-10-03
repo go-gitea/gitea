@@ -90,8 +90,6 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 				return false, fmt.Errorf("GetProtectedTags: %w", err)
 			}
 
-			// Trim '--' prefix to prevent command line argument vulnerability.
-			rel.TagName = strings.TrimPrefix(rel.TagName, "--")
 			isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, rel.PublisherID)
 			if err != nil {
 				return false, err
@@ -102,7 +100,8 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 				}
 			}
 
-			commit, err := gitRepo.GetCommit(ctx, rel.Target)
+			target := util.IfZero(rel.Target, rel.Repo.DefaultBranch)
+			commit, err := gitRepo.GetCommit(ctx, target)
 			if err != nil {
 				return false, err
 			}
@@ -141,7 +140,9 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 					NewCommitID: commit.ID.String(),
 				}, commits)
 			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
-			rel.CreatedUnix = timeutil.TimeStampNow()
+		}
+		if rel.PublishedUnix.IsZero() {
+			rel.PublishedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(ctx, rel.TagName)
 		if err != nil {
@@ -149,6 +150,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
+		rel.CreatedUnix = timeutil.TimeStamp(commit.Committer.When.Unix()) // dated by its commit, so an old commit does not become the latest release
 		rel.NumCommits, err = git.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
@@ -274,6 +276,12 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
+	// a zero PublishedUnix means "draft", so withdrawing a release has to clear it again
+	if rel.IsDraft {
+		rel.PublishedUnix = 0
+	} else if isConvertedFromTag || oldRelease.IsDraft {
+		rel.PublishedUnix = timeutil.TimeStampNow()
+	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {

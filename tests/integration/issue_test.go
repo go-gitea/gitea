@@ -127,7 +127,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title":   title,
@@ -744,10 +744,9 @@ func TestIssueReferenceURL(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	// the "reference" uses relative URLs, then JS code will convert them to absolute URLs for current origin, in case users are using multiple domains
 	ref, _ := htmlDoc.Find(`.timeline-item.comment.issue-content-comment .reference-issue`).Attr("data-reference")
-	assert.Equal(t, "/user2/repo1/issues/1#issue-1", ref)
+	assert.Equal(t, setting.AppURL+"user2/repo1/issues/1#issue-1", ref)
 
 	ref, _ = htmlDoc.Find(`.timeline-item.comment:not(.issue-content-comment) .reference-issue`).Attr("data-reference")
-	assert.Equal(t, "/user2/repo1/issues/1#issuecomment-2", ref)
+	assert.Equal(t, setting.AppURL+"user2/repo1/issues/1#issuecomment-2", ref)
 }

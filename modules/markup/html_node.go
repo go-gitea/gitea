@@ -179,9 +179,7 @@ func visitNodeVideo(ctx *RenderContext, node *html.Node) (next *html.Node) {
 		if attr.Key != "src" {
 			continue
 		}
-		if IsNonEmptyRelativePath(attr.Val) {
-			attr.Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeMedia)
-		}
+		attr.Val = ctx.RenderHelper.ResolveLink(attr.Val, LinkTypeMedia)
 		attr.Val = camoHandleLink(attr.Val)
 		node.Attr[i] = attr
 	}

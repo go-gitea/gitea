@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -14,13 +15,17 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
-func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) error {
+// ApproveRuns returns the approved runs in the same order as runIDs.
+func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
-	// Track runs whose reusable callers were just expanded so we can re-emit after the tx commits.
-	expandedCallerRunIDs := make(container.Set[int64])
+	approvedRunIDs := make(container.Set[int64])
 
 	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
 		for _, runID := range runIDs {
@@ -28,20 +33,85 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err != nil {
 				return err
 			}
+			if !run.IsAwaitingApproval() {
+				continue
+			}
 			run.NeedApproval = false
 			run.ApprovedBy = doer.ID
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 				return err
 			}
-			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, repo.ID, run.ID)
+			approvedRunIDs.Add(run.ID)
+			jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
+			if err != nil {
+				return err
+			}
+			attempt, hasAttempt, err := run.GetLatestAttempt(ctx)
+			if err != nil {
+				return fmt.Errorf("get latest attempt of run %d: %w", run.ID, err)
+			}
+			if hasAttempt && attempt.ConcurrencyGroup != "" {
+				status, jobsToCancel, err := PrepareToStartRunWithConcurrency(ctx, attempt)
+				if err != nil {
+					return err
+				}
+				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+				if status == actions_model.StatusBlocked {
+					continue
+				}
+			}
+
+			vars, err := actions_model.GetVariablesOfRun(ctx, run)
 			if err != nil {
 				return err
 			}
 
+			// approval unblocks every job at once, so max-parallel has to cap them here too
+			slots := maxParallelSlots{}
 			for _, job := range jobs {
-				// Skip jobs with `needs`: they stay blocked until their dependencies finish,
-				// at which point job_emitter will evaluate and start them.
-				if len(job.Needs) > 0 {
+				slots.hold(job, job.Status)
+			}
+
+			for _, job := range jobs {
+				// Only approval-blocked jobs are released here, job_emitter starts those with `needs`
+				if job.Status != actions_model.StatusBlocked || len(job.Needs) > 0 {
+					continue
+				}
+				if slices.ContainsFunc(cancelledConcurrencyJobs, func(cancelled *actions_model.ActionRunJob) bool { return cancelled.ID == job.ID }) {
+					continue // cancelled by a sibling's concurrency in this loop
+				}
+				// a skipped job must neither cancel its group peers nor take a slot
+				shouldStart, err := evaluateJobIf(ctx, run, nil, job, vars, true)
+				if err != nil {
+					return fmt.Errorf("evaluate job %d if on approval: %w", job.ID, err)
+				}
+				if !shouldStart {
+					job.Status = actions_model.StatusSkipped
+					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+					if err != nil {
+						return err
+					}
+					if n > 0 {
+						updatedJobs = append(updatedJobs, job)
+					}
+					continue
+				}
+				// A slot-starved job cannot start, skip the following checks.
+				if !slots.available(job) {
+					continue
+				}
+				if invalid := invalidRunsOn(job); invalid != nil {
+					job.Status, job.Stopped = actions_model.StatusFailure, timeutil.TimeStampNow()
+					n, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "stopped")
+					if err != nil {
+						return err
+					}
+					if n > 0 {
+						updatedJobs = append(updatedJobs, job)
+					}
+					if err := upsertJobErrorSummary(ctx, job, "runs-on", invalid); err != nil {
+						return err
+					}
 					continue
 				}
 				var jobsToCancel []*actions_model.ActionRunJob
@@ -50,10 +120,11 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					return err
 				}
 				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+				applyMaxParallel(job, slots)
 				if job.Status != actions_model.StatusWaiting {
 					continue
 				}
-				n, err := actions_model.UpdateRunJob(ctx, job, nil, "status")
+				n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status")
 				if err != nil {
 					return err
 				}
@@ -64,37 +135,25 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 				// A top-level reusable caller was just unblocked by approval, expand it
 				if job.IsReusableCaller && !job.IsExpanded {
-					attempt, has, err := run.GetLatestAttempt(ctx)
-					if err != nil {
-						return fmt.Errorf("get latest attempt of run %d: %w", run.ID, err)
-					}
-					if !has {
+					if !hasAttempt {
 						return errors.New("run has no attempt")
 					}
-					vars, err := actions_model.GetVariablesOfRun(ctx, run)
-					if err != nil {
+					if err := expandInlineReusableCaller(ctx, run, attempt, job, vars); err != nil {
 						return err
 					}
-					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
-						return fmt.Errorf("expand caller %d on approval: %w", job.ID, err)
-					}
-					if err := actions_model.RefreshReusableCallerStatus(ctx, job); err != nil {
-						return fmt.Errorf("refresh caller %d status after approval-time expansion: %w", job.ID, err)
-					}
-					expandedCallerRunIDs.Add(run.ID)
 				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting.
-	for runID := range expandedCallerRunIDs {
+	// The emitter skipped these runs while they awaited approval
+	for runID := range approvedRunIDs {
 		if err := EmitJobsIfReadyByRun(runID); err != nil {
-			log.Error("emit run %d after approval-time caller expansion: %v", runID, err)
+			log.Error("emit run %d after approval: %v", runID, err)
 		}
 	}
 
@@ -103,5 +162,26 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	return nil
+	// The batches above already notified every run whose jobs changed, which is the only way
+	// approving alters a run's status, so reload purely to answer the caller.
+	reloaded, err := actions_model.GetRunsByRepoAndID(ctx, repo.ID, runIDs)
+	if err != nil {
+		return nil, fmt.Errorf("GetRunsByRepoAndID: %w", err)
+	}
+	runsByID := make(map[int64]*actions_model.ActionRun, len(reloaded))
+	for _, run := range reloaded {
+		run.Repo = repo // the caller resolved runIDs against this repo, so spare every consumer a reload
+		runsByID[run.ID] = run
+	}
+
+	approvedRuns := make([]*actions_model.ActionRun, 0, len(runIDs))
+	for _, runID := range runIDs {
+		run := runsByID[runID]
+		if run == nil {
+			return nil, util.NewNotExistErrorf("run %d no longer exists after approval", runID)
+		}
+		approvedRuns = append(approvedRuns, run)
+	}
+
+	return approvedRuns, nil
 }

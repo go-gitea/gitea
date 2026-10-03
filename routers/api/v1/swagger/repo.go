@@ -248,7 +248,7 @@ type swaggerCommitList struct {
 	PerPage int `json:"X-PerPage"`
 
 	// Total commit count
-	Total int `json:"X-Total"`
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`
@@ -266,11 +266,11 @@ type swaggerChangedFileList struct {
 	// The current page
 	Page int `json:"X-Page"`
 
-	// Commits per page
+	// Files per page
 	PerPage int `json:"X-PerPage"`
 
-	// Total commit count
-	Total int `json:"X-Total"`
+	// Total file count
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`
@@ -341,7 +341,7 @@ type swaggerFileDeleteResponse struct {
 // swagger:response TopicListResponse
 type swaggerTopicListResponse struct {
 	// in: body
-	Body []api.TopicResponse `json:"body"`
+	Body api.TopicListResponse `json:"body"`
 }
 
 // TopicNames

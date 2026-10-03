@@ -149,8 +149,8 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 	return themeInfo
 }
 
-func collectThemeFiles(dirFS fs.ReadDirFS, fsPath string) (themes []*ThemeMetaInfo, _ error) {
-	files, err := dirFS.ReadDir(fsPath)
+func collectThemeFiles(dirFS fs.FS, fsPath string) (themes []*ThemeMetaInfo, _ error) {
+	files, err := fs.ReadDir(dirFS, fsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -170,12 +170,12 @@ func collectThemeFiles(dirFS fs.ReadDirFS, fsPath string) (themes []*ThemeMetaIn
 }
 
 func loadThemesFromAssets(isViteDevMode bool) (themeList []*ThemeMetaInfo, themeMap map[string]*ThemeMetaInfo) {
-	var themeDir fs.ReadDirFS
+	var themeDir fs.FS
 	var themePath string
 
 	if isViteDevMode {
 		// In vite dev mode, Vite serves themes directly from source files.
-		themeDir, themePath = os.DirFS(setting.StaticRootPath).(fs.ReadDirFS), "web_src/css/themes"
+		themeDir, themePath = os.DirFS(setting.StaticRootPath), "web_src/css/themes"
 	} else {
 		// Without vite dev server, use built assets from AssetFS.
 		themeDir, themePath = public.AssetFS(), "assets/css"

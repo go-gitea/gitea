@@ -3,9 +3,13 @@
 
 package v1_22
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIndexToPullAutoMergeDoerID(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIndexToPullAutoMergeDoerID(_ context.Context, x base.EngineMigration) error {
 	type PullAutoMerge struct {
 		DoerID int64 `xorm:"INDEX NOT NULL"`
 	}

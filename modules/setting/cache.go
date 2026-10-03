@@ -4,7 +4,7 @@
 package setting
 
 import (
-	"strings"
+	"math"
 	"time"
 
 	"gitea.dev/modules/log"
@@ -13,8 +13,8 @@ import (
 // Cache represents cache settings
 type Cache struct {
 	Adapter  string
-	Interval int
-	Conn     string
+	Interval int           // GC
+	Conn     string        `ini:"-"`
 	TTL      time.Duration `ini:"ITEM_TTL"`
 }
 
@@ -23,8 +23,7 @@ var CacheService = struct {
 	Cache `ini:"cache"`
 
 	LastCommit struct {
-		TTL          time.Duration `ini:"ITEM_TTL"`
-		CommitsCount int64
+		TTL time.Duration `ini:"ITEM_TTL"`
 	} `ini:"cache.last_commit"`
 }{
 	Cache: Cache{
@@ -33,16 +32,11 @@ var CacheService = struct {
 		TTL:      16 * time.Hour,
 	},
 	LastCommit: struct {
-		TTL          time.Duration `ini:"ITEM_TTL"`
-		CommitsCount int64
+		TTL time.Duration `ini:"ITEM_TTL"`
 	}{
-		TTL:          8760 * time.Hour,
-		CommitsCount: 1000,
+		TTL: 8760 * time.Hour,
 	},
 }
-
-// MemcacheMaxTTL represents the maximum memcache TTL
-const MemcacheMaxTTL = 30 * 24 * time.Hour
 
 func loadCacheFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("cache")
@@ -53,33 +47,30 @@ func loadCacheFrom(rootCfg ConfigProvider) {
 	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache", "twoqueue"})
 	switch CacheService.Adapter {
 	case "memory":
-	case "redis", "memcache":
-		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+	case "memcache":
+		CacheService.Conn = sec.Key("HOST").String()
+	case "redis":
+		CacheService.Conn = sec.Key("HOST").MustString(Redis.ConnStr)
 	case "twoqueue":
-		CacheService.Conn = strings.TrimSpace(sec.Key("HOST").String())
-		if CacheService.Conn == "" {
-			CacheService.Conn = "50000"
-		}
+		CacheService.Conn = sec.Key("HOST").MustString("50000")
 	default:
 		log.Fatal("Unknown cache adapter: %s", CacheService.Adapter)
 	}
-
-	sec = rootCfg.Section("cache.last_commit")
-	CacheService.LastCommit.CommitsCount = sec.Key("COMMITS_COUNT").MustInt64(1000)
 }
 
-// TTLSeconds returns the TTLSeconds or unix timestamp for memcache
+// TTLSeconds returns the item TTL in seconds, negative when ITEM_TTL disables caching
 func (c Cache) TTLSeconds() int64 {
-	if c.Adapter == "memcache" && c.TTL > MemcacheMaxTTL {
-		return time.Now().Add(c.TTL).Unix()
-	}
-	return int64(c.TTL.Seconds())
+	return ttlSeconds(c.TTL)
 }
 
-// LastCommitCacheTTLSeconds returns the TTLSeconds or unix timestamp for memcache
+// LastCommitCacheTTLSeconds returns the last commit item TTL in seconds, negative when ITEM_TTL disables caching
 func LastCommitCacheTTLSeconds() int64 {
-	if CacheService.Adapter == "memcache" && CacheService.LastCommit.TTL > MemcacheMaxTTL {
-		return time.Now().Add(CacheService.LastCommit.TTL).Unix()
+	return ttlSeconds(CacheService.LastCommit.TTL)
+}
+
+func ttlSeconds(ttl time.Duration) int64 {
+	if ttl < 0 {
+		return -1
 	}
-	return int64(CacheService.LastCommit.TTL.Seconds())
+	return int64(math.Ceil(ttl.Seconds()))
 }

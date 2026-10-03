@@ -12,121 +12,81 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-
-	"github.com/klauspost/cpuid/v2"
 )
 
 var tlsVersionStringMap = map[string]uint16{
-	"":        tls.VersionTLS12, // Default to tls.VersionTLS12
 	"tlsv1.0": tls.VersionTLS10,
 	"tlsv1.1": tls.VersionTLS11,
 	"tlsv1.2": tls.VersionTLS12,
 	"tlsv1.3": tls.VersionTLS13,
 }
 
+// toTLSVersion returns 0 when unset or unknown, which keeps the crypto/tls default
 func toTLSVersion(version string) uint16 {
-	tlsVersion, ok := tlsVersionStringMap[strings.TrimSpace(strings.ToLower(version))]
-	if !ok {
+	version = strings.TrimSpace(strings.ToLower(version))
+	tlsVersion, ok := tlsVersionStringMap[version]
+	if !ok && version != "" {
 		log.Warn("Unknown tls version: %s", version)
-		return 0
 	}
 	return tlsVersion
 }
 
 var curveStringMap = map[string]tls.CurveID{
-	"x25519": tls.X25519,
-	"p256":   tls.CurveP256,
-	"p384":   tls.CurveP384,
-	"p521":   tls.CurveP521,
+	"x25519":             tls.X25519,
+	"p256":               tls.CurveP256,
+	"p384":               tls.CurveP384,
+	"p521":               tls.CurveP521,
+	"mlkem1024":          tls.MLKEM1024,
+	"x25519mlkem768":     tls.X25519MLKEM768,
+	"secp256r1mlkem768":  tls.SecP256r1MLKEM768,
+	"secp384r1mlkem1024": tls.SecP384r1MLKEM1024,
 }
 
-func toCurvePreferences(preferences []string) []tls.CurveID {
-	ids := make([]tls.CurveID, 0, len(preferences))
-	for _, pref := range preferences {
-		id, ok := curveStringMap[strings.TrimSpace(strings.ToLower(pref))]
+// lookupAll resolves configured names, warning about and skipping the ones crypto/tls does not know
+func lookupAll[T comparable](names []string, table map[string]T, kind string) []T {
+	values := make([]T, 0, len(names))
+	for _, name := range names {
+		value, ok := table[strings.TrimSpace(strings.ToLower(name))]
 		if !ok {
-			log.Warn("Unknown curve: %s", pref)
+			log.Warn("Unknown %s: %s", kind, name)
+			continue
 		}
-		if id != 0 {
-			ids = append(ids, id)
-		}
+		values = append(values, value)
 	}
-	return ids
+	return values
 }
 
-var cipherStringMap = map[string]uint16{
-	"rsa_with_rc4_128_sha":                      tls.TLS_RSA_WITH_RC4_128_SHA,
-	"rsa_with_3des_ede_cbc_sha":                 tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-	"rsa_with_aes_128_cbc_sha":                  tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-	"rsa_with_aes_256_cbc_sha":                  tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-	"rsa_with_aes_128_cbc_sha256":               tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
-	"rsa_with_aes_128_gcm_sha256":               tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-	"rsa_with_aes_256_gcm_sha384":               tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-	"ecdhe_ecdsa_with_rc4_128_sha":              tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
-	"ecdhe_ecdsa_with_aes_128_cbc_sha":          tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-	"ecdhe_ecdsa_with_aes_256_cbc_sha":          tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-	"ecdhe_rsa_with_rc4_128_sha":                tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
-	"ecdhe_rsa_with_3des_ede_cbc_sha":           tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-	"ecdhe_rsa_with_aes_128_cbc_sha":            tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-	"ecdhe_rsa_with_aes_256_cbc_sha":            tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-	"ecdhe_ecdsa_with_aes_128_cbc_sha256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-	"ecdhe_rsa_with_aes_128_cbc_sha256":         tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-	"ecdhe_rsa_with_aes_128_gcm_sha256":         tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-	"ecdhe_ecdsa_with_aes_128_gcm_sha256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-	"ecdhe_rsa_with_aes_256_gcm_sha384":         tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	"ecdhe_ecdsa_with_aes_256_gcm_sha384":       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-	"ecdhe_rsa_with_chacha20_poly1305_sha256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-	"ecdhe_ecdsa_with_chacha20_poly1305_sha256": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-	"ecdhe_rsa_with_chacha20_poly1305":          tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-	"ecdhe_ecdsa_with_chacha20_poly1305":        tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-	"aes_128_gcm_sha256":                        tls.TLS_AES_128_GCM_SHA256,
-	"aes_256_gcm_sha384":                        tls.TLS_AES_256_GCM_SHA384,
-	"chacha20_poly1305_sha256":                  tls.TLS_CHACHA20_POLY1305_SHA256,
-}
+// cipherStringMap is derived from crypto/tls so that suites Go adds or removes are picked up automatically
+var cipherStringMap = buildCipherStringMap()
 
-func toTLSCiphers(cipherStrings []string) []uint16 {
-	ciphers := make([]uint16, 0, len(cipherStrings))
-	for _, cipherString := range cipherStrings {
-		cipher, ok := cipherStringMap[strings.TrimSpace(strings.ToLower(cipherString))]
-		if !ok {
-			log.Warn("Unknown cipher: %s", cipherString)
-		}
-		if cipher != 0 {
-			ciphers = append(ciphers, cipher)
-		}
+func buildCipherStringMap() map[string]uint16 {
+	ciphers := map[string]uint16{
+		// aliases for the two suites Go later renamed with a _SHA256 suffix
+		"ecdhe_rsa_with_chacha20_poly1305":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		"ecdhe_ecdsa_with_chacha20_poly1305": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 	}
-
+	for _, cipher := range append(tls.CipherSuites(), tls.InsecureCipherSuites()...) {
+		ciphers[strings.ToLower(strings.TrimPrefix(cipher.Name, "TLS_"))] = cipher.ID
+	}
 	return ciphers
 }
 
-// defaultCiphers uses hardware support to check if AES is specifically
-// supported by the CPU.
-//
-// If AES is supported AES ciphers will be preferred over ChaCha based ciphers
-// (This code is directly inspired by the certmagic code.)
-func defaultCiphers() []uint16 {
-	if cpuid.CPU.Supports(cpuid.AESNI) {
-		return defaultCiphersAESfirst
+// applyTLSSettings applies the configured [server] TLS options. Every option
+// left unset keeps the crypto/tls default, which Go keeps current.
+func applyTLSSettings(tlsConfig *tls.Config) *tls.Config {
+	// the listener is already TLS wrapped when it reaches http.Server, so it never sets ALPN for us
+	tlsConfig.NextProtos = append(tlsConfig.NextProtos, "h2", "http/1.1")
+	tlsConfig.MinVersion = toTLSVersion(setting.SSLMinimumVersion)
+	tlsConfig.MaxVersion = toTLSVersion(setting.SSLMaximumVersion)
+
+	if curves := lookupAll(setting.SSLCurvePreferences, curveStringMap, "curve"); len(curves) > 0 {
+		tlsConfig.CurvePreferences = curves
 	}
-	return defaultCiphersChaChaFirst
+	if ciphers := lookupAll(setting.SSLCipherSuites, cipherStringMap, "cipher suite"); len(ciphers) > 0 {
+		tlsConfig.CipherSuites = ciphers
+	}
+	return tlsConfig
 }
-
-var (
-	defaultCiphersAES = []uint16{
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-	}
-
-	defaultCiphersChaCha = []uint16{
-		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-	}
-
-	defaultCiphersAESfirst    = append(defaultCiphersAES, defaultCiphersChaCha...)
-	defaultCiphersChaChaFirst = append(defaultCiphersChaCha, defaultCiphersAES...)
-)
 
 // runHTTPS listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
@@ -136,33 +96,7 @@ var (
 // certFile should be the concatenation of the server's certificate followed by the
 // CA's certificate.
 func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handler, useProxyProtocol, proxyProtocolTLSBridging bool) error {
-	tlsConfig := &tls.Config{}
-	if tlsConfig.NextProtos == nil {
-		tlsConfig.NextProtos = []string{"h2", "http/1.1"}
-	}
-
-	if version := toTLSVersion(setting.SSLMinimumVersion); version != 0 {
-		tlsConfig.MinVersion = version
-	}
-	if version := toTLSVersion(setting.SSLMaximumVersion); version != 0 {
-		tlsConfig.MaxVersion = version
-	}
-
-	// Set curve preferences
-	tlsConfig.CurvePreferences = []tls.CurveID{
-		tls.X25519,
-		tls.CurveP256,
-	}
-	if curves := toCurvePreferences(setting.SSLCurvePreferences); len(curves) > 0 {
-		tlsConfig.CurvePreferences = curves
-	}
-
-	// Set cipher suites
-	tlsConfig.CipherSuites = defaultCiphers()
-	if ciphers := toTLSCiphers(setting.SSLCipherSuites); len(ciphers) > 0 {
-		tlsConfig.CipherSuites = ciphers
-	}
-
+	tlsConfig := applyTLSSettings(&tls.Config{})
 	tlsConfig.Certificates = make([]tls.Certificate, 1)
 
 	certPEMBlock, err := os.ReadFile(certFile)

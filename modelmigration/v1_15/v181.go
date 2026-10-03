@@ -4,12 +4,13 @@
 package v1_15
 
 import (
+	"context"
 	"strings"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddPrimaryEmail2EmailAddress(x base.EngineMigration) error {
+func AddPrimaryEmail2EmailAddress(_ context.Context, x base.EngineMigration) error {
 	type User struct {
 		ID       int64  `xorm:"pk autoincr"`
 		Email    string `xorm:"NOT NULL"`

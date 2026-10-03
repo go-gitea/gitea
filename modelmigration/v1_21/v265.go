@@ -3,9 +3,13 @@
 
 package v1_21
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AlterActionArtifactTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AlterActionArtifactTable(_ context.Context, x base.EngineMigration) error {
 	// ActionArtifact is a file that is stored in the artifact storage.
 	type ActionArtifact struct {
 		RunID        int64  `xorm:"index unique(runid_name_path)"` // The run id of the artifact

@@ -2,8 +2,15 @@ import {svg} from '../../svg.ts';
 import type EasyMDE from 'easymde';
 import type {ComboMarkdownEditor} from './ComboMarkdownEditor.ts';
 
-export function easyMDEToolbarActions(easyMde: typeof EasyMDE, editor: ComboMarkdownEditor): Record<string, Partial<EasyMDE.ToolbarIcon | string>> {
-  const actions: Record<string, Partial<EasyMDE.ToolbarIcon> | string> = {
+export type EasyMdeToolbarAction = {
+  name?: string,
+  action: EasyMDE.ToolbarIcon['action'],
+  icon: string,
+  title: string,
+} | '|';
+
+export function easyMDEToolbarActions(easyMde: typeof EasyMDE, editor: ComboMarkdownEditor): Record<string, EasyMdeToolbarAction> {
+  const actions: Record<string, EasyMdeToolbarAction> = {
     '|': '|',
     'heading-1': {
       action: easyMde.toggleHeading1,

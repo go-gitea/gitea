@@ -74,16 +74,18 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-// GrantAdditionalScopes returns valid scopes coming from grant
-func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
-	// scopes_supported from templates/user/auth/oidc_wellknown.tmpl
-	generalScopesSupported := []string{
+func GeneralScopesSupported() []string {
+	return []string{
 		"openid",
 		"profile",
 		"email",
 		"groups",
 	}
+}
 
+// GrantAdditionalScopes returns valid scopes coming from grant
+func GrantAdditionalScopes(grantScopes string) auth.AccessTokenScope {
+	generalScopesSupported := GeneralScopesSupported()
 	var accessScopes []string // the scopes for access control, but not for general information
 	for scope := range strings.SplitSeq(grantScopes, " ") {
 		if scope != "" && !slices.Contains(generalScopesSupported, scope) {

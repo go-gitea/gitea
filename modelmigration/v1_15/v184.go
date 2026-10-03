@@ -11,7 +11,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func RenameTaskErrorsToMessage(x base.EngineMigration) error {
+func RenameTaskErrorsToMessage(ctx context.Context, x base.EngineMigration) error {
 	type Task struct {
 		Errors string `xorm:"TEXT"` // if task failed, saved the error reason
 		Type   int
@@ -19,13 +19,13 @@ func RenameTaskErrorsToMessage(x base.EngineMigration) error {
 	}
 
 	// This migration maybe rerun so that we should check if it has been run
-	messageExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "task", "message")
+	messageExist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "task", "message")
 	if err != nil {
 		return err
 	}
 
 	if messageExist {
-		errorsExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "task", "errors")
+		errorsExist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "task", "errors")
 		if err != nil {
 			return err
 		}

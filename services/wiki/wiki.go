@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
@@ -21,6 +22,7 @@ import (
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -122,7 +124,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepositoryLocal(basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("failed to open new temporary repository in: %s %w", basePath, err)
@@ -281,7 +283,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepositoryLocal(basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("failed to open new temporary repository in: %s %w", basePath, err)
@@ -374,6 +376,8 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
+
+	audit.Record(ctx, audit_model.RepositoryWikiDelete, repo)
 
 	return nil
 }

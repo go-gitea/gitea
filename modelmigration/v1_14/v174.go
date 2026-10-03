@@ -4,12 +4,13 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddRepoTransfer(x base.EngineMigration) error {
+func AddRepoTransfer(_ context.Context, x base.EngineMigration) error {
 	type RepoTransfer struct {
 		ID          int64 `xorm:"pk autoincr"`
 		DoerID      int64

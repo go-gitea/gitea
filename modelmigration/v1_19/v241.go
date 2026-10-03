@@ -3,10 +3,14 @@
 
 package v1_19
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
+
+	"gitea.dev/modelmigration/base"
+)
 
 // AddCardTypeToProjectTable: add CardType column, setting existing rows to CardTypeTextOnly
-func AddCardTypeToProjectTable(x base.EngineMigration) error {
+func AddCardTypeToProjectTable(_ context.Context, x base.EngineMigration) error {
 	type Project struct {
 		CardType int `xorm:"NOT NULL DEFAULT 0"`
 	}

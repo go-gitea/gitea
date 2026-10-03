@@ -4,68 +4,126 @@
 package common
 
 import (
+	"archive/zip"
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/context"
+	context_module "gitea.dev/services/context"
 )
 
-func DownloadActionsRunJobLogsWithID(ctx *context.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {
+func openTaskLogs(ctx context.Context, task *actions_model.ActionTask) (io.ReadSeekCloser, error) {
+	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+	if errors.Is(err, fs.ErrNotExist) {
+		// convert fs err to our own error type so that the API can return a 404 instead of a 500
+		return nil, util.NewNotExistErrorf("unable to open task logs: %s", task.LogFilename)
+	}
+	return reader, err
+}
+
+func DownloadActionsRunJobLogsWithID(ctx *context_module.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {
 	job, err := actions_model.GetRunJobByRunAndID(ctx, runID, jobID)
 	if err != nil {
 		return err
 	}
-	if err := job.LoadRepo(ctx); err != nil {
-		return fmt.Errorf("LoadRepo: %w", err)
-	}
 	return DownloadActionsRunJobLogs(ctx, ctxRepo, job)
 }
 
-func DownloadActionsRunJobLogs(ctx *context.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) error {
-	if curJob.Repo.ID != ctxRepo.ID {
-		return util.NewNotExistErrorf("job not found")
+// DownloadActionsRunAllJobLogs assumes the run was already resolved against the requesting repository.
+func DownloadActionsRunAllJobLogs(ctx *context_module.Base, run *actions_model.ActionRun) error {
+	runJobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
+	if err != nil {
+		return fmt.Errorf("GetLatestAttemptJobsByRun: %w", err)
 	}
 
-	taskID := curJob.EffectiveTaskID()
-	if taskID == 0 {
-		return util.NewNotExistErrorf("job not started")
+	tasks, err := actions_model.GetTasksMapByIDs(ctx, container.FilterSlice(runJobs, func(job *actions_model.ActionRunJob) (int64, bool) {
+		taskID := job.EffectiveTaskID()
+		return taskID, taskID != 0
+	}))
+	if err != nil {
+		return fmt.Errorf("GetTasksMapByIDs: %w", err)
+	}
+
+	// Delay the headers until the first log opens, afterwards a failure can no longer reach
+	// the client, so the remaining entries are best-effort.
+	var zipWriter *zip.Writer
+	for _, job := range runJobs {
+		task := tasks[job.EffectiveTaskID()]
+		if task == nil || task.LogExpired {
+			continue
+		}
+
+		reader, err := openTaskLogs(ctx, task)
+		if err != nil {
+			log.Error("Failed to open logs of job %d: %v", job.ID, err)
+			continue
+		}
+
+		if zipWriter == nil {
+			ctx.SetServeHeaders(context_module.ServeHeaderOptions{
+				Filename:           util.FileNameJoinFields(util.PathBaseStem(run.WorkflowID), "run", run.ID, "logs", ".zip"),
+				ContentType:        "application/zip",
+				ContentDisposition: httplib.ContentDispositionAttachment,
+			})
+			zipWriter = zip.NewWriter(ctx.Resp)
+		}
+
+		zipFile, err := zipWriter.Create(util.FileNameJoinFields(util.PathBaseStem(run.WorkflowID), job.Name, task.ID, ".log"))
+		if err == nil {
+			_, err = io.Copy(zipFile, reader)
+		}
+		reader.Close()
+		if err != nil {
+			log.Error("Failed to add logs of job %d to zip: %v", job.ID, err)
+		}
+	}
+	if zipWriter == nil {
+		return util.NewNotExistErrorf("logs not found")
+	}
+	if err := zipWriter.Close(); err != nil {
+		log.Error("Failed to finalize logs zip of run %d: %v", run.ID, err)
+	}
+	return nil
+}
+
+func DownloadActionsRunJobLogs(ctx *context_module.Base, ctxRepo *repo_model.Repository, curJob *actions_model.ActionRunJob) error {
+	if curJob.RepoID != ctxRepo.ID {
+		return util.NewNotExistErrorf("job not found")
 	}
 
 	if err := curJob.LoadRun(ctx); err != nil {
 		return fmt.Errorf("LoadRun: %w", err)
 	}
 
+	taskID := curJob.EffectiveTaskID()
+	if taskID == 0 {
+		return util.NewNotExistErrorf("job not started")
+	}
 	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("GetTaskByID: %w", err)
 	}
-
 	if task.LogExpired {
 		return util.NewNotExistErrorf("logs have been cleaned up")
 	}
 
-	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
+	reader, err := openTaskLogs(ctx, task)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return util.NewNotExistErrorf("logs not found")
-		}
-		return fmt.Errorf("OpenLogs: %w", err)
+		return err
 	}
 	defer reader.Close()
 
-	workflowName := curJob.Run.WorkflowID
-	if p := strings.Index(workflowName, "."); p > 0 {
-		workflowName = workflowName[0:p]
-	}
-	ctx.ServeContent(reader, context.ServeHeaderOptions{
-		Filename:           fmt.Sprintf("%v-%v-%v.log", workflowName, curJob.Name, task.ID),
+	ctx.ServeContent(reader, context_module.ServeHeaderOptions{
+		Filename:           util.FileNameJoinFields(util.PathBaseStem(curJob.Run.WorkflowID), curJob.Name, task.ID, ".log"),
 		ContentLength:      &task.LogSize,
 		ContentType:        "text/plain; charset=utf-8",
 		ContentDisposition: httplib.ContentDispositionAttachment,

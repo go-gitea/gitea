@@ -1,13 +1,13 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, apiCreateRepo, apiCreateFile, randomString} from './utils.ts';
+import {login, apiCreateRepo, apiCreateFiles, randomString} from './utils.ts';
 
 test('create a pull request from the compare page', async ({page, request}) => {
   const repoName = `e2e-pr-create-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
   await Promise.all([
-    apiCreateFile(request, owner, repoName, 'feat.txt', 'feature content\n', {branch: 'main', newBranch: 'feat'}),
+    apiCreateFiles(request, owner, repoName, [{path: 'feat.txt', content: 'feature content\n'}], {branch: 'main', newBranch: 'feat'}),
     login(page),
   ]);
   // expand=1 renders the PR form directly, skipping the "New Pull Request" toggle click

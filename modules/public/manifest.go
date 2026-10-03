@@ -142,17 +142,19 @@ func AssetURI(srcPath string) string {
 // AssetCSSLinks renders the <link> tags for a JS entry's stylesheets: the entry's CSS plus the CSS
 // of every statically-imported chunk. Dev links devStylesheetSrc and lets the JS module inject the rest.
 func AssetCSSLinks(jsEntrySrc, devStylesheetSrc string) template.HTML {
+	if IsViteDevMode() {
+		// data-vite-dev-id makes Vite's HMR client skip injecting a duplicate <style> for this module
+		return template.HTML(`<link rel="stylesheet" href="` + html.EscapeString(devAssetURL(devStylesheetSrc)) +
+			`" data-vite-dev-id="` + html.EscapeString(viteDevModuleID(devStylesheetSrc)) + `">`)
+	}
 	var b strings.Builder
-	for _, href := range entryStyleURLs(jsEntrySrc, devStylesheetSrc) {
+	for _, href := range entryStyleURLs(jsEntrySrc) {
 		b.WriteString(`<link rel="stylesheet" href="` + html.EscapeString(href) + `">`)
 	}
 	return template.HTML(b.String())
 }
 
-func entryStyleURLs(jsEntrySrc, devStylesheetSrc string) []string {
-	if IsViteDevMode() {
-		return []string{devAssetURL(devStylesheetSrc)}
-	}
+func entryStyleURLs(jsEntrySrc string) []string {
 	entries := getManifestData().entries
 	var urls []string
 	seen := make(map[string]bool)

@@ -4,15 +4,16 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
 
 	"xorm.io/xorm"
 )
 
 // AddReusableWorkflowFieldsToActionRunJob adds the ActionRunJob columns that describe the reusable workflow caller hierarchy,
 // and the ActionRunAttemptJobIDIndex table backing run-wide AttemptJobID allocation.
-func AddReusableWorkflowFieldsToActionRunJob(x base.EngineMigration) error {
+func AddReusableWorkflowFieldsToActionRunJob(_ context.Context, x base.EngineMigration) error {
 	type ActionRunJob struct {
 		WorkflowSourceRepoID    int64  `xorm:"NOT NULL DEFAULT 0"`
 		WorkflowSourceCommitSHA string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
@@ -25,7 +26,7 @@ func AddReusableWorkflowFieldsToActionRunJob(x base.EngineMigration) error {
 		ReusableWorkflowContent []byte `xorm:"LONGBLOB"`
 	}
 
-	type ActionRunAttemptJobIDIndex db.ResourceIndex
+	type ActionRunAttemptJobIDIndex base.ResourceIndex
 
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRunJob)); err != nil {
 		return err

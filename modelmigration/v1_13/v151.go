@@ -16,7 +16,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-func SetDefaultPasswordToArgon2(x base.EngineMigration) error {
+func SetDefaultPasswordToArgon2(ctx context.Context, x base.EngineMigration) error {
 	switch {
 	case setting.Database.Type.IsMySQL():
 		_, err := x.Exec("ALTER TABLE `user` ALTER passwd_hash_algo SET DEFAULT 'argon2';")
@@ -91,7 +91,7 @@ func SetDefaultPasswordToArgon2(x base.EngineMigration) error {
 	tempTableName := "tmp_recreate__user"
 	column.Default = "'argon2'"
 
-	createTableSQL, _, err := x.Dialect().CreateTableSQL(context.Background(), x.DB(), table, tempTableName)
+	createTableSQL, _, err := x.Dialect().CreateTableSQL(ctx, x.DB(), table, tempTableName)
 	if err != nil {
 		return err
 	}

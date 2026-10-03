@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/util"
 )
 
@@ -50,7 +50,7 @@ type CatFileBatchCloser interface {
 // NewBatch creates a "batch object provider (CatFileBatch)" for the given repository path to retrieve object info and content efficiently.
 // The CatFileBatch and the readers create by it should only be used in the same goroutine.
 func NewBatch(ctx context.Context, repo RepositoryFacade) (CatFileBatchCloser, error) {
-	repoPath := gitcmd.RepoLocalPath(repo)
+	repoPath := gitrepo.RepoLocalPath(repo)
 	if _, err := os.Stat(repoPath); err != nil {
 		return nil, util.NewNotExistErrorf("repo %q doesn't exist", repo.LogString())
 	}

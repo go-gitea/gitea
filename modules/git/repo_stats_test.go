@@ -13,7 +13,7 @@ import (
 
 func TestRepository_GetCodeActivityStats(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -33,4 +33,8 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	assert.Equal(t, "tris.git@shoddynet.org", code.Authors[1].Email)
 	assert.EqualValues(t, 3, code.Authors[1].Commits)
 	assert.EqualValues(t, 5, code.Authors[0].Commits)
+
+	authors, err := GetCodeActivityAuthors(t.Context(), bareRepo1, timeFrom)
+	assert.NoError(t, err)
+	assert.Equal(t, code.Authors, authors)
 }

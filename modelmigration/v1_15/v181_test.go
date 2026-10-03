@@ -27,7 +27,7 @@ func Test_AddPrimaryEmail2EmailAddress(t *testing.T) {
 	}
 	defer deferable()
 
-	err := AddPrimaryEmail2EmailAddress(x)
+	err := AddPrimaryEmail2EmailAddress(t.Context(), x)
 	assert.NoError(t, err)
 
 	type EmailAddress struct {

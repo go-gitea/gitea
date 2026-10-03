@@ -4,6 +4,7 @@
 package v1_22
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -12,7 +13,7 @@ import (
 )
 
 // AddUniqueIndexForProjectIssue adds unique indexes for project issue table
-func AddUniqueIndexForProjectIssue(x base.EngineMigration) error {
+func AddUniqueIndexForProjectIssue(_ context.Context, x base.EngineMigration) error {
 	// remove possible duplicated records in table project_issue
 	type result struct {
 		IssueID   int64

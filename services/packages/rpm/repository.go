@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -23,7 +22,6 @@ import (
 	"gitea.dev/modules/json"
 	packages_module "gitea.dev/modules/packages"
 	rpm_module "gitea.dev/modules/packages/rpm"
-	"gitea.dev/modules/util"
 	packages_service "gitea.dev/services/packages"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
@@ -39,32 +37,7 @@ func GetOrCreateRepositoryVersion(ctx context.Context, ownerID int64) (*packages
 
 // GetOrCreateKeyPair gets or creates the PGP keys used to sign repository metadata files
 func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, error) {
-	priv, err := user_model.GetSetting(ctx, ownerID, rpm_module.SettingKeyPrivate)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	pub, err := user_model.GetSetting(ctx, ownerID, rpm_module.SettingKeyPublic)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		return "", "", err
-	}
-
-	if priv == "" || pub == "" {
-		priv, pub, err = generateKeypair()
-		if err != nil {
-			return "", "", err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, rpm_module.SettingKeyPrivate, priv); err != nil {
-			return "", "", err
-		}
-
-		if err := user_model.SetUserSetting(ctx, ownerID, rpm_module.SettingKeyPublic, pub); err != nil {
-			return "", "", err
-		}
-	}
-
-	return priv, pub, nil
+	return packages_service.GetOrCreateKeyPair(ctx, ownerID, rpm_module.SettingKeyPrivate, rpm_module.SettingKeyPublic, generateKeypair)
 }
 
 func generateKeypair() (string, string, error) {

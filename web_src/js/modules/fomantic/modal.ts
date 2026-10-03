@@ -1,4 +1,4 @@
-import type {FomanticInitFunction} from '../../types.ts';
+import type {FomanticInitFunction, JQueryElem} from '../../types.ts';
 import {queryElems} from '../../utils/dom.ts';
 import {hideToastsFrom} from '../toast.ts';
 
@@ -36,7 +36,7 @@ export function initAriaModalPatch() {
 
 // the patched `$.fn.modal` modal function
 // * it does the one-time attaching on the first call
-function ariaModalFn(this: any, ...args: Parameters<FomanticInitFunction>) {
+function ariaModalFn(this: JQueryElem, ...args: Parameters<FomanticInitFunction>) {
   const ret = fomanticModalFn.apply(this, args);
   if (args[0] === 'show' || args[0]?.autoShow) {
     for (const el of this) {
@@ -52,7 +52,7 @@ function ariaModalFn(this: any, ...args: Parameters<FomanticInitFunction>) {
   return ret;
 }
 
-function onModalBeforeHidden(this: any) {
+function onModalBeforeHidden(this: HTMLElement) {
   const $modal = $(this);
   const elModal = $modal[0];
   hideToastsFrom(elModal.closest('.ui.dimmer') ?? document.body);
@@ -63,12 +63,12 @@ function onModalBeforeHidden(this: any) {
   }, 0);
 }
 
-function onModalApproveDefault(this: any) {
+function onModalApproveDefault(this: HTMLElement) {
   const $modal = $(this);
   const selectors = $modal.modal('setting', 'selector');
   const elModal = $modal[0];
-  const elApprove = elModal.querySelector(selectors.approve);
-  const elForm = elApprove?.closest('form');
+  const elApprove = elModal.querySelector<HTMLElement>(selectors.approve);
+  const elForm = elApprove?.closest<HTMLFormElement>('form');
   if (!elForm) return true; // no form, just allow closing the modal
 
   // "form-fetch-action" can handle network errors gracefully,
@@ -78,6 +78,7 @@ function onModalApproveDefault(this: any) {
   // There is an abuse for the "modal" + "form" combination, the "Approve" button is a traditional form submit button in the form.
   // Then "approve" and "submit" occur at the same time, the modal will be closed immediately before the form is submitted.
   // So here we prevent the modal from closing automatically by returning false, add the "is-loading" class to the form element.
+  if (!elForm.reportValidity()) return false;
   elForm.classList.add('is-loading');
   return false;
 }

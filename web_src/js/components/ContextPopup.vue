@@ -1,8 +1,10 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {getIssueColorClass, getIssueIcon} from '../features/issue.ts';
 import {computed} from 'vue';
 import type {Issue} from '../types.ts';
+
+const {appSubUrl} = window.config;
 
 const props = defineProps<{
   issue?: Issue | null,
@@ -26,7 +28,7 @@ const body = computed(() => {
   <div class="tw-p-4">
     <div v-if="issue" class="tw-flex tw-flex-col tw-gap-2">
       <div class="tw-text-12">
-        <a :href="issue.repository.html_url" class="muted">{{ issue.repository.full_name }}</a>
+        <a :href="`${appSubUrl}/${issue.repository.full_name}`" class="muted">{{ issue.repository.full_name }}</a>
         on {{ createdAt }}
       </div>
       <div class="flex-text-block">

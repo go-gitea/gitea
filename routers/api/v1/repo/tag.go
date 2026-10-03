@@ -194,7 +194,7 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
-	form := web.GetForm(ctx).(*api.CreateTagOption)
+	form := web.GetForm[*api.CreateTagOption](ctx)
 
 	// If target is not provided use default branch
 	if len(form.Target) == 0 {
@@ -411,7 +411,7 @@ func CreateTagProtection(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateTagProtectionOption)
+	form := web.GetForm[*api.CreateTagProtectionOption](ctx)
 	repo := ctx.Repo.Repository
 
 	namePattern := strings.TrimSpace(form.NamePattern)
@@ -522,7 +522,7 @@ func EditTagProtection(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	repo := ctx.Repo.Repository
-	form := web.GetForm(ctx).(*api.EditTagProtectionOption)
+	form := web.GetForm[*api.EditTagProtectionOption](ctx)
 
 	id := ctx.PathParamInt64("id")
 	pt, err := git_model.GetProtectedTagByID(ctx, id)

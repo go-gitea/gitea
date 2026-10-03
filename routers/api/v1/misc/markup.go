@@ -4,8 +4,9 @@
 package misc
 
 import (
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/markdown"
+	"io"
+
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -33,7 +34,7 @@ func Markup(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.MarkupOption)
+	form := web.GetForm[*api.MarkupOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }
@@ -58,7 +59,7 @@ func Markdown(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.MarkdownOption)
+	form := web.GetForm[*api.MarkdownOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, "")
 }
@@ -84,9 +85,6 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//     "$ref": "#/responses/MarkdownRender"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	defer ctx.Req.Body.Close()
-	if err := markdown.RenderRaw(markup.NewRenderContext(ctx), ctx.Req.Body, ctx.Resp); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	textBytes, _ := io.ReadAll(io.LimitReader(ctx.Req.Body, setting.UI.MaxDisplayFileSize))
+	common.RenderMarkup(ctx.Base, ctx.Repo, "markdown", util.UnsafeBytesToString(textBytes), "", "")
 }

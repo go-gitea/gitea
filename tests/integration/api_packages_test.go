@@ -29,6 +29,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPackageCleanupRuleDuplicateType(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	session := loginUser(t, user.Name)
+
+	// Create the first cleanup rule for the generic package type.
+	req := NewRequestWithValues(t, "POST", "/user/settings/packages/rules/add", map[string]string{
+		"type":        "generic",
+		"action":      "save",
+		"keep_count":  "0",
+		"remove_days": "0",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Try to create another cleanup rule for the same package type.
+	req = NewRequestWithValues(t, "POST", "/user/settings/packages/rules/add", map[string]string{
+		"type":        "generic",
+		"action":      "save",
+		"keep_count":  "0",
+		"remove_days": "0",
+	})
+
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "A cleanup rule for this package type already exists.")
+}
+
 func TestPackageAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -266,7 +293,8 @@ func TestPackageAccess(t *testing.T) {
 	limitedOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
 	publicOrgNoMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
-	uploadPackage := func(doer, owner *user_model.User, filename string, expectedStatus int) {
+	uploadPackage := func(t *testing.T, doer, owner *user_model.User, filename string, expectedStatus int) {
+		t.Helper()
 		url := fmt.Sprintf("/api/packages/%s/generic/test-package/1.0/%s.bin", owner.Name, filename)
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{1}))
 		if doer != nil {
@@ -368,8 +396,10 @@ func TestPackageAccess(t *testing.T) {
 		}
 
 		for _, c := range cases {
-			for _, t := range c.Targets {
-				uploadPackage(c.Doer, t.Owner, c.Filename, t.ExpectedStatus)
+			for _, target := range c.Targets {
+				t.Run(fmt.Sprintf("%s-%s", c.Filename, target.Owner.Name), func(t *testing.T) {
+					uploadPackage(t, c.Doer, target.Owner, c.Filename, target.ExpectedStatus)
+				})
 			}
 		}
 	})

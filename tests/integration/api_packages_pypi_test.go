@@ -20,6 +20,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackagePyPI(t *testing.T) {
@@ -86,8 +87,9 @@ func TestPackagePyPI(t *testing.T) {
 		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.Nil(t, pd.SemVer)
-		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
-		assert.Equal(t, projectURL, pd.Metadata.(*pypi.Metadata).ProjectURL)
+		metadata, ok := pd.Metadata.(*pypi.Metadata)
+		require.True(t, ok)
+		assert.Equal(t, projectURL, metadata.ProjectURL)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
 
@@ -165,8 +167,9 @@ func TestPackagePyPI(t *testing.T) {
 
 		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
-		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
-		assert.Equal(t, projectURL, pd.Metadata.(*pypi.Metadata).ProjectURL)
+		metadata, ok := pd.Metadata.(*pypi.Metadata)
+		require.True(t, ok)
+		assert.Equal(t, projectURL, metadata.ProjectURL)
 	})
 
 	t.Run("UploadWithoutAnyHomepageURLMetadata", func(t *testing.T) {
@@ -185,8 +188,9 @@ func TestPackagePyPI(t *testing.T) {
 
 		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
-		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
-		assert.Empty(t, pd.Metadata.(*pypi.Metadata).ProjectURL)
+		metadata, ok := pd.Metadata.(*pypi.Metadata)
+		require.True(t, ok)
+		assert.Empty(t, metadata.ProjectURL)
 	})
 
 	t.Run("Download", func(t *testing.T) {

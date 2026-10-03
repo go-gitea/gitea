@@ -26,22 +26,15 @@ func compareCommitFiles(t *testing.T, expect []string, files []*api.CommitAffect
 
 func TestAPIReposGitCommits(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// Login as User2.
-	session := loginUser(t, user.Name)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// check invalid requests
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/12345", user.Name).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/..", user.Name).
-		AddTokenAuth(token)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/..", user2.Name).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/branch-not-exist", user.Name).
-		AddTokenAuth(token)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/ref-not-exist", user2.Name).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	for _, ref := range [...]string{
@@ -50,8 +43,10 @@ func TestAPIReposGitCommits(t *testing.T) {
 		"65f1",   // short sha
 		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // full sha
 	} {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/%s", user.Name, ref).
-			AddTokenAuth(token)
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/git/commits/%s", user2.Name, ref).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+		// GitHub-compatible
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s", user2.Name, ref).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 	}
 }

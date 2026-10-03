@@ -3,9 +3,13 @@
 
 package v1_20
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddPinOrderToIssue(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddPinOrderToIssue(_ context.Context, x base.EngineMigration) error {
 	type Issue struct {
 		PinOrder int `xorm:"DEFAULT 0"`
 	}

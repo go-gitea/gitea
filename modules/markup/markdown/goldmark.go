@@ -7,8 +7,11 @@ import (
 	"fmt"
 
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/markup/markdown/math"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -41,8 +44,8 @@ func (g *ASTTransformer) applyElementDir(n ast.Node) {
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
-	rc := pc.Get(renderConfigKey).(*RenderConfig)
+	ctx := pc.Get(renderContextKey).(*markup.RenderContext) //nolint:forcetypeassert // the renderer always seeds this key before parsing
+	rc := pc.Get(renderConfigKey).(*RenderConfig)           //nolint:forcetypeassert // the renderer always seeds this key before parsing
 
 	tocMode := ""
 	if rc.yamlNode != nil {
@@ -51,6 +54,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			node.InsertBefore(node, firstChild, metaNode)
 		}
 		tocMode = rc.TOC
+	}
+	if ctx.RenderOptions.FeedExcerpt {
+		filterFeedExcerpt(node)
 	}
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -94,6 +100,25 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	}
 }
 
+func filterFeedExcerpt(parent ast.Node) {
+	for node := parent.FirstChild(); node != nil; {
+		next := node.NextSibling()
+		switch node.Kind() {
+		case ast.KindText, ast.KindAutoLink, math.KindInline:
+		case ast.KindParagraph, ast.KindHeading, ast.KindTextBlock, ast.KindBlockquote, ast.KindList, ast.KindListItem,
+			ast.KindEmphasis, ast.KindCodeSpan, ast.KindLink,
+			east.KindStrikethrough, east.KindDefinitionList, east.KindDefinitionTerm, east.KindDefinitionDescription:
+			filterFeedExcerpt(node)
+			if !node.HasChildren() {
+				parent.RemoveChild(parent, node)
+			}
+		default:
+			parent.RemoveChild(parent, node)
+		}
+		node = next
+	}
+}
+
 // NewHTMLRenderer creates a HTMLRenderer to render in the gitea form.
 func NewHTMLRenderer(renderInternal *internal.RenderInternal, opts ...html.Option) renderer.NodeRenderer {
 	r := &HTMLRenderer{
@@ -129,7 +154,8 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 // renderCodeBlock wraps indented code blocks like the fenced renderer
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		opening := r.renderInternal.ProtectSafeAttrs(`<div class="code-block-container code-overflow-scroll"><pre class="code-block"><code>`)
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes("") // no language
+		opening := r.renderInternal.ProtectSafeAttrs(htmlutil.HTMLFormat(`<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs))
 		if _, err := w.WriteString(string(opening)); err != nil {
 			return ast.WalkStop, err
 		}
@@ -147,9 +173,7 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 }
 
 func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.Document)
-
-	if val, has := n.AttributeString("lang"); has {
+	if val, has := node.AttributeString("lang"); has {
 		var err error
 		if entering {
 			_, err = w.WriteString("<div")
@@ -209,7 +233,7 @@ func (r *HTMLRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.N
 	if !entering {
 		return ast.WalkContinue, nil
 	}
-	n := node.(*RawHTML)
+	n := node.(*RawHTML) //nolint:forcetypeassert // registered for KindRawHTML only
 	_, err := w.WriteString(string(r.renderInternal.ProtectSafeAttrs(n.rawHTML)))
 	if err != nil {
 		return ast.WalkStop, err

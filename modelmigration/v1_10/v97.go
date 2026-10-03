@@ -3,9 +3,13 @@
 
 package v1_10
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddRepoAdminChangeTeamAccessColumnForUser(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddRepoAdminChangeTeamAccessColumnForUser(_ context.Context, x base.EngineMigration) error {
 	type User struct {
 		RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
 	}

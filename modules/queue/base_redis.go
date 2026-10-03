@@ -16,6 +16,7 @@ import (
 )
 
 type baseRedis struct {
+	*baseQueueNotifiable
 	client   redis.UniversalClient
 	isUnique bool
 	cfg      *BaseConfig
@@ -23,7 +24,10 @@ type baseRedis struct {
 	mu sync.Mutex // the old implementation is not thread-safe, the queue operation and set operation should be protected together
 }
 
-var _ baseQueue = (*baseRedis)(nil)
+var (
+	_ baseQueue                    = (*baseRedis)(nil)
+	_ baseQueueNotifiableInterface = (*baseRedis)(nil)
+)
 
 func newBaseRedisGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
 	client := nosql.GetManager().GetRedisClient(cfg.ConnStr)
@@ -41,7 +45,7 @@ func newBaseRedisGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
 		return nil, err
 	}
 
-	return &baseRedis{cfg: cfg, client: client, isUnique: unique}, nil
+	return &baseRedis{cfg: cfg, client: client, isUnique: unique, baseQueueNotifiable: newBaseQueueNotifiable()}, nil
 }
 
 func newBaseRedisSimple(cfg *BaseConfig) (baseQueue, error) {
@@ -53,33 +57,38 @@ func newBaseRedisUnique(cfg *BaseConfig) (baseQueue, error) {
 }
 
 func (q *baseRedis) PushItem(ctx context.Context, data []byte) error {
-	return backoffErr(ctx, backoffBegin, backoffUpper, time.After(pushBlockTime), func() (retry bool, err error) {
+	_, err := backoffCall(ctx, backoffOptionsDefault(noNotifyChan, time.After(pushBlockTime)), func() (retry bool, ret any, err error) {
 		q.mu.Lock()
 		defer q.mu.Unlock()
 
 		cnt, err := q.client.LLen(ctx, q.cfg.QueueFullName).Result()
 		if err != nil {
-			return false, err
+			return false, nil, err
 		}
 		if int(cnt) >= q.cfg.Length {
-			return true, nil
+			return true, nil, nil
 		}
 
 		if q.isUnique {
 			added, err := q.client.SAdd(ctx, q.cfg.SetFullName, data).Result()
 			if err != nil {
-				return false, err
+				return false, nil, err
 			}
 			if added == 0 {
-				return false, ErrAlreadyInQueue
+				return false, nil, ErrAlreadyInQueue
 			}
 		}
-		return false, q.client.RPush(ctx, q.cfg.QueueFullName, data).Err()
+		retry, err = false, q.client.RPush(ctx, q.cfg.QueueFullName, data).Err()
+		if err == nil {
+			q.notifyPushItem()
+		}
+		return retry, nil, err
 	})
+	return err
 }
 
 func (q *baseRedis) PopItem(ctx context.Context) ([]byte, error) {
-	return backoffRetErr(ctx, backoffBegin, backoffUpper, infiniteTimerC, func() (retry bool, data []byte, err error) {
+	return backoffCall(ctx, backoffOptionsDefault(q.notifySignal, infiniteTimerC), func() (retry bool, data []byte, err error) {
 		q.mu.Lock()
 		defer q.mu.Unlock()
 

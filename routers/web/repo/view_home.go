@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -17,9 +18,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/citation"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -34,23 +37,16 @@ func checkOutdatedBranch(ctx *context.Context) {
 	if !(ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.IsOwner()) {
 		return
 	}
-
-	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.BranchName)
-	if err != nil {
-		log.Error("GetBranchCommitID: %v", err)
-		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+	if !ctx.Repo.RefFullName.IsBranch() {
 		return
 	}
 
-	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	dbBranch, err := git_model.GetBranchExisting(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.ShortName())
 	if err != nil {
-		log.Error("GetBranch: %v", err)
-		// Don't return an error page, as it can be rechecked the next time the user opens the page.
-		return
+		return // ignore the error which can only be "not exists"
 	}
 
-	if dbBranch.CommitID != commit.ID.String() {
+	if dbBranch.CommitID != ctx.Repo.CommitID {
 		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
 	}
 }
@@ -100,44 +96,77 @@ func prepareClonePanel(ctx *context.Context) {
 	}
 }
 
-func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
-	return func(ctx *context.Context) {
-		if entry.Name() != "" {
-			return
+func prepareHomeSidebarCitationFile(ctx *context.Context) {
+	allEntries, err := ctx.Repo.Commit.Tree().ListEntries(ctx, ctx.Repo.GitRepo)
+	if err != nil {
+		ctx.ServerError("ListEntries", err)
+		return
+	}
+	isBlob := func(entry *git.TreeEntry) bool { return !entry.IsDir() && !entry.IsSubModule() }
+	for _, name := range []string{"CITATION.cff", "CITATION.bib"} {
+		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool { return isBlob(entry) && strings.EqualFold(entry.Name(), name) })
+		if idx == -1 {
+			continue
 		}
-		tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
-		if err != nil {
-			HandleGitError(ctx, "Repo.Commit.SubTree", err)
-			return
-		}
-		allEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
-		if err != nil {
-			ctx.ServerError("ListEntries", err)
-			return
-		}
-		for _, entry := range allEntries {
-			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
-				// Read Citation file contents
-				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
-					log.Error("checkCitationFile: GetBlobContent: %v", err)
-				} else {
-					ctx.Data["CitiationExist"] = true
-					ctx.PageData["citationFileContent"] = content
-					break
-				}
+		entry := allEntries[idx]
+		if entry.IsLink() {
+			res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, entry.Name(), entry)
+			if err != nil || !isBlob(res.TargetEntry) {
+				continue
 			}
+			entry = res.TargetEntry
+		}
+		content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
+		if err != nil {
+			log.Error("prepareHomeSidebarCitationFile: GetBlobContent: %v", err)
+			continue
+		}
+		if pointer, _ := lfs.ReadPointerFromBuffer([]byte(content)); pointer.IsValid() {
+			continue
+		}
+		apa, bibtex := "", content
+		if name == "CITATION.cff" {
+			apa, bibtex = citation.FormatCFF(content)
+		}
+		if bibtex != "" {
+			ctx.Data["CitationFileName"] = allEntries[idx].Name()
+			ctx.Data["CitationAPA"] = apa
+			ctx.Data["CitationBibTeX"] = bibtex
+			return
 		}
 	}
 }
 
+type licenseGroup struct {
+	LicensePath  string
+	LicenseNames []string
+}
+
 func prepareHomeSidebarLicenses(ctx *context.Context) {
-	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
+	repoLicenses, err := repo_model.GetUniqueRepoLicenses(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoLicenses", err)
 		return
 	}
-	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
+	if len(repoLicenses) == 0 {
+		return
+	}
+
+	order := make([]string, 0)
+	groups := make(map[string]*licenseGroup)
+	for _, rl := range repoLicenses {
+		if _, ok := groups[rl.LicensePath]; !ok {
+			groups[rl.LicensePath] = &licenseGroup{LicensePath: rl.LicensePath}
+			order = append(order, rl.LicensePath)
+		}
+		groups[rl.LicensePath].LicenseNames = append(groups[rl.LicensePath].LicenseNames, rl.License)
+	}
+
+	result := make([]licenseGroup, 0, len(order))
+	for _, path := range order {
+		result = append(result, *groups[path])
+	}
+	ctx.Data["LicenseGroups"] = result
 }
 
 func prepareToRenderDirectory(ctx *context.Context) {
@@ -446,16 +475,16 @@ func Home(ctx *context.Context) {
 	prepareFuncs := []func(*context.Context){
 		prepareClonePanel,
 		prepareHomeSidebarRepoTopics,
-		checkOutdatedBranch,
 		prepareToRenderDirOrFile(entry),
 		prepareRecentlyPushedNewBranches,
 	}
 
 	if isTreePathRoot {
 		prepareFuncs = append(prepareFuncs,
+			checkOutdatedBranch,
 			prepareUpstreamDivergingInfo,
 			prepareHomeSidebarLicenses,
-			prepareHomeSidebarCitationFile(entry),
+			prepareHomeSidebarCitationFile,
 			prepareHomeSidebarLanguageStats,
 			prepareHomeSidebarLatestRelease,
 		)

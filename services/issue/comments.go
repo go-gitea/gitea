@@ -30,7 +30,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 	}
 
 	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, repo.OwnerID) {
-		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, repo, doer); !isAdmin {
+		if !access_model.IsUserRepoAdmin(ctx, repo, doer) {
 			return user_model.ErrBlockedUser
 		}
 	}
@@ -61,7 +61,7 @@ func CreateRefComment(ctx context.Context, doer *user_model.User, repo *repo_mod
 // CreateIssueComment creates a plain issue comment.
 func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content string, attachments []string) (*issues_model.Comment, error) {
 	if user_model.IsUserBlockedBy(ctx, doer, issue.PosterID, repo.OwnerID) {
-		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, repo, doer); !isAdmin {
+		if !access_model.IsUserRepoAdmin(ctx, repo, doer) {
 			return nil, user_model.ErrBlockedUser
 		}
 	}
@@ -104,7 +104,7 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 	}
 
 	if user_model.IsUserBlockedBy(ctx, doer, c.Issue.PosterID, c.Issue.Repo.OwnerID) {
-		if isAdmin, _ := access_model.IsUserRepoAdmin(ctx, c.Issue.Repo, doer); !isAdmin {
+		if !access_model.IsUserRepoAdmin(ctx, c.Issue.Repo, doer) {
 			return user_model.ErrBlockedUser
 		}
 	}

@@ -4,6 +4,7 @@
 package v1_14
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -12,7 +13,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func UpdateCodeCommentReplies(x base.EngineMigration) error {
+func UpdateCodeCommentReplies(_ context.Context, x base.EngineMigration) error {
 	type Comment struct {
 		ID          int64  `xorm:"pk autoincr"`
 		CommitSHA   string `xorm:"VARCHAR(40)"`

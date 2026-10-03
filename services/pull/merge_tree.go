@@ -54,7 +54,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
 	}
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo)
+	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -65,7 +65,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if pr.IsSameRepo() {
 		baseGitRepo = headGitRepo
 	} else {
-		baseGitRepo, err = git.OpenRepository(pr.BaseRepo)
+		baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}

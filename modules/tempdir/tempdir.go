@@ -56,7 +56,7 @@ func (td *TempDir) MkdirTempRandom(elems ...string) (string, func(), error) {
 		return "", nil, err
 	}
 	return dir, func() {
-		if err := util.RemoveAll(dir); err != nil {
+		if err := util.RemoveAllWithRetry(dir); err != nil {
 			log.Error("Failed to remove temp directory %s: %v", dir, err)
 		}
 	}, nil
@@ -75,7 +75,7 @@ func (td *TempDir) CreateTempFileRandom(elems ...string) (*os.File, func(), erro
 	filename := f.Name()
 	return f, func() {
 		_ = f.Close()
-		if err := util.Remove(filename); err != nil {
+		if err := util.RemoveWithRetry(filename); err != nil {
 			log.Error("Unable to remove temporary file: %s: Error: %v", filename, err)
 		}
 	}, err

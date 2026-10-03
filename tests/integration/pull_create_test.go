@@ -55,7 +55,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSel
 
 	// Submit the form for creating the pull
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	link, exists = htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists = htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title": title,
@@ -98,7 +98,7 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, opts createPullR
 
 	// Submit the form for creating the pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	params := map[string]string{
 		"title": opts.Title,
@@ -125,7 +125,7 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 
 	// Submit the form for creating the pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title": title,
@@ -187,7 +187,7 @@ func testUIDeleteBranch(t *testing.T, session *TestSession, ownerName, repoName,
 func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoName string) {
 	relURL := "/" + path.Join(ownerName, repoName, "settings")
 	req := NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
-		"repo_name": repoName,
+		"repo_name": ownerName + "/" + repoName,
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)

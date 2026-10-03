@@ -4,6 +4,7 @@
 package v1_10
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 
@@ -14,7 +15,7 @@ func hashContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 
-func AddCommitStatusContext(x base.EngineMigration) error {
+func AddCommitStatusContext(_ context.Context, x base.EngineMigration) error {
 	type CommitStatus struct {
 		ID          int64  `xorm:"pk autoincr"`
 		ContextHash string `xorm:"char(40) index"`

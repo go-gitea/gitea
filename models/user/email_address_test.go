@@ -150,58 +150,22 @@ func TestListEmails(t *testing.T) {
 }
 
 func TestEmailAddressValidate(t *testing.T) {
-	kases := map[string]error{
-		"abc@gmail.com":                  nil,
-		"132@hotmail.com":                nil,
-		"1-3-2@test.org":                 nil,
-		"1.3.2@test.org":                 nil,
-		"a_123@test.org.cn":              nil,
-		`first.last@iana.org`:            nil,
-		`first!last@iana.org`:            nil,
-		`first#last@iana.org`:            nil,
-		`first$last@iana.org`:            nil,
-		`first%last@iana.org`:            nil,
-		`first&last@iana.org`:            nil,
-		`first'last@iana.org`:            nil,
-		`first*last@iana.org`:            nil,
-		`first+last@iana.org`:            nil,
-		`first/last@iana.org`:            nil,
-		`first=last@iana.org`:            nil,
-		`first?last@iana.org`:            nil,
-		`first^last@iana.org`:            nil,
-		"first`last@iana.org":            nil,
-		`first{last@iana.org`:            nil,
-		`first|last@iana.org`:            nil,
-		`first}last@iana.org`:            nil,
-		`first~last@iana.org`:            nil,
-		`first;last@iana.org`:            user_model.ErrEmailCharIsNotSupported{`first;last@iana.org`},
-		".233@qq.com":                    user_model.ErrEmailInvalid{".233@qq.com"},
-		"!233@qq.com":                    nil,
-		"#233@qq.com":                    nil,
-		"$233@qq.com":                    nil,
-		"%233@qq.com":                    nil,
-		"&233@qq.com":                    nil,
-		"'233@qq.com":                    nil,
-		"*233@qq.com":                    nil,
-		"+233@qq.com":                    nil,
-		"-233@qq.com":                    user_model.ErrEmailInvalid{"-233@qq.com"},
-		"/233@qq.com":                    nil,
-		"=233@qq.com":                    nil,
-		"?233@qq.com":                    nil,
-		"^233@qq.com":                    nil,
-		"_233@qq.com":                    nil,
-		"`233@qq.com":                    nil,
-		"{233@qq.com":                    nil,
-		"|233@qq.com":                    nil,
-		"}233@qq.com":                    nil,
-		"~233@qq.com":                    nil,
-		";233@qq.com":                    user_model.ErrEmailCharIsNotSupported{";233@qq.com"},
-		"Foo <foo@bar.com>":              user_model.ErrEmailCharIsNotSupported{"Foo <foo@bar.com>"},
-		string([]byte{0xE2, 0x84, 0xAA}): user_model.ErrEmailCharIsNotSupported{string([]byte{0xE2, 0x84, 0xAA})},
+	cases := map[string]bool{
+		"":                   false,
+		"root@localhost":     true,
+		"user@[192.168.1.2]": true,
+		"@a":                 false,
+		"abc@gmail.com":      true,
+		"abc@gmail.com\n":    false,
+		"Foo <foo@bar.com>":  false,
+		"abc@gmail.com (x)":  false,
+		"jürgen@example.com": false,
+		"a@foo_bar.com":      false,
 	}
-	for kase, err := range kases {
-		t.Run(kase, func(t *testing.T) {
-			assert.Equal(t, err, user_model.ValidateEmail(kase))
+	for tc, isValid := range cases {
+		t.Run(tc, func(t *testing.T) {
+			err := user_model.ValidateEmail(tc)
+			assert.Equal(t, err == nil, isValid)
 		})
 	}
 }

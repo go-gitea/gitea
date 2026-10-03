@@ -4,12 +4,13 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddOrgIDLabelColumn(x base.EngineMigration) error {
+func AddOrgIDLabelColumn(_ context.Context, x base.EngineMigration) error {
 	type Label struct {
 		OrgID int64 `xorm:"INDEX"`
 	}

@@ -47,7 +47,7 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
 	defer deferrable()
 
-	require.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
+	require.NoError(t, UseLongTextInSomeColumnsAndFixBugs(t.Context(), x))
 
 	tables := migrationtest.LoadTableSchemasMap(t, x)
 	table := tables["review_state"]

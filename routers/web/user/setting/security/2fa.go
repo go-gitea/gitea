@@ -12,12 +12,14 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
@@ -57,6 +59,8 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.UserTwoFactorRegenerate, ctx.Doer, "two_factor_id", t.ID)
+
 	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
@@ -93,6 +97,8 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.UserTwoFactorDisable, ctx.Doer, "two_factor_id", t.ID)
+
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
@@ -100,16 +106,15 @@ func DisableTwoFactor(ctx *context.Context) {
 func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	var otpKey *otp.Key
 	var err error
-	uri := ctx.Session.Get("twofaUri")
-	if uri != nil {
-		otpKey, err = otp.NewKeyFromURL(uri.(string))
+	if uri, ok := ctx.Session.Get("twofaUri").(string); ok {
+		otpKey, err = otp.NewKeyFromURL(uri)
 		if err != nil {
 			ctx.ServerError("SettingsTwoFactor: Failed NewKeyFromURL: ", err)
 			return false
 		}
 	}
 	// Filter unsafe character ':' in issuer
-	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.Domain+")", ":", "")
+	issuer := strings.ReplaceAll(setting.AppName+" ("+setting.AppDomain+")", ":", "")
 	if otpKey == nil {
 		otpKey, err = totp.Generate(totp.GenerateOpts{
 			SecretSize:  40,
@@ -193,7 +198,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
+	form := web.GetForm[*forms.TwoFactorAuthForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
@@ -218,14 +223,13 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	secretRaw := ctx.Session.Get("twofaSecret")
-	if secretRaw == nil {
+	secret, ok := ctx.Session.Get("twofaSecret").(string)
+	if !ok {
 		ctx.Flash.Error(ctx.Tr("settings.twofa_failed_get_secret"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
 		return
 	}
 
-	secret := secretRaw.(string)
 	if !totp.Validate(form.Passcode, secret) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return
@@ -274,6 +278,8 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", newTwoFactorErr)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserTwoFactorEnable, ctx.Doer)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")

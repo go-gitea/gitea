@@ -1,6 +1,7 @@
 import {contrastColor} from '../utils/color.ts';
 import {createSortable} from '../modules/sortable.ts';
-import {POST, request} from '../modules/fetch.ts';
+import {POST} from '../modules/fetch.ts';
+import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {hideFomanticModal} from '../modules/fomantic/modal.ts';
 import {queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import type {SortableEvent} from 'sortablejs';
@@ -38,7 +39,7 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
   }
 }
 
-async function initRepoProjectSortable(): Promise<void> {
+function initRepoProjectSortable(): void {
   // the HTML layout is: #project-board.board > .project-column .cards > .issue-card
   const mainBoard = document.querySelector<HTMLElement>('#project-board')!;
   let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
@@ -48,7 +49,7 @@ async function initRepoProjectSortable(): Promise<void> {
     handle: '.project-column-header',
     delayOnTouchOnly: true,
     delay: 500,
-    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises
+    onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, the body catches its own errors
       boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
 
       const columnSorting = {
@@ -72,8 +73,8 @@ async function initRepoProjectSortable(): Promise<void> {
     const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
-      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
-      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
+      onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
+      onUpdate: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable ignores the returned promise, moveIssue catches its own errors
       delayOnTouchOnly: true,
       delay: 500,
     });
@@ -113,7 +114,8 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
 
     try {
       elForm.classList.add('is-loading');
-      await request(formLink, {method: formMethod, data: formData});
+      const resp = await performFetchActionRequest(elForm, {url: formLink, method: formMethod, data: formData});
+      if (!resp) return;
       if (!columnId) {
         window.location.reload(); // newly added column, need to reload the page
         return;
@@ -180,7 +182,7 @@ export function initRepoProjectsView(): void {
     const writableProjectBoard = document.querySelector('#project-board[data-project-board-writable="true"]');
     if (!writableProjectBoard) return;
 
-    initRepoProjectSortable(); // no await
+    initRepoProjectSortable();
     initRepoProjectColumnEdit(writableProjectBoard);
   });
 }

@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
@@ -20,16 +21,20 @@ import (
 func TestRepository_AddCollaborator(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(repoID, userID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	testSuccess := func(repo *repo_model.Repository, user *user_model.User) {
 		assert.NoError(t, repo.LoadOwner(t.Context()))
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, user, perm.AccessModeWrite))
-		unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID}, &user_model.User{ID: userID})
+		unittest.CheckConsistencyFor(t, repo, user)
 	}
-	testSuccess(1, 4)
-	testSuccess(1, 4)
-	testSuccess(3, 4)
+	testSuccess(repo1, user4)
+	testSuccess(repo1, user4)
+	testSuccess(repo3, user4)
+
+	assert.Error(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeOwner))
+	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeAdmin))
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
@@ -55,7 +60,7 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 	assert.NoError(t, repo.LoadOwner(ctx))
-	assert.NoError(t, repo_model.WatchRepo(ctx, user, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(ctx, user, repo, true))
 
 	hasAccess, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 	assert.NoError(t, err)
@@ -84,7 +89,7 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 
 	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
 	assert.NoError(t, err)
-	assert.False(t, repo_model.IsWatchMode(watch.Mode))
+	assert.False(t, repo_model.IsWatchModeWatching(watch.Mode))
 
 	_, exists, err := issues_model.GetIssueWatch(ctx, user.ID, tempIssue.ID)
 	assert.NoError(t, err)
@@ -93,4 +98,23 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 	hasStopwatch, _, _, err := issues_model.HasUserStopwatch(ctx, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, hasStopwatch)
+}
+
+func TestRepository_DeleteCollaborationPreservesWatchWithPublicAccess(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	assert.NoError(t, repo_model.UpdateRepoUnitPublicAccess(ctx, &repo_model.RepoUnit{
+		RepoID: 2, Type: unit.TypeIssues, EveryoneAccessMode: perm.AccessModeRead,
+	}))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.NoError(t, repo.LoadOwner(ctx))
+	assert.NoError(t, AddOrUpdateCollaborator(ctx, repo, user, perm.AccessModeRead))
+	assert.NoError(t, repo_model.WatchRepoAuto(ctx, user, repo, true))
+
+	assert.NoError(t, DeleteCollaboration(ctx, repo, user))
+	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
+	assert.NoError(t, err)
+	assert.True(t, repo_model.IsWatchModeWatching(watch.Mode))
 }

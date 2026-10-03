@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
@@ -48,9 +49,11 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 	return nil
 }
 
-// DeleteRepository deletes a repository for a user or organization.
-// make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
+// DeleteRepositoryDirectly deletes a repository for a user or organization.
 func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
+	if db.InTransaction(ctx) {
+		return errors.New("DeleteRepositoryDirectly must not be called within a transaction, it deletes storage once its own transaction commits")
+	}
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -150,7 +153,10 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
+		&git_model.CommitStatusIndex{RepoID: repoID},
+		&git_model.CommitStatusSummary{RepoID: repoID},
 		&git_model.Branch{RepoID: repoID},
+		&git_model.RenamedBranch{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&repo_model.RepoLicense{RepoID: repoID},
@@ -163,22 +169,26 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&repo_model.Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
 		&repo_model.Redirect{RedirectRepoID: repoID},
+		&repo_model.RepoTransfer{RepoID: repoID}, // this column doesn't have index, maybe it's fine since the table shouldn't be too large.
 		&repo_model.RepoUnit{RepoID: repoID},
 		&repo_model.Star{RepoID: repoID},
 		&admin_model.Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 		&secret_model.Secret{RepoID: repoID},
+		&actions_model.ActionVariable{RepoID: repoID},
 		&actions_model.ActionTaskStep{RepoID: repoID},
 		&actions_model.ActionTask{RepoID: repoID},
 		&actions_model.ActionRunJob{RepoID: repoID},
 		&actions_model.ActionRun{RepoID: repoID},
+		&actions_model.ActionRunAttempt{RepoID: repoID},
 		&actions_model.ActionRunner{RepoID: repoID},
 		&actions_model.ActionScheduleSpec{RepoID: repoID},
 		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
 		&actions_model.ActionRunJobSummary{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&actions_model.ActionTasksVersion{RepoID: repoID},
 		&actions_model.ActionScopedWorkflowSource{SourceRepoID: repoID},
 		&issues_model.IssuePin{RepoID: repoID},
 	); err != nil {

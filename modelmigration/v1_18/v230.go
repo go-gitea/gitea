@@ -3,10 +3,14 @@
 
 package v1_18
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
+
+	"gitea.dev/modelmigration/base"
+)
 
 // AddConfidentialColumnToOAuth2ApplicationTable: add ConfidentialClient column, setting existing rows to true
-func AddConfidentialClientColumnToOAuth2ApplicationTable(x base.EngineMigration) error {
+func AddConfidentialClientColumnToOAuth2ApplicationTable(_ context.Context, x base.EngineMigration) error {
 	type oauth2Application struct {
 		ID                 int64
 		ConfidentialClient bool `xorm:"NOT NULL DEFAULT TRUE"`

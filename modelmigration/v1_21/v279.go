@@ -4,12 +4,14 @@
 package v1_21
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddIndexToActionUserID(x base.EngineMigration) error {
+func AddIndexToActionUserID(_ context.Context, x base.EngineMigration) error {
 	type Action struct {
 		UserID int64 `xorm:"INDEX"`
 	}

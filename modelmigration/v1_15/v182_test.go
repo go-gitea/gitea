@@ -28,7 +28,7 @@ func Test_AddIssueResourceIndexTable(t *testing.T) {
 	defer deferable()
 
 	// Run the migration
-	if err := AddIssueResourceIndexTable(x); err != nil {
+	if err := AddIssueResourceIndexTable(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

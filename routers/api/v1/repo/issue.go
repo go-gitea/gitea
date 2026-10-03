@@ -14,7 +14,6 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -23,7 +22,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
@@ -32,61 +30,6 @@ import (
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
 )
-
-// buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
-// It returns repoIDs, allPublic flag, and any error that occurred.
-func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPublic bool, err error) {
-	opts := repo_model.SearchRepoOptions{
-		Private:     false,
-		AllPublic:   true,
-		TopicOnly:   false,
-		Collaborate: optional.None[bool](),
-		// This needs to be a column that is not nil in fixtures or
-		// MySQL will return different results when sorting by null in some cases
-		OrderBy: db.SearchOrderByAlphabetically,
-		Actor:   ctx.Doer,
-	}
-	if ctx.IsSigned {
-		opts.Private = true
-		opts.AllLimited = true
-	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
-	if ctx.FormString("owner") != "" {
-		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
-		if err != nil {
-			return nil, false, err
-		}
-		opts.OwnerID = owner.ID
-		opts.AllLimited = false
-		opts.AllPublic = false
-		opts.Collaborate = optional.Some(false)
-	}
-	if ctx.FormString("team") != "" {
-		if ctx.FormString("owner") == "" {
-			return nil, false, util.NewInvalidArgumentErrorf("owner organisation is required for filtering on team")
-		}
-		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
-		if err != nil {
-			return nil, false, err
-		}
-		opts.TeamID = team.ID
-	}
-
-	if opts.AllPublic {
-		allPublic = true
-		opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
-	}
-	repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
-	if err != nil {
-		return nil, false, err
-	}
-	if len(repoIDs) == 0 {
-		// no repos found, don't let the indexer return all repos
-		repoIDs = []int64{0}
-	}
-
-	return repoIDs, allPublic, nil
-}
 
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.APIContext) {
@@ -193,7 +136,12 @@ func SearchIssues(ctx *context.APIContext) {
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
-	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
+	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
+		Doer:       ctx.Doer,
+		PublicOnly: ctx.PublicOnly,
+		OwnerName:  ctx.FormString("owner"),
+		TeamName:   ctx.FormString("team"),
+	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
@@ -204,10 +152,6 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
-
 	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
@@ -390,9 +334,6 @@ func ListIssues(ctx *context.APIContext) {
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
 
 	var labelIDs []int64
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
@@ -435,13 +376,7 @@ func ListIssues(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	isPull := optional.None[bool]()
-	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
-	case "issues":
-		isPull = optional.Some(false)
-	}
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
 		ctx.APIErrorNotFound()
@@ -631,26 +566,21 @@ func CreateIssue(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateIssueOption)
-	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
-
+	form := web.GetForm[*api.CreateIssueOption](ctx)
 	issue := &issues_model.Issue{
-		RepoID:       ctx.Repo.Repository.ID,
-		Repo:         ctx.Repo.Repository,
-		Title:        form.Title,
-		PosterID:     ctx.Doer.ID,
-		Poster:       ctx.Doer,
-		Content:      form.Body,
-		Ref:          form.Ref,
-		DeadlineUnix: deadlineUnix,
+		RepoID:   ctx.Repo.Repository.ID,
+		Repo:     ctx.Repo.Repository,
+		Title:    form.Title,
+		PosterID: ctx.Doer.ID,
+		Poster:   ctx.Doer,
+		Content:  form.Body,
+		Ref:      form.Ref,
 	}
 
 	assigneeIDs := make([]int64, 0)
 	var err error
 	if ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
+		issue.DeadlineUnix = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
 		if err != nil {
@@ -759,7 +689,7 @@ func EditIssue(ctx *context.APIContext) {
 	//   "412":
 	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.EditIssueOption)
+	form := web.GetForm[*api.EditIssueOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -824,26 +754,8 @@ func EditIssue(ctx *context.APIContext) {
 	}
 
 	// Update or remove the deadline, only if set and allowed
-	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
-		var deadlineUnix timeutil.TimeStamp
-
-		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
-			if form.Deadline == nil {
-				ctx.APIError(http.StatusBadRequest, "The due_date cannot be empty")
-				return
-			}
-			if !form.Deadline.IsZero() {
-				deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-					23, 59, 59, 0, form.Deadline.Location())
-				deadlineUnix = timeutil.TimeStamp(deadline.Unix())
-			}
-		}
-
-		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		issue.DeadlineUnix = deadlineUnix
+	if canWrite && !editIssueDeadline(ctx, issue, form.Deadline, form.RemoveDeadline) {
+		return
 	}
 
 	// Add/delete assignees
@@ -975,6 +887,25 @@ func DeleteIssue(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+func editIssueDeadline(ctx *context.APIContext, issue *issues_model.Issue, deadline *time.Time, removeDeadline *bool) bool {
+	if deadline == nil && removeDeadline == nil {
+		return true
+	}
+	if removeDeadline != nil && *removeDeadline {
+		deadline = nil
+	} else if deadline == nil {
+		ctx.APIError(http.StatusBadRequest, "The due_date cannot be empty")
+		return false
+	}
+	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(deadline)
+	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
+		ctx.APIErrorInternal(err)
+		return false
+	}
+	issue.DeadlineUnix = deadlineUnix
+	return true
+}
+
 // UpdateIssueDeadline updates an issue deadline
 func UpdateIssueDeadline(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueEditIssueDeadline
@@ -1012,7 +943,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditDeadlineOption)
+	form := web.GetForm[*api.EditDeadlineOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -1028,7 +959,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	deadlineUnix, _ := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
+	deadlineUnix := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.APIErrorInternal(err)
 		return

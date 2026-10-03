@@ -20,7 +20,7 @@ func SSHLog(ctx *context.PrivateContext) {
 		return
 	}
 
-	opts := web.GetForm(ctx).(*private.SSHLogOption)
+	opts := web.GetForm[*private.SSHLogOption](ctx)
 
 	if opts.IsError {
 		log.Error("ssh: %v", opts.Message)

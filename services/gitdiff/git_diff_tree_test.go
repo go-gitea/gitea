@@ -208,7 +208,7 @@ func TestGitDiffTree(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepositoryLocal(tt.RepoPath)
+			gitRepo, err := git.OpenRepositoryLocal(t.Context(), tt.RepoPath)
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 
@@ -221,7 +221,7 @@ func TestGitDiffTree(t *testing.T) {
 }
 
 func TestGitDiffTreeRespectsDiffOrderFile(t *testing.T) {
-	gitRepo, err := git.OpenRepositoryLocal("../../modules/git/tests/repos/repo5_pulls")
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -454,7 +454,7 @@ func TestGitDiffTreeErrors(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.Name, func(t *testing.T) {
-			gitRepo, err := git.OpenRepositoryLocal(tt.RepoPath)
+			gitRepo, err := git.OpenRepositoryLocal(t.Context(), tt.RepoPath)
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 

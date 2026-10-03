@@ -189,6 +189,26 @@ func testGetAttachment(t *testing.T) {
 			tc.session.MakeRequest(t, req, tc.want)
 		})
 	}
+
+	attachment, err := repo_model.GetAttachmentByUUID(t.Context(), "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12")
+	require.NoError(t, err)
+	defer func() {
+		attachment.RepoID = 2
+		require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), attachment, "repo_id"))
+	}()
+	for _, testCase := range []struct {
+		name   string
+		repoID int64
+	}{
+		{"RecordedRepository", 2},
+		{"LegacyMissingRepository", 0},
+	} {
+		t.Run("OtherRepositoryPath/"+testCase.name, func(t *testing.T) {
+			attachment.RepoID = testCase.repoID
+			require.NoError(t, repo_model.UpdateAttachmentByUUID(t.Context(), attachment, "repo_id"))
+			MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/attachments/"+attachment.UUID), http.StatusNotFound)
+		})
+	}
 }
 
 func testDeleteAttachmentPermissions(t *testing.T) {

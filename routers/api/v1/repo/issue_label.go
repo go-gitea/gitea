@@ -103,7 +103,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	form := web.GetForm[*api.IssueLabelsOption](ctx)
 	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return
@@ -232,7 +232,7 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	form := web.GetForm[*api.IssueLabelsOption](ctx)
 	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return

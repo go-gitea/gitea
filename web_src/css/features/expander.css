@@ -90,7 +90,3 @@ text-expander .suggestions img,
   padding: 0;
   list-style: none;
 }
-
-.tribute-container li.no-match {
-  cursor: default;
-}

@@ -3,9 +3,13 @@
 
 package v1_10
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddCrossReferenceColumns(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddCrossReferenceColumns(_ context.Context, x base.EngineMigration) error {
 	// Comment see models/comment.go
 	type Comment struct {
 		RefRepoID    int64 `xorm:"index"`

@@ -96,7 +96,7 @@
   font-size: 0.85em;
 }
 
-.combo-markdown-editor .ui.tab.markup[data-tab-panel="markdown-previewer"] {
-  border-bottom: 1px solid var(--color-secondary);
-  padding-bottom: 1rem;
+.combo-editor-container[data-combo-editor-page="previewer"] .form-field-dropzone,
+.combo-editor-container[data-combo-editor-page="previewer"] .dropzone {
+  display: none;
 }

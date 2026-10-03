@@ -3,9 +3,13 @@
 
 package v1_21
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddScheduleIDForActionRun(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddScheduleIDForActionRun(_ context.Context, x base.EngineMigration) error {
 	type ActionRun struct {
 		ScheduleID int64
 	}

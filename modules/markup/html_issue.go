@@ -110,20 +110,27 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	next := node.NextSibling
 	for node != nil && node != next {
-		_, hasExtTrackFormat := ctx.RenderOptions.Metas["format"]
-
+		_, hasExternalTracker := ctx.RenderOptions.Metas["externalTrackerLinkFormat"]
+		hasInternalTracker := ctx.RenderOptions.Metas["internalTrackerEnabled"] == "true"
+		if !hasExternalTracker && !hasInternalTracker {
+			hasInternalTracker = true // legacy logic: if no tracker is enabled, fallback to internal
+		}
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
 		isNumericStyle := ctx.RenderOptions.Metas["style"] == "" || ctx.RenderOptions.Metas["style"] == IssueNameStyleNumeric
-		refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle, crossLinkOnly)
+		prOnly := hasExternalTracker && !isNumericStyle
+		refNumeric := references.FindRenderizableReferenceNumeric(node.Data, prOnly, crossLinkOnly)
 
+		useExtTrackerLink := true
 		switch ctx.RenderOptions.Metas["style"] {
 		case "", IssueNameStyleNumeric:
 			ref = refNumeric
+			// when internal tracker is enabled, Numeric (#123) style should only be use for internal tracker
+			useExtTrackerLink = !hasInternalTracker
 		case IssueNameStyleAlphanumeric:
 			ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 		case IssueNameStyleRegexp:
-			pattern, err := regexplru.GetCompiled(ctx.RenderOptions.Metas["regexp"])
+			pattern, err := regexplru.UserCache().GetCompiled(ctx.RenderOptions.Metas["regexp"])
 			if err != nil {
 				return
 			}
@@ -132,7 +139,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
-		if hasExtTrackFormat && !isNumericStyle && refNumeric != nil {
+		if useExtTrackerLink && !isNumericStyle && refNumeric != nil {
 			// If numeric (PR) was found, and it was BEFORE the non-numeric pattern, use that
 			// Allow a free-pass when non-numeric pattern wasn't found.
 			if ref == nil || refNumeric.RefLocation.Start < ref.RefLocation.Start {
@@ -146,10 +153,10 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		var link *html.Node
 		refText := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
-		if hasExtTrackFormat && !ref.IsPull {
+		if useExtTrackerLink && !ref.IsPull {
 			ctx.RenderOptions.Metas["index"] = ref.Issue
 
-			res, err := vars.Expand(ctx.RenderOptions.Metas["format"], ctx.RenderOptions.Metas)
+			res, err := vars.ExpandCurlyBrace(ctx.RenderOptions.Metas["externalTrackerLinkFormat"], ctx.RenderOptions.Metas)
 			if err != nil {
 				// here we could just log the error and continue the rendering
 				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
@@ -183,7 +190,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Decorate action keywords if actionable
 		var keyword *html.Node
-		if references.IsXrefActionable(ref, hasExtTrackFormat) {
+		if references.IsXrefActionable(ref, useExtTrackerLink) {
 			keyword = createKeyword(ctx, node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{

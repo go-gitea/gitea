@@ -23,12 +23,11 @@ func canAccessReleaseDraft(ctx *context.APIContext) bool {
 	if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
 		return false
 	}
-	if ctx.Data["IsApiToken"] != true {
+	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if !hasApiTokenScope {
 		// not API token request, the request is from a user session with write access
 		return true
 	}
-	// the request is from an access token with scope
-	scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 	requiredScopes := auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)
 	allow, _ := scope.HasScope(requiredScopes...) // err (invalid token) can be safely ignored
 	return allow
@@ -154,6 +153,10 @@ func ListReleases(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter (exclude / include) pre-releases
 	//   type: boolean
+	// - name: tag_filter
+	//   in: query
+	//   description: 'filter releases by tag. supports "*" as a wildcard (for example: v1*, *beta, *rc*).'
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -178,6 +181,7 @@ func ListReleases(ctx *context.APIContext) {
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 		RepoID:        ctx.Repo.Repository.ID,
+		TagFilter:     ctx.FormString("tag_filter"),
 	}
 
 	releases, err := db.Find[repo_model.Release](ctx, opts)
@@ -239,7 +243,7 @@ func CreateRelease(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateReleaseOption)
+	form := web.GetForm[*api.CreateReleaseOption](ctx)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIError(http.StatusUnprocessableEntity, "repo is empty")
 		return
@@ -341,7 +345,7 @@ func EditRelease(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReleaseOption)
+	form := web.GetForm[*api.EditReleaseOption](ctx)
 	id := ctx.PathParamInt64("id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {

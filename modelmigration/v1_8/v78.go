@@ -4,10 +4,12 @@
 package v1_8
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 )
 
-func RenameRepoIsBareToIsEmpty(x base.EngineMigration) error {
+func RenameRepoIsBareToIsEmpty(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID      int64 `xorm:"pk autoincr"`
 		IsBare  bool

@@ -126,7 +126,7 @@ func EditGitHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditGitHookOption)
+	form := web.GetForm[*api.EditGitHookOption](ctx)
 	hookID := ctx.PathParam("id")
 	hook, err := git.GetHook(ctx.Repo.GitRepo, hookID)
 	if err != nil {

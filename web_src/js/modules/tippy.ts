@@ -1,15 +1,19 @@
 import tippy, {followCursor} from 'tippy.js';
-import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
+import {isDocumentFragmentOrElementNode, isElemVisible} from '../utils/dom.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
-import {html} from '../utils/html.ts';
+import {html, htmlEscape} from '../utils/html.ts';
 import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
   role?: string,
   theme?: 'default' | 'tooltip' | 'menu' | 'box-with-header' | 'bare',
+  limitSizeToViewport?: {horizontal?: boolean, vertical?: boolean}, // cap to the viewport and scroll the content
 } & Partial<Props>;
 
+type PopperModifier = NonNullable<NonNullable<Props['popperOptions']>['modifiers']>[number];
+
 const visibleInstances = new Set<Instance>();
+
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
 // shrink tippy's default 3px arrow padding so the arrow can point at the center of
@@ -20,10 +24,77 @@ function arrowPadding({placement, reference}: {placement: Placement, reference: 
   return Math.max(0, Math.min(3, referenceLength / 2 - 8)); // 8 = half of arrow width
 }
 
+const viewportPadding = 8;
+
+// space left on the side the popup opens towards, the viewport on the other axis
+export function availableSizeForPlacement(referenceRect: DOMRect, placement: string, offset: number): {width: number, height: number} {
+  const gap = Math.abs(offset) + viewportPadding;
+  const spanWidth = window.innerWidth - viewportPadding * 2;
+  const spanHeight = window.innerHeight - viewportPadding * 2;
+  const side = placement.split('-')[0];
+  if (side === 'top') return {width: spanWidth, height: referenceRect.top - gap};
+  if (side === 'bottom') return {width: spanWidth, height: window.innerHeight - referenceRect.bottom - gap};
+  if (side === 'left') return {width: referenceRect.left - gap, height: spanHeight};
+  return {width: window.innerWidth - referenceRect.right - gap, height: spanHeight};
+}
+
+// popper does not constrain size, publish it for the styles. Replaced by floating-ui's "size" on migration
+function sizeModifier(limit: {horizontal?: boolean, vertical?: boolean}): PopperModifier {
+  return {
+    name: 'tippyLimitSize',
+    enabled: true,
+    phase: 'beforeWrite',
+    requires: ['computeStyles'], // runs after "flip" and "offset", so both are final
+    fn({state}) {
+      const offset = state.modifiersData.offset?.[state.placement];
+      const isVertical = state.placement.startsWith('top') || state.placement.startsWith('bottom');
+      const available = availableSizeForPlacement(
+        state.elements.reference.getBoundingClientRect(),
+        state.placement,
+        (isVertical ? offset?.y : offset?.x) ?? 0,
+      );
+      const {style} = state.elements.popper;
+      if (limit.horizontal) style.setProperty('--tippy-max-width', `${Math.max(0, Math.floor(available.width))}px`);
+      if (limit.vertical) style.setProperty('--tippy-max-height', `${Math.max(0, Math.floor(available.height))}px`);
+    },
+  };
+}
+
+function isMenu(instance: Instance): boolean {
+  return instance.props.role === 'menu' && instance.props.theme === 'menu'; // role defaults to "menu" for every non-tooltip popup
+}
+
+function focusMenuItem(instance: Instance, delta: number) {
+  const items = [...instance.popper.querySelectorAll<HTMLElement>('.item:not(.disabled)')].filter(isElemVisible);
+  if (!items.length) return;
+  const current = items.indexOf(document.activeElement as HTMLElement);
+  const next = current === -1 ? (delta > 0 ? 0 : items.length - 1) : (current + delta + items.length) % items.length;
+  items[next].focus();
+}
+
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (e.isComposing) return;
+  const menuInstance = [...visibleInstances].findLast(isMenu);
+  if (!menuInstance) return;
+  const focused = document.activeElement as HTMLElement;
+  const inMenu = menuInstance.popper.contains(focused);
+  if (!inMenu && focused !== menuInstance.reference && focused !== document.body) return; // body: macOS Safari and Firefox do not focus clicked buttons
+  if (e.key === 'Escape') {
+    menuInstance.hide();
+  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    focusMenuItem(menuInstance, e.key === 'ArrowDown' ? 1 : -1);
+  } else if ((e.key === 'Enter' || e.key === ' ') && inMenu) {
+    focused.click();
+  } else {
+    return;
+  }
+  e.preventDefault();
+});
+
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
-  const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
+  const {onHide, onShow, onDestroy, role, theme, arrow, limitSizeToViewport, ...other} = opts;
   // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
   const resolvedTheme = theme || role || 'default';
   const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
@@ -38,6 +109,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
     maxWidth: 500, // increase over default 350px
     onHide: (instance: Instance) => {
       visibleInstances.delete(instance);
+      if (isMenu(instance) && instance.popper.contains(document.activeElement)) (instance.reference as HTMLElement).focus();
       return onHide?.(instance);
     },
     onDestroy: (instance: Instance) => {
@@ -53,10 +125,16 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       }
       visibleInstances.add(instance);
       target.setAttribute('aria-controls', instance.popper.id);
+      if (isMenu(instance)) { // focusable by the arrow keys, out of the Tab order
+        for (const item of instance.popper.querySelectorAll<HTMLElement>('.item')) item.tabIndex = -1;
+      }
       return onShow?.(instance);
     },
     arrow: resolvedArrow,
-    popperOptions: {modifiers: [{name: 'arrow', options: {padding: arrowPadding}}]},
+    popperOptions: {modifiers: [
+      {name: 'arrow', options: {padding: arrowPadding}},
+      ...limitSizeToViewport ? [sizeModifier(limitSizeToViewport)] : [],
+    ]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
     theme: resolvedTheme,
@@ -68,6 +146,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   if (instance.props.role === 'menu') {
     target.setAttribute('aria-haspopup', 'true');
   }
+  if (limitSizeToViewport) instance.popper.setAttribute('data-tippy-limit-size', '');
 
   return instance;
 }
@@ -85,6 +164,13 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
   content = content ?? target.getAttribute('data-tooltip-content');
   if (!content) return null;
 
+  let allowHTML = target.getAttribute('data-tooltip-render') === 'html';
+  if (!allowHTML && typeof content === 'string') {
+    content = htmlEscape(content);
+    content = content.replace(/\n/g, '<br>');
+    allowHTML = true;
+  }
+
   // when element has a clipboard target, we update the tooltip after copy
   // in which case it is undesirable to automatically hide it on click as
   // it would momentarily flash the tooltip out and in.
@@ -97,7 +183,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     role: 'tooltip',
     theme: 'tooltip',
     hideOnClick,
-    allowHTML: target.getAttribute('data-tooltip-render') === 'html',
+    allowHTML,
     placement: target.getAttribute('data-tooltip-placement') as Placement || 'top',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...((target.getAttribute('data-tooltip-interactive') === 'true') && {interactive: true, aria: {content: 'describedby', expanded: false}}),
@@ -149,6 +235,7 @@ function attachLazyTooltip(el: HTMLElement): void {
       let ariaLabelValue = content;
       if (isHtml) ariaLabelValue = stripTags(content).replace(/\s+/g, ' ').trim();
       el.setAttribute('aria-label', ariaLabelValue);
+      el.removeAttribute('aria-hidden');
     }
   }
 }

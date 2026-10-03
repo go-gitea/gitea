@@ -17,6 +17,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -141,7 +142,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	}
 
 	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("openRepository: %w", err)
 	}
@@ -213,7 +214,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	codeRepo := repo_model.CodeRepoByName(u.Name, repoName)
+	codeRepo := gitrepo.CodeRepoByName(u.Name, repoName)
 	exist, err := git.IsRepositoryExist(ctx, codeRepo)
 	if err != nil {
 		log.Error("Unable to check if repo %s/%s exists. Error: %v", u.Name, repoName, err)

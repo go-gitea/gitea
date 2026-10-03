@@ -145,7 +145,7 @@ func CreateLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateLabelOption)
+	form := web.GetForm[*api.CreateLabelOption](ctx)
 
 	color, err := label.NormalizeColor(form.Color)
 	if err != nil {
@@ -207,7 +207,7 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.EditLabelOption)
+	form := web.GetForm[*api.EditLabelOption](ctx)
 	l, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.APIErrorAuto(err)

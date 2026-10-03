@@ -8,7 +8,7 @@ const {appSubUrl} = window.config;
 /** One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element */
 type ErrorType = 'general' | 'insecure' | 'browser' | 'unable-to-process' | 'duplicated' | 'unknown';
 
-export async function initUserAuthWebAuthn() {
+export function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
   if (!elPrompt && !elSignInPasskeyBtn) {
@@ -251,10 +251,8 @@ async function webAuthnRegisterRequest() {
 
   options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
   options.publicKey.user.id = decodeURLEncodedBase64(options.publicKey.user.id);
-  if (options.publicKey.excludeCredentials) {
-    for (const cred of options.publicKey.excludeCredentials) {
-      cred.id = decodeURLEncodedBase64(cred.id);
-    }
+  for (const cred of options.publicKey.excludeCredentials || []) {
+    cred.id = decodeURLEncodedBase64(cred.id);
   }
 
   try {
@@ -263,6 +261,11 @@ async function webAuthnRegisterRequest() {
     });
     await webauthnRegistered(credential);
   } catch (err) {
+    // an already registered authenticator raises this
+    if (err instanceof DOMException && err.name === 'InvalidStateError') {
+      webAuthnError('duplicated');
+      return;
+    }
     webAuthnError('unknown', errorMessage(err));
   }
 }

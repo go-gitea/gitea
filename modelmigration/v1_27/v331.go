@@ -90,7 +90,7 @@ func (actionRun) TableName() string {
 }
 
 // AddActionRunAttemptModel adds the ActionRunAttempt table and the supporting ActionRun/ActionRunJob fields.
-func AddActionRunAttemptModel(x base.EngineMigration) error {
+func AddActionRunAttemptModel(ctx context.Context, x base.EngineMigration) error {
 	// add "action_run_attempt"
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
@@ -136,7 +136,7 @@ func AddActionRunAttemptModel(x base.EngineMigration) error {
 	}
 	concurrencyColumns := make([]string, 0, 2)
 	for _, col := range []string{"concurrency_group", "concurrency_cancel"} {
-		exist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "action_run", col)
+		exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "action_run", col)
 		if err != nil {
 			return err
 		}

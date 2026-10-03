@@ -4,14 +4,26 @@
 package storage
 
 import (
+	"bytes"
+	"cmp"
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"maps"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,50 +31,71 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
+	"golang.org/x/sync/errgroup"
 )
 
-var _ Object = &azureBlobObject{}
+const azureBlobAPIVersion = "2025-11-05" // must not exceed the Azurite version used in CI
+
+type azureBlobError string
+
+func (e azureBlobError) Error() string { return string(e) }
 
 type azureBlobObject struct {
-	blobClient *blob.Client
-	Context    context.Context
-	Name       string
-	Size       int64
-	ModTime    *time.Time
-	offset     int64
+	storage *AzureBlobStorage
+	blobURL *url.URL
+	info    *objectFileInfo
+	etag    string
+	offset  int64
+	closed  bool
+
+	respBody io.ReadCloser
+}
+
+func (a *azureBlobObject) resetRespBody() {
+	// close resp, the next attempt reopens at the current offset
+	if a.respBody != nil {
+		_ = a.respBody.Close()
+		a.respBody = nil
+	}
 }
 
 func (a *azureBlobObject) Read(p []byte) (int, error) {
-	// TODO: improve the performance, we can implement another interface, maybe implement io.WriteTo
-	if a.offset >= a.Size {
+	if a.closed {
+		return 0, fs.ErrClosed
+	}
+	if a.offset >= a.info.size {
 		return 0, io.EOF
 	}
-	count := min(int64(len(p)), a.Size-a.offset)
-
-	res, err := a.blobClient.DownloadBuffer(a.Context, p, &blob.DownloadBufferOptions{
-		Range: blob.HTTPRange{
-			Offset: a.offset,
-			Count:  count,
-		},
-	})
-	if err != nil {
-		return 0, convertAzureBlobErr(err)
+	var lastErr error
+	for range 4 {
+		if a.respBody == nil {
+			reqHeader := http.Header{"X-Ms-Range": {fmt.Sprintf("bytes=%d-", a.offset)}, "If-Match": {a.etag}}
+			_, body, err := a.storage.do(a.storage.ctx, http.MethodGet, a.blobURL, reqHeader, nil)
+			if err != nil {
+				return 0, err
+			}
+			a.respBody = body
+		}
+		n, err := io.ReadFull(a.respBody, p[:min(int64(len(p)), a.info.size-a.offset)])
+		a.offset += int64(n)
+		if err != nil {
+			a.resetRespBody()
+		}
+		if err == nil || n > 0 {
+			return n, nil
+		}
+		lastErr = err
 	}
-	a.offset += res
-
-	return int(res), nil
+	return 0, util.Iif(lastErr == io.EOF, io.ErrUnexpectedEOF, lastErr)
 }
 
-func (a *azureBlobObject) Close() error {
-	a.offset = 0
-	return nil
+func (a *azureBlobObject) Close() (err error) {
+	a.closed = true
+	if a.respBody != nil {
+		err = a.respBody.Close()
+		a.respBody = nil
+	}
+	return err
 }
 
 func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
@@ -71,274 +104,311 @@ func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset += a.offset
 	case io.SeekEnd:
-		offset = a.Size + offset
+		offset = a.info.size + offset
 	default:
-		return 0, errors.New("Seek: invalid whence")
+		return 0, errors.New("seek: invalid whence")
 	}
 
-	if offset > a.Size {
-		return 0, errors.New("Seek: invalid offset")
-	} else if offset < 0 {
-		return 0, errors.New("Seek: invalid offset")
+	if offset < 0 || offset > a.info.size {
+		return 0, errors.New("seek: invalid offset")
 	}
+	a.resetRespBody()
 	a.offset = offset
 	return a.offset, nil
 }
 
 func (a *azureBlobObject) Stat() (os.FileInfo, error) {
-	return &azureBlobFileInfo{
-		a.Name,
-		a.Size,
-		*a.ModTime,
-	}, nil
+	return a.info, nil
 }
 
-var _ ObjectStorage = &AzureBlobStorage{}
-
-// AzureStorage returns a azure blob storage
 type AzureBlobStorage struct {
-	cfg        *setting.AzureBlobStorageConfig
-	ctx        context.Context
-	credential *azblob.SharedKeyCredential
-	client     *azblob.Client
+	cfg         *setting.AzureBlobStorageConfig
+	ctx         context.Context
+	client      *http.Client
+	endpoint    *url.URL
+	key         []byte
+	blockSize   int
+	concurrency int
+	retryDelay  time.Duration
 }
 
-func convertAzureBlobErr(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	if bloberror.HasCode(err, bloberror.BlobNotFound) {
-		return os.ErrNotExist
-	}
-	var respErr *azcore.ResponseError
-	if !errors.As(err, &respErr) {
-		return err
-	}
-	return fmt.Errorf("%s", respErr.ErrorCode)
-}
-
-// NewAzureBlobStorage returns a azure blob storage
 func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.AzureBlobConfig
 
 	log.Info("Creating Azure Blob storage at %s:%s with base path %s", config.Endpoint, config.Container, config.BasePath)
 
-	cred, err := azblob.NewSharedKeyCredential(config.AccountName, config.AccountKey)
+	key, err := base64.StdEncoding.DecodeString(config.AccountKey)
 	if err != nil {
-		return nil, convertAzureBlobErr(err)
+		return nil, fmt.Errorf("invalid azure blob account key: %w", err)
 	}
-	client, err := azblob.NewClientWithSharedKeyCredential(config.Endpoint, cred, &azblob.ClientOptions{})
+	endpoint, err := url.Parse(config.Endpoint)
 	if err != nil {
-		return nil, convertAzureBlobErr(err)
+		return nil, err
 	}
 
-	_, err = client.CreateContainer(ctx, config.Container, &container.CreateOptions{})
-	if err != nil {
-		// Check to see if we already own this container (which happens if you run this twice)
-		if !bloberror.HasCode(err, bloberror.ContainerAlreadyExists) {
-			return nil, convertMinioErr(err)
+	transport := &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConnsPerHost: 10,
+	}
+	a := &AzureBlobStorage{
+		cfg:         &config,
+		ctx:         ctx,
+		client:      &http.Client{Transport: transport},
+		endpoint:    endpoint,
+		key:         key,
+		blockSize:   4 * 1024 * 1024,
+		concurrency: 4,
+		retryDelay:  200 * time.Millisecond,
+	}
+	_, _, err = a.do(ctx, http.MethodPut, a.url(config.Container, url.Values{"restype": {"container"}}), nil, nil)
+	if err != nil && !errors.Is(err, azureBlobError("ContainerAlreadyExists")) {
+		return nil, err
+	}
+	return a, nil
+}
+
+func (a *AzureBlobStorage) url(name string, query url.Values) *url.URL {
+	u := *a.endpoint
+	u.Path = strings.TrimSuffix(u.Path, "/") + "/" + name
+	u.RawQuery = strings.ReplaceAll(query.Encode(), "+", "%20") // Azure doesn't decode "+" as space
+	return &u
+}
+
+func (a *AzureBlobStorage) blobName(p string) string {
+	return a.cfg.Container + "/" + buildObjectStorePath(a.cfg.BasePath, p)
+}
+
+func (a *AzureBlobStorage) signString(s string) string {
+	mac := hmac.New(sha256.New, a.key)
+	_, _ = mac.Write([]byte(s))
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
+}
+
+// https://learn.microsoft.com/rest/api/storageservices/authorize-with-shared-key
+func (a *AzureBlobStorage) signRequest(req *http.Request) string {
+	lines := []string{
+		req.Method,
+		req.Header.Get("Content-Encoding"),
+		req.Header.Get("Content-Language"),
+		util.Iif(req.ContentLength > 0, strconv.FormatInt(req.ContentLength, 10), ""),
+	}
+	for _, name := range []string{
+		"Content-MD5", "Content-Type", "Date",
+		"If-Modified-Since", "If-Match", "If-None-Match", "If-Unmodified-Since", "Range",
+	} {
+		lines = append(lines, req.Header.Get(name))
+	}
+	msHeaders := map[string]string{}
+	for key, values := range req.Header {
+		if key = strings.ToLower(key); strings.HasPrefix(key, "x-ms-") {
+			msHeaders[key] = key + ":" + strings.Join(values, ",")
 		}
 	}
-
-	return &AzureBlobStorage{
-		cfg:        &config,
-		ctx:        ctx,
-		credential: cred,
-		client:     client,
-	}, nil
-}
-
-func (a *AzureBlobStorage) buildAzureBlobPath(p string) string {
-	p = util.PathJoinRelX(a.cfg.BasePath, p)
-	if p == "." || p == "/" {
-		p = "" // azure uses prefix, so path should be empty as relative path
+	for _, key := range slices.Sorted(maps.Keys(msHeaders)) {
+		lines = append(lines, msHeaders[key])
 	}
-	return p
+	lines = append(lines, "/"+a.cfg.AccountName+req.URL.EscapedPath()) // encoded as sent, not decoded
+	query := req.URL.Query()
+	for _, key := range slices.Sorted(maps.Keys(query)) {
+		slices.Sort(query[key])
+		lines = append(lines, strings.ToLower(key)+":"+strings.Join(query[key], ","))
+	}
+	return a.signString(strings.Join(lines, "\n"))
 }
 
-func (a *AzureBlobStorage) getObjectNameFromPath(path string) string {
-	s := strings.Split(path, "/")
-	return s[len(s)-1]
+// only GET returns the body, the caller closes it
+func (a *AzureBlobStorage) do(ctx context.Context, method string, u *url.URL, header http.Header, body []byte) (http.Header, io.ReadCloser, error) {
+	const maxDelay = 3 * time.Second
+	for retry := 0; ; retry++ {
+		req, err := http.NewRequestWithContext(ctx, method, u.String(), bytes.NewReader(body))
+		if err != nil {
+			return nil, nil, err
+		}
+		maps.Copy(req.Header, header)
+		req.Header.Set("x-ms-date", time.Now().UTC().Format(http.TimeFormat))
+		req.Header.Set("x-ms-version", azureBlobAPIVersion)
+		req.Header.Set("Authorization", "SharedKey "+a.cfg.AccountName+":"+a.signRequest(req))
+
+		resp, err := a.client.Do(req)
+		if retry < 3 && (err != nil || slices.Contains([]int{408, 429, 500, 502, 503, 504}, resp.StatusCode)) {
+			if err == nil {
+				_ = resp.Body.Close()
+			}
+			select {
+			case <-ctx.Done():
+				return nil, nil, ctx.Err()
+			case <-time.After(min(a.retryDelay<<retry, maxDelay)):
+			}
+			continue
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		if resp.StatusCode < http.StatusBadRequest {
+			if method == http.MethodGet {
+				return resp.Header, resp.Body, nil
+			}
+			_ = resp.Body.Close()
+			return resp.Header, nil, nil
+		}
+		var errBody struct{ Message, AuthenticationErrorDetail string }
+		_ = xml.NewDecoder(resp.Body).Decode(&errBody)
+		_ = resp.Body.Close()
+		code := cmp.Or(resp.Header.Get("x-ms-error-code"), resp.Status)
+		if code == "BlobNotFound" {
+			return nil, nil, fs.ErrNotExist
+		}
+		if errBody.Message == "" {
+			return nil, nil, azureBlobError(code)
+		}
+		return nil, nil, fmt.Errorf("%w: %s", azureBlobError(code), strings.TrimSpace(errBody.Message+"\n"+errBody.AuthenticationErrorDetail))
+	}
 }
 
-// Open opens a file
 func (a *AzureBlobStorage) Open(path string) (Object, error) {
-	blobClient := a.getBlobClient(path)
-	res, err := blobClient.GetProperties(a.ctx, &blob.GetPropertiesOptions{})
+	obj, err := a.stat(path)
 	if err != nil {
-		return nil, convertAzureBlobErr(err)
+		return nil, err
 	}
-	return &azureBlobObject{
-		Context:    a.ctx,
-		blobClient: blobClient,
-		Name:       a.getObjectNameFromPath(path),
-		Size:       *res.ContentLength,
-		ModTime:    res.LastModified,
-	}, nil
+	return obj, nil
 }
 
-// Save saves a file to azure blob storage
-func (a *AzureBlobStorage) Save(path string, r io.Reader, size int64) (int64, error) {
-	rd := util.NewCountingReader(r)
-	_, err := a.client.UploadStream(
-		a.ctx,
-		a.cfg.Container,
-		a.buildAzureBlobPath(path),
-		rd,
-		// TODO: support set block size and concurrency
-		&blockblob.UploadStreamOptions{},
-	)
+func (a *AzureBlobStorage) Save(path string, r io.Reader, _ int64) (int64, error) {
+	name := a.blobName(path)
+	block := make([]byte, a.blockSize)
+	n, err := util.ReadAtMost(r, block)
 	if err != nil {
-		return 0, convertAzureBlobErr(err)
+		return 0, err
 	}
-	return int64(rd.Count()), nil
+	if n < a.blockSize {
+		_, _, err := a.do(a.ctx, http.MethodPut, a.url(name, nil), http.Header{"X-Ms-Blob-Type": {"BlockBlob"}}, block[:n])
+		return int64(n), err
+	}
+
+	g, ctx := errgroup.WithContext(a.ctx)
+	g.SetLimit(a.concurrency)
+	blockList := bytes.NewBufferString(`<?xml version="1.0" encoding="utf-8"?><BlockList>`)
+	idPrefix := rand.Text()
+	var total int64
+	for blockNum := 0; n > 0 && ctx.Err() == nil; blockNum++ {
+		id := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s%038d", idPrefix, blockNum)) // 64 bytes like the old SDK, Azure rejects mixed ID lengths
+		blockList.WriteString("<Latest>" + id + "</Latest>")
+		total += int64(n)
+		data := block[:n]
+		g.Go(func() error {
+			_, _, err := a.do(ctx, http.MethodPut, a.url(name, url.Values{"comp": {"block"}, "blockid": {id}}), nil, data)
+			return err
+		})
+		if n < a.blockSize {
+			break
+		}
+		block = make([]byte, a.blockSize)
+		if n, err = util.ReadAtMost(r, block); err != nil {
+			break
+		}
+	}
+	if err = errors.Join(g.Wait(), err); err != nil {
+		return 0, err
+	}
+	blockList.WriteString("</BlockList>")
+	_, _, err = a.do(a.ctx, http.MethodPut, a.url(name, url.Values{"comp": {"blocklist"}}), nil, blockList.Bytes())
+	return total, err
 }
 
-type azureBlobFileInfo struct {
-	name    string
-	size    int64
-	modTime time.Time
+func (a *AzureBlobStorage) stat(p string) (*azureBlobObject, error) {
+	blobURL := a.url(a.blobName(p), nil)
+	header, _, err := a.do(a.ctx, http.MethodHead, blobURL, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	size, sizeErr := strconv.ParseInt(header.Get("Content-Length"), 10, 64)
+	modTime, timeErr := http.ParseTime(header.Get("Last-Modified"))
+	return &azureBlobObject{storage: a, blobURL: blobURL, info: &objectFileInfo{path.Base(p), size, modTime}, etag: header.Get("ETag")}, errors.Join(sizeErr, timeErr)
 }
 
-func (a azureBlobFileInfo) Name() string {
-	return path.Base(a.name)
-}
-
-func (a azureBlobFileInfo) Size() int64 {
-	return a.size
-}
-
-func (a azureBlobFileInfo) ModTime() time.Time {
-	return a.modTime
-}
-
-func (a azureBlobFileInfo) IsDir() bool {
-	return strings.HasSuffix(a.name, "/")
-}
-
-func (a azureBlobFileInfo) Mode() os.FileMode {
-	return os.ModePerm
-}
-
-func (a azureBlobFileInfo) Sys() any {
-	return nil
-}
-
-// Stat returns the stat information of the object
 func (a *AzureBlobStorage) Stat(path string) (os.FileInfo, error) {
-	blobClient := a.getBlobClient(path)
-	res, err := blobClient.GetProperties(a.ctx, &blob.GetPropertiesOptions{})
+	obj, err := a.stat(path)
 	if err != nil {
-		return nil, convertAzureBlobErr(err)
+		return nil, err // not obj.info, a nil pointer would be a non-nil os.FileInfo
 	}
-	s := strings.Split(path, "/")
-	return &azureBlobFileInfo{
-		s[len(s)-1],
-		*res.ContentLength,
-		*res.LastModified,
-	}, nil
+	return obj.info, nil
 }
 
-// Delete delete a file
 func (a *AzureBlobStorage) Delete(path string) error {
-	blobClient := a.getBlobClient(path)
-	_, err := blobClient.Delete(a.ctx, nil)
-	return convertAzureBlobErr(err)
+	_, _, err := a.do(a.ctx, http.MethodDelete, a.url(a.blobName(path), nil), nil, nil)
+	return err
 }
 
-func (a *AzureBlobStorage) getSasURL(b *blob.Client, template sas.BlobSignatureValues) (string, error) {
-	urlParts, err := blob.ParseURL(b.URL())
-	if err != nil {
-		return "", err
-	}
-
-	var t time.Time
-	if urlParts.Snapshot == "" {
-		t = time.Time{}
-	} else {
-		t, err = time.Parse(blob.SnapshotTimeFormat, urlParts.Snapshot)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	template.ContainerName = urlParts.ContainerName
-	template.BlobName = urlParts.BlobName
-	template.SnapshotTime = t
-	template.Version = sas.Version
-
-	qps, err := template.SignWithSharedKey(a.credential)
-	if err != nil {
-		return "", err
-	}
-
-	endpoint := b.URL() + "?" + qps.Encode()
-
-	return endpoint, nil
-}
-
+// https://learn.microsoft.com/rest/api/storageservices/create-service-sas
 func (a *AzureBlobStorage) ServeDirectURL(storePath, name, method string, reqParams *ServeDirectOptions) (*url.URL, error) {
-	blobClient := a.getBlobClient(storePath)
-
-	startTime := time.Now().UTC()
-
+	permissions := util.Iif(method == http.MethodPut, "w", "r")
 	param := prepareServeDirectOptions(reqParams, name)
+	now := time.Now().UTC()
+	start, expiry := now.Add(-15*time.Minute).Format(time.RFC3339), now.Add(5*time.Minute).Format(time.RFC3339) // SAS expiration policies require a start, backdated for clock skew
+	canonicalName := "/blob/" + a.cfg.AccountName + "/" + a.blobName(storePath)
+	signature := a.signString(strings.Join([]string{permissions, start, expiry, canonicalName, "", "", "", azureBlobAPIVersion, "b", "", "", "", param.ContentDisposition, "", "", param.ContentType}, "\n"))
 
-	u, err := a.getSasURL(blobClient, sas.BlobSignatureValues{
-		Permissions: (&sas.BlobPermissions{
-			Read:  method == http.MethodGet || method == http.MethodHead,
-			Write: method == http.MethodPut,
-		}).String(),
-		StartTime:          startTime,
-		ExpiryTime:         startTime.Add(5 * time.Minute),
-		ContentDisposition: param.ContentDisposition,
-		ContentType:        param.ContentType,
-	})
-	if err != nil {
-		return nil, convertAzureBlobErr(err)
+	query := url.Values{"sv": {azureBlobAPIVersion}, "st": {start}, "se": {expiry}, "sr": {"b"}, "sp": {permissions}, "sig": {signature}}
+	if param.ContentDisposition != "" {
+		query.Set("rscd", param.ContentDisposition)
 	}
-
-	return url.Parse(u)
+	if param.ContentType != "" {
+		query.Set("rsct", param.ContentType)
+	}
+	return a.url(a.blobName(storePath), query), nil
 }
 
-// IterateObjects iterates across the objects in the azureblobstorage
 func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
-	dirName = a.buildAzureBlobPath(dirName)
-	if dirName != "" {
-		dirName += "/"
-	}
-	pager := a.client.NewListBlobsFlatPager(a.cfg.Container, &container.ListBlobsFlatOptions{
-		Prefix: &dirName,
-	})
-	for pager.More() {
-		resp, err := pager.NextPage(a.ctx)
+	basePrefix := buildObjectStorePathPrefix(a.cfg.BasePath, "")
+	query := url.Values{"restype": {"container"}, "comp": {"list"}, "prefix": {buildObjectStorePathPrefix(a.cfg.BasePath, dirName)}}
+	for {
+		_, body, err := a.do(a.ctx, http.MethodGet, a.url(a.cfg.Container, query), nil, nil)
 		if err != nil {
-			return convertAzureBlobErr(err)
+			return err
 		}
-		for _, object := range resp.Segment.BlobItems {
-			blobClient := a.getBlobClient(*object.Name)
+		var result struct {
+			Blobs []struct {
+				Name          string `xml:"Name"`
+				ContentLength int64  `xml:"Properties>Content-Length"`
+				LastModified  string `xml:"Properties>Last-Modified"`
+				Etag          string `xml:"Properties>Etag"`
+				ResourceType  string `xml:"Properties>ResourceType"`
+			} `xml:"Blobs>Blob"`
+			NextMarker string `xml:"NextMarker"`
+		}
+		err = xml.NewDecoder(body).Decode(&result)
+		_ = body.Close()
+		if err != nil {
+			return err
+		}
+		for _, blob := range result.Blobs {
+			if blob.ResourceType == "directory" { // listed by hierarchical namespace accounts
+				continue
+			}
+			modTime, err := http.ParseTime(blob.LastModified)
+			if err != nil {
+				return err
+			}
 			object := &azureBlobObject{
-				Context:    a.ctx,
-				blobClient: blobClient,
-				Name:       *object.Name,
-				Size:       *object.Properties.ContentLength,
-				ModTime:    object.Properties.LastModified,
+				storage: a,
+				blobURL: a.url(a.cfg.Container+"/"+blob.Name, nil),
+				info:    &objectFileInfo{path.Base(blob.Name), blob.ContentLength, modTime},
+				etag:    blob.Etag,
 			}
-			if err := func(object *azureBlobObject, fn func(path string, obj Object) error) error {
-				defer object.Close()
-				return fn(strings.TrimPrefix(object.Name, a.cfg.BasePath), object)
-			}(object, fn); err != nil {
-				return convertAzureBlobErr(err)
+			err = fn(strings.TrimPrefix(blob.Name, basePrefix), object)
+			_ = object.Close()
+			if err != nil {
+				return err
 			}
 		}
+		if result.NextMarker == "" {
+			return nil
+		}
+		query.Set("marker", result.NextMarker)
 	}
-	return nil
-}
-
-// Delete delete a file
-func (a *AzureBlobStorage) getBlobClient(path string) *blob.Client {
-	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path))
 }
 
 func init() {

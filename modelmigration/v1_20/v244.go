@@ -3,9 +3,13 @@
 
 package v1_20
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddNeedApprovalToActionRun(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddNeedApprovalToActionRun(_ context.Context, x base.EngineMigration) error {
 	/*
 		New index: TriggerUserID
 		New fields: NeedApproval, ApprovedBy

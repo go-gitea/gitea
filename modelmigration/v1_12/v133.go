@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddEmailHashTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddEmailHashTable(_ context.Context, x base.EngineMigration) error {
 	// EmailHash represents a pre-generated hash map
 	type EmailHash struct {
 		Hash  string `xorm:"pk varchar(32)"`

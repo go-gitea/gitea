@@ -323,8 +323,8 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 }
 
 func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
-	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
-	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
+	testcase := `[Link with emoji :moon: in text](https://gitea.com)`
+	expected := `<p><a href="https://gitea.com" rel="nofollow">Link with emoji <span class="emoji" data-alias="moon">🌔</span> in text</a></p>
 `
 	res, err := markdown.RenderString(markup.NewTestRenderContext(), testcase)
 	assert.NoError(t, err)
@@ -542,7 +542,7 @@ mail@domain.com
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
 <a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow">https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb</a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
-<span class="emoji" aria-label="thumbs up">👍</span>
+<span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
 @mention-user test
 #123
@@ -611,13 +611,12 @@ func TestMarkdownCodeBlock(t *testing.T) {
 	const prefix = `<div class="code-block-container code-overflow-scroll"><pre class="code-block">`
 	const suffix = `</pre></div>`
 
-	testRender("```\ncode\n```", prefix+`<code class="chroma language-text display">code`+nl+`</code>`+suffix)
+	testRender("```\ncode\n```", prefix+`<code class="chroma language-text">code`+nl+`</code>`+suffix)
 
-	const jsCommon = prefix + `<code class="chroma language-js display"><span class="nx">code</span>` + nl + `</code>` + suffix
+	const jsCommon = prefix + `<code class="chroma language-js"><span class="nx">code</span>` + nl + `</code>` + suffix
 	testRender("```js\ncode\n```", jsCommon)
 	testRender("```js:app.ts\ncode\n```", jsCommon)
 	testRender("```js,ignore\ncode\n```", jsCommon)
 	testRender("```js ignore\ncode\n```", jsCommon)
-	testRender("    code\n", prefix+`<code>code`+nl+`</code>`+suffix)
-	testRender("    <script>alert(1)</script>\n", prefix+`<code>&lt;script&gt;alert(1)&lt;/script&gt;`+nl+`</code>`+suffix)
+	testRender("    <any&content>\n", prefix+`<code class="chroma language-text">&lt;any&amp;content&gt;`+nl+`</code>`+suffix)
 }

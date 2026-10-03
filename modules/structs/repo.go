@@ -154,7 +154,7 @@ type CreateRepoOption struct {
 	// Whether the repository is template
 	Template bool `json:"template"`
 	// Gitignores to use
-	Gitignores string `json:"gitignores"`
+	Gitignores string `json:"gitignores" binding:"MaxSize(1024)"`
 	// License to use
 	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create
@@ -173,7 +173,7 @@ type CreateRepoOption struct {
 type EditRepoOption struct {
 	// name of the repository
 	// unique: true
-	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
+	Name *string `json:"name,omitempty" binding:"AlphaDashDot;MaxSize(100)"`
 	// a short description of the repository.
 	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.

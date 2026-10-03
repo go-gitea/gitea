@@ -4,6 +4,7 @@
 package v1_10
 
 import (
+	"context"
 	"net/url"
 	"strings"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"gitea.dev/modelmigration/base"
 )
 
-func UpdateMigrationServiceTypes(x base.EngineMigration) error {
+func UpdateMigrationServiceTypes(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID                  int64
 		OriginalServiceType int    `xorm:"index default(0)"`

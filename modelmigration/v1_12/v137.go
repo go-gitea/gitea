@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddBlockOnOutdatedBranch(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddBlockOnOutdatedBranch(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		BlockOnOutdatedBranch bool `xorm:"NOT NULL DEFAULT false"`
 	}

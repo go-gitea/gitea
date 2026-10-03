@@ -46,7 +46,7 @@ type swaggerResponseUserHeatmapData struct {
 // swagger:response UserSettings
 type swaggerResponseUserSettings struct {
 	// in:body
-	Body []api.UserSettings `json:"body"`
+	Body api.UserSettings `json:"body"`
 }
 
 // BadgeList

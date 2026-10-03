@@ -55,7 +55,7 @@ func Test_DeleteOrphanedIssueLabels(t *testing.T) {
 	}
 
 	// Run the migration
-	if err := DeleteOrphanedIssueLabels(x); err != nil {
+	if err := DeleteOrphanedIssueLabels(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

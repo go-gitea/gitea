@@ -22,7 +22,7 @@ func TestGetFormatPatch(t *testing.T) {
 		return
 	}
 
-	repo, err := OpenRepositoryLocal(clonedPath)
+	repo, err := OpenRepositoryLocal(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -50,7 +50,7 @@ func TestGetFormatPatch(t *testing.T) {
 func TestReadPatch(t *testing.T) {
 	// Ensure we can read the patch files
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepositoryLocal(bareRepo1Path)
+	repo, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -88,7 +88,7 @@ func TestReadWritePullHead(t *testing.T) {
 		return
 	}
 
-	repo, err := OpenRepositoryLocal(clonedPath)
+	repo, err := OpenRepositoryLocal(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -130,7 +130,7 @@ func TestReadWritePullHead(t *testing.T) {
 
 func TestGetCommitFilesChanged(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepositoryLocal(bareRepo1Path)
+	repo, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 

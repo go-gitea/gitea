@@ -4,13 +4,14 @@
 package v1_13
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
 )
 
-func IncreaseLanguageField(x base.EngineMigration) error {
+func IncreaseLanguageField(_ context.Context, x base.EngineMigration) error {
 	type LanguageStat struct {
 		RepoID   int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		Language string `xorm:"VARCHAR(50) UNIQUE(s) INDEX NOT NULL"`

@@ -477,10 +477,10 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch
@@ -702,18 +702,7 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
-		assert.Eventually(t, func() bool {
-			latestCommitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
-			assert.NoError(t, err)
-			if len(latestCommitStatuses) == 0 {
-				return false
-			}
-			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
-				return true
-			}
-			return false
-		}, 1*time.Second, 100*time.Millisecond)
+		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// milestoned
 		milestone := &issues_model.Milestone{
@@ -754,6 +743,18 @@ func checkCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Reposit
 	insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
 }
 
+// waitCommitStatusAndInsertFakeStatus is the async counterpart of
+// checkCommitStatusAndInsertFakeStatus, for events whose run is created off the
+// request path (push/review) and may lag behind on a loaded CI runner.
+func waitCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		latestCommitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
+		return err == nil && len(latestCommitStatuses) == 1 && latestCommitStatuses[0].State == commitstatus.CommitStatusPending
+	}, 10*time.Second, 50*time.Millisecond, "no pending commit status for commit %s", sha)
+	checkCommitStatusAndInsertFakeStatus(t, repo, sha)
+}
+
 // insertFakeStatus inserts a success status that lands in the same dedupe
 // group as `prev` — the actions runner mixes the workflow file path into
 // ContextHash, so we must reuse it (rather than recomputing from Context).
@@ -787,8 +788,8 @@ func TestPullRequestReviewCommitStatusEvent(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add user4 as collaborator so they can review
-		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		t.Run("AddUser4AsCollaboratorWithWriteAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeWrite))
+		apiTestCtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("AddUser4AsCollaboratorWithWriteAccess", doAPIAddCollaborator(apiTestCtx, "user4", perm.AccessModeWrite))
 
 		// add workflow file that triggers on pull_request_review
 		addWorkflow, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
@@ -829,7 +830,7 @@ jobs:
 
 		// create a branch and a PR
 		testBranch := "test-review-branch"
-		testCreateBranch(t, ctx.Session, repo.OwnerName, repo.Name, "branch/main", testBranch, http.StatusSeeOther)
+		testCreateBranch(t, apiTestCtx.Session, repo.OwnerName, repo.Name, "branch/main", testBranch, http.StatusSeeOther)
 
 		// add a file on the test branch so the PR has changes
 		addFileResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
@@ -881,7 +882,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// submit an approval review as user4
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -889,18 +890,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// verify that a commit status was created for the review event
-		assert.Eventually(t, func() bool {
-			latestCommitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
-			assert.NoError(t, err)
-			if len(latestCommitStatuses) == 0 {
-				return false
-			}
-			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
-				return true
-			}
-			return false
-		}, 1*time.Second, 100*time.Millisecond)
+		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
 	})
 }
 
@@ -961,10 +951,10 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		values := url.Values{}
 		values.Set("ref", "main")
@@ -1132,10 +1122,10 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		values := url.Values{}
 		values.Set("ref", "main")
@@ -1162,7 +1152,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1223,10 +1213,10 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
@@ -1309,10 +1299,10 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
@@ -1342,7 +1332,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1439,7 +1429,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the dispatch branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		commit, err := gitRepo.GetBranchCommit(t.Context(), "dispatch")
@@ -1473,7 +1463,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1637,10 +1627,10 @@ jobs:
 		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		inputs = &api.CreateActionWorkflowDispatch{
 			Ref: "main",
@@ -1670,7 +1660,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1806,12 +1796,12 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
 		// Get the commit ID of the default branch
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch
@@ -1884,12 +1874,12 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
 		// Get the commit ID of the default branch
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch

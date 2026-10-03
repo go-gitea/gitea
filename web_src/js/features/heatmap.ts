@@ -1,6 +1,7 @@
 import {createApp} from 'vue';
 import {translateMonth, translateDay} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
+import {trString} from '../modules/i18n.ts';
 
 type HeatmapResponse = {
   heatmapData: Array<[number, number]>; // [[1617235200, 2]] = [unix timestamp, count]
@@ -29,7 +30,7 @@ export async function initHeatmap() {
     });
 
     const totalFormatted = totalContributions.toLocaleString();
-    const textTotalContributions = el.getAttribute('data-locale-total-contributions')!.replace('%s', totalFormatted);
+    const textTotalContributions = trString(el.getAttribute('data-locale-total-contributions')!, totalFormatted);
 
     // last heatmap tooltip localization attempt https://github.com/go-gitea/gitea/pull/24131/commits/a83761cbbae3c2e3b4bced71e680f44432073ac8
     const locale = {

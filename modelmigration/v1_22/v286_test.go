@@ -81,7 +81,7 @@ func Test_RepositoryFormat(t *testing.T) {
 	x, deferable := PrepareOldRepository(t)
 	defer deferable()
 
-	assert.NoError(t, AdjustDBForSha256(x))
+	assert.NoError(t, AdjustDBForSha256(t.Context(), x))
 
 	type Repository struct {
 		ID               int64  `xorm:"pk autoincr"`

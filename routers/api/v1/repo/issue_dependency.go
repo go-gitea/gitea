@@ -183,7 +183,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	}
 
 	// and <Form> represents the dependency
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	dependency := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -244,7 +244,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	}
 
 	// and <Form> represents the dependency
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	dependency := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -404,7 +404,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	target := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -461,7 +461,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	target := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return

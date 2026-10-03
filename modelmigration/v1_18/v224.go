@@ -3,9 +3,13 @@
 
 package v1_18
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func CreateUserBadgesTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func CreateUserBadgesTable(_ context.Context, x base.EngineMigration) error {
 	type Badge struct {
 		ID          int64 `xorm:"pk autoincr"`
 		Description string

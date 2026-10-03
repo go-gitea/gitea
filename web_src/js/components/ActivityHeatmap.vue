@@ -7,6 +7,7 @@ import {getCurrentLocale} from '../utils.ts';
 type HeatmapValue = {date: Date; count: number};
 type HeatmapCell = {date: Date; colorIndex: number; ariaLabel: string; tooltip: string};
 type MonthLabel = {monthIdx: number; weekIdx: number};
+type DayLabel = {dayIdx: number; rowIdx: number};
 
 const props = defineProps<{
   values: HeatmapValue[];
@@ -47,10 +48,26 @@ function shiftDate(d: Date, days: number): Date {
   return out;
 }
 
+function getWeekFirstDay() {
+  const userLocale = navigator.language || 'en-US';
+  try {
+    // Intl.Locale.prototype.getWeekInfo() is still "Limited availability"
+    const localeInfo = new Intl.Locale(userLocale);
+    const weekInfo = localeInfo.getWeekInfo();
+    return weekInfo.firstDay;
+  } catch {
+    // Fallback: countries that widely use Sunday as the first day of the week
+    const region = userLocale.split('-')[1];
+    const sundayRegions = ['US', 'CA', 'MX', 'JP', 'KR', 'IL', 'SA', 'IN', 'BR'];
+    return !region || sundayRegions.includes(region) ? 7 : 1;
+  }
+}
+
 const grid = computed(() => {
   const start = shiftDate(now, -trailingDays);
-  const padStart = start.getDay();
-  const padEnd = daysInWeek - 1 - now.getDay();
+  const firstDayIdx = getWeekFirstDay() % daysInWeek; // 0 to 6
+  const padStart = (start.getDay() - firstDayIdx + daysInWeek) % daysInWeek;
+  const padEnd = (firstDayIdx - now.getDay() - 1 + daysInWeek) % daysInWeek;
   const weekCount = (trailingDays + 1 + padStart + padEnd) / daysInWeek;
 
   const maxCount = props.values.length ? Math.max(...props.values.map((v) => v.count)) : 0;
@@ -95,9 +112,17 @@ const grid = computed(() => {
     }
   }
 
+  const dayLabels: DayLabel[] = [];
+  for (let i = 0; i < daysInWeek; i++) {
+    const labelDay = firstDayIdx + i;
+    if (labelDay % 2 === 0) continue; // only show "Mon/Wed/Fri/Sun" because of limited vertical space
+    const dayIdx = labelDay % daysInWeek;
+    dayLabels.push({dayIdx, rowIdx: i});
+  }
+
   const width = gridLeft + (cellSize * weekCount) + squareBorder;
   const height = gridTop + (cellSize * daysInWeek);
-  return {calendar, monthLabels, width, height};
+  return {calendar, monthLabels, dayLabels, width, height};
 });
 
 const legendViewBox = `${cellSize} 0 ${squareSize * (colorRange.length + 2)} ${squareSize}`;
@@ -162,9 +187,15 @@ function handleDayClick(date: Date) {
         </text>
       </g>
       <g class="heatmap-day-labels" :transform="`translate(0, ${gridTop})`">
-        <text class="heatmap-day-label" :x="0" :y="20">{{ locale.heatMapLocale.days[1] }}</text>
-        <text class="heatmap-day-label" :x="0" :y="44">{{ locale.heatMapLocale.days[3] }}</text>
-        <text class="heatmap-day-label" :x="0" :y="69">{{ locale.heatMapLocale.days[5] }}</text>
+        <text
+          v-for="day in grid.dayLabels"
+          :key="day.dayIdx"
+          class="heatmap-day-label"
+          :x="0"
+          :y="day.rowIdx * cellSize + squareSize - squareBorder"
+        >
+          {{ locale.heatMapLocale.days[day.dayIdx] }}
+        </text>
       </g>
       <g class="heatmap-grid" :transform="`translate(${gridLeft}, ${gridTop})`" @mouseover="lazyInitTooltip">
         <g

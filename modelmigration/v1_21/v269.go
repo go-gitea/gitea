@@ -3,8 +3,12 @@
 
 package v1_21
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func DropDeletedBranchTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func DropDeletedBranchTable(_ context.Context, x base.EngineMigration) error {
 	return x.DropTables("deleted_branch")
 }

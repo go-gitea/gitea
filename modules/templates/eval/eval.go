@@ -145,7 +145,7 @@ func applyOp2(op operator, n1, n2 Num) Num {
 		f2, _ := util.ToFloat64(n2.Value)
 		return applyOp2Generic(op, f1, f2)
 	}
-	return applyOp2Generic(op, n1.Value.(int64), n2.Value.(int64))
+	return applyOp2Generic(op, n1.Value.(int64), n2.Value.(int64)) //nolint:forcetypeassert // castFloat64 above already ruled out float
 }
 
 func toOp(v any) (operator, error) {
@@ -321,13 +321,13 @@ func fnSum(nums []Num) Num {
 	if castFloat64(nums) {
 		var sum float64
 		for _, num := range nums {
-			sum += num.Value.(float64)
+			sum += num.Value.(float64) //nolint:forcetypeassert // castFloat64 reported every value is float64
 		}
 		return Num{sum}
 	}
 	var sum int64
 	for _, num := range nums {
-		sum += num.Value.(int64)
+		sum += num.Value.(int64) //nolint:forcetypeassert // castFloat64 ruled out float, so every value is int64
 	}
 	return Num{sum}
 }

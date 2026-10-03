@@ -19,7 +19,7 @@ type TemplateSubmoduleCommit struct {
 
 // GetTemplateSubmoduleCommits returns a list of submodules paths and their commits from a repository
 // This function is only for generating new repos based on existing template, the template couldn't be too large.
-func GetTemplateSubmoduleCommits(ctx context.Context, repo gitcmd.RepositoryFacade) (submoduleCommits []TemplateSubmoduleCommit, _ error) {
+func GetTemplateSubmoduleCommits(ctx context.Context, repo RepositoryFacade) (submoduleCommits []TemplateSubmoduleCommit, _ error) {
 	cmd := gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD")
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
