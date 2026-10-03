@@ -12,8 +12,9 @@ export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNo
   const seconds = el.getAttribute('data-seconds')!;
   if (seconds) updateStopwatchTime(parseInt(seconds));
 
-  const stopwatchEls = document.querySelectorAll('.active-stopwatch');
   const stopwatchPopup = el.querySelector('.active-stopwatch-popup')!;
+  const stopwatchEls = document.querySelectorAll('.active-stopwatch');
+  if (!stopwatchEls.length) return;
 
   for (const stopwatchEl of stopwatchEls) {
     createTippy(stopwatchEl, {

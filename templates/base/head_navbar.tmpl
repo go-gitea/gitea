@@ -145,6 +145,7 @@
 		{{end}}
 	</div>
 
+{{if .IsSigned}}
 	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{if not $activeStopwatch}}{{$activeStopwatch = dict}}{{end}}{{/* mock an empty stopwatch */}}
@@ -172,6 +173,7 @@
 			</div>
 		</div>
 	</div>
+{{end}}
 </nav>
 {{template "base/head_impersonate_banner"}}
 {{template "base/head_banner"}}
