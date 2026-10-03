@@ -1,52 +1,44 @@
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../../modules/observer.ts';
 import {POST} from '../../modules/fetch.ts';
-import {hideElem, showElem, toggleElem} from '../../utils/dom.ts';
+import {queryElems, toggleElem} from '../../utils/dom.ts';
 
-export function initCompWebHookEditor() {
-  if (!document.querySelectorAll('.new.webhook').length) {
-    return;
-  }
+function initCompWebHookEditorForm(el: HTMLElement) {
+  const elCustomEvents = el.querySelector('.js-webhook-custom-events')!;
+  
+  queryElems<HTMLInputElement>(el, 'input[name=events]', (input) => input.addEventListener('change', () => {
+    if (!input.checked) return;
+    toggleElem(elCustomEvents, input.value === 'choose_events');
+  }));
 
-  for (const input of document.querySelectorAll<HTMLInputElement>('.events.checkbox input')) {
-    input.addEventListener('change', function () {
-      if (this.checked) {
-        showElem('.events.fields');
-      }
+  queryElems(el, 'button[data-events-select-all]', (btn) => btn.addEventListener('click', () => {
+    const checked = btn.getAttribute('data-events-select-all') === 'true';
+    queryElems<HTMLInputElement>(elCustomEvents, 'input[type=checkbox]', (input) => {
+      input.checked = checked;
+      input.dispatchEvent(new Event('change', {bubbles: true})); // for the areYouSure dirty tracking
     });
-  }
-
-  for (const input of document.querySelectorAll<HTMLInputElement>('.non-events.checkbox input')) {
-    input.addEventListener('change', function () {
-      if (this.checked) {
-        hideElem('.events.fields');
-      }
-    });
-  }
-
-  for (const button of document.querySelectorAll('.events.fields [data-events-checked]')) {
-    button.addEventListener('click', () => {
-      const checked = button.getAttribute('data-events-checked') === 'true';
-      for (const input of document.querySelectorAll<HTMLInputElement>('.events.fields input[type=checkbox]')) {
-        input.checked = checked;
-        input.dispatchEvent(new Event('change', {bubbles: true})); // for the areYouSure dirty tracking
-      }
-    });
-  }
+  }));
 
   // some webhooks (like Gitea) allow to set the request method (GET/POST), and it would toggle the "Content Type" field
-  const httpMethodInput = document.querySelector<HTMLInputElement>('#http_method');
+  const httpMethodInput = el.querySelector<HTMLInputElement>('#http_method');
   if (httpMethodInput) {
-    const updateContentType = function () {
+    const updateContentType = () => {
       const visible = httpMethodInput.value === 'POST';
-      toggleElem(document.querySelector('#content_type')!.closest('.field')!, visible);
+      toggleElem(el.querySelector('#content_type')!.closest('.field')!, visible);
     };
     updateContentType();
     httpMethodInput.addEventListener('change', updateContentType);
   }
+}
 
-  // Test delivery
-  document.querySelector<HTMLButtonElement>('#test-delivery')?.addEventListener('click', async function () {
-    this.classList.add('is-loading', 'disabled');
-    await POST(this.getAttribute('data-link')!);
+function initCompWebHookEditorHistory() {
+  registerGlobalEventFunc('click', 'onWebhookTestDeliveryClick', async (el) => {
+    el.classList.add('is-loading', 'disabled');
+    await POST(el.getAttribute('data-link')!);
     setTimeout(() => window.location.reload(), 5000);
   });
+}
+
+export function initCompWebHookEditor() {
+  registerGlobalInitFunc('initCompWebHookEditorForm', initCompWebHookEditorForm);
+  initCompWebHookEditorHistory();
 }
