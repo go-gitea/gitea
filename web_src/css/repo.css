@@ -952,16 +952,6 @@
   font-style: italic;
 }
 
-.repository.settings.webhook .events .column {
-  padding-bottom: 0;
-}
-
-.repository.settings.webhook .events .help {
-  font-size: 13px;
-  margin-left: 26px;
-  padding-top: 0;
-}
-
 .repository .repository-summary {
   box-shadow: none;
 }

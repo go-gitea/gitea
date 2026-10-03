@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -88,7 +89,11 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 		}
 		if protectedBranch != nil {
 			protectedBranch.Repo = repo
-			if !protectedBranch.CanUserPush(ctx, doer) {
+			perm, err := access.GetDoerRepoPermission(ctx, repo, doer)
+			if err != nil {
+				return err
+			}
+			if !protectedBranch.CanUserPush(ctx, doer, perm) {
 				return ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}
