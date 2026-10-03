@@ -290,6 +290,13 @@ type WebauthnRegistrationForm struct {
 	Name string `binding:"Required"`
 }
 
+// WebauthnRenameForm for renaming a WebAuthn credential
+type WebauthnRenameForm struct {
+	middleware.FormDefaultValidator
+	ID   int64  `binding:"Required"`
+	Name string `binding:"Required;MaxSize(255)"`
+}
+
 // PackageSettingForm form for package settings
 type PackageSettingForm struct {
 	middleware.FormDefaultValidator
