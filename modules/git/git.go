@@ -29,7 +29,6 @@ const RequiredVersion = "2.34.0" // the minimum Git version required
 type Features struct {
 	gitVersion *version.Version
 
-	SupportProcReceive         bool           // >= 2.29
 	SupportHashSha256          bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
 	SupportedObjectFormats     []ObjectFormat // sha1, sha256
 	SupportCheckAttrOnBare     bool           // >= 2.40
@@ -79,7 +78,6 @@ func loadGitVersionFeatures() (*Features, error) {
 	}
 
 	features := &Features{gitVersion: ver}
-	features.SupportProcReceive = features.CheckVersionAtLeast("2.29")
 	features.SupportHashSha256 = features.CheckVersionAtLeast("2.42")
 	features.SupportedObjectFormats = []ObjectFormat{Sha1ObjectFormat}
 	if features.SupportHashSha256 {

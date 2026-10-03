@@ -144,15 +144,16 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
+	repo.DefaultBranch = util.IfZero(opts.DefaultBranch, setting.Repository.DefaultBranch)
+	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
+
 	// Init git bare new repository.
-	if err = git.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, repo, repo.ObjectFormatName, repo.DefaultBranch); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
-	repo.DefaultBranch = util.IfZero(opts.DefaultBranch, setting.Repository.DefaultBranch)
-	repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 	if !opts.AutoInit {
 		repo.IsEmpty = true
 	}
@@ -177,10 +178,6 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		if err = initRepoCommit(ctx, tmpDir, repo, u); err != nil {
 			return fmt.Errorf("initRepoCommit: %w", err)
 		}
-	}
-
-	if err = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
-		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
 
 	// Re-fetch the repository from database before updating it (keep changes that were done earlier with SQL)

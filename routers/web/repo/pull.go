@@ -241,7 +241,6 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
-			// Special case on Git < 2.25 that doesn't fail on immediate empty history
 			if err != nil || parentCommit == "" {
 				log.Info("No known parent commit for PR %d, error: %v", pull.Index, err)
 				// bring at least partial history if it can work
