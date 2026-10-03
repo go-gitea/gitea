@@ -43,6 +43,10 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 
 // isValidReviewRequest Check permission for ReviewRequest
 func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *issues_model.Issue, permDoer *access_model.Permission) error {
+	// Prevent blocked users from bypassing block restrictions by requesting reviews.
+	if isAdd && user_model.IsUserBlockedBy(ctx, doer, reviewer.ID) {
+		return user_model.ErrBlockedUser
+	}
 	if reviewer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be added as reviewer",
@@ -131,6 +135,20 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 
 // isValidTeamReviewRequest Check permission for ReviewRequest Team
 func isValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *issues_model.Issue) error {
+	if isAdd {
+		members, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
+			TeamID: reviewer.ID,
+		})
+		if err == nil {
+			for _, member := range members {
+				// If any team member has blocked the requester, we reject the entire team review request.
+				// This prevents a blocked user from indirectly notifying the blocker via a team request.
+				if user_model.IsUserBlockedBy(ctx, doer, member.ID) {
+					return user_model.ErrBlockedUser
+				}
+			}
+		}
+	}
 	if doer.IsOrganization() {
 		return issues_model.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
