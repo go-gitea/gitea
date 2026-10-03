@@ -124,9 +124,9 @@ func TestRenderRepoComment(t *testing.T) {
 ![remote image](<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>)
 [[local image|image.jpg]]
 [[remote link|<a href="https://example.com/image.jpg">https://example.com/image.jpg</a>]]
-<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" class="compare"><code>88fc37a...12fc37a (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" class="commit"><code>88fc37a</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com">mail@domain.com</a>
@@ -231,9 +231,9 @@ func TestRenderMarkdownToHtml(t *testing.T) {
 <a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
 <a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a>
 <a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a>
-<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a...12fc37a (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" data-alias="+1">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>

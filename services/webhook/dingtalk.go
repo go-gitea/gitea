@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -79,7 +80,7 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+		text.WriteString(fmt.Sprintf("[%s](%s) %s", base.ShortSha(commit.ID), commit.URL,
 			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {

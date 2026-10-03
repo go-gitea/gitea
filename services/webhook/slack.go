@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -210,7 +211,7 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 	var attachmentText strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		fmt.Fprintf(&attachmentText, "%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name))
+		fmt.Fprintf(&attachmentText, "%s: %s - %s", SlackLinkFormatter(commit.URL, base.ShortSha(commit.ID)), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
 			attachmentText.WriteString("\n")
