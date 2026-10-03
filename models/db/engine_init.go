@@ -103,7 +103,9 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 	}
 
 	preprocessDatabaseCollation(xormEngine)
-	enableMSSQLReadCommittedSnapshot(ctx, xormEngine)
+	if setting.Database.Type.IsMSSQL() {
+		enableMSSQLReadCommittedSnapshot(ctx, xormEngine)
+	}
 
 	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
 	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
@@ -130,9 +132,6 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(context.Conte
 
 // enableMSSQLReadCommittedSnapshot stops MSSQL reads waiting on writers, like PostgreSQL and MySQL
 func enableMSSQLReadCommittedSnapshot(ctx context.Context, engine EngineMigration) {
-	if !setting.Database.Type.IsMSSQL() {
-		return
-	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // ALTER waits for all other connections to close
 	defer cancel()
 	if _, err := engine.Context(ctx).Exec("IF (SELECT is_read_committed_snapshot_on FROM sys.databases WHERE database_id = DB_ID()) = 0 ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON"); err != nil {
