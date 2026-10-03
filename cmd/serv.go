@@ -195,10 +195,12 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	if len(sshCmdArgs) < 2 {
-		// for AGit Flow
-		if cmd == "ssh_info" {
-			cprintf(c, "%s", agit.SshInfoJson)
-			return nil
+		if git.DefaultFeatures().SupportProcReceive {
+			// for AGit Flow
+			if cmd == "ssh_info" {
+				cprintf(c, "%s", agit.SshInfoJson)
+				return nil
+			}
 		}
 		return fail(ctx, "Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}

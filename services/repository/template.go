@@ -122,7 +122,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// 3 -Init git bare new repository.
-	if err = git.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName, ""); err != nil {
+	if err = git.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
 		return nil, fmt.Errorf("git.InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)

@@ -38,8 +38,8 @@ func RenameRepository(ctx context.Context, repo, newRepo RepositoryFacade) error
 	return nil
 }
 
-func InitRepository(ctx context.Context, repo RepositoryFacade, objectFormatName, initialBranch string) error {
-	return InitRepositoryLocal(ctx, gitrepo.RepoLocalPath(repo), true, objectFormatName, initialBranch)
+func InitRepository(ctx context.Context, repo RepositoryFacade, objectFormatName string) error {
+	return InitRepositoryLocal(ctx, gitrepo.RepoLocalPath(repo), true, objectFormatName)
 }
 
 func IsRepoFileExist(ctx context.Context, repo RepositoryFacade, relativeFilePath string) (bool, error) {

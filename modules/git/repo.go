@@ -118,7 +118,7 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 }
 
 // InitRepositoryLocal initializes a new Git repository.
-func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, objectFormatName, initialBranch string) error {
+func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, objectFormatName string) error {
 	err := os.MkdirAll(localRepoPath, os.ModePerm)
 	if err != nil {
 		return err
@@ -131,9 +131,6 @@ func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, o
 	}
 	if DefaultFeatures().SupportHashSha256 {
 		cmd.AddOptionValues("--object-format", objectFormatName)
-	}
-	if initialBranch != "" {
-		cmd.AddOptionValues("--initial-branch", initialBranch)
 	}
 
 	if bare {

@@ -86,6 +86,7 @@ func newHookPostReceiveCommand() *cli.Command {
 	}
 }
 
+// Note: new hook since git 2.29
 func newHookProcReceiveCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "proc-receive",
@@ -212,6 +213,7 @@ Gitea or set your environment appropriately.`, "")
 	refFullNames := make([]git.RefName, hookBatchSize)
 	count := 0
 	total := 0
+	lastline := 0
 
 	out := io.Discard
 	if setting.Git.VerbosePush {
@@ -223,6 +225,8 @@ Gitea or set your environment appropriately.`, "")
 			out = os.Stdout
 		}
 	}
+
+	supportProcReceive := git.DefaultFeatures().SupportProcReceive
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -236,23 +240,37 @@ Gitea or set your environment appropriately.`, "")
 		}
 
 		total++
-		oldCommitIDs[count] = oldCommitID
-		newCommitIDs[count] = newCommitID
-		refFullNames[count] = refFullName
-		count++
-		fmt.Fprintf(out, "*")
+		lastline++
 
-		if count >= hookBatchSize {
-			fmt.Fprintf(out, " Checking %d references\n", count)
+		// If the ref is a branch or tag, check if it's protected
+		// if supportProcReceive all ref should be checked because
+		// permission check was delayed
+		if supportProcReceive || refFullName.IsBranch() || refFullName.IsTag() {
+			oldCommitIDs[count] = oldCommitID
+			newCommitIDs[count] = newCommitID
+			refFullNames[count] = refFullName
+			count++
+			fmt.Fprintf(out, "*")
 
-			hookOptions.OldCommitIDs = oldCommitIDs
-			hookOptions.NewCommitIDs = newCommitIDs
-			hookOptions.RefFullNames = refFullNames
-			extra := private.HookPreReceive(ctx, ownerName, repoName, hookOptions)
-			if extra.HasError() {
-				return fail(ctx, extra.UserMsg, "HookPreReceive(batch) failed: %v", extra.Error)
+			if count >= hookBatchSize {
+				fmt.Fprintf(out, " Checking %d references\n", count)
+
+				hookOptions.OldCommitIDs = oldCommitIDs
+				hookOptions.NewCommitIDs = newCommitIDs
+				hookOptions.RefFullNames = refFullNames
+				extra := private.HookPreReceive(ctx, ownerName, repoName, hookOptions)
+				if extra.HasError() {
+					return fail(ctx, extra.UserMsg, "HookPreReceive(batch) failed: %v", extra.Error)
+				}
+				count = 0
+				lastline = 0
 			}
-			count = 0
+		} else {
+			fmt.Fprintf(out, ".")
+		}
+		if lastline >= hookBatchSize {
+			fmt.Fprintf(out, "\n")
+			lastline = 0
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -270,6 +288,8 @@ Gitea or set your environment appropriately.`, "")
 		if extra.HasError() {
 			return fail(ctx, extra.UserMsg, "HookPreReceive(last) failed: %v", extra.Error)
 		}
+	} else if lastline > 0 {
+		fmt.Fprintf(out, "\n")
 	}
 
 	fmt.Fprintf(out, "Checked %d references in total\n", total)
@@ -453,6 +473,10 @@ If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
 		}
 		return nil
+	}
+
+	if !git.DefaultFeatures().SupportProcReceive {
+		return fail(ctx, "No proc-receive support", "current git version doesn't support proc-receive.")
 	}
 
 	reader := bufio.NewReader(os.Stdin)

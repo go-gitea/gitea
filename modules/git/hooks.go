@@ -95,6 +95,7 @@ done
 `, setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),
 	}
 
+	// although only new git (>=2.29) supports proc-receive, it's still good to create its hook, in case the user upgrades git
 	hookNames = append(hookNames, "proc-receive")
 	hookTpls = append(hookTpls,
 		fmt.Sprintf(`#!/usr/bin/env %s

@@ -24,8 +24,7 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 	testRepoName := "created-repo"
 	t.Run("Success", func(t *testing.T) {
 		createdRepo, err := CreateRepositoryDirectly(t.Context(), user2, user2, CreateRepoOptions{
-			Name:          testRepoName,
-			DefaultBranch: "custom-default",
+			Name: testRepoName,
 		}, true)
 		assert.NoError(t, err)
 		assert.NotNil(t, createdRepo)
@@ -33,10 +32,6 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 		exist, err := git.IsRepositoryExist(t.Context(), gitrepo.CodeRepoByName(user2.Name, createdRepo.Name))
 		assert.NoError(t, err)
 		assert.True(t, exist)
-
-		branch, err := git.GetDefaultBranch(t.Context(), createdRepo)
-		assert.NoError(t, err)
-		assert.Equal(t, "custom-default", branch)
 
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: createdRepo.Name})
 
