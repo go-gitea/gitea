@@ -3292,17 +3292,6 @@
             "type": "string",
             "x-go-name": "IssueURL"
           },
-          "original_author": {
-            "description": "OriginalAuthor is the original author name (for imported comments)",
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "description": "OriginalAuthorID is the original author ID (for imported comments)",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
-          },
           "pull_request_url": {
             "description": "PRURL is the API URL for the pull request (if applicable)",
             "format": "uri",
@@ -7231,15 +7220,6 @@
             "type": "integer",
             "x-go-name": "Index"
           },
-          "original_author": {
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
-          },
           "pin_order": {
             "format": "int64",
             "type": "integer",
@@ -8897,17 +8877,6 @@
             "type": "integer",
             "x-go-name": "Index"
           },
-          "original_author": {
-            "description": "OriginalAuthor is the original author name (for imported pull requests)",
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "description": "OriginalAuthorID is the original author ID (for imported pull requests)",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
-          },
           "patch_url": {
             "description": "The URL to download the patch file",
             "format": "uri",
@@ -9100,15 +9069,6 @@
             "type": "boolean",
             "x-go-name": "Official"
           },
-          "original_author": {
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
-          },
           "pull_request_url": {
             "description": "HTMLPullURL is the web URL for the pull request",
             "format": "uri",
@@ -9171,15 +9131,6 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
-          },
-          "original_author": {
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
           },
           "original_commit_id": {
             "type": "string",
@@ -9306,17 +9257,6 @@
             "type": "string",
             "x-go-name": "Created"
           },
-          "original_author": {
-            "description": "OriginalAuthor is the original author name (for imported reactions)",
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "description": "OriginalAuthorID is the original author ID (for imported reactions)",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
-          },
           "user": {
             "$ref": "#/components/schemas/User"
           }
@@ -9390,17 +9330,6 @@
             "description": "The display title of the release",
             "type": "string",
             "x-go-name": "Title"
-          },
-          "original_author": {
-            "description": "OriginalAuthor is the original author name (for imported releases)",
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "description": "OriginalAuthorID is the original author ID (for imported releases)",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
           },
           "prerelease": {
             "description": "Whether the release is a prerelease",
@@ -10331,17 +10260,6 @@
           "old_title": {
             "type": "string",
             "x-go-name": "OldTitle"
-          },
-          "original_author": {
-            "description": "OriginalAuthor is the original author name (for imported comments)",
-            "type": "string",
-            "x-go-name": "OriginalAuthor"
-          },
-          "original_author_id": {
-            "description": "OriginalAuthorID is the original author ID (for imported comments)",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "OriginalAuthorID"
           },
           "project_id": {
             "format": "int64",

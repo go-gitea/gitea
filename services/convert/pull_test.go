@@ -40,13 +40,10 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	// simulate fork deletion
 	pr.HeadRepo = nil
 	pr.HeadRepoID = 100000
-	pr.Issue.OriginalAuthor, pr.Issue.OriginalAuthorID = "octocat", 583231
 	apiPullRequest = ToAPIPullRequest(t.Context(), pr, nil)
 	assert.NotNil(t, apiPullRequest)
 	assert.Nil(t, apiPullRequest.Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequest.Head.RepoID)
-	assert.Equal(t, "octocat", apiPullRequest.OriginalAuthor)
-	assert.EqualValues(t, 583231, apiPullRequest.OriginalAuthorID)
 
 	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
 	assert.NoError(t, err)
@@ -54,5 +51,4 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	assert.NotNil(t, apiPullRequests[0])
 	assert.Nil(t, apiPullRequests[0].Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequests[0].Head.RepoID)
-	assert.Equal(t, "octocat", apiPullRequests[0].OriginalAuthor)
 }

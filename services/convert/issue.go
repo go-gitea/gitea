@@ -48,21 +48,19 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	}
 
 	apiIssue := &api.Issue{
-		ID:               issue.ID,
-		Index:            issue.Index,
-		Poster:           ToUser(ctx, issue.Poster, doer),
-		OriginalAuthor:   issue.OriginalAuthor,
-		OriginalAuthorID: issue.OriginalAuthorID,
-		Title:            issue.Title,
-		Body:             issue.Content,
-		Attachments:      toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),
-		Ref:              issue.Ref,
-		State:            issue.State(),
-		IsLocked:         issue.IsLocked,
-		Comments:         issue.NumComments,
-		Created:          issue.CreatedUnix.AsTime(),
-		Updated:          issue.UpdatedUnix.AsTime(),
-		PinOrder:         util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
+		ID:          issue.ID,
+		Index:       issue.Index,
+		Poster:      ToAuthor(ctx, issue.Poster, issue.OriginalAuthor, doer),
+		Title:       issue.Title,
+		Body:        issue.Content,
+		Attachments: toAttachments(ctx, issue.Repo, issue.Attachments, getDownloadURL),
+		Ref:         issue.Ref,
+		State:       issue.State(),
+		IsLocked:    issue.IsLocked,
+		Comments:    issue.NumComments,
+		Created:     issue.CreatedUnix.AsTime(),
+		Updated:     issue.UpdatedUnix.AsTime(),
+		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
 
 		TimeEstimate:   issue.TimeEstimate,
 		ContentVersion: issue.ContentVersion,

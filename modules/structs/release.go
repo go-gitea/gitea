@@ -39,10 +39,6 @@ type Release struct {
 	PublishedAt *time.Time `json:"published_at"`
 	// The user who published the release
 	Publisher *User `json:"author"`
-	// OriginalAuthor is the original author name (for imported releases)
-	OriginalAuthor string `json:"original_author"`
-	// OriginalAuthorID is the original author ID (for imported releases)
-	OriginalAuthorID int64 `json:"original_author_id"`
 	// The files attached to the release
 	Attachments []*Attachment `json:"assets"`
 }

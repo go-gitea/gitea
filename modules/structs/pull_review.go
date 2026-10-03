@@ -32,8 +32,6 @@ const ReviewStateUnknown = ""
 type PullReview struct {
 	ID                int64           `json:"id"`
 	Reviewer          *User           `json:"user"`
-	OriginalAuthor    string          `json:"original_author"`
-	OriginalAuthorID  int64           `json:"original_author_id"`
 	ReviewerTeam      *Team           `json:"team"`
 	State             ReviewStateType `json:"state"`
 	Body              string          `json:"body"`
@@ -55,13 +53,11 @@ type PullReview struct {
 
 // PullReviewComment represents a comment on a pull request review
 type PullReviewComment struct {
-	ID               int64  `json:"id"`
-	Body             string `json:"body"`
-	Poster           *User  `json:"user"`
-	OriginalAuthor   string `json:"original_author"`
-	OriginalAuthorID int64  `json:"original_author_id"`
-	Resolver         *User  `json:"resolver"`
-	ReviewID         int64  `json:"pull_request_review_id"`
+	ID       int64  `json:"id"`
+	Body     string `json:"body"`
+	Poster   *User  `json:"user"`
+	Resolver *User  `json:"resolver"`
+	ReviewID int64  `json:"pull_request_review_id"`
 
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
