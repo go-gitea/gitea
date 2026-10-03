@@ -49,8 +49,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
-	_ "gitea.dev/modules/session" // to register all internal adapters
-
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/klauspost/compress/gzhttp"
