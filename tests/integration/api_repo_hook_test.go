@@ -5,7 +5,9 @@ package integration
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
+	"strings"
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
@@ -95,4 +97,47 @@ func TestAPICreateHook(t *testing.T) {
 	clearResp := MakeRequest(t, clearReq, http.StatusOK)
 	cleared := DecodeJSON(t, clearResp, &api.Hook{})
 	assert.Empty(t, cleared.Name)
+}
+
+func TestAPIFluxerHook(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	base := "/api/v1/repos/user2/repo1/hooks"
+	for _, overrides := range []bool{false, true} {
+		config := api.CreateHookOptionConfig{"url": "https://chat.example/api/webhooks/123/token?wait=true", "content_type": "json"}
+		if overrides {
+			config["username"], config["icon_url"] = "Gitea", "https://gitea.example/icon.png"
+		}
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", base, api.CreateHookOption{Type: "fluxer", Config: config}).AddTokenAuth(token), http.StatusCreated)
+		hook := DecodeJSON(t, resp, &api.Hook{})
+		assert.Equal(t, "fluxer", hook.Type)
+		assert.Equal(t, config["url"], hook.Config["url"])
+		assert.Equal(t, config["username"], hook.Config["username"])
+		assert.Equal(t, config["icon_url"], hook.Config["icon_url"])
+		hookURL := fmt.Sprintf("%s/%d", base, hook.ID)
+		get := MakeRequest(t, NewRequest(t, "GET", hookURL).AddTokenAuth(token), http.StatusOK)
+		assert.Equal(t, hook.Config, DecodeJSON(t, get, &api.Hook{}).Config)
+		for _, change := range []map[string]string{{"username": "Changed"}, {"icon_url": "https://gitea.example/new.png"}, {"username": ""}, {"icon_url": ""}} {
+			maps.Copy(hook.Config, change)
+			patched := MakeRequest(t, NewRequestWithJSON(t, "PATCH", hookURL, api.EditHookOption{Config: change}).AddTokenAuth(token), http.StatusOK)
+			assert.Equal(t, hook.Config, DecodeJSON(t, patched, &api.Hook{}).Config)
+		}
+		name := "Fluxer hook"
+		active := true
+		patched := MakeRequest(t, NewRequestWithJSON(t, "PATCH", hookURL, api.EditHookOption{Name: &name, Active: &active}).AddTokenAuth(token), http.StatusOK)
+		assert.Equal(t, hook.Config, DecodeJSON(t, patched, &api.Hook{}).Config)
+		for _, config := range []map[string]string{{"content_type": "form"}, {"username": strings.Repeat("😀", 41)}, {"icon_url": "invalid"}} {
+			MakeRequest(t, NewRequestWithJSON(t, "PATCH", hookURL, api.EditHookOption{Config: config}).AddTokenAuth(token), http.StatusUnprocessableEntity)
+		}
+		get = MakeRequest(t, NewRequest(t, "GET", hookURL).AddTokenAuth(token), http.StatusOK)
+		assert.Equal(t, hook.Config, DecodeJSON(t, get, &api.Hook{}).Config)
+	}
+	for _, config := range []api.CreateHookOptionConfig{
+		{"url": "https://chat.example/webhook", "content_type": "form"},
+		{"url": "https://chat.example/webhook", "content_type": "json", "username": strings.Repeat("😀", 41)},
+		{"url": "https://chat.example/webhook", "content_type": "json", "icon_url": "invalid"},
+	} {
+		MakeRequest(t, NewRequestWithJSON(t, "POST", base, api.CreateHookOption{Type: "fluxer", Config: config}).AddTokenAuth(token), http.StatusUnprocessableEntity)
+	}
 }

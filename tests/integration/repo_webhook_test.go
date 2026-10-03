@@ -1862,3 +1862,55 @@ jobs:
 		assert.Equal(t, "user2/repo1", webhookData.payloads[i].Repo.FullName)
 	}
 }
+
+func TestFluxerWebhookUI(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	base := "/user2/repo1/settings/hooks"
+	resp := session.MakeRequest(t, NewRequest(t, "GET", base), http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, doc.doc.Find(`a[href="`+base+`/fluxer/new"]`).Length())
+	resp = session.MakeRequest(t, NewRequest(t, "GET", base+"/fluxer/new"), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, doc.doc.Find(`form[action="`+base+`/fluxer/new"]`).Length())
+	values := map[string]string{"payload_url": "https://chat.example/webhook", "username": "Gitea", "icon_url": "https://gitea.example/icon.png", "events": "push_only", "active": "true"}
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", base+"/fluxer/new", values), http.StatusSeeOther)
+	hook := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{RepoID: 1, Type: webhook_module.FLUXER, URL: values["payload_url"]})
+	hookID := hook.ID
+	editURL := base + "/" + strconv.FormatInt(hookID, 10)
+	resp = session.MakeRequest(t, NewRequest(t, "GET", editURL), http.StatusOK)
+	doc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, "Gitea", doc.doc.Find(`input[name="username"]`).AttrOr("value", ""))
+	assert.Equal(t, values["icon_url"], doc.doc.Find(`input[name="icon_url"]`).AttrOr("value", ""))
+	assert.Equal(t, webhook_module.FLUXER, hook.Type)
+	assert.Equal(t, webhook.ContentTypeJSON, hook.ContentType)
+	postURL := base + "/fluxer/" + strconv.FormatInt(hookID, 10)
+	values["username"] = "Updated"
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", postURL, values), http.StatusSeeOther)
+	hook = unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{ID: hookID})
+	var meta struct {
+		Username string `json:"username"`
+		IconURL  string `json:"icon_url"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(hook.Meta), &meta))
+	assert.Equal(t, "Updated", meta.Username)
+	assert.Equal(t, values["icon_url"], meta.IconURL)
+	for _, target := range []string{base + "/fluxer/new", postURL} {
+		values["username"] = "Submitted"
+		values["icon_url"] = "invalid-icon"
+		values["payload_url"] = "https://chat.example/changed"
+		resp = session.MakeRequest(t, NewRequestWithValues(t, "POST", target, values), http.StatusOK)
+		doc = NewHTMLParser(t, resp.Body)
+		assert.Equal(t, values["username"], doc.doc.Find(`input[name="username"]`).AttrOr("value", ""))
+		assert.Equal(t, values["icon_url"], doc.doc.Find(`input[name="icon_url"]`).AttrOr("value", ""))
+		assert.Equal(t, values["payload_url"], doc.doc.Find(`input[name="payload_url"]`).AttrOr("value", ""))
+		assert.Equal(t, 1, doc.doc.Find(`#icon_url`).Parent().Filter(".error").Length())
+	}
+	admin := loginUser(t, "user1")
+	for _, base := range []string{"/user/settings/hooks", "/org/org3/settings/hooks", "/-/admin/default-hooks", "/-/admin/system-hooks"} {
+		resp = admin.MakeRequest(t, NewRequest(t, "GET", base+"/fluxer/new"), http.StatusOK)
+		doc = NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 1, doc.doc.Find(`form[action="`+base+`/fluxer/new"]`).Length())
+		assert.Equal(t, 1, doc.doc.Find(`a[href="`+base+`/fluxer/new"]`).Length())
+	}
+}

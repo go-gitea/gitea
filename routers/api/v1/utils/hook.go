@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -98,7 +99,38 @@ func checkCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 		ctx.APIError(http.StatusUnprocessableEntity, "Invalid url")
 		return false
 	}
+	if form.Type == webhook_module.FLUXER {
+		if form.Config["content_type"] != "json" {
+			ctx.APIError(http.StatusUnprocessableEntity, "Fluxer requires JSON content type")
+			return false
+		}
+		if _, err := fluxerHookMeta(&webhook.Webhook{}, form.Config); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+			return false
+		}
+	}
 	return true
+}
+
+func fluxerHookMeta(w *webhook.Webhook, config map[string]string) (string, error) {
+	meta, err := webhook_service.GetFluxerHook(w)
+	if err != nil {
+		return "", err
+	}
+	if username, ok := config["username"]; ok {
+		meta.Username = username
+	}
+	if iconURL, ok := config["icon_url"]; ok {
+		meta.IconURL = iconURL
+	}
+	if err := meta.Validate(); err != nil {
+		return "", err
+	}
+	data, err := json.Marshal(meta)
+	if err != nil {
+		return "", fmt.Errorf("fluxerHookMeta: %w", err)
+	}
+	return string(data), nil
 }
 
 // AddSystemHook add a system hook
@@ -260,6 +292,14 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		w.Meta = string(meta)
 	}
 
+	if w.Type == webhook_module.FLUXER {
+		w.Meta, err = fluxerHookMeta(w, form.Config)
+		if err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+			return nil, false
+		}
+	}
+
 	if err := w.UpdateEvent(); err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, false
@@ -347,11 +387,20 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 			w.URL = url
 		}
 		if ct, ok := form.Config["content_type"]; ok {
-			if !webhook.IsValidHookContentType(ct) {
+			if !webhook.IsValidHookContentType(ct) || (w.Type == webhook_module.FLUXER && ct != "json") {
 				ctx.APIError(http.StatusUnprocessableEntity, "Invalid content type")
 				return false
 			}
 			w.ContentType = webhook.ToHookContentType(ct)
+		}
+
+		if w.Type == webhook_module.FLUXER {
+			meta, err := fluxerHookMeta(w, form.Config)
+			if err != nil {
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+				return false
+			}
+			w.Meta = meta
 		}
 
 		if w.Type == webhook_module.SLACK {

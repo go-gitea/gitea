@@ -19,6 +19,10 @@
 		{{template "shared/webhook/icon" (dict "HookType" "discord" "Size" $size)}}
 		{{ctx.Locale.Tr "repo.settings.web_hook_name_discord"}}
 	</a>
+	<a class="item" href="{{.BaseLinkNew}}/fluxer/new">
+		{{template "shared/webhook/icon" (dict "HookType" "fluxer" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_fluxer"}}
+	</a>
 	<a class="item" href="{{.BaseLinkNew}}/dingtalk/new">
 		{{template "shared/webhook/icon" (dict "HookType" "dingtalk" "Size" $size)}}
 		{{ctx.Locale.Tr "repo.settings.web_hook_name_dingtalk"}}

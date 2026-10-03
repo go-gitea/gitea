@@ -278,6 +278,29 @@ type NewDiscordHookForm struct {
 	WebhookForm
 }
 
+type NewFluxerHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	Username   string
+	IconURL    string
+	WebhookForm
+}
+
+func (f *NewFluxerHookForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
+	username := &webhook.FluxerMeta{Username: f.Username}
+	if err := username.Validate(); err != nil {
+		errs = validation.AddValidationError(errs, "Username", ctx.Locale.TrString("repo.settings.fluxer_username_invalid"))
+	} else {
+		f.Username = username.Username
+	}
+	icon := &webhook.FluxerMeta{IconURL: f.IconURL}
+	if err := icon.Validate(); err != nil {
+		errs = validation.AddValidationError(errs, "IconURL", ctx.Locale.TrString("repo.settings.fluxer_icon_url_invalid"))
+	} else {
+		f.IconURL = icon.IconURL
+	}
+	return errs
+}
+
 // NewDingtalkHookForm form for creating dingtalk hook
 type NewDingtalkHookForm struct {
 	middleware.FormDefaultValidator

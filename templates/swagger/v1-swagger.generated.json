@@ -27193,6 +27193,7 @@
           "enum": [
             "dingtalk",
             "discord",
+            "fluxer",
             "gitea",
             "gogs",
             "msteams",
@@ -27208,7 +27209,7 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "CreateHookOptionConfig": {
-      "description": "CreateHookOptionConfig has all config options in it\nrequired are \"content_type\" and \"url\" Required",
+      "description": "CreateHookOptionConfig has all config options in it\nrequired are \"content_type\" and \"url\" Required\nFluxer requires content_type \"json\" and supports optional \"username\" and \"icon_url\" overrides.",
       "type": "object",
       "additionalProperties": {
         "type": "string"
@@ -28620,7 +28621,7 @@
           "x-go-name": "BranchFilter"
         },
         "config": {
-          "description": "Configuration settings for the webhook",
+          "description": "Configuration settings for the webhook. Omitted Fluxer username and icon_url overrides are preserved.",
           "type": "object",
           "additionalProperties": {
             "type": "string"

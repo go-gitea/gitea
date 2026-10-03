@@ -10,6 +10,8 @@
 	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/slack.png">
 {{else if eq .HookType "discord"}}
 	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/discord.png">
+{{else if eq .HookType "fluxer"}}
+	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/fluxer.png">
 {{else if eq .HookType "dingtalk"}}
 	<img alt width="{{$size}}" height="{{$size}}" src="{{AssetUrlPrefix}}/img/dingtalk.ico">
 {{else if eq .HookType "telegram"}}

@@ -219,6 +219,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 	cases := map[string]*hookCase{
 		webhook_module.SLACK:      {},
 		webhook_module.DISCORD:    {},
+		webhook_module.FLUXER:     {},
 		webhook_module.DINGTALK:   {},
 		webhook_module.TELEGRAM:   {},
 		webhook_module.MSTEAMS:    {},

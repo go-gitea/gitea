@@ -121,6 +121,7 @@ const (
 	GOGS       HookType = "gogs"
 	SLACK      HookType = "slack"
 	DISCORD    HookType = "discord"
+	FLUXER     HookType = "fluxer"
 	DINGTALK   HookType = "dingtalk"
 	TELEGRAM   HookType = "telegram"
 	MSTEAMS    HookType = "msteams"

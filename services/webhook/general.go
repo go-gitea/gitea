@@ -411,6 +411,15 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		config["color"] = s.Color
 	}
 
+	if w.Type == webhook_module.FLUXER {
+		meta, err := GetFluxerHook(w)
+		if err != nil {
+			return nil, err
+		}
+		config["username"] = meta.Username
+		config["icon_url"] = meta.IconURL
+	}
+
 	return &api.Hook{
 		ID:     w.ID,
 		Name:   w.Name,

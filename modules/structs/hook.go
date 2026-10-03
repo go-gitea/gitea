@@ -48,12 +48,13 @@ type HookList []*Hook
 
 // CreateHookOptionConfig has all config options in it
 // required are "content_type" and "url" Required
+// Fluxer requires content_type "json" and supports optional "username" and "icon_url" overrides.
 type CreateHookOptionConfig map[string]string
 
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: ["dingtalk","discord","gitea","gogs","msteams","slack","telegram","feishu","wechatwork","packagist"]
+	// enum: ["dingtalk","discord","fluxer","gitea","gogs","msteams","slack","telegram","feishu","wechatwork","packagist"]
 	// The type of the webhook to create
 	Type string `json:"type" binding:"Required"`
 	// required: true
@@ -74,7 +75,7 @@ type CreateHookOption struct {
 
 // EditHookOption options when modify one hook
 type EditHookOption struct {
-	// Configuration settings for the webhook
+	// Configuration settings for the webhook. Omitted Fluxer username and icon_url overrides are preserved.
 	Config map[string]string `json:"config"`
 	// List of events that trigger this webhook
 	Events []string `json:"events"`

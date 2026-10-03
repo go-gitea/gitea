@@ -165,6 +165,9 @@ func WebhooksNew(ctx *context.Context) {
 			"Username": "Gitea",
 		}
 	}
+	if hookType == webhook_module.FLUXER {
+		ctx.Data["FluxerHook"] = &webhook_service.FluxerMeta{}
+	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
@@ -289,6 +292,9 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 	ctx.Data["Webhook"] = w
+	if params.Type == webhook_module.FLUXER {
+		ctx.Data["FluxerHook"] = params.Meta
+	}
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
@@ -409,6 +415,29 @@ func discordHookParams(ctx *context.Context) webhookParams {
 			Username: form.Username,
 			IconURL:  form.IconURL,
 		},
+	}
+}
+
+func FluxerHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, fluxerHookParams(ctx))
+}
+
+func FluxerHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, fluxerHookParams(ctx))
+}
+
+func fluxerHookParams(ctx *context.Context) webhookParams {
+	form := web.GetForm[*forms.NewFluxerHookForm](ctx)
+	meta := &webhook_service.FluxerMeta{Username: form.Username, IconURL: form.IconURL}
+	ctx.Data["FluxerHook"] = meta
+	ctx.Data["payload_url"] = form.PayloadURL
+	return webhookParams{
+		Type:        webhook_module.FLUXER,
+		URL:         form.PayloadURL,
+		HTTPMethod:  http.MethodPost,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Meta:        meta,
 	}
 }
 
@@ -643,6 +672,13 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		ctx.Data["SlackHook"] = webhook_service.GetSlackHook(w)
 	case webhook_module.DISCORD:
 		ctx.Data["DiscordHook"] = webhook_service.GetDiscordHook(w)
+	case webhook_module.FLUXER:
+		meta, err := webhook_service.GetFluxerHook(w)
+		if err != nil {
+			ctx.ServerError("GetFluxerHook", err)
+			return nil, nil
+		}
+		ctx.Data["FluxerHook"] = meta
 	case webhook_module.TELEGRAM:
 		ctx.Data["TelegramHook"] = webhook_service.GetTelegramHook(w)
 	case webhook_module.MATRIX:
