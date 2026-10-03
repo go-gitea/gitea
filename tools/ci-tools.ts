@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import {readFileSync} from 'node:fs';
 import {argv, env, exit} from 'node:process';
 
 const allowedTypes = [
@@ -43,6 +42,8 @@ const typeLabels: Partial<Record<CommitType, string>> = {
 
 // Non-type labels, removed only when the previous title implied them.
 const extraLabels: Partial<Record<CommitType, string>> = {
+  chore: 'skip-changelog',
+  ci: 'skip-changelog',
   build: 'topic/build',
 };
 
@@ -160,29 +161,9 @@ async function setPrLabels(): Promise<void> {
   }
 }
 
-const releaseSections: Partial<Record<CommitType, string>> = {
-  feat: 'Features',
-  enhance: 'Enhancements',
-  perf: 'Performance',
-  fix: 'Bug Fixes',
-  docs: 'Documentation',
-};
-
-// Command: print release notes grouped by type for the commit subjects on stdin.
-function releaseNotes(): void {
-  const groups = new Map<string, string[]>(['Breaking Changes', ...Object.values(releaseSections), 'Miscellaneous'].map((name) => [name, []]));
-  for (const subject of readFileSync(0, 'utf8').split('\n')) {
-    const parsed = parsePrTitle(subject);
-    if (!parsed || (!parsed.breaking && ['chore', 'ci'].includes(parsed.type))) continue;
-    groups.get(parsed.breaking ? 'Breaking Changes' : releaseSections[parsed.type] ?? 'Miscellaneous')!.push(`- ${subject}`);
-  }
-  console.info(Array.from(groups).filter(([, lines]) => lines.length).map(([name, lines]) => `# ${name}\n\n${lines.join('\n')}`).join('\n\n'));
-}
-
 const commands: Record<string, () => void | Promise<void>> = {
   'lint-pr-title': lintPrTitle,
   'set-pr-labels': setPrLabels,
-  'release-notes': releaseNotes,
 };
 
 const command = argv[2];
