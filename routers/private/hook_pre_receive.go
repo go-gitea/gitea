@@ -229,9 +229,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 	} else {
 		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.Doer)
+			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.Doer, ctx.Repo.Permission)
 		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.Doer)
+			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission)
 		}
 	}
 
