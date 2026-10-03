@@ -6,6 +6,7 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}" method="post">
+			<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 			<div class="field {{if .Err_FullName}}error{{end}}">
 				<label for="full_name">{{ctx.Locale.Tr "org.org_full_name_holder"}}</label>
 				<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100">
@@ -53,6 +54,7 @@
 				<button type="submit" class="ui primary button">{{ctx.Locale.Tr "org.settings.update_settings"}}</button>
 				{{end}}
 			</div>
+			</fieldset>
 		</form>
 
 		{{if not $.IsOrgArchived}}
