@@ -5,11 +5,9 @@ package auth
 
 import (
 	"context"
-	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base32"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 
@@ -90,33 +88,19 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
-func (t *TwoFactor) getEncryptionKey() []byte {
-	k := md5.Sum([]byte(setting.SecretKey))
-	return k[:]
-}
-
 // SetSecret sets the 2FA secret.
-func (t *TwoFactor) SetSecret(secretString string) error {
-	secretBytes, err := secret.AesEncrypt(t.getEncryptionKey(), []byte(secretString))
-	if err != nil {
-		return err
-	}
-	t.Secret = base64.StdEncoding.EncodeToString(secretBytes)
-	return nil
+func (t *TwoFactor) SetSecret(secretString string) (err error) {
+	t.Secret, err = secret.EncryptSecret(setting.SecretKey, secretString)
+	return err
 }
 
 // validateTOTP validates the provided passcode. It does not consume the passcode; all login
 // surfaces must go through ValidateAndConsumeTOTP so that a passcode cannot be redeemed twice.
 func (t *TwoFactor) validateTOTP(passcode string) (bool, error) {
-	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
+	secretStr, err := secret.DecryptSecretWithMD5Fallback(setting.SecretKey, t.Secret)
 	if err != nil {
-		return false, fmt.Errorf("validateTOTP invalid base64: %w", err)
+		return false, fmt.Errorf("validateTOTP: %w", err)
 	}
-	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
-	if err != nil {
-		return false, fmt.Errorf("validateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
-	}
-	secretStr := string(secretBytes)
 	return totp.Validate(passcode, secretStr), nil
 }
 

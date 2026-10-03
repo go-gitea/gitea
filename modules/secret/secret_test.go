@@ -10,15 +10,23 @@ import (
 )
 
 func TestEncryptDecrypt(t *testing.T) {
-	hex, err := EncryptSecret("foo", "baz")
+	encrypted, err := EncryptSecret("foo", "baz")
 	assert.NoError(t, err)
-	str, _ := DecryptSecret("foo", hex)
+	str, _ := DecryptSecret("foo", encrypted)
+	assert.Equal(t, "baz", str)
+	_, err = DecryptSecret("bar", encrypted)
+	assert.ErrorContains(t, err, "message authentication failed")
+
+	str, err = DecryptSecret("foo", "8bb399fd5f08040e80f328c056fbdac7a12a7a37")
+	assert.NoError(t, err)
 	assert.Equal(t, "baz", str)
 
-	hex, err = EncryptSecret("bar", "baz")
+	str, err = DecryptSecretWithMD5Fallback("foo", "nxI7/oUK+jfcYxj4fxB/2bYF+Us=")
 	assert.NoError(t, err)
-	str, _ = DecryptSecret("foo", hex)
-	assert.NotEqual(t, "baz", str)
+	assert.Equal(t, "baz", str)
+	str, err = DecryptSecretWithMD5Fallback("foo", encrypted)
+	assert.NoError(t, err)
+	assert.Equal(t, "baz", str)
 
 	_, err = DecryptSecret("a", "b")
 	assert.ErrorContains(t, err, "invalid hex string")
