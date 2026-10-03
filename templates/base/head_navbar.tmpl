@@ -5,7 +5,7 @@
 
 	<button type="button" class="item btn only-mobile tw-p-0 tw-justify-center" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 
-	<div class="navbar-left tw-mr-auto">
+	<div class="navbar-list navbar-left">
 		{{if and .IsSigned .MustChangePassword}}
 			{{/* No links */}}
 		{{else if .IsSigned}}
@@ -36,7 +36,7 @@
 
 	{{template "base/head_navbar_icons"}}
 
-	<div class="navbar-right">
+	<div class="navbar-list navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text">

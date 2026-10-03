@@ -1,19 +1,19 @@
-#navbar,
-.navbar-left,
-.navbar-right {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
 #navbar {
   background: var(--color-nav-bg);
   border-bottom: 1px solid var(--color-secondary);
   padding: 0 10px;
 }
 
+#navbar,
+.navbar-list {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+
 #navbar > .item,
-#navbar > div > .item {
+#navbar > .navbar-list > .item {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -29,17 +29,22 @@
   margin: 6.5px 0; /* center the 36px items in the 49px row */
 }
 
-#navbar .item.active {
+#navbar > .item.active,
+#navbar > .navbar-list > .item.active {
   background: var(--color-active);
 }
 
 #navbar > .item:hover,
-#navbar > div > .item:hover {
+#navbar > .navbar-list > .item:hover {
   background: var(--color-nav-hover-bg);
 }
 
-#navbar .item.ui.dropdown {
+#navbar > .navbar-list > .item.ui.dropdown {
   padding-right: 5px;
+}
+
+#navbar > .navbar-left {
+  margin-right: auto;
 }
 
 @media (max-width: 767.98px) {
@@ -53,8 +58,7 @@
   #navbar-expand-toggle {
     order: 1;
   }
-  .navbar-left,
-  .navbar-right {
+  .navbar-list {
     display: none;
     order: 2;
     width: 100%;
@@ -64,8 +68,7 @@
   .navbar-left {
     margin-top: 5px;
   }
-  .navbar-menu-open .navbar-left,
-  .navbar-menu-open .navbar-right {
+  .navbar-menu-open .navbar-list {
     display: flex;
   }
   #navbar.navbar-menu-open {
