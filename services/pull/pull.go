@@ -444,38 +444,48 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				for _, pr := range headBranchPRs {
 					objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 					if opts.NewCommitID != "" && opts.NewCommitID != objectFormat.EmptyObjectID().String() {
-						changed, newMergeBase, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
-						if err != nil {
-							log.Error("checkIfPRContentChanged: %v", err)
-						}
-						if newMergeBase != "" && pr.MergeBase != newMergeBase {
-							pr.MergeBase = newMergeBase
-							if _, err := pr.UpdateColsIfNotMerged(ctx, "merge_base"); err != nil {
-								log.Error("Update merge base for %-v: %v", pr, err)
-							}
-						}
-						if changed {
-							// Mark old reviews as stale if diff to mergebase has changed
-							if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
-								log.Error("MarkReviewsAsStale: %v", err)
-							}
-
-							// dismiss all approval reviews if protected branch rule item enabled.
-							pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+						// Hold the same per-PR lock that merge-time checks acquire (see
+						// CheckPullMergeable), so a concurrent merge request cannot observe
+						// stale/approved review rows while this goroutine is still marking
+						// reviews as stale or dismissing them for the new head commit.
+						lockErr := globallock.LockAndDo(ctx, getPullWorkingLockKey(pr.ID), func(ctx context.Context) error {
+							changed, newMergeBase, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
 							if err != nil {
-								log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+								log.Error("checkIfPRContentChanged: %v", err)
 							}
-							if pb != nil && pb.DismissStaleApprovals {
-								if err := DismissApprovalReviews(ctx, opts.Doer, pr); err != nil {
-									log.Error("DismissApprovalReviews: %v", err)
+							if newMergeBase != "" && pr.MergeBase != newMergeBase {
+								pr.MergeBase = newMergeBase
+								if _, err := pr.UpdateColsIfNotMerged(ctx, "merge_base"); err != nil {
+									log.Error("Update merge base for %-v: %v", pr, err)
 								}
 							}
-						}
-						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
-							log.Error("MarkReviewsAsNotStale: %v", err)
-						}
-						if err = syncCommitDivergence(ctx, pr); err != nil {
-							log.Error("syncCommitDivergence: %v", err)
+							if changed {
+								// Mark old reviews as stale if diff to mergebase has changed
+								if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
+									log.Error("MarkReviewsAsStale: %v", err)
+								}
+
+								// dismiss all approval reviews if protected branch rule item enabled.
+								pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+								if err != nil {
+									log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+								}
+								if pb != nil && pb.DismissStaleApprovals {
+									if err := DismissApprovalReviews(ctx, opts.Doer, pr); err != nil {
+										log.Error("DismissApprovalReviews: %v", err)
+									}
+								}
+							}
+							if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
+								log.Error("MarkReviewsAsNotStale: %v", err)
+							}
+							if err := syncCommitDivergence(ctx, pr); err != nil {
+								log.Error("syncCommitDivergence: %v", err)
+							}
+							return nil
+						})
+						if lockErr != nil {
+							log.Error("lock.Lock(): %v", lockErr)
 						}
 					}
 
