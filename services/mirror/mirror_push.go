@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -110,8 +109,8 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
 
-	if err := repo_model.UpdatePushMirror(ctx, m); err != nil {
-		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
+	if err := repo_model.UpdatePushMirrorSyncStatus(ctx, m); err != nil {
+		log.Error("UpdatePushMirrorSyncStatus [%d]: %v", m.ID, err)
 		return false
 	}
 
@@ -156,13 +155,11 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing mirror %d repo %s to remote %s", m.ID, storageRepo.LogString(), m.RemoteName)
 
-		envs := proxy.EnvWithProxy(remoteURL.URL)
 		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
-			Env:     envs,
 		}); err != nil {
 			return fmt.Errorf("PushToExternal failed: %w", err)
 		}

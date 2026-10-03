@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"gitea.dev/actionslib/pkg/model"
@@ -25,8 +27,10 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
 
+	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
@@ -95,6 +99,50 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 	}
 }
 
+// validateCalledWorkflows validates all workflows content calls, recursively.
+func validateCalledWorkflows(ctx context.Context, run *actions_model.ActionRun, content []byte) error {
+	validated := make(container.Set[string])
+	var validate func(content []byte, source *actions_model.ActionRunJob, level int) error
+	validate = func(content []byte, source *actions_model.ActionRunJob, level int) error {
+		workflow, err := jobparser.ReadWorkflow(content)
+		if err != nil {
+			return err
+		}
+		for _, id := range slices.Sorted(maps.Keys(workflow.Jobs)) {
+			uses := workflow.Jobs[id].Uses
+			if uses == "" {
+				continue
+			}
+			if level > MaxReusableCallLevels {
+				return errCallLevelExceeded(uses)
+			}
+			if !validated.Add(fmt.Sprintf("%d@%s:%s", source.WorkflowSourceRepoID, source.WorkflowSourceCommitSHA, uses)) {
+				continue
+			}
+			ref, err := ResolveUses(ctx, uses)
+			if err != nil {
+				return fmt.Errorf("job %s: %w", id, err)
+			}
+			called, repoID, commitSHA, err := loadReusableWorkflowSource(ctx, run, source, ref)
+			if err != nil {
+				return fmt.Errorf("job %s: %w", id, err)
+			}
+			if _, err = jobparser.ValidateWorkflowStatic(called); err == nil {
+				err = validate(called, &actions_model.ActionRunJob{WorkflowSourceRepoID: repoID, WorkflowSourceCommitSHA: commitSHA}, level+1)
+			}
+			if err != nil {
+				return fmt.Errorf("job %s: Error from called workflow %s: %w", id, uses, err)
+			}
+		}
+		return nil
+	}
+	return validate(content, &actions_model.ActionRunJob{WorkflowSourceRepoID: run.WorkflowRepoID, WorkflowSourceCommitSHA: run.WorkflowCommitSHA}, 0)
+}
+
+func errCallLevelExceeded(uses string) error {
+	return fmt.Errorf("reusable workflow call exceeds the maximum nesting level of %d at %q", MaxReusableCallLevels, uses)
+}
+
 // resolveSameRepoWorkflowSourceCommit returns the commit to read a same-repo reusable workflow from.
 // pull_request_target runs must resolve local `uses:` at the PR base commit, not a stored head SHA.
 func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, caller *actions_model.ActionRunJob) string {
@@ -147,7 +195,7 @@ func checkCallerChain(ctx context.Context, caller *actions_model.ActionRunJob) e
 		current = next
 		depth++
 		if depth > MaxReusableCallLevels {
-			return fmt.Errorf("reusable workflow call exceeds the maximum nesting level of %d at %q", MaxReusableCallLevels, caller.CallUses)
+			return errCallLevelExceeded(caller.CallUses)
 		}
 		if current.IsReusableCaller && current.CallUses != "" && !visited.Add(canonicalCallUses(current)) {
 			return fmt.Errorf("reusable workflow call cycle detected: %q", current.CallUses)
@@ -187,7 +235,7 @@ func canonicalCallUses(job *actions_model.ActionRunJob) string {
 }
 
 // expandReusableWorkflowCaller loads and parses the target reusable workflow and inserts the caller's direct child jobs.
-// It expands only ONE level: a child that is itself a reusable caller is inserted Blocked and expanded later by a subsequent resolver pass.
+// It expands only ONE level: a child that is itself a reusable caller is inserted Blocked or Pending and expanded later by a subsequent resolver pass.
 // It does NOT schedule a follow-up resolver pass; the caller of this function is responsible for emitting.
 //
 // All call sites (PrepareRunAndInsert, execRerunPlan, checkJobsOfCurrentRunAttempt, ApproveRuns) invoke this inside their enclosing write transaction,
@@ -222,6 +270,9 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 	if err := checkResolvedCallerCycle(ctx, caller, contentSourceRepoID, contentSourceCommitSHA, ref.Path); err != nil {
 		return err
+	}
+	if _, err := jobparser.ValidateWorkflowStatic(content); err != nil {
+		return fmt.Errorf("invalid called workflow: %w", err)
 	}
 
 	// 4. Parse the called workflow's spec (used by both secret validation and input evaluation).
@@ -272,6 +323,10 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 			return fmt.Errorf("caller %q inputs: %w", caller.JobID, err)
 		}
 	}
+	jobInputs, err := calledWorkflowInputs(ctx, run, caller, workflowCallInputs)
+	if err != nil {
+		return err
+	}
 
 	// 7. Build CallPayload (persisted in step 9).
 	callPayload, err := (&api.WorkflowCallPayload{
@@ -303,7 +358,7 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	}
 
 	// 9. We own the expansion: insert the direct children.
-	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
+	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, jobInputs); err != nil {
 		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
 		return errors.Join(err, undoExpansion(ctx, caller))
 	}
@@ -335,13 +390,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 
-	// Parse the called workflow with the caller's `inputs`
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
-	if event, ok := gitCtx["event"].(map[string]any); ok {
-		event["inputs"] = inputs
-	}
-	gitCtx["event_name"] = "workflow_call"
-
 	childWorkflows, err := jobparser.Parse(content,
 		jobparser.WithVars(vars),
 		jobparser.WithGitContext(gitCtx.ToGitHubContext()),
@@ -406,7 +455,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			RunsOn:                  parsedChild.RunsOn(),
 			ContinueOnError:         parsedChild.GetContinueOnError(),
 			MaxParallel:             parseMaxParallel(jobID, parsedChild.Strategy.MaxParallelString),
-			Status:                  actions_model.StatusBlocked,
+			Status:                  util.Iif(len(needs) > 0, actions_model.StatusPending, actions_model.StatusBlocked),
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
 			WorkflowSourceCommitSHA: sourceCommitSHA,
@@ -424,6 +473,13 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		if parsedChild.Uses != "" {
 			child.IsReusableCaller = true
 			child.CallUses = parsedChild.Uses
+		}
+		if parsedChild.RawConcurrency != nil {
+			rawConcurrency, err := yaml.Marshal(parsedChild.RawConcurrency)
+			if err != nil {
+				return fmt.Errorf("marshal raw concurrency of child %q under caller %d: %w", jobID, caller.ID, err)
+			}
+			child.RawConcurrency = string(rawConcurrency)
 		}
 		if err := db.Insert(ctx, child); err != nil {
 			return fmt.Errorf("insert child %q under caller %d: %w", jobID, caller.ID, err)

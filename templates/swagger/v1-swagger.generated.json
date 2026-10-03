@@ -34,7 +34,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -257,7 +257,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -825,7 +825,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "ID of the user's login source to search for",
+            "description": "ID of the user's login source to search for, 0 means the local users",
             "name": "source_id",
             "in": "query"
           },
@@ -2040,7 +2040,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -2292,7 +2292,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -5784,7 +5784,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6185,7 +6185,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6521,7 +6521,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -6690,7 +6690,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -7747,7 +7747,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -9228,6 +9228,18 @@
             "type": "string",
             "description": "return the raw comparison as `diff` or `patch` instead of JSON",
             "name": "output",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "name": "verification",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "name": "files",
             "in": "query"
           }
         ],
@@ -21405,7 +21417,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
@@ -21628,7 +21640,7 @@
           },
           {
             "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "name": "status",
             "in": "query"
           },
