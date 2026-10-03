@@ -17,7 +17,7 @@ test.describe('events', () => {
       loginUser(page, owner),
     ]);
     await page.goto('/');
-    const badge = page.locator('a.not-mobile .notification_count');
+    const badge = page.locator('#navbar .notification_count');
     await expect(badge).toBeHidden();
 
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
@@ -40,7 +40,7 @@ test.describe('events', () => {
     ]);
     // Page loads before the stopwatch starts — the icon is hidden in the rendered HTML
     await page.goto('/');
-    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    const stopwatch = page.locator('#navbar .active-stopwatch');
     // Element must exist in the DOM (just hidden); otherwise the push has nothing to reveal.
     await expect(stopwatch).toHaveCount(1);
     await expect(stopwatch).toBeHidden();
@@ -70,7 +70,7 @@ test.describe('events', () => {
       })(),
     ]);
     await page.goto('/');
-    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    const stopwatch = page.locator('#navbar .active-stopwatch');
     await expect(stopwatch).toBeVisible();
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
@@ -103,7 +103,7 @@ test.describe('events', () => {
     // neither of these would be present.
     await expect(page.getByRole('button', {name: 'Stop timer'})).toBeVisible();
     await expect(page.getByRole('button', {name: 'Discard timer'})).toBeVisible();
-    await expect(page.locator('.active-stopwatch.not-mobile')).toBeVisible();
+    await expect(page.locator('#navbar .active-stopwatch')).toBeVisible();
   });
 
   test('logout propagation', async ({browser, request}) => {

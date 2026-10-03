@@ -1,17 +1,11 @@
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
-	<div class="navbar-left">
-		<!-- the logo -->
-		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
-			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
-		</a>
+	<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
+		<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
+	</a>
 
-		<!-- mobile right menu, it must be here because in mobile view, each item is a flex column, the first item is a full row column -->
-		<div class="ui secondary menu navbar-mobile-right only-mobile">
-			{{template "base/head_navbar_icons" dict "PageGlobalData" .PageGlobalData}}
-			<button type="button" class="item ui icon mini button tw-m-0" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
-		</div>
+	<button type="button" class="item btn only-mobile tw-p-0 tw-justify-center" id="navbar-expand-toggle" aria-label="{{ctx.Locale.Tr "home.nav_menu"}}">{{svg "octicon-three-bars"}}</button>
 
-		<!-- navbar links non-mobile -->
+	<div class="navbar-left tw-mr-auto">
 		{{if and .IsSigned .MustChangePassword}}
 			{{/* No links */}}
 		{{else if .IsSigned}}
@@ -40,7 +34,10 @@
 		{{end}}
 	</div>
 
-	<!-- the full dropdown menus -->
+	{{if not .MustChangePassword}}
+		{{template "base/head_navbar_icons" .PageGlobalData}}
+	{{end}}
+
 	<div class="navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
@@ -62,7 +59,6 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="flex-text-block">
 					{{svg "octicon-plus"}}
@@ -149,7 +145,7 @@
 				<span class="tw-ml-1">{{ctx.Locale.Tr "sign_in"}}</span>
 			</a>
 		{{end}}
-	</div><!-- end full right menu -->
+	</div>
 
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
