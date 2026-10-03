@@ -4,13 +4,12 @@ import ActionStatusIcon from './ActionStatusIcon.vue';
 import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
 import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
-import ActionRunSummaryView from './ActionRunSummaryView.vue';
-import ActionRunJobView from './ActionRunJobView.vue';
+import ActionRunSummaryView, {type ActionRunSummaryViewLocale} from './ActionRunSummaryView.vue';
+import ActionRunJobView, {type ActionRunJobViewLocale} from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
 import {trString} from '../modules/i18n.ts';
-import type {ActionRunJobViewLocale, ActionRunSummaryViewLocale} from './ActionRunView.ts';
 
 defineOptions({
   name: 'RepoActionView',

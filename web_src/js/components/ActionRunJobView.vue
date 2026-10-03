@@ -14,13 +14,24 @@ import {localUserSettings} from '../modules/user-settings.ts';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
 import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
-import type {ActionRunJobViewLocale, ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
+import type {ActionRunViewStore, LogLine, LogLineCommand} from './ActionRunView.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight} = {extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();
   // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
   return rect.bottom >= 0 && rect.bottom <= window.innerHeight + extraViewPortHeight;
 }
+
+export type ActionRunJobViewLocale = {
+  status: Record<ActionsStatus, string>,
+  showTimeStamps: string,
+  showLogSeconds: string,
+  showFullScreen: string,
+  logsAlwaysAutoScroll: string,
+  logsAlwaysExpandRunning: string,
+  downloadLogs: string,
+  copyOutput: string,
+};
 
 type Step = {
   summary: string,

@@ -1,12 +1,22 @@
 <script setup lang="ts">
-import WorkflowGraph from './WorkflowGraph.vue';
+import WorkflowGraph, {type WorkflowGraphLocale} from './WorkflowGraph.vue';
+import type {ActionRunViewStore} from './ActionRunView.ts';
 import {computed, onBeforeUnmount, onMounted, toRefs} from 'vue';
 import {trString} from '../modules/i18n.ts';
-import type {ActionRunSummaryViewLocale, ActionRunViewStore} from './ActionRunView.ts';
+import type {ActionsStatus} from '../modules/gitea-actions.ts';
 
 defineOptions({
   name: 'ActionRunSummaryView',
 });
+
+export type ActionRunSummaryViewLocale = WorkflowGraphLocale & {
+  status: Record<ActionsStatus, string>,
+  statusLabel: string,
+  totalDuration: string,
+  artifactsTitle: string,
+  triggeredVia: string,
+  rerunTriggered: string,
+};
 
 const props = defineProps<{
   store: ActionRunViewStore;

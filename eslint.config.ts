@@ -1108,6 +1108,7 @@ export default defineConfig([
       vueScopedCss.configs.recommended,
     ],
     rules: {
+      '@typescript-eslint/no-redundant-type-constituents': [0], // types imported from .vue files resolve to any via the *.vue shim
       'vue/attributes-order': [0],
       'vue/html-closing-bracket-spacing': [2, {startTag: 'never', endTag: 'never', selfClosingTag: 'never'}],
       'vue/max-attributes-per-line': [0],
