@@ -4,9 +4,9 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 export async function initCaptcha() {
   registerGlobalInitFunc('initImageCaptcha', (el: HTMLElement) => {
     const a = el.querySelector('a')!;
-    a.removeAttribute('href'); // remove href="javascript:"
-    const img = el.querySelector('img')!; // remove onclick="...."
-    img.removeAttribute('onclick');
+    a.removeAttribute('href'); // remove generated href="javascript:"
+    const img = el.querySelector('img')!;
+    img.removeAttribute('onclick'); // remove generated onclick="...." and use our own event listener
     img.addEventListener('click', () => {
       const url = new URL(img.src);
       url.searchParams.set('reload', String(Date.now()));
