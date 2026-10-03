@@ -4,10 +4,14 @@
 package git
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,11 +45,13 @@ func TestRepository_GetBranches(t *testing.T) {
 	assert.ElementsMatch(t, []string{}, branches)
 }
 
-func TestGetBranchNamesAfterRepack(t *testing.T) {
+// FIXME: covers the gogit workarounds in repo_base_gogit.go, remove with the gogit build
+func TestReadsAfterConcurrentRepack(t *testing.T) {
 	repoDir := t.TempDir()
 	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).Run(t.Context()))
+	content := strings.Repeat("a", int(setting.Git.LargeObjectThreshold)+1)
 	for _, from := range []string{"", "from refs/heads/main^0\n"} {
-		stdin := "commit refs/heads/main\ncommitter a <a@a> 0 +0000\ndata 0\n" + from
+		stdin := fmt.Sprintf("commit refs/heads/main\ncommitter a <a@a> 0 +0000\ndata 0\n%sM 100644 inline f\ndata %d\n%s\n", from, len(content), content)
 		require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 		require.NoError(t, gitcmd.NewCommand("repack", "-d").WithDir(repoDir).Run(t.Context()))
 	}
@@ -54,11 +60,24 @@ func TestGetBranchNamesAfterRepack(t *testing.T) {
 	require.NoError(t, err)
 	defer repo.Close()
 	require.False(t, repo.IsObjectExist(t.Context(), "0000000000000000000000000000000000000001"))
+	blobRepo, err := OpenRepositoryLocal(t.Context(), repoDir)
+	require.NoError(t, err)
+	defer blobRepo.Close()
+	commit, err := blobRepo.GetBranchCommit(t.Context(), "main")
+	require.NoError(t, err)
+	readBlob := func() string {
+		data, err := commit.GetFileContent(t.Context(), blobRepo, "f", len(content))
+		require.NoError(t, err)
+		return data
+	}
+	require.Equal(t, content, readBlob())
 	require.NoError(t, gitcmd.NewCommand("repack", "-a", "-d").WithDir(repoDir).Run(t.Context()))
+	require.NoError(t, os.WriteFile(filepath.Join(repoDir, "objects", "pack", "pack-"+strings.Repeat("1", 40)+".pack"), nil, 0o644))
 
 	branches, _, err := repo.GetBranchNames(t.Context(), 0, 0)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"main"}, branches)
+	assert.Equal(t, content, readBlob())
 }
 
 func BenchmarkRepository_GetBranches(b *testing.B) {

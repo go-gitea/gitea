@@ -30,12 +30,12 @@ export type WorkflowGraphLocale = {
   graphResetView: string,
 };
 
-interface StoredState {
+type StoredState = {
   scale: number;
   translateX: number;
   translateY: number;
   timestamp: number;
-}
+};
 
 const props = defineProps<{
   store: ActionRunViewStore;
@@ -233,14 +233,14 @@ function isJobLinked(job: ActionsJob) {
 }
 
 function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
-  const target = 'jobs' in job ? job.jobs[0]! : job;
+  const target = 'jobs' in job ? job.jobs[0] : job;
   if (!isJobLinked(target)) return;
   const link = `${props.runLink}/jobs/${target.id}`;
   if (event.ctrlKey || event.metaKey) {
     window.open(link, '_blank');
     return;
   }
-  window.location.href = link;
+  window.location.assign(link);
 }
 </script>
 

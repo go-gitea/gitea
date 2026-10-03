@@ -455,6 +455,9 @@ importers:
       vitest:
         specifier: 5.0.1
         version: 5.0.1(@types/node@26.6.2)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.11.2)(jsdom@20.0.3(supports-color@10.2.2))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+      vue-eslint-parser:
+        specifier: 10.4.0
+        version: 10.4.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       vue-tsc:
         specifier: 3.3.11
         version: 3.3.11(typescript@6.0.3)
