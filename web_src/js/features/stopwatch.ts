@@ -3,43 +3,32 @@ import {GET} from '../modules/fetch.ts';
 import {hideElem, queryElems, showElem} from '../utils/dom.ts';
 import {onUserEvent} from '../modules/worker.ts';
 import type {StopwatchData} from '../types.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
-const {appSubUrl, notificationSettings, enableTimeTracking} = window.config;
+const {appSubUrl, notificationSettings} = window.config;
 
 export function initStopwatch() {
-  if (!enableTimeTracking) {
-    return;
-  }
-
-  const stopwatchEls = document.querySelectorAll('.active-stopwatch');
-  const stopwatchPopup = document.querySelector('.active-stopwatch-popup');
-
-  if (!stopwatchEls.length || !stopwatchPopup) {
-    return;
-  }
-
-  // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
-  const seconds = stopwatchEls[0]?.getAttribute('data-seconds');
-  if (seconds) {
-    updateStopwatchTime(parseInt(seconds));
-  }
-
-  for (const stopwatchEl of stopwatchEls) {
-    createTippy(stopwatchEl, {
-      content: stopwatchPopup.cloneNode(true) as Element,
-      placement: 'bottom-end',
-      trigger: 'click',
-      maxWidth: 'none',
-      interactive: true,
-      hideOnClick: true,
-      theme: 'default',
-      onShow(instance) {
-        // Re-clone on every open so the popup reflects the latest stopwatch state,
-        // including the case where the icon became visible via a real-time push.
-        instance.setContent(stopwatchPopup.cloneNode(true) as Element);
-      },
+  registerGlobalInitFunc('initActiveStopwatchNotification', (stopwatchPopup: HTMLElement) => {
+    // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
+    const seconds = stopwatchPopup.getAttribute('data-seconds')!;
+    if (seconds) updateStopwatchTime(parseInt(seconds));
+    queryElems(document, '#navbar .active-stopwatch', (stopwatchEl) => {
+      createTippy(stopwatchEl, {
+        content: stopwatchPopup.cloneNode(true) as Element,
+        placement: 'bottom-end',
+        trigger: 'click',
+        maxWidth: 'none',
+        interactive: true,
+        hideOnClick: true,
+        theme: 'default',
+        onShow(instance) {
+          // Re-clone on every open so the popup reflects the latest stopwatch state,
+          // including the case where the icon became visible via a real-time push.
+          instance.setContent(stopwatchPopup.cloneNode(true) as Element);
+        },
+      });
     });
-  }
+  });
 
   const startPeriodicPoller = (timeout: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
@@ -93,7 +82,6 @@ function updateStopwatchData(data: Array<StopwatchData>) {
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
-    for (const btnEl of btnEls) btnEl.setAttribute('href', issueUrl);
     document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);
     document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/stop`);
     document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);

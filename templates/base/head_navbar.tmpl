@@ -145,23 +145,24 @@
 		{{end}}
 	</div>
 
-	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
 	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
-	<div class="active-stopwatch-popup tippy-target">
+	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
+	{{if not $activeStopwatch}}{{$activeStopwatch = dict}}{{end}}
+	<div class="active-stopwatch-popup tippy-target" data-global-init="initActiveStopwatchNotification" data-seconds="{{$activeStopwatch.Seconds}}">
 		<div class="flex-text-block tw-p-3">
-			<a class="stopwatch-link flex-text-block muted" {{if $activeStopwatch}}href="{{$activeStopwatch.IssueLink}}"{{end}}>
+			<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
 				{{svg "octicon-issue-opened" 16}}
-				<span class="stopwatch-issue">{{if $activeStopwatch}}{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}{{end}}</span>
+				<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
 			</a>
 			<div class="tw-flex tw-gap-1">
-				<form class="stopwatch-commit form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop"{{end}}>
+				<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
 					<button
 						type="submit"
 						class="ui button mini compact basic icon tw-mr-0"
 						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
 					>{{svg "octicon-square-fill"}}</button>
 				</form>
-				<form class="stopwatch-cancel form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel"{{end}}>
+				<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
 					<button
 						type="submit"
 						class="ui button mini compact basic icon tw-mr-0"
