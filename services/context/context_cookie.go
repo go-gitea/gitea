@@ -4,25 +4,10 @@
 package context
 
 import (
-	"net/http"
-	"strings"
-
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web/middleware"
 )
 
 const CookieNameFlash = "gitea_flash"
-
-func removeSessionCookieHeader(w http.ResponseWriter) {
-	cookies := w.Header()["Set-Cookie"]
-	w.Header().Del("Set-Cookie")
-	for _, cookie := range cookies {
-		if strings.HasPrefix(cookie, setting.SessionConfig.CookieName+"=") {
-			continue
-		}
-		w.Header().Add("Set-Cookie", cookie)
-	}
-}
 
 // SetSiteCookie convenience function to set most cookies consistently
 func (ctx *Context) SetSiteCookie(name, value string, maxAge int) {

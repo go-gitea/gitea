@@ -109,8 +109,8 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
 
-	if err := repo_model.UpdatePushMirror(ctx, m); err != nil {
-		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
+	if err := repo_model.UpdatePushMirrorSyncStatus(ctx, m); err != nil {
+		log.Error("UpdatePushMirrorSyncStatus [%d]: %v", m.ID, err)
 		return false
 	}
 
