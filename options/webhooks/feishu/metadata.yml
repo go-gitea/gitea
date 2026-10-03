@@ -1,0 +1,7 @@
+name: feishu
+display_name: Feishu / Larksuite
+docs_url: https://www.feishu.cn
+icon_asset: svg:gitea-feishu
+requires_payload_url: true
+use_request_secret: optional
+form: []

@@ -47,6 +47,7 @@ require (
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/go-github/v92 v92.0.0
+	github.com/google/go-jsonnet v0.22.0
 	github.com/google/licenseclassifier/v2 v2.0.0
 	github.com/google/pprof v0.0.0-20260906184651-6331bc6350fe
 	github.com/gorilla/feeds v1.2.0
@@ -237,6 +238,7 @@ require (
 	modernc.org/libc v1.75.7 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
+	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
 ignore (

@@ -4,7 +4,9 @@
 package utils
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -234,30 +236,45 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, ownerID, repoI
 		ctx.APIErrorInternal(err)
 		return nil, false
 	}
-	if w.Type == webhook_module.SLACK {
-		channel, ok := form.Config["channel"]
-		if !ok {
-			ctx.APIError(http.StatusUnprocessableEntity, "Missing config option: channel")
-			return nil, false
+	if h := webhook_service.GetHandler(w.Type); h != nil {
+		meta := map[string]any{}
+		for _, field := range h.FormFields() {
+			val, ok := form.Config[field.ID]
+			if !ok || strings.TrimSpace(val) == "" {
+				if field.Required {
+					ctx.APIError(http.StatusUnprocessableEntity, "Missing config option: "+field.ID)
+					return nil, false
+				}
+				if field.Default != "" {
+					val = field.Default
+				} else {
+					continue
+				}
+			}
+			val = strings.TrimSpace(val)
+			if field.ID == "channel" && w.Type == webhook_module.SLACK && !webhook_service.IsValidSlackChannel(val) {
+				ctx.APIError(http.StatusBadRequest, "Invalid slack channel name")
+				return nil, false
+			}
+			switch field.Type {
+			case webhook_service.FormFieldBool:
+				meta[field.ID] = val == "true" || val == "1"
+			case webhook_service.FormFieldNumber:
+				n, _ := strconv.Atoi(val)
+				meta[field.ID] = n
+			default:
+				meta[field.ID] = val
+			}
 		}
-		channel = strings.TrimSpace(channel)
-
-		if !webhook_service.IsValidSlackChannel(channel) {
-			ctx.APIError(http.StatusBadRequest, "Invalid slack channel name")
-			return nil, false
+		if len(meta) > 0 {
+			raw, err := json.Marshal(meta)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return nil, false
+			}
+			w.Meta = string(raw)
 		}
-
-		meta, err := json.Marshal(&webhook_service.SlackMeta{
-			Channel:  channel,
-			Username: form.Config["username"],
-			IconURL:  form.Config["icon_url"],
-			Color:    form.Config["color"],
-		})
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil, false
-		}
-		w.Meta = string(meta)
+		rebuildCredentialWebhookURL(w, meta)
 	}
 
 	if err := w.UpdateEvent(); err != nil {
@@ -354,20 +371,32 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 			w.ContentType = webhook.ToHookContentType(ct)
 		}
 
-		if w.Type == webhook_module.SLACK {
-			if channel, ok := form.Config["channel"]; ok {
-				meta, err := json.Marshal(&webhook_service.SlackMeta{
-					Channel:  channel,
-					Username: form.Config["username"],
-					IconURL:  form.Config["icon_url"],
-					Color:    form.Config["color"],
-				})
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return false
-				}
-				w.Meta = string(meta)
+		if h := webhook_service.GetHandler(w.Type); h != nil && len(h.FormFields()) > 0 {
+			meta := map[string]any{}
+			if w.Meta != "" {
+				_ = json.Unmarshal([]byte(w.Meta), &meta)
 			}
+			for _, field := range h.FormFields() {
+				if val, ok := form.Config[field.ID]; ok {
+					val = strings.TrimSpace(val)
+					switch field.Type {
+					case webhook_service.FormFieldBool:
+						meta[field.ID] = val == "true" || val == "1"
+					case webhook_service.FormFieldNumber:
+						n, _ := strconv.Atoi(val)
+						meta[field.ID] = n
+					default:
+						meta[field.ID] = val
+					}
+				}
+			}
+			raw, err := json.Marshal(meta)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return false
+			}
+			w.Meta = string(raw)
+			rebuildCredentialWebhookURL(w, meta)
 		}
 	}
 
@@ -402,6 +431,31 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 		return false
 	}
 	return true
+}
+
+func rebuildCredentialWebhookURL(w *webhook.Webhook, meta map[string]any) {
+	str := func(key string) string {
+		v, _ := meta[key].(string)
+		return v
+	}
+	switch w.Type {
+	case webhook_module.TELEGRAM:
+		w.URL = fmt.Sprintf("https://api.telegram.org/bot%s/sendRichMessage?chat_id=%s&message_thread_id=%s",
+			url.PathEscape(str("bot_token")), url.QueryEscape(str("chat_id")), url.QueryEscape(str("thread_id")))
+		w.HTTPMethod = http.MethodPost
+	case webhook_module.PACKAGIST:
+		w.URL = fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s",
+			url.QueryEscape(str("username")), url.QueryEscape(str("api_token")))
+		w.HTTPMethod = http.MethodPost
+	case webhook_module.MATRIX:
+		homeserver := str("homeserver_url")
+		roomID := str("room_id")
+		if homeserver != "" && roomID != "" {
+			encoded := strings.NewReplacer("%21", "!", "%3A", ":").Replace(url.PathEscape(roomID))
+			w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", homeserver, encoded)
+			w.HTTPMethod = http.MethodPut
+		}
+	}
 }
 
 // DeleteOwnerHook deletes the hook owned by the owner.

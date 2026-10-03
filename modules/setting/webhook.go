@@ -41,7 +41,11 @@ func loadWebhookFrom(rootCfg ConfigProvider) {
 		checkHostList("[webhook] ALLOWED_HOST_LIST", Webhook.AllowedHostList, false)
 	}
 
-	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams", "feishu", "matrix", "wechatwork", "packagist"}
+	// Types is populated from the webhook Handler registry at startup (SyncWebhookTypesSetting).
+	// Keep a default list here for early validation before Init.
+	if len(Webhook.Types) == 0 {
+		Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams", "feishu", "matrix", "wechatwork", "packagist"}
+	}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 	Webhook.ProxyURL = sec.Key("PROXY_URL").MustString("")
 	if Webhook.ProxyURL != "" {

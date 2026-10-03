@@ -1,0 +1,19 @@
+name: matrix
+display_name: Matrix
+docs_url: https://matrix.org
+icon_asset: svg:gitea-matrix
+requires_payload_url: false
+use_authorization_header: optional
+form:
+  - id: homeserver_url
+    label: Homeserver URL
+    type: url
+    required: true
+  - id: room_id
+    label: Room ID
+    type: text
+    required: true
+  - id: message_type
+    label: Message Type
+    type: number
+    default: "1"

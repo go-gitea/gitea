@@ -12,10 +12,10 @@ import (
 	user_model "gitea.dev/models/user"
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/base"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
-	webhook_module "gitea.dev/modules/webhook"
 )
 
 type linkFormatter = func(string, string) string
@@ -403,12 +403,25 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
 	}
-	if w.Type == webhook_module.SLACK {
-		s := GetSlackHook(w)
-		config["channel"] = s.Channel
-		config["username"] = s.Username
-		config["icon_url"] = s.IconURL
-		config["color"] = s.Color
+	if h := GetHandler(w.Type); h != nil {
+		switch m := h.Metadata(w).(type) {
+		case map[string]any:
+			for k, v := range m {
+				config[k] = fmt.Sprint(v)
+			}
+		default:
+			if m != nil {
+				raw, err := json.Marshal(m)
+				if err == nil {
+					var asMap map[string]any
+					if json.Unmarshal(raw, &asMap) == nil {
+						for k, v := range asMap {
+							config[k] = fmt.Sprint(v)
+						}
+					}
+				}
+			}
+		}
 	}
 
 	return &api.Hook{

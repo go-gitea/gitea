@@ -1,0 +1,8 @@
+name: dingtalk
+display_name: DingTalk
+docs_url: https://www.dingtalk.com
+icon_asset: dingtalk.ico
+requires_payload_url: true
+use_authorization_header: optional
+use_request_secret: optional
+form: []

@@ -25,22 +25,8 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 )
 
+// Requester builds an HTTP request for a webhook delivery.
 type Requester func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error)
-
-var webhookRequesters = map[webhook_module.HookType]Requester{}
-
-func RegisterWebhookRequester(hookType webhook_module.HookType, requester Requester) {
-	webhookRequesters[hookType] = requester
-}
-
-// IsValidHookTaskType returns true if a webhook registered
-func IsValidHookTaskType(name string) bool {
-	if name == webhook_module.GITEA || name == webhook_module.GOGS {
-		return true
-	}
-	_, ok := webhookRequesters[name]
-	return ok
-}
 
 // hookQueue is a global queue of web hooks
 var hookQueue *queue.WorkerPoolQueue[int64]

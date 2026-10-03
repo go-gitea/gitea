@@ -12,6 +12,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
+	webhook_service "gitea.dev/services/webhook"
 )
 
 const (
@@ -25,6 +26,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLink"] = setting.AppSubURL + "/user/settings/hooks"
 	ctx.Data["BaseLinkNew"] = setting.AppSubURL + "/user/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("settings.hooks.desc")
+	ctx.Data["WebhookHandlers"] = webhook_service.ListHandlers()
 
 	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Doer.ID})
 	if err != nil {
