@@ -168,6 +168,7 @@ type UpdateProfileForm struct {
 	Description         string `binding:"MaxSize(255)"`
 	Visibility          structs.VisibleType
 	KeepActivityPrivate bool
+	ShowPrivateActivity bool
 }
 
 // UpdateLanguageForm form for updating profile

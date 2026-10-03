@@ -33894,6 +33894,10 @@
           "type": "string",
           "x-go-name": "Location"
         },
+        "show_private_activity": {
+          "type": "boolean",
+          "x-go-name": "ShowPrivateActivity"
+        },
         "theme": {
           "type": "string",
           "x-go-name": "Theme"
@@ -33937,6 +33941,10 @@
         "location": {
           "type": "string",
           "x-go-name": "Location"
+        },
+        "show_private_activity": {
+          "type": "boolean",
+          "x-go-name": "ShowPrivateActivity"
         },
         "theme": {
           "type": "string",

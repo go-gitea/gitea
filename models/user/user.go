@@ -171,6 +171,7 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+	ShowPrivateActivity bool   `xorm:"NOT NULL DEFAULT false"`
 
 	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
 	// * Actions task doer needs to bind to the task
