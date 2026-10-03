@@ -1875,7 +1875,8 @@ func TestFluxerWebhookUI(t *testing.T) {
 	assert.Equal(t, 1, doc.doc.Find(`form[action="`+base+`/fluxer/new"]`).Length())
 	values := map[string]string{"payload_url": "https://chat.example/webhook", "username": "Gitea", "icon_url": "https://gitea.example/icon.png", "events": "push_only", "active": "true"}
 	session.MakeRequest(t, NewRequestWithValues(t, "POST", base+"/fluxer/new", values), http.StatusSeeOther)
-	hook := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{RepoID: 1, Type: webhook_module.FLUXER, URL: values["payload_url"]})
+	hook := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{RepoID: 1, Type: webhook_module.FLUXER})
+	assert.Equal(t, values["payload_url"], hook.URL)
 	hookID := hook.ID
 	editURL := base + "/" + strconv.FormatInt(hookID, 10)
 	resp = session.MakeRequest(t, NewRequest(t, "GET", editURL), http.StatusOK)
