@@ -55,26 +55,26 @@ func TestRender_Commits(t *testing.T) {
 	commitCompare := repo + "compare/" + sha + "..." + sha
 	commitCompareWithHash := commitCompare + "#L2"
 
-	test(sha, `<p><a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test(sha, `<p><a href="`+commitPath+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
 	test(sha[:7], `<p><a href="`+commitPath[:len(commitPath)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
-	test(sha[:39], `<p><a href="`+commitPath[:len(commitPath)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
-	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf27bc/src</code></a></p>`)
+	test(sha[:39], `<p><a href="`+commitPath[:len(commitPath)-(40-39)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
+	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
+	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf2/src</code></a></p>`)
 
-	test(file, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a></p>`)
-	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a>:</p>`)
-	test(fileWithHash, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a></p>`)
-	test(fileWithHasExtra, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a>:</p>`)
-	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc</code></a></p>`)
-	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc (L2)</code></a></p>`)
+	test(file, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf2/example.txt</code></a></p>`)
+	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf2/example.txt</code></a>:</p>`)
+	test(fileWithHash, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf2/example.txt (L2)</code></a></p>`)
+	test(fileWithHasExtra, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf2/example.txt (L2)</code></a>:</p>`)
+	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>65f1bf2...65f1bf2</code></a></p>`)
+	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf2...65f1bf2 (L2)</code></a></p>`)
 
-	test("commit "+sha, `<p>commit <a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commitPath+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
 	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
 
-	expected14 := `<a href="` + commitPath[:len(commitPath)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
+	expected14 := `<a href="` + commitPath[:len(commitPath)-(40-14)] + `" rel="nofollow"><code>` + sha[:7] + `</code></a>`
 	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
 	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
 	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
@@ -112,17 +112,17 @@ func TestRender_CrossReferences(t *testing.T) {
 	inputURL := setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
 		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456/foo.txt (L2-L3)</code></a></p>`)
 
 	inputURL = setting.AppURL + "repo/owner/archive/0123456789012345678901234567890123456789.tar.gz"
 	test(
 		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.tar.gz</code></a></p>`)
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456.tar.gz</code></a></p>`)
 
 	inputURL = setting.AppURL + "owner/repo/commit/0123456789012345678901234567890123456789.patch?key=val"
 	test(
 		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.patch</code></a></p>`)
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456.patch</code></a></p>`)
 }
 
 func TestRender_links(t *testing.T) {
