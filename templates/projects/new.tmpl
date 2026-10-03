@@ -9,6 +9,7 @@
 </h2>
 {{template "base/alert" .}}
 <form class="ui form" action="{{.Link}}" method="post">
+	<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 	<div>
 		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
 		<div class="field {{if .Err_Title}}error{{end}}">
@@ -70,4 +71,5 @@
 			{{if .PageIsEditProjects}}{{ctx.Locale.Tr "repo.projects.modify"}}{{else}}{{ctx.Locale.Tr "repo.projects.create"}}{{end}}
 		</button>
 	</div>
+	</fieldset>
 </form>

@@ -20,6 +20,7 @@
 			<input id="client-secret" type="password" readonly value="averysecuresecret">
 		</div>
 	{{end}}
+	{{if not $.IsOrgArchived}}
 	<div class="item">
 		<!-- TODO add regenerate secret functionality */ -->
 		<form class="ui form ignore-dirty" action="{{.FormActionPath}}/regenerate_secret" method="post">
@@ -27,9 +28,11 @@
 			<button class="ui mini button tw-ml-2" type="submit">{{ctx.Locale.Tr "settings.oauth2_regenerate_secret"}}</button>
 		</form>
 	</div>
+	{{end}}
 </div>
 <div class="ui bottom attached segment">
 	<form class="ui form ignore-dirty" action="{{.FormActionPath}}" method="post">
+		<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 		<div class="field {{if .Err_AppName}}error{{end}}">
 			<label for="application-name">{{ctx.Locale.Tr "settings.oauth2_application_name"}}</label>
 			<input id="application-name" value="{{.App.Name}}" name="application_name" required maxlength="255">
@@ -50,8 +53,11 @@
 				<input type="checkbox" name="skip_secondary_authorization" {{if .App.SkipSecondaryAuthorization}}checked{{end}}>
 			</div>
 		</div>
+		{{if not $.IsOrgArchived}}
 		<button type="submit" class="ui primary button">
 			{{ctx.Locale.Tr "settings.save_application"}}
 		</button>
+		{{end}}
+		</fieldset>
 	</form>
 </div>

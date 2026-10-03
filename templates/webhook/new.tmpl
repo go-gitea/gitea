@@ -1,6 +1,6 @@
 <h4 class="ui top attached header">
 	{{.CustomHeaderTitle}}
-	<div class="ui right type dropdown">
+	<div class="ui right type dropdown{{if ctx.RootData.IsOrgArchived}} disabled{{end}}">
 		<div class="text flex-text-inline">
 			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" ctx.RootData.HookType)}}
 			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" ctx.RootData.HookType)}}
@@ -10,6 +10,7 @@
 	</div>
 </h4>
 <div class="ui attached segment">
+	<fieldset class="tw-contents"{{if ctx.RootData.IsOrgArchived}} disabled{{end}}>
 	{{template "repo/settings/webhook/gitea" ctx.RootData}}
 	{{template "repo/settings/webhook/gogs" ctx.RootData}}
 	{{template "repo/settings/webhook/slack" ctx.RootData}}
@@ -21,5 +22,6 @@
 	{{template "repo/settings/webhook/matrix" ctx.RootData}}
 	{{template "repo/settings/webhook/wechatwork" ctx.RootData}}
 	{{template "repo/settings/webhook/packagist" ctx.RootData}}
+	</fieldset>
 </div>
 {{template "repo/settings/webhook/history" ctx.RootData}}
