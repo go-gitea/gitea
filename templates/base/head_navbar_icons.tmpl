@@ -1,4 +1,4 @@
-{{if and . .IsSigned}}{{/* data may not exist, for example: rendering 503 page before the PageGlobalData middleware */}}
+{{if and . .IsSigned (not ctx.RootData.MustChangePassword)}}{{/* data may not exist, for example: rendering 503 page before the PageGlobalData middleware */}}
 	{{- $activeStopwatch := call .GetActiveStopwatch -}}
 	{{- $notificationUnreadCount := call .GetNotificationUnreadCount -}}
 	{{/* always rendered so a real-time push can reveal it without a reload */}}

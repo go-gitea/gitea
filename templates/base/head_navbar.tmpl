@@ -34,9 +34,7 @@
 		{{end}}
 	</div>
 
-	{{if not .MustChangePassword}}
-		{{template "base/head_navbar_icons" .PageGlobalData}}
-	{{end}}
+	{{template "base/head_navbar_icons" .PageGlobalData}}
 
 	<div class="navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
