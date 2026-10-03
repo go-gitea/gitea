@@ -238,6 +238,12 @@ type swaggerParameterBodies struct {
 	EditActionRunnerOption api.EditActionRunnerOption
 
 	// in:body
+	EditOrgActionsPermissionsOption api.EditOrgActionsPermissionsOption
+
+	// in:body
+	EditRepoActionsPermissionsOption api.EditRepoActionsPermissionsOption
+
+	// in:body
 	LockIssueOption api.LockIssueOption
 
 	// in:body

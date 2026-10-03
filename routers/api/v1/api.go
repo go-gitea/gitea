@@ -1328,6 +1328,9 @@ func Routes() *web.Router {
 
 				// Adds the routes for secrets/variables and runner management
 				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
+				m.Combo("/actions/permissions", reqToken(), reqAdmin()).
+					Get(repo.GetActionsPermissions).
+					Put(bind(api.EditRepoActionsPermissionsOption{}), repo.UpdateActionsPermissions)
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
@@ -1814,6 +1817,9 @@ func Routes() *web.Router {
 				reqOrgOwnership(),
 				org.NewAction(),
 			)
+			m.Combo("/actions/permissions", reqToken(), reqOrgOwnership()).
+				Get(org.GetActionsPermissions).
+				Put(bind(api.EditOrgActionsPermissionsOption{}), org.UpdateActionsPermissions)
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/{username}").Get(org.IsPublicMember).
