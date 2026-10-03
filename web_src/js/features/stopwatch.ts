@@ -93,7 +93,6 @@ function updateStopwatchData(data: Array<StopwatchData>) {
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
-    for (const btnEl of btnEls) btnEl.setAttribute('href', issueUrl);
     document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);
     document.querySelector('.stopwatch-commit')?.setAttribute('action', `${issueUrl}/times/stopwatch/stop`);
     document.querySelector('.stopwatch-cancel')?.setAttribute('action', `${issueUrl}/times/stopwatch/cancel`);
