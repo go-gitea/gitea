@@ -8,10 +8,12 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 const {appSubUrl, notificationSettings} = window.config;
 
 export function initStopwatch() {
-  registerGlobalInitFunc('initActiveStopwatchNotification', (stopwatchPopup: HTMLElement) => {
+  registerGlobalInitFunc('initActiveStopwatchNotification', (el: HTMLElement) => {
     // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
-    const seconds = stopwatchPopup.getAttribute('data-seconds')!;
+    const seconds = el.getAttribute('data-seconds')!;
+    const stopwatchPopup = el.querySelector('.active-stopwatch-popup')!;
     if (seconds) updateStopwatchTime(parseInt(seconds));
+
     queryElems(document, '#navbar .active-stopwatch', (stopwatchEl) => {
       createTippy(stopwatchEl, {
         content: stopwatchPopup.cloneNode(true) as Element,
@@ -80,6 +82,7 @@ function updateStopwatchData(data: Array<StopwatchData>) {
   if (!watch) {
     hideElem(btnEls);
   } else {
+    // TODO: the logic is still dirty, can be refactored in the future
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
     const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
     document.querySelector('.stopwatch-link')?.setAttribute('href', issueUrl);

@@ -160,7 +160,6 @@ func (c TemplateContext) WindowConfig() map[string]any {
 		"runModeIsProd":              setting.IsProd,
 		"customEmojis":               setting.UI.CustomEmojisMap,
 		"pageData":                   c.parentContext().GetData()["PageData"],
-		"enableTimeTracking":         setting.Service.EnableTimetracking,
 		"mermaidMaxSourceCharacters": setting.MermaidMaxSourceCharacters,
 		"sharedWorkerUri":            public.AssetURI("web_src/js/user-events.sharedworker.ts"),
 		"notificationSettings": map[string]any{
