@@ -4,18 +4,10 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 
 	"gitea.dev/modules/util"
-
-	mssql "github.com/microsoft/go-mssqldb"
 )
-
-func IsErrMSSQLDeadlock(err error) bool {
-	mssqlErr, ok := errors.AsType[mssql.Error](err)
-	return ok && mssqlErr.Number == 1205
-}
 
 // ErrCancelled represents an error due to context cancellation
 type ErrCancelled struct {

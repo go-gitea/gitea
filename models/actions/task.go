@@ -296,11 +296,13 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 		var jobs []*ActionRunJob
 		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
-			if db.IsErrMSSQLDeadlock(err) {
-				e = db.GetEngine(ctx) // SQL Server's locking reads can lose to a concurrent claim, rerun the page on a fresh session
-				continue
-			}
 			return nil, false, err
+		}
+		// A short page means no waiting jobs remain beyond it.
+		isLastPage := len(jobs) < pickTaskBatchSize
+		if !isLastPage {
+			last := jobs[len(jobs)-1] // read before a lost claim bumps Updated
+			cursorUpdated, cursorID = last.Updated, last.ID
 		}
 
 		for _, v := range jobs {
@@ -317,12 +319,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			// Another runner claimed this job concurrently; try the next one.
 		}
 
-		// A short page means no waiting jobs remain beyond it.
-		if len(jobs) < pickTaskBatchSize {
+		if isLastPage {
 			return nil, false, nil
 		}
-		last := jobs[len(jobs)-1]
-		cursorUpdated, cursorID = last.Updated, last.ID
 	}
 }
 
