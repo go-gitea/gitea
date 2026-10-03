@@ -159,7 +159,22 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	//
 	// 1. Detect and prevent deletion of the branch
 	if newCommitID == objectFormat.EmptyObjectID().String() {
-		ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+		// Keep Git in line with the API/UI (CanDeleteBranchWithPermission): the pull request target branch cannot be deleted
+		if !ctx.opts.IsWiki && branchName == repo.GetPullRequestTargetBranch(ctx) {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+			return
+		}
+		var canDelete bool
+		// SSH deploy keys and HTTP deploy tokens share this identity.
+		if ctx.opts.UserID == user_model.DeployKeyUserID {
+			canPush := protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
+			canDelete = protectBranch.CanDelete && canPush && (!protectBranch.EnableDeletionAllowlist || protectBranch.DeletionAllowlistDeployKeys)
+		} else {
+			canDelete = protectBranch.CanUserDelete(ctx, ctx.Doer)
+		}
+		if !canDelete {
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
+		}
 		return
 	}
 

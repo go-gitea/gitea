@@ -47,6 +47,11 @@ type BranchProtection struct {
 	ForcePushAllowlistUsernames   []string `json:"force_push_allowlist_usernames"`
 	ForcePushAllowlistTeams       []string `json:"force_push_allowlist_teams"`
 	ForcePushAllowlistDeployKeys  bool     `json:"force_push_allowlist_deploy_keys"`
+	EnableDeletion                bool     `json:"enable_deletion"`
+	EnableDeletionAllowlist       bool     `json:"enable_deletion_allowlist"`
+	DeletionAllowlistUsernames    []string `json:"deletion_allowlist_usernames"`
+	DeletionAllowlistTeams        []string `json:"deletion_allowlist_teams"`
+	DeletionAllowlistDeployKeys   bool     `json:"deletion_allowlist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
@@ -91,6 +96,11 @@ type CreateBranchProtectionOption struct {
 	ForcePushAllowlistUsernames   []string `json:"force_push_allowlist_usernames"`
 	ForcePushAllowlistTeams       []string `json:"force_push_allowlist_teams"`
 	ForcePushAllowlistDeployKeys  bool     `json:"force_push_allowlist_deploy_keys"`
+	EnableDeletion                bool     `json:"enable_deletion"`
+	EnableDeletionAllowlist       bool     `json:"enable_deletion_allowlist"`
+	DeletionAllowlistUsernames    []string `json:"deletion_allowlist_usernames"`
+	DeletionAllowlistTeams        []string `json:"deletion_allowlist_teams"`
+	DeletionAllowlistDeployKeys   bool     `json:"deletion_allowlist_deploy_keys"`
 	EnableMergeWhitelist          bool     `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
@@ -128,6 +138,11 @@ type EditBranchProtectionOption struct {
 	ForcePushAllowlistUsernames   []string `json:"force_push_allowlist_usernames"`
 	ForcePushAllowlistTeams       []string `json:"force_push_allowlist_teams"`
 	ForcePushAllowlistDeployKeys  *bool    `json:"force_push_allowlist_deploy_keys"`
+	EnableDeletion                *bool    `json:"enable_deletion"`
+	EnableDeletionAllowlist       *bool    `json:"enable_deletion_allowlist"`
+	DeletionAllowlistUsernames    []string `json:"deletion_allowlist_usernames"`
+	DeletionAllowlistTeams        []string `json:"deletion_allowlist_teams"`
+	DeletionAllowlistDeployKeys   *bool    `json:"deletion_allowlist_deploy_keys"`
 	EnableMergeWhitelist          *bool    `json:"enable_merge_whitelist"`
 	MergeWhitelistUsernames       []string `json:"merge_whitelist_usernames"`
 	MergeWhitelistTeams           []string `json:"merge_whitelist_teams"`
