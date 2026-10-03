@@ -24,6 +24,7 @@ func TestCheckSignedInUser(t *testing.T) {
 	ret := CheckSignedInUser(&user_model.User{IsActive: false}, nil)
 	assert.False(t, ret.NeedActivateAccount)
 	assert.True(t, ret.LoginIsProhibited)
+
 	setting.Service.RegisterEmailConfirm = true
 	ret = CheckSignedInUser(&user_model.User{IsActive: false}, nil)
 	assert.True(t, ret.NeedActivateAccount)
@@ -45,6 +46,9 @@ func TestCheckSignedInUser(t *testing.T) {
 
 	ret = CheckSignedInUser(&user_model.User{MustChangePassword: true}, sessNormal)
 	assert.True(t, ret.NeedChangePassword)
+
+	ret = CheckSignedInUser(&user_model.User{MustChangePassword: true, Type: user_model.UserTypeBot}, sessNormal)
+	assert.False(t, ret.NeedChangePassword)
 
 	ret = CheckSignedInUser(&user_model.User{MustChangePassword: true}, sessImpersonated)
 	assert.False(t, ret.NeedChangePassword)
