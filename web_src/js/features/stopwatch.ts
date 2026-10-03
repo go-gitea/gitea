@@ -7,30 +7,30 @@ import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 
-export function initStopwatch() {
-  registerGlobalInitFunc('initActiveStopwatchNotification', (el: HTMLElement) => {
-    // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
-    const seconds = el.getAttribute('data-seconds')!;
-    const stopwatchPopup = el.querySelector('.active-stopwatch-popup')!;
-    if (seconds) updateStopwatchTime(parseInt(seconds));
+export const initStopwatch = () => registerGlobalInitFunc('initActiveStopwatchNotification', (el: HTMLElement) => {
+  // Init the icon + popup even when no stopwatch is active so a real-time push has a target to toggle.
+  const seconds = el.getAttribute('data-seconds')!;
+  if (seconds) updateStopwatchTime(parseInt(seconds));
 
-    queryElems(document, '#navbar .active-stopwatch', (stopwatchEl) => {
-      createTippy(stopwatchEl, {
-        content: stopwatchPopup.cloneNode(true) as Element,
-        placement: 'bottom-end',
-        trigger: 'click',
-        maxWidth: 'none',
-        interactive: true,
-        hideOnClick: true,
-        theme: 'default',
-        onShow(instance) {
-          // Re-clone on every open so the popup reflects the latest stopwatch state,
-          // including the case where the icon became visible via a real-time push.
-          instance.setContent(stopwatchPopup.cloneNode(true) as Element);
-        },
-      });
+  const stopwatchEls = document.querySelectorAll('.active-stopwatch');
+  const stopwatchPopup = el.querySelector('.active-stopwatch-popup')!;
+
+  for (const stopwatchEl of stopwatchEls) {
+    createTippy(stopwatchEl, {
+      content: stopwatchPopup.cloneNode(true) as Element,
+      placement: 'bottom-end',
+      trigger: 'click',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+      theme: 'default',
+      onShow(instance) {
+        // Re-clone on every open so the popup reflects the latest stopwatch state,
+        // including the case where the icon became visible via a real-time push.
+        instance.setContent(stopwatchPopup.cloneNode(true) as Element);
+      },
     });
-  });
+  }
 
   const startPeriodicPoller = (timeout: number) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
@@ -46,7 +46,7 @@ export function initStopwatch() {
     pollerStarted = true;
     startPeriodicPoller(notificationSettings.MinTimeout);
   });
-}
+});
 
 async function updateStopwatchWithCallback(callback: (timeout: number) => void, timeout: number) {
   const isSet = await updateStopwatch();
