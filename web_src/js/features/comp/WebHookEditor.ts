@@ -4,12 +4,14 @@ import {queryElems, toggleElem} from '../../utils/dom.ts';
 
 function initCompWebHookEditorForm(el: HTMLElement) {
   const elCustomEvents = el.querySelector('.js-webhook-custom-events')!;
-  
+
+  // Trigger On: use custom events or not
   queryElems<HTMLInputElement>(el, 'input[name=events]', (input) => input.addEventListener('change', () => {
     if (!input.checked) return;
     toggleElem(elCustomEvents, input.value === 'choose_events');
   }));
 
+  // Select All / Deselect All custom events
   queryElems(el, 'button[data-events-select-all]', (btn) => btn.addEventListener('click', () => {
     const checked = btn.getAttribute('data-events-select-all') === 'true';
     queryElems<HTMLInputElement>(elCustomEvents, 'input[type=checkbox]', (input) => {
