@@ -88,10 +88,6 @@ input[type="checkbox"]:indeterminate::before {
 .ui.checkbox label {
   position: relative;
   display: block;
-}
-
-.ui.checkbox label,
-.ui.radio.checkbox label {
   margin-left: 20px;
 }
 
@@ -105,10 +101,6 @@ input[type="checkbox"]:indeterminate::before {
   cursor: default !important;
   opacity: 0.5;
   pointer-events: none;
-}
-
-.ui.radio.checkbox {
-  min-height: var(--checkbox-size);
 }
 
 /* "switch" styled checkbox */

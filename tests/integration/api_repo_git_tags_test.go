@@ -57,15 +57,13 @@ func TestAPIGitTags(t *testing.T) {
 	assert.Equal(t, user.Email, tag.Tagger.Email)
 	assert.Equal(t, repo.APIURL()+"/git/tags/"+aTag.ID.String(), tag.URL)
 
-	if !git.DefaultFeatures().UsingGogit {
-		defer test.MockVariableValue(&git.MaxGitObjectSize, 1024)()
-		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, aTag.ID.String()).AddTokenAuth(token)
-		resp = MakeRequest(t, req, http.StatusOK)
-		tag = DecodeJSON(t, resp, &api.AnnotatedTag{})
-		assert.True(t, strings.HasPrefix(aTagMessage, tag.Message))
-		assert.Less(t, len(tag.Message), len(aTagMessage))
-		assert.Less(t, len(tag.Message), 1024)
-	}
+	defer test.MockVariableValue(&git.MaxGitObjectSize, 1024)()
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, aTag.ID.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	tag = DecodeJSON(t, resp, &api.AnnotatedTag{})
+	assert.True(t, strings.HasPrefix(aTagMessage, tag.Message))
+	assert.Less(t, len(tag.Message), len(aTagMessage))
+	assert.Less(t, len(tag.Message), 1024)
 
 	// Should NOT work for lightweight tags
 	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s", user.Name, repo.Name, commit.ID.String()).
