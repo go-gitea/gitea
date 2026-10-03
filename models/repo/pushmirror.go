@@ -89,9 +89,9 @@ func (m *PushMirror) GetRemoteAddressWithCredentials(ctx context.Context) (strin
 	return decryptRemoteAddress(ctx, m.RemoteAddressEncrypted, m)
 }
 
-// UpdatePushMirror updates the push-mirror
-func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
-	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Omit("remote_address_encrypted").Update(m) // a stale copy must not revert the credentials
+// UpdatePushMirrorSyncStatus updates the sync status (last update time and last error) of the push-mirror
+func UpdatePushMirrorSyncStatus(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("last_update", "last_error").Update(m)
 	return err
 }
 
@@ -100,7 +100,7 @@ func UpdatePushMirrorRemoteAddressEncrypted(ctx context.Context, m *PushMirror) 
 	return err
 }
 
-// UpdatePushMirrorInterval updates the push-mirror
+// UpdatePushMirrorInterval updates the sync interval of the push-mirror
 func UpdatePushMirrorInterval(ctx context.Context, m *PushMirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).Cols("interval").Update(m)
 	return err
