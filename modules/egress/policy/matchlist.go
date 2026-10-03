@@ -420,7 +420,7 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 		"::ffff:0:0:0/96",  // IPv4-translated, embeds IPv4
 		"64:ff9b::/96",     // wkp NAT64
 		"64:ff9b:1::/48",   // local-use NAT64
-		"2001::/23",        // IETF protocol assignments, incl. Teredo and ORCHID
+		"2001::/32",        // Teredo, embeds IPv4
 		"2002::/16",        // 6to4, embeds IPv4
 		"ff00::/8",         // multicast
 	} {
@@ -429,6 +429,7 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 	return ranges
 }()
 
+// restrictedRanges are dialable if they have been explicitly allowed.
 var restrictedRanges = func() (ranges []netip.Prefix) {
 	for _, cidr := range []string{
 		"192.0.0.0/24",      // IETF protocol assignments
@@ -441,6 +442,7 @@ var restrictedRanges = func() (ranges []netip.Prefix) {
 		"203.0.113.0/24",    // TEST-NET-3
 		"100::/64",          // discard-only
 		"100:0:0:1::/64",    // dummy
+		"2001::/23",         // IETF protocol assignments
 		"2001:db8::/32",     // documentation
 		"2620:4f:8000::/48", // AS112
 		"3fff::/20",         // documentation
@@ -455,11 +457,14 @@ var restrictedRanges = func() (ranges []netip.Prefix) {
 // classifyAddr reports the class of a canonical address.
 func classifyAddr(ip netip.Addr) addrClass {
 	switch {
-	case ip.Zone() != "" || !ip.IsLoopback() && slices.ContainsFunc(reservedRanges, func(p netip.Prefix) bool { return p.Contains(ip) }):
+	case ip.Zone() != "" || !ip.IsLoopback() && inRange(reservedRanges, ip):
 		return classReserved
-		// link local has some non-malicious uses: https://github.com/go-gitea/gitea/issues/39557
-	case ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || cgnatRange.Contains(ip):
+	case ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || cgnatRange.Contains(ip) || inRange(restrictedRanges, ip):
 		return classRestricted
 	}
 	return classPublic
+}
+
+func inRange(p []netip.Prefix, ip netip.Addr) bool {
+	return slices.ContainsFunc(p, func(p netip.Prefix) bool { return p.Contains(ip) })
 }
