@@ -231,6 +231,7 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 func commonBaseEnvs() []string {
 	envs := []string{
 		// Make Gitea use internal git config only, to prevent conflicts with user's git config
+		// It's better to use GIT_CONFIG_GLOBAL, but it requires git >= 2.32, so we still use HOME at the moment.
 		"HOME=" + HomeDir(),
 		// Avoid using system git config, it would cause problems (eg: use macOS osxkeychain to show a modal dialog, auto installing lfs hooks)
 		// This might be a breaking change in 1.24, because some users said that they have put some configs like "receive.certNonceSeed" in "/etc/gitconfig"

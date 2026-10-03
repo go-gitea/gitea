@@ -86,6 +86,7 @@ func newHookPostReceiveCommand() *cli.Command {
 	}
 }
 
+// Note: new hook since git 2.29
 func newHookProcReceiveCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "proc-receive",
