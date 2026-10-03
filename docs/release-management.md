@@ -119,7 +119,7 @@ release line, existing remote tags or GitHub releases, and release branches that
 from the selected branch to the selected commit. Development tags and tags on unrelated branches are ignored.
 `cliff.toml` groups Conventional Commits and excludes `chore`, `ci`, translation synchronization,
 and previous release marker commits. Historical commits without a conventional type appear under MISC.
-Release notes are stored in the signed commit, tag annotation, and GitHub release; there is no `CHANGELOG.md`.
+Release notes are stored in the signed commit, tag annotation, and GitHub release. The existing changelog is preserved in `CHANGELOG-archived.md`; new releases do not add to it.
 
 Dry-run does not import the signing key, create a commit or tag, or push anything.
 Publication creates an empty GPG-signed commit titled with the version, with the notes in its body,
