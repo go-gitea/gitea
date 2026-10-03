@@ -956,7 +956,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 				return
 			}
 
-			if ctx.Doer.MustChangePassword && !ctx.Doer.IsTypeBot() {
+			if ctx.Doer.NeedsPasswordChange() {
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
 				})

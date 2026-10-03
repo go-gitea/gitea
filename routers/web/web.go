@@ -174,7 +174,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 func doerMustChangePassword(ctx *context.Context) bool {
 	// an impersonating admin must not be forced to set the impersonated user's password
-	return ctx.Doer != nil && ctx.Doer.MustChangePassword && !ctx.DoerIsImpersonated()
+	return ctx.Doer.NeedsPasswordChange() && !ctx.DoerIsImpersonated()
 }
 
 // verifyAuthWithOptions checks authentication according to options

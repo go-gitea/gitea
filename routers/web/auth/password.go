@@ -284,7 +284,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	// Make sure only requests for users who are eligible to change their password via
 	// this method passes through
-	if !ctx.Doer.MustChangePassword {
+	if !ctx.Doer.NeedsPasswordChange() {
 		ctx.ServerError("MustUpdatePassword", errors.New("cannot update password. Please visit the settings page"))
 		return
 	}
