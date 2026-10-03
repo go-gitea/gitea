@@ -1,20 +1,12 @@
 name: release-create-tag
+run-name: Release v${{ inputs.version }} from ${{ github.ref_name }}
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example 28.0.1 or 29.0.0)
+        description: Version to release, for example 28.0.1
         required: true
-        type: string
-      dry-run:
-        description: Validate and preview without signing or pushing a commit or tag
-        type: boolean
-        default: true
-
-concurrency:
-  group: release-create-tag-${{ inputs.version }}
-  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -23,64 +15,24 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     environment: release-signing
-    timeout-minutes: 10
-    env:
-      RELEASE_VERSION: ${{ inputs.version }}
-      RELEASE_DRY_RUN: ${{ inputs.dry-run }}
-      RELEASE_NOTES_FILE: release.notes
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
           fetch-depth: 0
-          persist-credentials: false
-      - uses: ./.github/actions/node-setup
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          cache: "false"
-      - name: Authorize and validate release
-        id: prepare
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: node tools/release-tag.ts prepare
-      - name: Generate release notes
-        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4
-        with:
-          version: v2.13.1
-          args: --offline --tag ${{ steps.prepare.outputs.tag }} --output release.notes ${{ steps.prepare.outputs.previous }}..${{ github.sha }}
-      - name: Preview release
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: node tools/release-tag.ts preview
-      - name: Import release tag signing key
-        if: ${{ !inputs.dry-run }}
-        id: gpg
-        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
+          node-version: 26
+      - uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
         with:
           gpg_private_key: ${{ secrets.RELEASE_TAG_GPG_KEY }}
           passphrase: ${{ secrets.RELEASE_TAG_GPG_PASSPHRASE }}
           git_user_signingkey: true
-          git_tag_gpgsign: true
-          git_committer_name: Gitea Release Bot
-          git_committer_email: giteabot@users.noreply.github.com
-      - name: Sign release commit and tag
-        if: ${{ !inputs.dry-run }}
-        env:
-          TAG: ${{ steps.prepare.outputs.tag }}
-          GPG_FINGERPRINT: ${{ steps.gpg.outputs.fingerprint }}
+      - env:
+          VERSION: ${{ inputs.version }}
         run: |
-          git -c gpg.format=openpgp commit --allow-empty --cleanup=verbatim -S"$GPG_FINGERPRINT" -m "$TAG"
-          git -c gpg.format=openpgp verify-commit HEAD
-          git -c gpg.format=openpgp tag -s --cleanup=verbatim -u "$GPG_FINGERPRINT" -m "$TAG" "$TAG" HEAD
-          git -c gpg.format=openpgp verify-tag "$TAG"
-      - name: Recheck and push release commit and tag
-        if: ${{ !inputs.dry-run }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          TAG: ${{ steps.prepare.outputs.tag }}
-        run: |
-          node tools/release-tag.ts check
-          AUTHORIZATION=$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)
-          export GIT_CONFIG_COUNT=1
-          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
-          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTHORIZATION"
-          git push --atomic origin "HEAD:refs/heads/$GITHUB_REF_NAME" "refs/tags/$TAG:refs/tags/$TAG"
+          [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          previous=$(git describe --tags --abbrev=0 --match "v${VERSION%.*}.*" 2> /dev/null || git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*') # same minor line incl. its -dev tag, else nearest stable
+          notes=$(git log --format=%s "$previous..HEAD" | node tools/ci-tools.ts release-notes)
+          git tag -s --cleanup=whitespace -m "v$VERSION" -m "$notes" "v$VERSION"
+          git push origin "refs/tags/v$VERSION"

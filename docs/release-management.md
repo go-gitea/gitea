@@ -98,79 +98,11 @@ be reviewed by two maintainers and must pass the automatic tests.
 
 ## Releasing Gitea
 
-Confirm the release milestone is ready and agree on the release with the maintainers before publishing.
-
-### Preview and publish
-
-In GitHub Actions, select **release-create-tag**, then **Run workflow**:
-
-1. Select the release branch, such as `release/v28` or `release/v1.27`.
-2. Enter the chosen version, such as `28.0.1` or `29.0.0` (an initial `v` is optional).
-3. Leave **dry-run** enabled and review the generated release notes in the workflow summary.
-4. Run again with **dry-run** disabled to sign and push the release commit and tag.
-
-Both the original actor and the actor rerunning the workflow must have the Maintain or Admin repository role.
-API failures deny authorization. The workflow rejects non-release branches, versions outside the selected
-release line, existing remote tags or GitHub releases, and release branches that have moved during the run.
-
-[git-cliff](https://git-cliff.org/) generates notes from the nearest stable tag reachable
-from the selected branch to the selected commit. Development tags and tags on unrelated branches are ignored.
-`cliff.toml` groups Conventional Commits and excludes `chore`, `ci`, translation synchronization,
-and previous release marker commits. Historical commits without a conventional type appear under MISC.
-Release notes appear in the preview and are regenerated from the same Git range and `cliff.toml`
-configuration when publishing the GitHub release. They are not duplicated in commit or tag messages.
-
-Dry-run does not import the signing key, create a commit or tag, or push anything.
-Publication creates an empty GPG-signed commit and a GPG-signed annotated tag, both with the version
-as their message. After verifying both signatures and repeating the
-permission and version checks, it atomically pushes the branch and tag without force.
-If the branch changed after a preview, review a fresh preview before publishing.
-
-The existing tag-triggered workflows build and sign assets, upload them to `dl.gitea.com` through R2,
-publish containers, and create the GitHub release using notes generated from the commit history.
-Stable versions create published releases.
-Snap publishing and GitHub release immutability configuration remain managed as before.
-A retry after the tag has been pushed intentionally fails the version check; retry the existing build workflow instead.
-
-### GitHub configuration
-
-- Protect `release/v*` branches with the required reviews and checks, including workflow changes.
-- Create the **release-signing** environment and restrict its deployment branches to `release/v*`.
-  Configure trusted release reviewers and the appropriate environment protection rules for the signing secrets.
-- Add environment secrets `RELEASE_TAG_GPG_KEY` and `RELEASE_TAG_GPG_PASSPHRASE` for a dedicated release signing key.
-  Its primary identity must use `giteabot@users.noreply.github.com`, matching the workflow's public bot identity.
-  Register the public key with the corresponding GitHub bot account for verified signatures.
-- Add environment secret `RELEASE_TOKEN`: a GitHub App token or PAT with repository Contents write permission.
-  It must be able to read collaborator permissions and be allowed by branch and tag rules to push the signed marker commit
-  and tag. A PAT or App token is necessary because pushes with `GITHUB_TOKEN` do not trigger the existing push workflows.
-
-The workflow must be present on the default branch to appear in the Actions dispatch menu,
-and on the selected release branch to run there. Install it through the normal reviewed process.
-The workflow does not configure repository settings or install secrets automatically.
-The existing build workflows still need their current signing, R2, and registry credentials.
-
-### After publication
-
-Verify the binaries, signatures, checksums, containers, and GitHub release before updating
-`https://dl.gitea.com/gitea/version.json` or announcing the release.
-The [blog post](https://gitea.com/gitea/blog) remains an optional manual step.
-
-To prepare downstream updates after verifying a stable release, run:
-
-```bash
-node tools/release-updates.ts 28.0.1 --workdir /path/to/release-updates
-```
-
-The script needs Node.js (the version required by `package.json`), Git, SSH access to gitea.com,
-and an authenticated `tea` login named
-`gitea.com` (override with `--login`). It uses dedicated clean checkouts to preview
-updates to deployment's root `version.json`, Helm's `appVersion`, and Terraform's
-Gitea test image. Equal or newer versions are skipped; prereleases are rejected.
-Documentation updates remain manual.
-
-Add `--publish` to confirm the displayed diffs and exact PR targets, titles, and bodies,
-then commit with the public Gitea Release Bot identity, push release branches, and open
-PRs using `tea`. The login needs branch push and PR creation access to all three repositories.
-Reruns reuse the branches and existing open PRs; pushes never force-update branches.
-If a push or PR creation fails, rerun the same command to finish the remaining updates.
-Merging the deployment PR triggers its existing upload and public-file verification workflow.
+- Before releasing, confirm all the version's milestone issues or PRs have been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody is against it in about several hours.
+- When creating a release branch, tag its fork point on `main` as the next version's `-dev` tag, e.g. `v30.0.0-dev` for `release/v29`.
+- Run the `release-create-tag` workflow on the release branch with the version, e.g. `28.0.1`. After a maintainer approves the run, it pushes a signed tag with generated release notes, which triggers the release build.
+- Optionally send a PR to the [blog repository](https://gitea.com/gitea/blog) announcing the release.
+- Verify all release assets were correctly published through CI on dl.gitea.com and GitHub releases. Once ACKed:
+  - bump the version of https://dl.gitea.com/gitea/version.json
+  - merge the blog post PR
+  - announce the release in discord `#announcements`

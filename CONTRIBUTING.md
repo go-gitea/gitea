@@ -169,7 +169,7 @@ In the PR title, describe the problem you are fixing, not how you are fixing it.
 Use the first comment as a summary of your PR. \
 In the PR summary, you can describe exactly how you are fixing this problem.
 
-PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format, because PRs are squash-merged and the PR title becomes the resulting commit message:
+PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/) format, because PRs are squash-merged and the PR title becomes the resulting commit message and release notes entry:
 
 ```text
 type(scope)!: subject
@@ -213,9 +213,9 @@ Another requirement for merging PRs is that the PR is labeled correctly.\
 However, this is not your job as a contributor, but the job of the person merging your PR.\
 If you think that your PR was labeled incorrectly, or notice that it was merged without labels, please let us know.
 
-For pull requests that use a valid Conventional Commits title, CI automatically applies a matching `type/…` label when the title prefix is `feat`, `enhance`, `fix`, `docs`, or `test` (for example `enhance(web): …` receives `type/enhancement`).\
+For pull requests that use a valid Conventional Commits title, CI automatically applies a matching `type/…` label when the title prefix is `feat`, `enhance`, `fix`, `docs`, `test`, or `refactor` (for example `enhance(web): …` receives `type/enhancement`).\
 That label is kept in sync with the PR title when the title is edited.\
-Other title prefixes do not get an automatic `type/…` label; the merger still assigns the correct labels (including `type/…` when needed) for changelog and backport decisions.
+Other title prefixes do not get an automatic `type/…` label. The merger still assigns the correct labels (including `type/…` when needed) for backport decisions.
 
 If your PR closes some issues, you must note that in a way that both GitHub and Gitea understand, i.e. by appending a paragraph like
 
