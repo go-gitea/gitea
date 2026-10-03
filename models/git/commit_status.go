@@ -432,11 +432,7 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 	}
 	results := make([]result, 0, len(commitIDs))
 
-	conds := make([]builder.Cond, 0, len(commitIDs))
-	for _, sha := range commitIDs {
-		conds = append(conds, builder.Eq{"sha": sha})
-	}
-	sess := getBase().And(builder.Or(conds...)).
+	sess := getBase().And(builder.In("sha", commitIDs)).
 		Select("max( `index` ) as `index`, sha").
 		GroupBy("context_hash, sha").OrderBy("max( `index` ) desc")
 
@@ -450,11 +446,11 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 	if len(results) > 0 {
 		statuses := make([]*CommitStatus, 0, len(results))
 
-		conds = make([]builder.Cond, 0, len(results))
+		statusConds := make([]builder.Cond, 0, len(results))
 		for _, result := range results {
-			conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
+			statusConds = append(statusConds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
 		}
-		err = getBase().And(builder.Or(conds...)).Find(&statuses)
+		err = getBase().And(builder.Or(statusConds...)).Find(&statuses)
 		if err != nil {
 			return nil, err
 		}
