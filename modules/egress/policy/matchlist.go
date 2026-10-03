@@ -414,7 +414,7 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 		"0.0.0.0/8",          // "this network"
 		"100.100.100.200/32", // Alibaba Cloud metadata
 		"168.63.129.16/32",   // Azure WireServer
-		"169.254.0.0/16",     // link-local, cloud metadata endpoints
+		"169.254.169.254/32", // cloud metadata services on link local
 		"192.0.0.0/24",       // IETF protocol assignments
 		"192.0.2.0/24",       // TEST-NET-1
 		"192.31.196.0/24",    // AS112
@@ -439,7 +439,6 @@ var reservedRanges = func() (ranges []netip.Prefix) {
 		"3fff::/20",          // documentation
 		"5f00::/16",          // SRv6 SIDs
 		"fd00:ec2::254/128",  // AWS IMDS
-		"fe80::/10",          // link-local
 		"fec0::/10",          // site-local
 		"ff00::/8",           // multicast
 	} {
@@ -453,7 +452,8 @@ func classifyAddr(ip netip.Addr) addrClass {
 	switch {
 	case ip.Zone() != "" || !ip.IsLoopback() && slices.ContainsFunc(reservedRanges, func(p netip.Prefix) bool { return p.Contains(ip) }):
 		return classReserved
-	case ip.IsPrivate() || ip.IsLoopback() || cgnatRange.Contains(ip):
+		// link local has some non-malicious uses: https://github.com/go-gitea/gitea/issues/39557
+	case ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || cgnatRange.Contains(ip):
 		return classRestricted
 	}
 	return classPublic

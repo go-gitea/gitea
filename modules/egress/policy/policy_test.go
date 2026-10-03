@@ -35,6 +35,7 @@ func TestCheckAddr(t *testing.T) {
 		{name: "block overrides allow", allow: "10.0.0.0/8", block: "10.0.0.5/32", ip: "10.0.0.5"},
 		{name: "reserved denied by cidr", allow: "169.254.0.0/16", ip: "169.254.169.254"},
 		{name: "reserved denied ipv4-mapped", allow: "169.254.0.0/16", ip: "::ffff:169.254.169.254"},
+		{name: "non cloud link-local is default denied", ip: "::ffff:169.254.1.2"},
 		{name: "local gate ignores host", allow: "example.com", host: "example.com", ip: "10.0.0.5", localNeedsIPAllow: true},
 		{name: "local gate accepts builtin", allow: "private", ip: "100.64.0.1", localNeedsIPAllow: true, want: true},
 		{name: "local gate accepts cidr", allow: "10.0.0.0/24", ip: "10.0.0.5", localNeedsIPAllow: true, want: true},
@@ -63,7 +64,7 @@ func TestCheckAddr(t *testing.T) {
 			mode = Strict
 		}
 		err := NewPolicy("test", mode, opts...).checkAddr(tc.host, netip.AddrPortFrom(addr, 80))
-		assert.Equal(t, tc.want, err == nil, "%s: %v", tc.name, err)
+		assert.Equal(t, tc.want, err == nil, "%s (%s): %v", tc.name, tc.ip, err)
 	}
 }
 
