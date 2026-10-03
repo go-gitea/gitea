@@ -1,5 +1,5 @@
 {{if .EnableCaptcha}}{{if eq .CaptchaType "image"}}
-	<div class="inline field tw-text-center">
+	<div class="inline field tw-text-center" data-global-init="initImageCaptcha">
 		{{.Captcha.CreateHTML}}
 	</div>
 	<div class="required field {{if .Err_Captcha}}error{{end}}">
