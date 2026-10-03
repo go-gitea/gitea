@@ -63,7 +63,7 @@ func TestAPIViewPulls(t *testing.T) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs))
 		assert.NoError(t, err)
 		if assert.Len(t, patch.Files, 1) {
 			assert.Equal(t, "File-WoW", patch.Files[0].Name)
@@ -100,7 +100,7 @@ func TestAPIViewPulls(t *testing.T) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs))
 		assert.NoError(t, err)
 		if assert.Len(t, patch.Files, 1) {
 			assert.Equal(t, "README.md", patch.Files[0].Name)
@@ -133,7 +133,7 @@ func TestAPIViewPulls(t *testing.T) {
 		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
 		bs, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
-		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs), "")
+		patch, err := gitdiff.ParsePatch(t.Context(), 1000, 5000, 10, bytes.NewReader(bs))
 		assert.NoError(t, err)
 		assert.Len(t, patch.Files, 1)
 

@@ -34,6 +34,17 @@ func detectGiteaTestRoot() string {
 	return giteaRoot
 }
 
+// CleanUpTestEnv unsets GIT_* and non-test GITEA_* env vars so tests are reproducible
+func CleanUpTestEnv() {
+	UnsetUnnecessaryEnvVars()
+	for _, env := range os.Environ() {
+		if strings.HasPrefix(env, "GIT_") || (strings.HasPrefix(env, "GITEA_") && !strings.HasPrefix(env, "GITEA_TEST_")) {
+			k, _, _ := strings.Cut(env, "=")
+			_ = os.Unsetenv(k)
+		}
+	}
+}
+
 func SetupGiteaTestEnv() {
 	if giteaTestSourceRoot != nil {
 		return // already initialized
@@ -87,17 +98,6 @@ func SetupGiteaTestEnv() {
 		return giteaConf
 	}
 
-	cleanUpEnv := func() {
-		// also unset unnecessary env vars for testing (only keep "GITEA_TEST_*" ones)
-		UnsetUnnecessaryEnvVars()
-		for _, env := range os.Environ() {
-			if strings.HasPrefix(env, "GIT_") || (strings.HasPrefix(env, "GITEA_") && !strings.HasPrefix(env, "GITEA_TEST_")) {
-				k, _, _ := strings.Cut(env, "=")
-				_ = os.Unsetenv(k)
-			}
-		}
-	}
-
 	initWorkPathAndConfig := func() {
 		// init paths and config system for testing
 		getTestEnv := func(key string) string { return "" }
@@ -114,7 +114,7 @@ func SetupGiteaTestEnv() {
 
 	initGiteaPaths()
 	giteaConf := initGiteaConf()
-	cleanUpEnv()
+	CleanUpTestEnv()
 	initWorkPathAndConfig()
 
 	if RepoRootPath == "" || AppDataPath == "" {

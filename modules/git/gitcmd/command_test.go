@@ -20,6 +20,7 @@ import (
 )
 
 func testMain(m *testing.M) int {
+	setting.CleanUpTestEnv()
 	// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right.
 	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")

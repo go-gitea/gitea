@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -25,6 +24,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -167,26 +167,21 @@ from 873987ea3e99c206bb0841266845098ee74d4ce9
 done
 `
 	fastImport := func(dir, data string) {
-		cmd := exec.Command("git", "-C", dir, "fast-import", "--date-format=raw", "--done")
-		cmd.Stdin = strings.NewReader(data)
-		out, err := cmd.CombinedOutput()
-		require.NoError(t, err, "fast-import failed: %s", out)
+		require.NoError(t, gitcmd.NewCommand("fast-import", "--date-format=raw", "--done").WithDir(dir).WithStdinBytes([]byte(data)).RunWithStderr(t.Context()))
 	}
 
 	repoDir := t.TempDir()
-	out, err := exec.Command("git", "init", "--bare", repoDir).CombinedOutput()
-	require.NoError(t, err, "git init failed: %s", out)
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, true, git.Sha1ObjectFormat.Name(), ""))
 	fastImport(repoDir, fastImportData)
 
 	forkDir := t.TempDir()
-	out, err = exec.Command("git", "clone", "--bare", repoDir, forkDir).CombinedOutput()
-	require.NoError(t, err, "git clone failed: %s", out)
+	require.NoError(t, git.Clone(t.Context(), repoDir, forkDir, git.CloneRepoOptions{Bare: true}))
 	fastImport(forkDir, forkExtraData)
 
 	// Find git-http-backend
-	execPathBytes, err := exec.Command("git", "--exec-path").Output()
+	execPath, _, err := gitcmd.NewCommand("--exec-path").RunStdString(t.Context())
 	require.NoError(t, err)
-	httpBackend := filepath.Join(strings.TrimSpace(string(execPathBytes)), "git-http-backend")
+	httpBackend := filepath.Join(strings.TrimSpace(execPath), "git-http-backend")
 
 	_, callerFile, _, _ := runtime.Caller(0)
 	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/Test_MigrateFromGiteaToGitea")
@@ -202,10 +197,10 @@ done
 						handler := &cgi.Handler{
 							Path: httpBackend,
 							Dir:  dir,
-							Env: []string{
+							Env: append([]string{
 								"GIT_PROJECT_ROOT=" + filepath.Dir(dir),
 								"GIT_HTTP_EXPORT_ALL=1",
-							},
+							}, gitcmd.CommonGitCmdEnvs()...),
 						}
 						r.URL.Path = "/" + filepath.Base(dir) + strings.TrimPrefix(r.URL.Path, prefix)
 						handler.ServeHTTP(w, r)

@@ -19,7 +19,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -412,6 +411,7 @@ func TestProxyHTTP(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	MaybeTunnel()
+	setting.CleanUpTestEnv()
 	m.Run()
 }
 
@@ -432,9 +432,8 @@ func TestRun(t *testing.T) {
 	assert.Contains(t, stdout, "http://gitea:")
 
 	_, port, err := net.SplitHostPort(serveConns(t, func(conn net.Conn) {
-		daemon := exec.Command("git", "daemon", "--inetd", "--export-all", "--base-path="+repos)
-		daemon.Stdin, daemon.Stdout = conn, conn
-		_ = daemon.Run()
+		_ = gitcmd.NewCommand("daemon", "--inetd", "--export-all").AddOptionFormat("--base-path=%s", repos).
+			WithStdinCopy(conn).WithStdoutCopy(conn).Run(t.Context())
 	}))
 	require.NoError(t, err)
 	require.NoError(t, gitcmd.NewCommand("clone", "-q", "--bare").AddDynamicArguments("git://127.0.0.1:"+port+"/repo1_bare", filepath.Join(base, "allowed")).Run(t.Context()))

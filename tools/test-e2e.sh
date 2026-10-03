@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+for var in $(compgen -e GIT_); do unset "$var"; done
+
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-docker}"
 CONTAINER_NAME="gitea-e2e-runner-$$"
 

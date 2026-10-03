@@ -173,12 +173,8 @@ func ApplyDiffPatch(ctx reqctx.RequestContext, repo *repo_model.Repository, doer
 	}
 	defer t.Close()
 
-	cmdApply := gitcmd.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
-	if git.DefaultFeatures().CheckVersionAtLeast("2.32") {
-		cmdApply.AddArguments("-3")
-	}
-
-	if err := cmdApply.WithRepo(t.gitRepo).
+	if err := gitcmd.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary", "-3").
+		WithRepo(t.gitRepo).
 		WithStdinBytes([]byte(opts.Content)).
 		RunWithStderr(ctx); err != nil {
 		return nil, fmt.Errorf("git apply error: %w", err)
