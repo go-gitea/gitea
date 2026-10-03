@@ -29212,6 +29212,9 @@
           "201": {
             "$ref": "#/components/responses/PullRequest"
           },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
