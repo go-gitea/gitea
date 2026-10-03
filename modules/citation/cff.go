@@ -28,7 +28,7 @@ type date struct{ time.Time }
 
 var dateSeparators = strings.NewReplacer("/", "-", ". ", " ", ".", "-", ",", "")
 
-func (d *date) UnmarshalYAML(node *yaml.Node) error { // the common formats of Ruby's Date.parse, unparsable dates are omitted
+func (d *date) UnmarshalYAML(node *yaml.Node) error {
 	value := dateSeparators.Replace(node.Value)
 	for _, layout := range []string{"2006-1-2", "2-1-2006", "2 Jan 2006", "2 January 2006", "Jan 2 2006", "January 2 2006"} {
 		if parsed, err := time.Parse(layout, value); err == nil {
@@ -44,7 +44,7 @@ type license string
 func (l *license) UnmarshalYAML(node *yaml.Node) error {
 	*l = license(node.Value)
 	if node.Kind != yaml.ScalarNode {
-		*l = license(rubyInspect(node)) // GitHub outputs a license list with Ruby's Array#to_s
+		*l = license(rubyInspect(node))
 	}
 	return nil
 }
@@ -70,7 +70,7 @@ func (a *actor) UnmarshalYAML(node *yaml.Node) error {
 		a.Name = node.Value
 		return nil
 	case yaml.SequenceNode:
-		return nil // ruby-cff can't format an entity given as a list either
+		return nil
 	}
 	type plainActor actor
 	return node.Load((*plainActor)(a), yaml.WithUniqueKeys(false))
@@ -122,7 +122,7 @@ func FormatCFF(content string) (apa, bibtex string) {
 		TopLevel          metadata   `yaml:",inline"`
 		PreferredCitation *reference `yaml:"preferred-citation"`
 	}
-	if node.Load(&file, yaml.WithUniqueKeys(false)) != nil { // like Ruby's YAML, the last duplicate key wins
+	if node.Load(&file, yaml.WithUniqueKeys(false)) != nil {
 		return "", ""
 	}
 	ref := file.PreferredCitation
@@ -143,7 +143,7 @@ var (
 	psychDigit = strings.NewReplacer(",", "", "_", "")
 )
 
-func rubyString(plain string) string { // Ruby's to_s of a plain scalar as Psych resolves it, e.g. version 1.10 becomes 1.1
+func rubyString(plain string) string {
 	switch {
 	case psychTrue.MatchString(plain):
 		return "true"
@@ -165,7 +165,7 @@ func rubyString(plain string) string { // Ruby's to_s of a plain scalar as Psych
 	return plain
 }
 
-func normalize(node *yaml.Node) { // scalars decode into their Ruby strings, timestamps too, which yaml refuses by default
+func normalize(node *yaml.Node) {
 	if node.Kind == yaml.ScalarNode && node.Style == 0 {
 		node.Value = rubyString(node.Value)
 	}
@@ -302,7 +302,7 @@ func initials(names string) string {
 	return strings.Join(parts, ". ")
 }
 
-func splitWords(text string) []string { // like Ruby's String#split, which ignores non-ASCII whitespace
+func splitWords(text string) []string {
 	return strings.FieldsFunc(text, func(char rune) bool { return char <= unicode.MaxASCII && unicode.IsSpace(char) })
 }
 
@@ -378,7 +378,7 @@ var bibtexTypeFields = map[string][]string{
 
 var (
 	bibtexEscaper = strings.NewReplacer("&", `\&`, "%", `\%`, "$", `\$`, "#", `\#`, "_", `\_`, "{", `\{`, "}", `\}`)
-	keyLetters    = strings.NewReplacer( // letters which don't decompose into ASCII, as transliterated by ruby-cff
+	keyLetters    = strings.NewReplacer(
 		"Æ", "AE", "æ", "ae", "Ð", "D", "ð", "d", "Ø", "O", "ø", "o", "Þ", "Th", "þ", "th", "ß", "ss", "×", "x",
 		"Đ", "D", "đ", "d", "Ħ", "H", "ħ", "h", "ı", "i", "Ĳ", "IJ", "ĳ", "ij", "ĸ", "k", "Ŀ", "L", "ŀ", "l",
 		"Ł", "L", "ł", "l", "ŉ", "'n", "Ŋ", "NG", "ŋ", "ng", "Œ", "OE", "œ", "oe", "Ŧ", "T", "ŧ", "t",
@@ -386,7 +386,7 @@ var (
 	keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
 )
 
-func keyToASCII() transform.Transformer { // ruby-cff only transliterates Latin-1 Supplement, Latin Extended-A and "ệ"
+func keyToASCII() transform.Transformer {
 	return transform.Chain(
 		runes.Remove(runes.Predicate(func(char rune) bool {
 			return char > unicode.MaxASCII && (char < 'À' || char > 'ž') && char != 'ệ'
