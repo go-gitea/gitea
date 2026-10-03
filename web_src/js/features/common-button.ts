@@ -8,7 +8,10 @@ export function initGlobalButtonClickOnEnter(): void {
     // for "<a>" elements which doesn't have a href but has a tabindex, we should trigger click on "Enter" keypress
     if (el.nodeName === 'A' && el.tabIndex !== -1 && e.code === 'Enter') el.click();
     // for non-button "ui button" elements, we should trigger click on "Space" or "Enter" keypress
-    if ((el.nodeName === 'DIV' || el.nodeName === 'SPAN') && (e.code === 'Space' || e.code === 'Enter')) el.click();
+    if ((el.nodeName === 'DIV' || el.nodeName === 'SPAN') && (e.code === 'Space' || e.code === 'Enter')) {
+      e.preventDefault(); // don't make Space scroll the page
+      el.click();
+    }
   });
 }
 
