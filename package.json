@@ -6,10 +6,6 @@
     "pnpm": ">= 11.0.0"
   },
   "dependencies": {
-    "@citation-js/core": "0.7.21",
-    "@citation-js/plugin-bibtex": "0.7.21",
-    "@citation-js/plugin-csl": "0.7.22",
-    "@citation-js/plugin-software-formats": "0.6.2",
     "@codemirror/autocomplete": "6.20.3",
     "@codemirror/commands": "6.11.1",
     "@codemirror/lang-json": "6.0.2",
@@ -109,6 +105,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.1",
     "vitest": "5.0.1",
+    "vue-eslint-parser": "10.4.0",
     "vue-tsc": "3.3.11"
   }
 }
