@@ -273,3 +273,7 @@ func testGetDoerRepoPermission(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, individualPerm, doerPerm)
 }
+
+func TestRepoUserPermissionCacheKeyDistinguishesExtDoers(t *testing.T) {
+	assert.NotEqual(t, RepoUserPermissionCacheKey(1, user_model.NewActionsUserWithTaskID(1)), RepoUserPermissionCacheKey(1, user_model.NewActionsUserWithTaskID(2)))
+}

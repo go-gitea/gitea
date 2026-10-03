@@ -23,7 +23,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadAttributes(t.Context()))
 	assert.NoError(t, pr.LoadIssue(t.Context()))
-	apiPullRequest := ToAPIPullRequest(t.Context(), pr, nil)
+	apiPullRequest := ToAPIPullRequestForEvent(t.Context(), pr, nil)
 	assert.NotNil(t, apiPullRequest)
 	assert.Equal(t, &structs.PRBranchInfo{
 		Name:       "branch1",
@@ -40,12 +40,12 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	// simulate fork deletion
 	pr.HeadRepo = nil
 	pr.HeadRepoID = 100000
-	apiPullRequest = ToAPIPullRequest(t.Context(), pr, nil)
+	apiPullRequest = ToAPIPullRequestForEvent(t.Context(), pr, nil)
 	assert.NotNil(t, apiPullRequest)
 	assert.Nil(t, apiPullRequest.Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequest.Head.RepoID)
 
-	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil)
+	apiPullRequests, err := ToAPIPullRequests(t.Context(), pr.BaseRepo, []*issues_model.PullRequest{pr}, nil, nil)
 	assert.NoError(t, err)
 	assert.Len(t, apiPullRequests, 1)
 	assert.NotNil(t, apiPullRequests[0])

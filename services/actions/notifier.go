@@ -88,7 +88,7 @@ func (n *actionsNotifier) notifyIssueChangeWithTitleOrContent(ctx context.Contex
 			WithPayload(&api.PullRequestPayload{
 				Action:      api.HookIssueEdited,
 				Index:       issue.Index,
-				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+				PullRequest: convert.ToAPIPullRequestForEvent(ctx, issue.PullRequest, nil),
 				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 				Sender:      convert.ToUser(ctx, doer, nil),
 			}).
@@ -120,7 +120,7 @@ func (n *actionsNotifier) IssueChangeStatus(ctx context.Context, doer *user_mode
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest: convert.ToAPIPullRequestForEvent(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
 			CommitID:    commitID,
@@ -243,7 +243,7 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		payload := &api.PullRequestPayload{
 			Action:      action,
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest: convert.ToAPIPullRequestForEvent(ctx, issue.PullRequest, nil),
 			Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
 			Changes: &api.ChangesPayload{
@@ -383,7 +383,7 @@ func (n *actionsNotifier) NewPullRequest(ctx context.Context, pull *issues_model
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueOpened,
 			Index:       pull.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pull, nil),
+			PullRequest: convert.ToAPIPullRequestForEvent(ctx, pull, nil),
 			Repository:  convert.ToRepo(ctx, pull.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, pull.Issue.Poster, nil),
 		}).
@@ -463,7 +463,7 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		WithPayload(&api.PullRequestPayload{
 			Action:      api.HookIssueReviewed,
 			Index:       review.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToAPIPullRequestForEvent(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, review.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, review.Reviewer, nil),
 			Review: &api.ReviewPayload{
@@ -497,7 +497,7 @@ func (n *actionsNotifier) PullRequestReviewRequest(ctx context.Context, doer *us
 		WithPayload(&api.PullRequestPayload{
 			Action:            action,
 			Index:             issue.Index,
-			PullRequest:       convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			PullRequest:       convert.ToAPIPullRequestForEvent(ctx, issue.PullRequest, nil),
 			RequestedReviewer: convert.ToUser(ctx, reviewer, nil),
 			Repository:        convert.ToRepo(ctx, issue.Repo, permission),
 			Sender:            convert.ToUser(ctx, doer, nil),
@@ -534,7 +534,7 @@ func (*actionsNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	// Merge pull request calls issue.changeStatus so we need to handle separately.
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+		PullRequest: convert.ToAPIPullRequestForEvent(ctx, pr, nil),
 		Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 		Sender:      convert.ToUser(ctx, doer, nil),
 		Action:      api.HookIssueClosed,
@@ -704,7 +704,7 @@ func (n *actionsNotifier) PullRequestSynchronized(ctx context.Context, doer *use
 			Before:      before,
 			After:       after,
 			Index:       pr.Issue.Index,
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToAPIPullRequestForEvent(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
@@ -735,7 +735,7 @@ func (n *actionsNotifier) PullRequestChangeTargetBranch(ctx context.Context, doe
 					From: oldBranch,
 				},
 			},
-			PullRequest: convert.ToAPIPullRequest(ctx, pr, nil),
+			PullRequest: convert.ToAPIPullRequestForEvent(ctx, pr, nil),
 			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
 			Sender:      convert.ToUser(ctx, doer, nil),
 		}).
