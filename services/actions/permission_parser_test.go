@@ -78,6 +78,7 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeProjects])
+	assert.True(t, result.IDToken)
 }
 
 func TestParseRawPermissions_IndividualScopes(t *testing.T) {
@@ -89,6 +90,7 @@ packages: write
 actions: read
 wiki: write
 projects: none
+id-token: write
 `
 	var rawPerms yaml.Node
 	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
@@ -104,6 +106,7 @@ projects: none
 	assert.Equal(t, perm.AccessModeRead, result.UnitAccessModes[unit.TypeActions])
 	assert.Equal(t, perm.AccessModeWrite, result.UnitAccessModes[unit.TypeWiki])
 	assert.Equal(t, perm.AccessModeNone, result.UnitAccessModes[unit.TypeProjects])
+	assert.True(t, result.IDToken)
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {

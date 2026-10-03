@@ -200,6 +200,16 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
+	if allowed, err := taskAllowsOIDCToken(ctx, t); err != nil {
+		return nil, err
+	} else if allowed {
+		requestToken, err := signActionsClaims(actionsClaims{Scp: idTokenRequestScope, TaskID: t.ID})
+		if err != nil {
+			return nil, err
+		}
+		gitCtx["actions_id_token_request_url"] = OIDCIssuer() + "/token?" // actions/core appends "&audience=..."
+		gitCtx["actions_id_token_request_token"] = requestToken
+	}
 
 	return structpb.NewStruct(gitCtx)
 }

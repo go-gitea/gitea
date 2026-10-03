@@ -39,6 +39,7 @@ func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPerm
 	for _, ut := range repo_model.ActionsTokenUnitTypes {
 		ret.UnitAccessModes[ut] = parseMaxPerm(ut)
 	}
+	ret.IDToken = ctx.FormString("max_id_token") == "write"
 	return ret
 }
 

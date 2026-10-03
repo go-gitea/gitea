@@ -12,7 +12,9 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io/fs"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -321,7 +323,7 @@ func InitSigningKey() error {
 	case "ES512":
 		fallthrough
 	case "EdDSA":
-		key, err = loadOrCreateAsymmetricKey()
+		key, err = LoadOrCreateAsymmetricKey(setting.OAuth2.JWTSigningPrivateKeyFile, setting.OAuth2.JWTSigningAlgorithm)
 	default:
 		return ErrInvalidAlgorithmType{setting.OAuth2.JWTSigningAlgorithm}
 	}
@@ -340,22 +342,18 @@ func InitSigningKey() error {
 	return nil
 }
 
-// loadOrCreateAsymmetricKey checks if the configured private key exists.
-// If it does not exist a new random key gets generated and saved on the configured path.
-func loadOrCreateAsymmetricKey() (any, error) {
-	keyPath := setting.OAuth2.JWTSigningPrivateKeyFile
-
+func LoadOrCreateAsymmetricKey(keyPath, algorithm string) (any, error) {
 	isExist, err := util.IsExist(keyPath)
 	if err != nil {
-		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+		return nil, fmt.Errorf("unable to check if %s exists: %w", keyPath, err)
 	}
 	if !isExist {
 		err := func() error {
 			key, err := func() (any, error) {
 				switch {
-				case strings.HasPrefix(setting.OAuth2.JWTSigningAlgorithm, "RS"):
+				case strings.HasPrefix(algorithm, "RS"):
 					return rsa.GenerateKey(rand.Reader, 4096)
-				case setting.OAuth2.JWTSigningAlgorithm == "EdDSA":
+				case algorithm == "EdDSA":
 					_, pk, err := ed25519.GenerateKey(rand.Reader)
 					return pk, err
 				default:
@@ -377,8 +375,10 @@ func loadOrCreateAsymmetricKey() (any, error) {
 				return err
 			}
 
-			f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-			if err != nil {
+			f, err := os.OpenFile(keyPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+			if errors.Is(err, fs.ErrExist) { // another instance sharing the data path created it first
+				return nil
+			} else if err != nil {
 				return err
 			}
 			defer func() {
@@ -390,8 +390,7 @@ func loadOrCreateAsymmetricKey() (any, error) {
 			return pem.Encode(f, privateKeyPEM)
 		}()
 		if err != nil {
-			log.Fatal("Error generating private key: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("error generating private key: %w", err)
 		}
 	}
 

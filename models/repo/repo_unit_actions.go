@@ -29,6 +29,7 @@ func (ActionsTokenPermissionMode) EnumValues() []ActionsTokenPermissionMode {
 // ActionsTokenPermissions defines the permissions for different repository units
 type ActionsTokenPermissions struct {
 	UnitAccessModes map[unit.Type]perm.AccessMode `json:"unit_access_modes,omitempty"`
+	IDToken         bool                          `json:"id_token,omitempty"` // default modes never grant it, like on GitHub
 }
 
 var ActionsTokenUnitTypes = []unit.Type{
@@ -50,12 +51,19 @@ func MakeActionsTokenPermissions(unitAccessMode perm.AccessMode) (ret ActionsTok
 	return ret
 }
 
+func MakeWriteAllActionsTokenPermissions() ActionsTokenPermissions {
+	ret := MakeActionsTokenPermissions(perm.AccessModeWrite)
+	ret.IDToken = true
+	return ret
+}
+
 // ClampActionsTokenPermissions ensures that the given permissions don't exceed the maximum
 func ClampActionsTokenPermissions(p1, p2 ActionsTokenPermissions) (ret ActionsTokenPermissions) {
 	ret.UnitAccessModes = make(map[unit.Type]perm.AccessMode)
 	for _, ut := range ActionsTokenUnitTypes {
 		ret.UnitAccessModes[ut] = min(p1.UnitAccessModes[ut], p2.UnitAccessModes[ut])
 	}
+	ret.IDToken = p1.IDToken && p2.IDToken
 	return ret
 }
 
@@ -156,7 +164,7 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 		return *cfg.MaxTokenPermissions
 	}
 	// Default max is write for everything
-	return MakeActionsTokenPermissions(perm.AccessModeWrite)
+	return MakeWriteAllActionsTokenPermissions()
 }
 
 // ClampPermissions ensures that the given permissions don't exceed the maximum

@@ -57,6 +57,8 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		assert.Equal(t, perm.AccessModeWrite, perms.UnitAccessModes[unit.TypeCode])
 		assert.Equal(t, perm.AccessModeWrite, perms.UnitAccessModes[unit.TypeIssues])
 		assert.Equal(t, perm.AccessModeWrite, perms.UnitAccessModes[unit.TypePackages])
+		assert.False(t, perms.IDToken)
+		assert.True(t, cfg.GetMaxTokenPermissions().IDToken)
 	})
 
 	t.Run("Effective Permissions - Restricted Mode", func(t *testing.T) {
@@ -92,6 +94,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 				unit.TypeActions:      perm.AccessModeRead,  // Should be clamped to None
 				unit.TypeWiki:         perm.AccessModeRead,  // Should stay Read
 			},
+			IDToken: true,
 		}
 		clamped := cfg.ClampPermissions(input)
 		assert.Equal(t, perm.AccessModeRead, clamped.UnitAccessModes[unit.TypeCode])
@@ -100,5 +103,6 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		assert.Equal(t, perm.AccessModeRead, clamped.UnitAccessModes[unit.TypePackages])
 		assert.Equal(t, perm.AccessModeNone, clamped.UnitAccessModes[unit.TypeActions])
 		assert.Equal(t, perm.AccessModeRead, clamped.UnitAccessModes[unit.TypeWiki])
+		assert.False(t, clamped.IDToken)
 	})
 }
