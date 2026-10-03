@@ -8,7 +8,7 @@ This document describes the release cycle, backports, versioning, and the releas
 
 We backport PRs given the following circumstances:
 
-1. During feature freeze, we backport bug- and security-fixes and small enhancements. Large changes such as refactors are not backported.
+1. We backport bug- and security-fixes and small enhancements. Large changes such as refactors are not backported.
 2. We never backport new features.
 3. We never backport breaking changes except when
     1. The breaking change has no effect on the vast majority of users
@@ -52,7 +52,6 @@ We use a release schedule so work, stabilization, and releases stay predictable.
 ### Cadence
 
 - Aim for a major release about every three or four months.
-- Roughly two or three months of general development, then about one month of testing and polish called the **release freeze**.
 - *Starting with v1.26 the release cycle will be more predictable and follow a more regular schedule.*
 
 ### Release schedule
@@ -63,12 +62,6 @@ We will try to publish a new major version every three months:
 - v1.27.0 in June 2026
 - v1.28.0 in September 2026
 - v1.29.0 in December 2026
-
-### Feature freeze
-
-- Merge feature PRs before the freeze when you can.
-- Feature PRs still open at the freeze move to the next milestone. Watch Discord for the freeze announcement.
-- During the freeze, a **release branch** takes fixes backported from `main`. Stable releases for that line are maintained from that branch.
 
 ### Patch releases
 
