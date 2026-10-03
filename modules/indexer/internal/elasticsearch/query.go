@@ -39,6 +39,11 @@ func TermsQuery(field string, values ...any) Query {
 	return rawQuery{"terms": map[string]any{field: values}}
 }
 
+// PrefixQuery matches documents whose `field` contains a term starting with `prefix`.
+func PrefixQuery(field, prefix string) Query {
+	return rawQuery{"prefix": map[string]any{field: prefix}}
+}
+
 // MatchQuery is a full-text match on a single field.
 func MatchQuery(field string, value any) Query {
 	return rawQuery{"match": map[string]any{field: value}}
