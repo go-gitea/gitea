@@ -136,6 +136,6 @@ func enableMSSQLReadCommittedSnapshot(ctx context.Context, engine EngineMigratio
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second) // ALTER waits for all other connections to close
 	defer cancel()
 	if _, err := engine.Context(ctx).Exec("IF (SELECT is_read_committed_snapshot_on FROM sys.databases WHERE database_id = DB_ID()) = 0 ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON"); err != nil {
-		log.Warn("Failed to enable READ_COMMITTED_SNAPSHOT, concurrent requests may fail with deadlocks. Run `ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON` while no other connections use the database: %v", err)
+		log.Error("enableMSSQLReadCommittedSnapshot: %v", err)
 	}
 }
