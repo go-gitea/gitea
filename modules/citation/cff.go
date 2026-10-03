@@ -107,7 +107,7 @@ type reference struct {
 	CollectionTitle string  `yaml:"collection-title"`
 	ThesisType      string  `yaml:"thesis-type"`
 	Publisher       actor   `yaml:"publisher"`
-	Institution     actor   `yaml:"institution"`
+	Institution     *actor  `yaml:"institution"`
 	Conference      actor   `yaml:"conference"`
 }
 
@@ -180,6 +180,10 @@ func normalize(node *yaml.Node) { // scalars decode into their Ruby strings, tim
 func rubyInspect(node *yaml.Node) string {
 	var parts []string
 	switch node.Kind {
+	case yaml.AliasNode:
+		if node.Alias.Kind == yaml.ScalarNode { // collection aliases can be recursive
+			return rubyInspect(node.Alias)
+		}
 	case yaml.SequenceNode:
 		for _, child := range node.Content {
 			parts = append(parts, rubyInspect(child))
@@ -246,7 +250,10 @@ func (r *reference) volume() string {
 }
 
 func (r *reference) institution() string {
-	return cmp.Or(r.Institution.Name, r.Authors[0].Affiliation)
+	if r.Institution == nil {
+		return r.Authors[0].Affiliation
+	}
+	return r.Institution.Name
 }
 
 func (r *reference) formatAPA() string {
@@ -290,7 +297,7 @@ func initials(names string) string {
 	parts := splitWords(names)
 	for i, part := range parts {
 		first, _ := utf8.DecodeRuneInString(part)
-		parts[i] = string(unicode.ToTitle(first))
+		parts[i] = util.ToTitleCase(string(first))
 	}
 	return strings.Join(parts, ". ")
 }
@@ -376,25 +383,32 @@ var (
 		"Đ", "D", "đ", "d", "Ħ", "H", "ħ", "h", "ı", "i", "Ĳ", "IJ", "ĳ", "ij", "ĸ", "k", "Ŀ", "L", "ŀ", "l",
 		"Ł", "L", "ł", "l", "ŉ", "'n", "Ŋ", "NG", "ŋ", "ng", "Œ", "OE", "œ", "oe", "Ŧ", "T", "ŧ", "t",
 	)
-	keyToASCII = transform.Chain( // ruby-cff only transliterates Latin-1 Supplement, Latin Extended-A and "ệ"
+	keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
+)
+
+func keyToASCII() transform.Transformer { // ruby-cff only transliterates Latin-1 Supplement, Latin Extended-A and "ệ"
+	return transform.Chain(
 		runes.Remove(runes.Predicate(func(char rune) bool {
 			return char > unicode.MaxASCII && (char < 'À' || char > 'ž') && char != 'ệ'
 		})),
 		norm.NFD,
 		runes.Remove(runes.Predicate(func(char rune) bool { return char > unicode.MaxASCII })),
 	)
-	keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
-)
+}
 
 func (r *reference) formatBibTeX() string {
 	place := r.Publisher
 	if r.Type == "conference-paper" {
 		place = r.Conference
 	}
+	editors := r.Editors
+	if len(editors) == 0 {
+		editors = r.EditorsSeries
+	}
 	typeFields := map[string]string{
 		"address":     joinNonEmpty(", ", place.City, place.Region, place.Country),
 		"booktitle":   bibtexEscaper.Replace(r.CollectionTitle),
-		"editor":      cmp.Or(bibtexActors(r.Editors), bibtexActors(r.EditorsSeries)),
+		"editor":      bibtexActors(editors),
 		"institution": bibtexEscaper.Replace(r.institution()),
 		"isbn":        bibtexEscaper.Replace(r.ISBN),
 		"journal":     bibtexEscaper.Replace(r.Journal),
@@ -482,6 +496,6 @@ func bibtexKey(fields map[string]string) string {
 	author, _, _ := strings.Cut(fields["author"], ",")
 	titleWords := splitWords(fields["title"])
 	key := joinNonEmpty("_", author, strings.Join(titleWords[:min(3, len(titleWords))], "_"), fields["year"])
-	key, _, _ = transform.String(keyToASCII, keyLetters.Replace(key))
+	key, _, _ = transform.String(keyToASCII(), keyLetters.Replace(key))
 	return strings.Trim(keyUnsafeChars.ReplaceAllString(key, "_"), "_")
 }

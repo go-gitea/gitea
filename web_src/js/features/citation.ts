@@ -1,12 +1,10 @@
 import {localUserSettings} from '../modules/user-settings.ts';
 
-export function initCitationFileCopyContent() {
-  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex');
-  if (!citationCopyBibtex) return;
-
-  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
-  const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content')!;
-  const clipboardBtn = document.querySelector('#citation-clipboard-btn')!;
+export function initRepoCitationPanel(elPanel: HTMLElement) {
+  const citationCopyApa = elPanel.querySelector<HTMLButtonElement>('.citation-apa');
+  const citationCopyBibtex = elPanel.querySelector<HTMLButtonElement>('.citation-bibtex')!;
+  const inputContent = elPanel.querySelector('input')!;
+  const clipboardBtn = elPanel.querySelector('.citation-copy')!;
 
   const updateUi = () => {
     const isBibtex = !citationCopyApa || localUserSettings.getString('citation-copy-format', 'apa') === 'bibtex';

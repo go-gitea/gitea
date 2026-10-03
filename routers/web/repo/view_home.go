@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -101,14 +102,26 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
+	isBlob := func(entry *git.TreeEntry) bool { return !entry.IsDir() && !entry.IsSubModule() }
 	for _, name := range []string{"CITATION.cff", "CITATION.bib"} {
-		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool { return strings.EqualFold(entry.Name(), name) })
+		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool { return isBlob(entry) && strings.EqualFold(entry.Name(), name) })
 		if idx == -1 {
 			continue
 		}
-		content, err := allEntries[idx].Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
+		entry := allEntries[idx]
+		if entry.IsLink() {
+			res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, entry.Name(), entry)
+			if err != nil || !isBlob(res.TargetEntry) {
+				continue
+			}
+			entry = res.TargetEntry
+		}
+		content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 		if err != nil {
-			log.Error("checkCitationFile: GetBlobContent: %v", err)
+			log.Error("prepareHomeSidebarCitationFile: GetBlobContent: %v", err)
+			continue
+		}
+		if pointer, _ := lfs.ReadPointerFromBuffer([]byte(content)); pointer.IsValid() {
 			continue
 		}
 		apa, bibtex := "", content
@@ -116,7 +129,6 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 			apa, bibtex = citation.FormatCFF(content)
 		}
 		if bibtex != "" {
-			ctx.Data["CitationExist"] = true
 			ctx.Data["CitationFileName"] = allEntries[idx].Name()
 			ctx.Data["CitationAPA"] = apa
 			ctx.Data["CitationBibTeX"] = bibtex

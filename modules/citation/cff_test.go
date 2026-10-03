@@ -13,10 +13,11 @@ func TestFormatCFF(t *testing.T) {
 	cases := []struct{ cff, apa, bibtex string }{
 		{
 			cff: `title: Overridden
+message: &mit MIT
 authors: [{family-names: Haines, given-names: Robert}, {name: "The {curly_braces} Collective"}]
 title: "Software that uses the following symbols: &, %, $, #"
 version: 2024-01-16
-license: [MIT, Apache-2.0]
+license: [*mit, Apache-2.0]
 date-released: 2024-01-16
 `,
 			apa: "Haines, R., & The {curly_braces} Collective. (2024). Software that uses the following symbols: &, %, $, # (Version 2024-01-16) [Computer software]",
@@ -72,7 +73,7 @@ year = {2016}
   title: "Über tools"
   authors:
     - family-names: Ørsted
-      given-names: hans christian
+      given-names: ǰan christian
       name-particle: van
       name-suffix: Jr.
   collection-title: "Proceedings of X & Y"
@@ -85,15 +86,16 @@ year = {2016}
   start: 10
   end: 20
   editors:
+    - affiliation: Press
+  editors-series:
     - family-names: Editor
       given-names: Eve
 `,
-			apa: "van Ørsted, H. C., Jr. (2020, June 30–July 2). Über tools (Version 1.1) [Conference paper]. Proceedings of X & Y, 10–20",
+			apa: "van Ørsted, J̌. C., Jr. (2020, June 30–July 2). Über tools (Version 1.1) [Conference paper]. Proceedings of X & Y, 10–20",
 			bibtex: `@inproceedings{van_Orsted_Uber_tools_2020,
 address = {Berlin, DE},
-author = {van Ørsted, Jr., hans christian},
+author = {van Ørsted, Jr., ǰan christian},
 booktitle = {Proceedings of X \& Y},
-editor = {Editor, Eve},
 month = jun,
 pages = {10--20},
 series = {Conf\_2020},
@@ -109,14 +111,15 @@ preferred-citation:
     - family-names: Nguyễn
       given-names: Sam
       affiliation: "Uni_A"
+  institution: {city: Hanoi}
+  license: &loop [*loop]
   status: in-press
   notes: A note
 `,
-			apa: "Nguyễn, S. (in press). Thesis. [Doctoral dissertation, Uni_A]",
+			apa: "Nguyễn, S. (in press). Thesis. [Doctoral dissertation, ]",
 			bibtex: `@phdthesis{Nguyn_Thesis_in_press,
 author = {Nguyễn, Sam},
 note = {A note},
-school = {Uni\_A},
 title = {{Thesis}},
 year = {in press}
 }`,
@@ -124,8 +127,11 @@ year = {in press}
 		{cff: "title: No authors\nauthor:\n  - name: Typo\n"},
 	}
 	for _, tc := range cases {
-		apa, bibtex := FormatCFF(tc.cff)
-		assert.Equal(t, tc.apa, apa)
-		assert.Equal(t, tc.bibtex, bibtex)
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+			apa, bibtex := FormatCFF(tc.cff)
+			assert.Equal(t, tc.apa, apa)
+			assert.Equal(t, tc.bibtex, bibtex)
+		})
 	}
 }

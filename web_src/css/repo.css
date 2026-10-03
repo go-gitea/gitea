@@ -990,18 +990,13 @@
   background: var(--color-secondary);
 }
 
-#cite-repo-modal #citation-panel {
-  display: flex;
-  width: 100%;
-}
-
-#cite-repo-modal #citation-panel .citation.button {
+#cite-repo-modal .citation.button {
   font-size: 13px;
   padding: 7.5px 5px;
   border-right: none;
 }
 
-#cite-repo-modal #citation-panel #citation-copy-content {
+#cite-repo-modal input {
   border-radius: 0;
   padding: 5px 10px;
   font-size: 1.2em;
@@ -1009,19 +1004,19 @@
   flex: 1;
 }
 
-#cite-repo-modal #citation-panel #goto-citation-btn {
+#cite-repo-modal .jump.button {
   border-left: none;
 }
 
-#cite-repo-modal #citation-panel > :first-child {
+#cite-repo-modal .action.input > :first-child {
   border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
 }
 
-#cite-repo-modal #citation-panel > :last-child {
+#cite-repo-modal .action.input > :last-child {
   border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
 }
 
-#cite-repo-modal #citation-panel .icon.button {
+#cite-repo-modal .icon.button {
   padding: 0 10px;
 }
 
