@@ -21,13 +21,13 @@ import (
 func TestForkRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// user 13 has already forked repo10
+	// user 13 has already forked repo10 as "repo11"
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
 	fork, err := ForkRepository(t.Context(), user, user, ForkRepoOptions{
 		BaseRepo:    repo,
-		Name:        "test",
+		Name:        "repo11",
 		Description: "test",
 	})
 	assert.Nil(t, fork)
@@ -48,6 +48,25 @@ func TestForkRepository(t *testing.T) {
 	})
 	assert.Nil(t, fork2)
 	assert.True(t, repo_model.IsErrReachLimitOfRepo(err))
+}
+
+func TestForkRepositoryMultipleForksUnderDifferentNames(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user 13 has already forked repo10 as "repo11", forking again under a different name should succeed
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+
+	fork, err := ForkRepository(t.Context(), user, user, ForkRepoOptions{
+		BaseRepo:    repo,
+		Name:        "repo10-variant",
+		Description: "test",
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, fork)
+
+	err = DeleteRepositoryDirectly(t.Context(), fork.ID)
+	assert.NoError(t, err)
 }
 
 func TestForkRepositoryCleanup(t *testing.T) {
