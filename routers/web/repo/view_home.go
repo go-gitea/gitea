@@ -101,10 +101,14 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	isBlob := func(entry *git.TreeEntry) bool { return !entry.IsDir() && !entry.IsSubModule() }
-	for _, name := range []string{"CITATION.cff", "CITATION.bib"} {
+	isBlobSupported := func(entry *git.TreeEntry) bool {
+		return entry.IsRegular() || entry.IsExecutable() || entry.IsLink()
+	}
+	const nameCff = "CITATION.cff"
+	const nameBib = "CITATION.bib"
+	for _, name := range []string{nameCff, nameBib} {
 		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool {
-			return isBlob(entry) && strings.EqualFold(entry.Name(), name)
+			return isBlobSupported(entry) && strings.EqualFold(entry.Name(), name)
 		})
 		if idx == -1 {
 			continue
@@ -112,7 +116,7 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 		entry := allEntries[idx]
 		if entry.IsLink() {
 			res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, entry.Name(), entry)
-			if err != nil || !isBlob(res.TargetEntry) {
+			if err != nil || !isBlobSupported(res.TargetEntry) {
 				continue
 			}
 			entry = res.TargetEntry
@@ -123,7 +127,7 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 			continue
 		}
 		apa, bibtex := "", content
-		if name == "CITATION.cff" {
+		if name == nameCff {
 			apa, bibtex = citation.FormatCFF(content)
 		}
 		if citation.IsLikelyBibTeX(bibtex) {
