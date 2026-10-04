@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
@@ -94,6 +95,17 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 		if err != nil {
 			ctx.ServerError("SearchUsers", err)
 			return
+		}
+		for _, u := range users {
+			if u.IsOrganization() {
+				if badges, _, err := org_model.GetOrgBadges(ctx, (*org_model.Organization)(u)); err == nil {
+					u.Badges = badges
+				}
+			} else {
+				if badges, _, err := user_model.GetUserBadges(ctx, u); err == nil {
+					u.Badges = badges
+				}
+			}
 		}
 	}
 	if isSitemap {
