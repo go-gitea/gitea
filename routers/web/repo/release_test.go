@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -20,6 +21,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestDeleteTagRetainsReleaseAndAttachments(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, resp := contexttest.MockContext(t, "POST user2/repo1/tags/delete?id=1")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
+	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 9, ReleaseID: 1})
+
+	DeleteTag(ctx)
+
+	assert.Equal(t, http.StatusConflict, resp.Code)
+	assert.Equal(t, release, unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1}))
+	assert.Equal(t, attachment, unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: 9}))
+}
 
 func TestNewReleasePost(t *testing.T) {
 	unittest.PrepareTestEnv(t)

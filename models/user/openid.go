@@ -80,6 +80,17 @@ func AddUserOpenID(ctx context.Context, openid *UserOpenID) error {
 	return db.Insert(ctx, openid)
 }
 
+// GetUserOpenIDByID returns the OpenID with the given ID owned by uid.
+func GetUserOpenIDByID(ctx context.Context, id, uid int64) (*UserOpenID, error) {
+	oid, has, err := db.Get[UserOpenID](ctx, builder.Eq{"id": id, "uid": uid})
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("OpenID is unknown")
+	}
+	return oid, nil
+}
+
 // DeleteUserOpenID deletes an openid address of given user.
 func DeleteUserOpenID(ctx context.Context, openid *UserOpenID) (err error) {
 	var deleted int64

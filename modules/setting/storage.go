@@ -59,7 +59,6 @@ func (cfg *MinioStorageConfig) ToShadow() {
 	}
 }
 
-// MinioStorageConfig represents the configuration for a minio storage
 type AzureBlobStorageConfig struct {
 	Endpoint    string `ini:"AZURE_BLOB_ENDPOINT" json:",omitempty"`
 	AccountName string `ini:"AZURE_BLOB_ACCOUNT_NAME" json:",omitempty"`

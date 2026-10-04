@@ -22,6 +22,10 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, "# repo1\n\nDescription for repo1", resp.Body.String())
 
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo2/media/test.xml").AddTokenAuth(getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository))
+	resp = MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
+
 	// Test with LFS
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		createLFSTestRepository(t, "repo-lfs-test")

@@ -85,7 +85,7 @@ func newFuncMapWebPage() template.FuncMap {
 			return setting.AppVer
 		},
 		"AppDomain": func() string { // TODO: helm registry still uses it, need to use current request host in the future
-			return setting.Domain
+			return setting.AppDomain
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime

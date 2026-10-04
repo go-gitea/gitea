@@ -241,10 +241,14 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
     }
   };
 
+  dropdown.addEventListener('mousedown', () => dropdown.classList.remove('keyboard-nav')); // stands in for ":focus-visible", menu items never receive focus
+
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.isComposing) return;
-    // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
-    if (e.key === 'Enter') {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      dropdown.classList.add('keyboard-nav');
+    } else if (e.key === 'Enter') {
+      // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
       const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');
       // if the selected item is clickable, then trigger the click event.
       // we can not click any item without check, because Fomantic code might also handle the Enter event. that would result in double click.
@@ -279,6 +283,7 @@ function attachDomEvents(dropdown: AriaDropdownElement, focusable: HTMLElement, 
   }, {capture: true});
   dropdown.addEventListener('blur', () => {
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
+    dropdown.classList.remove('keyboard-nav');
     deferredRefreshAriaActiveItem(100);
   }, {capture: true});
   dropdown.addEventListener('mouseup', () => {

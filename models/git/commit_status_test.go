@@ -32,27 +32,14 @@ func TestGetCommitStatuses(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 5, int(maxResults))
-	assert.Len(t, statuses, 5)
-
-	assert.Equal(t, "ci/awesomeness", statuses[0].Context)
-	assert.Equal(t, commitstatus.CommitStatusPending, statuses[0].State)
+	var indexes []int64
+	for _, status := range statuses {
+		indexes = append(indexes, status.Index)
+	}
+	assert.Equal(t, []int64{5, 4, 3, 2, 1}, indexes)
+	assert.Equal(t, "deploy/awesomeness", statuses[0].Context)
+	assert.Equal(t, commitstatus.CommitStatusError, statuses[0].State)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[0].APIURL(t.Context()))
-
-	assert.Equal(t, "cov/awesomeness", statuses[1].Context)
-	assert.Equal(t, commitstatus.CommitStatusWarning, statuses[1].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[1].APIURL(t.Context()))
-
-	assert.Equal(t, "cov/awesomeness", statuses[2].Context)
-	assert.Equal(t, commitstatus.CommitStatusSuccess, statuses[2].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[2].APIURL(t.Context()))
-
-	assert.Equal(t, "ci/awesomeness", statuses[3].Context)
-	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[3].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[3].APIURL(t.Context()))
-
-	assert.Equal(t, "deploy/awesomeness", statuses[4].Context)
-	assert.Equal(t, commitstatus.CommitStatusError, statuses[4].State)
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(t.Context()))
 
 	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
 		ListOptions: db.ListOptions{Page: 2, PageSize: 50},

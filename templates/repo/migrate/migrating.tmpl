@@ -36,11 +36,11 @@
 								<div class="divider"></div>
 								<div class="item">
 									{{if .Failed}}
-										<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{ctx.Locale.Tr "repo.settings.delete"}}</button>
+										<button type="button" class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{ctx.Locale.Tr "repo.settings.delete"}}</button>
 									{{else}}
-										<button class="ui basic show-modal button" data-modal="#cancel-repo-modal">{{ctx.Locale.Tr "cancel"}}</button>
+										<button type="button" class="ui basic show-modal button" data-modal="#cancel-repo-modal">{{ctx.Locale.Tr "cancel"}}</button>
 									{{end}}
-									<button id="repo_migrating_retry" data-migrating-task-retry-url="{{.Link}}/settings/migrate/retry" class="ui basic button tw-hidden">{{ctx.Locale.Tr "retry"}}</button>
+									<button type="button" id="repo_migrating_retry" data-migrating-task-retry-url="{{.Link}}/settings/migrate/retry" class="ui basic button tw-hidden">{{ctx.Locale.Tr "retry"}}</button>
 								</div>
 							{{end}}
 						</div>

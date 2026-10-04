@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/httpcache"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -363,6 +364,11 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 	downloadName := archiveReq.Repo.Name + "-" + archiveReq.GetArchiveName()
 
 	if setting.Repository.StreamArchives || len(archiveReq.Paths) > 0 {
+		// Use weak ETag because the bytes also depend on the git version, compression level and repo config
+		etag := fmt.Sprintf(`W/"%s-%s-%t"`, archiveReq.CommitID, archiveReq.Type.String(), setting.Repository.PrefixArchiveFiles)
+		if len(archiveReq.Paths) == 0 && httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, etag, nil) {
+			return nil
+		}
 		// the header must be set before starting streaming even an error would occur,
 		// because errors may happen in git command and such cases aren't in our control.
 		httplib.ServeSetHeaders(ctx.Resp, httplib.ServeHeaderOptions{Filename: downloadName})

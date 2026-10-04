@@ -28,18 +28,10 @@ const (
 	EnvPusherID          = "GITEA_PUSHER_ID"
 	EnvPusherExtDoerData = "GITEA_PUSHER_EXT_DOER_DATA"
 
-	EnvPRID        = "GITEA_PR_ID"
-	EnvPRIndex     = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
-	EnvPushTrigger = "GITEA_PUSH_TRIGGER"
-	EnvIsInternal  = "GITEA_INTERNAL_PUSH"
-	EnvAppURL      = "GITEA_ROOT_URL"
-)
-
-type PushTrigger string
-
-const (
-	PushTriggerPRMergeToBase    PushTrigger = "pr-merge-to-base"
-	PushTriggerPRUpdateWithBase PushTrigger = "pr-update-with-base"
+	EnvPRID       = "GITEA_PR_ID"
+	EnvPRIndex    = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
+	EnvIsInternal = "GITEA_INTERNAL_PUSH"
+	EnvAppURL     = "GITEA_ROOT_URL"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push

@@ -4,7 +4,6 @@
 package git
 
 import (
-	"context"
 	"testing"
 
 	"gitea.dev/modules/setting"
@@ -14,8 +13,7 @@ import (
 
 func TestReadingBlameOutput(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
+	ctx := t.Context()
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
 		storage := mockRepository("repo5_pulls")

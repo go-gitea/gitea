@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
@@ -252,13 +253,13 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	rctx := renderhelper.NewRenderContextRepoWiki(ctx, ctx.Repo.Repository)
 
 	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output template.HTML, err error) {
-		buf := &strings.Builder{}
+		buf := &htmlutil.HTMLBuilder{}
 		markupRd, markupWr := io.Pipe()
 		defer markupWr.Close()
 		done := make(chan struct{})
 		go func() {
 			escaped, _ = charset.EscapeControlReader(markupRd, buf, ctx.Locale, charset.EscapeOptionsForView())
-			output = template.HTML(buf.String())
+			output = buf.HTMLString()
 			buf.Reset()
 			close(done)
 		}()
