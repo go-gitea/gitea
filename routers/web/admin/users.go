@@ -48,6 +48,13 @@ const (
 // UserSearchDefaultAdminSort is the default sort type for admin view
 const UserSearchDefaultAdminSort = "alphabetically"
 
+// authSourceFilterOption is one radio item of the authentication source filter dropdown
+type authSourceFilterOption struct {
+	Value    string
+	Label    string
+	Selected bool
+}
+
 // Users show all the users
 func Users(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users")
@@ -76,6 +83,30 @@ func Users(ctx *context.Context) {
 		"SortType":        sortType,
 	}
 
+	// inactive sources are listed too, users stay attached to a source after it is deactivated
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
+	if err != nil {
+		ctx.ServerError("auth.Sources", err)
+		return
+	}
+	sourceIDFilter := ctx.FormOptionalInt64("source_id")
+	sourceNames := make(map[int64]string, len(sources))
+	authSourceFilterOptions := []*authSourceFilterOption{
+		{Value: "", Label: ctx.Locale.TrString("all"), Selected: !sourceIDFilter.Has()},
+		{Value: "0", Label: ctx.Locale.TrString("admin.users.local"), Selected: sourceIDFilter.Has() && sourceIDFilter.Value() == 0},
+	}
+	for _, source := range sources {
+		sourceNames[source.ID] = source.Name
+		authSourceFilterOptions = append(authSourceFilterOptions, &authSourceFilterOption{
+			Value:    strconv.FormatInt(source.ID, 10),
+			Label:    source.Name,
+			Selected: sourceIDFilter.Has() && sourceIDFilter.Value() == source.ID,
+		})
+	}
+	ctx.Data["HasAuthSources"] = len(sources) > 0
+	ctx.Data["SourceNames"] = sourceNames
+	ctx.Data["AuthSourceFilterOptions"] = authSourceFilterOptions
+
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
 		Types: types,
@@ -88,6 +119,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
+		SourceID:           sourceIDFilter,
 		OrderBy:            db.SearchOrderBy(sortType),
 	}, tplUsers)
 }

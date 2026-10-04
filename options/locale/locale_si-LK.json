@@ -2083,6 +2083,7 @@
   "packages.owner.settings.cleanuprules.enabled": "සබල කර ඇත",
   "secrets.creation.description": "සවිස්තරය",
   "audit.details": "වැණුම",
+  "actions.status.pending": "වංගු",
   "actions.runners.name": "නම",
   "actions.runners.owner_type": "වර්ගය",
   "actions.runners.description": "සවිස්තරය",
@@ -2095,5 +2096,6 @@
   "actions.runs.summary": "සාරාංශය",
   "actions.workflow.scope_owner": "හිමිකරු",
   "actions.workflow.required": "ඇවැසිය",
+  "actions.job_queue.filter_repo_no_select": "සියළුම කෝෂ්ඨ",
   "actions.general.token_permissions.mode.restricted": "සීමා"
 }

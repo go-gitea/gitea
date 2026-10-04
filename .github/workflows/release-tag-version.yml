@@ -3,9 +3,9 @@ name: release-tag-version
 on:
   push:
     tags:
-      - "v1.*"
-      - "!v1*-rc*"
-      - "!v1*-dev"
+      - "v[0-9]*"
+      - "!v[0-9]*-rc*"
+      - "!v[0-9]*-dev"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

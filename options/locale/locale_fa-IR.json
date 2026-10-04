@@ -2121,6 +2121,7 @@
   "packages.owner.settings.cleanuprules.enabled": "فعال شده",
   "secrets.creation.description": "شرح",
   "audit.details": "جزئیات",
+  "actions.status.pending": "در انتظار",
   "actions.runners.name": "نام",
   "actions.runners.owner_type": "نوع",
   "actions.runners.description": "شرح",
@@ -2133,5 +2134,6 @@
   "actions.runs.summary": "چکیده",
   "actions.workflow.scope_owner": "مالک",
   "actions.workflow.required": "الزامی",
+  "actions.job_queue.filter_repo_no_select": "همه مخازن",
   "actions.general.token_permissions.mode.restricted": "محصور"
 }

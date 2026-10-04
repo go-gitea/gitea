@@ -1071,6 +1071,7 @@
   "packages.terraform.unlock": "Aflæsa",
   "secrets.creation.description": "Lýsing",
   "audit.details": "Nánar",
+  "actions.status.pending": "Í bið",
   "actions.runners.id": "Auðkenni",
   "actions.runners.name": "Heiti",
   "actions.runners.owner_type": "Tegund",
@@ -1084,5 +1085,6 @@
   "actions.runs.branch": "Grein",
   "actions.runs.summary": "Yfirlit",
   "actions.workflow.scope_owner": "Eigandi",
-  "actions.workflow.required": "Nauðsynlegt"
+  "actions.workflow.required": "Nauðsynlegt",
+  "actions.job_queue.filter_repo_no_select": "Öll hugbúnaðarsöfn"
 }

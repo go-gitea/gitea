@@ -400,7 +400,7 @@ func SearchUsers(ctx *context.APIContext) {
 	// parameters:
 	// - name: source_id
 	//   in: query
-	//   description: ID of the user's login source to search for
+	//   description: ID of the user's login source to search for, 0 means the local users
 	//   type: integer
 	//   format: int64
 	// - name: login_name
@@ -483,7 +483,7 @@ func SearchUsers(ctx *context.APIContext) {
 		Actor:         ctx.Doer,
 		Types:         []user_model.UserType{user_model.UserTypeIndividual},
 		LoginName:     ctx.FormTrim("login_name"),
-		SourceID:      ctx.FormInt64("source_id"),
+		SourceID:      ctx.FormOptionalInt64("source_id"),
 		Keyword:       ctx.FormTrim("q"),
 		Visible:       visible,
 		OrderBy:       orderBy,

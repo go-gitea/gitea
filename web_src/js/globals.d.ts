@@ -31,7 +31,6 @@ interface Window {
         SortType: string,
         StatusFilterMap: Record<string, string>,
       },
-      citationFileContent?: string,
       prReview?: {
         numberOfFiles: number,
         numberOfViewedFiles: number,
@@ -54,7 +53,6 @@ interface Window {
       TimeoutStep: number,
       MaxTimeout: number,
     },
-    enableTimeTracking: boolean,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
     frontendInited: boolean,
