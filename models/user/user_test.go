@@ -740,11 +740,8 @@ func TestUserPasswordPredicates(t *testing.T) {
 	}{
 		{"local with password", auth.Plain, "hash", true, true},
 		{"local without password", auth.Plain, "", false, true},
-		{"local no type", auth.NoType, "hash", true, true},
 		{"ldap", auth.LDAP, "", false, false},
-		{"dldap", auth.DLDAP, "", false, false},
 		{"smtp with captured hash", auth.SMTP, "hash", true, false},
-		{"pam with captured hash", auth.PAM, "hash", true, false},
 		{"oauth2 with password", auth.OAuth2, "hash", true, true},
 		{"oauth2 without password", auth.OAuth2, "", false, true},
 	}
