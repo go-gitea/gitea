@@ -11,6 +11,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // UserHeatmapData represents the data needed to create a heatmap
@@ -38,28 +40,32 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 
 	// Group by 15 minute intervals which will allow the client to accurately shift the timestamp to their timezone.
 	// The interval is based on the fact that there are timezones such as UTC +5:30 and UTC +12:45.
-	groupBy := "created_unix / 900 * 900"
-	groupByName := "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
-	switch {
-	case setting.Database.Type.IsMySQL():
-		groupBy = "created_unix DIV 900 * 900"
-	case setting.Database.Type.IsMSSQL():
-		groupByName = groupBy
-	}
+	groupBy, groupByName := heatmapGroupBy()
 
-	cond, err := ActivityQueryCondition(ctx, GetFeedsOptions{
-		RequestedUser:  user,
-		RequestedTeam:  team,
-		Actor:          doer,
-		IncludePrivate: true, // don't filter by private, as we already filter by repo access
-		IncludeDeleted: true,
-		// * Heatmaps for individual users only include actions that the user themself did.
-		// * For organizations actions by all users that were made in owned
-		//   repositories are counted.
-		OnlyPerformedBy: !user.IsOrganization(),
-	})
-	if err != nil {
-		return nil, err
+	var cond builder.Cond
+	if !user.IsOrganization() && user.ShowPrivateActivity && user_model.IsUserVisibleToViewer(ctx, user, doer) {
+		// the user opted in to counting private contributions publicly, so skip
+		// the repo-access filtering and count all their own actions (same shape
+		// as the owner fast path in GetFeeds); ActivityReadable is checked above,
+		// and the visibility check keeps limited/private profiles hidden from
+		// viewers who cannot see the profile at all
+		cond = builder.Eq{"user_id": user.ID, "act_user_id": user.ID}
+	} else {
+		var err error
+		cond, err = ActivityQueryCondition(ctx, GetFeedsOptions{
+			RequestedUser:  user,
+			RequestedTeam:  team,
+			Actor:          doer,
+			IncludePrivate: true, // don't filter by private, as we already filter by repo access
+			IncludeDeleted: true,
+			// * Heatmaps for individual users only include actions that the user themself did.
+			// * For organizations actions by all users that were made in owned
+			//   repositories are counted.
+			OnlyPerformedBy: !user.IsOrganization(),
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// HINT: USER-ACTIVITY-PUSH-COMMITS: it only uses the doer's action time, it doesn't use git commit's time
@@ -71,4 +77,19 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)
+}
+
+// heatmapGroupBy returns the SQL expression and the identifier to GROUP BY on
+// for bucketing actions into 15-minute intervals. The name is an alias
+// everywhere except MSSQL, which does not allow grouping by an alias.
+func heatmapGroupBy() (groupBy, groupByName string) {
+	groupBy = "created_unix / 900 * 900"
+	groupByName = "timestamp"
+	switch {
+	case setting.Database.Type.IsMySQL():
+		groupBy = "created_unix DIV 900 * 900"
+	case setting.Database.Type.IsMSSQL():
+		groupByName = groupBy
+	}
+	return groupBy, groupByName
 }
