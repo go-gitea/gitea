@@ -144,5 +144,6 @@ year = {in press}
 func TestIsLikelyBibTeX(t *testing.T) {
 	assert.True(t, IsLikelyBibTeX("@article{key, title={Title}}"))
 	assert.True(t, IsLikelyBibTeX("Inproceedings\n{\n}\n"))
+	assert.True(t, IsLikelyBibTeX("% comment\n\n@misc{key}\n% comment\n"))
 	assert.False(t, IsLikelyBibTeX("not bib {}"))
 }

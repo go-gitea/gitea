@@ -392,7 +392,7 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	ret.keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
 
 	// https://www.acm.org/publications/authors/bibtex-formatting
-	ret.bibtexPattern = regexp.MustCompile(`(?s)^@?\w+\s*{.*}$`) // a simple and quick check, no need to be strict
+	ret.bibtexPattern = regexp.MustCompile(`(?m)^\s*@?\w+\s*{`) // a simple and quick check, no need to be strict
 	return ret
 })
 
@@ -513,5 +513,5 @@ func bibtexKey(fields map[string]string) string {
 }
 
 func IsLikelyBibTeX(content string) bool {
-	return globalVars().bibtexPattern.MatchString(strings.TrimRightFunc(content, unicode.IsSpace))
+	return globalVars().bibtexPattern.MatchString(content)
 }
