@@ -174,6 +174,15 @@ jobs:
 			note: "Error when evaluating `concurrency` for job `job2`.",
 		},
 		{
+			name: "invalid evaluated `runs-on` fails the job with an annotation",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, RepoID: 1, JobID: "job1", Status: actions_model.StatusSuccess},
+				{ID: 2, RepoID: 1, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte("jobs: {job2: {runs-on: ''}}")},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusFailure},
+			note: "Error when evaluating `runs-on` for job `job2`.",
+		},
+		{
 			name: "max-parallel: a freed slot promotes the lowest blocked job id",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "build", Status: actions_model.StatusSuccess, Needs: []string{}, MaxParallel: 1},

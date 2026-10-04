@@ -122,6 +122,8 @@ func (t *Tracer) Start(ctx context.Context, spanName string) (context.Context, *
 		ts.parent = parentSpan
 	}
 
+	// FIXME: this ctx handling is not right. The returned ctx should inherit the ctx passed in, but not from span's internal contexts
+	// The returned ctx only needs to inherit the values of the internal contexts of spans
 	parentCtx := ctx
 	for internalSpanIdx, tsp := range starters {
 		var internalSpan traceSpanInternal

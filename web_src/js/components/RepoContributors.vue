@@ -46,13 +46,13 @@ const customEventListener: Plugin = {
 };
 
 type LineOptions = ChartOptions<'line'> & {
- plugins?: {
-   customEventListener?: {
-     chartType: ChartType;
-     onDoubleClick: (args: {chart: Chart}, reset: boolean) => void;
-   };
- };
-}
+  plugins?: {
+    customEventListener?: {
+      chartType: ChartType;
+      onDoubleClick: (args: {chart: Chart}, reset: boolean) => void;
+    };
+  };
+};
 
 Chart.register(
   Title,
@@ -157,7 +157,7 @@ async function fetchGraphData() {
       const data: ContributorsData = await response.json();
       const {total, ...other} = data;
       // below line might be deleted if we are sure go produces map always sorted by keys
-      const totalWeeks = Object.fromEntries(Object.entries(total.weeks).sort());
+      const totalWeeks = Object.fromEntries(Object.entries(total.weeks).sort(([a], [b]) => Number(a) - Number(b)));
 
       const weekValues = Object.values(totalWeeks);
       xAxisStart = weekValues[0].week;

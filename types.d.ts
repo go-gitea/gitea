@@ -30,19 +30,3 @@ declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
   const value = await import('swagger-ui-dist');
   export default value.SwaggerUIBundle;
 }
-
-declare module '@citation-js/core' {
-  export class Cite {
-    constructor(data: string);
-    format(format: string, options?: Record<string, any>): string;
-  }
-  export const plugins: {
-    config: {
-      get(name: string): any;
-    };
-  };
-}
-
-declare module '@citation-js/plugin-software-formats' {}
-declare module '@citation-js/plugin-bibtex' {}
-declare module '@citation-js/plugin-csl' {}

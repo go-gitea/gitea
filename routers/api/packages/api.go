@@ -406,12 +406,15 @@ func CommonRoutes() *web.Router {
 		})
 		r.Group("/npm", func() {
 			r.Get("/-/v1/search", npm.PackageSearch)
+			r.Get("/-/ping", npm.Ping)
+			r.Get("/-/whoami", npm.Whoami)
 			r.PathGroup("/*", func(g *web.RouterPathGroup) {
 				// HINT: NPM-ROUTE-PATH-PATTERN: search this keyword to see more details
 				packageId := `/<id:(@` + npm_module.RegexpNamePart + `/)?` + npm_module.RegexpNamePart + ">"
 				g.UseUnescapedPath()
 				g.MatchPath("DELETE", packageId+"/-/<version>/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
-				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFile)
+				g.MatchPath("DELETE", packageId+"/-/<filename>/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				g.MatchPath("GET", packageId+"/-/<version>/<filename>", npm.DownloadPackageFileByName) // former tarball URL, still in lockfiles
 				g.MatchPath("GET", packageId+"/-/<filename>", npm.DownloadPackageFileByName)
 				g.MatchPath("DELETE", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackage)
 				g.MatchPath("PUT", packageId+"/-rev/<revision>", reqPackageAccess(perm.AccessModeWrite), npm.DeletePreview)
