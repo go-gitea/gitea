@@ -112,7 +112,7 @@ type reference struct {
 }
 
 const (
-	maxFileSize       = 256 * 1024 // parsing takes up to ~1000x the input
+	MaxContentSize    = 256 * 1024 // parsing takes up to ~1000x the input, largest real-world file found is 80 KiB
 	maxAliasExpansion = 64 * 1024  // nodes plus value bytes aliases may add
 )
 
@@ -120,7 +120,7 @@ const (
 func FormatCFF(content string) (apa, bibtex string) {
 	var node yaml.Node
 	// the parser copies %TAG prefixes into every node
-	if len(content) > maxFileSize || strings.Contains(content, "%TAG") || yaml.Unmarshal([]byte(content), &node) != nil || aliasExpansion(&node) > maxAliasExpansion {
+	if len(content) > MaxContentSize || strings.Contains(content, "%TAG") || yaml.Unmarshal([]byte(content), &node) != nil || aliasExpansion(&node) > maxAliasExpansion {
 		return "", ""
 	}
 	retagTimestamps(&node)
