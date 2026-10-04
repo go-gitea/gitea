@@ -641,6 +641,83 @@ func Test_checkJobsOfCurrentRunAttempt_NeedApprovalKeepsJobsBlocked(t *testing.T
 	assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
 }
 
+// Test_checkJobsOfCurrentRunAttempt_CallerCascadeReEmitsForDependants is the #39587
+// regression: children of a reusable caller finishing as Skipped cascade Success onto
+// the caller in the DB, but the in-memory resolver still sees the pre-cascade caller.
+// Without a re-emit, a sibling job that `needs:` the caller stays Pending forever.
+func Test_checkJobsOfCurrentRunAttempt_CallerCascadeReEmitsForDependants(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
+		WorkflowID: "stall.yml", Index: 9921, Ref: "refs/heads/main",
+		Status: actions_model.StatusRunning,
+	}
+	assert.NoError(t, db.Insert(ctx, run))
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID: 4, RunID: run.ID, Attempt: 1, Status: actions_model.StatusRunning,
+	}
+	assert.NoError(t, db.Insert(ctx, attempt))
+	_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+	assert.NoError(t, err)
+	run.LatestAttemptID = attempt.ID
+
+	caller := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1,
+		RepoID: 4, OwnerID: 1, JobID: "agent", Name: "agent",
+		Status: actions_model.StatusWaiting, IsReusableCaller: true, IsExpanded: true,
+		WorkflowPayload: []byte("jobs: {agent: {uses: ./.gitea/workflows/called.yml}}"),
+	}
+	assert.NoError(t, db.Insert(ctx, caller))
+
+	prepare := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 2,
+		RepoID: 4, OwnerID: 1, JobID: "prepare", Name: "prepare",
+		ParentJobID: caller.ID, Status: actions_model.StatusSuccess,
+		WorkflowPayload: minimalWorkflowPayload("prepare"),
+	}
+	assert.NoError(t, db.Insert(ctx, prepare))
+
+	sign := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 3,
+		RepoID: 4, OwnerID: 1, JobID: "sign", Name: "sign",
+		ParentJobID: caller.ID, Status: actions_model.StatusBlocked, Needs: []string{"prepare"},
+		WorkflowPayload: []byte(`name: called
+on: workflow_call
+jobs:
+  sign:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`),
+	}
+	assert.NoError(t, db.Insert(ctx, sign))
+
+	after := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 4,
+		RepoID: 4, OwnerID: 1, JobID: "after", Name: "after",
+		Status: actions_model.StatusPending, Needs: []string{"agent"},
+		WorkflowPayload: minimalWorkflowPayload("after"),
+	}
+	assert.NoError(t, db.Insert(ctx, after))
+
+	result, err := checkJobsOfCurrentRunAttempt(ctx, run)
+	assert.NoError(t, err)
+	assert.Equal(t, actions_model.StatusSkipped, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: sign.ID}).Status)
+	assert.Equal(t, actions_model.StatusSuccess, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: caller.ID}).Status)
+	assert.Equal(t, []int64{run.ID}, result.RunIDsToReEmit, "must re-emit so dependants of the cascaded caller are resolved")
+
+	// Second pass must see the cascaded caller as done so `after` leaves Pending.
+	// (Promotion all the way to Waiting depends on concurrency/runner fixtures; Blocked is enough to prove needs resolved.)
+	result, err = checkJobsOfCurrentRunAttempt(ctx, run)
+	assert.NoError(t, err)
+	afterStatus := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: after.ID}).Status
+	assert.NotEqual(t, actions_model.StatusPending, afterStatus, "after must leave Pending once the caller cascaded to Success")
+	assert.True(t, afterStatus.In(actions_model.StatusBlocked, actions_model.StatusWaiting), "after status=%s", afterStatus)
+}
+
 func Test_checkJobsOfCurrentRunAttempt_SkippedCallerIsUpdated(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()

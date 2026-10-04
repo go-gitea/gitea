@@ -280,6 +280,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 	var resolver *jobStatusResolver
 	expandedAnyCaller := false
+	callerCascaded := false
 	if err = db.WithTx(ctx, func(ctx context.Context) error {
 		for _, job := range jobs {
 			job.Run = run
@@ -355,6 +356,13 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 				return fmt.Errorf("no affected for updating blocked job %v", job.ID)
 			}
 			result.UpdatedJobs = append(result.UpdatedJobs, job)
+			// UpdateRunJob cascades RefreshReusableCallerStatus into the DB when this job
+			// is a child of a reusable-workflow caller, but the in-memory resolver statuses
+			// still hold the pre-cascade caller. Jobs that `needs:` the caller (outside the
+			// called workflow) would stay Pending forever without another pass (#39587).
+			if job.ParentJobID > 0 {
+				callerCascaded = true
+			}
 		}
 		return nil
 	}); err != nil {
@@ -364,7 +372,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
 	// Caller and matrix expansion insert Pending or Blocked jobs and a deferred gate leaves a job Blocked, only a follow-up pass resolves them.
 	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
-	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred {
+	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred || callerCascaded {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = append(result.CancelledJobs, resolver.cancelledJobs...)
