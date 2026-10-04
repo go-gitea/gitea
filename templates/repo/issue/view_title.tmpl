@@ -74,13 +74,8 @@
 				{{end}}
 				{{if .Issue.PullRequest.HasMerged}}
 					{{$mergedStr:= DateUtils.TimeSince .Issue.PullRequest.MergedUnix}}
-					{{if .Issue.OriginalAuthor}}
-						{{.Issue.OriginalAuthor}}
-						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
-					{{else}}
-						{{template "shared/user/namelink" .Issue.PullRequest.Merger}}
-						<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
-					{{end}}
+					{{template "shared/user/namelink" .Issue.PullRequest.Merger}}
+					<span class="pull-desc">{{ctx.Locale.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr}}</span>
 				{{else}}
 					{{if .Issue.OriginalAuthor}}
 						<span id="pull-desc-display" class="pull-desc">{{.Issue.OriginalAuthor}} {{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}</span>

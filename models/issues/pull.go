@@ -216,7 +216,7 @@ func (pr *PullRequest) OptionalHeadUserName(ctx context.Context) string {
 // LoadAttributes loads pull request attributes from database
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) LoadAttributes(ctx context.Context) (err error) {
-	if pr.Merger == nil && pr.MergerID != 0 {
+	if pr.Merger == nil && (pr.HasMerged || pr.MergerID != 0) {
 		pr.MergerID, pr.Merger, err = user_model.GetPossibleUserByID(ctx, pr.MergerID)
 		return err
 	}
