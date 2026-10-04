@@ -16,7 +16,7 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button type="button" class="ui tiny button show-modal" data-modal="#rename-webauthn-name" data-modal-id="{{.ID}}" data-modal-name="{{.Name}}">
+					<button type="button" class="ui tiny button show-modal" data-modal="#rename-webauthn-nickname" data-modal-id="{{.ID}}" data-modal-name="{{.Name}}">
 					{{ctx.Locale.Tr "rename"}}
 					</button>
 					<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-registration" data-url="{{$.Link}}/webauthn/delete?id={{.ID}}">
@@ -33,7 +33,7 @@
 		</div>
 		<button type="button" id="register-webauthn" class="ui primary button">{{svg "octicon-key"}} {{ctx.Locale.Tr "settings.webauthn_register_key"}}</button>
 	</div>
-	<div class="ui small modal" id="rename-webauthn-name">
+	<div class="ui small modal" id="rename-webauthn-nickname">
 		<div class="header">
 			{{svg "octicon-pencil"}}
 			{{ctx.Locale.Tr "rename"}}

@@ -908,7 +908,6 @@
   "settings.webauthn_register_key": "Add Security Key",
   "settings.webauthn_nickname": "Nickname",
   "settings.webauthn_nickname_been_used": "A security key with the same nickname already exists.",
-  "settings.webauthn_rename_key": "Rename Security Key",
   "settings.webauthn_delete_key": "Remove Security Key",
   "settings.webauthn_delete_key_desc": "If you remove a security key, you can no longer sign in with it. Continue?",
   "settings.webauthn_key_loss_warning": "If you lose your security keys, you will lose access to your account.",
