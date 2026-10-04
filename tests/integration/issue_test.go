@@ -204,28 +204,49 @@ func testIssueChangeMilestone(t *testing.T, session *TestSession, repoLink strin
 func TestNewIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/issues/new", map[string]string{
+		"title":   "Title",
+		"content": "First line\r\n\r\nLast line\r\n",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Title: "Title"})
+	assert.Equal(t, "First line\n\nLast line\n", issue.Content)
 }
 
 func TestEditIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	const originalContent = "# Boarding\n\nHow do I do this?\n"
+	const modifiedContent = "# Boardig\n\nHow do I do this?\n"
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	issue.Content = originalContent
+	assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue, "content"))
+	issueURL := "/user2/repo1/issues/1"
 
 	req := NewRequestWithValues(t, "POST", issueURL+"/content", map[string]string{
-		"content": "modified content",
+		"content": strings.ReplaceAll(modifiedContent, "\n", "\r\n"),
 		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID, Content: modifiedContent})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{IssueID: issue.ID, ContentText: originalContent, IsFirstCreated: true})
+	history := unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{IssueID: issue.ID, ContentText: modifiedContent})
+	resp := session.MakeRequest(t, NewRequestf(t, http.MethodGet, issueURL+"/content-history/detail?history_id=%d", history.ID), http.StatusOK)
+	result := DecodeJSON(t, resp, &struct {
+		DiffHTML string `json:"diffHtml"`
+	}{})
+	assert.Equal(t, 1, strings.Count(result.DiffHTML, "class='gd'"))
+	assert.Contains(t, result.DiffHTML, "# Boardi<span class='gd'>n</span>g")
+
 	req = NewRequestWithValues(t, "POST", issueURL+"/content", map[string]string{
-		"content": "modified content",
+		"content": modifiedContent,
 		"context": fmt.Sprintf("/%s/%s", "user2", "repo1"),
 	})
 	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	req = NewRequestWithValues(t, "POST", issueURL+"/content", map[string]string{
-		"content":         "modified content",
+		"content":         modifiedContent,
 		"content_version": "1",
 		"context":         fmt.Sprintf("/%s/%s", "user2", "repo1"),
 	})
@@ -269,16 +290,18 @@ func TestIssueCommentUpdate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
-	comment1 := "Test comment 1"
-	commentID := testIssueAddComment(t, session, issueURL, comment1, "")
+	const comment1 = "Test comment 1\nAnother line"
+	req := NewRequestWithValues(t, "POST", issueURL+"/comments", map[string]string{
+		"content": strings.ReplaceAll(comment1, "\n", "\r\n"),
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Content: comment1})
+	commentID := comment.ID
 
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
-	assert.Equal(t, comment1, comment.Content)
-
-	modifiedContent := comment.Content + "MODIFIED"
+	modifiedContent := comment.Content + "\r\nMODIFIED"
 
 	// Using the ID of a comment that does not belong to the repository must fail
-	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user5", "repo4", commentID), map[string]string{
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user5", "repo4", commentID), map[string]string{
 		"content": modifiedContent,
 	})
 	session.MakeRequest(t, req, http.StatusNotFound)
@@ -289,7 +312,8 @@ func TestIssueCommentUpdate(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
-	assert.Equal(t, modifiedContent, comment.Content)
+	assert.Equal(t, comment1+"\nMODIFIED", comment.Content)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{CommentID: commentID, ContentText: comment1 + "\nMODIFIED"})
 }
 
 func TestIssueCommentUpdateSimultaneously(t *testing.T) {

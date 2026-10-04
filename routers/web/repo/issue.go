@@ -339,7 +339,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, ctx.Req.FormValue("content"), ctx.FormInt("content_version")); err != nil {
+	if err := issue_service.ChangeContent(ctx, issue, ctx.Doer, util.NormalizeStringEOL(ctx.Req.FormValue("content")), ctx.FormInt("content_version")); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.issues.edit.blocked_user"))
 		} else if errors.Is(err, issues_model.ErrIssueAlreadyChanged) {

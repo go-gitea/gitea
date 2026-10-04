@@ -59,7 +59,7 @@ func NewComment(ctx *context.Context) {
 
 	// allow empty content if there are attachments
 	if form.Content != "" || len(attachments) > 0 {
-		comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, form.Content, attachments)
+		comment, err := issue_service.CreateIssueComment(ctx, ctx.Doer, ctx.Repo.Repository, issue, util.NormalizeStringEOL(form.Content), attachments)
 		if err != nil {
 			if errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.JSONError(ctx.Tr("repo.issues.comment.blocked_user"))
@@ -174,7 +174,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	newContent := ctx.FormString("content")
+	newContent := util.NormalizeStringEOL(ctx.FormString("content"))
 	contentVersion := ctx.FormInt("content_version")
 	if contentVersion != comment.ContentVersion {
 		ctx.JSONError(ctx.Tr("repo.comments.edit.already_changed"))
