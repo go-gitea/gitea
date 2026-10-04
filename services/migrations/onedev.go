@@ -80,26 +80,15 @@ type OneDevDownloader struct {
 }
 
 // NewOneDevDownloader creates a new downloader
-func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, password, repoPath string) *OneDevDownloader {
-	httpTransport := NewMigrationHTTPTransport()
-	downloader := &OneDevDownloader{
+func NewOneDevDownloader(_ context.Context, baseURL *url.URL, username, password, repoPath string) *OneDevDownloader {
+	return &OneDevDownloader{
 		baseURL:  baseURL,
 		repoPath: repoPath,
-		client: &http.Client{
-			Transport: roundTripperFunc(
-				func(req *http.Request) (*http.Response, error) {
-					req = req.Clone(ctx)
-					if username != "" && password != "" {
-						req.SetBasicAuth(username, password)
-					}
-					return httpTransport.RoundTrip(req)
-				}),
-		},
+
+		client:       newMigrationHTTPClient(baseURL.String(), basicAuthorization(username, password)),
 		userMap:      make(map[int64]*onedevUser),
 		milestoneMap: make(map[int64]string),
 	}
-
-	return downloader
 }
 
 // String implements Stringer

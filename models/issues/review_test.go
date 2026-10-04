@@ -194,6 +194,18 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
 		}
 	}
+
+	for _, review := range []*issues_model.Review{
+		{OriginalAuthor: "octocat", OriginalAuthorID: user_model.GhostUserID},
+		{OriginalAuthor: "hubot", OriginalAuthorID: user_model.GhostUserID},
+		{OriginalAuthor: "octocat", OriginalAuthorID: 583231},
+	} {
+		review.IssueID, review.Type = issue.ID, issues_model.ReviewTypeApprove
+		assert.NoError(t, db.Insert(t.Context(), review))
+	}
+	_, migratedReviews, err = issues_model.GetReviewsByIssueID(t.Context(), issue.ID)
+	assert.NoError(t, err)
+	assert.Len(t, migratedReviews, 3)
 }
 
 func TestDismissReview(t *testing.T) {

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
@@ -293,14 +294,14 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 
 	supportAllComments := downloader.SupportGetRepoComments()
 
+	mapInsertedIssueIndexes := container.Set[int64]{} // deletions on the source during the migration shift items into the next page
+	mapInsertedPRIndexes := container.Set[int64]{}
+
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
 		messenger("repo.migrate.migrating_issues")
 		issueBatchSize := uploader.MaxBatchInsertSize("issue")
 
-		// because when the migrating is running, some issues maybe removed, so after the next page
-		// some of issue maybe duplicated, so we need to record the inserted issue indexes
-		mapInsertedIssueIndexes := container.Set[int64]{}
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetIssues(ctx, i, issueBatchSize)
 			if err != nil {
@@ -363,7 +364,6 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
 		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
-		mapInsertedPRIndexes := container.Set[int64]{}
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(ctx, i, prBatchSize)
 			if err != nil {
@@ -466,6 +466,9 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 			if err != nil {
 				return err
 			}
+			comments = slices.DeleteFunc(comments, func(comment *base.Comment) bool {
+				return !mapInsertedIssueIndexes.Contains(comment.IssueIndex) && !mapInsertedPRIndexes.Contains(comment.IssueIndex)
+			})
 
 			if err := uploader.CreateComments(ctx, comments...); err != nil {
 				return err

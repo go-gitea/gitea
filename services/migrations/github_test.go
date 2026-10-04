@@ -442,10 +442,17 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, reviews)
 }
 
-func TestGithubMultiToken(t *testing.T) {
+func TestConvertGithubDismissedReview(t *testing.T) {
+	review := convertGithubReview(&github.PullRequestReview{State: new("DISMISSED")})
+	assert.Equal(t, base.ReviewStateCommented, review.State)
+	assert.True(t, review.Dismissed)
+}
+
+func TestGithubFormatCloneURL(t *testing.T) {
 	testCases := []struct {
 		desc             string
 		token            string
+		username         string
 		expectedCloneURL string
 	}{
 		{
@@ -458,12 +465,17 @@ func TestGithubMultiToken(t *testing.T) {
 			token:            "token1,token2",
 			expectedCloneURL: "https://oauth2:token1@github.com",
 		},
+		{
+			desc:             "Username And Password",
+			username:         "user",
+			expectedCloneURL: "https://user:password@github.com",
+		},
 	}
 	factory := GithubDownloaderV3Factory{}
 
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			opts := base.MigrateOptions{CloneAddr: "https://github.com/go-gitea/gitea", AuthToken: tC.token}
+			opts := base.MigrateOptions{CloneAddr: "https://github.com/go-gitea/gitea", AuthToken: tC.token, AuthUsername: tC.username, AuthPassword: "password"}
 			client, err := factory.New(t.Context(), opts)
 			require.NoError(t, err)
 
