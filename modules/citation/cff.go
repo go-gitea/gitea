@@ -392,7 +392,7 @@ var globalVars = sync.OnceValue(func() (ret struct {
 	ret.keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
 
 	// https://www.acm.org/publications/authors/bibtex-formatting
-	ret.bibtexPattern = regexp.MustCompile(`^@?\w+{.*}$`) // a simple and quick check, no need to be strict
+	ret.bibtexPattern = regexp.MustCompile(`(?s)^@?\w+\s*{.*}$`) // a simple and quick check, no need to be strict
 	return ret
 })
 
