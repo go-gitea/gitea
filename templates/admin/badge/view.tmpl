@@ -39,6 +39,26 @@
 	<div class="ui attached segment">
 		{{template "explore/user_list" .}}
 	</div>
+
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "explore.repos"}} ({{.ReposTotal}})
+		<div class="ui right">
+			<a class="ui primary tiny button" href="{{.Link}}/repos">{{ctx.Locale.Tr "admin.badges.manage_repos"}}</a>
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		{{template "shared/repo/list" .}}
+	</div>
+
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "explore.organizations"}} ({{.OrgsTotal}})
+		<div class="ui right">
+			<a class="ui primary tiny button" href="{{.Link}}/orgs">{{ctx.Locale.Tr "admin.badges.manage_orgs"}}</a>
+		</div>
+	</h4>
+	<div class="ui attached segment">
+		{{template "explore/user_list" dict "Users" .Orgs}}
+	</div>
 </div>
 
 {{template "admin/layout_footer" .}}

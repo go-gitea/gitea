@@ -1,0 +1,13 @@
+{{if .}}
+	<span class="badge-list tw-inline-flex tw-items-center tw-gap-1 tw-align-middle">
+		{{range .}}
+			{{if .ImageURL}}
+				<img width="18" height="18" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
+			{{else}}
+				<span class="ui basic label tw-px-2 tw-py-1 tw-text-xs tw-font-normal" {{if .Description}}data-tooltip-content="{{.Description}}"{{end}}>
+					{{.Slug}}
+				</span>
+			{{end}}
+		{{end}}
+	</span>
+{{end}}
