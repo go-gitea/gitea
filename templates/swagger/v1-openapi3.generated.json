@@ -1210,6 +1210,16 @@
         },
         "description": "RepoCollaboratorPermission"
       },
+      "RepoHashAlgorithm": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RepoHashAlgorithm"
+            }
+          }
+        },
+        "description": "RepoHashAlgorithm"
+      },
       "RepoIssueConfig": {
         "content": {
           "application/json": {
@@ -4756,7 +4766,7 @@
                 "$ref": "#/components/schemas/ObjectFormatName"
               }
             ],
-            "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)"
+            "description": "ObjectFormatName of the underlying git repository, empty string for the instance default"
           },
           "private": {
             "description": "Whether the repository is private",
@@ -9497,6 +9507,19 @@
           }
         },
         "title": "RepoCommit contains information of a commit in the context of a repository.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "RepoHashAlgorithm": {
+        "description": "RepoHashAlgorithm is the git hash algorithm used to store repository objects",
+        "properties": {
+          "hash_algorithm": {
+            "$ref": "#/components/schemas/ObjectFormatName"
+          }
+        },
+        "required": [
+          "hash_algorithm"
+        ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -22156,6 +22179,43 @@
           }
         },
         "summary": "Gets the tree of a repository.",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/hash-algorithm": {
+      "get": {
+        "operationId": "repoGetHashAlgorithm",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/RepoHashAlgorithm"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get the hash algorithm used to store repository objects",
         "tags": [
           "repository"
         ]

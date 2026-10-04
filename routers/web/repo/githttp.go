@@ -273,7 +273,7 @@ func dummyInfoRefs(ctx *context.Context) {
 		}
 		defer cleanup()
 
-		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, git.Sha1ObjectFormat.Name()); err != nil {
+		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, setting.Repository.DefaultObjectFormat); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}

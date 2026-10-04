@@ -44,20 +44,23 @@ func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out
 	// git update-ref refs/heads/bundle-temp-{timestamp} {commit}
 	// git bundle create - refs/heads/bundle-temp-{timestamp}
 	// git update-ref -d refs/heads/bundle-temp-{timestamp}
+	commitID, err := NewIDFromString(commit)
+	if err != nil {
+		return err
+	}
 	tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
+	if err = InitRepositoryLocal(ctx, tmpDir, true, commitID.Type().Name()); err != nil {
+		return err
+	}
+
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(gitrepo.RepoLocalPath(repo), "objects"))
 	gitTmpCmd := func() *gitcmd.Command {
 		return gitcmd.NewCommand().WithDir(tmpDir).WithEnv(env)
-	}
-
-	_, _, err = gitTmpCmd().AddArguments("init", "--bare").RunStdString(ctx)
-	if err != nil {
-		return err
 	}
 
 	_, _, err = gitTmpCmd().AddArguments("reset", "--soft").AddDynamicArguments(commit).RunStdString(ctx)

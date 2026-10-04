@@ -62,7 +62,9 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 		ensureAnonymousClone(t, u)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
+		httpContext.ObjectFormatName = api.ObjectFormatSHA1
 		forkedUserCtx.Reponame = httpContext.Reponame
+		forkedUserCtx.ObjectFormatName = httpContext.ObjectFormatName
 
 		dstPath := t.TempDir()
 
@@ -70,6 +72,7 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, perm.AccessModeRead))
 
 		t.Run("ForkFromDifferentUser", doAPIForkRepository(httpContext, forkedUserCtx.Username))
+		t.Run("HashAlgorithm", doAPIGetHashAlgorithm(httpContext))
 
 		u.Path = httpContext.GitPath()
 		u.User = url.UserPassword(username, userPassword)
@@ -103,11 +106,14 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 		defer tests.PrintCurrentTest(t)()
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
+		sshContext.ObjectFormatName = api.ObjectFormatSHA256
 		keyname := "my-testing-key"
 		forkedUserCtx.Reponame = sshContext.Reponame
+		forkedUserCtx.ObjectFormatName = sshContext.ObjectFormatName
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, sshContext.Username, perm.AccessModeRead))
 		t.Run("ForkFromDifferentUser", doAPIForkRepository(sshContext, forkedUserCtx.Username))
+		t.Run("HashAlgorithm", doAPIGetHashAlgorithm(sshContext))
 
 		// Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
@@ -654,11 +660,14 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		ctx.Reponame = "repo-tmp-push-create-" + u.Scheme
 		u.Path = ctx.GitPath()
 
+		objectFormatName := string(ctx.ObjectFormatName)
+		defer test.MockVariableValue(&setting.Repository.DefaultObjectFormat, objectFormatName)()
+
 		// Create a temporary directory
 		tmpDir := t.TempDir()
 
 		// Now create local repository to push as our test and set its origin
-		t.Run("InitTestRepository", doGitInitTestRepository(tmpDir))
+		t.Run("InitTestRepository", doGitInitTestRepository(tmpDir, objectFormatName))
 		t.Run("AddRemote", doGitAddRemote(tmpDir, "origin", u))
 
 		// Disable "Push To Create" and attempt to push
@@ -679,6 +688,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
+		assert.Equal(t, objectFormatName, repo.ObjectFormatName)
 
 		// Now add a remote that is invalid to "Push To Create"
 		invalidCtx := ctx
