@@ -140,3 +140,9 @@ year = {in press}
 		})
 	}
 }
+
+func TestIsLikelyBibTeX(t *testing.T) {
+	assert.True(t, IsLikelyBibTeX("@article{key, title={Title}}"))
+	assert.True(t, IsLikelyBibTeX("Inproceedings{}\n"))
+	assert.False(t, IsLikelyBibTeX("another {}"))
+}
