@@ -48,3 +48,7 @@ jobs:
           PR_TITLE_BEFORE: ${{ github.event.changes.title.from }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_TOKEN: ${{ github.token }}
+      - run: node ./tools/ci-tools.ts lint-pr-ready
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}

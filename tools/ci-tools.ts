@@ -18,6 +18,7 @@ const allowedTypes = [
 type CommitType = typeof allowedTypes[number];
 
 const allowedTypesList = allowedTypes.join(', ');
+const nonBreakingTypes = new Set<CommitType>(['build', 'chore', 'ci', 'docs', 'style', 'test']);
 const titlePattern = new RegExp(`^(${allowedTypes.join('|')})(\\([\\w/.-]+\\))?(!)?: .+$`);
 
 function parsePrTitle(title: string): {type: CommitType, scope: string, breaking: boolean} | null {
@@ -94,6 +95,29 @@ function lintPrTitle(): void {
   }
 }
 
+// Command: reject breaking markers on non-breaking types and overlong descriptions.
+function lintPrReady(): void {
+  if (!env.PR_TITLE) {
+    console.error('Missing PR_TITLE');
+    exit(1);
+  }
+  const parsed = parsePrTitle(env.PR_TITLE);
+  if (!parsed) {
+    console.error(`Invalid PR title: ${env.PR_TITLE}`);
+    exit(1);
+  }
+  if (parsed.breaking && nonBreakingTypes.has(parsed.type)) {
+    console.error(`Type "${parsed.type}" cannot be marked as breaking (remove "!" from the title)`);
+    exit(1);
+  }
+  // Ignore HTML comments so the PR template does not count against the limit.
+  const length = (env.PR_BODY ?? '').replace(/<!--[\s\S]*?-->/g, '').trim().length;
+  if (length > 1000) {
+    console.error(`PR description must be at most 1000 characters (currently ${length})`);
+    exit(1);
+  }
+}
+
 // Command: sync the title-derived labels onto the PR via the GitHub API.
 async function setPrLabels(): Promise<void> {
   if (!env.PR_TITLE || !env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY || !env.PR_NUMBER) {
@@ -164,6 +188,7 @@ async function setPrLabels(): Promise<void> {
 const commands: Record<string, () => void | Promise<void>> = {
   'lint-pr-title': lintPrTitle,
   'set-pr-labels': setPrLabels,
+  'lint-pr-ready': lintPrReady,
 };
 
 const command = argv[2];
