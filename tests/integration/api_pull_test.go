@@ -449,13 +449,15 @@ func TestAPIEditPull(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	title := "create a success pr"
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
-		Head:  "develop",
-		Base:  "master",
-		Title: title,
+		Head:     "develop",
+		Base:     "master",
+		Title:    title,
+		Deadline: new(time.Date(2026, 5, 11, 12, 0, 0, 0, time.FixedZone("", -10*3600))),
 	}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	apiPull := DecodeJSON(t, resp, &api.PullRequest{})
 	assert.Equal(t, "master", apiPull.Base.Name)
+	assert.Equal(t, time.Date(2026, 5, 11, 23, 59, 59, 0, setting.DefaultUILocation).Unix(), apiPull.Deadline.Unix())
 
 	newTitle := "edit a this pr"
 	newBody := "edited body"
@@ -479,6 +481,11 @@ func TestAPIEditPull(t *testing.T) {
 		Base: "not-exist",
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner10.Name, repo10.Name, pull.Index), &api.EditPullRequestOption{
+		RemoveDeadline: new(false),
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	t.Run("PullContentVersion", func(t *testing.T) {
 		testAPIPullContentVersion(t, pull.ID)

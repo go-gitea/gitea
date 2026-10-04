@@ -429,6 +429,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(353, "Add audit event table", v28.AddAuditEventTable),
 		newMigration(354, "Add Actions job queue indexes", v28.AddActionQueueIndexes),
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
+		// Gitea 28.0.0 ends at migration ID number 355 (database version 356)
+
+		newMigration(356, "Add index on action_run commit_sha", v28.AddActionRunCommitSHAIndex),
 	}
 	return preparedMigrations
 }
