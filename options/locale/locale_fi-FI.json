@@ -1411,6 +1411,7 @@
   "packages.terraform.unlock": "Avaa",
   "packages.owner.settings.cleanuprules.enabled": "Käytössä",
   "secrets.creation.description": "Kuvaus",
+  "actions.status.pending": "Odottaa",
   "actions.runners.name": "Nimi",
   "actions.runners.owner_type": "Tyyppi",
   "actions.runners.description": "Kuvaus",
@@ -1420,5 +1421,6 @@
   "actions.runs.branch": "Haara",
   "actions.runs.summary": "Yhteenveto",
   "actions.workflow.scope_owner": "Omistaja",
+  "actions.job_queue.filter_repo_no_select": "Kaikki repot",
   "actions.general.token_permissions.mode.restricted": "Rajoitettu"
 }

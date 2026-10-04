@@ -14,10 +14,12 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
+	"go.yaml.in/yaml/v4"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -156,14 +158,32 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
 	}
 
+	payload, err := runnerWorkflowPayload(job)
+	if err != nil {
+		return nil, nil, fmt.Errorf("runnerWorkflowPayload: %w", err)
+	}
+
 	return &runnerv1.Task{
 		Id:              t.ID,
-		WorkflowPayload: t.Job.WorkflowPayload,
+		WorkflowPayload: payload,
 		Context:         taskContext,
 		Secrets:         secrets,
 		Vars:            vars,
 		Needs:           needs,
 	}, job, nil
+}
+
+// runnerWorkflowPayload sets the job `if:` to `always()`, as Gitea has decided it and a runner must not re-evaluate it.
+func runnerWorkflowPayload(job *actions_model.ActionRunJob) ([]byte, error) {
+	swf, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return nil, err
+	}
+	parsedJob.If = yaml.Node{Kind: yaml.ScalarNode, Value: "always()"}
+	if err := swf.SetJob(job.JobID, parsedJob); err != nil {
+		return nil, err
+	}
+	return swf.Marshal()
 }
 
 func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
@@ -173,6 +193,11 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*str
 	}
 
 	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
+	if t.Job.ParentJobID > 0 {
+		if err := setCalledWorkflowContext(ctx, t.Job, gitCtx); err != nil {
+			return nil, err
+		}
+	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 
@@ -192,4 +217,23 @@ func findTaskNeeds(ctx context.Context, taskJob *actions_model.ActionRunJob) (ma
 		}
 	}
 	return ret, nil
+}
+
+// setCalledWorkflowContext rewrites the context for older runners, newer runners undo it via `gitea_workflow_call`.
+func setCalledWorkflowContext(ctx context.Context, job *actions_model.ActionRunJob, gitCtx GiteaContext) error {
+	inputs, err := getInputsForJob(ctx, job.Run, job)
+	if err != nil {
+		return err
+	}
+	event, _ := gitCtx["event"].(map[string]any)
+	workflowCall := map[string]any{"original_event_name": gitCtx["event_name"], "inputs": inputs}
+	if eventInputs, ok := event["inputs"]; ok {
+		workflowCall["original_event_inputs"] = eventInputs
+	}
+	gitCtx["gitea_workflow_call"] = workflowCall
+	gitCtx["event_name"] = "workflow_call"
+	if event != nil {
+		event["inputs"] = inputs
+	}
+	return nil
 }

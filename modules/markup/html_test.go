@@ -543,6 +543,9 @@ func TestPostProcess(t *testing.T) {
 		`Some text with <span class="emoji" data-alias="smile">😄</span> in the middle`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4 (comment)</a>`)
+	test(
+		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>",
+		"<math><mtext>:gitea: go-gitea/gitea#12345</mtext></math>")
 
 	// special tags, GitHub's behavior, and for unclosed tags, output as text content as much as possible
 	test("<script>a", `&lt;script&gt;a`)

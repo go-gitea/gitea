@@ -196,11 +196,11 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if !run.NeedApproval {
+	if !run.IsAwaitingApproval() {
 		// Approving twice is idempotent, but a run that never awaited approval gets 409 rather
 		// than GitHub's 403, which would be indistinguishable from a permission denial.
 		if run.ApprovedBy == 0 {
-			ctx.APIError(http.StatusConflict, "run does not require approval")
+			ctx.APIError(http.StatusConflict, "run is not waiting for approval")
 			return
 		}
 		respondRepoActionWorkflowRun(ctx, run)

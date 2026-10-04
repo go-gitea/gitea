@@ -69,7 +69,7 @@ func (c TemplateContext) CurrentWebTheme() *webtheme.ThemeMetaInfo {
 
 func (c TemplateContext) ImpersonatedUser() *user_model.User {
 	webCtx := GetWebContext(c)
-	if webCtx == nil || webCtx.Doer == nil || !webCtx.DoerIsImpersonated() {
+	if webCtx == nil || webCtx.Doer == nil || !IsDoerSessionImpersonated(webCtx.Session) {
 		return nil
 	}
 	return webCtx.Doer
@@ -160,7 +160,6 @@ func (c TemplateContext) WindowConfig() map[string]any {
 		"runModeIsProd":              setting.IsProd,
 		"customEmojis":               setting.UI.CustomEmojisMap,
 		"pageData":                   c.parentContext().GetData()["PageData"],
-		"enableTimeTracking":         setting.Service.EnableTimetracking,
 		"mermaidMaxSourceCharacters": setting.MermaidMaxSourceCharacters,
 		"sharedWorkerUri":            public.AssetURI("web_src/js/user-events.sharedworker.ts"),
 		"notificationSettings": map[string]any{

@@ -311,17 +311,17 @@ func (opts *CommitStatusOptions) ToConds() builder.Cond {
 func (opts *CommitStatusOptions) ToOrders() string {
 	switch opts.SortType {
 	case "oldest":
-		return "created_unix ASC"
+		return "created_unix ASC, `index` ASC"
 	case "recentupdate":
-		return "updated_unix DESC"
+		return "updated_unix DESC, `index` DESC"
 	case "leastupdate":
-		return "updated_unix ASC"
+		return "updated_unix ASC, `index` ASC"
 	case "leastindex":
 		return "`index` DESC"
 	case "highestindex":
 		return "`index` ASC"
 	default:
-		return "created_unix DESC"
+		return "created_unix DESC, `index` DESC" // timestamps have 1s resolution, `index` keeps paging stable
 	}
 }
 

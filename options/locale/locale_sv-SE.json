@@ -1665,6 +1665,7 @@
   "packages.terraform.unlock": "Lås upp",
   "packages.owner.settings.cleanuprules.enabled": "Aktiv",
   "secrets.creation.description": "Beskrivning",
+  "actions.status.pending": "Väntande",
   "actions.runners.name": "Namn",
   "actions.runners.owner_type": "Typ",
   "actions.runners.description": "Beskrivning",
@@ -1672,5 +1673,6 @@
   "actions.runners.task_list.repository": "Utvecklingskatalog",
   "actions.runners.status.active": "Aktiv",
   "actions.runs.summary": "Översikt",
-  "actions.workflow.scope_owner": "Ägare"
+  "actions.workflow.scope_owner": "Ägare",
+  "actions.job_queue.filter_repo_no_select": "Alla utvecklingskataloger"
 }

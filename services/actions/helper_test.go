@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
@@ -31,6 +33,59 @@ func TestDispatchInputsForRunJobs(t *testing.T) {
 	inputs, err := dispatchInputsForRunJobs(run, []*actions_model.ActionRunJob{child, job})
 	require.NoError(t, err)
 	assert.Equal(t, true, inputs["deploy"])
+}
+
+func TestReusableChildInputs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	const runID = 9801
+	insertJob := func(jobID string, parentID int64, payload, callPayload string) *actions_model.ActionRunJob {
+		job := &actions_model.ActionRunJob{RunID: runID, JobID: jobID, ParentJobID: parentID, WorkflowPayload: []byte(payload), CallPayload: callPayload}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
+	}
+	caller := insertJob("caller", 0,
+		"on: {workflow_dispatch: {inputs: {flag: {type: boolean}, Shared: {type: string}}}}\njobs:\n  caller:\n    uses: ./.gitea/workflows/mid.yml\n",
+		`{"inputs":{"shared":"from-call","mid_only":"mid"}}`)
+	mid := insertJob("mid", caller.ID, "", `{"inputs":{"env":"leaf"}}`)
+	leaf := insertJob("leaf", mid.ID, "", "")
+
+	dispatchRun := &actions_model.ActionRun{ID: runID, Event: "workflow_dispatch", EventPayload: `{"inputs":{"flag":"true","Shared":"from-dispatch"}}`}
+	pushRun := &actions_model.ActionRun{ID: runID, Event: "push", EventPayload: `{}`}
+
+	t.Run("dispatch inputs overlaid case-insensitively with the caller's with", func(t *testing.T) {
+		inputs, err := getInputsForJob(ctx, dispatchRun, mid)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]any{"flag": true, "shared": "from-call", "mid_only": "mid"}, inputs)
+	})
+
+	t.Run("task context of a nested child keeps the older runners' form and carries the original event", func(t *testing.T) {
+		leaf.Run = dispatchRun
+		gitCtx := GiteaContext{
+			"event_name": "workflow_dispatch",
+			"event":      map[string]any{"inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"}},
+		}
+		require.NoError(t, setCalledWorkflowContext(ctx, leaf, gitCtx))
+		inputs := map[string]any{"flag": true, "Shared": "from-dispatch", "env": "leaf"}
+		assert.Equal(t, "workflow_call", gitCtx["event_name"])
+		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
+		assert.Equal(t, map[string]any{
+			"original_event_name":   "workflow_dispatch",
+			"original_event_inputs": map[string]any{"flag": "true", "Shared": "from-dispatch"},
+			"inputs":                inputs,
+		}, gitCtx["gitea_workflow_call"])
+	})
+
+	t.Run("task context of a non-dispatch run", func(t *testing.T) {
+		mid.Run = pushRun
+		gitCtx := GiteaContext{"event_name": "push", "event": map[string]any{}}
+		require.NoError(t, setCalledWorkflowContext(ctx, mid, gitCtx))
+		inputs := map[string]any{"shared": "from-call", "mid_only": "mid"}
+		assert.Equal(t, "workflow_call", gitCtx["event_name"])
+		assert.Equal(t, map[string]any{"inputs": inputs}, gitCtx["event"])
+		assert.Equal(t, map[string]any{"original_event_name": "push", "inputs": inputs}, gitCtx["gitea_workflow_call"])
+	})
 }
 
 func TestPullRequestTargetBaseSHA(t *testing.T) {
