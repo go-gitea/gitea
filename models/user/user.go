@@ -266,6 +266,22 @@ func (u *User) IsOAuth2() bool {
 	return u.LoginType == auth.OAuth2
 }
 
+// HasLocalPassword reports whether a local password hash is stored for the user.
+// This is independent of the login type: LDAP users have none, SMTP and PAM users
+// may hold a copy of their remote password captured at auto-registration (which is
+// never used for verification), and local or OAuth2 users may or may not have one.
+func (u *User) HasLocalPassword() bool {
+	return u.IsPasswordSet()
+}
+
+// PasswordVerifiedLocally reports whether a submitted password is checked against
+// the local password hash. This is true for local users and for OAuth2 users, whose
+// source delegates password sign-in to the database authenticator. It does not
+// depend on whether a password is set: see HasLocalPassword for that.
+func (u *User) PasswordVerifiedLocally() bool {
+	return u.IsLocal() || u.IsOAuth2()
+}
+
 // MaxCreationLimit returns the number of repositories a user or an organization is allowed to create
 func (u *User) MaxCreationLimit() int {
 	if u.MaxRepoCreation > -1 {

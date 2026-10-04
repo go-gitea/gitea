@@ -729,3 +729,30 @@ func TestCanCreateRepo(t *testing.T) {
 		assert.True(t, doerNormal.CanCreateRepoIn(orgOwner(10, 100)))
 	})
 }
+
+func TestUserPasswordPredicates(t *testing.T) {
+	cases := []struct {
+		name                    string
+		loginType               auth.Type
+		passwd                  string
+		hasLocalPassword        bool
+		passwordVerifiedLocally bool
+	}{
+		{"local with password", auth.Plain, "hash", true, true},
+		{"local without password", auth.Plain, "", false, true},
+		{"local no type", auth.NoType, "hash", true, true},
+		{"ldap", auth.LDAP, "", false, false},
+		{"dldap", auth.DLDAP, "", false, false},
+		{"smtp with captured hash", auth.SMTP, "hash", true, false},
+		{"pam with captured hash", auth.PAM, "hash", true, false},
+		{"oauth2 with password", auth.OAuth2, "hash", true, true},
+		{"oauth2 without password", auth.OAuth2, "", false, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			u := &user_model.User{LoginType: c.loginType, Passwd: c.passwd}
+			assert.Equal(t, c.hasLocalPassword, u.HasLocalPassword())
+			assert.Equal(t, c.passwordVerifiedLocally, u.PasswordVerifiedLocally())
+		})
+	}
+}

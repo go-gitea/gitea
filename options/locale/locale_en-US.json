@@ -3073,6 +3073,8 @@
   "admin.users.impersonate_bot_not_allowed": "Bot accounts are non-interactive and cannot be impersonated.",
   "admin.users.auth_source": "Authentication Source",
   "admin.users.local": "Local",
+  "admin.users.local_password": "Local Password",
+  "admin.users.password_verified_by": "Password Verified By",
   "admin.users.auth_login_name": "Authentication Sign-In Name",
   "admin.users.password_helper": "Leave the password empty to keep it unchanged.",
   "admin.users.update_profile_success": "The user account has been updated.",

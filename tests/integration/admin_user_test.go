@@ -17,6 +17,8 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/auth/source/ldap"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/auth/source/smtp"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -89,6 +91,46 @@ func TestAdminViewUser(t *testing.T) {
 	session = loginUser(t, "user2")
 	req = NewRequest(t, "GET", "/-/admin/users/1")
 	session.MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestAdminViewUserPasswordInfo(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// sources stay inactive so creating them does not try to reach a real server
+	ldapSource := &auth_model.Source{Type: auth_model.LDAP, Name: "test-password-info-ldap", Cfg: &ldap.Source{}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), ldapSource))
+	smtpSource := &auth_model.Source{Type: auth_model.SMTP, Name: "test-password-info-smtp", Cfg: &smtp.Source{}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), smtpSource))
+	oauth2Source := &auth_model.Source{Type: auth_model.OAuth2, Name: "test-password-info-oauth2", Cfg: &oauth2.Source{}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), oauth2Source))
+
+	// user2: LDAP, no local password
+	require.NoError(t, user_model.UpdateUserCols(t.Context(),
+		&user_model.User{ID: 2, LoginType: auth_model.LDAP, LoginSource: ldapSource.ID, Passwd: ""},
+		"login_type", "login_source", "passwd"))
+	// user4: SMTP, keeps the captured password hash from the fixture
+	require.NoError(t, user_model.UpdateUserCols(t.Context(),
+		&user_model.User{ID: 4, LoginType: auth_model.SMTP, LoginSource: smtpSource.ID},
+		"login_type", "login_source"))
+	// user5: OAuth2, no local password
+	require.NoError(t, user_model.UpdateUserCols(t.Context(),
+		&user_model.User{ID: 5, LoginType: auth_model.OAuth2, LoginSource: oauth2Source.ID, Passwd: ""},
+		"login_type", "login_source", "passwd"))
+
+	session := loginUser(t, "user1")
+	check := func(uid int64, hasLocalPassword bool, verifiedBy string) {
+		t.Helper()
+		req := NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", uid))
+		doc := NewHTMLParser(t, session.MakeRequest(t, req, http.StatusOK).Body)
+		AssertHTMLElement(t, doc, "[data-testid=admin-user-local-password] .octicon-check", hasLocalPassword)
+		AssertHTMLElement(t, doc, "[data-testid=admin-user-local-password] .octicon-x", !hasLocalPassword)
+		assert.Contains(t, doc.Find("[data-testid=admin-user-password-verified-by]").Text(), verifiedBy)
+	}
+
+	check(1, true, "Local")          // local account with a password
+	check(2, false, ldapSource.Name) // LDAP: verified remotely, nothing stored locally
+	check(4, true, smtpSource.Name)  // SMTP: hash stored locally but verified remotely
+	check(5, false, "Local")         // OAuth2: external source, but verification is local
 }
 
 func TestAdminEditUser(t *testing.T) {
