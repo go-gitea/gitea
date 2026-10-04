@@ -93,7 +93,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if !pr.IsSameRepo() {
 		if !baseGitRepo.IsReferenceExist(ctx, pr.HeadCommitID) {
 			if err := git.FetchRemoteTempCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
-				return fmt.Errorf("FetchRemoteCommit: %w", err)
+				return fmt.Errorf("FetchRemoteTempCommit: %w", err)
 			}
 		}
 	}
