@@ -98,6 +98,7 @@ func testLinksNoLogin(t *testing.T) {
 		assertLinkPageComplete(t, nil, link)
 	}
 	MakeRequest(t, NewRequest(t, "GET", "/.well-known/security.txt"), http.StatusOK)
+	MakeRequest(t, NewRequest(t, "GET", "/ssh_info"), http.StatusOK)
 }
 
 func testLinksRedirectsNoLogin(t *testing.T) {
