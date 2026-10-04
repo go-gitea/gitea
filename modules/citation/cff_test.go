@@ -4,6 +4,7 @@
 package citation
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -112,7 +113,6 @@ preferred-citation:
       given-names: Sam
       affiliation: "Uni_A"
   institution: {city: Hanoi}
-  license: &loop [*loop]
   status: in-press
   notes: A note
 `,
@@ -125,6 +125,10 @@ year = {in press}
 }`,
 		},
 		{cff: "title: No authors\nauthor:\n  - name: Typo\n"},
+		{cff: "title: T\nauthors: [{name: A}]\nmessage: " + strings.Repeat("x", maxFileSize)},
+		{cff: "title: T\nauthors: [{name: A}]\nmessage: &s " + strings.Repeat("x", maxAliasExpansion/2) + "\nlicense: [*s, *s]\n"},
+		{cff: "%TAG !e! tag:example.com,2000:\n---\ntitle: T\nauthors: [{name: A}]\n"},
+		{cff: "preferred-citation: &m {title: T, name: A, authors: [*m]}\n"},
 	}
 	for _, tc := range cases {
 		t.Run("", func(t *testing.T) {

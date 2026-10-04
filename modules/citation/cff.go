@@ -111,10 +111,16 @@ type reference struct {
 	Conference      actor   `yaml:"conference"`
 }
 
+const (
+	maxFileSize       = 256 * 1024 // parsing takes up to ~1000x the input
+	maxAliasExpansion = 64 * 1024  // nodes plus value bytes aliases may add
+)
+
 // FormatCFF returns the APA and BibTeX citations of a CITATION.cff file, both empty if it has no title or authors
 func FormatCFF(content string) (apa, bibtex string) {
 	var node yaml.Node
-	if yaml.Unmarshal([]byte(content), &node) != nil {
+	// the parser copies %TAG prefixes into every node
+	if len(content) > maxFileSize || strings.Contains(content, "%TAG") || yaml.Unmarshal([]byte(content), &node) != nil || aliasExpansion(&node) > maxAliasExpansion {
 		return "", ""
 	}
 	retagTimestamps(&node)
@@ -142,6 +148,32 @@ func retagTimestamps(node *yaml.Node) {
 	for _, child := range node.Content {
 		retagTimestamps(child)
 	}
+}
+
+func aliasExpansion(root *yaml.Node) int {
+	anchors := map[*yaml.Node]int{}
+	added := 0
+	var expandedSize func(node *yaml.Node) int
+	expandedSize = func(node *yaml.Node) int {
+		if node.Kind == yaml.AliasNode {
+			size, walked := anchors[node.Alias]
+			if !walked {
+				size = maxAliasExpansion + 1
+			}
+			added = min(added+size, maxAliasExpansion+1)
+			return size
+		}
+		size := 1 + len(node.Value)
+		for _, child := range node.Content {
+			size = min(size+expandedSize(child), maxAliasExpansion+1)
+		}
+		if node.Anchor != "" {
+			anchors[node] = size
+		}
+		return size
+	}
+	expandedSize(root)
+	return added
 }
 
 func inspectNode(node *yaml.Node) string {
