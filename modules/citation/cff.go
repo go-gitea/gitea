@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 	"unicode/utf8"
@@ -375,15 +376,25 @@ var bibtexTypeFields = map[string][]string{
 	"unpublished":   {"note"},
 }
 
-var (
-	bibtexEscaper = strings.NewReplacer("&", `\&`, "%", `\%`, "$", `\$`, "#", `\#`, "_", `\_`, "{", `\{`, "}", `\}`)
-	keyLetters    = strings.NewReplacer(
+var globalVars = sync.OnceValue(func() (ret struct {
+	bibtexEscaper  *strings.Replacer
+	keyLetters     *strings.Replacer
+	keyUnsafeChars *regexp.Regexp
+	bibtexPattern  *regexp.Regexp
+},
+) {
+	ret.bibtexEscaper = strings.NewReplacer("&", `\&`, "%", `\%`, "$", `\$`, "#", `\#`, "_", `\_`, "{", `\{`, "}", `\}`)
+	ret.keyLetters = strings.NewReplacer(
 		"Æ", "AE", "æ", "ae", "Ð", "D", "ð", "d", "Ø", "O", "ø", "o", "Þ", "Th", "þ", "th", "ß", "ss", "×", "x",
 		"Đ", "D", "đ", "d", "Ħ", "H", "ħ", "h", "ı", "i", "Ĳ", "IJ", "ĳ", "ij", "ĸ", "k", "Ŀ", "L", "ŀ", "l",
 		"Ł", "L", "ł", "l", "ŉ", "'n", "Ŋ", "NG", "ŋ", "ng", "Œ", "OE", "œ", "oe", "Ŧ", "T", "ŧ", "t",
 	)
-	keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
-)
+	ret.keyUnsafeChars = regexp.MustCompile(`[^a-zA-Z0-9-]+`)
+
+	// https://www.acm.org/publications/authors/bibtex-formatting
+	ret.bibtexPattern = regexp.MustCompile(`^@?\w+{.*}$`)
+	return ret
+})
 
 func keyToASCII() transform.Transformer {
 	return transform.Chain(
@@ -404,6 +415,7 @@ func (r *reference) formatBibTeX() string {
 	if len(editors) == 0 {
 		editors = r.EditorsSeries
 	}
+	bibtexEscaper := globalVars().bibtexEscaper
 	typeFields := map[string]string{
 		"address":     joinNonEmpty(", ", place.City, place.Region, place.Country),
 		"booktitle":   bibtexEscaper.Replace(r.CollectionTitle),
@@ -473,6 +485,7 @@ func bibtexType(cffType string) string {
 }
 
 func bibtexActors(actors []actor) string {
+	bibtexEscaper := globalVars().bibtexEscaper
 	names := make([]string, 0, len(actors))
 	for _, entry := range actors {
 		switch {
@@ -495,6 +508,10 @@ func bibtexKey(fields map[string]string) string {
 	author, _, _ := strings.Cut(fields["author"], ",")
 	titleWords := splitWords(fields["title"])
 	key := joinNonEmpty("_", author, strings.Join(titleWords[:min(3, len(titleWords))], "_"), fields["year"])
-	key, _, _ = transform.String(keyToASCII(), keyLetters.Replace(key))
-	return strings.Trim(keyUnsafeChars.ReplaceAllString(key, "_"), "_")
+	key, _, _ = transform.String(keyToASCII(), globalVars().keyLetters.Replace(key))
+	return strings.Trim(globalVars().keyUnsafeChars.ReplaceAllString(key, "_"), "_")
+}
+
+func IsLikelyBibTeX(content string) bool {
+	return globalVars().bibtexPattern.MatchString(strings.TrimRightFunc(content, unicode.IsSpace))
 }

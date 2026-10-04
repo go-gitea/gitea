@@ -126,7 +126,7 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 		if name == "CITATION.cff" {
 			apa, bibtex = citation.FormatCFF(content)
 		}
-		if bibtex != "" {
+		if citation.IsLikelyBibTeX(bibtex) {
 			ctx.Data["CitationFileName"] = allEntries[idx].Name()
 			ctx.Data["CitationAPA"] = apa
 			ctx.Data["CitationBibTeX"] = bibtex
