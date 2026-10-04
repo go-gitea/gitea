@@ -108,7 +108,7 @@ func prepareHomeSidebarCitationFile(ctx *context.Context) {
 	const nameBib = "CITATION.bib"
 	for _, name := range []string{nameCff, nameBib} {
 		idx := slices.IndexFunc(allEntries, func(entry *git.TreeEntry) bool {
-			return isBlobSupported(entry) && strings.EqualFold(entry.Name(), name)
+			return isBlobSupported(entry) && util.AsciiEqualFold(entry.Name(), name)
 		})
 		if idx == -1 {
 			continue
