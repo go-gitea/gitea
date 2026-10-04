@@ -55,6 +55,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
+	assert.NotZero(t, unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: mirrors[0].ID}).LastUpdateUnix)
 
 	srcGitRepo, err := git.OpenRepository(t.Context(), srcRepo)
 	assert.NoError(t, err)
@@ -74,6 +75,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	defer test.MockVariableValue(&setting.Migrations.AllowedHostList, "")()
 	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
+	assert.NotEmpty(t, unittest.AssertExistsAndLoadBean(t, &repo_model.PushMirror{ID: mirrors[0].ID}).LastError)
 
 	// Cleanup
 	assert.True(t, doRemovePushMirror(t, session, user.Name, srcRepo.Name, mirrors[0].ID))

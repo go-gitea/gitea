@@ -17,6 +17,7 @@ import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts
 
 const jsExts = ['js', 'mjs', 'cjs'] as const;
 const tsExts = ['ts', 'mts', 'cts'] as const;
+const vueExts = ['vue'] as const;
 
 const restrictedGlobals = [
   {name: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
@@ -36,7 +37,7 @@ export default defineConfig([
     'public/assets/js',
   ]),
   {
-    files: [`**/*.{${[...jsExts, ...tsExts].join(',')}}`],
+    files: [`**/*.{${[...jsExts, ...tsExts, ...vueExts].join(',')}}`],
     ignores: ['dist/*'],
     languageOptions: {
       ecmaVersion: 'latest',
@@ -48,7 +49,9 @@ export default defineConfig([
         ecmaFeatures: {
           impliedStrict: true,
         },
+        parser: typescriptParser,
         project: true,
+        extraFileExtensions: vueExts.map((ext) => `.${ext}`),
       },
     },
     linterOptions: {
@@ -66,8 +69,11 @@ export default defineConfig([
       wc,
     },
     settings: {
-      'import-x/extensions': [...jsExts, ...tsExts].map((ext) => `.${ext}`),
-      'import-x/parsers': {'@typescript-eslint/parser': [...jsExts, ...tsExts].map((ext) => `.${ext}`)},
+      'import-x/extensions': [...jsExts, ...tsExts, ...vueExts].map((ext) => `.${ext}`),
+      'import-x/parsers': {
+        '@typescript-eslint/parser': [...jsExts, ...tsExts].map((ext) => `.${ext}`),
+        'vue-eslint-parser': vueExts.map((ext) => `.${ext}`),
+      },
       'import-x/resolver': {'typescript': true},
     },
     rules: {
@@ -958,7 +964,7 @@ export default defineConfig([
       'unicorn/prefer-iterable-in-constructor': [2],
       'unicorn/prefer-iterator-concat': [0], // too opinionated
       'unicorn/prefer-iterator-helpers': [0],
-      'unicorn/prefer-iterator-to-array': [2],
+      'unicorn/prefer-iterator-to-array': [0], // Iterator#toArray requires ES2025
       'unicorn/prefer-iterator-to-array-at-end': [2],
       'unicorn/prefer-iterator-zip': [0],
       'unicorn/prefer-json-import': [0],
@@ -1096,17 +1102,13 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.vue'],
-    languageOptions: {
-      parserOptions: {
-        parser: '@typescript-eslint/parser',
-      },
-    },
+    files: vueExts.map((ext) => `**/*.${ext}`),
     extends: [
       vue.configs['flat/recommended'],
       vueScopedCss.configs.recommended,
     ],
     rules: {
+      '@typescript-eslint/no-redundant-type-constituents': [0], // types imported from .vue files resolve to any via typescript-eslint's *.vue shim
       'vue/attributes-order': [0],
       'vue/html-closing-bracket-spacing': [2, {startTag: 'never', endTag: 'never', selfClosingTag: 'never'}],
       'vue/max-attributes-per-line': [0],

@@ -7,6 +7,7 @@ package git
 import (
 	"bytes"
 	"context"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -67,4 +68,88 @@ func (repo *Repository) CommitTree(ctx context.Context, author, committer *Signa
 		return nil, err
 	}
 	return NewIDFromString(strings.TrimSpace(stdout))
+}
+
+func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error) {
+	batch, cancel, err := repo.CatFileBatch()
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+
+	info, rd, err := batch.QueryContent(id.String())
+	if err != nil {
+		return nil, err
+	}
+
+	switch info.Type {
+	case "tag":
+		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
+		if err != nil {
+			return nil, err
+		}
+		tag, err := parseTagData(id.Type(), data)
+		if err != nil {
+			return nil, err
+		}
+
+		commit, err := repo.getCommitWithBatch(batch, tag.Object)
+		if err != nil {
+			return nil, err
+		}
+		tree := commit.Tree()
+		return tree, nil
+	case "commit":
+		commit, err := CommitFromReader(id, io.LimitReader(rd, info.Size))
+		if err != nil {
+			return nil, err
+		}
+		if _, err := rd.Discard(1); err != nil {
+			return nil, err
+		}
+		tree := commit.Tree()
+		return tree, nil
+	case "tree":
+		tree := newTree(id)
+		objectFormat, err := repo.GetObjectFormat(ctx)
+		if err != nil {
+			return nil, err
+		}
+		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, info.Size)
+		if err != nil {
+			return nil, err
+		}
+		tree.entriesParsed = true
+		return tree, nil
+	default:
+		if err := DiscardFull(rd, info.Size+1); err != nil {
+			return nil, err
+		}
+		return nil, ErrNotExist{
+			ID: id.String(),
+		}
+	}
+}
+
+// GetTree find the tree object in the repository.
+func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(idStr) != objectFormat.FullLength() {
+		res, err := repo.GetRefCommitID(ctx, idStr)
+		if err != nil {
+			return nil, err
+		}
+		if len(res) > 0 {
+			idStr = res
+		}
+	}
+	id, err := NewIDFromString(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo.getTree(ctx, id)
 }

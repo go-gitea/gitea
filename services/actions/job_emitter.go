@@ -590,6 +590,14 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			continue
 		}
 
+		if err := invalidRunsOn(actionRunJob); err != nil {
+			if err := upsertJobErrorSummary(ctx, actionRunJob, "runs-on", err); err != nil {
+				return nil, err
+			}
+			ret[id] = actions_model.StatusFailure
+			continue
+		}
+
 		// update concurrency and check whether the job can run now
 		if err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars); errors.Is(err, util.ErrInvalidArgument) {
 			if err := upsertJobErrorSummary(ctx, actionRunJob, "concurrency", err); err != nil {
