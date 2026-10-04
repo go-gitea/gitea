@@ -374,7 +374,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 		}
 		fresh, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, caller.ID)
 		if err != nil {
-			return nil, fmt.Errorf("reload cascaded caller %d: %w", caller.ID, err)
+return nil, fmt.Errorf("checkJobsOfCurrentRunAttempt: reload cascaded caller %d: %w", caller.ID, err)
 		}
 		job.Status, job.Started, job.Stopped = fresh.Status, fresh.Started, fresh.Stopped
 		result.UpdatedJobs = append(result.UpdatedJobs, job)
