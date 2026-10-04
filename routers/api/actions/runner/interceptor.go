@@ -27,6 +27,9 @@ const (
 )
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
+	// A plain gRPC status.Error is treated as unknown by Connect and becomes HTTP 500
+	// To respond an HTTP status code, use connect.Error instead
+	errUnregisteredRunner := connect.NewError(connect.CodeUnauthenticated, errors.New("unregistered runner"))
 	return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
 		methodName := getMethodName(request)
 		if methodName == "Register" {
@@ -38,12 +41,12 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		runner, err := actions_model.GetRunnerByUUID(ctx, uuid)
 		if err != nil {
 			if errors.Is(err, util.ErrNotExist) {
-				return nil, unregisteredRunnerError()
+				return nil, errUnregisteredRunner
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 		if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
-			return nil, unregisteredRunnerError()
+			return nil, errUnregisteredRunner
 		}
 
 		now := time.Now()
@@ -72,14 +75,6 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		return unaryFunc(ctx, request)
 	}
 }))
-
-
-// unregisteredRunnerError returns a Connect Unauthenticated error so the
-// HTTP transport maps it to 401. A plain gRPC status.Error is treated as
-// unknown by Connect and becomes HTTP 500 (see #39576).
-func unregisteredRunnerError() error {
-	return connect.NewError(connect.CodeUnauthenticated, errors.New("unregistered runner"))
-}
 
 func getMethodName(req connect.AnyRequest) string {
 	splits := strings.Split(req.Spec().Procedure, "/")
