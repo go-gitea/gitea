@@ -7,9 +7,11 @@ import (
 	"bytes"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/mdstripper"
@@ -45,6 +47,7 @@ var (
 	timeLogPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@([0-9]+([\.,][0-9]+)?(w|d|m|h))+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
+	issueKeywordWindow                            int
 	issueKeywordsOnce                             sync.Once
 
 	giteaHostInit         sync.Once
@@ -82,6 +85,7 @@ type IssueReference struct {
 	Index   int64
 	Owner   string
 	Name    string
+	IsPull  bool
 	Action  XRefAction
 	TimeLog string
 }
@@ -120,6 +124,7 @@ func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 			Index:   r.index,
 			Owner:   r.owner,
 			Name:    r.name,
+			IsPull:  r.isPull,
 			Action:  r.action,
 			TimeLog: r.timeLog,
 		}
@@ -167,6 +172,10 @@ func newKeywords() {
 func doNewKeywords(closeKeywords, reopenKeywords []string) {
 	issueCloseKeywordsPat = makeKeywordsPat(closeKeywords)
 	issueReopenKeywordsPat = makeKeywordsPat(reopenKeywords)
+	issueKeywordWindow = 0
+	for _, word := range slices.Concat(closeKeywords, reopenKeywords) {
+		issueKeywordWindow = max(issueKeywordWindow, utf8.RuneCountInString(word)*utf8.UTFMax+3) // delimiter, keyword with (?i)-folded runes like ſ for s, ": "
+	}
 }
 
 // getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
@@ -599,17 +608,16 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 
 func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 	newKeywords()
-	var m []int
+	windowStart := max(start-issueKeywordWindow, 0)
+	prefix := content[windowStart:start]
 	if issueCloseKeywordsPat != nil {
-		m = issueCloseKeywordsPat.FindSubmatchIndex(content[:start])
-		if m != nil {
-			return XRefActionCloses, &RefSpan{Start: m[2], End: m[3]}
+		if m := issueCloseKeywordsPat.FindSubmatchIndex(prefix); m != nil {
+			return XRefActionCloses, &RefSpan{Start: windowStart + m[2], End: windowStart + m[3]}
 		}
 	}
 	if issueReopenKeywordsPat != nil {
-		m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start])
-		if m != nil {
-			return XRefActionReopens, &RefSpan{Start: m[2], End: m[3]}
+		if m := issueReopenKeywordsPat.FindSubmatchIndex(prefix); m != nil {
+			return XRefActionReopens, &RefSpan{Start: windowStart + m[2], End: windowStart + m[3]}
 		}
 	}
 	return XRefActionNone, nil

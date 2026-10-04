@@ -11,6 +11,7 @@ import (
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/markup/markdown/math"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -54,6 +55,9 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		}
 		tocMode = rc.TOC
 	}
+	if ctx.RenderOptions.FeedExcerpt {
+		filterFeedExcerpt(node)
+	}
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
@@ -93,6 +97,25 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 	if rc.Lang != "" {
 		node.SetAttributeString("lang", []byte(rc.Lang))
+	}
+}
+
+func filterFeedExcerpt(parent ast.Node) {
+	for node := parent.FirstChild(); node != nil; {
+		next := node.NextSibling()
+		switch node.Kind() {
+		case ast.KindText, ast.KindAutoLink, math.KindInline:
+		case ast.KindParagraph, ast.KindHeading, ast.KindTextBlock, ast.KindBlockquote, ast.KindList, ast.KindListItem,
+			ast.KindEmphasis, ast.KindCodeSpan, ast.KindLink,
+			east.KindStrikethrough, east.KindDefinitionList, east.KindDefinitionTerm, east.KindDefinitionDescription:
+			filterFeedExcerpt(node)
+			if !node.HasChildren() {
+				parent.RemoveChild(parent, node)
+			}
+		default:
+			parent.RemoveChild(parent, node)
+		}
+		node = next
 	}
 }
 

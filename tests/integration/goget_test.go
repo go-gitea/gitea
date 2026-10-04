@@ -34,7 +34,7 @@ func TestGoGet(t *testing.T) {
 	<body>
 		go get --insecure %[1]s:%[2]s/blah/glah
 	</body>
-</html>`, setting.Domain, setting.HTTPPort, setting.AppURL)
+</html>`, setting.AppDomain, setting.HTTPPort, setting.AppURL)
 
 	assert.Equal(t, expected, resp.Body.String())
 }
@@ -55,7 +55,7 @@ func TestGoGetForSSH(t *testing.T) {
 	<body>
 		go get --insecure %[1]s:%[2]s/blah/glah
 	</body>
-</html>`, setting.Domain, setting.HTTPPort, setting.AppURL, setting.SSH.Domain, setting.SSH.Port)
+</html>`, setting.AppDomain, setting.HTTPPort, setting.AppURL, setting.SSH.Domain, setting.SSH.Port)
 
 	assert.Equal(t, expected, resp.Body.String())
 }

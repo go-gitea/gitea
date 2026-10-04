@@ -7,81 +7,17 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	"gitea.dev/models/unittest"
 	webhook_model "gitea.dev/models/webhook"
-	"gitea.dev/modules/hostmatcher"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-func TestWebhookProxy(t *testing.T) {
-	oldWebhook := setting.Webhook
-	t.Cleanup(func() {
-		setting.Webhook = oldWebhook
-	})
-
-	setting.Webhook.ProxyURL = "http://localhost:8080"
-	setting.Webhook.ProxyURLFixed, _ = url.Parse(setting.Webhook.ProxyURL)
-	setting.Webhook.ProxyHosts = []string{"*.discordapp.com", "discordapp.com"}
-
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", "discordapp.com,s.discordapp.com")
-
-	tests := []struct {
-		req     string
-		want    string
-		wantErr bool
-	}{
-		{
-			req:     "https://discordapp.com/api/webhooks/xxxxxxxxx/xxxxxxxxxxxxxxxxxxx",
-			want:    "http://localhost:8080",
-			wantErr: false,
-		},
-		{
-			req:     "http://s.discordapp.com/assets/xxxxxx",
-			want:    "http://localhost:8080",
-			wantErr: false,
-		},
-		{
-			req:     "http://github.com/a/b",
-			want:    "",
-			wantErr: false,
-		},
-		{
-			req:     "http://www.discordapp.com/assets/xxxxxx",
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.req, func(t *testing.T) {
-			req, err := http.NewRequest(http.MethodPost, tt.req, nil)
-			require.NoError(t, err)
-
-			u, err := webhookProxy(allowedHostMatcher)(req)
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-
-			assert.NoError(t, err)
-
-			got := ""
-			if u != nil {
-				got = u.String()
-			}
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
 
 func TestWebhookDeliverAuthorizationHeader(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

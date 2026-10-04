@@ -201,6 +201,9 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
+		if comment.AssigneeID <= 0 {
+			continue
+		}
 		comment.Assignee = assignees[comment.AssigneeID]
 		if comment.Assignee == nil {
 			comment.AssigneeID = user_model.GhostUserID

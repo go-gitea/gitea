@@ -160,6 +160,29 @@ func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, 
 	return tasks, db.GetEngine(ctx).In("id", ids).Find(&tasks)
 }
 
+// GetTaskRunnerNames returns runner names keyed by task ID without loading task logs.
+func GetTaskRunnerNames(ctx context.Context, taskIDs []int64) (map[int64]string, error) {
+	names := make(map[int64]string, len(taskIDs))
+	if len(taskIDs) == 0 {
+		return names, nil
+	}
+	var rows []struct {
+		ID   int64
+		Name string
+	}
+	err := db.GetEngine(ctx).Table("action_task").
+		Join("INNER", "action_runner", "action_runner.id = action_task.runner_id").
+		In("action_task.id", taskIDs).
+		Select("action_task.id, action_runner.name").Find(&rows)
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		names[row.ID] = row.Name
+	}
+	return names, nil
+}
+
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
 	errNotExist := fmt.Errorf("task with token %q: %w", token, util.ErrNotExist)
 	if token == "" {
@@ -275,6 +298,12 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, false, err
 		}
+		// A short page means no waiting jobs remain beyond it.
+		isLastPage := len(jobs) < pickTaskBatchSize
+		if !isLastPage {
+			last := jobs[len(jobs)-1] // read before a lost claim bumps Updated
+			cursorUpdated, cursorID = last.Updated, last.ID
+		}
 
 		for _, v := range jobs {
 			if !runner.CanMatchLabels(v.RunsOn) {
@@ -290,12 +319,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			// Another runner claimed this job concurrently; try the next one.
 		}
 
-		// A short page means no waiting jobs remain beyond it.
-		if len(jobs) < pickTaskBatchSize {
+		if isLastPage {
 			return nil, false, nil
 		}
-		last := jobs[len(jobs)-1]
-		cursorUpdated, cursorID = last.Updated, last.ID
 	}
 }
 

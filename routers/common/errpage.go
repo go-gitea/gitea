@@ -21,7 +21,11 @@ import (
 	"gitea.dev/services/context"
 )
 
-const tplStatus500 templates.TplName = "status/500"
+const (
+	tplStatus500 templates.TplName = "status/500"
+
+	PageInternalServerErrorMark = "status-page-500"
+)
 
 func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode int, tmpl templates.TplName, ctxData map[string]any, plainMsg string) {
 	acceptsHTML := false

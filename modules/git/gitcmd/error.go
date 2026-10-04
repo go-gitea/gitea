@@ -94,8 +94,7 @@ const (
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
 
-	StderrNoSuchRemote1 StderrPrefix = "fatal: no such remote" // git < 2.30, exit status 128
-	StderrNoSuchRemote2 StderrPrefix = "error: no such remote" // git >= 2.30. exit status 2
+	StderrNoSuchRemote StderrPrefix = "error: no such remote"
 
 	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
 	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"
