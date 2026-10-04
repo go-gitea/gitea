@@ -616,7 +616,7 @@ func TestRender_TeamMention(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 	test("@org1/developers", `<p><a href="/org/org1/teams/developers" rel="nofollow">@org1/developers</a></p>`)
-	test("@Org1/Developers", `<p><a href="/org/org1/teams/Developers" rel="nofollow">@Org1/Developers</a></p>`)
+	test("@Org1/Developers", `<p><a href="/org/Org1/teams/Developers" rel="nofollow">@Org1/Developers</a></p>`)
 	test("@org2/developers", `<p>@org2/developers</p>`)
 	test("@org1/testers", `<p>@org1/testers</p>`)
 }
