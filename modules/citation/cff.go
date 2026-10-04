@@ -153,11 +153,11 @@ func retagTimestamps(node *yaml.Node) {
 func aliasExpansion(root *yaml.Node) int {
 	anchors := map[*yaml.Node]int{}
 	added := 0
-	var expandedSize func(node *yaml.Node) int
-	expandedSize = func(node *yaml.Node) int {
+	var expandedSize func(node, parent *yaml.Node) int
+	expandedSize = func(node, parent *yaml.Node) int {
 		if node.Kind == yaml.AliasNode {
 			size, walked := anchors[node.Alias]
-			if !walked {
+			if !walked && (node.Alias != parent || parent.Kind != yaml.SequenceNode) { // decoders never expand a sequence listing itself
 				size = maxAliasExpansion + 1
 			}
 			added = min(added+size, maxAliasExpansion+1)
@@ -165,14 +165,14 @@ func aliasExpansion(root *yaml.Node) int {
 		}
 		size := 1 + len(node.Value)
 		for _, child := range node.Content {
-			size = min(size+expandedSize(child), maxAliasExpansion+1)
+			size = min(size+expandedSize(child, node), maxAliasExpansion+1)
 		}
 		if node.Anchor != "" {
 			anchors[node] = size
 		}
 		return size
 	}
-	expandedSize(root)
+	expandedSize(root, nil)
 	return added
 }
 

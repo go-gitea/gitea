@@ -113,6 +113,7 @@ preferred-citation:
       given-names: Sam
       affiliation: "Uni_A"
   institution: {city: Hanoi}
+  license: &loop [*loop]
   status: in-press
   notes: A note
 `,
