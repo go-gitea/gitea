@@ -62,7 +62,7 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 		ensureAnonymousClone(t, u)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
-		httpContext.ObjectFormatName = api.ObjectFormatSHA256
+		httpContext.ObjectFormatName = api.ObjectFormatSHA1
 		forkedUserCtx.Reponame = httpContext.Reponame
 		forkedUserCtx.ObjectFormatName = httpContext.ObjectFormatName
 
@@ -106,7 +106,7 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 		defer tests.PrintCurrentTest(t)()
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
-		sshContext.ObjectFormatName = api.ObjectFormatSHA1
+		sshContext.ObjectFormatName = api.ObjectFormatSHA256
 		keyname := "my-testing-key"
 		forkedUserCtx.Reponame = sshContext.Reponame
 		forkedUserCtx.ObjectFormatName = sshContext.ObjectFormatName

@@ -24,11 +24,12 @@ import (
 )
 
 type APITestContext struct {
-	Reponame         string
-	Session          *TestSession
-	Token            string
-	Username         string
-	ExpectedCode     int
+	Reponame     string
+	Session      *TestSession
+	Token        string
+	Username     string
+	ExpectedCode int
+
 	ObjectFormatName api.ObjectFormatName
 }
 

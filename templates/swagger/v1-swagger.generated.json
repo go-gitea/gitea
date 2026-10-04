@@ -31540,7 +31540,7 @@
           "$ref": "#/definitions/PayloadUser"
         },
         "id": {
-          "description": "hash of the commit",
+          "description": "sha1 hash of the commit",
           "type": "string",
           "x-go-name": "ID"
         },

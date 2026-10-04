@@ -82,16 +82,16 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 
 	store := lfs.NewContentStore()
 	errStop := errors.New("STOPERR")
-	objectFormat, err := gitRepo.GetObjectFormat(ctx) // on-disk format, the stored one can disagree with it
-	if err != nil {
-		return err
-	}
 
 	err = git_model.IterateLFSMetaObjectsForRepo(ctx, repo.ID, func(ctx context.Context, metaObject *git_model.LFSMetaObject, count int64) error {
 		if opts.NumberToCheckPerRepo > 0 && total > opts.NumberToCheckPerRepo {
 			return errStop
 		}
 		total++
+		objectFormat, err := gitRepo.GetObjectFormat(ctx) // on-disk format, the stored one can disagree with it
+		if err != nil {
+			return err
+		}
 		pointerSha := git.ComputeBlobHash(objectFormat, []byte(metaObject.Pointer.StringContent()))
 
 		if gitRepo.IsObjectExist(ctx, pointerSha.String()) {
