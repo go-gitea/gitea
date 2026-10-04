@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
@@ -152,21 +151,15 @@ func WebauthnRename(ctx *context.Context) {
 		return
 	}
 
-	cred, err := auth.GetWebAuthnCredentialByID(ctx, form.ID)
-	if err == nil && cred.UserID != ctx.Doer.ID {
-		err = auth.ErrWebAuthnCredentialNotExist{ID: form.ID}
-	}
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetWebAuthnCredentialByID", auth.IsErrWebAuthnCredentialNotExist, err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
-	if ok, err := auth.RenameCredential(ctx, cred.ID, ctx.Doer.ID, form.Name); err != nil {
-		if errors.Is(err, util.ErrAlreadyExist) {
-			ctx.JSONErrorWithField(ctx.Tr("settings.webauthn_nickname_been_used"), "name")
-		} else {
-			ctx.ServerError("RenameCredential", err)
-		}
+	ok, err := auth.RenameCredential(ctx, ctx.Doer.ID, form.ID, form.Name)
+	if err != nil {
+		ctx.JSONErrorAuto(err)
 		return
 	} else if ok {
 		audit.Record(ctx, audit_model.UserWebAuthRename, ctx.Doer, "previous_credential", cred.Name, "credential", form.Name)
@@ -174,20 +167,20 @@ func WebauthnRename(ctx *context.Context) {
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }
 
-// WebauthnDelete deletes an security key by id
+// WebauthnDelete deletes a security key by id
 func WebauthnDelete(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
-	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.FormInt64("id"))
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetWebAuthnCredentialByID", auth.IsErrWebAuthnCredentialNotExist, err)
+		ctx.JSONErrorAuto(err)
 		return
 	}
 
-	if ok, err := auth.DeleteCredential(ctx, cred.ID, ctx.Doer.ID); err != nil {
+	if ok, err := auth.DeleteCredential(ctx, ctx.Doer.ID, cred.ID); err != nil {
 		ctx.ServerError("DeleteCredential", err)
 		return
 	} else if ok {

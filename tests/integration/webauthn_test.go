@@ -55,8 +55,8 @@ func TestWebAuthnRename(t *testing.T) {
 	require.NoError(t, err)
 
 	htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/security"), http.StatusOK).Body)
-	AssertHTMLElement(t, htmlDoc, `#rename-registration form[action$="/webauthn/rename"]`, true)
-	assert.Equal(t, "My credential", htmlDoc.Find(fmt.Sprintf(`[data-modal="#rename-registration"][data-modal-id="%d"]`, cred.ID)).AttrOr("data-modal-name", ""))
+	AssertHTMLElement(t, htmlDoc, `#rename-webauthn-name form[action$="/webauthn/rename"]`, true)
+	assert.Equal(t, "My credential", htmlDoc.Find(fmt.Sprintf(`[data-modal="#rename-webauthn-name"][data-modal-id="%d"]`, cred.ID)).AttrOr("data-modal-name", ""))
 
 	rename := func(id int64, name string, expectedStatus int) *httptest.ResponseRecorder {
 		req := NewRequestWithValues(t, "POST", "/user/settings/security/webauthn/rename", map[string]string{"id": strconv.FormatInt(id, 10), "name": name})
