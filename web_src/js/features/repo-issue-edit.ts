@@ -7,6 +7,7 @@ import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure} from '../modules/are-you-sure.ts';
+import {registerShortcutHandler} from '../modules/shortcut.ts';
 
 async function tryOnEditContent(e: Event) {
   const clickTarget = (e.target as HTMLElement).closest('.edit-content');
@@ -150,9 +151,26 @@ async function tryOnQuoteReply(e: Event) {
   editor.moveCursorToEnd();
 }
 
+export function tryShortcutQuoteReply(): boolean {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount || selection.isCollapsed) return false;
+  const node = selection.getRangeAt(0).commonAncestorContainer;
+  const el = node instanceof HTMLElement ? node : node.parentElement;
+
+  const commentContainer = el?.closest<HTMLElement>('.render-content.markup')?.closest('.comment-container');
+  if (!commentContainer) return false;
+
+  const quoteReplyBtn = commentContainer.querySelector<HTMLElement>('.quote-reply')!;
+  if (!quoteReplyBtn) return false;
+
+  quoteReplyBtn.click();
+  return true;
+}
+
 export function initRepoIssueCommentEdit() {
   document.addEventListener('click', (e) => {
     tryOnEditContent(e); // Edit issue or comment content
     tryOnQuoteReply(e); // Quote reply to the comment editor
   });
+  registerShortcutHandler('r', tryShortcutQuoteReply);
 }

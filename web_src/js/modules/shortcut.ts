@@ -4,6 +4,10 @@ import {showFomanticModal} from './fomantic/modal.ts';
 import {html} from '../utils/html.ts';
 import {svgRaw} from '../svg.ts';
 
+type ShortcutHandler = (el: HTMLElement) => boolean;
+
+const shortcutHandlers: Record<string, ShortcutHandler[]> = {};
+
 type ShortcutPress = {
   fullKey: string,
   pressTime: number,
@@ -99,6 +103,12 @@ function showShortcutHelp() {
   showFomanticModal(modal);
 }
 
+export function registerShortcutHandler(fullKey: string, handler: ShortcutHandler) {
+  fullKey = fullKey.toLowerCase();
+  shortcutHandlers[fullKey] ||= [];
+  shortcutHandlers[fullKey].push(handler);
+}
+
 export function initGlobalShortcut() {
   registerGlobalInitFunc('onGlobalShortcut', initShortcutKbd);
 
@@ -153,6 +163,14 @@ export function initGlobalShortcut() {
     shortcutPresses.push({fullKey, pressTime});
 
     const fullKeys = shortcutPresses.map((p) => p.fullKey).join(' ');
+    for (const handler of shortcutHandlers[fullKeys.toLowerCase()] || []) {
+      if (handler(target)) {
+        e.preventDefault();
+        shortcutPresses.length = 0;
+        return;
+      }
+    }
+
     const matchedElems = document.querySelectorAll<HTMLElement>(`[aria-keyshortcuts="${CSS.escape(fullKeys)}" i]`);
     if (!matchedElems.length) return;
     const matchedElem = matchedElems[0]; // TODO: if there are multiple matches, maybe we could show a list of them and let the user choose one
