@@ -137,7 +137,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 
 		// Update Commit Divergence
-		err = syncCommitDivergence(ctx, pr)
+		err = SyncCommitDivergence(ctx, pr)
 		if err != nil {
 			return err
 		}
@@ -321,8 +321,8 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 			return util.ErrorWrap(util.ErrInvalidArgument, "pull request status has changed")
 		}
 
-		if err := syncCommitDivergence(ctx, pr); err != nil {
-			return fmt.Errorf("syncCommitDivergence: %w", err)
+		if err := SyncCommitDivergence(ctx, pr); err != nil {
+			return fmt.Errorf("SyncCommitDivergence: %w", err)
 		}
 
 		// The "official" flag of existing reviews was computed against the previous
@@ -474,8 +474,8 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 						if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
-						if err = syncCommitDivergence(ctx, pr); err != nil {
-							log.Error("syncCommitDivergence: %v", err)
+						if err = SyncCommitDivergence(ctx, pr); err != nil {
+							log.Error("SyncCommitDivergence: %v", err)
 						}
 					}
 
@@ -503,12 +503,12 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 		}
 		for _, pr := range baseBranchPRs {
 			pr.BaseRepo = repo // avoid loading again
-			err = syncCommitDivergence(ctx, pr)
+			err = SyncCommitDivergence(ctx, pr)
 			if err != nil {
 				if errors.Is(err, util.ErrNotExist) {
 					log.Warn("Cannot test PR %s/%d with base=%s head=%s: no longer exists", pr.BaseRepo.FullName(), pr.IssueID, pr.BaseBranch, pr.HeadBranch)
 				} else {
-					log.Error("syncCommitDivergence: %v", err)
+					log.Error("SyncCommitDivergence: %v", err)
 				}
 				continue
 			}

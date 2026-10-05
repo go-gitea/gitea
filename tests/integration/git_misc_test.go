@@ -7,8 +7,10 @@ import (
 	"bytes"
 	"io"
 	"net/url"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
@@ -20,6 +22,7 @@ import (
 	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
@@ -240,5 +243,58 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// The review commit ID should remain the same (pointing to the original commit)
 		assert.Equal(t, initialCommitID, reviews[0].CommitID, "Review commit ID should remain unchanged and point to original commit")
+	})
+}
+
+func TestAgitPullCommitsBehind(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		u.Path = baseAPITestContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		dstPath := t.TempDir()
+		doGitClone(dstPath, u)(t)
+		doGitCreateBranch(dstPath, "test-agit-behind")
+
+		_, err := generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "agit-behind-")
+		require.NoError(t, err)
+
+		// create an agit pull request
+		err = gitcmd.NewCommand("push", "origin", "-o", "title=test-agit-behind", "HEAD:refs/for/master/test-agit-behind").
+			WithDir(dstPath).Run(t.Context())
+		require.NoError(t, err)
+
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: 1, Flow: issues_model.PullRequestFlowAGit, HeadBranch: "user2/test-agit-behind"})
+		assert.Equal(t, 0, pr.CommitsBehind)
+
+		// land another change on the base branch, so the pull request falls behind
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		_, err = files_service.ChangeRepoFiles(t.Context(), repo1, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "agit-behind-base.txt",
+					ContentReader: strings.NewReader("base"),
+				},
+			},
+			OldBranch: repo1.DefaultBranch,
+			NewBranch: repo1.DefaultBranch,
+		})
+		require.NoError(t, err)
+		assert.Eventually(t, func() bool {
+			return unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).CommitsBehind == 1
+		}, 5*time.Second, 20*time.Millisecond)
+
+		// merge the base branch into the topic and push it to the same agit topic
+		err = gitcmd.NewCommand("pull", "--no-rebase", "--no-edit", "origin", "master").WithDir(dstPath).Run(t.Context())
+		require.NoError(t, err)
+		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-behind").WithDir(dstPath).Run(t.Context())
+		require.NoError(t, err)
+
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.Equal(t, 0, pr.CommitsBehind)
+		assert.Equal(t, 2, pr.CommitsAhead)
 	})
 }
