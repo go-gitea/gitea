@@ -874,7 +874,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
       'unicorn/no-unnecessary-parameters': [0],
-      'unicorn/no-unnecessary-polyfills': [0], // judges against browserslist defaults, which exceed ES2022
+      'unicorn/no-unnecessary-polyfills': [2],
       'unicorn/no-unnecessary-slice-end': [2],
       'unicorn/no-unnecessary-splice': [2],
       'unicorn/no-unnecessary-string-trim': [2],
