@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -432,17 +433,17 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 	}
 	results := make([]result, 0, len(commitIDs))
 
-	conds := make([]builder.Cond, 0, len(commitIDs))
-	for _, sha := range commitIDs {
-		conds = append(conds, builder.Eq{"sha": sha})
-	}
-	sess := getBase().And(builder.Or(conds...)).
-		Select("max( `index` ) as `index`, sha").
-		GroupBy("context_hash, sha").OrderBy("max( `index` ) desc")
-
-	err := sess.Find(&results)
-	if err != nil {
-		return nil, err
+	// chunk the queries: a single expression for thousands of SHAs exceeds SQLite's expression depth limit
+	for chunk := range slices.Chunk(commitIDs, 500) {
+		var chunkResults []result
+		err := getBase().And(builder.In("sha", chunk)).
+			Select("max( `index` ) as `index`, sha").
+			GroupBy("context_hash, sha").OrderBy("max( `index` ) desc").
+			Find(&chunkResults)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, chunkResults...)
 	}
 
 	repoStatuses := make(map[string][]*CommitStatus)
@@ -450,13 +451,16 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 	if len(results) > 0 {
 		statuses := make([]*CommitStatus, 0, len(results))
 
-		conds = make([]builder.Cond, 0, len(results))
-		for _, result := range results {
-			conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
-		}
-		err = getBase().And(builder.Or(conds...)).Find(&statuses)
-		if err != nil {
-			return nil, err
+		for chunk := range slices.Chunk(results, 100) {
+			conds := make([]builder.Cond, 0, len(chunk))
+			for _, result := range chunk {
+				conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
+			}
+			var chunkStatuses []*CommitStatus
+			if err := getBase().And(builder.Or(conds...)).Find(&chunkStatuses); err != nil {
+				return nil, err
+			}
+			statuses = append(statuses, chunkStatuses...)
 		}
 
 		// Group the statuses by commit

@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -49,6 +50,23 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 5, int(maxResults))
 	assert.Empty(t, statuses)
+}
+
+func TestGetLatestCommitStatusForRepoCommitIDsManySHAs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
+
+	commitIDs := make([]string, 0, 2001)
+	commitIDs = append(commitIDs, sha1)
+	for i := range 2000 {
+		commitIDs = append(commitIDs, fmt.Sprintf("%040x", i+1))
+	}
+
+	statuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(t.Context(), repo1.ID, commitIDs)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, statuses[sha1])
 }
 
 func Test_CalcCommitStatus(t *testing.T) {
