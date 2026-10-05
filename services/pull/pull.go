@@ -556,11 +556,10 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	return false, mergeBase, nil
 }
 
-// PushToBaseRepo pushes commits from branches of head repository to
-// corresponding branches of base repository.
-// FIXME: Only push branches that are actually updates?
+// PushToBaseRepo fetches the head branch commit into the base repository and points the PR head ref at it.
+// FIXME: Only update refs that actually changed?
 func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
-	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitHeadRefName())
+	log.Trace("PushToBaseRepo[%d]: updating base repo ref '%s'", pr.BaseRepoID, pr.GetGitHeadRefName())
 
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
