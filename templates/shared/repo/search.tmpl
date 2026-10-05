@@ -29,6 +29,17 @@
 				<div class="divider"></div>
 				<label class="item"><input type="radio" name="private" {{if .IsPrivate.Value}}checked{{end}} value="1"> {{ctx.Locale.Tr "filter.private"}}</label>
 				<label class="item"><input type="radio" name="private" {{if (not (.IsPrivate.ValueOrDefault true))}}checked{{end}} value="0"> {{ctx.Locale.Tr "filter.public"}}</label>
+				{{if .PageIsExploreRepositories}}
+					<div class="divider"></div>
+					<label class="item">{{ctx.Locale.Tr "explore.reputation_label"}}
+						<select name="badge">
+							<option value="">{{ctx.Locale.Tr "filter.clear"}}</option>
+							{{range .Badges}}
+								<option value="{{.Slug}}" {{if eq $.BadgeSlug .Slug}}selected{{end}}>{{.Slug}}</option>
+							{{end}}
+						</select>
+					</label>
+				{{end}}
 			</div>
 		</div>
 		<!-- Sort -->

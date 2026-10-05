@@ -107,7 +107,7 @@
 		{{if .Badges}}
 			<div class="item">
 				<div class="user-badges">
-				{{template "shared/badges" .Badges}}
+				{{template "shared/badges" (dict "Badges" .Badges "AllowImages" true)}}
 				</div>
 			</div>
 		{{end}}

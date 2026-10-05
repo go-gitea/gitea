@@ -68,6 +68,14 @@ func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, in
 	return users, count, err
 }
 
+// CountBadgeUsers returns the number of users with a specific badge.
+func CountBadgeUsers(ctx context.Context, slug string) (int64, error) {
+	return db.GetEngine(ctx).
+		Join("INNER", "user_badge", "user_badge.user_id = `user`.id").
+		Join("INNER", "badge", "user_badge.badge_id = badge.id").
+		Where("badge.slug = ?", slug).Count(new(User))
+}
+
 // AddUserBadge adds a badge to a user.
 func AddUserBadge(ctx context.Context, u *User, badge *badges.Badge) error {
 	return AddUserBadges(ctx, u, []*badges.Badge{badge})
