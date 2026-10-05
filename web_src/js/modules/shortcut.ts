@@ -92,7 +92,9 @@ function showShortcutHelp() {
   list.replaceChildren(createElementFromHTML(html`<tr><td><kbd>?</kbd></td><td>Keyboard Shortcuts</td></tr>`));
   for (const elem of document.querySelectorAll<HTMLElement>('[aria-keyshortcuts]')) {
     const target = elem.matches('kbd') ? elemFromKbd(elem) : elem;
-    if (!target || !target.checkVisibility() || target.matches(':disabled, [aria-disabled="true"]')) continue;
+
+    // TODO: which element should be triggered by shortcut: can be fine-tuned in the future
+    if (!target || target.matches(':disabled, .disabled')) continue;
 
     const label = target.getAttribute('aria-label') ||
       target.getAttribute('placeholder') ||
@@ -163,6 +165,9 @@ export function initGlobalShortcut() {
     shortcutPresses.push({fullKey, pressTime});
 
     const fullKeys = shortcutPresses.map((p) => p.fullKey).join(' ');
+    // we don't support multiple modifier keys as a single shortcut (e.g., press Ctrl twice) at the moment
+    if (!fullKeys) return;
+
     for (const handler of shortcutHandlers[fullKeys.toLowerCase()] || []) {
       if (handler(target)) {
         e.preventDefault();
