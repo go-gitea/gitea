@@ -185,7 +185,11 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			} else if check.LoginIsProhibited {
-				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+				// FIXME: there are a lot of "Failed authentication attempt" log messages, and there are many problems:
+				// * Inconsistent log levels: sometimes "info" sometimes "warning"
+				// * Unclear criteria, no context: invalid password, prohibited user, etc.
+				// It was designed for "fail2ban". If it is still really useful, need to improve or clean up.
+				log.Info("Failed authentication attempt for %s from %s (prohibited)", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
