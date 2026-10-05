@@ -720,7 +720,7 @@ func Test_checkJobsOfCurrentRunAttempt_SkippedCallerIsUpdated(t *testing.T) {
 	for _, job := range result.UpdatedJobs {
 		updatedJobIDs = append(updatedJobIDs, job.JobID)
 	}
-	assert.ElementsMatch(t, []string{"alert", "inner", "deploy"}, updatedJobIDs)
+	assert.Equal(t, []string{"alert"}, updatedJobIDs)
 	for _, callerID := range []int64{inner.ID, caller2.ID} {
 		idx := slices.IndexFunc(result.Jobs, func(job *actions_model.ActionRunJob) bool { return job.ID == callerID })
 		require.NotEqual(t, -1, idx)

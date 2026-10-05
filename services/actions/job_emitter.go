@@ -362,7 +362,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
-	hasFinishedCaller, err := reloadCallersFinishedByChildren(ctx, run.ID, resolver.jobMap, result)
+	hasFinishedCaller, err := reloadCallersFinishedByChildren(ctx, run.ID, resolver.jobMap, result.UpdatedJobs)
 	if err != nil {
 		return nil, err
 	}
@@ -379,13 +379,15 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	return result, nil
 }
 
-// reloadCallersFinishedByChildren reloads the callers that the children finished in this pass have finished in the database only,
-// so this pass reports their statuses, and returns whether any caller was finished.
-func reloadCallersFinishedByChildren(ctx context.Context, runID int64, jobMap map[int64]*actions_model.ActionRunJob, result *jobsCheckResult) (bool, error) {
+// reloadCallersFinishedByChildren reloads the callers the children's cascade finished in this pass,
+// so this pass's commit statuses and run notification see the callers finished.
+// They are kept out of result.UpdatedJobs, so no workflow_job webhook is sent for them, as for callers finished through a runner.
+func reloadCallersFinishedByChildren(ctx context.Context, runID int64, jobMap map[int64]*actions_model.ActionRunJob, updatedJobs []*actions_model.ActionRunJob) (bool, error) {
 	hasFinishedCaller := false
 	checkedCallers := make(container.Set[int64])
-	for i := 0; i < len(result.UpdatedJobs); i++ {
-		child := result.UpdatedJobs[i]
+	finishedJobs := slices.Clone(updatedJobs)
+	for i := 0; i < len(finishedJobs); i++ {
+		child := finishedJobs[i]
 		caller := jobMap[child.ParentJobID]
 		if caller == nil || !child.Status.IsDone() || caller.Status.IsDone() || !checkedCallers.Add(caller.ID) {
 			continue
@@ -398,7 +400,7 @@ func reloadCallersFinishedByChildren(ctx context.Context, runID int64, jobMap ma
 			continue
 		}
 		caller.Status, caller.Started, caller.Stopped = freshCaller.Status, freshCaller.Started, freshCaller.Stopped
-		result.UpdatedJobs = append(result.UpdatedJobs, caller)
+		finishedJobs = append(finishedJobs, caller)
 		hasFinishedCaller = true
 	}
 	return hasFinishedCaller, nil
