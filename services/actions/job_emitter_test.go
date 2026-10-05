@@ -716,6 +716,11 @@ func Test_checkJobsOfCurrentRunAttempt_SkippedCallerIsUpdated(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, result.RunIDsToReEmit, run2.ID)
 	assert.Equal(t, actions_model.StatusPending, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: after.ID}).Status)
+	updatedJobIDs := make([]string, 0, len(result.UpdatedJobs))
+	for _, job := range result.UpdatedJobs {
+		updatedJobIDs = append(updatedJobIDs, job.JobID)
+	}
+	assert.ElementsMatch(t, []string{"alert", "inner", "deploy"}, updatedJobIDs)
 	for _, callerID := range []int64{inner.ID, caller2.ID} {
 		idx := slices.IndexFunc(result.Jobs, func(job *actions_model.ActionRunJob) bool { return job.ID == callerID })
 		require.NotEqual(t, -1, idx)
