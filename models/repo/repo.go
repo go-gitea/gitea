@@ -354,7 +354,7 @@ func (repo *Repository) LoadBadges(ctx context.Context) error {
 	if repo.Badges != nil {
 		return nil
 	}
-	badges, _, err := GetRepoBadges(ctx, repo)
+	badges, err := GetRepoBadges(ctx, repo)
 	if err != nil {
 		return err
 	}

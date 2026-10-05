@@ -35,18 +35,18 @@ func init() {
 }
 
 // GetOrgBadges returns the org's badges.
-func GetOrgBadges(ctx context.Context, org *Organization) ([]*badges.Badge, int64, error) {
+func GetOrgBadges(ctx context.Context, org *Organization) ([]*badges.Badge, error) {
 	sess := db.GetEngine(ctx).
 		Select("`badge`.*").
 		Join("INNER", "org_badge", "`org_badge`.badge_id=badge.id").
 		Where("org_badge.org_id=?", org.ID)
 
 	badgesSlice := make([]*badges.Badge, 0, 8)
-	count, err := sess.FindAndCount(&badgesSlice)
-	return badgesSlice, count, err
+	err := sess.Find(&badgesSlice)
+	return badgesSlice, err
 }
 
-// LoadBadges loads achievement badges for organizations in a user list.
+// LoadBadges loads badges for organizations in a user list.
 func LoadBadges(ctx context.Context, users []*user_model.User) error {
 	if len(users) == 0 {
 		return nil

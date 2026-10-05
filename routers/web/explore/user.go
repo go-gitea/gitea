@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"net/http"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
@@ -89,6 +90,16 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
+	if ctx.Data["PageIsExploreOrganizations"] == true {
+		opts.BadgeSlug = ctx.FormTrim("badge")
+		ctx.Data["BadgeSlug"] = opts.BadgeSlug
+		availableBadges, _, err := badges.SearchBadges(ctx, &badges.SearchBadgeOptions{})
+		if err != nil {
+			ctx.ServerError("SearchBadges", err)
+			return
+		}
+		ctx.Data["Badges"] = availableBadges
+	}
 	opts.OrderBy = orderBy
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = user_model.SearchUsers(ctx, opts)

@@ -34,15 +34,15 @@ func init() {
 }
 
 // GetRepoBadges returns the repo's badges.
-func GetRepoBadges(ctx context.Context, repo *Repository) ([]*badges.Badge, int64, error) {
+func GetRepoBadges(ctx context.Context, repo *Repository) ([]*badges.Badge, error) {
 	sess := db.GetEngine(ctx).
 		Select("`badge`.*").
 		Join("INNER", "repo_badge", "`repo_badge`.badge_id=badge.id").
 		Where("repo_badge.repo_id=?", repo.ID)
 
 	badgesSlice := make([]*badges.Badge, 0, 8)
-	count, err := sess.FindAndCount(&badgesSlice)
-	return badgesSlice, count, err
+	err := sess.Find(&badgesSlice)
+	return badgesSlice, err
 }
 
 // AddRepoBadge adds a badge to a repository.
