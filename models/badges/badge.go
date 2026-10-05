@@ -17,6 +17,7 @@ type Badge struct {
 	ID          int64  `xorm:"pk autoincr"`
 	Slug        string `xorm:"UNIQUE"`
 	Description string
+	Color       string
 	ImageURL    string
 }
 
@@ -60,7 +61,7 @@ func GetBadge(ctx context.Context, slug string) (*Badge, error) {
 
 // UpdateBadge updates a badge based on its slug.
 func UpdateBadge(ctx context.Context, badge *Badge) error {
-	_, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Cols("description", "image_url").Update(badge)
+	_, err := db.GetEngine(ctx).Where("slug=?", badge.Slug).Cols("description", "color", "image_url").Update(badge)
 	return err
 }
 
