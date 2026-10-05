@@ -157,11 +157,12 @@ func WebauthnRename(ctx *context.Context) {
 		return
 	}
 
-	ok, err := auth.RenameCredential(ctx, ctx.Doer.ID, form.ID, form.Name)
+	renamed, err := auth.RenameCredential(ctx, ctx.Doer.ID, form.ID, form.Name)
 	if err != nil {
 		ctx.JSONErrorAuto(err)
 		return
-	} else if ok && cred.Name != form.Name {
+	}
+	if renamed {
 		audit.Record(ctx, audit_model.UserWebAuthRename, ctx.Doer, "previous_credential", cred.Name, "credential", form.Name)
 	}
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")

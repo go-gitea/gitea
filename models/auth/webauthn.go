@@ -206,7 +206,7 @@ func RenameCredential(ctx context.Context, uid, id int64, name string) (bool, er
 			"settings.webauthn_nickname_been_used",
 		)
 	}
-	updated, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", uid).Cols("name", "lower_name").Update(&WebAuthnCredential{
+	updated, err := db.GetEngine(ctx).ID(id).Where("user_id=? AND `name`<>?", uid, name).Cols("name", "lower_name").Update(&WebAuthnCredential{
 		Name:      name,
 		LowerName: strings.ToLower(name),
 	})
