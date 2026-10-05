@@ -46,7 +46,7 @@ func GetOrgBadges(ctx context.Context, org *Organization) ([]*badges.Badge, erro
 	return badgesSlice, err
 }
 
-// LoadBadges loads badges for organizations in a user list.
+// LoadBadges loads badges for the organizations in the provided user list.
 func LoadBadges(ctx context.Context, users []*user_model.User) error {
 	if len(users) == 0 {
 		return nil
