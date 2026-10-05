@@ -287,7 +287,7 @@ type TwoFactorScratchAuthForm struct {
 // WebauthnRegistrationForm for reserving an WebAuthn name
 type WebauthnRegistrationForm struct {
 	middleware.FormDefaultValidator
-	Name string `binding:"Required"`
+	Name string `binding:"TrimSpace;MaxSize(255)"`
 }
 
 // WebauthnRenameForm for renaming a WebAuthn credential
