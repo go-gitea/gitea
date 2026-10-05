@@ -660,6 +660,11 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 		return
 	}
 
+	if isDelTag && !rel.IsTag {
+		ctx.HTTPError(http.StatusConflict, "a tag attached to a release cannot be deleted directly")
+		return
+	}
+
 	if err := release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, rel, ctx.Doer, isDelTag); err != nil {
 		if release_service.IsErrProtectedTagName(err) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))

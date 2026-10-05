@@ -343,7 +343,7 @@ func getWorkflowRunPayloadInfo(p *api.WorkflowRunPayload, linkFormatter linkForm
 
 	text = fmt.Sprintf("Workflow Run %s: %s", p.Action, refLink)
 	switch description {
-	case "waiting":
+	case "waiting", "pending":
 		color = orangeColor
 	case "queued":
 		color = orangeColorLight

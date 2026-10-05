@@ -71,6 +71,7 @@ var (
 	UserActive                      = define("user:status:active", "Changed activation status of user {scope} to {active}.")
 	UserRestricted                  = define("user:status:restricted", "Changed restricted status of user {scope} to {restricted}.")
 	UserAdmin                       = define("user:status:admin", "Changed admin status of user {scope} to {admin}.")
+	UserType                        = define("user:type:update", "Changed type of user {scope} to {user_type}.")
 	UserName                        = define("user:name:update", "Changed user name from {previous_name} to {scope}.")
 	UserPassword                    = define("user:password", "Changed password of user {scope}.")
 	UserPasswordResetRequest        = define("user:password:resetrequest", "Requested password reset for user {scope}.")

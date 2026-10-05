@@ -25,7 +25,7 @@ async function toggleSidebar(btn: HTMLElement) {
   });
 }
 
-export async function initRepoViewFileTree() {
+export function initRepoViewFileTree() {
   const sidebar = document.querySelector<HTMLElement>('.repo-view-file-tree-container');
   const repoViewContent = document.querySelector('.repo-view-content');
   if (!sidebar || !repoViewContent) return;

@@ -103,7 +103,7 @@ func TestMetas(t *testing.T) {
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
 		assert.Equal(t, "testOwner", metas["user"])
-		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["format"])
+		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["externalTrackerLinkFormat"])
 	}
 
 	testSuccess(markup.IssueNameStyleNumeric)

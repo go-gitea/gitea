@@ -44,6 +44,10 @@ func (r *runStdError) Stderr() string {
 	return r.stderr
 }
 
+func NewRunStdError(err error, stderr string) RunStdError {
+	return &runStdError{err: err, stderr: util.NormalizeStringEOL(stderr)}
+}
+
 func ErrorAsStderr(err error) (string, bool) {
 	if runErr, ok := errors.AsType[RunStdError](err); ok {
 		return runErr.Stderr(), true
@@ -90,8 +94,10 @@ const (
 	StderrBadRevision        StderrPrefix = "fatal: bad revision"
 	StderrNoSuchPath         StderrPrefix = "fatal: no such path"
 
-	StderrNoSuchRemote1 StderrPrefix = "fatal: no such remote" // git < 2.30, exit status 128
-	StderrNoSuchRemote2 StderrPrefix = "error: no such remote" // git >= 2.30. exit status 2
+	StderrNoSuchRemote StderrPrefix = "error: no such remote"
+
+	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
+	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"
 
 	StderrUnknownRevisionOrPath StderrRegexp = "^fatal: .*: unknown revision or path not in the working tree"
 	StderrNoMergeBase           StderrRegexp = "^fatal: .*: no merge base"
@@ -126,9 +132,11 @@ func IsStderr(err error, checks ...StderrCheck) bool {
 		return false
 	}
 
-	for _, checkIntf := range checks {
-		if matchStderrCheck(stderr, checkIntf) {
-			return true
+	for line := range strings.SplitSeq(stderr, "\n") { // git can emit multiple-line message in stderr
+		for _, checkIntf := range checks {
+			if matchStderrCheck(line, checkIntf) {
+				return true
+			}
 		}
 	}
 	return false

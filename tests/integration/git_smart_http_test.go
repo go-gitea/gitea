@@ -34,9 +34,10 @@ func TestGitSmartHTTP(t *testing.T) {
 }
 
 func testGitSmartHTTP(t *testing.T, u *url.URL) {
-	kases := []struct {
+	cases := []struct {
 		method, path string
 		code         int
+		contains     string
 	}{
 		{
 			path: "user2/repo1/info/refs",
@@ -50,6 +51,11 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 		{
 			path: "user2/repo1/HEAD",
 			code: http.StatusOK,
+		},
+		{
+			path:     "user2/repo2.wiki/info/refs?service=git-upload-pack",
+			code:     http.StatusOK,
+			contains: "ERR wiki doesn't exist",
 		},
 		{
 			path: "user2/repo1/objects/info/alternates",
@@ -73,17 +79,20 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 		},
 	}
 
-	for _, kase := range kases {
-		t.Run(kase.path, func(t *testing.T) {
-			req, err := http.NewRequest(util.IfZero(kase.method, "GET"), u.String()+kase.path, nil)
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			req, err := http.NewRequest(util.IfZero(tc.method, "GET"), u.String()+tc.path, nil)
 			require.NoError(t, err)
 			req.SetBasicAuth("user2", userPassword)
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			assert.Equal(t, kase.code, resp.StatusCode)
-			_, err = io.ReadAll(resp.Body)
+			assert.Equal(t, tc.code, resp.StatusCode)
+			respBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
+			if tc.contains != "" {
+				assert.Contains(t, string(respBody), tc.contains)
+			}
 		})
 	}
 }

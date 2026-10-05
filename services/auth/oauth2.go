@@ -120,11 +120,13 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 
 		// Otherwise, check if this is an OAuth access token
 		accessTokenScope, uid, grantID := GetOAuthAccessTokenScopeAndUserID(ctx, tokenSHA)
-		if uid != 0 {
-			store.GetData()["ApiTokenScope"] = accessTokenScope
-			setAuthCredential(store, credentialOAuth2Grant, grantID)
+		user, err := user_model.GetUserByID(ctx, uid)
+		if err != nil || !user.IsIndividual() {
+			return nil, err
 		}
-		return user_model.GetUserByID(ctx, uid)
+		store.GetData()["ApiTokenScope"] = accessTokenScope
+		setAuthCredential(store, credentialOAuth2Grant, grantID)
+		return user, nil
 	}
 	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
