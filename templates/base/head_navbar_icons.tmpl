@@ -37,7 +37,7 @@
 	{{end}}
 
 	{{$notificationUnreadCount := call $data.GetNotificationUnreadCount -}}
-	<a class="item" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" aria-keyshortcuts="g n">
+	<a class="item" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}" data-shortcut-keys="g n">
 		<div class="tw-relative flex-text-block">
 			{{svg "octicon-bell"}}
 			<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>

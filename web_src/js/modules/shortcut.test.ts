@@ -12,7 +12,7 @@ function press(key: string, options: KeyboardEventInit = {}, target: HTMLElement
 
 beforeAll(() => {
   document.body.innerHTML = `
-    <button aria-keyshortcuts="g i"> <span> </span><span>Issues</span><span>42</span></button>
+    <button data-shortcut-keys="g i"> <span> </span><span>Issues</span><span>42</span></button>
     <div class="global-shortcut-wrapper">
       <input placeholder="Search code">
       <kbd data-global-init="onGlobalShortcut" data-shortcut-keys="s">S</kbd>

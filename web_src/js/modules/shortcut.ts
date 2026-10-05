@@ -90,7 +90,7 @@ function showShortcutHelp() {
 
   const list = modal.querySelector<HTMLElement>('.shortcut-list')!;
   list.replaceChildren(createElementFromHTML(html`<tr><td><kbd>?</kbd></td><td>Keyboard Shortcuts</td></tr>`));
-  for (const elem of document.querySelectorAll<HTMLElement>('[aria-keyshortcuts]')) {
+  for (const elem of document.querySelectorAll<HTMLElement>('[data-shortcut-keys]')) {
     const target = elem.matches('kbd') ? elemFromKbd(elem) : elem;
 
     // TODO: which element should be triggered by shortcut: can be fine-tuned in the future
@@ -100,7 +100,7 @@ function showShortcutHelp() {
       target.getAttribute('placeholder') ||
       target.getAttribute('title') ||
       getShortcutTextContent(target);
-    list.append(createElementFromHTML(html`<tr><td><kbd>${elem.getAttribute('aria-keyshortcuts')}</kbd></td><td>${label}</td></tr>`));
+    list.append(createElementFromHTML(html`<tr><td><kbd>${elem.getAttribute('data-shortcut-keys')}</kbd></td><td>${label}</td></tr>`));
   }
   showFomanticModal(modal);
 }
@@ -176,7 +176,9 @@ export function initGlobalShortcut() {
       }
     }
 
-    const matchedElems = document.querySelectorAll<HTMLElement>(`[aria-keyshortcuts="${CSS.escape(fullKeys)}" i]`);
+    // It's said that "spaces in aria-keyshortcuts separate alternative shortcuts", but we want to support multi-key shortcuts
+    // So here we use our own data attribute to store the full shortcut keys, and match it case-insensitively.
+    const matchedElems = document.querySelectorAll<HTMLElement>(`[data-shortcut-keys="${CSS.escape(fullKeys)}" i]`);
     if (!matchedElems.length) return;
     const matchedElem = matchedElems[0]; // TODO: if there are multiple matches, maybe we could show a list of them and let the user choose one
     e.preventDefault();

@@ -98,13 +98,13 @@
 				<div class="overflow-menu-items">
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
 						{{$codeLinkUseCurrentRef := and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}
-						<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if $codeLinkUseCurrentRef}}/src/{{.RefTypeNameSubURL}}{{end}}" aria-keyshortcuts="g c">
+						<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if $codeLinkUseCurrentRef}}/src/{{.RefTypeNameSubURL}}{{end}}" data-shortcut-keys="g c">
 							{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
 						</a>
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-						<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" aria-keyshortcuts="g i">
+						<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues" data-shortcut-keys="g i">
 							{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
 							{{if .Repository.NumOpenIssues}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
@@ -113,13 +113,13 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker}}
-						<a class="item" href="{{.RepoExternalIssuesLink}}" target="_blank" aria-keyshortcuts="g i">
+						<a class="item" href="{{.RepoExternalIssuesLink}}" target="_blank" data-shortcut-keys="g i">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
 						</a>
 					{{end}}
 
 					{{if and .Repository.CanEnablePulls (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests)}}
-						<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls" aria-keyshortcuts="g p">
+						<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls" data-shortcut-keys="g p">
 							{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls"}}
 							{{if .Repository.NumOpenPulls}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
@@ -128,7 +128,7 @@
 					{{end}}
 
 					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActions}}active{{end}} item" href="{{.RepoLink}}/actions" aria-keyshortcuts="g a">
+						<a class="{{if .PageIsActions}}active{{end}} item" href="{{.RepoLink}}/actions" data-shortcut-keys="g a">
 							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 							{{if .Repository.NumOpenActionRuns}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
@@ -144,7 +144,7 @@
 
 					{{$projectsUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeProjects}}
 					{{if and (not ctx.Consts.RepoUnitTypeProjects.UnitGlobalDisabled) (.Permission.CanRead ctx.Consts.RepoUnitTypeProjects) ($projectsUnit.ProjectsConfig.IsProjectsAllowed "repo")}}
-						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active{{end}} item" aria-keyshortcuts="g b">
+						<a href="{{.RepoLink}}/projects" class="{{if .IsProjectsPage}}active{{end}} item" data-shortcut-keys="g b">
 							{{svg "octicon-project"}} {{ctx.Locale.Tr "repo.projects"}}
 							{{if .Repository.NumOpenProjects}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenProjects}}</span>
@@ -153,7 +153,7 @@
 					{{end}}
 
 					{{if and (.Permission.CanRead ctx.Consts.RepoUnitTypeReleases) (not .IsEmptyRepo)}}
-					<a class="{{if or .PageIsReleaseList .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/releases" aria-keyshortcuts="g r">
+					<a class="{{if or .PageIsReleaseList .PageIsTagList}}active{{end}} item" href="{{.RepoLink}}/releases" data-shortcut-keys="g r">
 						{{svg "octicon-tag"}} {{ctx.Locale.Tr "repo.releases"}}
 						{{if .NumReleases}}
 							<span class="ui small label">{{CountFmt .NumReleases}}</span>
@@ -162,13 +162,13 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
-						<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" aria-keyshortcuts="g w">
+						<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" data-shortcut-keys="g w">
 							{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalWiki}}
-						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" aria-keyshortcuts="g w">
+						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" data-shortcut-keys="g w">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}
