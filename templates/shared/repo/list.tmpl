@@ -16,7 +16,7 @@
 						{{end}}
 						<a class="tw-text-primary name" href="{{.Link}}">{{.Name}}</a>
 						<span class="label-list">
-							{{template "shared/badges" .Badges}}
+							{{template "shared/badges" (dict "Badges" .Badges "AllowImages" false)}}
 							{{if .IsArchived}}
 								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>
 							{{end}}

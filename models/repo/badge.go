@@ -81,21 +81,21 @@ func AddRepoBadge(ctx context.Context, repo *Repository, badge *badges.Badge) er
 // RemoveRepoBadge removes a badge from a repository.
 func RemoveRepoBadge(ctx context.Context, repo *Repository, badge *badges.Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		var userBadges []RepoBadge
+		var repoBadges []RepoBadge
 		if err := db.GetEngine(ctx).Table("repo_badge").
 			Join("INNER", "badge", "badge.id = `repo_badge`.badge_id").
 			Where("`repo_badge`.repo_id = ?", repo.ID).In("`badge`.slug", []string{badge.Slug}).
-			Find(&userBadges); err != nil {
+			Find(&repoBadges); err != nil {
 			return err
 		}
-		userBadgeIDs := make([]int64, 0, len(userBadges))
-		for _, ub := range userBadges {
-			userBadgeIDs = append(userBadgeIDs, ub.ID)
+		repoBadgeIDs := make([]int64, 0, len(repoBadges))
+		for _, repoBadge := range repoBadges {
+			repoBadgeIDs = append(repoBadgeIDs, repoBadge.ID)
 		}
-		if len(userBadgeIDs) == 0 {
+		if len(repoBadgeIDs) == 0 {
 			return nil
 		}
-		if _, err := db.GetEngine(ctx).Table("repo_badge").In("id", userBadgeIDs).Delete(); err != nil {
+		if _, err := db.GetEngine(ctx).Table("repo_badge").In("id", repoBadgeIDs).Delete(); err != nil {
 			return err
 		}
 		return nil
@@ -123,4 +123,12 @@ func GetBadgeRepos(ctx context.Context, opts *GetBadgeReposOptions) ([]*Reposito
 	repos := make([]*Repository, 0, opts.PageSize)
 	count, err := sess.FindAndCount(&repos)
 	return repos, count, err
+}
+
+// CountBadgeRepos returns the number of repositories with a specific badge.
+func CountBadgeRepos(ctx context.Context, slug string) (int64, error) {
+	return db.GetEngine(ctx).
+		Join("INNER", "repo_badge", "repo_badge.repo_id = `repository`.id").
+		Join("INNER", "badge", "repo_badge.badge_id = badge.id").
+		Where("badge.slug = ?", slug).Count(new(Repository))
 }

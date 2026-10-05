@@ -156,6 +156,7 @@ type SearchRepoOptions struct {
 	db.ListOptions
 	Actor           *user_model.User
 	Keyword         string
+	BadgeSlug       string
 	OwnerID         int64
 	PriorityOwnerID int64
 	TeamID          int64
@@ -372,6 +373,10 @@ func UserOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	cond := builder.NewCond()
+
+	if opts.BadgeSlug != "" {
+		cond = cond.And(builder.In("repository.id", builder.Select("repo_id").From("repo_badge").Join("INNER", "badge", "badge.id = repo_badge.badge_id").Where(builder.Eq{"badge.slug": opts.BadgeSlug})))
+	}
 
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
@@ -849,6 +854,7 @@ func (repos RepositoryList) LoadBadges(ctx context.Context) error {
 	repoIDs := make([]int64, 0, len(repos))
 	for _, repo := range repos {
 		if repo.Badges == nil {
+			repo.Badges = make([]*badges.Badge, 0)
 			repoIDs = append(repoIDs, repo.ID)
 		}
 	}

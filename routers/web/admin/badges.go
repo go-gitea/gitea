@@ -111,53 +111,25 @@ func ViewBadge(ctx *context.Context) {
 		return
 	}
 
-	opts := &user_model.GetBadgeUsersOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
-		BadgeSlug: badge.Slug,
-	}
-	users, count, err := user_model.GetBadgeUsers(ctx, opts)
+	count, err := user_model.CountBadgeUsers(ctx, badge.Slug)
 	if err != nil {
-		ctx.ServerError("GetBadgeUsers", err)
+		ctx.ServerError("CountBadgeUsers", err)
 		return
 	}
-	ctx.Data["Users"] = users
 	ctx.Data["UsersTotal"] = int(count)
 
-	repoOpts := &repo_model.GetBadgeReposOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
-		BadgeSlug: badge.Slug,
-	}
-	repos, repoCount, err := repo_model.GetBadgeRepos(ctx, repoOpts)
+	repoCount, err := repo_model.CountBadgeRepos(ctx, badge.Slug)
 	if err != nil {
-		ctx.ServerError("GetBadgeRepos", err)
+		ctx.ServerError("CountBadgeRepos", err)
 		return
 	}
-	if err := repo_model.RepositoryList(repos).LoadOwners(ctx); err != nil {
-		ctx.ServerError("LoadOwners", err)
-		return
-	}
-	ctx.Data["Repos"] = repos
 	ctx.Data["ReposTotal"] = int(repoCount)
 
-	orgOpts := &org_model.GetBadgeOrgsOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
-		BadgeSlug: badge.Slug,
-	}
-	orgs, orgCount, err := org_model.GetBadgeOrgs(ctx, orgOpts)
+	orgCount, err := org_model.CountBadgeOrgs(ctx, badge.Slug)
 	if err != nil {
-		ctx.ServerError("GetBadgeOrgs", err)
+		ctx.ServerError("CountBadgeOrgs", err)
 		return
 	}
-	ctx.Data["Orgs"] = orgs
 	ctx.Data["OrgsTotal"] = int(orgCount)
 
 	ctx.HTML(http.StatusOK, tplBadgeView)

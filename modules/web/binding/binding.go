@@ -40,9 +40,12 @@ const (
 	ErrRange        = "RangeError"
 	ErrIn           = "InError"
 	ErrInclude      = "IncludeError"
+	ErrHexColor     = "HexColorError"
 )
 
 const multipartMaxMemory = 10 * 1024 * 1024
+
+var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
 type (
 	Errors []Error
@@ -178,6 +181,12 @@ func NewBinder() *Binder {
 	binder.AddRuleNonZero("Include", func(_ context.Context, field *ValidationField) *Error {
 		if !strings.Contains(field.ValueMustString(), strings.Join(field.ruleArgs, ",")) {
 			return newFieldError(field.StructField, ErrInclude, "Include")
+		}
+		return nil
+	})
+	binder.AddRuleNonZero("HexColor", func(_ context.Context, field *ValidationField) *Error {
+		if !hexColorPattern.MatchString(field.ValueMustString()) {
+			return newFieldError(field.StructField, ErrHexColor, "HexColor")
 		}
 		return nil
 	})

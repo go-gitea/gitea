@@ -96,16 +96,20 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 			ctx.ServerError("SearchUsers", err)
 			return
 		}
-		for _, u := range users {
-			if u.IsOrganization() {
-				if badges, _, err := org_model.GetOrgBadges(ctx, (*org_model.Organization)(u)); err == nil {
-					u.Badges = badges
-				}
+		individuals := make(user_model.UserList, 0, len(users))
+		organizations := make([]*user_model.User, 0, len(users))
+		for _, user := range users {
+			if user.IsOrganization() {
+				organizations = append(organizations, user)
 			} else {
-				if badges, _, err := user_model.GetUserBadges(ctx, u); err == nil {
-					u.Badges = badges
-				}
+				individuals = append(individuals, user)
 			}
+		}
+		if err := individuals.LoadBadges(ctx); err != nil {
+			log.Error("Failed loading user badges: %v", err)
+		}
+		if err := org_model.LoadBadges(ctx, organizations); err != nil {
+			log.Error("Failed loading organization badges: %v", err)
 		}
 	}
 	if isSitemap {

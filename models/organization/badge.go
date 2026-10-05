@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
 
 	"xorm.io/xorm/schemas"
@@ -43,6 +44,51 @@ func GetOrgBadges(ctx context.Context, org *Organization) ([]*badges.Badge, int6
 	badgesSlice := make([]*badges.Badge, 0, 8)
 	count, err := sess.FindAndCount(&badgesSlice)
 	return badgesSlice, count, err
+}
+
+// LoadBadges loads achievement badges for organizations in a user list.
+func LoadBadges(ctx context.Context, users []*user_model.User) error {
+	if len(users) == 0 {
+		return nil
+	}
+	orgIDs := make([]int64, 0, len(users))
+	for _, user := range users {
+		if user.Badges == nil {
+			user.Badges = make([]*badges.Badge, 0)
+		}
+		orgIDs = append(orgIDs, user.ID)
+	}
+	var orgBadges []OrgBadge
+	if err := db.GetEngine(ctx).Table("org_badge").In("org_id", orgIDs).Find(&orgBadges); err != nil {
+		return err
+	}
+	badgeIDs := make([]int64, 0, len(orgBadges))
+	for _, ob := range orgBadges {
+		badgeIDs = append(badgeIDs, ob.BadgeID)
+	}
+	if len(badgeIDs) == 0 {
+		return nil
+	}
+	badgeList := make([]*badges.Badge, 0, len(badgeIDs))
+	if err := db.GetEngine(ctx).Table("badge").In("id", badgeIDs).Find(&badgeList); err != nil {
+		return err
+	}
+	badgeMap := make(map[int64]*badges.Badge, len(badgeList))
+	for _, badge := range badgeList {
+		badgeMap[badge.ID] = badge
+	}
+	userMap := make(map[int64]*user_model.User, len(users))
+	for _, user := range users {
+		userMap[user.ID] = user
+	}
+	for _, ob := range orgBadges {
+		if user, ok := userMap[ob.OrgID]; ok {
+			if badge, ok := badgeMap[ob.BadgeID]; ok {
+				user.Badges = append(user.Badges, badge)
+			}
+		}
+	}
+	return nil
 }
 
 // AddOrgBadge adds a badge to an organization.
@@ -81,21 +127,21 @@ func AddOrgBadge(ctx context.Context, org *Organization, badge *badges.Badge) er
 // RemoveOrgBadge removes a badge from an organization.
 func RemoveOrgBadge(ctx context.Context, org *Organization, badge *badges.Badge) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		var userBadges []OrgBadge
+		var orgBadges []OrgBadge
 		if err := db.GetEngine(ctx).Table("org_badge").
 			Join("INNER", "badge", "badge.id = `org_badge`.badge_id").
 			Where("`org_badge`.org_id = ?", org.ID).In("`badge`.slug", []string{badge.Slug}).
-			Find(&userBadges); err != nil {
+			Find(&orgBadges); err != nil {
 			return err
 		}
-		userBadgeIDs := make([]int64, 0, len(userBadges))
-		for _, ub := range userBadges {
-			userBadgeIDs = append(userBadgeIDs, ub.ID)
+		orgBadgeIDs := make([]int64, 0, len(orgBadges))
+		for _, orgBadge := range orgBadges {
+			orgBadgeIDs = append(orgBadgeIDs, orgBadge.ID)
 		}
-		if len(userBadgeIDs) == 0 {
+		if len(orgBadgeIDs) == 0 {
 			return nil
 		}
-		if _, err := db.GetEngine(ctx).Table("org_badge").In("id", userBadgeIDs).Delete(); err != nil {
+		if _, err := db.GetEngine(ctx).Table("org_badge").In("id", orgBadgeIDs).Delete(); err != nil {
 			return err
 		}
 		return nil
@@ -123,4 +169,12 @@ func GetBadgeOrgs(ctx context.Context, opts *GetBadgeOrgsOptions) ([]*Organizati
 	orgs := make([]*Organization, 0, opts.PageSize)
 	count, err := sess.FindAndCount(&orgs)
 	return orgs, count, err
+}
+
+// CountBadgeOrgs returns the number of organizations with a specific badge.
+func CountBadgeOrgs(ctx context.Context, slug string) (int64, error) {
+	return db.GetEngine(ctx).
+		Join("INNER", "org_badge", "org_badge.org_id = `user`.id").
+		Join("INNER", "badge", "org_badge.badge_id = badge.id").
+		Where("badge.slug = ?", slug).Count(new(Organization))
 }
