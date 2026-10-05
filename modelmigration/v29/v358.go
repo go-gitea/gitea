@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/modelmigration/base"
 
+	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -38,4 +39,16 @@ func (b *RepoBadge) TableIndices() []*schemas.Index {
 // AddRepositoryAndOrganizationBadges creates mappings for reputation labels.
 func AddRepositoryAndOrganizationBadges(_ context.Context, x base.EngineMigration) error {
 	return x.Sync(new(OrgBadge), new(RepoBadge))
+}
+
+// AddColorToBadges adds the display color for manually managed labels.
+func AddColorToBadges(_ context.Context, x base.EngineMigration) error {
+	type Badge struct {
+		Color string
+	}
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
+	}, new(Badge))
+	return err
 }

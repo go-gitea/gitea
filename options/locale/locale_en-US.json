@@ -2931,6 +2931,7 @@
   "admin.badges.slug": "Slug",
   "admin.badges.slug_been_taken": "The slug is already taken.",
   "admin.badges.description": "Description",
+  "admin.badges.color": "Color",
   "admin.badges.image_url": "Image URL",
   "admin.badges.new_success": "The badge \"%s\" has been created.",
   "admin.badges.update_success": "The badge has been updated.",

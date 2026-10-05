@@ -27,6 +27,7 @@ type AdminCreateBadgeForm struct {
 	middleware.FormDefaultValidator
 	Slug        string `binding:"Required;BadgeSlug" locale:"admin.badges.slug"`
 	Description string `binding:"Required" locale:"admin.badges.description"`
+	Color       string `binding:"MaxSize(7)" locale:"admin.badges.color"`
 	ImageURL    string `binding:"ValidUrl" locale:"admin.badges.image_url"`
 }
 
@@ -34,6 +35,7 @@ type AdminCreateBadgeForm struct {
 type AdminEditBadgeForm struct {
 	middleware.FormDefaultValidator
 	Description string `binding:"Required" locale:"admin.badges.description"`
+	Color       string `binding:"MaxSize(7)" locale:"admin.badges.color"`
 	ImageURL    string `binding:"ValidUrl" locale:"admin.badges.image_url"`
 }
 

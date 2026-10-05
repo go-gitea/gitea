@@ -69,6 +69,7 @@ func NewBadgePost(ctx *context.Context) {
 	b := &badges.Badge{
 		Slug:        form.Slug,
 		Description: form.Description,
+		Color:       form.Color,
 		ImageURL:    form.ImageURL,
 	}
 
@@ -187,6 +188,7 @@ func EditBadgePost(ctx *context.Context) {
 		return
 	}
 
+	b.Color = form.Color
 	b.ImageURL = form.ImageURL
 	b.Description = form.Description
 

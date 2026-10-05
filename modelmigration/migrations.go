@@ -434,7 +434,12 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
 		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
-		newMigration(358, "Add repository and organization badges", v29.AddRepositoryAndOrganizationBadges),
+		newMigration(358, "Add repository and organization badges and colors", func(ctx context.Context, x base.EngineMigration) error {
+			if err := v29.AddRepositoryAndOrganizationBadges(ctx, x); err != nil {
+				return err
+			}
+			return v29.AddColorToBadges(ctx, x)
+		}),
 	}
 	return preparedMigrations
 }
