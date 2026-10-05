@@ -255,7 +255,7 @@ func TestAgitPullCommitsBehind(t *testing.T) {
 
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
-		doGitCreateBranch(dstPath, "test-agit-behind")
+		doGitCreateBranch(dstPath, "test-agit-behind")(t)
 
 		_, err := generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "agit-behind-")
 		require.NoError(t, err)
