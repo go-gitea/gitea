@@ -41,12 +41,10 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	// wiki's object format should be the same as repository's
-	if err := git.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName); err != nil {
+	if err := git.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName, repo.DefaultWikiBranch); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
 	} else if err = git.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
-	} else if err = git.SetDefaultBranch(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch); err != nil {
-		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)
 	}
 	return nil
 }
