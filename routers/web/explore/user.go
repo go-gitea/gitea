@@ -90,6 +90,7 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
+	ctx.Data["BadgeSlug"] = ""
 	if ctx.Data["PageIsExploreOrganizations"] == true {
 		opts.BadgeSlug = ctx.FormTrim("badge")
 		ctx.Data["BadgeSlug"] = opts.BadgeSlug
