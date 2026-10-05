@@ -11,7 +11,7 @@ import (
 
 // NormalizeLegacyTeamAuthorize sets leftover read/write authorize values to none.
 // https://github.com/go-gitea/gitea/pull/34128 made non-admin teams use team_unit (authorize=none).
-// authorize>=write now means blanket access on every unit; migrating legacy read/write
+// Any positive authorize now means blanket access on every unit; migrating legacy read/write
 // to none preserves their existing team_unit-scoped access.
 func NormalizeLegacyTeamAuthorize(_ context.Context, x base.EngineMigration) error {
 	// AccessModeNone=0, AccessModeRead=1, AccessModeWrite=2, AccessModeAdmin=3
