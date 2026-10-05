@@ -424,8 +424,8 @@ export function initRepoIssueTitleEdit() {
       }
       if (prTargetUpdateUrl) {
         if (!pullTargetBranch) throw new Error('pullTargetBranch not found');
-        const oldTargetBranch = pullTargetBranch.getAttribute('data-old-branch-target');
-        const newTargetBranch = pullTargetBranch.getAttribute('data-branch') || oldTargetBranch;
+        const newTargetBranch = pullTargetBranch.getAttribute('data-branch');
+        const oldTargetBranch = pullTargetBranch.getAttribute('data-old-target-branch');
         if (newTargetBranch !== oldTargetBranch) {
           const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: String(newTargetBranch)})});
           if (!resp.ok) {
