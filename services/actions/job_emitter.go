@@ -362,26 +362,33 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 
 	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
-	// RefreshReusableCallerStatus wrote Started/Stopped on a different object; reload into jobs.
-	seen := make(container.Set[int64])
-	for _, caller := range resolver.callerUpdatedJobs {
-		if !seen.Add(caller.ID) {
+	// A child finished in this pass finished its caller in the database only, reload the caller for this pass's statuses.
+	hasFinishedCaller := false
+	checkedCallers := make(container.Set[int64])
+	for i := 0; i < len(result.UpdatedJobs); i++ {
+		child := result.UpdatedJobs[i]
+		caller := resolver.jobMap[child.ParentJobID]
+		if caller == nil || !child.Status.IsDone() || caller.Status.IsDone() || !checkedCallers.Add(caller.ID) {
 			continue
 		}
-		job := resolver.jobMap[caller.ID]
-		if job == nil {
-			continue
-		}
-		fresh, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, caller.ID)
+		freshCaller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, caller.ID)
 		if err != nil {
-			return nil, fmt.Errorf("checkJobsOfCurrentRunAttempt: reload cascaded caller %d: %w", caller.ID, err)
+			return nil, fmt.Errorf("checkJobsOfCurrentRunAttempt: reload caller %d: %w", caller.ID, err)
 		}
-		job.Status, job.Started, job.Stopped = fresh.Status, fresh.Started, fresh.Stopped
-		result.UpdatedJobs = append(result.UpdatedJobs, job)
+		if !freshCaller.Status.IsDone() {
+			continue
+		}
+		caller.Status, caller.Started, caller.Stopped = freshCaller.Status, freshCaller.Started, freshCaller.Stopped
+		result.UpdatedJobs = append(result.UpdatedJobs, caller)
+		hasFinishedCaller = true
 	}
-	// Caller and matrix expansion insert Pending or Blocked jobs and a deferred gate leaves a job Blocked, only a follow-up pass resolves them.
+	// Only a follow-up pass resolves:
+	//   - the children a caller expansion inserted, or the dependents of a caller that failed to expand
+	//   - the siblings a matrix expansion inserted and the expanded job's dependents, or the dependents of a placeholder that failed to expand
+	//   - a job the deferred gate left Blocked
+	//   - the dependents of a caller finished by its children, which was still unfinished to the resolver
 	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
-	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred {
+	if expandedAnyCaller || resolver.matrixChanged || resolver.gateDeferred || hasFinishedCaller {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = append(result.CancelledJobs, resolver.cancelledJobs...)
@@ -426,8 +433,6 @@ type jobStatusResolver struct {
 	// matrixUpdatedJobs holds jobs whose status matrix expansion persisted itself, so they are
 	// notified like the ones the caller updates from the resolved status map.
 	matrixUpdatedJobs []*actions_model.ActionRunJob
-	// callerUpdatedJobs: expanded callers whose in-memory status was refreshed from children this pass
-	callerUpdatedJobs []*actions_model.ActionRunJob
 	// admittedGroups are the groups a job was admitted to in this pass, which the gate only sees in the database once the pass commits
 	admittedGroups []string
 	gateDeferred   bool
@@ -485,7 +490,6 @@ func (r *jobStatusResolver) Resolve(ctx context.Context) (map[int64]actions_mode
 			ret[k] = v
 			r.statuses[k] = v
 		}
-		r.refreshExpandedCallerStatuses() // resolve() skips expanded callers; refresh so their dependents can unblock
 		if r.matrixInserted {
 			// Matrix expansion inserted sibling rows this round. They are not in statuses/needs, so
 			// another round would resolve a dependent of the expanded job against the placeholder's
@@ -496,47 +500,6 @@ func (r *jobStatusResolver) Resolve(ctx context.Context) (map[int64]actions_mode
 		}
 	}
 	return ret, nil
-}
-
-// refreshExpandedCallerStatuses aggregates children into each expanded caller (bottom-up for nesting).
-func (r *jobStatusResolver) refreshExpandedCallerStatuses() {
-	childrenByParent := make(map[int64][]*actions_model.ActionRunJob)
-	for _, child := range r.jobMap {
-		if child.ParentJobID == 0 {
-			continue
-		}
-		childrenByParent[child.ParentJobID] = append(childrenByParent[child.ParentJobID], child)
-	}
-	for range r.sortedIDs { // bound nested-caller cascade depth
-		changed := false
-		for _, id := range r.sortedIDs {
-			job := r.jobMap[id]
-			if job == nil || !job.IsReusableCaller || !job.IsExpanded {
-				continue
-			}
-			children := childrenByParent[id]
-			if len(children) == 0 {
-				continue
-			}
-			childJobs := make([]*actions_model.ActionRunJob, len(children))
-			for i, child := range children {
-				c := *child
-				c.Status = r.statuses[child.ID]
-				childJobs[i] = &c
-			}
-			newStatus := actions_model.AggregateJobStatus(childJobs)
-			if r.statuses[id] == newStatus {
-				continue
-			}
-			r.statuses[id] = newStatus
-			job.Status = newStatus
-			r.callerUpdatedJobs = append(r.callerUpdatedJobs, job)
-			changed = true
-		}
-		if !changed {
-			return
-		}
-	}
 }
 
 func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed bool) {
