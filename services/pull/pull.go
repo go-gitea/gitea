@@ -27,7 +27,6 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -573,15 +572,16 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 		return err
 	}
 
-	// fetch, not push: pushing objects the base repo already has races its background repacks
-	baseRepoHeadRefName := pr.GetGitHeadRefName()
-	if err := gitcmd.NewCommand("fetch", "--no-tags", "--no-write-fetch-head", "--no-write-commit-graph").
-		AddDynamicArguments(gitrepo.RepoLocalPath(pr.HeadRepo), "+"+git.BranchPrefix+pr.HeadBranch+":"+baseRepoHeadRefName).
-		WithRepo(pr.BaseRepo).RunWithStderr(ctx); err != nil {
-		return fmt.Errorf("unable to fetch head branch %s:%s into base repo %s:%s, err: %w",
-			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), baseRepoHeadRefName, err)
+	headCommitID, err := git.GetFullCommitID(ctx, pr.HeadRepo, git.BranchPrefix+pr.HeadBranch)
+	if err != nil {
+		return err
 	}
-	return nil
+	// fetch, not push: pushing objects FetchRemoteTempCommit already fetched races background repacks
+	if err := git.FetchRemoteTempCommit(ctx, pr.BaseRepo, pr.HeadRepo, headCommitID); err != nil {
+		return fmt.Errorf("unable to fetch head branch %s:%s into base repo %s, err: %w",
+			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), err)
+	}
+	return git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID)
 }
 
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
