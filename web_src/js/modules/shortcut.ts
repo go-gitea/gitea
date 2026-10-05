@@ -180,7 +180,8 @@ export function initGlobalShortcut() {
     // So here we use our own data attribute to store the full shortcut keys, and match it case-insensitively.
     const matchedElems = document.querySelectorAll<HTMLElement>(`[data-shortcut-keys="${CSS.escape(fullKeys)}" i]`);
     if (!matchedElems.length) return;
-    const matchedElem = matchedElems[0]; // TODO: if there are multiple matches, maybe we could show a list of them and let the user choose one
+    // TODO: if there are multiple matches, maybe we could introduce some priority rules to determine which one to trigger
+    const matchedElem = matchedElems[0];
     e.preventDefault();
     shortcutPresses.length = 0;
     matchedElem.click();
