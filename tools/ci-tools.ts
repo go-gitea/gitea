@@ -103,14 +103,14 @@ async function setPrLabels(): Promise<void> {
 
   const labelsUrl = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/issues/${env.PR_NUMBER}/labels`;
 
-  async function request(url: string, method = 'GET', body?: unknown, ignoreStatus?: number): Promise<Response> {
+  async function request(url: string, method = 'GET', body?: Record<string, unknown>, ignoreStatus?: number): Promise<Response> {
     const response = await fetch(url, {
       method,
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${env.GITHUB_TOKEN}`,
         'X-GitHub-Api-Version': '2022-11-28',
-        ...(Boolean(body) && {'Content-Type': 'application/json'}),
+        ...(body && {'Content-Type': 'application/json'}),
       },
       body: body ? JSON.stringify(body) : undefined,
     });
