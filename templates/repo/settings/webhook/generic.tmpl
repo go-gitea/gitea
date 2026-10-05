@@ -1,0 +1,42 @@
+{{if and .HookType (not (or (eq .HookType "gitea") (eq .HookType "gogs"))) .WebhookHandler}}
+	{{$handler := .WebhookHandler}}
+	<p>
+		{{if $handler.DocsURL}}
+			{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" $handler.DocsURL $handler.DisplayName}}
+		{{else}}
+			{{$handler.DisplayName}}
+		{{end}}
+	</p>
+	<form class="ui form" action="{{.BaseLink}}/{{.HookType}}/{{or .Webhook.ID "new"}}" method="post">
+		{{if $handler.RequiresPayloadURL}}
+		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
+			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
+			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
+		</div>
+		{{end}}
+		{{range $handler.FormFields}}
+			{{$val := index $.HookMeta .ID}}
+			{{if and (not $val) .Default}}{{$val = .Default}}{{end}}
+			<div class="field {{if .Required}}required{{end}}">
+				<label for="meta_{{.ID}}">{{.Label}}</label>
+				{{if eq .Type "bool"}}
+					<div class="ui checkbox">
+						<input id="meta_{{.ID}}" name="meta_{{.ID}}" type="checkbox" {{if $val}}checked{{end}}>
+					</div>
+				{{else if eq .Type "secret"}}
+					<input id="meta_{{.ID}}" name="meta_{{.ID}}" type="password" value="{{$val}}" autocomplete="off" {{if .Required}}required{{end}}>
+				{{else if eq .Type "number"}}
+					<input id="meta_{{.ID}}" name="meta_{{.ID}}" type="number" value="{{$val}}" {{if .Required}}required{{end}}>
+				{{else if eq .Type "url"}}
+					<input id="meta_{{.ID}}" name="meta_{{.ID}}" type="url" value="{{$val}}" {{if .Required}}required{{end}}>
+				{{else}}
+					<input id="meta_{{.ID}}" name="meta_{{.ID}}" type="text" value="{{$val}}" {{if .Required}}required{{end}}>
+				{{end}}
+				{{if .Help}}<div class="help">{{.Help}}</div>{{end}}
+			</div>
+		{{end}}
+		{{$auth := $handler.UseAuthorizationHeader}}
+		{{if not $auth}}{{$auth = "optional"}}{{end}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" $auth "UseRequestSecret" $handler.UseRequestSecret}}
+	</form>
+{{end}}

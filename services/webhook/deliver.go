@@ -161,12 +161,15 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	t.IsDelivered = true
 
-	newRequest := webhookRequesters[w.Type]
-	if t.PayloadVersion == 1 || newRequest == nil {
-		newRequest = newDefaultRequest
+	var req *http.Request
+	var body []byte
+	if t.PayloadVersion == 1 {
+		req, body, err = newDefaultRequest(ctx, w, t)
+	} else if h := GetHandler(w.Type); h != nil {
+		req, body, err = h.NewRequest(ctx, w, t)
+	} else {
+		req, body, err = newDefaultRequest(ctx, w, t)
 	}
-
-	req, body, err := newRequest(ctx, w, t)
 	if err != nil {
 		return fmt.Errorf("cannot create http request for webhook %s[%d %s]: %w", w.Type, w.ID, w.URL, err)
 	}
@@ -272,6 +275,11 @@ var webhookHTTPClient *http.Client
 
 // Init starts the hooks delivery thread
 func Init() error {
+	RegisterBuiltinHandlers()
+	if err := LoadHandlersFromDB(context.Background()); err != nil {
+		log.Error("LoadHandlersFromDB: %v", err)
+	}
+
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
 	transport := egress.NewWebhookPolicy().NewHTTPTransport()

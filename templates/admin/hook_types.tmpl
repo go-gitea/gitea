@@ -1,0 +1,32 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.hook_types"}}
+			<div class="ui right">
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/hook-types/new">{{ctx.Locale.Tr "admin.hook_types.new"}}</a>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<p>{{ctx.Locale.Tr "admin.hook_types.desc"}}</p>
+			<div class="divider"></div>
+			<div class="flex-divided-list">
+				{{range .HookTypes}}
+					<div class="item flex-text-block">
+						<span class="{{if .IsActive}}tw-text-green{{else}}tw-text-text-light{{end}}">{{svg "octicon-dot-fill" 22}}</span>
+						<div class="gt-ellipsis tw-flex-1">
+							<a href="{{AppSubUrl}}/-/admin/hook-types/{{.ID}}">{{.DisplayName}}</a>
+							<span class="tw-ml-2 tw-text-grey-light">{{.Name}}{{if .IsBuiltin}} · {{ctx.Locale.Tr "admin.hook_types.builtin"}}{{end}}</span>
+						</div>
+						{{if .IsBuiltin}}
+							<a class="muted link-action" href data-url="{{AppSubUrl}}/-/admin/hook-types/reset" data-params="id={{.ID}}" data-modal-confirm="{{ctx.Locale.Tr "admin.hook_types.reset_confirm"}}">{{ctx.Locale.Tr "admin.hook_types.reset"}}</a>
+						{{end}}
+						<a class="muted" href="{{AppSubUrl}}/-/admin/hook-types/{{.ID}}">{{svg "octicon-pencil"}}</a>
+						<a class="tw-text-red tw-pr-2 link-action negative" href data-url="{{AppSubUrl}}/-/admin/hook-types/delete" data-params="id={{.ID}}" data-modal-confirm="{{ctx.Locale.Tr "admin.hook_types.delete_confirm"}}">{{svg "octicon-trash"}}</a>
+					</div>
+				{{else}}
+					<p>{{ctx.Locale.Tr "admin.hook_types.empty"}}</p>
+				{{end}}
+			</div>
+		</div>
+	</div>
+{{template "admin/layout_footer" .}}

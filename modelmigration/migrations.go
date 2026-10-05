@@ -432,6 +432,7 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 28.0.0 ends at migration ID number 355 (database version 356)
 
 		newMigration(356, "Add index on action_run commit_sha", v28.AddActionRunCommitSHAIndex),
+		newMigration(357, "Add hook_type table and widen webhook.type", v28.AddHookTypeTableAndWidenWebhookType),
 	}
 	return preparedMigrations
 }

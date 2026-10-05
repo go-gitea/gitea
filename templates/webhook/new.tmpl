@@ -2,8 +2,8 @@
 	{{.CustomHeaderTitle}}
 	<div class="ui right type dropdown">
 		<div class="text flex-text-inline">
-			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" ctx.RootData.HookType)}}
-			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" ctx.RootData.HookType)}}
+			{{template "shared/webhook/icon" (dict "Size" 20 "Handler" ctx.RootData.WebhookHandler)}}
+			{{if ctx.RootData.WebhookHandler}}{{ctx.RootData.WebhookHandler.DisplayName}}{{else}}{{ctx.RootData.HookType}}{{end}}
 		</div>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		{{template "repo/settings/webhook/link_menu" ctx.RootData}}
@@ -12,14 +12,6 @@
 <div class="ui attached segment" data-global-init="initCompWebHookEditorForm">
 	{{template "repo/settings/webhook/gitea" ctx.RootData}}
 	{{template "repo/settings/webhook/gogs" ctx.RootData}}
-	{{template "repo/settings/webhook/slack" ctx.RootData}}
-	{{template "repo/settings/webhook/discord" ctx.RootData}}
-	{{template "repo/settings/webhook/dingtalk" ctx.RootData}}
-	{{template "repo/settings/webhook/telegram" ctx.RootData}}
-	{{template "repo/settings/webhook/msteams" ctx.RootData}}
-	{{template "repo/settings/webhook/feishu" ctx.RootData}}
-	{{template "repo/settings/webhook/matrix" ctx.RootData}}
-	{{template "repo/settings/webhook/wechatwork" ctx.RootData}}
-	{{template "repo/settings/webhook/packagist" ctx.RootData}}
+	{{template "repo/settings/webhook/generic" ctx.RootData}}
 </div>
 {{template "repo/settings/webhook/history" ctx.RootData}}

@@ -1,0 +1,19 @@
+name: packagist
+display_name: Packagist
+docs_url: https://packagist.org
+icon_asset: packagist.png
+requires_payload_url: false
+use_authorization_header: optional
+form:
+  - id: username
+    label: Username
+    type: text
+    required: true
+  - id: api_token
+    label: API Token
+    type: secret
+    required: true
+  - id: package_url
+    label: Package URL
+    type: url
+    required: true

@@ -1,0 +1,14 @@
+name: discord
+display_name: Discord
+docs_url: https://discord.com
+icon_asset: discord.png
+requires_payload_url: true
+use_authorization_header: optional
+form:
+  - id: username
+    label: Username
+    type: text
+    default: Gitea
+  - id: icon_url
+    label: Icon URL
+    type: url

@@ -48,7 +48,7 @@
 		</details>
 		<!-- Webhooks and OAuth can be both disabled here, so add this if statement to display different ui -->
 		{{if and (not DisableWebhooks) .EnableOAuth2}}
-			<details class="item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminApplications}}open{{end}}>
+			<details class="item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminHookTypes .PageIsAdminApplications}}open{{end}}>
 				<summary>{{ctx.Locale.Tr "admin.integrations"}}</summary>
 				<div class="menu">
 					<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/applications">
@@ -57,12 +57,18 @@
 					<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hooks">
 						{{ctx.Locale.Tr "admin.hooks"}}
 					</a>
+					<a class="{{if .PageIsAdminHookTypes}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hook-types">
+						{{ctx.Locale.Tr "admin.hook_types"}}
+					</a>
 				</div>
 			</details>
 		{{else}}
 			{{if not DisableWebhooks}}
 			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hooks">
 				{{ctx.Locale.Tr "admin.hooks"}}
+			</a>
+			<a class="{{if .PageIsAdminHookTypes}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hook-types">
+				{{ctx.Locale.Tr "admin.hook_types"}}
 			</a>
 			{{end}}
 			{{if .EnableOAuth2}}

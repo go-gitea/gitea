@@ -12,9 +12,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/webhook"
 )
 
 // CreateRepoForm form for creating repository
@@ -252,84 +250,10 @@ type NewGogshookForm struct {
 	WebhookForm
 }
 
-// NewSlackHookForm form for creating slack hook
-type NewSlackHookForm struct {
-	PayloadURL string `binding:"Required;ValidUrl"`
-	Channel    string `binding:"Required"`
-	Username   string
-	IconURL    string
-	Color      string
-	WebhookForm
-}
-
-func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
-	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
-		errs = validation.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
-	}
-	return errs
-}
-
-// NewDiscordHookForm form for creating discord hook
-type NewDiscordHookForm struct {
+// NewGenericHookForm form for schema-driven webhook types (custom / migrated builtins).
+type NewGenericHookForm struct {
 	middleware.FormDefaultValidator
-	PayloadURL string `binding:"Required;ValidUrl"`
-	Username   string
-	IconURL    string
-	WebhookForm
-}
-
-// NewDingtalkHookForm form for creating dingtalk hook
-type NewDingtalkHookForm struct {
-	middleware.FormDefaultValidator
-	PayloadURL string `binding:"Required;ValidUrl"`
-	WebhookForm
-}
-
-// NewTelegramHookForm form for creating telegram hook
-type NewTelegramHookForm struct {
-	middleware.FormDefaultValidator
-	BotToken string `binding:"Required"`
-	ChatID   string `binding:"Required"`
-	ThreadID string
-	WebhookForm
-}
-
-// NewMatrixHookForm form for creating Matrix hook
-type NewMatrixHookForm struct {
-	middleware.FormDefaultValidator
-	HomeserverURL string `binding:"Required;ValidUrl"`
-	RoomID        string `binding:"Required"`
-	MessageType   int
-	WebhookForm
-}
-
-// NewMSTeamsHookForm form for creating MS Teams hook
-type NewMSTeamsHookForm struct {
-	middleware.FormDefaultValidator
-	PayloadURL string `binding:"Required;ValidUrl"`
-	WebhookForm
-}
-
-// NewFeishuHookForm form for creating feishu hook
-type NewFeishuHookForm struct {
-	middleware.FormDefaultValidator
-	PayloadURL string `binding:"Required;ValidUrl"`
-	WebhookForm
-}
-
-// NewWechatWorkHookForm form for creating wechatwork hook
-type NewWechatWorkHookForm struct {
-	middleware.FormDefaultValidator
-	PayloadURL string `binding:"Required;ValidUrl"`
-	WebhookForm
-}
-
-// NewPackagistHookForm form for creating packagist hook
-type NewPackagistHookForm struct {
-	middleware.FormDefaultValidator
-	Username   string `binding:"Required"`
-	APIToken   string `binding:"Required"`
-	PackageURL string `binding:"Required;ValidUrl"`
+	PayloadURL string `binding:"ValidUrl"`
 	WebhookForm
 }
 

@@ -1,0 +1,72 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">{{.Title}}</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="required field">
+					<label for="name">{{ctx.Locale.Tr "admin.hook_types.name"}}</label>
+					<input id="name" name="name" value="{{.HookType.Name}}" {{if .HookType.ID}}readonly{{else}}required pattern="[a-z][a-z0-9_-]{0,62}"{{end}}>
+				</div>
+				<div class="required field">
+					<label for="display_name">{{ctx.Locale.Tr "admin.hook_types.display_name"}}</label>
+					<input id="display_name" name="display_name" value="{{.HookType.DisplayName}}" required>
+				</div>
+				<div class="field">
+					<label for="docs_url">{{ctx.Locale.Tr "admin.hook_types.docs_url"}}</label>
+					<input id="docs_url" name="docs_url" type="url" value="{{.HookType.DocsURL}}">
+				</div>
+				<div class="field">
+					<label for="icon_asset">{{ctx.Locale.Tr "admin.hook_types.icon_asset"}}</label>
+					<input id="icon_asset" name="icon_asset" value="{{.HookType.IconAsset}}" placeholder="slack.png or svg:gitea-matrix">
+				</div>
+				<div class="field">
+					<label for="form_schema">{{ctx.Locale.Tr "admin.hook_types.form_schema"}}</label>
+					<textarea id="form_schema" name="form_schema" rows="8">{{.HookType.FormSchema}}</textarea>
+					<div class="help">{{ctx.Locale.Tr "admin.hook_types.form_schema_help"}}</div>
+				</div>
+				<div class="field">
+					<label for="payload_jsonnet">{{ctx.Locale.Tr "admin.hook_types.payload_jsonnet"}}</label>
+					<textarea id="payload_jsonnet" name="payload_jsonnet" rows="12" class="js-code-block">{{.HookType.PayloadJsonnet}}</textarea>
+				</div>
+				<div class="field">
+					<label for="request_jsonnet">{{ctx.Locale.Tr "admin.hook_types.request_jsonnet"}}</label>
+					<textarea id="request_jsonnet" name="request_jsonnet" rows="12" class="js-code-block">{{.HookType.RequestJsonnet}}</textarea>
+					<div class="help">{{ctx.Locale.Tr "admin.hook_types.request_jsonnet_help"}}</div>
+				</div>
+				<div class="field">
+					<div class="ui checkbox">
+						<label for="requires_payload_url">{{ctx.Locale.Tr "admin.hook_types.requires_payload_url"}}</label>
+						<input id="requires_payload_url" name="requires_payload_url" type="checkbox" {{if .HookType.RequiresPayloadURL}}checked{{end}}>
+					</div>
+				</div>
+				<div class="field">
+					<label for="use_authorization_header">{{ctx.Locale.Tr "admin.hook_types.use_authorization_header"}}</label>
+					<select id="use_authorization_header" name="use_authorization_header">
+						<option value="" {{if not .HookType.UseAuthorizationHeader}}selected{{end}}>{{ctx.Locale.Tr "admin.hook_types.ui_hidden"}}</option>
+						<option value="optional" {{if eq .HookType.UseAuthorizationHeader "optional"}}selected{{end}}>{{ctx.Locale.Tr "admin.hook_types.ui_optional"}}</option>
+						<option value="required" {{if eq .HookType.UseAuthorizationHeader "required"}}selected{{end}}>{{ctx.Locale.Tr "admin.hook_types.ui_required"}}</option>
+					</select>
+				</div>
+				<div class="field">
+					<label for="use_request_secret">{{ctx.Locale.Tr "admin.hook_types.use_request_secret"}}</label>
+					<select id="use_request_secret" name="use_request_secret">
+						<option value="" {{if not .HookType.UseRequestSecret}}selected{{end}}>{{ctx.Locale.Tr "admin.hook_types.ui_hidden"}}</option>
+						<option value="optional" {{if eq .HookType.UseRequestSecret "optional"}}selected{{end}}>{{ctx.Locale.Tr "admin.hook_types.ui_optional"}}</option>
+						<option value="required" {{if eq .HookType.UseRequestSecret "required"}}selected{{end}}>{{ctx.Locale.Tr "admin.hook_types.ui_required"}}</option>
+					</select>
+				</div>
+				<div class="field">
+					<div class="ui checkbox">
+						<label for="is_active">{{ctx.Locale.Tr "admin.hook_types.active"}}</label>
+						<input id="is_active" name="is_active" type="checkbox" {{if .HookType.IsActive}}checked{{end}}>
+					</div>
+				</div>
+				<div class="field">
+					<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+					<a class="ui button" href="{{AppSubUrl}}/-/admin/hook-types">{{ctx.Locale.Tr "cancel"}}</a>
+				</div>
+			</form>
+		</div>
+	</div>
+{{template "admin/layout_footer" .}}

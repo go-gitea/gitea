@@ -451,29 +451,13 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/{type}/new", repo_setting.WebhooksNew)
 		m.Post("/gitea/new", web.Bind[*forms.NewWebhookForm](), repo_setting.GiteaHooksNewPost)
 		m.Post("/gogs/new", web.Bind[*forms.NewGogshookForm](), repo_setting.GogsHooksNewPost)
-		m.Post("/slack/new", web.Bind[*forms.NewSlackHookForm](), repo_setting.SlackHooksNewPost)
-		m.Post("/discord/new", web.Bind[*forms.NewDiscordHookForm](), repo_setting.DiscordHooksNewPost)
-		m.Post("/dingtalk/new", web.Bind[*forms.NewDingtalkHookForm](), repo_setting.DingtalkHooksNewPost)
-		m.Post("/telegram/new", web.Bind[*forms.NewTelegramHookForm](), repo_setting.TelegramHooksNewPost)
-		m.Post("/matrix/new", web.Bind[*forms.NewMatrixHookForm](), repo_setting.MatrixHooksNewPost)
-		m.Post("/msteams/new", web.Bind[*forms.NewMSTeamsHookForm](), repo_setting.MSTeamsHooksNewPost)
-		m.Post("/feishu/new", web.Bind[*forms.NewFeishuHookForm](), repo_setting.FeishuHooksNewPost)
-		m.Post("/wechatwork/new", web.Bind[*forms.NewWechatWorkHookForm](), repo_setting.WechatworkHooksNewPost)
-		m.Post("/packagist/new", web.Bind[*forms.NewPackagistHookForm](), repo_setting.PackagistHooksNewPost)
+		m.Post("/{type}/new", web.Bind[*forms.NewGenericHookForm](), repo_setting.HooksNewPost)
 	}
 
 	addWebhookEditRoutes := func() {
 		m.Post("/gitea/{id}", web.Bind[*forms.NewWebhookForm](), repo_setting.GiteaHooksEditPost)
 		m.Post("/gogs/{id}", web.Bind[*forms.NewGogshookForm](), repo_setting.GogsHooksEditPost)
-		m.Post("/slack/{id}", web.Bind[*forms.NewSlackHookForm](), repo_setting.SlackHooksEditPost)
-		m.Post("/discord/{id}", web.Bind[*forms.NewDiscordHookForm](), repo_setting.DiscordHooksEditPost)
-		m.Post("/dingtalk/{id}", web.Bind[*forms.NewDingtalkHookForm](), repo_setting.DingtalkHooksEditPost)
-		m.Post("/telegram/{id}", web.Bind[*forms.NewTelegramHookForm](), repo_setting.TelegramHooksEditPost)
-		m.Post("/matrix/{id}", web.Bind[*forms.NewMatrixHookForm](), repo_setting.MatrixHooksEditPost)
-		m.Post("/msteams/{id}", web.Bind[*forms.NewMSTeamsHookForm](), repo_setting.MSTeamsHooksEditPost)
-		m.Post("/feishu/{id}", web.Bind[*forms.NewFeishuHookForm](), repo_setting.FeishuHooksEditPost)
-		m.Post("/wechatwork/{id}", web.Bind[*forms.NewWechatWorkHookForm](), repo_setting.WechatworkHooksEditPost)
-		m.Post("/packagist/{id}", web.Bind[*forms.NewPackagistHookForm](), repo_setting.PackagistHooksEditPost)
+		m.Post("/{type}/{id}", web.Bind[*forms.NewGenericHookForm](), repo_setting.HooksEditPost)
 	}
 
 	addSettingsVariablesRoutes := func() {
@@ -854,6 +838,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
+		}, webhooksEnabled)
+
+		m.Group("/hook-types", func() {
+			m.Get("", admin.HookTypes)
+			m.Combo("/new").Get(admin.HookTypeNew).Post(admin.HookTypeNewPost)
+			m.Group("/{id}", func() {
+				m.Combo("").Get(admin.HookTypeEdit).Post(admin.HookTypeEditPost)
+			})
+			m.Post("/delete", admin.HookTypeDelete)
+			m.Post("/reset", admin.HookTypeReset)
 		}, webhooksEnabled)
 
 		m.Group("/{configType:default-hooks|system-hooks}", func() {

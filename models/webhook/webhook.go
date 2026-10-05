@@ -133,7 +133,7 @@ type Webhook struct {
 	Events                    string `xorm:"TEXT"`
 	*webhook_module.HookEvent `xorm:"-"`
 	IsActive                  bool                      `xorm:"INDEX"`
-	Type                      webhook_module.HookType   `xorm:"VARCHAR(16) 'type'"`
+	Type                      webhook_module.HookType   `xorm:"VARCHAR(64) 'type'"`
 	Meta                      string                    `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus                webhook_module.HookStatus // Last delivery status
 

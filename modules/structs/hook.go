@@ -53,8 +53,7 @@ type CreateHookOptionConfig map[string]string
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: ["dingtalk","discord","gitea","gogs","msteams","slack","telegram","feishu","wechatwork","packagist"]
-	// The type of the webhook to create
+	// Webhook type id (built-in or admin-defined custom type)
 	Type string `json:"type" binding:"Required"`
 	// required: true
 	// Configuration settings for the webhook
