@@ -209,7 +209,3 @@ func runGitTests(m interface{ Run() int }) int {
 func LockConfigAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
 	return globallock.LockAndDo(ctx, "repo-config:"+repo.GitRepoManagedID(), fn)
 }
-
-func LockWriteAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
-	return globallock.LockAndDo(ctx, "repo-write:"+repo.GitRepoManagedID(), fn)
-}
