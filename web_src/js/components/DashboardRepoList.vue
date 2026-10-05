@@ -71,6 +71,7 @@ const pageDataDefaults = {
   canCreateRepo: true,
   organizationsTotalCount: 0,
   organizationId: 0,
+  isOrgArchived: false,
   searchLimit: 0,
   uid: 0,
   teamId: 0,
@@ -112,7 +113,7 @@ const pageDataDefaults = {
 };
 
 const {
-  subUrl, organizations, isOrganization, canCreateOrganization, canCreateRepo, organizationsTotalCount, organizationId,
+  subUrl, organizations, isOrganization, canCreateOrganization, canCreateRepo, organizationsTotalCount, organizationId, isOrgArchived,
   searchLimit, uid, teamId, isMirrorsEnabled,
   textNoOrg, textNoRepo, textRepository, textOrganization, textMyRepos, textNewRepo, textSearchRepos,
   textFilter, textShowArchived, textShowPrivate,
@@ -136,11 +137,14 @@ const textPrivateFilterTitles = new Map<PrivateFilter, string>([
   ['both', textShowBothPrivatePublic],
 ]);
 
+// in an archived org, hiding archived repos would usually leave the list empty
+const defaultArchivedFilter: ArchivedFilter = isOrgArchived ? 'both' : 'unarchived';
+
 const initialParams = new URLSearchParams(window.location.search);
 const tab = shallowRef((initialParams.get('repo-search-tab') || 'repos') as Tab);
 const reposFilter = shallowRef((initialParams.get('repo-search-filter') || 'all') as RepoFilter);
 const privateFilter = shallowRef((initialParams.get('repo-search-private') || 'both') as PrivateFilter);
-const archivedFilter = shallowRef((initialParams.get('repo-search-archived') || 'unarchived') as ArchivedFilter);
+const archivedFilter = shallowRef((initialParams.get('repo-search-archived') || defaultArchivedFilter) as ArchivedFilter);
 const searchQuery = shallowRef(initialParams.get('repo-search-query') || '');
 const page = shallowRef(Number(initialParams.get('repo-search-page')) || 1);
 const showArchivedOrgs = shallowRef(initialParams.get('show-archived-orgs') === 'true');
@@ -220,7 +224,7 @@ function updateHistory() {
     params.set('repo-search-private', privateFilter.value);
   }
 
-  if (archivedFilter.value === 'unarchived') {
+  if (archivedFilter.value === defaultArchivedFilter) {
     params.delete('repo-search-archived');
   } else {
     params.set('repo-search-archived', archivedFilter.value);
