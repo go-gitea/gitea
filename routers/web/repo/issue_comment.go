@@ -101,21 +101,20 @@ func NewComment(ctx *context.Context) {
 			if branchOtherUnmergedPR != nil {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.open_unmerged_pull_exists", branchOtherUnmergedPR.Index))
 			} else {
+				// sync ref of PR <refs/pulls/pr_index/head> in base repo for a reopened PR
+				if pull.Flow == issues_model.PullRequestFlowGithub {
+					if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepoID, pull.HeadBranch); !exist {
+						ctx.Flash.Error("The origin branch is delete, cannot reopen.")
+						return
+					}
+					if err := pull_service.PushToBaseRepo(ctx, pull); err != nil {
+						ctx.ServerError("PushToBaseRepo", err)
+						return
+					}
+				}
 				// Regenerate patch and test conflict.
 				issue.PullRequest.HeadCommitID = ""
 				pull_service.StartPullRequestCheckImmediately(ctx, issue.PullRequest)
-			}
-
-			// sync ref of PR <refs/pulls/pr_index/head> in base repo for a reopened PR
-			if branchOtherUnmergedPR != nil && pull.Flow == issues_model.PullRequestFlowGithub {
-				if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.BaseBranch); !exist {
-					ctx.Flash.Error("The origin branch is delete, cannot reopen.")
-					return
-				}
-				if err := pull_service.PushToBaseRepo(ctx, pull); err != nil {
-					ctx.ServerError("PushToBaseRepo", err)
-					return
-				}
 			}
 		}
 
