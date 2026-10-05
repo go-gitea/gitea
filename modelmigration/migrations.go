@@ -33,6 +33,7 @@ import (
 	"gitea.dev/modelmigration/v1_8"
 	"gitea.dev/modelmigration/v1_9"
 	"gitea.dev/modelmigration/v28"
+	"gitea.dev/modelmigration/v29"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -431,7 +432,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(355, "Add AutoMerge merged_commit_id column", v28.AddAutoMergeMergedCommitID),
 		// Gitea 28.0.0 ends at migration ID number 355 (database version 356)
 
-		newMigration(356, "Add index on action_run commit_sha", v28.AddActionRunCommitSHAIndex),
+		newMigration(356, "Add index on action_run commit_sha", v29.AddActionRunCommitSHAIndex),
+		newMigration(357, "Normalize legacy team authorize values", v29.NormalizeLegacyTeamAuthorize),
 	}
 	return preparedMigrations
 }
