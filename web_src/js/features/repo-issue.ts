@@ -95,11 +95,9 @@ export function initRepoIssueFilterItemLabel() {
 
 export function initRepoIssueCommentDelete() {
   // Delete comment
-  document.addEventListener('click', async (e) => {
-    if (!(e.target as HTMLElement).matches('.delete-comment')) return;
+  addDelegatedEventListener(document, 'click', '.delete-comment', async (deleteButton, e) => {
     e.preventDefault();
 
-    const deleteButton = e.target as HTMLElement;
     if (window.confirm(deleteButton.getAttribute('data-locale')!)) {
       try {
         const response = await POST(deleteButton.getAttribute('data-url')!);
