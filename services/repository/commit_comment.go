@@ -6,6 +6,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
@@ -63,7 +64,33 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 }
 
 func commitCommentPatch(ctx context.Context, gitRepo *git.Repository, parentSHA, fullSHA, treePath string, line int64) (string, error) {
-	if parentSHA != "" {
+	lookupPath := treePath
+	if parentSHA != "" && line < 0 {
+		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentSHA, fullSHA)
+		if err != nil {
+			return "", err
+		}
+		for _, file := range diffTree.Files {
+			if file.Status != "renamed" {
+				continue
+			}
+			headPath, err := commitCommentDiffTreePath(file.HeadPath)
+			if err != nil {
+				return "", err
+			}
+			if headPath != treePath {
+				continue
+			}
+			lookupPath, err = commitCommentDiffTreePath(file.BasePath)
+			if err != nil {
+				return "", err
+			}
+			break
+		}
+	}
+
+	// A one-path diff loses rename pairing; read its old-side context from the parent blob.
+	if parentSHA != "" && lookupPath == treePath {
 		patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, parentSHA, fullSHA, treePath, max(line, -line), line < 0, setting.UI.CodeCommentLines)
 		if err != nil {
 			log.Debug("GetFileDiffCutAroundLine failed for commit comment: %v", err)
@@ -77,7 +104,7 @@ func commitCommentPatch(ctx context.Context, gitRepo *git.Repository, parentSHA,
 	if line < 0 {
 		contextSHA = parentSHA
 	}
-	patch, err := gitdiff.GeneratePatchForUnchangedLine(ctx, gitRepo, contextSHA, treePath, line, setting.UI.CodeCommentLines)
+	patch, err := gitdiff.GeneratePatchForUnchangedLine(ctx, gitRepo, contextSHA, lookupPath, line, setting.UI.CodeCommentLines)
 	if err != nil {
 		log.Debug("GeneratePatchForUnchangedLine failed for commit comment: %v", err)
 	}
@@ -85,4 +112,11 @@ func commitCommentPatch(ctx context.Context, gitRepo *git.Repository, parentSHA,
 		return "", ErrCommitCommentCoordinates
 	}
 	return patch, nil
+}
+
+func commitCommentDiffTreePath(path string) (string, error) {
+	if len(path) > 0 && path[0] == '"' {
+		return strconv.Unquote(path)
+	}
+	return path, nil
 }
