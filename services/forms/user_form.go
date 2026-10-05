@@ -294,7 +294,7 @@ type WebauthnRegistrationForm struct {
 type WebauthnRenameForm struct {
 	middleware.FormDefaultValidator
 	ID   int64  `binding:"Required"`
-	Name string `binding:"Required;MaxSize(255)"`
+	Name string `binding:"TrimSpace;Required;MaxSize(255)"`
 }
 
 // PackageSettingForm form for package settings
