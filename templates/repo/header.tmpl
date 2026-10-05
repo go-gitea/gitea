@@ -137,7 +137,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypePackages}}
-						<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active{{end}} item" aria-keyshortcuts="g k">
+						<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active{{end}} item">
 							{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
 						</a>
 					{{end}}
