@@ -207,8 +207,7 @@ func CheckUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullReques
 	return ret, nil
 }
 
-// SyncCommitDivergence recalculates and stores how many commits the pull request is ahead of and behind its base branch
-func SyncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
+func syncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}

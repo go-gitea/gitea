@@ -252,13 +252,8 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		oldHeadCommitID := pr.HeadCommitID
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRef(ctx, pr); err != nil {
+		if err = pull_service.UpdateRefForAgit(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
-		}
-
-		// The new head may contain the base branch now (e.g. after merging it in), so refresh the ahead/behind counts
-		if err := pull_service.SyncCommitDivergence(ctx, pr); err != nil {
-			log.Error("SyncCommitDivergence: %v", err)
 		}
 
 		// Mark existing reviews as stale when PR content changes (same as regular GitHub flow)
