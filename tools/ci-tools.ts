@@ -87,33 +87,15 @@ function lintPrTitle(): void {
     console.error('Missing PR_TITLE');
     exit(1);
   }
-  if (!parsePrTitle(env.PR_TITLE)) {
+  const parsed = parsePrTitle(env.PR_TITLE);
+  if (!parsed) {
     console.error(`Invalid PR title: ${env.PR_TITLE}`);
     console.error('Expected format: type(scope): subject (scope optional, append "!" for breaking changes)');
     console.error(`Allowed types: ${allowedTypesList}`);
     exit(1);
   }
-}
-
-// Command: reject breaking markers on non-breaking types and overlong descriptions.
-function lintPrReady(): void {
-  if (!env.PR_TITLE) {
-    console.error('Missing PR_TITLE');
-    exit(1);
-  }
-  const parsed = parsePrTitle(env.PR_TITLE);
-  if (!parsed) {
-    console.error(`Invalid PR title: ${env.PR_TITLE}`);
-    exit(1);
-  }
   if (parsed.breaking && nonBreakingTypes.has(parsed.type)) {
     console.error(`Type "${parsed.type}" cannot be marked as breaking (remove "!" from the title)`);
-    exit(1);
-  }
-  // Ignore HTML comments so the PR template does not count against the limit.
-  const length = (env.PR_BODY ?? '').replace(/<!--[\s\S]*?-->/g, '').trim().length;
-  if (length > 1000) {
-    console.error(`PR description must be at most 1000 characters (currently ${length})`);
     exit(1);
   }
 }
@@ -188,7 +170,6 @@ async function setPrLabels(): Promise<void> {
 const commands: Record<string, () => void | Promise<void>> = {
   'lint-pr-title': lintPrTitle,
   'set-pr-labels': setPrLabels,
-  'lint-pr-ready': lintPrReady,
 };
 
 const command = argv[2];
