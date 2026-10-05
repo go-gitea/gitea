@@ -7,11 +7,11 @@
 		{{end}}
 	</form>
 	{{if .PageIsExploreOrganizations}}
-	<form class="ui form tw-flex tw-items-center" method="get">
+	<form class="ui form tw-flex tw-items-center" method="get" data-global-init="initExploreOrganizationSearch">
 		<input type="hidden" name="q" value="{{.Keyword}}">
 		<input type="hidden" name="sort" value="{{.SortType}}">
 		<label for="explore-reputation-label">{{ctx.Locale.Tr "explore.reputation_label"}}</label>
-		<select id="explore-reputation-label" name="badge" onchange="this.form.submit()">
+		<select id="explore-reputation-label" name="badge">
 			<option value="">{{ctx.Locale.Tr "filter.clear"}}</option>
 			{{range .Badges}}
 				<option value="{{.Slug}}" {{if eq $.BadgeSlug .Slug}}selected{{end}}>{{.Slug}}</option>
