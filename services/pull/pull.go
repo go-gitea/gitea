@@ -571,23 +571,17 @@ func PushToBaseRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return err
 	}
-	if err := pr.Issue.LoadPoster(ctx); err != nil {
+
+	headCommitID, err := git.GetFullCommitID(ctx, pr.HeadRepo, git.BranchPrefix+pr.HeadBranch)
+	if err != nil {
 		return err
 	}
-
-	baseRepoHeadRefName := pr.GetGitHeadRefName()
-	if err := git.PushManaged(ctx, pr.HeadRepo, pr.BaseRepo, git.PushOptions{
-		Branch: git.BranchPrefix + pr.HeadBranch + ":" + baseRepoHeadRefName,
-		Force:  true,
-		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
-		Env: repo_module.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
-	}); err != nil {
-		// Since we use internal force-push, there should be no git error.
-		// If any error happens, it must be an internal error (e.g.: broken git hooks) but not user error.
-		return fmt.Errorf("unable to push from head branch %s:%s to base repo %s:%s, err: %w",
-			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), baseRepoHeadRefName, err)
+	// fetch, not push: pushing objects FetchRemoteCommit already fetched races background repacks
+	if err := git.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, headCommitID); err != nil {
+		return fmt.Errorf("unable to fetch head branch %s:%s into base repo %s, err: %w",
+			pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
-	return nil
+	return git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), headCommitID)
 }
 
 // UpdatePullsRefs update all the PRs head file pointers like /refs/pull/1/head so that it will be dependent by other operations
