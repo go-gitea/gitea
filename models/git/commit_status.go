@@ -421,13 +421,14 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map
 	return repoStatuses, nil
 }
 
-// GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
+// GetLatestCommitStatusForRepoCommitIDs returns the commit statuses with a unique context for a given list of repo-sha pairs
+// If the provided commit IDs are too many, only the first part and the last part of the commit IDs will be queried.
 func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, allCommitIDs []string) (map[string][]*CommitStatus, error) {
 	const maxCommitIDs = 500
 	const maxBatchSize = 200
 	queryCommitIDs := allCommitIDs
 	if len(allCommitIDs) > maxCommitIDs {
-		// The commit IDs are usually from "commits list" or "comparing" page (e.g.: create a PR or compare two branches), nobody can read so many commits at once.
+		// The commit IDs are usually from "commits list" or "compare" page (create a PR or compare commits), nobody can read so many commits at once.
 		// The commit IDs are usually sorted by time, so we can take the first half and the last half of the commit IDs to get the latest statuses.
 		log.Warn("GetLatestCommitStatusForRepoCommitIDs: too many commit IDs (%d) for repo %d, truncating to %d", len(allCommitIDs), repoID, maxCommitIDs)
 		queryCommitIDs = allCommitIDs[:maxCommitIDs/2]
