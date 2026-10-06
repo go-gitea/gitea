@@ -98,8 +98,9 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	assigneeCommentMap := make(map[int64]*issues_model.Comment)
 	assignees := make(map[int64]*user_model.User)
 	var reviewNotifiers []*issue_service.ReviewRequestNotifier
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr); err != nil {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		err := issues_model.NewPullRequest(ctx, repo, issue, labelIDs, uuids, pr)
+		if err != nil {
 			return err
 		}
 
@@ -126,20 +127,17 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		pr.Issue = issue
 		issue.PullRequest = pr
 
-		var err error
 		if pr.Flow == issues_model.PullRequestFlowGithub {
-			err = PushToBaseRepo(ctx, pr)
-		} else {
-			err = UpdateRef(ctx, pr)
-		}
-		if err != nil {
-			return err
-		}
-
-		// Update Commit Divergence
-		err = syncCommitDivergence(ctx, pr)
-		if err != nil {
-			return err
+			if err = PushToBaseRepo(ctx, pr); err != nil {
+				return err
+			}
+			if err = syncCommitDivergence(ctx, pr); err != nil {
+				return err
+			}
+		} else { // agit
+			if err = UpdateRefForAgit(ctx, pr); err != nil {
+				return err
+			}
 		}
 
 		// add first push codes comment
@@ -154,7 +152,8 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			}
 		}
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		// cleanup: this will only remove the reference, the real commit will be clean up when next GC
 		if err1 := git.RemoveRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName()); err1 != nil {
 			log.Error("RemoveRef: %v", err1)
@@ -602,19 +601,15 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 	}
 }
 
-// UpdateRef update refs/pull/id/head directly for agit flow pull request
-func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
-	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
+// UpdateRefForAgit update refs/pull/id/head directly for agit flow pull request
+func UpdateRefForAgit(ctx context.Context, pr *issues_model.PullRequest) (err error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
-
 	if err := git.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
-		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
+		return fmt.Errorf("unable to update ref %s for base repo %s, err: %w", pr.GetGitHeadRefName(), pr.BaseRepo.FullName(), err)
 	}
-
-	return err
+	return syncCommitDivergence(ctx, pr)
 }
 
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch
