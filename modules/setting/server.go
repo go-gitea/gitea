@@ -289,14 +289,12 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	appTempPathInternal = sec.Key("APP_TEMP_PATH").String()
 	if appTempPathInternal != "" {
-		absTempPath, err := filepath.Abs(appTempPathInternal)
-		if err == nil {
-			_, err = os.Stat(absTempPath)
+		if !filepath.IsAbs(appTempPathInternal) {
+			appTempPathInternal = filepath.Join(AppWorkPath, appTempPathInternal)
 		}
-		if err != nil {
+		if _, err := os.Stat(appTempPathInternal); err != nil {
 			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
 		}
-		appTempPathInternal = absTempPath // git commands run in other directories, where a relative path resolves wrongly
 	}
 
 	// TODO: GOLANG-HTTP-TMPDIR: Some Golang packages (like "http") use os.TempDir() to create temporary files when uploading files.
