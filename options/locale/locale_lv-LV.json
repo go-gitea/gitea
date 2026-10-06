@@ -575,7 +575,6 @@
   "settings.add_key_success": "SSH atslēga \"%s\" tika pievienota.",
   "settings.add_gpg_key_success": "GPG atslēga \"%s\" tika pievienota.",
   "settings.add_principal_success": "SSH sertifikāte identitāte \"%s\" tika pievienota.",
-  "settings.delete_key": "Noņemt",
   "settings.ssh_key_deletion": "Noņemt SSH atslēgu",
   "settings.gpg_key_deletion": "Noņemt GPG atslēgu",
   "settings.ssh_principal_deletion": "Noņemt SSH sertifikāta identitāti",

@@ -751,7 +751,6 @@
   "settings.add_key_success": "SSH anahtarı \"%s\" eklendi.",
   "settings.add_gpg_key_success": "GPG anahtarı \"%s\" eklendi.",
   "settings.add_principal_success": "SSH sertifika sorumlusu \"%s\" eklendi.",
-  "settings.delete_key": "Sil",
   "settings.ssh_key_deletion": "SSH Anahtarını Sil",
   "settings.gpg_key_deletion": "GPG Anahtarını Sil",
   "settings.ssh_principal_deletion": "SSH Sertifika Sorumlusunu Kaldır",

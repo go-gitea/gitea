@@ -793,7 +793,6 @@
   "settings.add_key_success": "SSH 密钥「%s」添加成功。",
   "settings.add_gpg_key_success": "GPG 密钥「%s」添加成功。",
   "settings.add_principal_success": "SSH 证书规则「%s」添加成功。",
-  "settings.delete_key": "删除",
   "settings.ssh_key_deletion": "删除 SSH 密钥",
   "settings.gpg_key_deletion": "删除 GPG 密钥",
   "settings.ssh_principal_deletion": "删除 SSH 证书规则",
