@@ -56,7 +56,7 @@ func WithBlock(hostList, key string) Option {
 	}
 }
 
-// WithLocalNeedsIPAllow requires private, loopback and CGNAT targets to match an IP allow entry (CIDR or named range), a host name match is not enough.
+// WithLocalNeedsIPAllow requires non-public targets (private, loopback, link-local, CGNAT and special-use ranges) to match an IP allow entry (CIDR or named range), a host name match is not enough.
 func WithLocalNeedsIPAllow() Option {
 	return func(p *Policy) {
 		p.localNeedsIPAllow = true
@@ -140,9 +140,9 @@ func (p *Policy) allowCheck(host string, ip netip.AddrPort, class addrClass) err
 		return p.notAllowedError(denyTarget(host, ip))
 	}
 	if !hostnameOk {
-		return fmt.Errorf("%s needs an explicit IP allow entry (private/loopback/CGNAT)", denyTarget(host, ip))
+		return fmt.Errorf("%s needs an explicit IP allow entry (non-public address)", denyTarget(host, ip))
 	}
-	return fmt.Errorf("%s needs an explicit allow entry (private/loopback/CGNAT)", denyTarget(host, ip))
+	return fmt.Errorf("%s needs an explicit allow entry (non-public address)", denyTarget(host, ip))
 }
 
 func (p *Policy) blockReason(host string, ip netip.AddrPort) error {
