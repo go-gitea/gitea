@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 
 	"gitea.dev/actionslib/pkg/expreval"
@@ -128,7 +127,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				}
 			}
 			// Keep accepting empty exclude mappings for workflow compatibility, although GitHub rejects them.
-			matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).GetMatrixes()
+			matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).MatrixCombinations()
 			if err != nil {
 				return nil, fmt.Errorf("getMatrixes: %w", err)
 			}
@@ -169,7 +168,7 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	if err := job.Strategy.resolve(expreval.New(NewInterpeter(jobID, nil, nil, gitCtx, results, vars, inputs).Evaluate)); err != nil {
 		return nil, err
 	}
-	matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).GetMatrixes()
+	matrixes, err := (&model.Job{Strategy: job.Strategy.actStrategy()}).MatrixCombinations()
 	if err != nil {
 		return nil, fmt.Errorf("getMatrixes: %w", err)
 	}
@@ -224,34 +223,24 @@ func replaceScalars(node *yaml.Node, replace func(string) string) {
 
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
 // strategy and interpolating the name, runs-on and continue-on-error with it.
-func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
-	srcRunsOn := model.RunsOnFromNode(src.RawRunsOn)
+func buildMatrixCombos(jobID string, src *Job, matrixes []model.MatrixCombination, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
 	order, names := make([]int, len(matrixes)), make([]string, len(matrixes))
 	for index, matrix := range matrixes {
-		order[index], names[index] = index, matrixName(matrix)
+		order[index], names[index] = index, matrixName(matrix.NameValues)
 	}
 	slices.SortStableFunc(order, func(a, b int) int { return strings.Compare(names[a], names[b]) })
 	combos := make([]*Job, 0, len(matrixes))
 	var err error
 	for _, index := range order {
-		matrix := matrixes[index]
+		matrix := matrixes[index].Values
 		combo := src.Clone()
-		if combo.Name == "" {
-			combo.Name = jobID
-		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
 		replaceScalars(&combo.Strategy.RawMatrix, escapeExpressions)
 		if src.Strategy.RawMatrix.Kind != 0 {
 			combo.Strategy.JobIndex, combo.Strategy.JobTotal = index, len(matrixes)
 		}
 		evaluator := expreval.New(NewInterpeter(jobID, &combo.Strategy, matrix, gitCtx, results, vars, inputs).Evaluate)
-		if len(matrix) == 0 && gitCtx != nil {
-			combo.Name, err = evaluator.Interpolate(combo.Name)
-			combo.Name = escapeExpressions(combo.Name)
-		} else {
-			combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator)
-		}
-		if err != nil {
+		if combo.Name, err = jobName(combo.Name, jobID, names[index], evaluator, len(matrix) > 0 || gitCtx != nil); err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}
 		if gitCtx != nil { // callers without one don't read runs-on
@@ -259,14 +248,15 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, gitCtx
 			if err := evaluator.EvaluateYamlNode(&rawRunsOn); err != nil {
 				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
 			}
-			runsOn := model.RunsOnFromNode(rawRunsOn)
-			if len(runsOn) == 0 && len(srcRunsOn) > 0 { // match no runner rather than every runner
-				runsOn = []string{""}
+			if rawRunsOn.Kind != 0 && runsOnProblem(&rawRunsOn) != "" {
+				combo.RawRunsOn = rawRunsOn
+			} else {
+				runsOn := model.RunsOnFromNode(rawRunsOn)
+				for i := range runsOn {
+					runsOn[i] = escapeExpressions(runsOn[i])
+				}
+				combo.RawRunsOn = model.RunsOnNode(runsOn, "")
 			}
-			for i := range runsOn {
-				runsOn[i] = escapeExpressions(runsOn[i])
-			}
-			combo.RawRunsOn = model.RunsOnNode(runsOn, "")
 		}
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
@@ -324,29 +314,36 @@ func encodeMatrix(matrix map[string]any) yaml.Node {
 	return node
 }
 
-func nameWithMatrix(name string, m map[string]any, evaluator expreval.Evaluator) (string, error) {
-	if len(m) == 0 {
+// jobName trims names, gives plain text and lone string literals the suffix, and blank names the job ID
+func jobName(name, jobID, suffix string, evaluator expreval.Evaluator, evaluate bool) (string, error) {
+	name = strings.TrimSpace(name)
+	if literal, ok := expreval.Literal(name); ok {
+		if literal == "" {
+			literal = jobID
+		}
+		return escapeExpressions(literal + suffix), nil
+	}
+	if !evaluate {
 		return name, nil
 	}
 
-	if !strings.Contains(name, "${{") || !strings.Contains(name, "}}") {
-		return escapeExpressions(name + " " + matrixName(m)), nil
-	}
-
 	name, err := evaluator.Interpolate(name)
+	if name = strings.TrimSpace(name); name == "" {
+		name = jobID
+	}
 	return escapeExpressions(name), err
 }
 
-func matrixName(m map[string]any) string {
-	ks := make([]string, 0, len(m))
-	for k := range m {
-		ks = append(ks, k)
+// matrixName formats the name suffix, skipping null and empty values
+func matrixName(values []any) string {
+	var names []string
+	for _, value := range values {
+		if name := exprparser.CoerceToString(value); name != "" {
+			names = append(names, name)
+		}
 	}
-	sort.Strings(ks)
-	vs := make([]string, 0, len(m))
-	for _, v := range ks {
-		vs = append(vs, fmt.Sprint(m[v]))
+	if len(names) == 0 {
+		return ""
 	}
-
-	return fmt.Sprintf("(%s)", strings.Join(vs, ", "))
+	return " (" + strings.Join(names, ", ") + ")"
 }

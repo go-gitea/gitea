@@ -190,7 +190,7 @@ c,d,e`,
 	}
 
 	for n, c := range cases {
-		diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff), "")
+		diff, err := ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff))
 		assert.NoError(t, err)
 
 		var baseReader *csv.Reader

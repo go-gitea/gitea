@@ -98,7 +98,7 @@ jobs:
 	assert.NotEmpty(t, persisted.RawConcurrency)
 }
 
-func TestPrepareRunAndInsert_JobIf(t *testing.T) {
+func TestPrepareRunAndInsert_JobIfAndRunsOn(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(int64) error { return nil })()
 
@@ -123,6 +123,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo
+  unset-runs-on:
+    runs-on: ${{ vars.UNSET }}
+    steps:
+      - run: echo
 `, false)
 
 	jobs := map[string]*actions_model.ActionRunJob{}
@@ -134,9 +138,12 @@ jobs:
 	assert.False(t, jobs["skip"].IsConcurrencyEvaluated)
 	assert.Equal(t, actions_model.StatusSkipped, jobs["skip-caller"].Status)
 	assert.Equal(t, actions_model.StatusSkipped, jobs["invalid"].Status)
-	summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs["invalid"].ID, 0)
-	require.NoError(t, err)
-	assert.Contains(t, summary.Content, "Error when evaluating `if` for job `invalid`")
+	assert.Equal(t, actions_model.StatusFailure, jobs["unset-runs-on"].Status)
+	for id, key := range map[string]string{"invalid": "if", "unset-runs-on": "runs-on"} {
+		summary, err := actions_model.GetActionRunJobSummary(t.Context(), run.RepoID, run.ID, run.LatestAttemptID, jobs[id].ID, 0)
+		require.NoError(t, err)
+		assert.Contains(t, summary.Content, "Error when evaluating `"+key+"` for job `"+id+"`")
+	}
 }
 
 func TestComputeReusableCallerOutputs(t *testing.T) {

@@ -568,7 +568,6 @@
   "settings.add_key_success": "Το κλειδί SSH \"%s\" προστέθηκε.",
   "settings.add_gpg_key_success": "Το κλειδί GPG \"%s\" προστέθηκε.",
   "settings.add_principal_success": "Προστέθηκε η αρχή πιστοποίησης SSH \"%s\".",
-  "settings.delete_key": "Διαγραφή",
   "settings.ssh_key_deletion": "Διαγραφή Κλειδιού SSH",
   "settings.gpg_key_deletion": "Διαγραφή Κλειδιού GPG",
   "settings.ssh_principal_deletion": "Διαγραφή Αρχών Πιστοποιητικού SSH",
