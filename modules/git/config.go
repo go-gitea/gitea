@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"runtime"
 	"strings"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
@@ -90,7 +90,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if runtime.GOOS == "windows" {
+	if consts.IsWindows {
 		if err := configSet(ctx, "core.longpaths", "true"); err != nil {
 			return err
 		}

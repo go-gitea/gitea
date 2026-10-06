@@ -8,6 +8,8 @@ import (
 	"os"
 	"syscall"
 	"time"
+
+	"gitea.dev/modules/consts"
 )
 
 // On Windows, when a file or directory is in use (opened), the file or directory is not able to be removed or renamed.
@@ -28,7 +30,7 @@ func retryWhenFileBusyInternal(count int, delay time.Duration, f func() error) (
 			break
 		}
 		isErrBusy := errors.Is(err, syscall.EBUSY) || errors.Is(err, syscall.ENOTEMPTY) || errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EMFILE) || errors.Is(err, syscall.ENFILE)
-		isErrBusy = isErrBusy || (isOSWindows && errors.Is(err, errWindowsSharingViolationError))
+		isErrBusy = isErrBusy || (consts.IsWindows && errors.Is(err, errWindowsSharingViolationError))
 		if !isErrBusy {
 			break
 		}
