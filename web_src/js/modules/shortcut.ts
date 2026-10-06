@@ -157,6 +157,9 @@ export function initGlobalShortcut() {
     }
 
     const fullKey = makeFullKeyFromEvent(e);
+    // we don't support multiple modifier keys as a single shortcut (e.g., press Ctrl twice) at the moment
+    if (!fullKey) return;
+
     const keyPressDelay = 1000;
     const pressTime = Date.now();
     while (shortcutPresses.length && pressTime - shortcutPresses[0].pressTime > keyPressDelay) {
@@ -165,9 +168,6 @@ export function initGlobalShortcut() {
     shortcutPresses.push({fullKey, pressTime});
 
     const fullKeys = shortcutPresses.map((p) => p.fullKey).join(' ');
-    // we don't support multiple modifier keys as a single shortcut (e.g., press Ctrl twice) at the moment
-    if (!fullKeys) return;
-
     for (const handler of shortcutHandlers[fullKeys.toLowerCase()] || []) {
       if (handler(target)) {
         e.preventDefault();
