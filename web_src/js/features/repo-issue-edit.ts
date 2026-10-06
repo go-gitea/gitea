@@ -173,9 +173,9 @@ export function initRepoIssueCommentEdit() {
     tryOnQuoteReply(e); // Quote reply to the comment editor
   });
   // TODO: it is not list in the shortcut help modal at the moment, there are many details:
-  // 1. not every page support such "r"
+  // 1. not every page supports such "r"
   // 2. "r" only works when there is a ".quote-reply" menu item, but it is not for a single one
-  // However, to make the framework fully support such mechanism correctly, we might also need to consider about dynamically added elements.
+  // To make the framework fully support such mechanism correctly, we might also need to consider about dynamically added elements.
   // The shortcut "r" was chosen by https://github.com/go-gitea/gitea/issues/5796#issuecomment-5528657082
   // and GitLab: https://gitlab.com/gitlab-org/gitlab-foss/-/commit/ca5d0c82509cedb94f9bfa4a40e77706a58faafe
   registerShortcutHandler('r', tryShortcutQuoteReply);
