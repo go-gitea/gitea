@@ -77,6 +77,19 @@ func TestHandleGenericETagCache(t *testing.T) {
 			wantStatus:  http.StatusNotModified,
 		},
 		{
+			name:        "If-Modified-Since without If-None-Match",
+			reqHeaders:  map[string]string{"If-Modified-Since": lastModified},
+			wantHandled: true,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": "", "Etag": matchedEtag},
+			wantStatus:  http.StatusNotModified,
+		},
+		{
+			name:        "Mismatched If-None-Match takes precedence over If-Modified-Since",
+			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag"`, "If-Modified-Since": lastModified},
+			wantHandled: false,
+			wantHeaders: map[string]string{"Last-Modified": lastModified, "Cache-Control": cacheControl, "Etag": matchedEtag},
+		},
+		{
 			name:        "Multiple Matched If-None-Match",
 			reqHeaders:  map[string]string{"If-None-Match": `"mismatched-etag", ` + matchedEtag},
 			wantHandled: true,

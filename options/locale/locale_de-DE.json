@@ -798,7 +798,6 @@
   "settings.add_key_success": "Der SSH-Key \"%s\" wurde hinzugefügt.",
   "settings.add_gpg_key_success": "Der GPG-Schlüssel \"%s\" wurde hinzugefügt.",
   "settings.add_principal_success": "Die SSH-Zertifikatsidentität \"%s\" wurde hinzugefügt.",
-  "settings.delete_key": "Entfernen",
   "settings.ssh_key_deletion": "SSH-Schlüssel entfernen",
   "settings.gpg_key_deletion": "GPG-Schlüssel entfernen",
   "settings.ssh_principal_deletion": "SSH-Zertifik-Identität entfernen",

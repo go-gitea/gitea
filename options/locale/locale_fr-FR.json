@@ -785,7 +785,6 @@
   "settings.add_key_success": "La clé SSH \"%s\" a été ajoutée.",
   "settings.add_gpg_key_success": "La clé GPG \"%s\" a été ajoutée.",
   "settings.add_principal_success": "Le Principal de certificat SSH \"%s\" a été ajouté.",
-  "settings.delete_key": "Exclure",
   "settings.ssh_key_deletion": "Retirer la clé SSH",
   "settings.gpg_key_deletion": "Retirer la clé GPG",
   "settings.ssh_principal_deletion": "Retirer le Principal de certificat SSH",

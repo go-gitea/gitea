@@ -11,6 +11,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/imagecaptcha"
@@ -118,7 +119,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
 	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
-	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
+	enableSSPI := consts.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
@@ -185,7 +186,11 @@ func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.C
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			} else if check.LoginIsProhibited {
-				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+				// FIXME: there are a lot of "Failed authentication attempt" log messages, and there are many problems:
+				// * Inconsistent log levels: sometimes "info" sometimes "warning"
+				// * Unclear criteria, no context: invalid password, prohibited user, etc.
+				// It was designed for "fail2ban". If it is still really useful, need to improve or clean up.
+				log.Info("Failed authentication attempt for %s from %s (prohibited)", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
@@ -656,6 +661,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/webauthn", func() {
 				m.Post("/request_register", web.Bind[*forms.WebauthnRegistrationForm](), security.WebAuthnRegister)
 				m.Post("/register", security.WebauthnRegisterPost)
+				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {

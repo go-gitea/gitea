@@ -38,13 +38,13 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	err = os.WriteFile(filepath.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
-		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0o700)
+		"ssh -F none -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0o700)
 	assert.NoError(t, err)
 
 	// Setup ssh wrapper
 	t.Setenv("GIT_SSH", filepath.Join(tmpDir, "ssh"))
 	t.Setenv("GIT_SSH_COMMAND",
-		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
+		"ssh -F none -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
 	t.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)

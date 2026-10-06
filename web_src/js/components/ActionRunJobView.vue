@@ -104,8 +104,12 @@ const defaultViewOptions: LocaleStorageOptions = {
   actionsLogShowTimestamps: false,
 };
 
-const savedViewOptions = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
-const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = savedViewOptions;
+const {
+  autoScroll,
+  expandRunning,
+  actionsLogShowSeconds,
+  actionsLogShowTimestamps,
+} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
 
 // internal state
 let loadingAbortController: AbortController | null = null;
