@@ -66,7 +66,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git commit: %w", err)
 	}
 
-	if err := gitcmd.NewCommand("fetch", "--no-tags", "--no-write-fetch-head", "--no-write-commit-graph", "--no-auto-maintenance").
+	if err := gitcmd.NewCommand("fetch", "--no-write-fetch-head", "--no-write-commit-graph", "--no-auto-maintenance").
 		AddDynamicArguments(tmpPath, "HEAD:"+git.BranchPrefix+repo.DefaultBranch).
 		WithRepo(repo).RunWithStderr(ctx); err != nil {
 		log.Error("Failed to fetch initial commit: %v", err)
