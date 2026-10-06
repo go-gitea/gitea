@@ -423,12 +423,15 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map
 
 // GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
 func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, allCommitIDs []string) (map[string][]*CommitStatus, error) {
-	return GetLatestCommitStatusForRepoCommitIDsBatch(ctx, repoID, allCommitIDs, 500, 200)
+	// SQLite has a limit for WHERE expression: SQL logic error: Expression tree is too large (maximum depth 1000).
+	return GetLatestCommitStatusForRepoCommitIDsBatch(ctx, repoID, allCommitIDs, 500, 100)
 }
 
 func GetLatestCommitStatusForRepoCommitIDsBatch(ctx context.Context, repoID int64, allCommitIDs []string, maxCommitIDs, maxBatchSize int) (map[string][]*CommitStatus, error) {
 	queryCommitIDs := allCommitIDs
 	if len(allCommitIDs) > maxCommitIDs {
+		// The commit IDs are usually from "comparing" page (e.g.: create a PR or compare two branches), nobody can read so many commits at once.
+		// The commit IDs are usually sorted by time, so we can take the first half and the last half of the commit IDs to get the latest statuses.
 		log.Warn("GetLatestCommitStatusForRepoCommitIDs: too many commit IDs (%d) for repo %d, truncating to 500", len(allCommitIDs), repoID)
 		queryCommitIDs = allCommitIDs[:maxCommitIDs/2]
 		queryCommitIDs = append(queryCommitIDs, allCommitIDs[len(allCommitIDs)-maxCommitIDs/2:]...)
