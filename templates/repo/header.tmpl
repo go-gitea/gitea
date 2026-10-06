@@ -112,8 +112,9 @@
 						</a>
 					{{end}}
 
-					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker}}
-						<a class="item" href="{{.RepoExternalIssuesLink}}" target="_blank" data-shortcut-keys="g i">
+					{{if and .Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker .RepoExternalIssuesLink}}
+						{{/* Internal and external issue trackers can be enabled at the same time, only show the external link if it exists */}}
+						<a class="item" href="{{.RepoExternalIssuesLink}}" target="_blank">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
 						</a>
 					{{end}}
