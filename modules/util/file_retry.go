@@ -15,19 +15,23 @@ import (
 // * the "cat-batch" git process might be running in a goroutine
 // * there can be a data-race between the "cat-batch" git process cancel+exit and the repo rename
 // So we need to retry the rename/remove operation for a few times when the "cat-batch" git process is exiting.
-// ref: https://github.com/go-gitea/gitea/issues/16427, https://github.com/go-gitea/gitea/issues/16475, https://github.com/go-gitea/gitea/pull/16479
+// ref: https://github.com/go-gitea/gitea/issues/16427, https://github.com/go-gitea/gitea/issues/16475
+// ref: https://github.com/go-gitea/gitea/pull/16435, https://github.com/go-gitea/gitea/pull/16479
 // Also some similar problems when removing a file, e.g.: https://github.com/go-gitea/gitea/issues/12339
 //
 // Usually, if no concurrent access to a file, use "os.Xxx", otherwise, use "util.XxxWithRetry"
 
 func retryWhenFileBusyInternal(count int, delay time.Duration, f func() error) (err error) {
+	// Windows: an opened file without share flags can't be removed or renamed:
+	// Error code 32: The process cannot access the file because it is being used by another process.
+	// Also, Error code 16 (EBUSY) happens to be "The directory cannot be removed" (the directory is used as a current directory by a process)
 	const errWindowsSharingViolationError = syscall.Errno(32)
 	for range count {
 		err = f()
 		if err == nil {
 			break
 		}
-		isErrBusy := errors.Is(err, syscall.EBUSY) || errors.Is(err, syscall.ENOTEMPTY) || errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EMFILE) || errors.Is(err, syscall.ENFILE)
+		isErrBusy := errors.Is(err, syscall.EBUSY)
 		isErrBusy = isErrBusy || (isOSWindows && errors.Is(err, errWindowsSharingViolationError))
 		if !isErrBusy {
 			break
