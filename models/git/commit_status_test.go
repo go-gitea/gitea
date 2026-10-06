@@ -75,7 +75,7 @@ func TestGetCommitStatuses(t *testing.T) {
 		for i := range 2000 {
 			commitIDs = append(commitIDs, fmt.Sprintf("%040x", i+1))
 		}
-		statuses, err := git_model.GetLatestCommitStatusForRepoCommitIDsBatch(t.Context(), repo1.ID, commitIDs, 4, 1)
+		statuses, err := git_model.GetLatestCommitStatusForRepoCommitIDs(t.Context(), repo1.ID, commitIDs)
 		assert.NoError(t, err)
 		assert.Len(t, statuses[sha1], 3)
 		latestIndexes := make(map[string]int64)
