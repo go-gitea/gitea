@@ -1369,7 +1369,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
 		IsPull:      true,
-		Content:     util.NormalizeStringEOL(content),
+		Content:     content,
 	}
 	pullRequest := &issues_model.PullRequest{
 		HeadRepoID:          ci.HeadRepo.ID,

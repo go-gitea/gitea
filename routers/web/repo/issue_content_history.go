@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -147,7 +148,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	// compare the current history revision with the previous one
 	dmp := diffmatchpatch.New()
 	// `checklines=false` makes better diff result
-	diff := dmp.DiffMain(prevHistoryContentText, history.ContentText, false)
+	diff := dmp.DiffMain(util.NormalizeStringEOL(prevHistoryContentText), util.NormalizeStringEOL(history.ContentText), false)
 	diff = dmp.DiffCleanupEfficiency(diff)
 
 	// use chroma to render the diff html

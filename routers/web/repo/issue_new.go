@@ -365,7 +365,7 @@ func NewIssuePost(ctx *context.Context) {
 		PosterID:    ctx.Doer.ID,
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
-		Content:     util.NormalizeStringEOL(content),
+		Content:     content,
 		Ref:         form.Ref,
 	}
 

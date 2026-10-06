@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
@@ -93,7 +92,7 @@ func CreateCodeComment(ctx *context.Context) {
 		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
-		util.NormalizeStringEOL(form.Content),
+		form.Content,
 		form.TreePath,
 		!form.SingleReview,
 		form.Reply,
@@ -263,7 +262,7 @@ func SubmitReview(ctx *context.Context) {
 		attachments = form.Files
 	}
 
-	_, comm, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, reviewType, util.NormalizeStringEOL(form.Content), form.CommitID, attachments)
+	_, comm, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
 	if err != nil {
 		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))

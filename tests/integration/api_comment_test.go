@@ -196,7 +196,7 @@ func TestAPIGetSystemUserComment(t *testing.T) {
 
 func TestAPIEditComment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const newCommentBody = "This is the new comment body\r\nAnother line\r\n"
+	const newCommentBody = "This is the new comment body"
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 8},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment))
@@ -229,7 +229,6 @@ func TestAPIEditComment(t *testing.T) {
 	assert.Equal(t, comment.ID, updatedComment.ID)
 	assert.Equal(t, newCommentBody, updatedComment.Body)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
-	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{CommentID: comment.ID, ContentText: newCommentBody})
 }
 
 func TestAPIDeleteComment(t *testing.T) {

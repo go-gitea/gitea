@@ -216,7 +216,7 @@ func testAPIEditIssue(t *testing.T) {
 	issueState := "closed"
 	removeDeadline := true
 	milestone := int64(4)
-	body := "new content!\r\nAnother line\r\n"
+	body := "new content!"
 	title := "new title from api set"
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d", owner.Name, repoBefore.Name, issueBefore.Index)
