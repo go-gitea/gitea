@@ -13,6 +13,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	asymkey_service "gitea.dev/services/asymkey"
 )
@@ -66,9 +67,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git commit: %w", err)
 	}
 
-	if err := gitcmd.NewCommand("fetch", "--no-write-fetch-head", "--no-write-commit-graph", "--no-auto-maintenance").
-		AddDynamicArguments(tmpPath, "HEAD:"+git.BranchPrefix+repo.DefaultBranch).
-		WithRepo(repo).RunWithStderr(ctx); err != nil {
+	if err := git.FetchRemoteCommitUpdateRef(ctx, repo, gitrepo.RepositoryUnmanaged(tmpPath), "HEAD", git.BranchPrefix+repo.DefaultBranch); err != nil {
 		log.Error("Failed to fetch initial commit: %v", err)
 		return fmt.Errorf("git fetch: %w", err)
 	}
