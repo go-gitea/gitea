@@ -289,9 +289,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	appTempPathInternal = sec.Key("APP_TEMP_PATH").String()
 	if appTempPathInternal != "" {
-		if !filepath.IsAbs(appTempPathInternal) {
-			appTempPathInternal = filepath.Join(AppWorkPath, appTempPathInternal)
-		}
 		if _, err := os.Stat(appTempPathInternal); err != nil {
 			log.Fatal("APP_TEMP_PATH %q is not accessible: %v", appTempPathInternal, err)
 		}
