@@ -1,0 +1,10 @@
+[git]
+commit_parsers = [
+  { message = "^(chore|ci)(\\([\\w/.-]+\\))?!?: ", skip = true },
+  { message = "^feat", group = "Features" },
+  { message = "^enhance", group = "Enhancements" },
+  { message = "^perf", group = "Performance" },
+  { message = "^fix", group = "Bug Fixes" },
+  { message = "^docs", group = "Documentation" },
+  { message = ".*", group = "Miscellaneous" },
+]
