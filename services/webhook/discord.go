@@ -197,6 +197,14 @@ func (d discordConvertor) IssueComment(p *api.IssueCommentPayload) (DiscordPaylo
 func (d discordConvertor) PullRequest(p *api.PullRequestPayload) (DiscordPayload, error) {
 	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
+	if (p.Action == api.HookIssueReviewRequested || p.Action == api.HookIssueReviewRequestRemoved) && p.RequestedReviewer != nil {
+		reviewerName := p.RequestedReviewer.UserName
+		if p.RequestedReviewer.FullName != "" {
+			reviewerName += " (" + p.RequestedReviewer.FullName + ")"
+		}
+		title += " (Requested Reviewer: " + reviewerName + ")"
+	}
+
 	return d.createPayload(p.Sender, title, extraMarkdown, p.PullRequest.HTMLURL, color), nil
 }
 

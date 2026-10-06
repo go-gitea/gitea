@@ -229,6 +229,14 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 func (s slackConvertor) PullRequest(p *api.PullRequestPayload) (SlackPayload, error) {
 	text, issueTitle, extraMarkdown, color := getPullRequestPayloadInfo(p, SlackLinkFormatter, true)
 
+	if (p.Action == api.HookIssueReviewRequested || p.Action == api.HookIssueReviewRequestRemoved) && p.RequestedReviewer != nil {
+		reviewerName := p.RequestedReviewer.UserName
+		if p.RequestedReviewer.FullName != "" {
+			reviewerName += " (" + p.RequestedReviewer.FullName + ")"
+		}
+		text += " (Requested Reviewer: " + reviewerName + ")"
+	}
+
 	var attachments []SlackAttachment
 	if extraMarkdown != "" {
 		extraMarkdown = SlackTextFormatter(p.PullRequest.Body)

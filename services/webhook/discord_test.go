@@ -165,6 +165,21 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, p.Sender.AvatarURL, pl.Embeds[0].Author.IconURL)
 	})
 
+	t.Run("PullRequestReviewRequest", func(t *testing.T) {
+		p := pullRequestTestPayload()
+		p.Action = api.HookIssueReviewRequested
+		p.RequestedReviewer = &api.User{
+			UserName: "reviewer1",
+			FullName: "Reviewer One",
+		}
+
+		pl, err := dc.PullRequest(p)
+		require.NoError(t, err)
+
+		assert.Len(t, pl.Embeds, 1)
+		assert.Equal(t, "[test/repo] Pull request review requested: #12 Fix bug (Requested Reviewer: reviewer1 (Reviewer One))", pl.Embeds[0].Title)
+	})
+
 	t.Run("PullRequestComment", func(t *testing.T) {
 		p := pullRequestCommentTestPayload()
 
