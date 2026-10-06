@@ -422,48 +422,46 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map
 }
 
 // GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
-func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
-	type result struct {
+func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, allCommitIDs []string) (map[string][]*CommitStatus, error) {
+	return GetLatestCommitStatusForRepoCommitIDsBatch(ctx, repoID, allCommitIDs, 500, 200)
+}
+
+func GetLatestCommitStatusForRepoCommitIDsBatch(ctx context.Context, repoID int64, allCommitIDs []string, maxCommitIDs, maxBatchSize int) (map[string][]*CommitStatus, error) {
+	queryCommitIDs := allCommitIDs
+	if len(allCommitIDs) > maxCommitIDs {
+		log.Warn("GetLatestCommitStatusForRepoCommitIDs: too many commit IDs (%d) for repo %d, truncating to 500", len(allCommitIDs), repoID)
+		queryCommitIDs = allCommitIDs[:maxCommitIDs/2]
+		queryCommitIDs = append(queryCommitIDs, allCommitIDs[len(allCommitIDs)-maxCommitIDs/2:]...)
+	}
+
+	baseSql := func() db.Session {
+		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
+	}
+
+	type shaMaxIndexResult struct {
 		Index int64
 		SHA   string
 	}
-
-	getBase := func() db.Session {
-		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
-	}
-	results := make([]result, 0, len(commitIDs))
-
-	// chunk the queries: a single expression for thousands of SHAs exceeds SQLite's expression depth limit
-	for chunk := range slices.Chunk(commitIDs, 500) {
-		var chunkResults []result
-		err := getBase().And(builder.In("sha", chunk)).
-			Select("max( `index` ) as `index`, sha").
-			GroupBy("context_hash, sha").OrderBy("max( `index` ) desc").
-			Find(&chunkResults)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, chunkResults...)
+	shaMaxIndexResults := make([]*shaMaxIndexResult, 0, len(allCommitIDs))
+	err := baseSql().And(builder.In("sha", queryCommitIDs)).
+		Select("max(`index`) as `index`, sha").
+		GroupBy("sha").
+		Find(&shaMaxIndexResults)
+	if err != nil {
+		return nil, err
 	}
 
 	repoStatuses := make(map[string][]*CommitStatus)
-
-	if len(results) > 0 {
-		statuses := make([]*CommitStatus, 0, len(results))
-
-		for chunk := range slices.Chunk(results, 100) {
-			conds := make([]builder.Cond, 0, len(chunk))
-			for _, result := range chunk {
-				conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
-			}
-			var chunkStatuses []*CommitStatus
-			if err := getBase().And(builder.Or(conds...)).Find(&chunkStatuses); err != nil {
-				return nil, err
-			}
-			statuses = append(statuses, chunkStatuses...)
+	for chunk := range slices.Chunk(shaMaxIndexResults, maxBatchSize) {
+		statuses := make([]*CommitStatus, 0, len(chunk))
+		condIndexSha := make([]builder.Cond, 0, len(chunk))
+		for _, res := range chunk {
+			condIndexSha = append(condIndexSha, builder.Eq{"`index`": res.Index, "sha": res.SHA})
 		}
-
-		// Group the statuses by commit
+		err = baseSql().And(builder.Or(condIndexSha...)).Find(&statuses)
+		if err != nil {
+			return nil, err
+		}
 		for _, status := range statuses {
 			repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
 		}
