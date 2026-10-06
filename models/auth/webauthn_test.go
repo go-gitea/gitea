@@ -16,11 +16,15 @@ import (
 func TestGetWebAuthnCredentialByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	res, err := auth_model.GetWebAuthnCredentialByID(t.Context(), 1)
+	res, err := auth_model.GetWebAuthnCredentialByID(t.Context(), 32, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "WebAuthn credential", res.Name)
 
-	_, err = auth_model.GetWebAuthnCredentialByID(t.Context(), 342432)
+	_, err = auth_model.GetWebAuthnCredentialByID(t.Context(), 99999, 1)
+	assert.Error(t, err)
+	assert.True(t, auth_model.IsErrWebAuthnCredentialNotExist(err))
+
+	_, err = auth_model.GetWebAuthnCredentialByID(t.Context(), 32, 99999)
 	assert.Error(t, err)
 	assert.True(t, auth_model.IsErrWebAuthnCredentialNotExist(err))
 }

@@ -628,7 +628,6 @@
   "settings.add_key_success": "SSH klíč „%s“ byl přidán.",
   "settings.add_gpg_key_success": "GPG klíč „%s“ byl přidán.",
   "settings.add_principal_success": "Byl přidán SSH Principal certifikát „%s“.",
-  "settings.delete_key": "Odstranit",
   "settings.ssh_key_deletion": "Odstraňte SSH klíč",
   "settings.gpg_key_deletion": "Odstraňte GPG klíč",
   "settings.ssh_principal_deletion": "Odstranit SSH Principal certifikát",
