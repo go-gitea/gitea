@@ -23,7 +23,6 @@ import (
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/system"
 	"gitea.dev/modules/translation"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/routing"
 	actions_router "gitea.dev/routers/api/actions"
@@ -116,7 +115,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(git.InitFull)
 	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), gitcmd.HomeDir())
 	if !git.DefaultFeatures().SupportHashSha256 {
-		log.Warn("sha256 hash support is disabled - requires Git >= 2.42." + util.Iif(git.DefaultFeatures().UsingGogit, " Gogit is currently unsupported.", ""))
+		log.Warn("sha256 hash support is disabled - requires Git >= 2.42.")
 	}
 
 	// Setup i18n

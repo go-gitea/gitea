@@ -280,6 +280,17 @@ func TestAdminBotUser(t *testing.T) {
 		}
 	})
 
+	t.Run("TokenIgnoresMustChangePassword", func(t *testing.T) {
+		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
+		bot.IsActive, bot.MustChangePassword = true, true
+		require.NoError(t, user_model.UpdateUserCols(t.Context(), bot, "is_active", "must_change_password"))
+		token := &auth_model.AccessToken{UID: bot.ID, Name: "git", Scope: auth_model.AccessTokenScopeAll}
+		require.NoError(t, auth_model.NewAccessToken(t.Context(), token))
+
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1").AddTokenAuth(token.Token), http.StatusOK)
+		MakeRequest(t, NewRequest(t, "GET", "/user2/repo1.git/info/refs?service=git-upload-pack").AddBasicAuth(bot.Name, token.Token), http.StatusOK)
+	})
+
 	t.Run("APIRejectsAuthSource", func(t *testing.T) {
 		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/admin/users/"+bot.Name, map[string]any{"source_id": 1}).AddBasicAuth("user1")
