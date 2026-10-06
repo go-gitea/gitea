@@ -160,6 +160,8 @@ export function initGlobalShortcut() {
     // we don't support multiple modifier keys as a single shortcut (e.g., press Ctrl twice) at the moment
     if (!fullKey) return;
 
+    // just a simple algorithm to detect multi-key shortcuts, so far so good, for daily usage
+    // if any base case happens, it can be fine-tuned in the future.
     const keyPressDelay = 1000;
     const pressTime = Date.now();
     while (shortcutPresses.length && pressTime - shortcutPresses[0].pressTime > keyPressDelay) {

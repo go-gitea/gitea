@@ -172,5 +172,9 @@ export function initRepoIssueCommentEdit() {
     tryOnEditContent(e); // Edit issue or comment content
     tryOnQuoteReply(e); // Quote reply to the comment editor
   });
+  // TODO: it is not list in the shortcut help modal at the moment, there are many details:
+  // 1. not every page support such "r"
+  // 2. "r" only works when there is a ".quote-reply" menu item, but it is not for a single one
+  // However, to make the framework fully support such mechanism correctly, we might also need to consider about dynamically added elements.
   registerShortcutHandler('r', tryShortcutQuoteReply);
 }

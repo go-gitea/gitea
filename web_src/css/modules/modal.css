@@ -25,6 +25,9 @@
   border-bottom-right-radius: var(--border-radius);
 }
 
+/* TODO: this "close" button was inherited and modified from Fomantic UI, actually it is not good enough:
+*  * the layout depends on absolute position, which is not good for responsive design
+*  * it is not good for accessibility, ideally it should use a "button" element */
 .ui.modal .close-modal {
   cursor: pointer;
   position: absolute;
