@@ -798,7 +798,6 @@
   "settings.add_key_success": "SSH鍵 \"%s\" を追加しました。",
   "settings.add_gpg_key_success": "GPG鍵 \"%s\" を追加しました。",
   "settings.add_principal_success": "SSH証明書プリンシパル \"%s\" を追加しました。",
-  "settings.delete_key": "削除",
   "settings.ssh_key_deletion": "SSHキーの削除",
   "settings.gpg_key_deletion": "GPGキーの削除",
   "settings.ssh_principal_deletion": "SSH証明書プリンシパルの削除",
