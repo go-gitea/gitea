@@ -20930,8 +20930,8 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
-          "422": {
-            "$ref": "#/responses/validationError"
+          "409": {
+            "$ref": "#/responses/conflict"
           }
         }
       }

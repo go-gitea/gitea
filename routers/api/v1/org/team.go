@@ -267,8 +267,8 @@ func EditTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Team"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
 
 	form := web.GetForm[*api.EditTeamOption](ctx)
 	team := ctx.Org.Team
@@ -311,11 +311,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if err := org_service.UpdateTeam(ctx, team, isAuthChanged, isIncludeAllChanged); err != nil {
-		if organization.IsErrTeamAlreadyExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 

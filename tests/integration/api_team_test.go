@@ -194,7 +194,7 @@ func TestAPITeam(t *testing.T) {
 	assert.NoError(t, teamRead.LoadUnits(t.Context()))
 	checkTeamResponse(t, "ReadTeam2", apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories, api.AccessLevelName(teamRead.AccessMode.ToString()), teamRead.GetUnitsMap())
 
-	// Renaming a team to the name of another team in the same org must be rejected with 422, not a 500.
+	// Renaming a team to the name of another team in the same org must be rejected with 409, not a 500.
 	teamToCreate = &api.CreateTeamOption{
 		Name:        "team3",
 		Description: "team three",
@@ -207,7 +207,7 @@ func TestAPITeam(t *testing.T) {
 
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", teamID), api.EditTeamOption{Name: "team3"}).
 		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	MakeRequest(t, req, http.StatusConflict)
 	checkTeamBean(t, teamID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories, api.AccessLevelNameNone, teamToEdit.UnitsMap)
 
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", conflictTeamID).
