@@ -360,7 +360,6 @@
   "settings.key_name": "Nyckelnamn",
   "settings.key_content": "Innehåll",
   "settings.principal_content": "Innehåll",
-  "settings.delete_key": "Ta bort",
   "settings.ssh_key_deletion": "Ta bort SSH-nyckel",
   "settings.gpg_key_deletion": "Ta bort GPG-nyckel",
   "settings.ssh_key_deletion_desc": "Borttagning utav en SSH-nyckel återkallar dess åtkomst till ditt konto. Vill du fortsätta?",
