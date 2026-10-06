@@ -161,7 +161,7 @@ export function initGlobalShortcut() {
     if (!fullKey) return;
 
     // just a simple algorithm to detect multi-key shortcuts, so far so good, for daily usage
-    // if any base case happens, it can be fine-tuned in the future.
+    // if any bad case happens, it can be fine-tuned in the future.
     const keyPressDelay = 1000;
     const pressTime = Date.now();
     while (shortcutPresses.length && pressTime - shortcutPresses[0].pressTime > keyPressDelay) {
