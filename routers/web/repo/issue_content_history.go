@@ -4,8 +4,6 @@
 package repo
 
 import (
-	"bytes"
-	"html"
 	"html/template"
 	"net/http"
 	"strings"
@@ -111,6 +109,34 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue
 	return canSoftDelete
 }
 
+func diffContentHistory(oldContent, newContent string) template.HTML {
+	// compare the current history revision with the previous one
+	dmp := diffmatchpatch.New()
+	// `checklines=false` makes better diff result
+	diff := dmp.DiffMain(util.NormalizeStringEOL(oldContent), util.NormalizeStringEOL(newContent), false)
+	diff = dmp.DiffCleanupEfficiency(diff)
+
+	// use chroma to render the diff html
+	buf := &htmlutil.HTMLBuilder{}
+	buf.WriteHTML(`<pre class="chroma">`)
+	for _, it := range diff {
+		switch it.Type {
+		case diffmatchpatch.DiffInsert:
+			buf.WriteHTML(`<span class="gi">`)
+			buf.WriteString(it.Text)
+			buf.WriteHTML("</span>")
+		case diffmatchpatch.DiffDelete:
+			buf.WriteHTML(`<span class="gd">`)
+			buf.WriteString(it.Text)
+			buf.WriteHTML("</span>")
+		default:
+			buf.WriteString(it.Text)
+		}
+	}
+	buf.WriteHTML("</pre>")
+	return buf.HTMLString()
+}
+
 // GetContentHistoryDetail get detail
 func GetContentHistoryDetail(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
@@ -145,36 +171,11 @@ func GetContentHistoryDetail(ctx *context.Context) {
 		prevHistoryContentText = prevHistory.ContentText
 	}
 
-	// compare the current history revision with the previous one
-	dmp := diffmatchpatch.New()
-	// `checklines=false` makes better diff result
-	diff := dmp.DiffMain(util.NormalizeStringEOL(prevHistoryContentText), util.NormalizeStringEOL(history.ContentText), false)
-	diff = dmp.DiffCleanupEfficiency(diff)
-
-	// use chroma to render the diff html
-	diffHTMLBuf := bytes.Buffer{}
-	diffHTMLBuf.WriteString("<pre class='chroma'>")
-	for _, it := range diff {
-		switch it.Type {
-		case diffmatchpatch.DiffInsert:
-			diffHTMLBuf.WriteString("<span class='gi'>")
-			diffHTMLBuf.WriteString(html.EscapeString(it.Text))
-			diffHTMLBuf.WriteString("</span>")
-		case diffmatchpatch.DiffDelete:
-			diffHTMLBuf.WriteString("<span class='gd'>")
-			diffHTMLBuf.WriteString(html.EscapeString(it.Text))
-			diffHTMLBuf.WriteString("</span>")
-		default:
-			diffHTMLBuf.WriteString(html.EscapeString(it.Text))
-		}
-	}
-	diffHTMLBuf.WriteString("</pre>")
-
 	ctx.JSON(http.StatusOK, map[string]any{
 		"canSoftDelete": canSoftDeleteContentHistory(ctx, issue, comment, history),
 		"historyId":     historyID,
 		"prevHistoryId": prevHistoryID,
-		"diffHtml":      diffHTMLBuf.String(),
+		"diffHtml":      diffContentHistory(prevHistoryContentText, history.ContentText),
 	})
 }
 

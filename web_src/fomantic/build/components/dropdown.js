@@ -528,7 +528,7 @@ $.fn.dropdown = function(parameters) {
             module.debug('No API results retrieved, searching before show');
             $module.data(dataKeyRemoteQueried, true)
             module.queryRemote(module.get.query(), module.show);
-            return;
+            // can continue to "show" if there are menu items to avoid the lag of waiting for the remote API response
           }
           if( module.can.show() && !module.is.active() ) {
             module.debug('Showing dropdown');
