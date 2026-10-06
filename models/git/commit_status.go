@@ -448,7 +448,7 @@ func GetLatestCommitStatusForRepoCommitIDsBatch(ctx context.Context, repoID int6
 	shaMaxIndexResults := make([]*shaMaxIndexResult, 0, len(allCommitIDs))
 	err := baseSql().And(builder.In("sha", queryCommitIDs)).
 		Select("max(`index`) as `index`, sha").
-		GroupBy("sha").
+		GroupBy("context_hash, sha").
 		Find(&shaMaxIndexResults)
 	if err != nil {
 		return nil, err

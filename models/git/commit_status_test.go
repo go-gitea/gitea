@@ -77,7 +77,16 @@ func TestGetCommitStatuses(t *testing.T) {
 		}
 		statuses, err := git_model.GetLatestCommitStatusForRepoCommitIDsBatch(t.Context(), repo1.ID, commitIDs, 4, 1)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, statuses[sha1])
+		assert.Len(t, statuses[sha1], 3)
+		latestIndexes := make(map[string]int64)
+		for _, status := range statuses[sha1] {
+			latestIndexes[status.Context] = status.Index
+		}
+		assert.Equal(t, map[string]int64{
+			"ci/awesomeness":     4,
+			"cov/awesomeness":    3,
+			"deploy/awesomeness": 5,
+		}, latestIndexes)
 	})
 }
 
