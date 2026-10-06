@@ -559,7 +559,6 @@
   "settings.add_key_success": "La clave SSH \"%s\" ha sido añadida.",
   "settings.add_gpg_key_success": "La clave GPG \"%s\" ha sido añadida.",
   "settings.add_principal_success": "El certificado SSH principal \"%s\" ha sido añadido.",
-  "settings.delete_key": "Eliminar",
   "settings.ssh_key_deletion": "Eliminar clave SSH",
   "settings.gpg_key_deletion": "Eliminar clave GPG",
   "settings.ssh_principal_deletion": "Eliminar principal de certificado SSH",
