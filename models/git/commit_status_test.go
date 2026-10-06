@@ -71,7 +71,8 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	t.Run("GetLatestCommitStatusForRepoCommitIDs", func(t *testing.T) {
 		commitIDs := []string{sha1}
-		for i := range 5 {
+		// SQLite has a limit of 1000 for WHERE expression variables per query, use a larger slice to test
+		for i := range 2000 {
 			commitIDs = append(commitIDs, fmt.Sprintf("%040x", i+1))
 		}
 		statuses, err := git_model.GetLatestCommitStatusForRepoCommitIDsBatch(t.Context(), repo1.ID, commitIDs, 4, 1)
