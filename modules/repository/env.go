@@ -28,10 +28,9 @@ const (
 	EnvPusherID          = "GITEA_PUSHER_ID"
 	EnvPusherExtDoerData = "GITEA_PUSHER_EXT_DOER_DATA"
 
-	EnvPRID       = "GITEA_PR_ID"
-	EnvPRIndex    = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
-	EnvIsInternal = "GITEA_INTERNAL_PUSH"
-	EnvAppURL     = "GITEA_ROOT_URL"
+	EnvPRID    = "GITEA_PR_ID"
+	EnvPRIndex = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
+	EnvAppURL  = "GITEA_ROOT_URL"
 )
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
