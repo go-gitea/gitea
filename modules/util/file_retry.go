@@ -27,7 +27,7 @@ func retryWhenFileBusyInternal(count int, delay time.Duration, f func() error) (
 		if err == nil {
 			break
 		}
-		isErrBusy := errors.Is(err, syscall.EBUSY) || errors.Is(err, syscall.ENOTEMPTY) || errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EMFILE) || errors.Is(err, syscall.ENFILE)
+		isErrBusy := errors.Is(err, syscall.EBUSY)
 		isErrBusy = isErrBusy || (isOSWindows && errors.Is(err, errWindowsSharingViolationError))
 		if !isErrBusy {
 			break
