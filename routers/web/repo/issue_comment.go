@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
-	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -137,21 +136,9 @@ func NewComment(ctx *context.Context) {
 					return
 				}
 
-				err = pull.LoadIssue(ctx)
-				if err != nil {
-					ctx.ServerError("load the issue of pull request error", err)
-					return
-				}
-
 				if prHeadCommitID != headBranchCommitID {
-					// force push to base repo
-					err := git.PushManaged(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
-						Branch: pull.HeadBranch + ":" + prHeadRef,
-						Force:  true,
-						Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
-					})
-					if err != nil {
-						ctx.ServerError("force push error", err)
+					if err := pull_service.PushToBaseRepo(ctx, pull); err != nil {
+						ctx.ServerError("PushToBaseRepo", err)
 						return
 					}
 				}
