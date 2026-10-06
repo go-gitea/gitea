@@ -5,9 +5,14 @@ package git
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,5 +35,25 @@ func TestCreateDelegateHooksPermissions(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, os.FileMode(0o755), info.Mode().Perm(), path)
 		}
+	}
+}
+
+func TestGiteaDelegateHooksSkipInternalPush(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppPath, "false")()
+	for _, scriptType := range []string{"bash", "sh"} {
+		t.Run(scriptType, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.ScriptType, scriptType)()
+			hookDir := t.TempDir()
+			require.NoError(t, createDelegateHooks(hookDir))
+			for hookName, skipsInternal := range map[string]bool{"pre-receive": true, "update": true, "post-receive": false} {
+				runHook := func(env ...string) error {
+					cmd := exec.Command(filepath.Join(hookDir, hookName+".d", "gitea"))
+					cmd.Env = append(os.Environ(), env...)
+					return cmd.Run()
+				}
+				assert.Error(t, runHook(), hookName)
+				assert.Equal(t, skipsInternal, runHook("GITEA_INTERNAL_PUSH=true") == nil, hookName)
+			}
+		})
 	}
 }
