@@ -521,7 +521,6 @@
   "settings.key_name": "Názov kľúča",
   "settings.key_content": "Obsah",
   "settings.principal_content": "Obsah",
-  "settings.delete_key": "Odstrániť",
   "settings.ssh_key_deletion": "Odstrániť SSH kľúč",
   "settings.gpg_key_deletion": "Odstrániť GPG kľúč",
   "settings.ssh_principal_deletion": "Vymazať SSH certifikačnú identitu",
