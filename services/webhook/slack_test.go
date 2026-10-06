@@ -52,6 +52,9 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] 2 new commits pushed by user1", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
 	})
 
 	t.Run("Issue", func(t *testing.T) {
@@ -62,6 +65,9 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue opened: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
 
 		p.Action = api.HookIssueClosed
 		pl, err = sc.Issue(p)
@@ -77,6 +83,9 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -86,6 +95,9 @@ func TestSlackPayload(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
+		require.Len(t, pl.Attachments, 1)
+		assert.Equal(t, "user1", pl.Attachments[0].AuthorName)
+		assert.Equal(t, "http://localhost:3000/user1/avatar", pl.Attachments[0].AuthorIcon)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {

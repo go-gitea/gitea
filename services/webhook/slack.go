@@ -48,11 +48,14 @@ type SlackPayload struct {
 
 // SlackAttachment contains the slack message
 type SlackAttachment struct {
-	Fallback  string `json:"fallback"`
-	Color     string `json:"color"`
-	Title     string `json:"title"`
-	TitleLink string `json:"title_link"`
-	Text      string `json:"text"`
+	Fallback   string `json:"fallback"`
+	Color      string `json:"color"`
+	AuthorName string `json:"author_name,omitempty"`
+	AuthorLink string `json:"author_link,omitempty"`
+	AuthorIcon string `json:"author_icon,omitempty"`
+	Title      string `json:"title"`
+	TitleLink  string `json:"title_link"`
+	Text       string `json:"text"`
 }
 
 // SlackTextFormatter replaces &, <, > with HTML characters
@@ -124,10 +127,13 @@ func (s slackConvertor) Issue(p *api.IssuePayload) (SlackPayload, error) {
 		extraMarkdown = SlackTextFormatter(extraMarkdown)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
-			Color:     fmt.Sprintf("%x", color),
-			Title:     issueTitle,
-			TitleLink: p.Issue.HTMLURL,
-			Text:      extraMarkdown,
+			Color:      fmt.Sprintf("%x", color),
+			AuthorName: p.Sender.UserName,
+			AuthorLink: setting.AppURL + p.Sender.UserName,
+			AuthorIcon: p.Sender.AvatarURL,
+			Title:      issueTitle,
+			TitleLink:  p.Issue.HTMLURL,
+			Text:       extraMarkdown,
 		})
 	}
 
@@ -139,10 +145,13 @@ func (s slackConvertor) IssueComment(p *api.IssueCommentPayload) (SlackPayload, 
 	text, issueTitle, color := getIssueCommentPayloadInfo(p, SlackLinkFormatter, true)
 
 	return s.createPayload(text, []SlackAttachment{{
-		Color:     fmt.Sprintf("%x", color),
-		Title:     issueTitle,
-		TitleLink: p.Comment.HTMLURL,
-		Text:      SlackTextFormatter(p.Comment.Body),
+		Color:      fmt.Sprintf("%x", color),
+		AuthorName: p.Sender.UserName,
+		AuthorLink: setting.AppURL + p.Sender.UserName,
+		AuthorIcon: p.Sender.AvatarURL,
+		Title:      issueTitle,
+		TitleLink:  p.Comment.HTMLURL,
+		Text:       SlackTextFormatter(p.Comment.Body),
 	}}), nil
 }
 
@@ -218,10 +227,13 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 	}
 
 	return s.createPayload(text, []SlackAttachment{{
-		Color:     s.Color,
-		Title:     p.Repo.HTMLURL,
-		TitleLink: p.Repo.HTMLURL,
-		Text:      attachmentText.String(),
+		Color:      s.Color,
+		AuthorName: p.Pusher.UserName,
+		AuthorLink: setting.AppURL + p.Pusher.UserName,
+		AuthorIcon: p.Pusher.AvatarURL,
+		Title:      p.Repo.HTMLURL,
+		TitleLink:  p.Repo.HTMLURL,
+		Text:       attachmentText.String(),
 	}}), nil
 }
 
@@ -234,10 +246,13 @@ func (s slackConvertor) PullRequest(p *api.PullRequestPayload) (SlackPayload, er
 		extraMarkdown = SlackTextFormatter(p.PullRequest.Body)
 		issueTitle = SlackTextFormatter(issueTitle)
 		attachments = append(attachments, SlackAttachment{
-			Color:     fmt.Sprintf("%x", color),
-			Title:     issueTitle,
-			TitleLink: p.PullRequest.HTMLURL,
-			Text:      extraMarkdown,
+			Color:      fmt.Sprintf("%x", color),
+			AuthorName: p.Sender.UserName,
+			AuthorLink: setting.AppURL + p.Sender.UserName,
+			AuthorIcon: p.Sender.AvatarURL,
+			Title:      issueTitle,
+			TitleLink:  p.PullRequest.HTMLURL,
+			Text:       extraMarkdown,
 		})
 	}
 
