@@ -521,10 +521,14 @@ $.fn.dropdown = function(parameters) {
             : function(){}
           ;
           const dataKeyRemoteQueried = 'remote-queried';
-          if(module.is.remote() && !$module.data(dataKeyRemoteQueried)) {
+          // if the dropdown uses remote API, then it needs to query if:
+          // * its content is empty (can not show: no menu item)
+          // * it has not queried before (it has content, but we still need to query the remote API, e.g.: issue author list)
+          if(module.is.remote() && (!module.can.show() || !$module.data(dataKeyRemoteQueried))) {
             module.debug('No API results retrieved, searching before show');
             $module.data(dataKeyRemoteQueried, true)
             module.queryRemote(module.get.query(), module.show);
+            // can continue to "show" if there are menu items to avoid the lag of waiting for the remote API response
           }
           if( module.can.show() && !module.is.active() ) {
             module.debug('Showing dropdown');
