@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
-	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/structs"
 
 	"github.com/google/go-github/v92/github"
@@ -107,13 +106,8 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 			}
 		}
 	} else {
-		transport := NewMigrationHTTPTransport()
-		transport.Proxy = func(req *http.Request) (*url.URL, error) {
-			req.SetBasicAuth(userName, password)
-			return proxy.Proxy()(req)
-		}
 		client := &http.Client{
-			Transport: transport,
+			Transport: &github.BasicAuthTransport{Transport: NewMigrationHTTPTransport(), Username: userName, Password: password},
 		}
 		if err := downloader.addClient(client, baseURL); err != nil {
 			return nil, err

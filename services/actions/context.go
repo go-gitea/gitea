@@ -25,7 +25,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
-	api "gitea.dev/modules/structs"
 )
 
 type GiteaContext map[string]any
@@ -113,31 +112,6 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if job != nil {
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
-
-		if job.ParentJobID > 0 {
-			// Inject the caller's resolved workflow_call inputs into gitea.event.inputs.
-			// The rest of gitea.event stays as the caller's actual trigger event (push/pull_request/etc.)
-			// to match GitHub's semantics (see https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#github-context).
-			// FIXME: If the run is triggered by "workflow_dispatch", the original inputs of "workflow_dispatch" will be overridden.
-			// If necessary, the caller can send these values to the called workflow via `with:`.
-			caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
-			if err != nil {
-				log.Error("GenerateGiteaContext: load caller job %d of job %d: %v", job.ParentJobID, job.ID, err)
-			} else if caller.CallPayload != "" {
-				var cp api.WorkflowCallPayload
-				if err := json.Unmarshal([]byte(caller.CallPayload), &cp); err != nil {
-					log.Error("GenerateGiteaContext: decode CallPayload of caller %d: %v", caller.ID, err)
-				} else if cp.Inputs != nil {
-					event["inputs"] = cp.Inputs
-				}
-			}
-
-			// Override gitea.event_name to "workflow_call", so that the runner-side `getEvaluatorInputs` can get inputs from event["inputs"].
-			// https://gitea.com/gitea/runner/src/commit/0b9f251b6abb30d5f292a49cfe0c611f7c26d857/act/runner/expression.go#L509
-			// FIXME: The trade-off is that `${{ gitea.event_name }}` inside a reusable workflow's child job reads "workflow_call"
-			// instead of the caller's real trigger event name (push/pull_request/etc.) This is a small deviation from GitHub spec.
-			gitContext["event_name"] = "workflow_call"
-		}
 	}
 
 	if attempt == nil {
@@ -288,15 +262,14 @@ func computeReusableCallerOutputs(ctx context.Context, caller *actions_model.Act
 	if err != nil {
 		return nil, err
 	}
-	inputs := map[string]any{}
-	if caller.CallPayload != "" {
-		var p api.WorkflowCallPayload
-		if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
-			return nil, fmt.Errorf("decode caller payload: %w", err)
-		}
-		if p.Inputs != nil {
-			inputs = p.Inputs
-		}
+	workflowCallInputs, err := decodeWorkflowCallInputs(caller)
+	if err != nil {
+		return nil, err
+	}
+
+	inputs, err := calledWorkflowInputs(ctx, caller.Run, caller, workflowCallInputs)
+	if err != nil {
+		return nil, err
 	}
 
 	// See `on.workflow_call.outputs.<output_id>.value` in https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability

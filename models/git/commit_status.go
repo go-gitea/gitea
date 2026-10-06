@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -35,11 +36,11 @@ import (
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
 	ID     int64                          `xorm:"pk autoincr"`
+	RepoID int64                          `xorm:"UNIQUE(repo_sha_index)"`
+	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 	Index  int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID int64                          `xorm:"INDEX UNIQUE(repo_sha_index)"`
 	Repo   *repo_model.Repository         `xorm:"-"`
 	State  commitstatus.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
-	SHA    string                         `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
 
 	// TargetURL points to the commit status page reported by a CI system
 	// If Gitea Actions is used, it is a relative link like "{RepoLink}/actions/runs/{RunID}/jobs{JobID}"
@@ -311,17 +312,17 @@ func (opts *CommitStatusOptions) ToConds() builder.Cond {
 func (opts *CommitStatusOptions) ToOrders() string {
 	switch opts.SortType {
 	case "oldest":
-		return "created_unix ASC"
+		return "created_unix ASC, `index` ASC"
 	case "recentupdate":
-		return "updated_unix DESC"
+		return "updated_unix DESC, `index` DESC"
 	case "leastupdate":
-		return "updated_unix ASC"
+		return "updated_unix ASC, `index` ASC"
 	case "leastindex":
 		return "`index` DESC"
 	case "highestindex":
 		return "`index` ASC"
 	default:
-		return "created_unix DESC"
+		return "created_unix DESC, `index` DESC" // timestamps have 1s resolution, `index` keeps paging stable
 	}
 }
 
@@ -420,46 +421,48 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map
 	return repoStatuses, nil
 }
 
-// GetLatestCommitStatusForRepoCommitIDs returns all statuses with a unique context for a given list of repo-sha pairs
-func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, commitIDs []string) (map[string][]*CommitStatus, error) {
-	type result struct {
+// GetLatestCommitStatusForRepoCommitIDs returns the commit statuses with a unique context for a given list of repo-sha pairs
+// If the provided commit IDs are too many, only the first part and the last part of the commit IDs will be queried.
+func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, allCommitIDs []string) (map[string][]*CommitStatus, error) {
+	const maxCommitIDs = 500
+	const maxBatchSize = 200
+	queryCommitIDs := allCommitIDs
+	if len(allCommitIDs) > maxCommitIDs {
+		// The commit IDs are usually from "commits list" or "compare" page (create a PR or compare commits), nobody can read so many commits at once.
+		// The commit IDs are usually sorted by time, so we can take the first half and the last half of the commit IDs to get the latest statuses.
+		log.Warn("GetLatestCommitStatusForRepoCommitIDs: too many commit IDs (%d) for repo %d, truncating to %d", len(allCommitIDs), repoID, maxCommitIDs)
+		queryCommitIDs = allCommitIDs[:maxCommitIDs/2]
+		queryCommitIDs = append(queryCommitIDs, allCommitIDs[len(allCommitIDs)-maxCommitIDs/2:]...)
+	}
+
+	baseSql := func() db.Session {
+		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
+	}
+
+	type shaMaxIndexResult struct {
 		Index int64
 		SHA   string
 	}
-
-	getBase := func() db.Session {
-		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
-	}
-	results := make([]result, 0, len(commitIDs))
-
-	conds := make([]builder.Cond, 0, len(commitIDs))
-	for _, sha := range commitIDs {
-		conds = append(conds, builder.Eq{"sha": sha})
-	}
-	sess := getBase().And(builder.Or(conds...)).
-		Select("max( `index` ) as `index`, sha").
-		GroupBy("context_hash, sha").OrderBy("max( `index` ) desc")
-
-	err := sess.Find(&results)
+	shaMaxIndexResults := make([]*shaMaxIndexResult, 0, len(allCommitIDs))
+	err := baseSql().And(builder.In("sha", queryCommitIDs)).
+		Select("max(`index`) as `index`, sha").
+		GroupBy("context_hash, sha").
+		Find(&shaMaxIndexResults)
 	if err != nil {
 		return nil, err
 	}
 
 	repoStatuses := make(map[string][]*CommitStatus)
-
-	if len(results) > 0 {
-		statuses := make([]*CommitStatus, 0, len(results))
-
-		conds = make([]builder.Cond, 0, len(results))
-		for _, result := range results {
-			conds = append(conds, builder.Eq{"`index`": result.Index, "sha": result.SHA})
+	for chunk := range slices.Chunk(shaMaxIndexResults, maxBatchSize) {
+		statuses := make([]*CommitStatus, 0, len(chunk))
+		condIndexSha := make([]builder.Cond, 0, len(chunk))
+		for _, res := range chunk {
+			condIndexSha = append(condIndexSha, builder.Eq{"`index`": res.Index, "sha": res.SHA})
 		}
-		err = getBase().And(builder.Or(conds...)).Find(&statuses)
+		err = baseSql().And(builder.Or(condIndexSha...)).Find(&statuses)
 		if err != nil {
 			return nil, err
 		}
-
-		// Group the statuses by commit
 		for _, status := range statuses {
 			repoStatuses[status.SHA] = append(repoStatuses[status.SHA], status)
 		}

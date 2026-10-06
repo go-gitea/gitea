@@ -240,7 +240,10 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		}
 
 		plan.run.LatestAttemptID = newAttempt.ID
-		if err := actions_model.UpdateRun(ctx, plan.run, "latest_attempt_id"); err != nil {
+		if plan.run.NeedApproval { // rerunning is an explicit approval
+			plan.run.NeedApproval, plan.run.ApprovedBy = false, plan.triggerUser.ID
+		}
+		if err := actions_model.UpdateRun(ctx, plan.run, "latest_attempt_id", "need_approval", "approved_by"); err != nil {
 			return err
 		}
 
@@ -283,9 +286,10 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			var invalidIf error
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
 				// the emitter decides `if:` once all needs have results, and is the only place expanding a deferred matrix
-				shouldBlockJob := shouldBlock || len(newJob.Needs) > 0 || newJob.IsMatrixDeferred
-
-				newJob.Status = util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting)
+				newJob.Status = util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
+				if newJob.Status.IsWaiting() && len(newJob.Needs) > 0 {
+					newJob.Status = actions_model.StatusPending
+				}
 				newJob.TaskID = 0
 				newJob.SourceTaskID = 0
 				newJob.Started = 0

@@ -360,7 +360,6 @@
   "settings.key_name": "Nyckelnamn",
   "settings.key_content": "Innehåll",
   "settings.principal_content": "Innehåll",
-  "settings.delete_key": "Ta bort",
   "settings.ssh_key_deletion": "Ta bort SSH-nyckel",
   "settings.gpg_key_deletion": "Ta bort GPG-nyckel",
   "settings.ssh_key_deletion_desc": "Borttagning utav en SSH-nyckel återkallar dess åtkomst till ditt konto. Vill du fortsätta?",
@@ -1665,6 +1664,7 @@
   "packages.terraform.unlock": "Lås upp",
   "packages.owner.settings.cleanuprules.enabled": "Aktiv",
   "secrets.creation.description": "Beskrivning",
+  "actions.status.pending": "Väntande",
   "actions.runners.name": "Namn",
   "actions.runners.owner_type": "Typ",
   "actions.runners.description": "Beskrivning",
@@ -1672,5 +1672,6 @@
   "actions.runners.task_list.repository": "Utvecklingskatalog",
   "actions.runners.status.active": "Aktiv",
   "actions.runs.summary": "Översikt",
-  "actions.workflow.scope_owner": "Ägare"
+  "actions.workflow.scope_owner": "Ägare",
+  "actions.job_queue.filter_repo_no_select": "Alla utvecklingskataloger"
 }

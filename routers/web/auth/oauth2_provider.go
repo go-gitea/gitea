@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
@@ -20,6 +21,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
@@ -321,9 +323,18 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
+	var addedScopes, removedScopes []string
+	if grant != nil {
+		if form.Scope == "" {
+			form.Scope = grant.Scope
+		}
+		addedScopes, removedScopes = util.DiffSlice(strings.Fields(grant.Scope), strings.Fields(form.Scope))
+	}
+	scopeChanged := len(addedScopes) > 0 || len(removedScopes) > 0
+
 	// Redirect if user already granted access and the application is confidential or trusted otherwise
 	// I.e. always require authorization for untrusted public clients as recommended by RFC 6749 Section 10.2
-	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil {
+	if (app.ConfidentialClient || app.SkipSecondaryAuthorization) && grant != nil && !scopeChanged {
 		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
@@ -347,6 +358,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	// check if additional scopes
 	ctx.Data["AdditionalScopes"] = oauth2_provider.GrantAdditionalScopes(form.Scope) != auth.AccessTokenScopeAll
+	ctx.Data["AddedScopes"] = addedScopes
 
 	// show authorize page to grant access
 	ctx.Data["Application"] = app
@@ -432,12 +444,10 @@ func GrantApplicationOAuth(ctx *context.Context) {
 
 		audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, "oauth2_application", app.Name, "granted_scope", form.Scope)
 	} else if grant.Scope != form.Scope {
-		handleAuthorizeError(ctx, AuthorizeError{
-			State:            form.State,
-			ErrorDescription: "a grant exists with different scope",
-			ErrorCode:        ErrorCodeServerError,
-		}, form.RedirectURI)
-		return
+		if err := auth.UpdateGrantScope(ctx, grant, form.Scope); err != nil {
+			handleServerError(ctx, form.State, form.RedirectURI)
+			return
+		}
 	}
 
 	if len(form.Nonce) > 0 {
@@ -576,7 +586,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	}
 
 	token, err := oauth2_provider.ParseToken(form.RefreshToken, serverKey)
-	if err != nil {
+	if err != nil || token.Kind != oauth2_provider.KindRefreshToken {
 		handleAccessTokenError(ctx, oauth2_provider.AccessTokenError{
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "unable to parse refresh token",

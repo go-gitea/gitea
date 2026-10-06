@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	web_context "gitea.dev/services/context"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -73,4 +74,18 @@ func newWorkflowBadgeTestContext(t *testing.T) *web_context.Context {
 		DefaultBranch: "release/1.0 & hotfix",
 	}
 	return ctx
+}
+
+func TestActionRunListData(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	t.Run("preparePartialRefreshRuns", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user5/repo4/actions")
+		contexttest.LoadRepo(t, ctx, 4)
+		d := &actionRunListData{refreshRunIDs: []int64{791, 792}}
+		d.preparePartialRefreshRuns(ctx)
+		assert.Equal(t, []int64{791, 792}, []int64{d.ActionRuns[0].ID, d.ActionRuns[1].ID})
+		d = &actionRunListData{refreshRunIDs: []int64{792, 791}}
+		d.preparePartialRefreshRuns(ctx)
+		assert.Equal(t, []int64{792, 791}, []int64{d.ActionRuns[0].ID, d.ActionRuns[1].ID})
+	})
 }

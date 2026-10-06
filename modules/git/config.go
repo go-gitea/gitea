@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"runtime"
 	"strings"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
@@ -42,6 +42,25 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
+	// reject malformed objects on push and fetch, e.g. duplicate tree entries
+	// that the web UI and checkout can resolve differently
+	if err := configSet(ctx, "transfer.fsckObjects", "true"); err != nil {
+		return err
+	}
+	// ignore harmless issues found in real-world histories, same as Gitaly:
+	// https://gitlab.com/gitlab-org/gitaly/-/blob/bd3bba454181f52331cca441b3417bbd2de4b1cb/internal/git/gitcmd/command_description.go#L506-547
+	for _, prefix := range []string{"fsck", "fetch.fsck", "receive.fsck"} {
+		for _, key := range []string{
+			"badTimezone",            // e.g. +051800 written by Grit 2.3.1 to 2.4
+			"missingSpaceBeforeDate", // e.g. dateless tags from git-cvsimport before git 1.5.3
+			"zeroPaddedFilemode",     // e.g. 040000 written by Grit before 2.1
+		} {
+			if err := configSet(ctx, fmt.Sprintf("%s.%s", prefix, key), "ignore"); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := configSet(ctx, "core.commitGraph", "true"); err != nil {
 		return err
 	}
@@ -54,15 +73,9 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if DefaultFeatures().SupportProcReceive {
-		// set support for AGit flow
-		if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
-			return err
-		}
-	} else {
-		if err := configUnsetAll(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
-			return err
-		}
+	// set support for AGit flow
+	if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
+		return err
 	}
 
 	// Due to CVE-2022-24765, git now denies access to git directories which are not owned by current user.
@@ -77,7 +90,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if runtime.GOOS == "windows" {
+	if consts.IsWindows {
 		if err := configSet(ctx, "core.longpaths", "true"); err != nil {
 			return err
 		}

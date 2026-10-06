@@ -108,7 +108,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
 			preReceiveTag(ourCtx, refFullName)
-		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
+		case refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
 			ourCtx.assertCanWriteRef(refFullName)
@@ -170,7 +170,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			canPush := protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 			canDelete = protectBranch.CanDelete && canPush && (!protectBranch.EnableDeletionAllowlist || protectBranch.DeletionAllowlistDeployKeys)
 		} else {
-			canDelete = protectBranch.CanUserDelete(ctx, ctx.Doer)
+			canDelete = protectBranch.CanUserDelete(ctx, ctx.Doer, ctx.Repo.Permission)
 		}
 		if !canDelete {
 			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from deletion", branchName)
@@ -244,9 +244,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 		}
 	} else {
 		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.Doer)
+			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.Doer, ctx.Repo.Permission)
 		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.Doer)
+			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.Doer, ctx.Repo.Permission)
 		}
 	}
 

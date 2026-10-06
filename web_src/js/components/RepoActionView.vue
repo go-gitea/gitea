@@ -92,7 +92,7 @@ function isJobCollapsed(jobID: number) {
 }
 
 const visibleJobListItems = computed<JobListItem[]>(() => {
-  const jobs = [...(run.value.jobs || [])].sort((a, b) => a.id - b.id);
+  const jobs = (run.value.jobs || []).filter((job) => job.status !== 'pending' || job.id === props.jobId).sort((a, b) => a.id - b.id);
   const childrenByParent = buildJobsByParentJobID(jobs);
 
   const result: JobListItem[] = [];

@@ -133,7 +133,7 @@ func TestConvertToViewModelCancellingTaskDoesNotRenderRunningSteps(t *testing.T)
 		{
 			Summary:  "Complete job",
 			Duration: "0s",
-			Status:   "waiting",
+			Status:   "pending",
 		},
 	}
 	assert.Equal(t, expectedViewJobs, viewJobSteps)

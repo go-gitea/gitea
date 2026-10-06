@@ -465,7 +465,7 @@ func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 
 // ReviewPayload FIXME
 type ReviewPayload struct {
-	// The type of review (approved, rejected, comment)
+	// The review event type: pull_request_review_approved, pull_request_review_rejected or pull_request_review_comment
 	Type string `json:"type"`
 	// The content/body of the review
 	Content string `json:"content"`

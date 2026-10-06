@@ -191,7 +191,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		p.Repo = repo
 		canUserDelete, ok := canDeleteProtectedBranches[p.ID]
 		if !ok {
-			canUserDelete = p.CanUserDeleteWithPermission(ctx, doer, permissionInRepo)
+			canUserDelete = p.CanUserDelete(ctx, doer, permissionInRepo)
 			canDeleteProtectedBranches[p.ID] = canUserDelete
 		}
 		canDelete = canDelete && canUserDelete
@@ -468,7 +468,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	if err != nil {
 		return "", err
 	}
-	if rule != nil && !rule.CanUserPush(ctx, doer) {
+	if rule != nil && !rule.CanUserPush(ctx, doer, perm) {
 		return "", git_model.ErrBranchIsProtected
 	}
 
@@ -603,7 +603,7 @@ func CanDeleteBranchWithPermission(ctx context.Context, repo *repo_model.Reposit
 	}
 	if protectedBranch != nil {
 		protectedBranch.Repo = repo
-		if protectedBranch.CanUserDeleteWithPermission(ctx, doer, permissionInRepo) {
+		if protectedBranch.CanUserDelete(ctx, doer, permissionInRepo) {
 			return nil
 		}
 		return git_model.ErrBranchIsProtected

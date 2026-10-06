@@ -213,32 +213,38 @@ func TestProtectedBranchCanUserDelete(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
+	ownerPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, owner)
+	require.NoError(t, err)
+
+	userPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, user)
+	require.NoError(t, err)
+
 	pb := &ProtectedBranch{
 		RepoID:  repo.ID,
 		Repo:    repo,
 		CanPush: true,
 	}
 
-	assert.False(t, pb.CanUserDelete(t.Context(), owner))
+	assert.False(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
 
 	pb.CanDelete = true
-	assert.True(t, pb.CanUserDelete(t.Context(), owner))
+	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
 
 	pb.EnableDeletionAllowlist = true
-	assert.False(t, pb.CanUserDelete(t.Context(), owner))
+	assert.False(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
 
 	pb.DeletionAllowlistUserIDs = []int64{owner.ID}
-	assert.True(t, pb.CanUserDelete(t.Context(), owner))
-	assert.False(t, pb.CanUserDelete(t.Context(), user))
+	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
+	assert.False(t, pb.CanUserDelete(t.Context(), user, userPermission))
 
 	pb.CanPush = false
-	assert.False(t, pb.CanUserDelete(t.Context(), owner))
+	assert.False(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
 
 	pb.CanPush = true
 	pb.DeletionAllowlistUserIDs = nil
 	pb.DeletionAllowlistTeamIDs = []int64{1}
-	assert.True(t, pb.CanUserDelete(t.Context(), owner))
-	assert.False(t, pb.CanUserDelete(t.Context(), user))
+	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
+	assert.False(t, pb.CanUserDelete(t.Context(), user, userPermission))
 }
 
 func TestProtectedBranchCanUserDeleteWithPermission(t *testing.T) {
@@ -250,13 +256,27 @@ func TestProtectedBranchCanUserDeleteWithPermission(t *testing.T) {
 
 	ownerPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, owner)
 	require.NoError(t, err)
-	assert.True(t, pb.CanUserDeleteWithPermission(t.Context(), owner, ownerPermission))
-	assert.False(t, pb.CanUserDeleteWithPermission(t.Context(), owner, access_model.Permission{}))
+	assert.True(t, pb.CanUserDelete(t.Context(), owner, ownerPermission))
+	assert.False(t, pb.CanUserDelete(t.Context(), owner, access_model.Permission{}))
 
 	actionsPermission, err := access_model.GetDoerRepoPermission(t.Context(), repo, actionsUser)
 	require.NoError(t, err)
 	assert.True(t, actionsPermission.CanWrite(unit.TypeCode))
-	assert.False(t, pb.CanUserPush(t.Context(), actionsUser))
-	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser))
-	assert.False(t, pb.CanUserDeleteWithPermission(t.Context(), actionsUser, actionsPermission))
+	assert.True(t, pb.CanUserPush(t.Context(), actionsUser, actionsPermission))
+	assert.True(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
+	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, access_model.Permission{}))
+	assert.False(t, pb.CanUserDelete(t.Context(), nil, actionsPermission))
+
+	pb.EnableWhitelist = true
+	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
+	pb.WhitelistUserIDs = []int64{actionsUser.ID}
+	assert.True(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
+	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, access_model.Permission{}))
+
+	pb.EnableDeletionAllowlist = true
+	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
+	pb.DeletionAllowlistUserIDs = []int64{actionsUser.ID}
+	assert.True(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
+	pb.CanPush = false
+	assert.False(t, pb.CanUserDelete(t.Context(), actionsUser, actionsPermission))
 }

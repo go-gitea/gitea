@@ -16,19 +16,38 @@
 					</div>
 				</div>
 				<div class="item-trailing">
+					<button type="button" class="ui tiny button show-modal" data-modal="#rename-webauthn-nickname" data-modal-id="{{.ID}}" data-modal-name="{{.Name}}">
+					{{ctx.Locale.Tr "rename"}}
+					</button>
 					<button type="button" class="ui red tiny button link-action" data-modal-confirm="#delete-registration" data-url="{{$.Link}}/webauthn/delete?id={{.ID}}">
-					{{ctx.Locale.Tr "settings.delete_key"}}
+					{{ctx.Locale.Tr "remove"}}
 					</button>
 				</div>
 			</div>
 		{{end}}
 	</div>
+</div>
+<div class="ui attached segment">
 	<div class="ui form">
 		<div class="required field">
 			<label for="nickname">{{ctx.Locale.Tr "settings.webauthn_nickname"}}</label>
 			<input id="nickname" name="nickname" type="text" required>
 		</div>
 		<button type="button" id="register-webauthn" class="ui primary button">{{svg "octicon-key"}} {{ctx.Locale.Tr "settings.webauthn_register_key"}}</button>
+	</div>
+	<div class="ui small modal" id="rename-webauthn-nickname">
+		<div class="header">
+			{{svg "octicon-pencil"}}
+			{{ctx.Locale.Tr "rename"}}
+		</div>
+		<form class="content ui form form-fetch-action" action="{{$.Link}}/webauthn/rename" method="post">
+			<input type="hidden" name="id">
+			<div class="required field">
+				<label>{{ctx.Locale.Tr "settings.webauthn_nickname"}}</label>
+				<input name="name" type="text" maxlength="255" required>
+			</div>
+			{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+		</form>
 	</div>
 	<div class="ui small modal" id="delete-registration">
 		<div class="header">

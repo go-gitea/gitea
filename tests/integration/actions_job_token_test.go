@@ -45,27 +45,57 @@ func TestActionsProtectedBranchDeletion(t *testing.T) {
 		u.User = url.UserPassword("gitea-actions", task.Token)
 		dstPath := t.TempDir()
 		require.NoError(t, git.Clone(t.Context(), u.String(), dstPath, git.CloneRepoOptions{}))
-		for _, branch := range []string{"actions-delete-protected-git", "actions-delete-protected-api", "actions-delete-unprotected"} {
-			_, stderr, err := gitcmd.NewCommand("push").AddDynamicArguments(u.String(), "HEAD:refs/heads/"+branch).
-				WithDir(dstPath).RunStdString(t.Context())
-			require.NoError(t, err, "%s", stderr)
+		for _, tt := range []struct {
+			name            string
+			canPush         bool
+			canDelete       bool
+			pushAllowlist   bool
+			deleteAllowlist bool
+			wantAllowed     bool
+		}{
+			{name: "allowed", canPush: true, canDelete: true, wantAllowed: true},
+			{name: "push-disabled", canDelete: true},
+			{name: "delete-disabled", canPush: true},
+			{name: "push-allowlist", canPush: true, canDelete: true, pushAllowlist: true},
+			{name: "delete-allowlist", canPush: true, canDelete: true, deleteAllowlist: true},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				branchPrefix := "actions-delete-" + tt.name
+				for _, transport := range []string{"git", "api"} {
+					_, stderr, err := gitcmd.NewCommand("push").AddDynamicArguments(u.String(), "HEAD:refs/heads/"+branchPrefix+"-"+transport).
+						WithDir(dstPath).RunStdString(t.Context())
+					require.NoError(t, err, "%s", stderr)
+				}
+				require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
+					RepoID: repo.ID, RuleName: branchPrefix + "-*", CanPush: tt.canPush, CanDelete: tt.canDelete,
+					EnableWhitelist: tt.pushAllowlist, EnableDeletionAllowlist: tt.deleteAllowlist,
+				}))
+
+				_, stderr, err := gitcmd.NewCommand("push", "--delete").AddDynamicArguments(u.String(), branchPrefix+"-git").
+					WithDir(dstPath).RunStdString(t.Context())
+				if tt.wantAllowed {
+					require.NoError(t, err, "%s", stderr)
+				} else {
+					require.Error(t, err)
+					assert.Contains(t, stderr, "protected from deletion")
+				}
+				assert.Equal(t, !tt.wantAllowed, git.IsBranchExist(t.Context(), repo, branchPrefix+"-git"))
+
+				req := NewRequest(t, http.MethodDelete, "/api/v1/repos/"+repo.FullName()+"/branches/"+branchPrefix+"-api").AddTokenAuth(task.Token)
+				if tt.wantAllowed {
+					MakeRequest(t, req, http.StatusNoContent)
+				} else {
+					resp := MakeRequest(t, req, http.StatusForbidden)
+					assert.Contains(t, resp.Body.String(), "branch protected")
+				}
+				assert.Equal(t, !tt.wantAllowed, git.IsBranchExist(t.Context(), repo, branchPrefix+"-api"))
+			})
 		}
-		require.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
-			RepoID: repo.ID, RuleName: "actions-delete-protected-*", CanPush: true, CanDelete: true,
-		}))
 
-		_, stderr, err := gitcmd.NewCommand("push", "--delete").AddDynamicArguments(u.String(), "actions-delete-protected-git").
+		_, stderr, err := gitcmd.NewCommand("push").AddDynamicArguments(u.String(), "HEAD:refs/heads/actions-delete-unprotected").
 			WithDir(dstPath).RunStdString(t.Context())
-		require.Error(t, err)
-		assert.Contains(t, stderr, "protected from deletion")
-		assert.True(t, git.IsBranchExist(t.Context(), repo, "actions-delete-protected-git"))
-
-		req := NewRequest(t, http.MethodDelete, "/api/v1/repos/"+repo.FullName()+"/branches/actions-delete-protected-api").AddTokenAuth(task.Token)
-		resp := MakeRequest(t, req, http.StatusForbidden)
-		assert.Contains(t, resp.Body.String(), "branch protected")
-		assert.True(t, git.IsBranchExist(t.Context(), repo, "actions-delete-protected-api"))
-
-		req = NewRequest(t, http.MethodDelete, "/api/v1/repos/"+repo.FullName()+"/branches/actions-delete-unprotected").AddTokenAuth(task.Token)
+		require.NoError(t, err, "%s", stderr)
+		req := NewRequest(t, http.MethodDelete, "/api/v1/repos/"+repo.FullName()+"/branches/actions-delete-unprotected").AddTokenAuth(task.Token)
 		MakeRequest(t, req, http.StatusNoContent)
 		assert.False(t, git.IsBranchExist(t.Context(), repo, "actions-delete-unprotected"))
 	})
