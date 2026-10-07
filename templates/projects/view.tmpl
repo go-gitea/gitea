@@ -28,15 +28,15 @@
 				{{svg "octicon-workflow"}}
 				{{ctx.Locale.Tr "projects.workflows"}}
 			</a>
-			<a class="item screen-full">
-				{{svg "octicon-screen-full"}}
-				{{ctx.Locale.Tr "projects.enter_fullscreen"}}
-			</a>
-			<a class="item screen-normal tw-hidden">
-				{{svg "octicon-screen-normal"}}
-				{{ctx.Locale.Tr "projects.exit_fullscreen"}}
-			</a>
 			{{if $canWriteProject}}
+				<a class="item screen-full">
+					{{svg "octicon-screen-full"}}
+					{{ctx.Locale.Tr "projects.enter_fullscreen"}}
+				</a>
+				<a class="item screen-normal tw-hidden">
+					{{svg "octicon-screen-normal"}}
+					{{ctx.Locale.Tr "projects.exit_fullscreen"}}
+				</a>
 				<a class="item" href="{{.Link}}/edit?redirect=project">
 					{{svg "octicon-pencil"}}
 					{{ctx.Locale.Tr "repo.issues.label_edit"}}

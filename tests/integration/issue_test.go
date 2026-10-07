@@ -20,7 +20,6 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/base"
 	"gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/references"
 	"gitea.dev/modules/setting"
@@ -123,32 +122,16 @@ func TestNoLoginViewIssue(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-type newIssueOptions struct {
-	Title     string
-	Content   string
-	ProjectID int64
-	LabelIDs  []int64
-}
-
-func testNewIssue(t *testing.T, session *TestSession, user, repo string, opts newIssueOptions) string {
+func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content string) string {
 	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "issues", "new"))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
-
-	labelIDs := base.Int64sToStrings(opts.LabelIDs)
-	projectIDs := ""
-	if opts.ProjectID > 0 {
-		projectIDs = strconv.FormatInt(opts.ProjectID, 10)
-	}
-
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"title":       opts.Title,
-		"content":     opts.Content,
-		"project_ids": projectIDs,
-		"label_ids":   strings.Join(labelIDs, ","),
+		"title":   title,
+		"content": content,
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
@@ -158,9 +141,9 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo string, opts ne
 
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find("#issue-title-display").Text()
-	assert.Contains(t, val, opts.Title)
+	assert.Contains(t, val, title)
 	val = htmlDoc.doc.Find(".comment .render-content p").First().Text()
-	assert.Equal(t, opts.Content, val)
+	assert.Equal(t, content, val)
 
 	return issueURL
 }
@@ -221,19 +204,13 @@ func testIssueChangeMilestone(t *testing.T, session *TestSession, repoLink strin
 func TestNewIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testNewIssue(t, session, "user2", "repo1", newIssueOptions{
-		Title:   "Title",
-		Content: "Description",
-	})
+	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
 func TestEditIssue(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
-		Title:   "Title",
-		Content: "Description",
-	})
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 
 	req := NewRequestWithValues(t, "POST", issueURL+"/content", map[string]string{
 		"content": "modified content",
@@ -258,10 +235,7 @@ func TestEditIssue(t *testing.T) {
 func TestIssueCommentClose(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
-		Title:   "Title",
-		Content: "Description",
-	})
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 	testIssueAddComment(t, session, issueURL, "Test comment 1", "")
 	testIssueAddComment(t, session, issueURL, "Test comment 2", "")
 	testIssueAddComment(t, session, issueURL, "Test comment 3", "close")
@@ -277,10 +251,7 @@ func TestIssueCommentClose(t *testing.T) {
 func TestIssueCommentDelete(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
-		Title:   "Title",
-		Content: "Description",
-	})
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 	comment1 := "Test comment 1"
 	commentID := testIssueAddComment(t, session, issueURL, comment1, "")
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: commentID})
@@ -297,10 +268,7 @@ func TestIssueCommentDelete(t *testing.T) {
 func TestIssueCommentUpdate(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
-		Title:   "Title",
-		Content: "Description",
-	})
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 	comment1 := "Test comment 1"
 	commentID := testIssueAddComment(t, session, issueURL, comment1, "")
 
@@ -327,10 +295,7 @@ func TestIssueCommentUpdate(t *testing.T) {
 func TestIssueCommentUpdateSimultaneously(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
-		Title:   "Title",
-		Content: "Description",
-	})
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 	comment1 := "Test comment 1"
 	commentID := testIssueAddComment(t, session, issueURL, comment1, "")
 
@@ -365,10 +330,7 @@ func TestIssueCommentUpdateSimultaneously(t *testing.T) {
 func TestIssueReaction(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
-		Title:   "Title",
-		Content: "Description",
-	})
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 
 	req := NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
 		"content": "8ball",
@@ -461,10 +423,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 func testIssueWithBean(t *testing.T, user string, repoID int64, title, content string) (string, *issues_model.Issue) {
 	session := loginUser(t, user)
-	issueURL := testNewIssue(t, session, user, fmt.Sprintf("repo%d", repoID), newIssueOptions{
-		Title:   title,
-		Content: content,
-	})
+	issueURL := testNewIssue(t, session, user, fmt.Sprintf("repo%d", repoID), title, content)
 	indexStr := issueURL[strings.LastIndexByte(issueURL, '/')+1:]
 	index, err := strconv.Atoi(indexStr)
 	assert.NoError(t, err, "Invalid issue href: %s", issueURL)
@@ -727,10 +686,7 @@ func TestUpdateIssueRefByPoster(t *testing.T) {
 	// user4 is a non-admin, non-collaborator on user2/repo1.
 	// They create an issue, making them the poster.
 	posterSession := loginUser(t, "user4")
-	issueURL := testNewIssue(t, posterSession, "user2", "repo1", newIssueOptions{
-		Title:   "Poster ref test",
-		Content: "body",
-	})
+	issueURL := testNewIssue(t, posterSession, "user2", "repo1", "Poster ref test", "body")
 	refURL := issueURL + "/ref"
 
 	// The poster (non-collaborator) must be able to update the ref.
@@ -748,10 +704,7 @@ func TestIssueRefSelectorEnabledForPoster(t *testing.T) {
 
 	// user4 creates an issue in user2/repo1 (user4 has no write permission there).
 	posterSession := loginUser(t, "user4")
-	issueURL := testNewIssue(t, posterSession, "user2", "repo1", newIssueOptions{
-		Title:   "Ref selector test",
-		Content: "body",
-	})
+	issueURL := testNewIssue(t, posterSession, "user2", "repo1", "Ref selector test", "body")
 
 	resp := posterSession.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)

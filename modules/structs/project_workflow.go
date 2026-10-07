@@ -3,80 +3,64 @@
 
 package structs
 
-// ProjectWorkflowRule represents a workflow filter or action item.
+import (
+	"time"
+)
+
+// ProjectWorkflowFilters restricts which items a project workflow runs for
 // swagger:model
-type ProjectWorkflowRule struct {
-	Type  string `json:"type"`
-	Value string `json:"value"`
+type ProjectWorkflowFilters struct {
+	// "issue" or "pull_request", empty matches both
+	IssueType string `json:"issue_type,omitempty"`
+	// only for item_column_changed
+	SourceColumnID int64 `json:"source_column_id,omitempty"`
+	// only for item_column_changed
+	TargetColumnID int64 `json:"target_column_id,omitempty"`
+	// the item must have all of these labels
+	LabelIDs []int64 `json:"label_ids,omitempty"`
 }
 
-// ProjectWorkflowCapabilities describes which filters and actions an event supports.
+// ProjectWorkflowActions describes what a project workflow does to a matching item
 // swagger:model
-type ProjectWorkflowCapabilities struct {
-	AvailableFilters []string `json:"available_filters"`
-	AvailableActions []string `json:"available_actions"`
+type ProjectWorkflowActions struct {
+	ColumnID       int64   `json:"column_id,omitempty"`
+	AddLabelIDs    []int64 `json:"add_label_ids,omitempty"`
+	RemoveLabelIDs []int64 `json:"remove_label_ids,omitempty"`
+	// "close" or "reopen"
+	IssueState string `json:"issue_state,omitempty"`
 }
 
-// ProjectWorkflow represents a project workflow.
+// ProjectWorkflow represents a project workflow
 // swagger:model
 type ProjectWorkflow struct {
-	ID            int64                       `json:"id"`
-	EventID       string                      `json:"event_id"`
-	DisplayName   string                      `json:"display_name"`
-	WorkflowEvent string                      `json:"workflow_event"`
-	Capabilities  ProjectWorkflowCapabilities `json:"capabilities"`
-	Filters       []ProjectWorkflowRule       `json:"filters"`
-	Actions       []ProjectWorkflowRule       `json:"actions"`
-	Summary       string                      `json:"summary"`
-	Enabled       bool                        `json:"enabled"`
-	IsConfigured  bool                        `json:"is_configured"`
+	ID int64 `json:"id"`
+	// one of item_opened, item_added_to_project, item_removed_from_project, item_reopened, item_closed,
+	// item_column_changed, code_changes_requested, code_review_approved, pull_request_merged
+	Event   string                 `json:"event"`
+	Enabled bool                   `json:"enabled"`
+	Filters ProjectWorkflowFilters `json:"filters"`
+	Actions ProjectWorkflowActions `json:"actions"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated_at"`
 }
 
-// ProjectWorkflowColumnOption represents a selectable project column.
-// swagger:model
-type ProjectWorkflowColumnOption struct {
-	ID    int64  `json:"id"`
-	Title string `json:"title"`
-}
-
-// ProjectWorkflowOptions represents the project workflow configuration options.
-// swagger:model
-type ProjectWorkflowOptions struct {
-	Columns []*ProjectWorkflowColumnOption `json:"columns"`
-	Labels  []*Label                       `json:"labels"`
-}
-
-// ProjectWorkflowFilterOptions represents editable workflow filters.
-// swagger:model
-type ProjectWorkflowFilterOptions struct {
-	IssueType    string   `json:"issue_type,omitempty"`
-	SourceColumn string   `json:"source_column,omitempty"`
-	TargetColumn string   `json:"target_column,omitempty"`
-	Labels       []string `json:"labels,omitempty"`
-}
-
-// ProjectWorkflowActionOptions represents editable workflow actions.
-// swagger:model
-type ProjectWorkflowActionOptions struct {
-	Column       string   `json:"column,omitempty"`
-	AddLabels    []string `json:"add_labels,omitempty"`
-	RemoveLabels []string `json:"remove_labels,omitempty"`
-	IssueState   string   `json:"issue_state,omitempty"`
-}
-
-// CreateProjectWorkflowOption represents the payload for creating a project workflow.
+// CreateProjectWorkflowOption options for creating a project workflow
 // swagger:model
 type CreateProjectWorkflowOption struct {
-	EventID string                       `json:"event_id" binding:"Required"`
-	Filters ProjectWorkflowFilterOptions `json:"filters"`
-	Actions ProjectWorkflowActionOptions `json:"actions"`
+	// required: true
+	Event string `json:"event" binding:"Required"`
+	// defaults to true
+	Enabled *bool                  `json:"enabled,omitempty"`
+	Filters ProjectWorkflowFilters `json:"filters"`
+	Actions ProjectWorkflowActions `json:"actions"`
 }
 
-// EditProjectWorkflowOption represents the payload for editing a project workflow.
-// Filters and Actions are pointers so a PATCH can omit either group and leave
-// the corresponding existing configuration untouched (partial update).
+// EditProjectWorkflowOption options for editing a project workflow, omitted fields are left unchanged
 // swagger:model
 type EditProjectWorkflowOption struct {
-	Filters *ProjectWorkflowFilterOptions `json:"filters"`
-	Actions *ProjectWorkflowActionOptions `json:"actions"`
+	Enabled *bool                   `json:"enabled,omitempty"`
+	Filters *ProjectWorkflowFilters `json:"filters,omitempty"`
+	Actions *ProjectWorkflowActions `json:"actions,omitempty"`
 }

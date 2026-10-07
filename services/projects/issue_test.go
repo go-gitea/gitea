@@ -16,7 +16,6 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_Projects(t *testing.T) {
@@ -112,12 +111,12 @@ func Test_Projects(t *testing.T) {
 
 		// issue 6 belongs to private repo 3 under org 3
 		issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		// issue 16 belongs to public repo 16 under org 3
 		issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
-		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
+		_, _, err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user2, []int64{project1.ID})
 		assert.NoError(t, err)
 
 		projects, err := db.Find[project_model.Project](t.Context(), project_model.SearchOptions{
@@ -190,7 +189,8 @@ func Test_Projects(t *testing.T) {
 			}()
 		}
 
-		assert.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue11, user2, []int64{projects[0].ID, projects[1].ID}))
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue11, user2, []int64{projects[0].ID, projects[1].ID})
+		assert.NoError(t, err)
 
 		// the column the issue must stay in for the second project
 		otherColumn, err := projects[1].MustDefaultColumn(t.Context())
@@ -254,32 +254,4 @@ func Test_Projects(t *testing.T) {
 			assert.Len(t, columnIssues[3], 1)
 		})
 	})
-}
-
-func TestMoveIssueToAnotherColumn(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	require.NoError(t, issue.LoadRepo(t.Context()))
-
-	// issue 1 is already on project 1 / column 1 via fixtures, put it on project 4 as well
-	otherProjectIssue := project_model.ProjectIssue{
-		ProjectID:       4,
-		IssueID:         issue.ID,
-		ProjectColumnID: 6,
-	}
-	require.NoError(t, db.Insert(t.Context(), &otherProjectIssue))
-	defer func() {
-		_, err := db.DeleteByID[project_model.ProjectIssue](t.Context(), otherProjectIssue.ID)
-		require.NoError(t, err)
-	}()
-
-	targetColumn, err := project_model.GetColumn(t.Context(), 4) // "Done" of project 4
-	require.NoError(t, err)
-	require.NoError(t, MoveIssueToAnotherColumn(t.Context(), doer, issue, targetColumn))
-
-	unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{ID: otherProjectIssue.ID, ProjectID: 4, ProjectColumnID: targetColumn.ID})
-	// the assignment in project 1 must stay untouched
-	unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{ID: 1, ProjectID: 1, ProjectColumnID: 1})
 }

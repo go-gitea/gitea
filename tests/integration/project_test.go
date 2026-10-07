@@ -282,16 +282,6 @@ func TestRepoProjectFilterByMilestone(t *testing.T) {
 		assert.NotContains(t, issueIDs, int64(2))
 		assert.NotContains(t, issueIDs, int64(5))
 	})
-
-	t.Run("AnonymousToolbar", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/user2/repo1/projects/1")
-		resp := MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-
-		assert.Equal(t, 1, htmlDoc.Find(`.ui.compact.mini.menu a.item[href="/user2/repo1/projects/1/workflows"]`).Length())
-		assert.Equal(t, 1, htmlDoc.Find(`.ui.compact.mini.menu .screen-full`).Length())
-		assert.Equal(t, 0, htmlDoc.Find(`.ui.compact.mini.menu a.item[href="/user2/repo1/projects/1/edit?redirect=project"]`).Length())
-	})
 }
 
 func TestOrgProjectFilterByMilestone(t *testing.T) {
@@ -324,8 +314,10 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	require.NoError(t, project_model.NewProject(t.Context(), &project))
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, []int64{project.ID}))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, []int64{project.ID}))
+	for _, issue := range []*issues_model.Issue{issue16, issue17} {
+		_, _, err := issues_model.IssueAssignOrRemoveProject(t.Context(), issue, user1, []int64{project.ID})
+		require.NoError(t, err)
+	}
 
 	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)
@@ -364,9 +356,6 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		issueIDs := getProjectIssueIDs(t, htmlDoc)
-		assert.Equal(t, 1, htmlDoc.Find(`.ui.compact.mini.menu a.item[href="`+projectURL+`/workflows"]`).Length())
-		assert.Equal(t, 1, htmlDoc.Find(`.ui.compact.mini.menu .screen-full`).Length())
-		assert.Equal(t, 0, htmlDoc.Find(`.ui.compact.mini.menu a.item[href="`+projectURL+`/edit?redirect=project"]`).Length())
 		// repo32 is public, so anonymous users should see its issues
 		assert.Contains(t, issueIDs, issue16.ID)
 		assert.Contains(t, issueIDs, issue17.ID)

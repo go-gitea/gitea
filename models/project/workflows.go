@@ -1,15 +1,13 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package project
 
 import (
 	"context"
-	"fmt"
-	"sync"
+	"slices"
 
 	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 )
 
@@ -27,183 +25,178 @@ const (
 	WorkflowEventPullRequestMerged      WorkflowEvent = "pull_request_merged"
 )
 
-var GetWorkflowEvents = sync.OnceValue(func() []WorkflowEvent {
-	return []WorkflowEvent{
-		WorkflowEventItemOpened,
-		WorkflowEventItemAddedToProject,
-		WorkflowEventItemRemovedFromProject,
-		WorkflowEventItemReopened,
-		WorkflowEventItemClosed,
-		WorkflowEventItemColumnChanged,
-		WorkflowEventCodeChangesRequested,
-		WorkflowEventCodeReviewApproved,
-		WorkflowEventPullRequestMerged,
-	}
-})
-
-func IsValidWorkflowEvent(event string) bool {
-	for _, we := range GetWorkflowEvents() {
-		if we.EventID() == event {
-			return true
-		}
-	}
-	return false
-}
-
-func (we WorkflowEvent) LangKey() string {
-	switch we {
-	case WorkflowEventItemOpened:
-		return "projects.workflows.event.item_opened"
-	case WorkflowEventItemAddedToProject:
-		return "projects.workflows.event.item_added_to_project"
-	case WorkflowEventItemRemovedFromProject:
-		return "projects.workflows.event.item_removed_from_project"
-	case WorkflowEventItemReopened:
-		return "projects.workflows.event.item_reopened"
-	case WorkflowEventItemClosed:
-		return "projects.workflows.event.item_closed"
-	case WorkflowEventItemColumnChanged:
-		return "projects.workflows.event.item_column_changed"
-	case WorkflowEventCodeChangesRequested:
-		return "projects.workflows.event.code_changes_requested"
-	case WorkflowEventCodeReviewApproved:
-		return "projects.workflows.event.code_review_approved"
-	case WorkflowEventPullRequestMerged:
-		return "projects.workflows.event.pull_request_merged"
-	default:
-		return string(we)
-	}
-}
-
-func (we WorkflowEvent) EventID() string {
-	return string(we)
-}
-
 type WorkflowFilterType string
 
 const (
-	WorkflowFilterTypeIssueType    WorkflowFilterType = "issue_type"    // issue, pull_request, etc.
-	WorkflowFilterTypeSourceColumn WorkflowFilterType = "source_column" // source column for item_column_changed event
-	WorkflowFilterTypeTargetColumn WorkflowFilterType = "target_column" // target column for item_column_changed event
-	WorkflowFilterTypeLabels       WorkflowFilterType = "labels"        // filter by issue/PR labels
+	WorkflowFilterTypeIssueType    WorkflowFilterType = "issue_type"
+	WorkflowFilterTypeSourceColumn WorkflowFilterType = "source_column"
+	WorkflowFilterTypeTargetColumn WorkflowFilterType = "target_column"
+	WorkflowFilterTypeLabels       WorkflowFilterType = "labels"
 )
 
-// accepted values of the WorkflowFilterTypeIssueType filter
 const (
 	WorkflowIssueTypeIssue       = "issue"
 	WorkflowIssueTypePullRequest = "pull_request"
 )
 
-func IsValidWorkflowIssueType(issueType string) bool {
-	return issueType == WorkflowIssueTypeIssue || issueType == WorkflowIssueTypePullRequest
+// WorkflowFilters restricts the items a workflow runs for, zero values match everything
+type WorkflowFilters struct {
+	IssueType      string  `json:"issue_type,omitempty"`
+	SourceColumnID int64   `json:"source_column_id,omitempty"`
+	TargetColumnID int64   `json:"target_column_id,omitempty"`
+	LabelIDs       []int64 `json:"label_ids,omitempty"`
 }
 
-type WorkflowFilter struct {
-	Type  WorkflowFilterType `json:"type"`
-	Value string             `json:"value"`
+// Types returns the types of the filters that are set
+func (f WorkflowFilters) Types() (types []WorkflowFilterType) {
+	if f.IssueType != "" {
+		types = append(types, WorkflowFilterTypeIssueType)
+	}
+	if f.SourceColumnID != 0 {
+		types = append(types, WorkflowFilterTypeSourceColumn)
+	}
+	if f.TargetColumnID != 0 {
+		types = append(types, WorkflowFilterTypeTargetColumn)
+	}
+	if len(f.LabelIDs) > 0 {
+		types = append(types, WorkflowFilterTypeLabels)
+	}
+	return types
 }
 
 type WorkflowActionType string
 
 const (
-	WorkflowActionTypeColumn       WorkflowActionType = "column"        // add the item to the project's column
-	WorkflowActionTypeAddLabels    WorkflowActionType = "add_labels"    // choose one or more labels
-	WorkflowActionTypeRemoveLabels WorkflowActionType = "remove_labels" // choose one or more labels
-	WorkflowActionTypeIssueState   WorkflowActionType = "issue_state"   // change the issue state (reopen/close)
+	WorkflowActionTypeColumn       WorkflowActionType = "column"
+	WorkflowActionTypeAddLabels    WorkflowActionType = "add_labels"
+	WorkflowActionTypeRemoveLabels WorkflowActionType = "remove_labels"
+	WorkflowActionTypeIssueState   WorkflowActionType = "issue_state"
 )
 
-type WorkflowAction struct {
-	Type  WorkflowActionType `json:"type"`
-	Value string             `json:"value"`
+const (
+	WorkflowIssueStateClose  = "close"
+	WorkflowIssueStateReopen = "reopen"
+)
+
+type WorkflowActions struct {
+	ColumnID       int64   `json:"column_id,omitempty"`
+	AddLabelIDs    []int64 `json:"add_label_ids,omitempty"`
+	RemoveLabelIDs []int64 `json:"remove_label_ids,omitempty"`
+	IssueState     string  `json:"issue_state,omitempty"`
 }
 
-// WorkflowEventCapabilities defines what filters and actions are available for each event
-type WorkflowEventCapabilities struct {
-	AvailableFilters []WorkflowFilterType `json:"available_filters"`
-	AvailableActions []WorkflowActionType `json:"available_actions"`
-}
-
-// GetWorkflowEventCapabilities returns the capabilities for each workflow event
-var GetWorkflowEventCapabilities = sync.OnceValue(func() map[WorkflowEvent]WorkflowEventCapabilities {
-	return map[WorkflowEvent]WorkflowEventCapabilities{
-		WorkflowEventItemOpened: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels},
-		},
-		WorkflowEventItemAddedToProject: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState},
-		},
-		WorkflowEventItemRemovedFromProject: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState},
-		},
-		WorkflowEventItemReopened: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
-		},
-		WorkflowEventItemClosed: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
-		},
-		WorkflowEventItemColumnChanged: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeSourceColumn, WorkflowFilterTypeTargetColumn, WorkflowFilterTypeLabels},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState},
-		},
-		WorkflowEventCodeChangesRequested: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeLabels}, // only applies to pull requests
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
-		},
-		WorkflowEventCodeReviewApproved: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeLabels}, // only applies to pull requests
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
-		},
-		WorkflowEventPullRequestMerged: {
-			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeLabels}, // only applies to pull requests
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
-		},
+// Types returns the types of the actions that are set
+func (a WorkflowActions) Types() (types []WorkflowActionType) {
+	if a.ColumnID != 0 {
+		types = append(types, WorkflowActionTypeColumn)
 	}
-})
+	if len(a.AddLabelIDs) > 0 {
+		types = append(types, WorkflowActionTypeAddLabels)
+	}
+	if len(a.RemoveLabelIDs) > 0 {
+		types = append(types, WorkflowActionTypeRemoveLabels)
+	}
+	if a.IssueState != "" {
+		types = append(types, WorkflowActionTypeIssueState)
+	}
+	return types
+}
+
+// ChangesIssue reports whether the actions edit the item itself rather than only its place on the board
+func (a WorkflowActions) ChangesIssue() bool {
+	return len(a.AddLabelIDs) > 0 || len(a.RemoveLabelIDs) > 0 || a.IssueState != ""
+}
+
+type WorkflowEventCapabilities struct {
+	Filters []WorkflowFilterType
+	Actions []WorkflowActionType
+}
+
+var workflowEvents = []WorkflowEvent{
+	WorkflowEventItemOpened,
+	WorkflowEventItemAddedToProject,
+	WorkflowEventItemRemovedFromProject,
+	WorkflowEventItemReopened,
+	WorkflowEventItemClosed,
+	WorkflowEventItemColumnChanged,
+	WorkflowEventCodeChangesRequested,
+	WorkflowEventCodeReviewApproved,
+	WorkflowEventPullRequestMerged,
+}
+
+var (
+	itemFilters = []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels}
+	pullFilters = []WorkflowFilterType{WorkflowFilterTypeLabels}
+	allActions  = []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState}
+	pullActions = []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels}
+)
+
+var workflowEventCapabilities = map[WorkflowEvent]WorkflowEventCapabilities{
+	WorkflowEventItemOpened:             {itemFilters, []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels}},
+	WorkflowEventItemAddedToProject:     {itemFilters, allActions},
+	WorkflowEventItemRemovedFromProject: {itemFilters, []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState}},
+	WorkflowEventItemReopened:           {itemFilters, pullActions},
+	WorkflowEventItemClosed:             {itemFilters, pullActions},
+	WorkflowEventItemColumnChanged: {
+		[]WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeSourceColumn, WorkflowFilterTypeTargetColumn, WorkflowFilterTypeLabels},
+		[]WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState},
+	},
+	WorkflowEventCodeChangesRequested: {pullFilters, pullActions},
+	WorkflowEventCodeReviewApproved:   {pullFilters, pullActions},
+	WorkflowEventPullRequestMerged:    {pullFilters, pullActions},
+}
+
+// WorkflowEvents returns all events in display order
+func WorkflowEvents() []WorkflowEvent {
+	return workflowEvents
+}
+
+func (we WorkflowEvent) IsValid() bool {
+	_, ok := workflowEventCapabilities[we]
+	return ok
+}
+
+func (we WorkflowEvent) Capabilities() WorkflowEventCapabilities {
+	return workflowEventCapabilities[we]
+}
+
+func (we WorkflowEvent) LangKey() string {
+	return "projects.workflows.event." + string(we)
+}
 
 type Workflow struct {
 	ID              int64
-	ProjectID       int64    `xorm:"INDEX"`
-	Project         *Project `xorm:"-"`
+	ProjectID       int64 `xorm:"INDEX"`
 	WorkflowEvent   WorkflowEvent
-	WorkflowFilters []WorkflowFilter `xorm:"TEXT JSON"`
-	WorkflowActions []WorkflowAction `xorm:"TEXT JSON"`
-	// SchemaVersion number to allow for smooth version upgrades of WorkflowFilters/
-	// WorkflowActions, following the same rationale as HookTask.PayloadVersion:
-	//  - SchemaVersion 1: WorkflowFilters/WorkflowActions use the current filter/action shape
-	SchemaVersion int                `xorm:"DEFAULT 1"`
-	Enabled       bool               `xorm:"DEFAULT true NOT NULL"`
-	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+	WorkflowFilters WorkflowFilters `xorm:"TEXT JSON"`
+	WorkflowActions WorkflowActions `xorm:"TEXT JSON"`
+	// bump when the filter/action JSON shape changes, see HookTask.PayloadVersion
+	SchemaVersion int  `xorm:"DEFAULT 1"`
+	Enabled       bool `xorm:"DEFAULT true NOT NULL"`
+	// label and issue state actions run with this user's permissions
+	UpdaterID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
-// TableName overrides the table name used by ProjectWorkflow to `project_workflow`
+// UnsupportedRule returns the first filter or action type the workflow's event doesn't support
+func (wf *Workflow) UnsupportedRule() string {
+	capabilities := wf.WorkflowEvent.Capabilities()
+	for _, typ := range wf.WorkflowFilters.Types() {
+		if !slices.Contains(capabilities.Filters, typ) {
+			return string(typ)
+		}
+	}
+	for _, typ := range wf.WorkflowActions.Types() {
+		if !slices.Contains(capabilities.Actions, typ) {
+			return string(typ)
+		}
+	}
+	return ""
+}
+
 func (Workflow) TableName() string {
 	return "project_workflow"
-}
-
-func (p *Workflow) LoadProject(ctx context.Context) error {
-	if p.Project != nil || p.ProjectID <= 0 {
-		return nil
-	}
-	project, err := GetProjectByID(ctx, p.ProjectID)
-	if err != nil {
-		return err
-	}
-	p.Project = project
-	return nil
-}
-
-func (p *Workflow) Link(ctx context.Context) string {
-	if err := p.LoadProject(ctx); err != nil {
-		log.Error("ProjectWorkflow Link: %v", err)
-		return ""
-	}
-	return p.Project.Link(ctx) + fmt.Sprintf("/workflows/%d", p.ID)
 }
 
 func init() {
@@ -212,13 +205,16 @@ func init() {
 
 func FindWorkflowsByProjectID(ctx context.Context, projectID int64) ([]*Workflow, error) {
 	workflows := make([]*Workflow, 0)
-	// Explicit ORDER BY: without it the row order is engine-dependent (e.g. on
-	// Postgres an UPDATE can relocate a row), so toggling Enabled could silently
-	// reorder the workflows that run for the same event.
-	if err := db.GetEngine(ctx).Where("project_id=?", projectID).OrderBy("id ASC").Find(&workflows); err != nil {
-		return nil, err
+	return workflows, db.GetEngine(ctx).Where("project_id=?", projectID).OrderBy("id ASC").Find(&workflows)
+}
+
+func FindEnabledWorkflows(ctx context.Context, projectIDs []int64, event WorkflowEvent) ([]*Workflow, error) {
+	workflows := make([]*Workflow, 0)
+	if len(projectIDs) == 0 {
+		return workflows, nil
 	}
-	return workflows, nil
+	// ordered so execution order is stable across engines
+	return workflows, db.GetEngine(ctx).In("project_id", projectIDs).And("workflow_event=? AND enabled=?", event, true).OrderBy("project_id ASC, id ASC").Find(&workflows)
 }
 
 func GetWorkflowByProjectAndID(ctx context.Context, projectID, workflowID int64) (*Workflow, error) {
@@ -233,43 +229,19 @@ func GetWorkflowByProjectAndID(ctx context.Context, projectID, workflowID int64)
 	return &workflow, nil
 }
 
-// CurrentWorkflowSchemaVersion is written to new workflows; see Workflow.SchemaVersion.
-const CurrentWorkflowSchemaVersion = 1
+const currentWorkflowSchemaVersion = 1
 
 func CreateWorkflow(ctx context.Context, wf *Workflow) error {
-	// callers don't set SchemaVersion themselves (there is only one shape today),
-	// so default it here rather than relying on the DB column default, which
-	// xorm's Insert would otherwise bypass by sending the Go zero value literally.
-	if wf.SchemaVersion == 0 {
-		wf.SchemaVersion = CurrentWorkflowSchemaVersion
-	}
+	wf.SchemaVersion = currentWorkflowSchemaVersion // xorm inserts the zero value, bypassing the column DEFAULT
 	return db.Insert(ctx, wf)
 }
 
-// the mutators below are all scoped by project_id so that a workflow ID from
-// another project can never be modified, even if a caller forgets to check
-
-func UpdateWorkflow(ctx context.Context, wf *Workflow) error {
-	_, err := db.GetEngine(ctx).ID(wf.ID).Where("project_id=?", wf.ProjectID).
-		Cols("workflow_filters", "workflow_actions").Update(wf)
+func UpdateWorkflow(ctx context.Context, wf *Workflow, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(wf.ID).Where("project_id=?", wf.ProjectID).Cols(cols...).Update(wf)
 	return err
 }
 
 func DeleteWorkflow(ctx context.Context, projectID, id int64) error {
 	_, err := db.GetEngine(ctx).ID(id).Where("project_id=?", projectID).Delete(&Workflow{})
-	return err
-}
-
-func EnableWorkflow(ctx context.Context, projectID, id int64) error {
-	return setWorkflowEnabled(ctx, projectID, id, true)
-}
-
-func DisableWorkflow(ctx context.Context, projectID, id int64) error {
-	return setWorkflowEnabled(ctx, projectID, id, false)
-}
-
-func setWorkflowEnabled(ctx context.Context, projectID, id int64, enabled bool) error {
-	_, err := db.GetEngine(ctx).ID(id).Where("project_id=?", projectID).
-		Cols("enabled").Update(&Workflow{Enabled: enabled})
 	return err
 }

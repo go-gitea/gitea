@@ -1,19 +1,17 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package project
 
 import (
-	"cmp"
 	"context"
 	"slices"
-	"strconv"
-	"strings"
 
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/util"
 	issue_service "gitea.dev/services/issue"
 	notify_service "gitea.dev/services/notify"
@@ -29,574 +27,200 @@ type workflowNotifier struct {
 
 var _ notify_service.Notifier = &workflowNotifier{}
 
-// NewNotifier create a new workflowNotifier notifier
-func NewNotifier() notify_service.Notifier {
-	return &workflowNotifier{}
-}
-
-func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, mentions []*user_model.User) {
-	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("NewIssue: LoadRepo: %v", err)
-		return
-	}
-	if err := issue.LoadProjects(ctx); err != nil {
-		log.Error("NewIssue: LoadProject: %v", err)
-		return
-	}
-	if len(issue.Projects) == 0 {
-		return
-	}
-
-	// No doer is passed for this event; the item's own poster is who triggered
-	// it, mirroring how SpecialDoerNameCodeOwners attributes automated review
-	// requests to issue.Poster rather than inventing an identity.
+func (*workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
 	if err := issue.LoadPoster(ctx); err != nil {
-		log.Error("NewIssue: LoadPoster: %v", err)
+		log.Error("LoadPoster: %v", err)
 		return
 	}
-
-	for _, project := range issue.Projects {
-		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
-		if err != nil {
-			log.Error("NewIssue: FindWorkflowsByProjectID: %v", err)
-			return
-		}
-
-		// Find workflows for the ItemOpened event
-		for _, workflow := range workflows {
-			if workflow.WorkflowEvent == project_model.WorkflowEventItemOpened {
-				fireIssueWorkflow(ctx, workflow, issue, issue.Poster, project.ID, 0, 0)
-			}
-		}
-	}
+	runIssueProjectsWorkflows(ctx, issue.Poster, issue, project_model.WorkflowEventItemOpened)
 }
 
 func (m *workflowNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("NewPullRequest: LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return
 	}
-	issue := pr.Issue
-	m.NewIssue(ctx, issue, mentions)
+	m.NewIssue(ctx, pr.Issue, mentions)
 }
 
-func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
-	// Skip state changes triggered by workflow actions to prevent cascade loops
-	// (same guard as feed/notifier.go).
-	if issues_model.IsProjectWorkflowDoer(doer) {
-		return
-	}
-	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("IssueChangeStatus: LoadRepo: %v", err)
-		return
-	}
-	if err := issue.LoadProjects(ctx); err != nil {
-		log.Error("IssueChangeStatus: LoadProject: %v", err)
-		return
-	}
-	if len(issue.Projects) == 0 {
-		return
-	}
-
-	for _, project := range issue.Projects {
-		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
-		if err != nil {
-			log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
-			return
-		}
-
-		workflowEvent := util.Iif(isClosed, project_model.WorkflowEventItemClosed, project_model.WorkflowEventItemReopened)
-		// Find workflows for the specific event
-		for _, workflow := range workflows {
-			if workflow.WorkflowEvent == workflowEvent {
-				fireIssueWorkflow(ctx, workflow, issue, doer, project.ID, 0, 0)
-			}
-		}
-	}
+func (*workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, _ string, issue *issues_model.Issue, _ *issues_model.Comment, isClosed bool) {
+	runIssueProjectsWorkflows(ctx, doer, issue, util.Iif(isClosed, project_model.WorkflowEventItemClosed, project_model.WorkflowEventItemReopened))
 }
 
-func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldProjectColumnMap map[int64]int64, newProjects []*project_model.Project) {
-	if issues_model.IsProjectWorkflowDoer(doer) {
-		return
-	}
-	// Both loops below reach fireIssueWorkflow, whose actions create timeline
-	// comments against issue.Repo, so the repo has to be loaded for either path.
-	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("IssueChangeProjects: LoadRepo: %v", err)
-		return
-	}
+func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
+	runWorkflows(ctx, doer, issue, removedProjectIDs, project_model.WorkflowEventItemRemovedFromProject, workflowTrigger{})
+	runWorkflows(ctx, doer, issue, addedProjectIDs, project_model.WorkflowEventItemAddedToProject, workflowTrigger{})
+}
 
-	// Collect into slices sorted by project ID: iterating a map would run the
-	// projects' workflows in a different order on every request, which is
-	// observable whenever two projects' workflows touch the same item.
-	var addedProjects []*project_model.Project
-	for _, newProject := range newProjects {
-		// Use key presence check; column ID 0 is technically valid.
-		if _, ok := oldProjectColumnMap[newProject.ID]; ok {
-			continue
-		}
-		addedProjects = append(addedProjects, newProject)
-	}
-	slices.SortFunc(addedProjects, func(a, b *project_model.Project) int {
-		return cmp.Compare(a.ID, b.ID)
+func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
+	runWorkflows(ctx, doer, issue, []int64{newColumn.ProjectID}, project_model.WorkflowEventItemColumnChanged, workflowTrigger{
+		sourceColumnID: oldColumnID,
+		targetColumnID: newColumn.ID,
 	})
-
-	var removedProjectIDs []int64
-	for projectID := range oldProjectColumnMap {
-		found := false
-		for _, newProject := range newProjects {
-			if newProject.ID == projectID {
-				found = true
-				break
-			}
-		}
-		if !found {
-			removedProjectIDs = append(removedProjectIDs, projectID)
-		}
-	}
-	slices.Sort(removedProjectIDs)
-
-	for _, removedProjectID := range removedProjectIDs {
-		workflows, err := project_model.FindWorkflowsByProjectID(ctx, removedProjectID)
-		if err != nil {
-			log.Error("IssueChangeProjects: FindWorkflowsByProjectID: %v", err)
-			return
-		}
-
-		// Find workflows for the ItemRemovedFromProject event
-		for _, workflow := range workflows {
-			if workflow.WorkflowEvent == project_model.WorkflowEventItemRemovedFromProject {
-				fireIssueWorkflow(ctx, workflow, issue, doer, removedProjectID, 0, 0)
-			}
-		}
-	}
-
-	for _, newProject := range addedProjects {
-		workflows, err := project_model.FindWorkflowsByProjectID(ctx, newProject.ID)
-		if err != nil {
-			log.Error("IssueChangeProjects: FindWorkflowsByProjectID: %v", err)
-			return
-		}
-
-		// Find workflows for the ItemOpened event
-		for _, workflow := range workflows {
-			if workflow.WorkflowEvent == project_model.WorkflowEventItemAddedToProject {
-				fireIssueWorkflow(ctx, workflow, issue, doer, newProject.ID, 0, 0)
-			}
-		}
-	}
-}
-
-func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID, newColumnID int64) {
-	// Skip column moves triggered by workflow actions to prevent cascade loops.
-	if issues_model.IsProjectWorkflowDoer(doer) {
-		return
-	}
-	if oldColumnID == newColumnID {
-		return
-	}
-	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("IssueChangeProjectColumn: LoadRepo: %v", err)
-		return
-	}
-
-	if err := issue.LoadProjects(ctx); err != nil {
-		log.Error("IssueChangeProjectColumn: LoadProjects: %v", err)
-		return
-	}
-
-	newColumn, err := project_model.GetColumn(ctx, newColumnID)
-	if err != nil {
-		log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
-		return
-	}
-
-	// project_issue.project_board_id is stored as 0 for issues sitting in a
-	// project's default/unassigned column (see LoadProjectIssueColumnMap), so an
-	// oldColumnID of 0 here means "the default column", not "no column". Resolve
-	// it to the real column so the lookup below doesn't fail and skip the workflow.
-	var oldColumn *project_model.Column
-	if oldColumnID == 0 {
-		project, err := project_model.GetProjectByID(ctx, newColumn.ProjectID)
-		if err != nil {
-			log.Error("IssueChangeProjectColumn: GetProjectByID: %v", err)
-			return
-		}
-		oldColumn, err = project.MustDefaultColumn(ctx)
-		if err != nil {
-			log.Error("IssueChangeProjectColumn: MustDefaultColumn: %v", err)
-			return
-		}
-		oldColumnID = oldColumn.ID
-	} else {
-		oldColumn, err = project_model.GetColumn(ctx, oldColumnID)
-		if err != nil {
-			log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
-			return
-		}
-	}
-	// The early oldColumnID == newColumnID check above only catches a no-op move
-	// when the raw board_id values already matched. Once oldColumnID==0 has been
-	// resolved to the project's real default column, it can turn out to equal
-	// newColumnID too (e.g. reordering within the default column), so the no-op
-	// check has to be repeated here against the resolved ID.
-	if oldColumnID == newColumnID {
-		return
-	}
-	if oldColumn.ProjectID != newColumn.ProjectID {
-		return
-	}
-	found := false
-	for _, project := range issue.Projects {
-		if project.ID == oldColumn.ProjectID {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return
-	}
-
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, oldColumn.ProjectID)
-	if err != nil {
-		log.Error("IssueChangeProjectColumn: FindWorkflowsByProjectID: %v", err)
-		return
-	}
-
-	// Find workflows for the ItemColumnChanged event
-	for _, workflow := range workflows {
-		if workflow.WorkflowEvent == project_model.WorkflowEventItemColumnChanged {
-			fireIssueWorkflow(ctx, workflow, issue, doer, oldColumn.ProjectID, oldColumnID, newColumnID)
-		}
-	}
 }
 
 func (*workflowNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if issues_model.IsProjectWorkflowDoer(doer) {
-		return
-	}
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("MergePullRequest: LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return
 	}
-	issue := pr.Issue
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("MergePullRequest: LoadRepo: %v", err)
-		return
-	}
-
-	if err := issue.LoadProjects(ctx); err != nil {
-		log.Error("MergePullRequest: LoadProjects: %v", err)
-		return
-	}
-	if len(issue.Projects) == 0 {
-		return
-	}
-
-	for _, project := range issue.Projects {
-		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
-		if err != nil {
-			log.Error("MergePullRequest: FindWorkflowsByProjectID: %v", err)
-			return
-		}
-
-		// Find workflows for the PullRequestMerged event
-		for _, workflow := range workflows {
-			if workflow.WorkflowEvent == project_model.WorkflowEventPullRequestMerged {
-				fireIssueWorkflow(ctx, workflow, issue, doer, project.ID, 0, 0)
-			}
-		}
-	}
+	runIssueProjectsWorkflows(ctx, doer, pr.Issue, project_model.WorkflowEventPullRequestMerged)
 }
 
 func (m *workflowNotifier) AutoMergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
-	if issues_model.IsProjectWorkflowDoer(doer) {
-		return
-	}
 	m.MergePullRequest(ctx, doer, pr)
 }
 
-func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
+func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model.PullRequest, review *issues_model.Review, _ *issues_model.Comment, _ []*user_model.User) {
+	if !review.Official {
+		return
+	}
+	var event project_model.WorkflowEvent
+	switch review.Type {
+	case issues_model.ReviewTypeApprove:
+		event = project_model.WorkflowEventCodeReviewApproved
+	case issues_model.ReviewTypeReject:
+		event = project_model.WorkflowEventCodeChangesRequested
+	default:
+		return
+	}
 	if err := pr.LoadIssue(ctx); err != nil {
-		log.Error("PullRequestReview: LoadIssue: %v", err)
+		log.Error("LoadIssue: %v", err)
 		return
 	}
-	issue := pr.Issue
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		log.Error("PullRequestReview: LoadRepo: %v", err)
-		return
-	}
-
-	if err := issue.LoadProjects(ctx); err != nil {
-		log.Error("PullRequestReview: LoadProjects: %v", err)
-		return
-	}
-	if len(issue.Projects) == 0 {
-		return
-	}
-
-	// The reviewer is who triggered this event. review.Reviewer is only nil for
-	// a team review request, which doesn't apply to CodeChangesRequested/
-	// CodeReviewApproved (those always have an individual Reviewer); fall back
-	// to issue.Poster defensively, the same fallback NewIssue uses.
-	triggeringUser := review.Reviewer
-	if triggeringUser == nil {
-		if err := issue.LoadPoster(ctx); err != nil {
-			log.Error("PullRequestReview: LoadPoster: %v", err)
-			return
-		}
-		triggeringUser = issue.Poster
-	}
-
-	for _, project := range issue.Projects {
-		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
-		if err != nil {
-			log.Error("PullRequestReview: FindWorkflowsByProjectID: %v", err)
-			return
-		}
-
-		// Find workflows for the PullRequestMerged event
-		for _, workflow := range workflows {
-			if (workflow.WorkflowEvent == project_model.WorkflowEventCodeChangesRequested && review.Type == issues_model.ReviewTypeReject) ||
-				(workflow.WorkflowEvent == project_model.WorkflowEventCodeReviewApproved && review.Type == issues_model.ReviewTypeApprove) {
-				fireIssueWorkflow(ctx, workflow, issue, triggeringUser, project.ID, 0, 0)
-			}
-		}
-	}
+	runIssueProjectsWorkflows(ctx, review.Reviewer, pr.Issue, event)
 }
 
-func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, triggeringUser *user_model.User, projectID, sourceColumnID, targetColumnID int64) {
-	if !workflow.Enabled {
+type workflowTrigger struct {
+	sourceColumnID int64
+	targetColumnID int64
+}
+
+func runIssueProjectsWorkflows(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event project_model.WorkflowEvent) {
+	projectIDs, err := issue.ProjectIDs(ctx)
+	if err != nil {
+		log.Error("ProjectIDs: %v", err)
 		return
 	}
+	runWorkflows(ctx, doer, issue, projectIDs, event, workflowTrigger{})
+}
 
-	// Load issue labels for labels filter
+func runWorkflows(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, projectIDs []int64, event project_model.WorkflowEvent, trigger workflowTrigger) {
+	if issues_model.IsProjectWorkflowContext(ctx) {
+		return
+	}
+	workflows, err := project_model.FindEnabledWorkflows(ctx, projectIDs, event)
+	if err != nil {
+		log.Error("FindEnabledWorkflows: %v", err)
+		return
+	}
+	if len(workflows) == 0 {
+		return
+	}
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+	if issue.Repo.IsArchived {
+		return
+	}
 	if err := issue.LoadLabels(ctx); err != nil {
 		log.Error("LoadLabels: %v", err)
 		return
 	}
-
-	if !matchWorkflowsFilters(workflow, issue, sourceColumnID, targetColumnID) {
-		return
+	for _, wf := range workflows {
+		if matchWorkflowFilters(wf, issue, trigger) {
+			executeWorkflowActions(ctx, wf, doer, issue)
+		}
 	}
-
-	executeWorkflowActions(ctx, workflow, issue, triggeringUser, projectID)
 }
 
-// matchWorkflowsFilters checks if the issue matches all filters of the workflow.
-//
-// Filters fail closed: anything that cannot be positively evaluated -- a filter type
-// the event does not support, an unparsable or non-positive ID, or a column the
-// caller never supplied -- makes the workflow NOT match. A restrictive filter must
-// never silently degrade into "match everything", because that would run a
-// workflow's actions on items the user deliberately excluded.
-func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model.Issue, sourceColumnID, targetColumnID int64) bool {
-	// A stored filter that the event does not declare cannot be evaluated meaningfully
-	// (e.g. a source_column filter on item_opened, where no column IDs are ever
-	// supplied), so treat its presence as a non-match rather than skipping over it.
-	// The capability matrix is the same source of truth the write paths validate
-	// against, so this only rejects rows written by a different version or by hand.
-	capabilities := project_model.GetWorkflowEventCapabilities()[workflow.WorkflowEvent]
-	allowedFilters := make(map[project_model.WorkflowFilterType]bool, len(capabilities.AvailableFilters))
-	for _, filterType := range capabilities.AvailableFilters {
-		allowedFilters[filterType] = true
+// matchWorkflowFilters fails closed: a filter that cannot be evaluated never matches
+func matchWorkflowFilters(wf *project_model.Workflow, issue *issues_model.Issue, trigger workflowTrigger) bool {
+	if wf.UnsupportedRule() != "" {
+		return false
 	}
-
-	for _, filter := range workflow.WorkflowFilters {
-		if !allowedFilters[filter.Type] {
-			log.Error("Workflow %d: filter type %q is not supported by event %q, refusing to match", workflow.ID, filter.Type, workflow.WorkflowEvent)
-			return false
-		}
-
-		switch filter.Type {
-		case project_model.WorkflowFilterTypeIssueType:
-			// An empty value is the legitimate "applies to both issues and pull
-			// requests" setting, so matching everything here is intended.
-			if filter.Value == "" {
-				continue
-			}
-			// Filter value can be "issue" or "pull_request", anything else never matches
-			switch filter.Value {
-			case project_model.WorkflowIssueTypeIssue:
-				if issue.IsPull {
-					return false
-				}
-			case project_model.WorkflowIssueTypePullRequest:
-				if !issue.IsPull {
-					return false
-				}
-			default:
-				log.Error("Invalid issue type filter value: %s", filter.Value)
-				return false
-			}
-		case project_model.WorkflowFilterTypeTargetColumn:
-			if !matchColumnFilter(workflow, filter, targetColumnID) {
-				return false
-			}
-		case project_model.WorkflowFilterTypeSourceColumn:
-			if !matchColumnFilter(workflow, filter, sourceColumnID) {
-				return false
-			}
-		case project_model.WorkflowFilterTypeLabels:
-			labelID, err := strconv.ParseInt(filter.Value, 10, 64)
-			if err != nil || labelID <= 0 {
-				log.Error("Invalid label ID: %s", filter.Value)
-				return false
-			}
-			// Check if issue has this label
-			hasLabel := false
-			for _, label := range issue.Labels {
-				if label.ID == labelID {
-					hasLabel = true
-					break
-				}
-			}
-			if !hasLabel {
-				return false
-			}
-		default:
-			// Unreachable while the capability matrix and this switch agree, but kept
-			// as the backstop for the next filter type: a type added to the matrix and
-			// forgotten here must not fall through the switch and match everything.
-			log.Error("Unsupported filter type: %s", filter.Type)
+	f := wf.WorkflowFilters
+	if f.IssueType != "" && f.IssueType != util.Iif(issue.IsPull, project_model.WorkflowIssueTypePullRequest, project_model.WorkflowIssueTypeIssue) {
+		return false
+	}
+	if f.SourceColumnID != 0 && f.SourceColumnID != trigger.sourceColumnID {
+		return false
+	}
+	if f.TargetColumnID != 0 && f.TargetColumnID != trigger.targetColumnID {
+		return false
+	}
+	for _, labelID := range f.LabelIDs {
+		if !slices.ContainsFunc(issue.Labels, func(l *issues_model.Label) bool { return l.ID == labelID }) {
 			return false
 		}
 	}
 	return true
 }
 
-// matchColumnFilter compares a stored source/target column filter against the column
-// ID the notifier resolved for this event. Both sides must be a real column ID: the
-// notifier resolves the "default column" sentinel 0 to the project's actual default
-// column before matching (see IssueChangeProjectColumn), so a 0 arriving here means
-// the caller supplied no column at all and the filter cannot be satisfied.
-func matchColumnFilter(workflow *project_model.Workflow, filter project_model.WorkflowFilter, columnID int64) bool {
-	filterColumnID, err := strconv.ParseInt(filter.Value, 10, 64)
-	if err != nil || filterColumnID <= 0 {
-		log.Error("Workflow %d: invalid %s filter value %q", workflow.ID, filter.Type, filter.Value)
-		return false
-	}
-	if columnID <= 0 {
-		log.Error("Workflow %d: event %q supplied no column for the %s filter, refusing to match", workflow.ID, workflow.WorkflowEvent, filter.Type)
-		return false
-	}
-	return columnID == filterColumnID
-}
+func executeWorkflowActions(ctx context.Context, wf *project_model.Workflow, doer *user_model.User, issue *issues_model.Issue) {
+	ctx = issues_model.WithProjectWorkflow(ctx, wf.WorkflowEvent)
+	a := wf.WorkflowActions
 
-// resolveWorkflowActionLabel loads the label referenced by an add_labels/remove_labels
-// action and re-checks that it still belongs to the workflow's project. Ownership is
-// validated when the workflow is saved, but a repository transfer (or a label moved
-// between orgs) invalidates that decision afterwards, and GetLabelByID resolves by ID
-// alone with no repo/org scoping -- without this check a workflow would keep applying
-// a label belonging to the previous owner's org. Returns nil if the label must be
-// skipped; the caller logs nothing further.
-func resolveWorkflowActionLabel(ctx context.Context, workflow *project_model.Workflow, actionValue string) *issues_model.Label {
-	labelID, err := strconv.ParseInt(actionValue, 10, 64)
-	if err != nil || labelID <= 0 {
-		log.Error("Invalid label ID: %s", actionValue)
-		return nil
+	if a.ChangesIssue() {
+		allowed, err := canWorkflowChangeIssue(ctx, wf, issue)
+		if err != nil {
+			log.Error("canWorkflowChangeIssue: %v", err)
+			return
+		}
+		if !allowed {
+			log.Warn("Project workflow %d may not change issue %d, skipping its actions", wf.ID, issue.ID)
+			return
+		}
 	}
-	// Without the project we cannot establish ownership, so fail closed rather than
-	// applying an unscoped label.
-	if workflow.Project == nil {
-		log.Error("Workflow %d: project not loaded, refusing to apply label %d", workflow.ID, labelID)
-		return nil
+
+	if a.ColumnID != 0 {
+		if err := moveIssueByWorkflow(ctx, wf, doer, issue); err != nil {
+			log.Error("Project workflow %d: move issue %d: %v", wf.ID, issue.ID, err)
+		}
 	}
-	// Same ownership rule the write paths use, so execution can never be more
-	// permissive than what the editor would have accepted.
-	if !CanProjectAddLabel(ctx, workflow.Project, labelID) {
-		log.Error("Workflow %d: label %d no longer belongs to project %d, skipping", workflow.ID, labelID, workflow.Project.ID)
-		return nil
+
+	if len(a.AddLabelIDs) > 0 || len(a.RemoveLabelIDs) > 0 {
+		if err := changeLabelsByWorkflow(ctx, doer, issue, a.AddLabelIDs, a.RemoveLabelIDs); err != nil {
+			log.Error("Project workflow %d: change labels of issue %d: %v", wf.ID, issue.ID, err)
+		}
 	}
-	label, err := issues_model.GetLabelByID(ctx, labelID)
+
+	var err error
+	if a.IssueState == project_model.WorkflowIssueStateClose && !issue.IsClosed {
+		err = issue_service.CloseIssue(ctx, issue, doer, "")
+	} else if a.IssueState == project_model.WorkflowIssueStateReopen && issue.IsClosed {
+		err = issue_service.ReopenIssue(ctx, issue, doer, "")
+	}
 	if err != nil {
-		log.Error("GetLabelByID: %v", err)
-		return nil
+		log.Error("Project workflow %d: change state of issue %d: %v", wf.ID, issue.ID, err)
 	}
-	return label
 }
 
-func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, triggeringUser *user_model.User, projectID int64) {
-	if triggeringUser == nil {
-		// Every event this can fire for resolves a real triggering user before
-		// reaching here (see the notifier methods above: doer, issue.Poster, or
-		// review.Reviewer). A nil triggeringUser would be a caller bug; skip the
-		// workflow entirely here rather than half-applying it or crashing inside
-		// NewProjectWorkflowDoer/CreateComment.
-		log.Error("executeWorkflowActions: triggeringUser is nil, skipping workflow %d", workflow.ID)
-		return
+func moveIssueByWorkflow(ctx context.Context, wf *project_model.Workflow, doer *user_model.User, issue *issues_model.Issue) error {
+	column, err := project_model.GetColumnByIDAndProjectID(ctx, wf.WorkflowActions.ColumnID, wf.ProjectID)
+	if project_model.IsErrProjectColumnNotExist(err) {
+		log.Warn("Project workflow %d: column %d no longer exists", wf.ID, wf.WorkflowActions.ColumnID)
+		return nil
+	} else if err != nil {
+		return err
 	}
-
-	if err := workflow.LoadProject(ctx); err != nil {
-		log.Error("LoadProject: %v", err)
+	columnIDs, err := issue.ProjectColumnMap(ctx)
+	if err != nil {
+		return err
 	}
-
-	title := "(untitled project)"
-	if workflow.Project != nil {
-		title = workflow.Project.Title
+	if columnIDs[wf.ProjectID] == column.ID {
+		return nil
 	}
+	return MoveIssueToColumn(ctx, doer, issue, column, optional.None[int64]())
+}
 
-	// poster_id for every comment these actions create stays the real user whose
-	// action triggered the workflow (mirrors SpecialDoerNameCodeOwners); the fact
-	// that it was automated lives only in ExtDoerData/CommentMetaData below.
-	doer := issues_model.NewProjectWorkflowDoer(triggeringUser, title, workflow.ID, workflow.WorkflowEvent)
-	var toAddedLabels, toRemovedLabels []*issues_model.Label
-
-	for _, action := range workflow.WorkflowActions {
-		switch action.Type {
-		case project_model.WorkflowActionTypeColumn:
-			columnID, _ := strconv.ParseInt(action.Value, 10, 64)
-			if columnID == 0 {
-				log.Error("Invalid column ID: %s", action.Value)
-				continue
-			}
-			column, err := project_model.GetColumnByIDAndProjectID(ctx, columnID, projectID)
-			if err != nil {
-				log.Error("GetColumnByIDAndProjectID: %v", err)
-				continue
-			}
-			if err := MoveIssueToAnotherColumn(ctx, doer, issue, column); err != nil {
-				log.Error("MoveIssueToAnotherColumn: %v", err)
-				continue
-			}
-		case project_model.WorkflowActionTypeAddLabels:
-			label := resolveWorkflowActionLabel(ctx, workflow, action.Value)
-			if label == nil {
-				continue
-			}
-			toAddedLabels = append(toAddedLabels, label)
-		case project_model.WorkflowActionTypeRemoveLabels:
-			label := resolveWorkflowActionLabel(ctx, workflow, action.Value)
-			if label == nil {
-				continue
-			}
-			toRemovedLabels = append(toRemovedLabels, label)
-		case project_model.WorkflowActionTypeIssueState:
-			if strings.EqualFold(action.Value, "reopen") {
-				if issue.IsClosed {
-					if err := issue_service.ReopenIssue(ctx, issue, doer, ""); err != nil {
-						log.Error("ReopenIssue: %v", err)
-						continue
-					}
-				}
-			} else if strings.EqualFold(action.Value, "close") {
-				if !issue.IsClosed {
-					if err := issue_service.CloseIssue(ctx, issue, doer, ""); err != nil {
-						log.Error("CloseIssue: %v", err)
-						continue
-					}
-				}
-			}
-		default:
-			log.Error("Unsupported action type: %s", action.Type)
-		}
+func changeLabelsByWorkflow(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addLabelIDs, removeLabelIDs []int64) error {
+	labels, err := issues_model.GetLabelsByIDs(ctx, slices.Concat(addLabelIDs, removeLabelIDs))
+	if err != nil {
+		return err
 	}
-
-	if len(toAddedLabels)+len(toRemovedLabels) > 0 {
-		if err := issue_service.AddRemoveLabels(ctx, issue, doer, toAddedLabels, toRemovedLabels); err != nil {
-			log.Error("AddRemoveLabels: %v", err)
-		}
-	}
+	addLabels := slices.DeleteFunc(slices.Clone(labels), func(l *issues_model.Label) bool { return !slices.Contains(addLabelIDs, l.ID) })
+	removeLabels := slices.DeleteFunc(labels, func(l *issues_model.Label) bool { return !slices.Contains(removeLabelIDs, l.ID) })
+	return issue_service.AddRemoveLabels(ctx, issue, doer, addLabels, removeLabels)
 }

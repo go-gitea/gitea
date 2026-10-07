@@ -26,59 +26,103 @@ var ErrIssueNotInProject = util.ErrorWrap(util.ErrUnprocessableContent, "all iss
 // AddIssueToColumn assigns the issue to the column's project if needed, then places it in
 // the column. One transaction, so a failure cannot strand it in the default column.
 func AddIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	var added []int64
+	moves, err := db.WithTx2(ctx, func(ctx context.Context) (moves []columnMove, err error) {
 		projectIDs, err := issue.ProjectIDs(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if !slices.Contains(projectIDs, column.ProjectID) {
 			// lands in the default column, the move below puts it in the requested one
-			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, append(projectIDs, column.ProjectID)); err != nil {
-				return err
+			if added, _, err = issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, append(projectIDs, column.ProjectID)); err != nil {
+				return nil, err
 			}
 		}
-		return MoveIssueToColumn(ctx, doer, issue, column, optional.None[int64]())
+		return moveIssueToColumn(ctx, doer, issue, column, optional.None[int64]())
 	})
+	if err != nil {
+		return err
+	}
+	notify.IssueChangeProjects(ctx, doer, issue, added, nil)
+	notifyColumnMoves(ctx, doer, column, moves)
+	return nil
 }
 
 // MoveIssueToColumn places an issue already in the project into a column, appending it
 // when sorting is absent.
 func MoveIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column, sorting optional.Option[int64]) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		position := sorting.Value()
-		if !sorting.Has() {
-			next, err := project_model.GetColumnIssueNextSorting(ctx, column)
-			if err != nil {
-				return err
-			}
-			position = next
-		}
-		return MoveIssuesOnProjectColumn(ctx, doer, column, map[int64]int64{position: issue.ID})
+	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
+		return moveIssueToColumn(ctx, doer, issue, column, sorting)
 	})
+	if err != nil {
+		return err
+	}
+	notifyColumnMoves(ctx, doer, column, moves)
+	return nil
+}
+
+func moveIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column, sorting optional.Option[int64]) ([]columnMove, error) {
+	position := sorting.Value()
+	if !sorting.Has() {
+		next, err := project_model.GetColumnIssueNextSorting(ctx, column)
+		if err != nil {
+			return nil, err
+		}
+		position = next
+	}
+	return moveIssuesOnProjectColumn(ctx, doer, column, map[int64]int64{position: issue.ID})
 }
 
 // RemoveIssueFromColumn detaches the issue from the column's project, reporting a
 // not-exist error when it is not in that column.
 func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	removed, err := db.WithTx2(ctx, func(ctx context.Context) ([]int64, error) {
 		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if !exists {
-			return util.NewNotExistErrorf("issue %d is not in column %d", issue.ID, column.ID)
+			return nil, util.NewNotExistErrorf("issue %d is not in column %d", issue.ID, column.ID)
 		}
 		projectIDs, err := issue.ProjectIDs(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		remaining := util.SliceRemoveAll(projectIDs, column.ProjectID)
-		return issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, remaining)
+		_, removed, err := issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, util.SliceRemoveAll(projectIDs, column.ProjectID))
+		return removed, err
 	})
+	if err != nil {
+		return err
+	}
+	notify.IssueChangeProjects(ctx, doer, issue, nil, removed)
+	return nil
 }
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
 func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) error {
+	moves, err := db.WithTx2(ctx, func(ctx context.Context) ([]columnMove, error) {
+		return moveIssuesOnProjectColumn(ctx, doer, column, sortedIssueIDs)
+	})
+	if err != nil {
+		return err
+	}
+	notifyColumnMoves(ctx, doer, column, moves)
+	return nil
+}
+
+// columnMove is an issue that changed column, notified once the transaction has committed
+type columnMove struct {
+	issue       *issues_model.Issue
+	oldColumnID int64
+}
+
+func notifyColumnMoves(ctx context.Context, doer *user_model.User, column *project_model.Column, moves []columnMove) {
+	for _, move := range moves {
+		notify.IssueChangeProjectColumn(ctx, doer, move.issue, move.oldColumnID, column)
+	}
+}
+
+func moveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, column *project_model.Column, sortedIssueIDs map[int64]int64) ([]columnMove, error) {
 	issueIDs := make([]int64, 0, len(sortedIssueIDs))
 	for _, issueID := range sortedIssueIDs {
 		issueIDs = append(issueIDs, issueID)
@@ -88,87 +132,84 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 		In("issue_id", issueIDs).
 		Count(new(project_model.ProjectIssue))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if int(count) != len(sortedIssueIDs) {
-		return ErrIssueNotInProject
+		return nil, ErrIssueNotInProject
 	}
 
 	issues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	oldColumnIDsMap := make(map[int64]int64, len(issues))
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := issues.LoadRepositories(ctx); err != nil {
-			return err
-		}
-
-		project, err := project_model.GetProjectByID(ctx, column.ProjectID)
-		if err != nil {
-			return err
-		}
-
-		issuesMap := make(map[int64]*issues_model.Issue, len(issues))
-		for _, issue := range issues {
-			issuesMap[issue.ID] = issue
-		}
-
-		for sorting, issueID := range sortedIssueIDs {
-			curIssue := issuesMap[issueID]
-			if curIssue == nil {
-				continue
-			}
-
-			projectColumnMap, err := curIssue.ProjectColumnMap(ctx)
-			if err != nil {
-				return err
-			}
-
-			projectColumnID := projectColumnMap[column.ProjectID]
-			oldColumnIDsMap[issueID] = projectColumnID
-
-			if projectColumnID != column.ID {
-				// add timeline to issue
-				if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-					Type:               issues_model.CommentTypeProjectColumn,
-					Doer:               doer,
-					Repo:               curIssue.Repo,
-					Issue:              curIssue,
-					ProjectID:          column.ProjectID,
-					ProjectTitle:       project.Title,
-					ProjectColumnID:    column.ID,
-					ProjectColumnTitle: column.Title,
-				}); err != nil {
-					return err
-				}
-			}
-
-			// Update the column and sorting for this specific issue in this specific project.
-			// IMPORTANT: The WHERE clause must include both issue_id AND project_id to ensure
-			// that moving an issue's column in one project doesn't affect its column in other
-			// projects when the issue is assigned to multiple projects.
-			_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=? AND project_id=?",
-				column.ID, sorting, issueID, column.ProjectID)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}); err != nil {
-		return err
+	if _, err := issues.LoadRepositories(ctx); err != nil {
+		return nil, err
 	}
 
+	project, err := project_model.GetProjectByID(ctx, column.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	issuesMap := make(map[int64]*issues_model.Issue, len(issues))
 	for _, issue := range issues {
-		// the whole column is re-posted on every drag, so only notify for issues that actually moved
-		if oldColumnIDsMap[issue.ID] == column.ID {
+		issuesMap[issue.ID] = issue
+	}
+
+	var moves []columnMove
+	var defaultColumn *project_model.Column
+	for sorting, issueID := range sortedIssueIDs {
+		curIssue := issuesMap[issueID]
+		if curIssue == nil {
 			continue
 		}
-		notify.IssueChangeProjectColumn(ctx, doer, issue, oldColumnIDsMap[issue.ID], column.ID)
-	}
 
-	return nil
+		projectColumnMap, err := curIssue.ProjectColumnMap(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		projectColumnID := projectColumnMap[column.ProjectID]
+		oldColumnID := projectColumnID
+		if oldColumnID == 0 { // legacy encoding of the default column
+			if defaultColumn == nil {
+				if defaultColumn, err = project.MustDefaultColumn(ctx); err != nil {
+					return nil, err
+				}
+			}
+			oldColumnID = defaultColumn.ID
+		}
+
+		if projectColumnID != column.ID {
+			// add timeline to issue
+			if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+				Type:               issues_model.CommentTypeProjectColumn,
+				Doer:               doer,
+				Repo:               curIssue.Repo,
+				Issue:              curIssue,
+				ProjectID:          column.ProjectID,
+				ProjectTitle:       project.Title,
+				ProjectColumnID:    column.ID,
+				ProjectColumnTitle: column.Title,
+			}); err != nil {
+				return nil, err
+			}
+		}
+		if oldColumnID != column.ID {
+			moves = append(moves, columnMove{issue: curIssue, oldColumnID: oldColumnID})
+		}
+
+		// Update the column and sorting for this specific issue in this specific project.
+		// IMPORTANT: The WHERE clause must include both issue_id AND project_id to ensure
+		// that moving an issue's column in one project doesn't affect its column in other
+		// projects when the issue is assigned to multiple projects.
+		_, err = db.Exec(ctx, "UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=? AND project_id=?",
+			column.ID, sorting, issueID, column.ProjectID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return moves, nil
 }
 
 func LoadIssuesAssigneesForProject(ctx context.Context, projectID int64) (users []*user_model.User, _ error) {
@@ -303,48 +344,5 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 
 	project.NumIssues = project.NumClosedIssues + project.NumOpenIssues
 
-	return nil
-}
-
-func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumn *project_model.Column) error {
-	oldColumnIDs, err := issue.ProjectColumnMap(ctx)
-	if err != nil {
-		return err
-	}
-	oldColumnID := oldColumnIDs[newColumn.ProjectID]
-	if oldColumnID == newColumn.ID {
-		return nil
-	}
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// project_id must be part of the WHERE clause, otherwise moving the issue in one
-		// project would also move it in every other project the issue is assigned to.
-		if _, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=? AND project_id=?", newColumn.ID, issue.ID, newColumn.ProjectID); err != nil {
-			return err
-		}
-
-		if err := newColumn.LoadProject(ctx); err != nil {
-			return err
-		}
-
-		// add timeline to issue
-		if _, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-			Type:               issues_model.CommentTypeProjectColumn,
-			Doer:               doer,
-			Repo:               issue.Repo,
-			Issue:              issue,
-			ProjectID:          newColumn.ProjectID,
-			ProjectTitle:       newColumn.Project.Title,
-			ProjectColumnID:    newColumn.ID,
-			ProjectColumnTitle: newColumn.Title,
-		}); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	notify.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumn.ID)
 	return nil
 }

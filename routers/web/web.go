@@ -37,7 +37,6 @@ import (
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/routers/web/org"
 	org_setting "gitea.dev/routers/web/org/setting"
-	"gitea.dev/routers/web/projects"
 	"gitea.dev/routers/web/repo"
 	"gitea.dev/routers/web/repo/actions"
 	repo_setting "gitea.dev/routers/web/repo/setting"
@@ -326,6 +325,14 @@ func Routes() *web.Router {
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
 var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
+// addProjectWorkflowRoutes registers the mutations of a project's workflows, shared by the
+// repository and owner project trees
+func addProjectWorkflowRoutes(m *web.Router) {
+	m.Post("/workflows", project.CreateWorkflow)
+	m.Post("/workflows/{workflow_id}", project.UpdateWorkflow)
+	m.Post("/workflows/{workflow_id}/delete", project.DeleteWorkflow)
+}
+
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
 func addProjectBoardRoutes(m *web.Router) {
@@ -508,19 +515,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{runnerid}/delete", shared_actions.RunnerDeletePost)
 			m.Post("/reset_registration_token", shared_actions.ResetRunnerRegistrationToken)
 		})
-	}
-
-	addProjectWorkflowsRouters := func() {
-		m.Get("", projects.Workflows)
-		m.Get("/events", projects.WorkflowsEvents)
-		m.Get("/options", projects.WorkflowsOptions)
-		m.Get("/{workflow_id}", projects.Workflows)
-	}
-
-	addProjectWorkflowsWriteRouters := func() {
-		m.Post("/{workflow_id}", projects.WorkflowsPost)
-		m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
-		m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
 	}
 
 	addSettingsScopedWorkflowsRoutes := func() {
@@ -969,16 +963,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 	}
 
-	// reqIndividualOwnerSelf ensures that, on a personal (non-organization) owner scope, only the
-	// owner themselves can use a write route: reqUnitAccess is a no-op for individual owners, since
-	// UnitPermission only applies to organizations.
-	reqIndividualOwnerSelf := func(ctx *context.Context) {
-		if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-			ctx.NotFound(nil)
-			return
-		}
-	}
-
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
 			m.Get("/members", org.Members)
@@ -1157,10 +1141,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
+				m.Get("/{id}/workflows", org.ProjectWorkflows)
+				m.Get("/{id}/workflows/data", project.WorkflowsData)
+				m.Get("/{id}/workflows/{workflow_key}", org.ProjectWorkflows)
 			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			// the enclosing "/projects" group below already applies the same read check
-			m.Group("/{id}/workflows", addProjectWorkflowsRouters)
-			m.Group("/{id}/workflows", addProjectWorkflowsWriteRouters, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqIndividualOwnerSelf)
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind[*forms.CreateProjectForm](), org.NewProjectPost)
@@ -1172,8 +1156,14 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
 					addProjectBoardRoutes(m)
+					addProjectWorkflowRoutes(m)
 				})
-			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqIndividualOwnerSelf)
+			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
+				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+					ctx.NotFound(nil)
+					return
+				}
+			})
 		}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
@@ -1557,7 +1547,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
-		m.Group("/{id}/workflows", addProjectWorkflowsRouters)
+		m.Get("/{id}/workflows", repo.ProjectWorkflows)
+		m.Get("/{id}/workflows/data", project.WorkflowsData)
+		m.Get("/{id}/workflows/{workflow_key}", repo.ProjectWorkflows)
 		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind[*forms.CreateProjectForm](), repo.NewProjectPost)
@@ -1569,8 +1561,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
 				addProjectBoardRoutes(m)
-
-				m.Group("/workflows", addProjectWorkflowsWriteRouters)
+				addProjectWorkflowRoutes(m)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)

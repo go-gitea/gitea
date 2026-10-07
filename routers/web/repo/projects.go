@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
+	project_shared "gitea.dev/routers/web/shared/project"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
@@ -33,9 +34,10 @@ import (
 )
 
 const (
-	tplProjects     templates.TplName = "repo/projects/list"
-	tplProjectsNew  templates.TplName = "repo/projects/new"
-	tplProjectsView templates.TplName = "repo/projects/view"
+	tplProjects         templates.TplName = "repo/projects/list"
+	tplProjectsNew      templates.TplName = "repo/projects/new"
+	tplProjectsView     templates.TplName = "repo/projects/view"
+	tplProjectWorkflows templates.TplName = "repo/projects/workflows"
 )
 
 // MustEnableRepoProjects check if repo projects are enabled in settings
@@ -366,10 +368,20 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
-	labels, err := project_service.GetProjectLabels(ctx, project)
+	labels, err := issues_model.GetLabelsByRepoID(ctx, project.RepoID, "", db.ListOptions{})
 	if err != nil {
-		ctx.ServerError("GetProjectLabels", err)
+		ctx.ServerError("GetLabelsByRepoID", err)
 		return
+	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLabelsByOrgID", err)
+			return
+		}
+
+		labels = append(labels, orgLabels...)
 	}
 
 	// Get the exclusive scope for every label ID
@@ -424,6 +436,12 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Columns"] = columns
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
+}
+
+// ProjectWorkflows renders the workflows page of a repository project
+func ProjectWorkflows(ctx *context.Context) {
+	ctx.Data["IsProjectsPage"] = true
+	project_shared.RenderWorkflows(ctx, ctx.Repo.Permission.CanWrite(unit.TypeProjects) && !ctx.Repo.Repository.IsArchived, tplProjectWorkflows)
 }
 
 // UpdateIssueProject change an issue's project

@@ -845,6 +845,8 @@ func addProjectRoutes(m *web.Router, writeChecks ...any) {
 			m.Get("", shared.GetProjectColumn)
 			m.Get("/issues", shared.ListProjectColumnIssues)
 		})
+		m.Get("/workflows", shared.ListProjectWorkflows)
+		m.Get("/workflows/{workflow_id}", shared.GetProjectWorkflow)
 	})
 	m.Group("", func() {
 		m.Post("", bind(api.CreateProjectOption{}), shared.CreateProject)
@@ -861,6 +863,11 @@ func addProjectRoutes(m *web.Router, writeChecks ...any) {
 				m.Delete("/issues/{issue_id}", shared.RemoveIssueFromProjectColumn)
 			})
 			m.Post("/issues/{issue_id}/move", bind(api.MoveProjectIssueOption{}), shared.MoveProjectIssue)
+			m.Post("/workflows", bind(api.CreateProjectWorkflowOption{}), shared.CreateProjectWorkflow)
+			m.Group("/workflows/{workflow_id}", func() {
+				m.Patch("", bind(api.EditProjectWorkflowOption{}), shared.EditProjectWorkflow)
+				m.Delete("", shared.DeleteProjectWorkflow)
+			})
 		})
 	}, writeChecks...)
 }
@@ -1321,17 +1328,6 @@ func Routes() *web.Router {
 					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
 				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
-
-				m.Group("/projects/{project_id}/workflows", func() {
-					m.Get("", repo.ListProjectWorkflows)
-					m.Get("/options", repo.GetProjectWorkflowOptions)
-					m.Get("/{workflow_id}", repo.GetProjectWorkflow)
-					m.Post("", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.CreateProjectWorkflowOption{}), repo.CreateProjectWorkflow)
-					m.Patch("/{workflow_id}", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.EditProjectWorkflowOption{}), repo.UpdateProjectWorkflow)
-					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.EnableProjectWorkflow)
-					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DisableProjectWorkflow)
-					m.Delete("/{workflow_id}", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DeleteProjectWorkflow)
-				}, reqToken(), reqRepoReader(unit.TypeProjects))
 
 				m.Group("/actions/jobs", func() {
 					m.Get("/{job_id}", repo.GetWorkflowJob)

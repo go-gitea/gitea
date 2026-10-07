@@ -275,16 +275,17 @@ func IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues
 	}
 }
 
-// IssueChangeProjects notifies change projects to notifiers
-func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldProjectColumnMap map[int64]int64, newProjects []*project_model.Project) {
+// IssueChangeProjects notifies about an issue being added to or removed from projects
+func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, addedProjectIDs, removedProjectIDs []int64) {
 	for _, notifier := range notifiers {
-		notifier.IssueChangeProjects(ctx, doer, issue, oldProjectColumnMap, newProjects)
+		notifier.IssueChangeProjects(ctx, doer, issue, addedProjectIDs, removedProjectIDs)
 	}
 }
 
-func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID, newColumnID int64) {
+// IssueChangeProjectColumn notifies about an issue being moved between columns of a project
+func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID int64, newColumn *project_model.Column) {
 	for _, notifier := range notifiers {
-		notifier.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumnID)
+		notifier.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumn)
 	}
 }
 
