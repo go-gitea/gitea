@@ -15,6 +15,7 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
 )
 
 // ListLabels list all the labels of an organization
@@ -249,7 +250,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id")); err != nil {
+	if err := issue_service.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id")); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	actions_model "gitea.dev/models/actions"
+	advisory_model "gitea.dev/models/advisory"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -893,6 +894,45 @@ func (m *webhookNotifier) UpdateRelease(ctx context.Context, doer *user_model.Us
 
 func (m *webhookNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
 	sendReleaseHook(ctx, doer, rel, api.HookReleaseDeleted)
+}
+
+// sendRepositoryAdvisoryHook sends the private parts of an advisory only for reports, see HookEventRepositoryAdvisoryReported
+func sendRepositoryAdvisoryHook(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, action api.HookRepositoryAdvisoryAction) {
+	if err := a.LoadAttributes(ctx); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+	event, full := webhook_module.HookEventRepositoryAdvisory, false
+	if action == api.HookRepositoryAdvisoryReported {
+		event, full = webhook_module.HookEventRepositoryAdvisoryReported, true
+	}
+	apiAdvisory, err := convert.ToAPIRepositoryAdvisory(ctx, a, nil, full)
+	if err != nil {
+		log.Error("ToAPIRepositoryAdvisory: %v", err)
+		return
+	}
+	permission, _ := access_model.GetDoerRepoPermission(ctx, a.Repo, doer)
+	if err := PrepareWebhooks(ctx, EventSource{Repository: a.Repo}, event, &api.RepositoryAdvisoryPayload{
+		Action:             action,
+		RepositoryAdvisory: apiAdvisory,
+		Repository:         convert.ToRepo(ctx, a.Repo, permission),
+		Sender:             convert.ToUser(ctx, doer, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+	sendRepositoryAdvisoryHook(ctx, doer, a, api.HookRepositoryAdvisoryReported)
+}
+
+func (m *webhookNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, _ advisory_model.State) {
+	switch a.State {
+	case advisory_model.StatePublished:
+		sendRepositoryAdvisoryHook(ctx, doer, a, api.HookRepositoryAdvisoryPublished)
+	case advisory_model.StateWithdrawn:
+		sendRepositoryAdvisoryHook(ctx, doer, a, api.HookRepositoryAdvisoryWithdrawn)
+	}
 }
 
 func (m *webhookNotifier) SyncPushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {

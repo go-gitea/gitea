@@ -1,0 +1,8 @@
+{{$state := .State.String}}
+{{$color := "grey"}}{{$icon := "octicon-shield-x"}}
+{{if eq $state "published"}}{{$color = "green"}}{{$icon = "octicon-shield-check"}}
+{{else if eq $state "triage"}}{{$color = "yellow"}}{{$icon = "octicon-report"}}
+{{else if eq $state "draft"}}{{$icon = "octicon-pencil"}}
+{{else if eq $state "closed"}}{{$color = "red"}}{{$icon = "octicon-x-circle"}}
+{{end}}
+<div class="ui {{$color}} label issue-state-label">{{svg $icon}} {{ctx.Locale.Tr (print "repo.security_advisories.state." $state)}}</div>

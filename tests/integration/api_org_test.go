@@ -74,7 +74,7 @@ func testAPIOrgCreateRename(t *testing.T) {
 		ownerTeam, _ := org_model.GetOwnerTeam(t.Context(), apiOrg.ID)
 		for _, ut := range unit_model.AllRepoUnitTypes {
 			up := perm.AccessModeOwner
-			if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
+			if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki || ut == unit_model.TypeSecurityAdvisories {
 				up = perm.AccessModeRead
 			}
 			unittest.AssertExistsAndLoadBean(t, &org_model.TeamUnit{

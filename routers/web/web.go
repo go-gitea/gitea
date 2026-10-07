@@ -921,7 +921,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	reqRepoActionsWriter := context.RequireUnitWriter(unit.TypeActions)
 
 	// the legacy names "reqRepoXxx" should be renamed to the correct name "reqUnitXxx", these permissions are for units, not repos
-	reqUnitsWithMarkdown := context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki)
+	reqUnitsWithMarkdown := context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki, unit.TypeSecurityAdvisories)
 	reqUnitsWithMentions := context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects)
 	reqUnitCodeReader := context.RequireUnitReader(unit.TypeCode)
 	reqUnitIssuesReader := context.RequireUnitReader(unit.TypeIssues)
@@ -1550,6 +1550,36 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
 	// end "/{username}/{reponame}/projects"
+
+	m.Group("/{username}/{reponame}/security", func() {
+		m.Get("", func(ctx *context.Context) { ctx.Redirect(ctx.Repo.RepoLink + "/security/advisories") })
+		m.Group("/advisories", func() {
+			m.Get("", repo.SecurityAdvisories)
+			m.Post("/cvss", reqSignIn, repo.SecurityAdvisoryCVSSPreview)
+			m.Combo("/report", reqSignIn, context.RepoMustNotBeArchived(), repo.MustAllowPrivateVulnerabilityReporting).
+				Get(repo.ReportVulnerability).Post(repo.ReportVulnerabilityPost)
+			m.Combo("/new", reqSignIn, context.RepoMustNotBeArchived(), repo.MustManageSecurityAdvisory).
+				Get(repo.NewSecurityAdvisory).Post(repo.NewSecurityAdvisoryPost)
+			m.Group("/{identifier}", func() {
+				m.Get("", repo.ViewSecurityAdvisory)
+				m.Group("", func() {
+					m.Combo("/edit", repo.MustEditSecurityAdvisory).Get(repo.EditSecurityAdvisory).Post(repo.EditSecurityAdvisoryPost)
+					m.Group("", func() {
+						m.Post("/state", repo.ChangeSecurityAdvisoryState)
+						m.Post("/delete", repo.DeleteSecurityAdvisory)
+						m.Post("/collaborators", repo.AddSecurityAdvisoryCollaborator)
+						m.Post("/collaborators/delete", repo.RemoveSecurityAdvisoryCollaborator)
+					}, repo.MustManageSecurityAdvisory)
+					m.Group("/comments", func() {
+						m.Post("", repo.NewSecurityAdvisoryComment)
+						m.Post("/{id}/edit", repo.EditSecurityAdvisoryComment)
+						m.Post("/{id}/delete", repo.DeleteSecurityAdvisoryComment)
+					}, repo.MustSeeSecurityAdvisoryDiscussion)
+				}, reqSignIn, context.RepoMustNotBeArchived())
+			}, repo.LoadSecurityAdvisory)
+		})
+	}, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeSecurityAdvisories), repo.PrepareSecurityAdvisories)
+	// end "/{username}/{reponame}/security"
 
 	m.Group("/{username}/{reponame}/actions", func() {
 		m.Get("", actions.List)

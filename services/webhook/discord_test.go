@@ -19,6 +19,18 @@ import (
 func TestDiscordPayload(t *testing.T) {
 	dc := discordConvertor{}
 
+	t.Run("RepositoryAdvisoryReported", func(t *testing.T) {
+		p := repositoryAdvisoryTestPayload()
+		p.Action = api.HookRepositoryAdvisoryReported
+		data, err := p.JSONPayload()
+		require.NoError(t, err)
+
+		pl, err := newPayload(dc, data, webhook_module.HookEventRepositoryAdvisoryReported)
+		require.NoError(t, err)
+		assert.Equal(t, "Ghost", pl.Embeds[0].Author.Name, "the reporter of an undisclosed vulnerability is not revealed")
+		assert.NotContains(t, pl.Embeds[0].Author.URL, p.Sender.UserName)
+	})
+
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 

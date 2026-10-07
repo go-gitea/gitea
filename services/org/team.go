@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	advisory_model "gitea.dev/models/advisory"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -220,6 +221,7 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 			&organization.TeamUnit{TeamID: t.ID},
 			&organization.TeamInvite{TeamID: t.ID},
 			&issues_model.Review{Type: issues_model.ReviewTypeRequest, ReviewerTeamID: t.ID}, // batch delete the binding relationship between team and PR (request review from team)
+			&advisory_model.Collaborator{TeamID: t.ID},
 		); err != nil {
 			return err
 		}

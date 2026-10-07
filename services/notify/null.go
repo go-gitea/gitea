@@ -7,8 +7,10 @@ import (
 	"context"
 
 	actions_model "gitea.dev/models/actions"
+	advisory_model "gitea.dev/models/advisory"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -108,6 +110,34 @@ func (*NullNotifier) UpdateRelease(ctx context.Context, doer *user_model.User, r
 
 // DeleteRelease places a place holder function
 func (*NullNotifier) DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release) {
+}
+
+// NewSecurityAdvisory places a place holder function
+func (*NullNotifier) NewSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+}
+
+// NewSecurityAdvisoryReport places a place holder function
+func (*NullNotifier) NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+}
+
+// SecurityAdvisoryStateChanged places a place holder function
+func (*NullNotifier) SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State) {
+}
+
+// DeleteSecurityAdvisory places a place holder function
+func (*NullNotifier) DeleteSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory) {
+}
+
+// SecurityAdvisoryCollaboratorAdded places a place holder function
+func (*NullNotifier) SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
+}
+
+// SecurityAdvisoryCollaboratorRemoved places a place holder function
+func (*NullNotifier) SecurityAdvisoryCollaboratorRemoved(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team) {
+}
+
+// NewSecurityAdvisoryComment places a place holder function
+func (*NullNotifier) NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment) {
 }
 
 // IssueChangeMilestone places a place holder function

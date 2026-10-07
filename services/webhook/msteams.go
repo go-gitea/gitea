@@ -305,6 +305,20 @@ func (m msteamsConvertor) Release(p *api.ReleasePayload) (MSTeamsPayload, error)
 	), nil
 }
 
+func (m msteamsConvertor) RepositoryAdvisory(p *api.RepositoryAdvisoryPayload) (MSTeamsPayload, error) {
+	title, color := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repository,
+		repositoryAdvisorySender(p),
+		title,
+		"",
+		p.RepositoryAdvisory.HTMLURL,
+		color,
+		&MSTeamsFact{"Advisory:", p.RepositoryAdvisory.Identifier},
+	), nil
+}
+
 func (m msteamsConvertor) Package(p *api.PackagePayload) (MSTeamsPayload, error) {
 	title, color := getPackagePayloadInfo(p, noneLinkFormatter, false)
 

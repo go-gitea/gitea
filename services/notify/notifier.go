@@ -7,8 +7,10 @@ import (
 	"context"
 
 	actions_model "gitea.dev/models/actions"
+	advisory_model "gitea.dev/models/advisory"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -64,6 +66,14 @@ type Notifier interface {
 	NewRelease(ctx context.Context, rel *repo_model.Release)
 	UpdateRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
 	DeleteRelease(ctx context.Context, doer *user_model.User, rel *repo_model.Release)
+
+	NewSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory)
+	NewSecurityAdvisoryReport(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory)
+	SecurityAdvisoryStateChanged(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, oldState advisory_model.State)
+	DeleteSecurityAdvisory(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory)
+	SecurityAdvisoryCollaboratorAdded(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team)
+	SecurityAdvisoryCollaboratorRemoved(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, user *user_model.User, team *organization.Team)
+	NewSecurityAdvisoryComment(ctx context.Context, doer *user_model.User, a *advisory_model.Advisory, c *advisory_model.Comment)
 
 	PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
 	CreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string)

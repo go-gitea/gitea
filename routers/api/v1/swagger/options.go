@@ -92,6 +92,16 @@ type swaggerParameterBodies struct {
 	EditReleaseOption api.EditReleaseOption
 
 	// in:body
+	CreateRepositoryAdvisoryOption api.CreateRepositoryAdvisoryOption
+	// in:body
+	CreatePrivateVulnerabilityReportOption api.CreatePrivateVulnerabilityReportOption
+	// in:body
+	EditRepositoryAdvisoryOption api.EditRepositoryAdvisoryOption
+
+	// in:body
+	RepositoryAdvisoryCommentOption api.RepositoryAdvisoryCommentOption
+
+	// in:body
 	CreateRepoOption api.CreateRepoOption
 	// in:body
 	EditRepoOption api.EditRepoOption

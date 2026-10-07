@@ -156,6 +156,7 @@ var (
 	_ Payloader = &RepositoryPayload{}
 	_ Payloader = &ReleasePayload{}
 	_ Payloader = &PackagePayload{}
+	_ Payloader = &RepositoryAdvisoryPayload{}
 )
 
 // CreatePayload represents a payload information of create event.
@@ -298,6 +299,33 @@ type ReleasePayload struct {
 
 // JSONPayload implements Payload
 func (p *ReleasePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// HookRepositoryAdvisoryAction defines hook repository advisory action type
+type HookRepositoryAdvisoryAction string
+
+// all repository advisory actions
+const (
+	HookRepositoryAdvisoryReported  HookRepositoryAdvisoryAction = "reported"
+	HookRepositoryAdvisoryPublished HookRepositoryAdvisoryAction = "published"
+	HookRepositoryAdvisoryWithdrawn HookRepositoryAdvisoryAction = "withdrawn"
+)
+
+// RepositoryAdvisoryPayload represents a payload information of repository advisory event.
+type RepositoryAdvisoryPayload struct {
+	// The action performed on the advisory (reported, published, withdrawn)
+	Action HookRepositoryAdvisoryAction `json:"action"`
+	// The advisory that was acted upon
+	RepositoryAdvisory *RepositoryAdvisory `json:"repository_advisory"`
+	// The repository containing the advisory
+	Repository *Repository `json:"repository"`
+	// The user who performed the action
+	Sender *User `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *RepositoryAdvisoryPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 

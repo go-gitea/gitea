@@ -1,0 +1,24 @@
+<div class="field security-advisory-cvss" data-cvss-prefix="{{.Prefix}}" data-preview-url="{{.PreviewLink}}">
+	<label>{{.Label}}</label>
+	<div class="ui segment">
+		<div class="flex-relaxed-list">
+			{{range $m := .Metrics}}
+				<div class="flex-text-block tw-flex-wrap">
+					<span class="tw-w-72 tw-shrink-0">{{ctx.Locale.Tr (print "repo.security_advisories.cvss.metric." $m.Key)}}</span>
+					<div class="ui small basic buttons" data-cvss-metric="{{$m.Key}}" role="group" aria-label="{{ctx.Locale.Tr (print "repo.security_advisories.cvss.metric." $m.Key)}}">
+						{{range $m.Values}}
+							<button type="button" class="ui button" data-value="{{.}}" aria-pressed="false">{{ctx.Locale.Tr (print "repo.security_advisories.cvss.value." $m.Key "." .)}}</button>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+		</div>
+		<div class="divider"></div>
+		<div class="flex-text-block">
+			<div class="ui input tw-flex-1">
+				<input name="{{.Name}}" class="tw-font-mono" value="{{.Vector}}" maxlength="255" placeholder="{{.Prefix}}…" aria-label="{{.Label}}">
+			</div>
+			<span class="ui basic label" data-cvss-result>{{ctx.Locale.Tr "repo.security_advisories.cvss.no_score"}}</span>
+		</div>
+	</div>
+</div>

@@ -664,6 +664,17 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
 
+	oldPrivateReporting := repo.MustGetUnit(ctx, unit_model.TypeSecurityAdvisories).SecurityAdvisoriesConfig().PrivateVulnerabilityReporting
+	newPrivateReporting := oldPrivateReporting
+	if !unit_model.TypeSecurityAdvisories.UnitGlobalDisabled() {
+		newPrivateReporting = form.EnableSecurityAdvisories && form.PrivateVulnerabilityReporting
+		if form.EnableSecurityAdvisories {
+			units = append(units, newRepoUnit(repo, unit_model.TypeSecurityAdvisories, &repo_model.SecurityAdvisoriesConfig{PrivateVulnerabilityReporting: newPrivateReporting}))
+		} else {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeSecurityAdvisories)
+		}
+	}
+
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		defaultUpdateStyle := util.IfZero(repo_model.UpdateStyle(form.PullsDefaultUpdateStyle), repo_model.UpdateStyleMerge)
 		prConfig := &repo_model.PullRequestsConfig{
@@ -700,6 +711,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 		ctx.ServerError("UpdateRepositoryUnits", err)
 		return
+	}
+	if newPrivateReporting != oldPrivateReporting {
+		audit.Record(ctx, audit_model.SecurityAdvisoryPrivateReporting, repo, "enabled", newPrivateReporting)
 	}
 	if repoChanged {
 		if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {

@@ -253,6 +253,27 @@ func pullReleaseTestPayload() *api.ReleasePayload {
 	}
 }
 
+func repositoryAdvisoryTestPayload() *api.RepositoryAdvisoryPayload {
+	return &api.RepositoryAdvisoryPayload{
+		Action: api.HookRepositoryAdvisoryPublished,
+		Sender: &api.User{
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
+		},
+		Repository: &api.Repository{
+			HTMLURL:  "http://localhost:3000/test/repo",
+			Name:     "repo",
+			FullName: "test/repo",
+		},
+		RepositoryAdvisory: &api.RepositoryAdvisory{
+			Identifier:  "abcd-efgh-ijkl",
+			Summary:     "XSS in markdown",
+			Description: "Secret details",
+			HTMLURL:     "http://localhost:3000/test/repo/security/advisories/abcd-efgh-ijkl",
+		},
+	}
+}
+
 func pullRequestTestPayload() *api.PullRequestPayload {
 	return &api.PullRequestPayload{
 		Action: api.HookIssueOpened,
@@ -608,6 +629,24 @@ func TestGetReleasePayloadInfo(t *testing.T) {
 		assert.Equal(t, c.text, text, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
 	}
+}
+
+func TestGetRepositoryAdvisoryPayloadInfo(t *testing.T) {
+	p := repositoryAdvisoryTestPayload()
+
+	text, color := getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)
+	assert.Equal(t, "[test/repo] Security advisory published: XSS in markdown by user1", text)
+	assert.Equal(t, redColor, color)
+
+	p.Action = api.HookRepositoryAdvisoryWithdrawn
+	text, color = getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)
+	assert.Equal(t, "[test/repo] Security advisory withdrawn: XSS in markdown by user1", text)
+	assert.Equal(t, greyColor, color)
+
+	p.Action = api.HookRepositoryAdvisoryReported
+	text, color = getRepositoryAdvisoryPayloadInfo(p, noneLinkFormatter, true)
+	assert.Equal(t, "[test/repo] Vulnerability reported privately: abcd-efgh-ijkl", text, "neither the summary nor the reporter are disclosed")
+	assert.Equal(t, orangeColor, color)
 }
 
 func TestGetIssueCommentPayloadInfo(t *testing.T) {

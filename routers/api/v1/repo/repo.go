@@ -971,10 +971,27 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
+	disablesPrivateReporting := false
+	if opts.HasSecurityAdvisories != nil && !unit_model.TypeSecurityAdvisories.UnitGlobalDisabled() {
+		if !*opts.HasSecurityAdvisories {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeSecurityAdvisories)
+			disablesPrivateReporting = repo.MustGetUnit(ctx, unit_model.TypeSecurityAdvisories).SecurityAdvisoriesConfig().PrivateVulnerabilityReporting
+		} else {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeSecurityAdvisories,
+				Config: repo.MustGetUnit(ctx, unit_model.TypeSecurityAdvisories).SecurityAdvisoriesConfig(),
+			})
+		}
+	}
+
 	if len(units)+len(deleteUnitTypes) > 0 {
 		if err := repo_service.UpdateRepositoryUnits(ctx, repo, units, deleteUnitTypes); err != nil {
 			return err
 		}
+	}
+	if disablesPrivateReporting {
+		audit.Record(ctx, audit_model.SecurityAdvisoryPrivateReporting, repo, "enabled", false)
 	}
 	return nil
 }

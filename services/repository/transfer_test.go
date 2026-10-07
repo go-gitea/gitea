@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
+	advisory_model "gitea.dev/models/advisory"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -43,7 +44,19 @@ func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
 	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
+
+	advisory := &advisory_model.Advisory{RepoID: sourceRepo.ID, Summary: "s", State: advisory_model.StateDraft, ReporterID: 2}
+	require.NoError(t, advisory_model.CreateAdvisory(t.Context(), advisory))
+	_, err := advisory_model.AddCollaborator(t.Context(), advisory.ID, 4, 0, false)
+	require.NoError(t, err)
+	_, err = advisory_model.AddCollaborator(t.Context(), advisory.ID, 0, 2, false)
+	require.NoError(t, err)
+
 	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
+
+	// teams of the old organization lose access to the advisories, users keep it
+	unittest.AssertNotExistsBean(t, &advisory_model.Collaborator{AdvisoryID: advisory.ID, TeamID: 2})
+	unittest.AssertExistsAndLoadBean(t, &advisory_model.Collaborator{AdvisoryID: advisory.ID, UserID: 4})
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1

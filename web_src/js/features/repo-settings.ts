@@ -55,8 +55,10 @@ type TeamSearchResponse = {data: Array<{name: string; permission: string}>};
 
 function initRepoSettingsSearchTeamBox() {
   const box = document.querySelector<HTMLElement>('#search-team-box');
-  if (!box) return;
+  if (box) attachSearchTeamBox(box);
+}
 
+export function attachSearchTeamBox(box: HTMLElement) {
   const url = `${appSubUrl}/org/${box.getAttribute('data-org-name')}/teams/-/search?q={query}`;
   attachSearchBox(box, url, (response: TeamSearchResponse) => response.data.map((item) => ({
     title: item.name,
