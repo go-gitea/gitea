@@ -117,14 +117,6 @@ func IsEmailAddressValid(email string) bool {
 		return false
 	}
 	addr, err := mail.ParseAddress(email)
-	if err != nil || addr.Address != email {
-		// email must be parseable, and the "email" string must be the address, no other parts
-		return false
-	}
-	_, domain, _ := strings.Cut(email, "@")
-	if strings.HasPrefix(domain, "[") {
-		// address like "foo@[192.168.1.2]"
-		return true
-	}
-	return true
+	// email must be parseable, and the "email" string must be the address, no other parts
+	return err == nil && addr.Address == email
 }
