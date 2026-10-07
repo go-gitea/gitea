@@ -1,5 +1,6 @@
 <h4 class="ui top attached header">
 	{{ctx.Locale.Tr "actions.variables.management"}}
+	{{if not $.IsOrgArchived}}
 	<div class="ui right">
 		<button type="button" class="ui primary tiny button show-modal"
 			data-modal="#edit-variable-modal"
@@ -12,6 +13,7 @@
 			{{ctx.Locale.Tr "actions.variables.creation"}}
 		</button>
 	</div>
+	{{end}}
 </h4>
 <div class="ui attached segment">
 	{{if .Variables}}
@@ -36,6 +38,7 @@
 				<span>
 					{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
 				</span>
+				{{if not $.IsOrgArchived}}
 				<button type="button" class="btn interact-bg tw-p-2 show-modal"
 					data-tooltip-content="{{ctx.Locale.Tr "actions.variables.edit"}}"
 					data-modal="#edit-variable-modal"
@@ -54,6 +57,7 @@
 				>
 					{{svg "octicon-trash"}}
 				</button>
+				{{end}}
 			</div>
 		</div>
 		{{end}}

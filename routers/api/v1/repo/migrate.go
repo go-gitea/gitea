@@ -243,6 +243,8 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	case base.IsErrNotSupported(err):
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+	case errors.Is(err, util.ErrPermissionDenied):
+		ctx.APIError(http.StatusForbidden, err.Error())
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		if migrations.IsAuthenticationError(err) {

@@ -149,6 +149,9 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 			// 2. If user is unauthorized or no org member, check if org is visible
 			accessMode = perm.AccessModeRead
 		}
+		if pkgOwner.IsArchived && accessMode > perm.AccessModeRead {
+			accessMode = perm.AccessModeRead
+		}
 	} else {
 		if doer != nil && !doer.IsGhost() {
 			// 1. Check if user is package owner

@@ -4,6 +4,7 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" method="post">
+			<fieldset class="tw-contents"{{if $.IsOrgArchived}} disabled{{end}}>
 			{{template "base/disable_form_autofill"}}
 			<div class="runner-basic-info">
 				<div class="field tw-inline-block tw-mr-4">
@@ -47,6 +48,7 @@
 
 			<div class="divider"></div>
 
+			{{if not $.IsOrgArchived}}
 			<div class="field">
 				<button type="submit" class="ui primary button" data-url="{{.Link}}">{{ctx.Locale.Tr "actions.runners.update_runner"}}</button>
 				<button type="button" class="ui button link-action" data-url="{{.Link}}/update-runner?disabled={{not .Runner.IsDisabled}}">
@@ -55,6 +57,8 @@
 				<button type="button" class="ui red button link-action" data-url="{{.Link}}/delete" data-modal-confirm="#runner-delete-modal">
 					{{ctx.Locale.Tr "actions.runners.delete_runner"}}</button>
 			</div>
+			{{end}}
+			</fieldset>
 		</form>
 	</div>
 
