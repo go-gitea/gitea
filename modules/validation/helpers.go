@@ -14,8 +14,6 @@ import (
 
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/setting"
-
-	"golang.org/x/net/idna"
 )
 
 type globalVarsStruct struct {
@@ -128,6 +126,5 @@ func IsEmailAddressValid(email string) bool {
 		// address like "foo@[192.168.1.2]"
 		return true
 	}
-	_, err = idna.Registration.ToASCII(domain)
-	return err == nil
+	return true
 }

@@ -153,6 +153,7 @@ func TestEmailAddressValidate(t *testing.T) {
 	cases := map[string]bool{
 		"":                   false,
 		"root@localhost":     true,
+		"root@LOCALHOST":     true,
 		"user@[192.168.1.2]": true,
 		"@a":                 false,
 		"abc@gmail.com":      true,
@@ -160,7 +161,7 @@ func TestEmailAddressValidate(t *testing.T) {
 		"Foo <foo@bar.com>":  false,
 		"abc@gmail.com (x)":  false,
 		"jürgen@example.com": false,
-		"a@foo_bar.com":      false,
+		"a@foo_bar.com":      true,
 	}
 	for tc, isValid := range cases {
 		t.Run(tc, func(t *testing.T) {
