@@ -64,6 +64,8 @@ type ActionRunner struct {
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
 	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
+	// Higher is preferred: lower-priority runners leave a job to it for Actions.PreferredRunnerGrace
+	Priority int64 `xorm:"priority NOT NULL DEFAULT 0"`
 	// Store if this runner supports the StatusCancelling flow
 	HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 
@@ -302,6 +304,10 @@ func (opts FindRunnerOptions) ToOrders() string {
 		return "id DESC"
 	case "oldest":
 		return "id ASC"
+	case "lowestpriority":
+		return "priority ASC, id ASC"
+	case "highestpriority":
+		return "priority DESC, id ASC"
 	}
 	return statusRank + " ASC, is_disabled ASC, last_online DESC, id ASC"
 }
@@ -341,6 +347,20 @@ func UpdateRunner(ctx context.Context, r *ActionRunner, cols ...string) error {
 		_, err = e.ID(r.ID).Cols(cols...).Update(r)
 	}
 	return err
+}
+
+func SetRunnerPriority(ctx context.Context, runner *ActionRunner, priority int64) error {
+	if runner.Priority == priority {
+		return nil
+	}
+
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		runner.Priority = priority
+		if err := UpdateRunner(ctx, runner, "priority"); err != nil {
+			return err
+		}
+		return IncreaseTaskVersion(ctx, runner.OwnerID, runner.RepoID)
+	})
 }
 
 func SetRunnerDisabled(ctx context.Context, runner *ActionRunner, isDisabled bool) error {
