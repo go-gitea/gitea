@@ -3008,6 +3008,7 @@
   "codespace.access_unavailable": "Access becomes available after the runtime is ready.",
   "codespace.additional_permissions_explanation": "The Codespace receives the repository access shown below. Access requested by the Dev Container can be reduced before creation.",
   "codespace.authenticated_endpoint": "Authenticated",
+  "codespace.actions": "Actions",
   "codespace.auto_stop": "Auto-stop",
   "codespace.auto_stop_custom": "Custom",
   "codespace.auto_stop_custom_desc": "Use an idle timeout for this Codespace.",
