@@ -3794,6 +3794,8 @@
   "actions.runners.owner_type": "Type",
   "actions.runners.availability": "Availability",
   "actions.runners.description": "Description",
+  "actions.runners.priority": "Priority",
+  "actions.runners.priority_help": "A runner with a higher priority gets the first go at a job it can run; others take it after the PREFERRED_RUNNER_GRACE setting.",
   "actions.runners.labels": "Labels",
   "actions.runners.last_online": "Last Online Time",
   "actions.runners.runner_title": "Runner",

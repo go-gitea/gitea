@@ -132,14 +132,22 @@ func UpdateRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	}
 
 	form := web.GetForm[*api.EditActionRunnerOption](ctx)
-	if form.Disabled == nil {
-		ctx.APIError(http.StatusUnprocessableEntity, "[Disabled]: Required")
+	if form.Disabled == nil && form.Priority == nil {
+		ctx.APIError(http.StatusUnprocessableEntity, "[Disabled, Priority]: at least one is required")
 		return
 	}
 
-	if err := actions_model.SetRunnerDisabled(ctx, runner, *form.Disabled); err != nil {
-		ctx.APIErrorInternal(err)
-		return
+	if form.Disabled != nil {
+		if err := actions_model.SetRunnerDisabled(ctx, runner, *form.Disabled); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	if form.Priority != nil {
+		if err := actions_model.SetRunnerPriority(ctx, runner, *form.Priority); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	GetRunner(ctx, ownerID, repoID, runnerID)

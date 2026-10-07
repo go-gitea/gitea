@@ -262,6 +262,17 @@ var pickTaskBatchSize = 100
 // concurrent claim by another runner (which would lose the optimistic lock on
 // job #1) does not leave the remaining jobs permanently unassigned.
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
+	return createTaskForRunner(ctx, runner, nil)
+}
+
+// CreateTaskForRunnerWithDeferral is CreateTaskForRunner that also reports whether it skipped a matching
+// job because a higher-priority runner gets the first go at it (see ActionRunner.Priority).
+func CreateTaskForRunnerWithDeferral(ctx context.Context, runner *ActionRunner) (task *ActionTask, ok, deferred bool, err error) {
+	task, ok, err = createTaskForRunner(ctx, runner, &deferred)
+	return task, ok, deferred, err
+}
+
+func createTaskForRunner(ctx context.Context, runner *ActionRunner, deferred *bool) (*ActionTask, bool, error) {
 	if db.InTransaction(ctx) {
 		return nil, false, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
@@ -285,6 +296,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	// updated only moves forward, so the advancing cursor never skips a still-waiting job even as claimed jobs drop out.
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
+	deferral := newRunnerDeferral(runner)
 	for {
 		cond := baseCond
 		if cursorID > 0 {
@@ -307,6 +319,12 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 		for _, v := range jobs {
 			if !runner.CanMatchLabels(v.RunsOn) {
+				continue
+			}
+			if deferral.deferred(ctx, v) {
+				if deferred != nil {
+					*deferred = true
+				}
 				continue
 			}
 			task, ok, err := claimJobForRunner(ctx, runner, v)
