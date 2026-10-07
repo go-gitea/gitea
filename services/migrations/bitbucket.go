@@ -493,8 +493,14 @@ func (b *BitbucketDownloader) recordIssueID(issueID int64) {
 	}
 }
 
+func isBitbucketIssuesUnavailable(err error) bool {
+	apiErr, ok := err.(*bitbucketAPIError)
+	return ok && (apiErr.StatusCode == http.StatusNotFound || apiErr.StatusCode == http.StatusGone)
+}
+
 // fetchAllIssues pages through the full /issues endpoint once and caches the result.
-// A 404 means issues are disabled for the repository, which is treated as an empty set.
+// A 404 (issues disabled) or 410 (Bitbucket Cloud has retired the issue tracker API, CHANGE-3071)
+// is treated as an empty set.
 func (b *BitbucketDownloader) fetchAllIssues(ctx context.Context) ([]bitbucketIssue, error) {
 	if b.issuesRead {
 		return b.allIssues, nil
@@ -508,7 +514,7 @@ func (b *BitbucketDownloader) fetchAllIssues(ctx context.Context) ([]bitbucketIs
 			"sort":    []string{"created_on"},
 		}
 		if err := b.doAPI(ctx, b.apiPath("/issues"), query, &resp); err != nil {
-			if apiErr, ok := err.(*bitbucketAPIError); ok && apiErr.StatusCode == http.StatusNotFound {
+			if isBitbucketIssuesUnavailable(err) {
 				b.allIssues = []bitbucketIssue{}
 				b.issuesRead = true
 				return b.allIssues, nil
@@ -611,7 +617,7 @@ func (b *BitbucketDownloader) GetIssues(ctx context.Context, page, perPage int) 
 		"sort":    []string{"created_on"},
 	}
 	if err := b.doAPI(ctx, b.apiPath("/issues"), query, &resp); err != nil {
-		if apiErr, ok := err.(*bitbucketAPIError); ok && apiErr.StatusCode == http.StatusNotFound {
+		if isBitbucketIssuesUnavailable(err) {
 			return nil, false, base.ErrNotSupported{Entity: "Issues"}
 		}
 		return nil, false, err
@@ -689,6 +695,23 @@ func (b *BitbucketDownloader) GetComments(ctx context.Context, commentable base.
 	return comments, true, nil
 }
 
+// fullCommitSHA expands an abbreviated commit hash; it returns "" when it cannot be resolved,
+// in which case the uploader recovers the SHA from the branch.
+func (b *BitbucketDownloader) fullCommitSHA(ctx context.Context, owner, repo, hash string) string {
+	if len(hash) >= 40 {
+		return hash
+	}
+	if hash == "" || owner == "" || repo == "" {
+		return ""
+	}
+	var commit bitbucketCommit
+	if err := b.doAPI(ctx, fmt.Sprintf("/repositories/%s/%s/commit/%s", url.PathEscape(owner), url.PathEscape(repo), url.PathEscape(hash)), nil, &commit); err != nil {
+		log.Warn("Bitbucket: unable to resolve commit %s in %s/%s: %v", hash, owner, repo, err)
+		return ""
+	}
+	return commit.Hash
+}
+
 // GetPullRequests returns pull requests according page and perPage.
 func (b *BitbucketDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	var resp bitbucketPage[bitbucketPullRequest]
@@ -714,12 +737,23 @@ func (b *BitbucketDownloader) GetPullRequests(ctx context.Context, page, perPage
 		if merged {
 			mergedTime = &pr.Updated
 		}
-		mergeCommitSHA := ""
-		if pr.MergeCommit != nil {
-			mergeCommitSHA = pr.MergeCommit.Hash
-		}
 		headOwner, headRepo := bitbucketOwnerAndRepo(pr.Source.Repository)
 		baseOwner, baseRepo := bitbucketOwnerAndRepo(pr.Destination.Repository)
+		// The API only returns abbreviated 12-char hashes, which are not valid object IDs for the uploader.
+		mergeCommitSHA := ""
+		if pr.MergeCommit != nil {
+			mergeCommitSHA = b.fullCommitSHA(ctx, baseOwner, baseRepo, pr.MergeCommit.Hash)
+		}
+		headSHA := b.fullCommitSHA(ctx, headOwner, headRepo, pr.Source.Commit.Hash)
+		baseSHA := b.fullCommitSHA(ctx, baseOwner, baseRepo, pr.Destination.Commit.Hash)
+		headCloneURL := bitbucketCloneURL(pr.Source.Repository)
+		if headCloneURL == "" && headOwner != "" && headRepo != "" {
+			headCloneURL = fmt.Sprintf("%s/%s/%s.git", b.webBaseURL, url.PathEscape(headOwner), url.PathEscape(headRepo))
+		}
+		patchURL := pr.Links.Patch.Href
+		if patchURL == "" {
+			patchURL = fmt.Sprintf("%s/%s/%s/pull-requests/%d/patch", b.webBaseURL, url.PathEscape(b.workspace), url.PathEscape(b.repoSlug), pr.ID)
+		}
 		pullRequests = append(pullRequests, &base.PullRequest{
 			Number:         number,
 			Title:          pr.Title,
@@ -730,20 +764,20 @@ func (b *BitbucketDownloader) GetPullRequests(ctx context.Context, page, perPage
 			Created:        pr.Created,
 			Updated:        pr.Updated,
 			Closed:         bitbucketClosedTime(state, pr.Updated),
-			PatchURL:       pr.Links.Patch.Href,
+			PatchURL:       patchURL,
 			Merged:         merged,
 			MergedTime:     mergedTime,
 			MergeCommitSHA: mergeCommitSHA,
 			Head: base.PullRequestBranch{
-				CloneURL:  bitbucketCloneURL(pr.Source.Repository),
+				CloneURL:  headCloneURL,
 				Ref:       pr.Source.Branch.Name,
-				SHA:       pr.Source.Commit.Hash,
+				SHA:       headSHA,
 				OwnerName: headOwner,
 				RepoName:  headRepo,
 			},
 			Base: base.PullRequestBranch{
 				Ref:       pr.Destination.Branch.Name,
-				SHA:       pr.Destination.Commit.Hash,
+				SHA:       baseSHA,
 				OwnerName: baseOwner,
 				RepoName:  baseRepo,
 			},

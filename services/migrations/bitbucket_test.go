@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"sort"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -20,202 +23,79 @@ import (
 )
 
 func TestBitbucketDownloadRepo(t *testing.T) {
-	var serverURL string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/2.0/repositories/gitea/test-repo":
-			_, _ = fmt.Fprintf(w, `{
-				"name":"Test Repo",
-				"slug":"test-repo",
-				"full_name":"gitea/test-repo",
-				"description":"Test repository for testing migration from bitbucket to gitea",
-				"is_private":false,
-				"website":"https://gitea.com/test-repo",
-				"mainbranch":{"name":"main"},
-				"links":{
-					"html":{"href":"%[1]s/gitea/test-repo"},
-					"clone":[{"name":"ssh","href":"git@bitbucket.org:gitea/test-repo.git"},{"name":"https","href":"%[1]s/gitea/test-repo.git"}]
-				}
-			}`, serverURL)
-		case "/2.0/repositories/gitea/test-repo/issues":
-			writeBitbucketIssuesPage(w, r, serverURL)
-		case "/2.0/repositories/gitea/test-repo/issues/2/comments":
-			_, _ = fmt.Fprint(w, `{"values":[{
-				"id":11,
-				"content":{"raw":"This is a Bitbucket issue comment"},
-				"user":{"account_id":"user-1","nickname":"alice"},
-				"created_on":"2020-01-03T12:00:00Z",
-				"updated_on":"2020-01-03T12:10:00Z"
-			}]}`)
-		case "/2.0/repositories/gitea/test-repo/pullrequests":
-			_, _ = fmt.Fprintf(w, `{"values":[{
-				"id":1,
-				"title":"Add Bitbucket migration",
-				"description":"Implements migration support",
-				"state":"MERGED",
-				"author":{"account_id":"user-2","nickname":"bob"},
-				"source":{
-					"branch":{"name":"feature/bitbucket"},
-					"commit":{"hash":"1111111111111111111111111111111111111111"},
-					"repository":{"slug":"test-repo","full_name":"bob/test-repo","links":{"clone":[{"name":"https","href":"%[1]s/bob/test-repo.git"}]}}
-				},
-				"destination":{
-					"branch":{"name":"main"},
-					"commit":{"hash":"2222222222222222222222222222222222222222"},
-					"repository":{"slug":"test-repo","full_name":"gitea/test-repo","links":{"clone":[{"name":"https","href":"%[1]s/gitea/test-repo.git"}]}}
-				},
-				"merge_commit":{"hash":"3333333333333333333333333333333333333333"},
-				"links":{"patch":{"href":"%[1]s/gitea/test-repo/pull-requests/1.patch"}},
-				"created_on":"2020-01-04T12:00:00Z",
-				"updated_on":"2020-01-05T12:00:00Z"
-			}]}`, serverURL)
-		case "/2.0/repositories/gitea/test-repo/pullrequests/1/comments":
-			_, _ = fmt.Fprint(w, `{"values":[{
-				"id":21,
-				"content":{"raw":"This is a Bitbucket pull request comment"},
-				"user":{"account_id":"user-1","nickname":"alice"},
-				"created_on":"2020-01-04T13:00:00Z",
-				"updated_on":"2020-01-04T13:00:00Z"
-			}]}`)
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-	serverURL = server.URL
+	token := os.Getenv("BITBUCKET_READ_TOKEN")
+	liveMode := token != ""
+
+	_, callerFile, _, _ := runtime.Caller(0)
+	fixtureDir := filepath.Join(filepath.Dir(callerFile), "_mock_data/TestBitbucketDownloadRepo")
+	mockServer := unittest.NewMockWebServer(t, "https://api.bitbucket.org", fixtureDir, liveMode, unittest.MockServerOptions{
+		Routes: func(mux *http.ServeMux) {
+			// bitbucket.org has retired the issue tracker API (CHANGE-3071) and answers 410 Gone
+			mux.HandleFunc("/2.0/repositories/gitea/test_repo/issues", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusGone)
+				_, _ = w.Write([]byte(`{"message":"CHANGE-3071 - Functionality has been deprecated"}`))
+			})
+		},
+	})
 
 	ctx := t.Context()
-	downloader, err := NewBitbucketDownloader(ctx, server.URL+"/2.0", server.URL, "gitea", "test-repo", "", "", "")
+	downloader, err := NewBitbucketDownloader(ctx, mockServer.URL+"/2.0", "https://bitbucket.org", "gitea", "test_repo", "", "", token)
 	require.NoError(t, err)
 
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{
-		Name:          "test-repo",
+		Name:          "test_repo",
 		Owner:         "gitea",
-		Description:   "Test repository for testing migration from bitbucket to gitea",
-		Website:       "https://gitea.com/test-repo",
-		CloneURL:      server.URL + "/gitea/test-repo.git",
-		OriginalURL:   server.URL + "/gitea/test-repo",
-		DefaultBranch: "main",
+		CloneURL:      "https://bitbucket.org/gitea/test_repo.git",
+		OriginalURL:   "https://bitbucket.org/gitea/test_repo",
+		DefaultBranch: "master",
 	}, repo)
 
 	labels, err := downloader.GetLabels(ctx)
 	assert.NoError(t, err)
-	sort.Slice(labels, func(i, j int) bool { return labels[i].Name < labels[j].Name })
-	assertLabelsEqual(t, []*base.Label{
-		{Name: "component/migrations", Color: bitbucketLabelColor("component/migrations")},
-		{Name: "kind/bug", Color: bitbucketLabelColor("kind/bug")},
-		{Name: "kind/enhancement", Color: bitbucketLabelColor("kind/enhancement")},
-		{Name: "priority/major", Color: bitbucketLabelColor("priority/major")},
-		{Name: "priority/minor", Color: bitbucketLabelColor("priority/minor")},
-		{Name: "version/1.0", Color: bitbucketLabelColor("version/1.0")},
-	}, labels)
+	assert.Empty(t, labels)
 
 	milestones, err := downloader.GetMilestones(ctx)
 	assert.NoError(t, err)
-	sort.Slice(milestones, func(i, j int) bool { return milestones[i].Title < milestones[j].Title })
-	assertMilestonesEqual(t, []*base.Milestone{
-		{Title: "v1", Created: time.Unix(0, 0), State: "open"},
-	}, milestones)
+	assert.Empty(t, milestones)
 
-	issues, isEnd, err := downloader.GetIssues(ctx, 1, 1)
-	assert.NoError(t, err)
-	assert.False(t, isEnd)
-	assertIssuesEqual(t, []*base.Issue{{
-		Number:     1,
-		PosterID:   bitbucketUserID(bitbucketUser{AccountID: "user-1"}),
-		PosterName: "alice",
-		Title:      "Open issue",
-		Content:    "Issue body",
-		Milestone:  "v1",
-		State:      "open",
-		Created:    time.Date(2020, 1, 1, 12, 0, 0, 0, time.UTC),
-		Updated:    time.Date(2020, 1, 2, 12, 0, 0, 0, time.UTC),
-		Labels: []*base.Label{
-			{Name: "kind/bug", Color: bitbucketLabelColor("kind/bug")},
-			{Name: "priority/major", Color: bitbucketLabelColor("priority/major")},
-			{Name: "component/migrations", Color: bitbucketLabelColor("component/migrations")},
-			{Name: "version/1.0", Color: bitbucketLabelColor("version/1.0")},
-		},
-		Assignees: []string{"bob"},
-	}}, issues)
-
-	issues, isEnd, err = downloader.GetIssues(ctx, 2, 1)
-	assert.NoError(t, err)
-	assert.True(t, isEnd)
-	assertIssuesEqual(t, []*base.Issue{{
-		Number:     2,
-		PosterID:   bitbucketUserID(bitbucketUser{AccountID: "user-2"}),
-		PosterName: "bob",
-		Title:      "Closed issue",
-		Content:    "Closed body",
-		State:      "closed",
-		Created:    time.Date(2020, 1, 2, 12, 0, 0, 0, time.UTC),
-		Updated:    time.Date(2020, 1, 3, 12, 0, 0, 0, time.UTC),
-		Closed:     new(time.Date(2020, 1, 3, 12, 0, 0, 0, time.UTC)),
-		Labels: []*base.Label{
-			{Name: "kind/enhancement", Color: bitbucketLabelColor("kind/enhancement")},
-			{Name: "priority/minor", Color: bitbucketLabelColor("priority/minor")},
-		},
-	}}, issues)
-
-	comments, _, err := downloader.GetComments(ctx, &base.Issue{Number: 2, ForeignIndex: 2})
-	assert.NoError(t, err)
-	assertCommentsEqual(t, []*base.Comment{{
-		IssueIndex: 2,
-		PosterID:   bitbucketUserID(bitbucketUser{AccountID: "user-1"}),
-		PosterName: "alice",
-		Created:    time.Date(2020, 1, 3, 12, 0, 0, 0, time.UTC),
-		Updated:    time.Date(2020, 1, 3, 12, 10, 0, 0, time.UTC),
-		Content:    "This is a Bitbucket issue comment",
-	}}, comments)
+	_, _, err = downloader.GetIssues(ctx, 1, 10)
+	assert.ErrorIs(t, err, base.ErrNotSupported{Entity: "Issues"})
 
 	prs, isEnd, err := downloader.GetPullRequests(ctx, 1, 10)
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assertPullRequestsEqual(t, []*base.PullRequest{{
-		Number:         3,
-		PosterID:       bitbucketUserID(bitbucketUser{AccountID: "user-2"}),
-		PosterName:     "bob",
-		Title:          "Add Bitbucket migration",
-		Content:        "Implements migration support",
-		State:          "closed",
-		Created:        time.Date(2020, 1, 4, 12, 0, 0, 0, time.UTC),
-		Updated:        time.Date(2020, 1, 5, 12, 0, 0, 0, time.UTC),
-		Closed:         new(time.Date(2020, 1, 5, 12, 0, 0, 0, time.UTC)),
-		PatchURL:       server.URL + "/gitea/test-repo/pull-requests/1.patch",
-		Merged:         true,
-		MergedTime:     new(time.Date(2020, 1, 5, 12, 0, 0, 0, time.UTC)),
-		MergeCommitSHA: "3333333333333333333333333333333333333333",
+		Number:     1,
+		PosterID:   5793964208530042003,
+		PosterName: "Lunny Xiao",
+		Title:      "Update LICENSE",
+		Content:    "do not merge this PR",
+		State:      "open",
+		Created:    time.Date(2026, 10, 7, 18, 39, 55, 551762000, time.UTC),
+		Updated:    time.Date(2026, 10, 7, 18, 40, 40, 122213000, time.UTC),
+		PatchURL:   "https://bitbucket.org/gitea/test_repo/pull-requests/1/patch",
 		Head: base.PullRequestBranch{
-			CloneURL:  server.URL + "/bob/test-repo.git",
-			Ref:       "feature/bitbucket",
-			SHA:       "1111111111111111111111111111111111111111",
-			OwnerName: "bob",
-			RepoName:  "test-repo",
+			CloneURL:  "https://bitbucket.org/gitea/test_repo.git",
+			Ref:       "feat/test",
+			SHA:       "9f733b96b98a4175276edf6a2e1231489c3bdd23",
+			OwnerName: "gitea",
+			RepoName:  "test_repo",
 		},
 		Base: base.PullRequestBranch{
-			Ref:       "main",
-			SHA:       "2222222222222222222222222222222222222222",
+			Ref:       "master",
+			SHA:       "c59c9b451acca9d106cc19d61d87afe3fbbb8b83",
 			OwnerName: "gitea",
-			RepoName:  "test-repo",
+			RepoName:  "test_repo",
 		},
 		ForeignIndex: 1,
 		EnsuredSafe:  true,
 	}}, prs)
 
-	comments, _, err = downloader.GetComments(ctx, prs[0])
+	comments, _, err := downloader.GetComments(ctx, prs[0])
 	assert.NoError(t, err)
-	assertCommentsEqual(t, []*base.Comment{{
-		IssueIndex: 3,
-		PosterID:   bitbucketUserID(bitbucketUser{AccountID: "user-1"}),
-		PosterName: "alice",
-		Created:    time.Date(2020, 1, 4, 13, 0, 0, 0, time.UTC),
-		Updated:    time.Date(2020, 1, 4, 13, 0, 0, 0, time.UTC),
-		Content:    "This is a Bitbucket pull request comment",
-	}}, comments)
+	assert.Empty(t, comments)
 }
 
 // TestBitbucketRateLimitRetry verifies that doAPI transparently waits and retries when the

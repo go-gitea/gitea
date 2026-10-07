@@ -1,0 +1,41 @@
+Age: 0
+Atl-Request-Id: 824fc7aa-f2eb-4ee1-a28b-aed496a6b92d
+Atl-Traceid: 824fc7aaf2eb4ee1a28baed496a6b92d
+Cache-Control: max-age=900
+Content-Type: application/json; charset=utf-8
+Etag: W/"5b39c2a01bde476127018a621336cefc"
+Last-Modified: Wed, 07 Oct 2026 18:40:40 GMT
+Server-Timing: cdn-upstream-layer;desc="EDGE",cdn-upstream-dns;dur=0,cdn-upstream-connect;dur=0,cdn-upstream-fbl;dur=261,atl-edge;dur=202,atl-edge-internal;dur=9,atl-edge-upstream;dur=193,atl-edge-pop;desc="aws-us-east-1",cdn-cache-miss,cdn-pop;desc="SFO5-P2",cdn-rid;desc="b8v09GHnoo8OfKL911n7lBzH5Y99vHBIdcC6kKsVJZu3w1mdZyqrmw==",cdn-downstream-fbl;dur=265
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Vary: Authorization, origin
+Vary: Accept-Encoding
+Via: 1.1 c07670802688417c8b871124c547eb0a.cloudfront.net (CloudFront)
+X-Accepted-Oauth-Scopes: repository
+X-Amz-Cf-Id: b8v09GHnoo8OfKL911n7lBzH5Y99vHBIdcC6kKsVJZu3w1mdZyqrmw==
+X-Amz-Cf-Pop: SFO5-P2
+X-Asap-Succeeded: True
+X-B3-Spanid: 06efb72eb6d2f16d
+X-B3-Traceid: 824fc7aaf2eb4ee1a28baed496a6b92d
+X-Cache: Miss from cloudfront
+X-Content-Type-Options: nosniff
+X-Credential-Type: unauthenticated_identity
+X-Dc-Location: Micros-3
+X-Envoy-Attempt-Count: 1
+X-Frame-Options: SAMEORIGIN
+X-Ratelimit-Limit: 60, 60;w=3600
+X-Ratelimit-Remaining: 31
+X-Ratelimit-Reset: 879
+X-Render-Time: 0.1710834503173828
+X-Request-Count: 2639
+X-Served-By: d78a83d69cd9
+X-Static-Version: cc480b0813c6
+X-Usage-Input-Ops: 32
+X-Usage-Output-Ops: 0
+X-Usage-System-Time: 0.005092
+X-Usage-User-Time: 0.094710
+X-Used-Mesh: False
+X-Version: cc480b0813c6
+X-View-Name: bitbucket.apps.repo2.api.v20.commit.CommitHandler
+X-Xss-Protection: 1; mode=block
+
+{"type": "commit", "hash": "9f733b96b98a4175276edf6a2e1231489c3bdd23", "date": "2019-11-28T15:56:02+00:00", "author": {"type": "author", "raw": "Lauris BH <lauris@nix.lv>", "user": {"display_name": "Lafriks", "links": {"self": {"href": "https://api.bitbucket.org/2.0/users/%7B1a176c5b-2b4a-47f8-ad02-bac743865f3e%7D"}, "avatar": {"href": "https://secure.gravatar.com/avatar/302fb6fd618de9378bbd65d88d2b54f5?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FL-1.png"}, "html": {"href": "https://bitbucket.org/%7B1a176c5b-2b4a-47f8-ad02-bac743865f3e%7D/"}}, "type": "user", "uuid": "{1a176c5b-2b4a-47f8-ad02-bac743865f3e}", "account_id": "5af201114b0cbc29b7b61035", "nickname": "piconinja"}}, "message": "Update LICENSE", "summary": {"type": "rendered", "raw": "Update LICENSE", "markup": "markdown", "html": "<p>Update LICENSE</p>"}, "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commit/9f733b96b98a4175276edf6a2e1231489c3bdd23"}, "html": {"href": "https://bitbucket.org/gitea/test_repo/commits/9f733b96b98a4175276edf6a2e1231489c3bdd23"}, "diff": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/diff/9f733b96b98a4175276edf6a2e1231489c3bdd23"}, "approve": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commit/9f733b96b98a4175276edf6a2e1231489c3bdd23/approve"}, "comments": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commit/9f733b96b98a4175276edf6a2e1231489c3bdd23/comments"}, "statuses": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commit/9f733b96b98a4175276edf6a2e1231489c3bdd23/statuses"}, "patch": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/patch/9f733b96b98a4175276edf6a2e1231489c3bdd23"}}, "parents": [{"hash": "c59c9b451acca9d106cc19d61d87afe3fbbb8b83", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo/commit/c59c9b451acca9d106cc19d61d87afe3fbbb8b83"}, "html": {"href": "https://bitbucket.org/gitea/test_repo/commits/c59c9b451acca9d106cc19d61d87afe3fbbb8b83"}}, "type": "commit"}], "rendered": {"message": {"type": "rendered", "raw": "Update LICENSE", "markup": "markdown", "html": "<p>Update LICENSE</p>"}}, "repository": {"type": "repository", "full_name": "gitea/test_repo", "links": {"self": {"href": "https://api.bitbucket.org/2.0/repositories/gitea/test_repo"}, "html": {"href": "https://bitbucket.org/gitea/test_repo"}, "avatar": {"href": "https://bytebucket.org/ravatar/%7B7b764bc5-c3f3-4910-a90b-4cdc229a66b7%7D?ts=default"}}, "name": "test_repo", "uuid": "{7b764bc5-c3f3-4910-a90b-4cdc229a66b7}"}, "participants": []}
