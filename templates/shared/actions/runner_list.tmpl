@@ -75,6 +75,10 @@
 						{{SortArrow "oldest" "newest" .SortType false}}
 					</th>
 					<th>{{ctx.Locale.Tr "actions.runners.version"}}</th>
+					<th data-sortt-asc="lowestpriority" data-sortt-desc="highestpriority">
+						{{ctx.Locale.Tr "actions.runners.priority"}}
+						{{SortArrow "lowestpriority" "highestpriority" .SortType false}}
+					</th>
 					<th>{{ctx.Locale.Tr "actions.runners.owner_type"}}</th>
 					<th>{{ctx.Locale.Tr "actions.runners.labels"}}</th>
 					<th>{{ctx.Locale.Tr "actions.runners.last_online"}}</th>
@@ -94,6 +98,7 @@
 						</td>
 						<td>{{.ID}}</td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
+						<td>{{.Priority}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
 						<td>
 							<span class="flex-text-inline tw-flex-wrap">{{range .AgentLabels}}<span class="ui label">{{.}}</span>{{end}}</span>
