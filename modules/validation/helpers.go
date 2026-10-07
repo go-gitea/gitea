@@ -14,8 +14,6 @@ import (
 
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/setting"
-
-	"golang.org/x/net/idna"
 )
 
 type globalVarsStruct struct {
@@ -24,6 +22,8 @@ type globalVarsStruct struct {
 	invalidUsernamePattern  *regexp.Regexp
 	validBadgeSlugPattern   *regexp.Regexp
 	invalidBadgeSlugPattern *regexp.Regexp
+	validEmailHostName      *regexp.Regexp
+	validEmailHostIP        *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
@@ -33,6 +33,8 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		invalidUsernamePattern:  regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
 		validBadgeSlugPattern:   regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`),
 		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
+		validEmailHostName:      regexp.MustCompile(`^[a-zA-Z0-9][-.\w]*$`),
+		validEmailHostIP:        regexp.MustCompile(`(?i)^\[([0-9.]+|ipv6:[0-9a-f:.]+)\]$`),
 	}
 })
 
@@ -124,10 +126,12 @@ func IsEmailAddressValid(email string) bool {
 		return false
 	}
 	_, domain, _ := strings.Cut(email, "@")
-	if strings.HasPrefix(domain, "[") {
-		// address like "foo@[192.168.1.2]"
-		return true
+	if !globalVars().validEmailHostName.MatchString(domain) && !globalVars().validEmailHostIP.MatchString(domain) {
+		return false
 	}
-	_, err = idna.Registration.ToASCII(domain)
-	return err == nil
+	if strings.HasPrefix(domain, "-") || strings.HasSuffix(domain, "-") ||
+		strings.HasPrefix(domain, ".") || strings.HasSuffix(domain, ".") {
+		return false
+	}
+	return true
 }
