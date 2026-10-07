@@ -1,12 +1,12 @@
 import {hideElem, showElem, toggleElem} from '../utils/dom.ts';
 import {sanitizeRepoName} from './repo-common.ts';
 
-const service = document.querySelector<HTMLInputElement>('#service_type');
-const user = document.querySelector<HTMLInputElement>('#auth_username');
-const pass = document.querySelector<HTMLInputElement>('#auth_password');
-const token = document.querySelector<HTMLInputElement>('#auth_token');
-const mirror = document.querySelector<HTMLInputElement>('#mirror');
-const lfs = document.querySelector<HTMLInputElement>('#lfs');
+const service = document.querySelector<HTMLInputElement>('input[name="service"]');
+const user = document.querySelector<HTMLInputElement>('input[name="auth_username"]');
+const pass = document.querySelector<HTMLInputElement>('input[name="auth_password"]');
+const token = document.querySelector<HTMLInputElement>('input[name="auth_token"]');
+const mirror = document.querySelector<HTMLInputElement>('input[name="mirror"]');
+const lfs = document.querySelector<HTMLInputElement>('input[name="lfs"]');
 const lfsSettings = document.querySelector<HTMLElement>('#lfs_settings')!;
 const lfsEndpoint = document.querySelector<HTMLElement>('#lfs_endpoint')!;
 const items = document.querySelectorAll<HTMLInputElement>('#migrate_items input[type=checkbox]');
@@ -26,8 +26,8 @@ export function initRepoMigration() {
   });
   lfs?.addEventListener('change', setLFSSettingsVisibility);
 
-  const elCloneAddr = document.querySelector<HTMLInputElement>('#clone_addr');
-  const elRepoName = document.querySelector<HTMLInputElement>('#repo_name');
+  const elCloneAddr = document.querySelector<HTMLInputElement>('input[name="clone_addr"]');
+  const elRepoName = document.querySelector<HTMLInputElement>('input[name="repo_name"]');
   if (elCloneAddr && elRepoName) {
     let repoNameChanged = false;
     elRepoName.addEventListener('input', () => {repoNameChanged = true});
