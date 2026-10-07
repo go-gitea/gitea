@@ -166,6 +166,14 @@ func GetPullRequestIDsByCheckStatus(ctx context.Context, status PullRequestStatu
 		Find(&prs)
 }
 
+func GetInterruptedPullRequestIDs(ctx context.Context) ([]int64, error) {
+	prs := make([]int64, 0, 10)
+	return prs, db.GetEngine(ctx).Table("pull_request").
+		Where("merged_commit_id <> '' AND has_merged = ? AND merged_unix >= ?", false, timeutil.TimeStampNow()-24*3600).
+		Cols("pull_request.id").
+		Find(&prs)
+}
+
 // PullRequests returns all pull requests for a base Repo by the given conditions
 func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) (PullRequestList, int64, error) {
 	if opts.Page <= 0 {

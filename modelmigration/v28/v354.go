@@ -8,23 +8,27 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm"
 )
 
-func AddProjectWorkflow(_ context.Context, x base.EngineMigration) error {
-	type ProjectWorkflow struct {
-		ID              int64
-		ProjectID       int64 `xorm:"INDEX"`
-		WorkflowEvent   string
-		WorkflowFilters string `xorm:"TEXT JSON"`
-		WorkflowActions string `xorm:"TEXT JSON"`
-		// SchemaVersion allows the shape of WorkflowFilters/WorkflowActions to change
-		// in the future without an offline rewrite of every row, following the same
-		// pattern as HookTask.PayloadVersion.
-		SchemaVersion int                `xorm:"DEFAULT 1"`
-		Enabled       bool               `xorm:"DEFAULT true NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
+// AddActionQueueIndexes indexes the runner pickup query and repository-scoped status lookups.
+func AddActionQueueIndexes(_ context.Context, x base.EngineMigration) error {
+	type ActionRunJob struct {
+		RepoID  int64              `xorm:"index(repo_status)"`
+		TaskID  int64              `xorm:"index(pickup)"`
+		Status  int                `xorm:"index(pickup) index(repo_status)"`
+		Updated timeutil.TimeStamp `xorm:"index(pickup)"`
 	}
 
-	return x.Sync(&ProjectWorkflow{})
+	type ActionRun struct {
+		RepoID int64 `xorm:"index(repo_status)"`
+		Status int   `xorm:"index(repo_status)"`
+	}
+
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(ActionRunJob), new(ActionRun))
+	return err
 }

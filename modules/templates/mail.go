@@ -54,7 +54,7 @@ func mailSubjectTextFuncMap() texttmpl.FuncMap {
 			return setting.AppName
 		},
 		"AppDomain": func() string { // documented in mail-templates.md
-			return setting.Domain
+			return setting.AppDomain
 		},
 	}
 }
@@ -99,7 +99,7 @@ func mailBodyFuncMap() template.FuncMap {
 			return setting.AppURL
 		},
 		"AppDomain": func() string {
-			return setting.Domain
+			return setting.AppDomain
 		},
 	}
 }

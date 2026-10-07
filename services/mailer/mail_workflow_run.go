@@ -85,7 +85,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	embedded := make(container.Set[string])
 	for _, job := range jobs {
 		icon, class := workflowRunJobStatusPresentation(job.Status)
-		contentID := fmt.Sprintf("%s.actions-run-%d@%s", icon, run.ID, setting.Domain)
+		contentID := fmt.Sprintf("%s.actions-run-%d@%s", icon, run.ID, setting.AppDomain)
 		mailJobs = append(mailJobs, workflowRunMailJob{
 			HTMLURL:       fmt.Sprintf("%s/actions/runs/%d/jobs/%d", repo.HTMLURL(ctx), run.ID, job.ID),
 			Name:          job.Name,
@@ -143,7 +143,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	for key, value := range generateMetadataHeaders(repo) {
 		msg.SetHeader(key, value)
 	}
-	msg.SetHeader("Message-ID", fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain))
+	msg.SetHeader("Message-ID", fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.AppDomain))
 	SendAsync(msg)
 
 	return nil

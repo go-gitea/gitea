@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/repository"
 )
 
 // Update updates pull request with base branch.
@@ -88,7 +87,7 @@ func Update(pr *issues_model.PullRequest, doer *user_model.User, message string,
 		BaseBranch: pr.HeadBranch,
 	}
 
-	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, "", message, repository.PushTriggerPRUpdateWithBase)
+	_, err = doMergeAndPush(ctx, reversePR, doer, repo_model.MergeStyleMerge, message, mergeAndPushOptions{})
 	// TODO: the "update" (merge target branch to PR head branch) operation has finished, there could still be some edge cases:
 	// * the database was already out of sync: the target branch was already in head branch:
 	//   * so no post-receive hook is really executed, no PR status update
@@ -124,8 +123,8 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 	}
 	if pb != nil { // override previous results if there is a branch protection rule
 		pb.Repo = repo
-		pushAllowed = pb.CanUserPush(ctx, user)
-		forcePushAllowed = pb.CanUserForcePush(ctx, user)
+		pushAllowed = pb.CanUserPush(ctx, user, repoPerm)
+		forcePushAllowed = pb.CanUserForcePush(ctx, user, repoPerm)
 	}
 	return pushAllowed, forcePushAllowed, nil
 }

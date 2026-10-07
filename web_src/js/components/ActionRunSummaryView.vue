@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
         <span class="action-run-summary-stat-value">{{ run.duration || '–' }}</span>
       </div>
 
-      <div class="action-run-summary-stat action-run-summary-stat-last">
+      <div class="action-run-summary-stat">
         <span class="action-run-summary-label">{{ locale.artifactsTitle }}</span>
         <span class="action-run-summary-stat-value">{{ artifactsDisplay }}</span>
       </div>
@@ -148,9 +148,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch; /* equal-height columns so labels align at top and values at bottom */
+  gap: 8px 48px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-secondary);
-  background: var(--color-console-bg);
 }
 
 .action-run-summary-trigger {
@@ -159,7 +159,6 @@ onBeforeUnmount(() => {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
-  margin-right: 24px;
 }
 
 .action-run-summary-label {
@@ -222,18 +221,11 @@ onBeforeUnmount(() => {
   flex-direction: column;
   flex: 0 0 auto;
   min-width: 72px;
-  margin-left: 24px;
-  margin-right: 24px;
-}
-
-.action-run-summary-stat-last {
-  margin-right: 0;
 }
 
 .action-run-summary-stat-divider {
   display: none;
   flex: 0 0 100%;
-  margin: 8px 0;
   border-bottom: 1px solid var(--color-secondary);
 }
 
@@ -247,14 +239,12 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767.98px) {
-  .action-run-summary-trigger {
-    flex: 0 0 100%;
-    margin-right: 0;
+  .action-run-summary-block {
+    column-gap: 24px;
   }
 
-  .action-run-summary-stat {
-    margin-left: 0;
-    margin-right: 24px;
+  .action-run-summary-trigger {
+    flex: 0 0 100%;
   }
 
   .action-run-summary-stat-divider {

@@ -3,9 +3,8 @@ name: release-tag-version
 on:
   push:
     tags:
-      - "v1.*"
-      - "!v1*-rc*"
-      - "!v1*-dev"
+      - "v[0-9]*"
+      - "!v[0-9]*-*"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -73,12 +72,19 @@ jobs:
         uses: dev-hanz-ops/install-gh-cli-action@6089bdde54118ad7ca3d22053eb2d69387fd2779 # v0.3.0
         with:
           gh-cli-version: 2.39.1
+      - id: range
+        run: |
+          previous=$(git tag --list --sort=-v:refname | grep -xE 'v[0-9]+\.[0-9]+\.[0-9]+' | grep -A1 -xF "$GITHUB_REF_NAME" | tail -1) # highest stable version below this one
+          echo "range=$previous..$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+      - uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
+        with:
+          args: --tag ${{ github.ref_name }} ${{ steps.range.outputs.range }}
       - name: create github release
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" --title "$TAG" --notes-from-tag dist/release/*
+          gh release create "$TAG" --title "$TAG" --notes-file git-cliff/CHANGELOG.md dist/release/*
 
   container:
     runs-on: namespace-profile-gitea-release-docker
@@ -90,10 +96,10 @@ jobs:
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
-      - uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           cache-image: false
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta
         with:
@@ -143,7 +149,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: build regular container image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64
@@ -151,7 +157,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           annotations: ${{ steps.meta.outputs.annotations }}
       - name: build rootless container image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64

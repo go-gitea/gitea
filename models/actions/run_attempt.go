@@ -147,21 +147,14 @@ func findPassThroughAttemptIDs(ctx context.Context, attemptIDs []int64) ([]int64
 		Find(&passThroughAttemptIDs)
 }
 
-// FindConcurrentRunAttempts returns attempts in the given concurrency group and status set.
-// Results are unordered; callers must not depend on any particular row order.
-func FindConcurrentRunAttempts(ctx context.Context, repoID int64, concurrencyGroup string, statuses []Status) ([]*ActionRunAttempt, error) {
-	attempts := make([]*ActionRunAttempt, 0)
-	sess := db.GetEngine(ctx).Where("repo_id=? AND concurrency_group=?", repoID, concurrencyGroup)
-	if len(statuses) > 0 {
-		sess = sess.In("status", statuses)
-	}
-	return attempts, sess.Find(&attempts)
-}
-
 func UpdateRunAttempt(ctx context.Context, attempt *ActionRunAttempt, cols ...string) error {
 	if slices.Contains(cols, "status") && attempt.Started.IsZero() && attempt.Status.IsRunning() {
 		attempt.Started = timeutil.TimeStampNow()
 		cols = append(cols, "started")
+	}
+	if slices.Contains(cols, "status") && attempt.Stopped.IsZero() && attempt.Status.IsDone() {
+		attempt.Stopped = timeutil.TimeStampNow()
+		cols = append(cols, "stopped")
 	}
 	if slices.Contains(cols, "status") && !attempt.Stopped.IsZero() && !attempt.Status.IsDone() {
 		attempt.Stopped = 0

@@ -603,6 +603,11 @@ jobs:
 		})
 		// cannot fetch wf2-job2 because wf1-job1 is running
 		runner1.fetchNoTask(t)
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs?status=pending", user2.Name, repo.Name)).AddTokenAuth(token)
+		pendingJobs := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ActionWorkflowJobsResponse{})
+		require.Len(t, pendingJobs.Entries, 1)
+		assert.Equal(t, "wf2-job2", pendingJobs.Entries[0].Name)
+		assert.Equal(t, "pending", pendingJobs.Entries[0].Status)
 		// exec wf1-job1
 		runner1.execTask(t, wf1Job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
@@ -972,14 +977,13 @@ jobs:
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
+		runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		task6 := runner.fetchTask(t)
 		_, _, run3_2 := getTaskAndJobAndRunByTaskID(t, task6.Id)
 		assert.Equal(t, run3.ID, run3_2.ID)
 		assert.Equal(t, actions_model.StatusRunning, run3_2.Status)
 		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
-
-		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
-		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
 	})
 }
 
@@ -1113,12 +1117,11 @@ jobs:
 		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run3.ID, job3.ID))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
+		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run3.ID}).Status)
+		runner.execTask(t, runner.fetchTask(t), &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		task6 := runner.fetchTask(t)
 		_, _, run3 = getTaskAndJobAndRunByTaskID(t, task6.Id)
 		assert.Equal(t, "workflow-dispatch-v1.22", getRunConcurrencyGroup(t, run3))
-
-		run2_2 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2_2.ID})
-		assert.Equal(t, actions_model.StatusCancelled, run2_2.Status) // cancelled by run3
 	})
 }
 
@@ -1355,9 +1358,8 @@ jobs:
 		w3Run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "concurrent-workflow-3.yml"})
 		w3j1Job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: w3Run.ID, JobID: "wf3-job1"})
 		assert.Equal(t, actions_model.StatusBlocked, w3j1Job.Status)
-		// wf2-job1 is cancelled by wf3-job1
 		w2j1Job = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: w2j1Job.ID})
-		assert.Equal(t, actions_model.StatusCancelled, w2j1Job.Status)
+		assert.Equal(t, actions_model.StatusBlocked, w2j1Job.Status)
 
 		// exec wf1-job1
 		runner1.execTask(t, w1j1Task, &mockTaskOutcome{
@@ -1398,6 +1400,8 @@ jobs:
 
 		// fetch wf4-job1
 		w4j1Task := runner2.fetchTask(t)
+		_, w2j1Job, _ = getTaskAndJobAndRunByTaskID(t, runner1.fetchTask(t).Id)
+		assert.Equal(t, "wf2-job1", w2j1Job.JobID)
 		// all tasks have been fetched
 		runner1.fetchNoTask(t)
 		runner2.fetchNoTask(t)
@@ -1405,7 +1409,7 @@ jobs:
 		_, w2j2Job, w2Run = getTaskAndJobAndRunByTaskID(t, w2j2Task.Id)
 		// wf2-job2 is cancelled because wf4-job1's cancel-in-progress is true
 		assert.Equal(t, actions_model.StatusCancelled, w2j2Job.Status)
-		assert.Equal(t, actions_model.StatusCancelled, w2Run.Status)
+		assert.Equal(t, actions_model.StatusRunning, w2Run.Status)
 		_, w4j1Job, w4Run := getTaskAndJobAndRunByTaskID(t, w4j1Task.Id)
 		assert.Equal(t, "job-group-2", w4j1Job.ConcurrencyGroup)
 		assert.Equal(t, "workflow-group-2", getRunConcurrencyGroup(t, w4Run))

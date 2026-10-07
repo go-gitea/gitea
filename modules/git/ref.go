@@ -224,7 +224,7 @@ func (ref RefName) RefType() RefType {
 		return RefTypeBranch
 	case ref.IsTag():
 		return RefTypeTag
-	case IsStringLikelyCommitID(nil, string(ref), 6):
+	case IsStringValidObjectID(nil, string(ref), 6):
 		return RefTypeCommit
 	}
 	return ""
