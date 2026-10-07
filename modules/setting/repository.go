@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // enumerates all the policy repository creating
@@ -303,7 +304,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("repository")
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
-	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
+	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString(util.Iif(Repository.DisableHTTPGit, "ssh", "https"))
 	// MAX_CREATION_LIMIT is a shortcut that sets the default for the two per-type limits below.
 	// USER_/ORG_MAX_CREATION_LIMIT take precedence when explicitly set.
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)                                   // FIXME: INI-MUST-SIDE-EFFECT

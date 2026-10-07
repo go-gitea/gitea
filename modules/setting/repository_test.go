@@ -64,3 +64,19 @@ ORG_MAX_CREATION_LIMIT = -1
 		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
 	})
 }
+
+func TestLoadRepositoryGoGetCloneURLProtocol(t *testing.T) {
+	defer test.MockVariableValue(&Repository.DisableHTTPGit)()
+	defer test.MockVariableValue(&Repository.GoGetCloneURLProtocol)()
+
+	for _, c := range []struct{ ini, expected string }{
+		{"", "https"},
+		{"DISABLE_HTTP_GIT = true", "ssh"},
+		{"DISABLE_HTTP_GIT = true\nGO_GET_CLONE_URL_PROTOCOL = https", "https"},
+	} {
+		cfg, err := NewConfigProviderFromData("[repository]\n" + c.ini)
+		assert.NoError(t, err)
+		loadRepositoryFrom(cfg)
+		assert.Equal(t, c.expected, Repository.GoGetCloneURLProtocol, c.ini)
+	}
+}

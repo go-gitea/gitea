@@ -389,6 +389,14 @@ func ComposeGoGetImport(ctx context.Context, owner, repo string) string {
 	return path.Join(curAppURL.Host, setting.AppSubURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
+// ComposeGoGetCloneURL returns the clone URL for the go-import meta content.
+func ComposeGoGetCloneURL(ctx *Context, owner, repo string) string {
+	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
+		return repo_model.ComposeSSHCloneURI(ctx.Doer, owner, repo)
+	}
+	return repo_model.ComposeHTTPSCloneURL(ctx, owner, repo)
+}
+
 // EarlyResponseForGoGetMeta responses appropriate go-get meta with status 200
 // if user does not have actual access to the requested repository,
 // or the owner or repository does not exist at all.
@@ -402,13 +410,7 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 		return
 	}
 
-	var cloneURL string
-	if setting.Repository.GoGetCloneURLProtocol == "ssh" {
-		cloneURL = repo_model.ComposeSSHCloneURL(ctx.Doer, username, reponame)
-	} else {
-		cloneURL = repo_model.ComposeHTTPSCloneURL(ctx, username, reponame)
-	}
-	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), cloneURL)
+	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(ctx, username, reponame), ComposeGoGetCloneURL(ctx, username, reponame))
 	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
 	ctx.PlainText(http.StatusOK, htmlMeta)
 }
