@@ -24,8 +24,41 @@ type catFileBatchCommunicator struct {
 	closeFunc   atomic.Pointer[func(err error)]
 	reqWriter   io.Writer
 	respReader  *bufio.Reader
+	respCounter *countingReader
+	objectEnd   int64 // stream offset after the last queried object's content, unread content is discarded before the next request
 	debugGitCmd *gitcmd.Command
 	closed      chan struct{}
+}
+
+type countingReader struct {
+	reader io.Reader
+	count  int64
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	n, err := r.reader.Read(p)
+	r.count += int64(n)
+	return n, err
+}
+
+func (b *catFileBatchCommunicator) consumed() int64 {
+	return b.respCounter.count - int64(b.respReader.Buffered())
+}
+
+func (b *catFileBatchCommunicator) writeRequest(req string) error {
+	if err := DiscardFull(b.respReader, b.objectEnd-b.consumed()); err != nil {
+		return err
+	}
+	_, err := io.WriteString(b.reqWriter, req)
+	return err
+}
+
+func (b *catFileBatchCommunicator) readContentHeader() (*CatFileObject, error) {
+	info, err := catFileBatchParseInfoLine(b.respReader)
+	if err == nil {
+		b.objectEnd = b.consumed() + info.Size + 1
+	}
+	return info, err
 }
 
 func (b *catFileBatchCommunicator) Close(err ...error) {
@@ -41,10 +74,12 @@ func (b *catFileBatchCommunicator) Close(err ...error) {
 func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
 	ctx, ctxCancel := context.WithCancelCause(ctx)
 	stdinWriter, stdoutReader, stdPipeClose := cmdCatFile.MakeStdinStdoutPipe()
+	respCounter := &countingReader{reader: stdoutReader}
 	ret := &catFileBatchCommunicator{
 		debugGitCmd: cmdCatFile,
 		reqWriter:   stdinWriter,
-		respReader:  bufio.NewReaderSize(stdoutReader, 32*1024), // use a buffered reader for rich operations
+		respReader:  bufio.NewReaderSize(respCounter, 32*1024), // use a buffered reader for rich operations
+		respCounter: respCounter,
 		closed:      make(chan struct{}),
 	}
 	ret.closeFunc.Store(new(func(err error) {

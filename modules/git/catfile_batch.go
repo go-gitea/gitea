@@ -35,9 +35,8 @@ type CatFileBatch interface {
 	QueryInfo(obj string) (*CatFileObject, error)
 
 	// QueryContent is similar to QueryInfo, it queries the object info and additionally returns a reader for its content.
-	// FIXME: this design still follows the old pattern: the returned BufferedReader is very fragile,
-	// callers should carefully maintain its lifecycle and discard all unread data.
-	// TODO: It needs to be refactored to a fully managed Reader stream in the future, don't let callers manually Close or Discard
+	// The returned BufferedReader is only valid until the next query, which discards any content left unread.
+	// TODO: It needs to be refactored to a fully managed Reader stream in the future, don't let callers read past the object
 	QueryContent(obj string) (*CatFileObject, BufferedReader, error)
 }
 

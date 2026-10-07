@@ -5,7 +5,6 @@ package git
 
 import (
 	"context"
-	"io"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -53,11 +52,10 @@ func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedR
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
-	_, err := io.WriteString(b.getBatchContent().reqWriter, obj+"\n")
-	if err != nil {
+	if err := b.getBatchContent().writeRequest(obj + "\n"); err != nil {
 		return nil, nil, err
 	}
-	info, err := catFileBatchParseInfoLine(b.getBatchContent().respReader)
+	info, err := b.getBatchContent().readContentHeader()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,8 +66,7 @@ func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
-	_, err := io.WriteString(b.getBatchCheck().reqWriter, obj+"\n")
-	if err != nil {
+	if err := b.getBatchCheck().writeRequest(obj + "\n"); err != nil {
 		return nil, err
 	}
 	return catFileBatchParseInfoLine(b.getBatchCheck().respReader)

@@ -95,6 +95,11 @@ func testCatFileBatch(t *testing.T) {
 	})
 
 	t.Run("QueryContent", func(t *testing.T) {
+		_, rd, err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		require.NoError(t, err)
+		_, err = rd.Discard(2)
+		require.NoError(t, err)
+
 		info, rd, err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
 		require.NoError(t, err)
 		assert.Equal(t, "e2129701f1a4d54dc44f03c93bca0a2aec7c5449", info.ID)

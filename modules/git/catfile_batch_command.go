@@ -44,11 +44,10 @@ func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, Buffered
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
 	batch := b.getBatch(util.CallerFuncName(1))
-	_, err := batch.reqWriter.Write([]byte("contents " + obj + "\n"))
-	if err != nil {
+	if err := batch.writeRequest("contents " + obj + "\n"); err != nil {
 		return nil, nil, err
 	}
-	info, err := catFileBatchParseInfoLine(batch.respReader)
+	info, err := batch.readContentHeader()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -60,8 +59,7 @@ func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
 	batch := b.getBatch(util.CallerFuncName(1))
-	_, err := batch.reqWriter.Write([]byte("info " + obj + "\n"))
-	if err != nil {
+	if err := batch.writeRequest("info " + obj + "\n"); err != nil {
 		return nil, err
 	}
 	return catFileBatchParseInfoLine(batch.respReader)
