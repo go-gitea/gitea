@@ -80,12 +80,18 @@ jobs:
         env:
           RANGE: ${{ steps.range.outputs.range }}
         run: |
-          git log --format='%H %s' "$RANGE" | grep -iE '^[0-9a-f]+ revert' | cut -d' ' -f1 | while read -r sha; do
-            echo "$sha"
-            git show -s --format=%B "$sha" | grep -i revert | grep -oE '(#|/pull/)[0-9]+' | grep -oE '[0-9]+' | while read -r pr; do
-              git log --format='%H %s' "$RANGE" | grep -F "(#$pr)" | cut -d' ' -f1
-            done
-          done | sort -u > .cliffignore
+: > .cliffignore
+          while read -r sha subject; do
+            case "$subject" in
+              [Rr][Ee][Vv][Ee][Rr][Tt]*)
+                echo "$sha" >> .cliffignore
+                while read -r pr; do
+                  git log --format='%H %s' "$RANGE" | grep -F "(#$pr)" | cut -d' ' -f1 >> .cliffignore || true
+                done < <(git show -s --format=%B "$sha" | grep -i revert | grep -oE '(#|/pull/)[0-9]+' | grep -oE '[0-9]+' || true)
+                ;;
+            esac
+          done < <(git log --format='%H %s' "$RANGE")
+          sort -u -o .cliffignore .cliffignore
       - uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         with:
           args: --tag ${{ github.ref_name }} ${{ steps.range.outputs.range }}
