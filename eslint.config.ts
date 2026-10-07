@@ -17,6 +17,7 @@ import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts
 
 const jsExts = ['js', 'mjs', 'cjs'] as const;
 const tsExts = ['ts', 'mts', 'cts'] as const;
+const vueExts = ['vue'] as const;
 
 const restrictedGlobals = [
   {name: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
@@ -36,7 +37,7 @@ export default defineConfig([
     'public/assets/js',
   ]),
   {
-    files: [`**/*.{${[...jsExts, ...tsExts].join(',')}}`],
+    files: [`**/*.{${[...jsExts, ...tsExts, ...vueExts].join(',')}}`],
     ignores: ['dist/*'],
     languageOptions: {
       ecmaVersion: 'latest',
@@ -48,7 +49,9 @@ export default defineConfig([
         ecmaFeatures: {
           impliedStrict: true,
         },
+        parser: typescriptParser,
         project: true,
+        extraFileExtensions: vueExts.map((ext) => `.${ext}`),
       },
     },
     linterOptions: {
@@ -66,8 +69,11 @@ export default defineConfig([
       wc,
     },
     settings: {
-      'import-x/extensions': [...jsExts, ...tsExts].map((ext) => `.${ext}`),
-      'import-x/parsers': {'@typescript-eslint/parser': [...jsExts, ...tsExts].map((ext) => `.${ext}`)},
+      'import-x/extensions': [...jsExts, ...tsExts, ...vueExts].map((ext) => `.${ext}`),
+      'import-x/parsers': {
+        '@typescript-eslint/parser': [...jsExts, ...tsExts].map((ext) => `.${ext}`),
+        'vue-eslint-parser': vueExts.map((ext) => `.${ext}`),
+      },
       'import-x/resolver': {'typescript': true},
     },
     rules: {
@@ -233,6 +239,7 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-assignment': [0],
       '@typescript-eslint/no-unsafe-call': [0],
       '@typescript-eslint/no-unsafe-declaration-merging': [2],
+      '@typescript-eslint/no-unsafe-enum-assignment': [0],
       '@typescript-eslint/no-unsafe-enum-comparison': [0],
       '@typescript-eslint/no-unsafe-function-type': [2],
       '@typescript-eslint/no-unsafe-member-access': [0],
@@ -704,6 +711,7 @@ export default defineConfig([
       'unicorn/better-dom-traversing': [2],
       'unicorn/catch-error-name': [0],
       'unicorn/class-reference-in-static-methods': [2],
+      'unicorn/comma-spacing': [0], // only applies to json language
       'unicorn/comment-content': [0],
       'unicorn/consistent-arrow-return-style': [0],
       'unicorn/consistent-assert': [0],
@@ -734,8 +742,10 @@ export default defineConfig([
       'unicorn/filename-case': [0],
       'unicorn/id-match': [2],
       'unicorn/import-style': [0],
+      'unicorn/indent': [0], // only applies to json and css languages
       'unicorn/isolated-functions': [2, {functions: []}],
       'unicorn/iteration-fallback-style': [2, 'fallback'],
+      'unicorn/key-name-casing': [0], // only applies to json, yaml and toml languages
       'unicorn/logical-assignment-operators': [0],
       'unicorn/max-nested-calls': [0],
       'unicorn/name-replacements': [0],
@@ -768,21 +778,20 @@ export default defineConfig([
       'unicorn/no-chained-comparison': [2],
       'unicorn/no-collection-bracket-access': [2],
       'unicorn/no-computed-property-existence-check': [0],
+      'unicorn/no-conflicting-constraints': [2],
       'unicorn/no-confusing-array-splice': [2],
       'unicorn/no-confusing-array-with': [2],
       'unicorn/no-console-spaces': [0],
       'unicorn/no-constant-zero-expression': [2],
       'unicorn/no-declarations-before-early-exit': [0],
-      'unicorn/no-deprecated-css-features': [0],
       'unicorn/no-document-cookie': [2],
       'unicorn/no-double-comparison': [2],
-      'unicorn/no-duplicate-css-selectors': [0],
-      'unicorn/no-duplicate-font-family-names': [0],
       'unicorn/no-duplicate-if-branches': [2],
       'unicorn/no-duplicate-logical-operands': [2],
       'unicorn/no-duplicate-loops': [0],
       'unicorn/no-duplicate-set-values': [2],
       'unicorn/no-empty-file': [2],
+      'unicorn/no-empty-link-text': [0], // only applies to markdown language
       'unicorn/no-error-property-assignment': [2],
       'unicorn/no-exports-in-scripts': [2],
       'unicorn/no-for-each': [2],
@@ -790,21 +799,34 @@ export default defineConfig([
       'unicorn/no-global-object-property-assignment': [0],
       'unicorn/no-immediate-mutation': [0],
       'unicorn/no-impossible-length-comparison': [2],
+      'unicorn/no-incomplete-accessor-override': [2],
       'unicorn/no-incorrect-query-selector': [2],
       'unicorn/no-incorrect-template-string-interpolation': [0],
+      'unicorn/no-ineffective-csp-directives': [2],
       'unicorn/no-instanceof-builtins': [2],
       'unicorn/no-invalid-argument-count': [2],
+      'unicorn/no-invalid-boolean-attribute-value': [2],
       'unicorn/no-invalid-character-comparison': [2],
+      'unicorn/no-invalid-dom-token': [2],
       'unicorn/no-invalid-fetch-options': [2],
       'unicorn/no-invalid-file-input-accept': [2],
-      'unicorn/no-invalid-media-features': [0],
+      'unicorn/no-invalid-integrity': [2],
+      'unicorn/no-invalid-intl-options': [2],
+      'unicorn/no-invalid-property-descriptor': [2],
       'unicorn/no-invalid-remove-event-listener': [2],
+      'unicorn/no-invalid-response-options': [2],
+      'unicorn/no-invalid-style-set-property': [2],
+      'unicorn/no-invalid-temporal-arithmetic': [2],
+      'unicorn/no-invalid-url-protocol-comparison': [2],
       'unicorn/no-invalid-well-known-symbol-methods': [2],
+      'unicorn/no-javascript-url': [0], // only applies to markdown language
       'unicorn/no-keyword-prefix': [0],
       'unicorn/no-late-current-target-access': [2],
       'unicorn/no-late-event-control': [2],
+      'unicorn/no-leading-empty-lines': [0], // handled by @stylistic/no-multiple-empty-lines
       'unicorn/no-lonely-if': [2],
       'unicorn/no-loop-iterable-mutation': [2],
+      'unicorn/no-loss-of-precision': [0], // only applies to json, toml and css languages
       'unicorn/no-magic-array-flat-depth': [0],
       'unicorn/no-manually-wrapped-comments': [0], // too opinionated
       'unicorn/no-mismatched-map-key': [2],
@@ -817,7 +839,6 @@ export default defineConfig([
       'unicorn/no-negated-condition': [0],
       'unicorn/no-negation-in-equality-check': [2],
       'unicorn/no-nested-ternary': [0],
-      'unicorn/no-nesting-with-mixed-specificity': [0],
       'unicorn/no-new-array': [0],
       'unicorn/no-new-buffer': [2],
       'unicorn/no-non-function-verb-prefix': [0],
@@ -826,9 +847,9 @@ export default defineConfig([
       'unicorn/no-object-as-default-parameter': [0],
       'unicorn/no-object-methods-with-collections': [2],
       'unicorn/no-optional-chaining-on-undeclared-variable': [2],
+      'unicorn/no-prevent-default-in-passive-listener': [2],
       'unicorn/no-process-exit': [0],
       'unicorn/no-redundant-comparison': [2],
-      'unicorn/no-redundant-nested-style-rules': [0],
       'unicorn/no-return-array-push': [2],
       'unicorn/no-selector-as-dom-name': [2],
       'unicorn/no-shorthand-property-overrides': [0], // only applies to css language
@@ -844,8 +865,6 @@ export default defineConfig([
       'unicorn/no-typeof-undefined': [2],
       'unicorn/no-uncalled-method': [2],
       'unicorn/no-undeclared-class-members': [2],
-      'unicorn/no-unknown-css-annotations': [0],
-      'unicorn/no-unknown-pseudo-selectors': [0],
       'unicorn/no-unnecessary-array-flat-depth': [2],
       'unicorn/no-unnecessary-array-flat-map': [2],
       'unicorn/no-unnecessary-array-splice-count': [2],
@@ -854,6 +873,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-fetch-options': [0],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
+      'unicorn/no-unnecessary-parameters': [0],
       'unicorn/no-unnecessary-polyfills': [2],
       'unicorn/no-unnecessary-slice-end': [2],
       'unicorn/no-unnecessary-splice': [2],
@@ -865,14 +885,15 @@ export default defineConfig([
       'unicorn/no-unreadable-object-destructuring': [0],
       'unicorn/no-unsafe-buffer-conversion': [2],
       'unicorn/no-unsafe-dom-html': [0],
+      'unicorn/no-unsafe-json-serialization': [2],
       'unicorn/no-unsafe-promise-all-settled-values': [2],
       'unicorn/no-unsafe-property-key': [0],
       'unicorn/no-unsafe-sqlite-interpolation': [2],
       'unicorn/no-unsafe-string-replacement': [2],
-      'unicorn/no-unscoped-css-nesting-selector': [0],
       'unicorn/no-unused-builtin-method-return': [2],
       'unicorn/no-unused-iterator-helper': [2],
       'unicorn/no-unused-properties': [2],
+      'unicorn/no-url-in-search-params': [2],
       'unicorn/no-useless-boolean-cast': [2],
       'unicorn/no-useless-coercion': [2],
       'unicorn/no-useless-collection-argument': [2],
@@ -909,12 +930,12 @@ export default defineConfig([
       'unicorn/prefer-array-find': [0], // handled by @typescript-eslint/prefer-find
       'unicorn/prefer-array-flat': [2],
       'unicorn/prefer-array-flat-map': [2],
-      'unicorn/prefer-array-from-async': [2],
+      'unicorn/prefer-array-from-async': [0], // Array.fromAsync requires ES2026
       'unicorn/prefer-array-from-map': [2],
       'unicorn/prefer-array-from-range': [2],
       'unicorn/prefer-array-index-of': [2],
       'unicorn/prefer-array-iterable-methods': [2],
-      'unicorn/prefer-array-last-methods': [2],
+      'unicorn/prefer-array-last-methods': [0], // Array#findLast/findLastIndex requires ES2023
       'unicorn/prefer-array-slice': [2],
       'unicorn/prefer-array-some': [2],
       'unicorn/prefer-at': [0],
@@ -931,7 +952,7 @@ export default defineConfig([
       'unicorn/prefer-date-now': [2],
       'unicorn/prefer-default-parameters': [0],
       'unicorn/prefer-direct-iteration': [2],
-      'unicorn/prefer-dispose': [2],
+      'unicorn/prefer-dispose': [0], // `using` requires ES2027
       'unicorn/prefer-dom-node-append': [2],
       'unicorn/prefer-dom-node-html-methods': [0],
       'unicorn/prefer-dom-node-remove': [2],
@@ -940,14 +961,14 @@ export default defineConfig([
       'unicorn/prefer-early-return': [0],
       'unicorn/prefer-else-if': [2],
       'unicorn/prefer-error-is-error': [0],
+      'unicorn/prefer-escaped-irregular-whitespace': [2],
       'unicorn/prefer-event-target': [2],
-      'unicorn/prefer-explicit-viewport-units': [0], // only applies to css language
       'unicorn/prefer-export-from': [0],
       'unicorn/prefer-flat-math-min-max': [2],
-      'unicorn/prefer-get-or-insert-computed': [2],
+      'unicorn/prefer-get-or-insert-computed': [0], // Map#getOrInsertComputed requires ES2026
       'unicorn/prefer-global-number-constants': [2],
       'unicorn/prefer-global-this': [0],
-      'unicorn/prefer-group-by': [2],
+      'unicorn/prefer-group-by': [0], // Object.groupBy/Map.groupBy requires ES2024
       'unicorn/prefer-has-check': [2],
       'unicorn/prefer-hoisting-branch-code': [2],
       'unicorn/prefer-https': [0], // false-positives on namespace and schema URIs
@@ -958,11 +979,12 @@ export default defineConfig([
       'unicorn/prefer-iterable-in-constructor': [2],
       'unicorn/prefer-iterator-concat': [0], // too opinionated
       'unicorn/prefer-iterator-helpers': [0],
-      'unicorn/prefer-iterator-to-array': [2],
+      'unicorn/prefer-iterator-to-array': [0], // Iterator#toArray requires ES2025
       'unicorn/prefer-iterator-to-array-at-end': [2],
       'unicorn/prefer-iterator-zip': [0],
       'unicorn/prefer-json-import': [0],
       'unicorn/prefer-keyboard-event-key': [2],
+      'unicorn/prefer-literal-ascii': [2],
       'unicorn/prefer-location-assign': [2],
       'unicorn/prefer-logical-operator-over-ternary': [0],
       'unicorn/prefer-map-from-entries': [0],
@@ -970,7 +992,6 @@ export default defineConfig([
       'unicorn/prefer-math-constants': [2],
       'unicorn/prefer-math-min-max': [2],
       'unicorn/prefer-math-trunc': [2],
-      'unicorn/prefer-media-feature-range-syntax': [0],
       'unicorn/prefer-minimal-ternary': [0],
       'unicorn/prefer-modern-dom-apis': [0],
       'unicorn/prefer-modern-math-apis': [2],
@@ -989,8 +1010,9 @@ export default defineConfig([
       'unicorn/prefer-optional-catch-binding': [2],
       'unicorn/prefer-path2d': [2],
       'unicorn/prefer-private-class-fields': [0],
-      'unicorn/prefer-promise-try': [2],
-      'unicorn/prefer-promise-with-resolvers': [2],
+      'unicorn/prefer-promise-static-methods': [2],
+      'unicorn/prefer-promise-try': [0], // Promise.try requires ES2025
+      'unicorn/prefer-promise-with-resolvers': [0], // Promise.withResolvers requires ES2024
       'unicorn/prefer-prototype-methods': [2],
       'unicorn/prefer-query-selector': [2],
       'unicorn/prefer-queue-microtask': [2],
@@ -1003,6 +1025,7 @@ export default defineConfig([
       'unicorn/prefer-set-methods': [0],
       'unicorn/prefer-set-size': [2],
       'unicorn/prefer-short-arrow-method': [2],
+      'unicorn/prefer-short-escape-sequences': [2],
       'unicorn/prefer-simple-condition-first': [0],
       'unicorn/prefer-simple-sort-comparator': [2],
       'unicorn/prefer-simplified-conditions': [2],
@@ -1024,7 +1047,7 @@ export default defineConfig([
       'unicorn/prefer-structured-clone': [2],
       'unicorn/prefer-switch': [0],
       'unicorn/prefer-temporal': [0],
-      'unicorn/prefer-temporal-conversion': [2],
+      'unicorn/prefer-temporal-conversion': [0], // Temporal requires ES2027
       'unicorn/prefer-ternary': [0],
       'unicorn/prefer-then-catch': [2],
       'unicorn/prefer-toggle-attribute': [2],
@@ -1050,6 +1073,7 @@ export default defineConfig([
       'unicorn/require-passive-events': [2],
       'unicorn/require-post-message-target-origin': [0],
       'unicorn/require-proxy-trap-boolean-return': [2],
+      'unicorn/require-text-decoder-streaming': [2],
       'unicorn/single-line-block-comment-style': [0],
       'unicorn/string-content': [0],
       'unicorn/switch-case-braces': [0],
@@ -1096,17 +1120,13 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.vue'],
-    languageOptions: {
-      parserOptions: {
-        parser: '@typescript-eslint/parser',
-      },
-    },
+    files: vueExts.map((ext) => `**/*.${ext}`),
     extends: [
       vue.configs['flat/recommended'],
       vueScopedCss.configs.recommended,
     ],
     rules: {
+      '@typescript-eslint/no-redundant-type-constituents': [0], // types imported from .vue files resolve to any via typescript-eslint's *.vue shim
       'vue/attributes-order': [0],
       'vue/html-closing-bracket-spacing': [2, {startTag: 'never', endTag: 'never', selfClosingTag: 'never'}],
       'vue/max-attributes-per-line': [0],

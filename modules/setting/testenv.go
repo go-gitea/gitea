@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
@@ -66,7 +67,7 @@ func SetupGiteaTestEnv() {
 		StaticRootPath = giteaRoot
 		// during testing, the AppPath must point to the pre-built Gitea binary in the source root
 		// it needs to be called by git hooks
-		AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(IsWindows, ".exe", "")
+		AppPath = filepath.Join(giteaRoot, "gitea") + util.Iif(consts.IsWindows, ".exe", "")
 	}
 
 	initGiteaConf := func() string {

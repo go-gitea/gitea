@@ -374,7 +374,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 	// Reactivate user only if they were disabled by the OAuth2 auto sync cron (invalid_grant),
 	// which clears AccessToken/RefreshToken/ExpiresAt on the ExternalLoginUser row
 	// An admin-disabled user has no such signature, so we leave IsActive alone
-	// and let verifyAuthWithOptions route them through the prohibit-login / activate page.
+	// and let verifyAuthWithOptionsWeb route them through the prohibit-login / activate page.
 	if !u.IsActive {
 		extLogin, hasExt, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
 		if err != nil {

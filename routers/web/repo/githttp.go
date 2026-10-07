@@ -183,7 +183,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 		if repoExist {
 			// Only the main code repo accepts refs/for pushes, so wiki pushes must keep write checks.
-			if git.DefaultFeatures().SupportProcReceive && !isWiki {
+			if !isWiki {
 				accessMode = perm.AccessModeRead
 			}
 
@@ -273,7 +273,7 @@ func dummyInfoRefs(ctx *context.Context) {
 		}
 		defer cleanup()
 
-		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, git.Sha1ObjectFormat.Name()); err != nil {
+		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, git.Sha1ObjectFormat.Name(), ""); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}

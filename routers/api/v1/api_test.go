@@ -109,7 +109,7 @@ func TestSignedArtifactRouteSkipsRegularAPIAuth(t *testing.T) {
 	assert.Equal(t, 0, ctx.Resp.WrittenStatus())
 	assert.Nil(t, ctx.Doer)
 
-	verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})(ctx)
+	verifyAuthWithOptionsAPI(&common.VerifyOptions{SignInRequired: true})(ctx)
 	assert.Equal(t, 0, ctx.Resp.WrittenStatus())
 }
 

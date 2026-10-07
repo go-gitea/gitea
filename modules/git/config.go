@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"runtime"
 	"strings"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
@@ -73,15 +73,9 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if DefaultFeatures().SupportProcReceive {
-		// set support for AGit flow
-		if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
-			return err
-		}
-	} else {
-		if err := configUnsetAll(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
-			return err
-		}
+	// set support for AGit flow
+	if err := configAddNonExist(ctx, "receive.procReceiveRefs", "refs/for"); err != nil {
+		return err
 	}
 
 	// Due to CVE-2022-24765, git now denies access to git directories which are not owned by current user.
@@ -96,7 +90,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		return err
 	}
 
-	if runtime.GOOS == "windows" {
+	if consts.IsWindows {
 		if err := configSet(ctx, "core.longpaths", "true"); err != nil {
 			return err
 		}

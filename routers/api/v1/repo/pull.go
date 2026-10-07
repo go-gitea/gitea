@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -27,7 +26,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
@@ -492,11 +490,6 @@ func CreatePullRequest(ctx *context.APIContext) {
 		milestoneID = milestone.ID
 	}
 
-	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
-
 	unitPullRequest, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -511,7 +504,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		MilestoneID:  milestoneID,
 		IsPull:       true,
 		Content:      form.Body,
-		DeadlineUnix: deadlineUnix,
+		DeadlineUnix: common.ParseAPIDeadlineToEndOfDay(form.Deadline),
 	}
 	pr := &issues_model.PullRequest{
 		HeadRepoID: compareResult.HeadRepo.ID,
@@ -617,6 +610,8 @@ func EditPullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -691,19 +686,8 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// Update or remove deadline if set
-	if form.Deadline != nil || form.RemoveDeadline != nil {
-		var deadlineUnix timeutil.TimeStamp
-		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
-			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
-				23, 59, 59, 0, form.Deadline.Location())
-			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
-		}
-
-		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		issue.DeadlineUnix = deadlineUnix
+	if !editIssueDeadline(ctx, issue, form.Deadline, form.RemoveDeadline) {
+		return
 	}
 
 	// Add/delete assignees
@@ -1043,7 +1027,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(ctx, pr.ID, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, fmt.Sprintf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
