@@ -1,6 +1,6 @@
 {{- $itemExtraClass := .ItemExtraClass -}}
 {{- $data := .PageGlobalData -}}
-{{if and $data $data.IsSigned}}{{/* data may not exist, for example: rendering 503 page before the PageGlobalData middleware */}}
+{{if and $data $data.IsSigned (not ctx.RootData.MustChangePassword)}}{{/* data may not exist, for example: rendering 503 page before the PageGlobalData middleware */}}
 	{{- $activeStopwatch := call $data.GetActiveStopwatch -}}
 	{{- $notificationUnreadCount := call $data.GetNotificationUnreadCount -}}
 	{{/* always rendered so a real-time push can reveal it without a reload */}}
