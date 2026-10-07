@@ -25,26 +25,30 @@
   border-bottom-right-radius: var(--border-radius);
 }
 
-.ui.modal > .close {
+/* TODO: this "close" button was inherited and modified from Fomantic UI, actually it is not good enough:
+*  * the layout depends on absolute position, which is not good for responsive design
+*  * it is not good for accessibility, ideally it should use a "button" element */
+.ui.modal .close-modal {
   cursor: pointer;
   position: absolute;
-  top: -2.5rem;
-  right: -2.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1rem;
   z-index: 1;
   opacity: 0.8;
   font-size: 1.25em;
-  color: var(--color-white);
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0.625rem 0 0;
+  color: var(--color-text);
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
-.ui.modal > .close:hover {
+.ui.modal .close-modal:hover {
   opacity: 1;
 }
 
 .ui.modal > .header {
   display: block;
+  position: relative;
   font-family: var(--fonts-regular);
   background: var(--color-body);
   margin: 0;
@@ -60,11 +64,6 @@
   font-size: 1.42857143rem;
   line-height: 1.28571429em;
   font-weight: var(--font-weight-medium);
-}
-
-.ui.modal > .header .svg {
-  vertical-align: middle;
-  display: inline-block;
 }
 
 .ui.modal > .content,
@@ -126,11 +125,6 @@
   .ui.modal > .header {
     padding-right: 2.25rem;
   }
-  .ui.modal > .close {
-    top: 1.0535rem;
-    right: 1rem;
-    color: var(--color-text);
-  }
 }
 
 @media only screen and (max-width: 767.98px) {
@@ -142,10 +136,6 @@
     display: block;
     padding: 1rem !important;
   }
-  .ui.modal > .close {
-    top: 0.5rem !important;
-    right: 0.5rem !important;
-  }
   .ui.modal > .actions {
     padding: 1rem 1rem 0 !important;
   }
@@ -156,21 +146,6 @@
 
 .ui.active.modal {
   display: block;
-}
-
-.ui.modal > .close.inside + .header {
-  padding-right: 2.25rem;
-}
-
-.ui.modal > .close.inside {
-  top: 1.0535rem;
-  right: 1rem;
-  color: inherit;
-}
-
-.ui.modal > .close.icon[height="16"] {
-  top: 0.7em;
-  color: var(--color-text-dark);
 }
 
 .ui.mini.modal > .header:not(.ui) {

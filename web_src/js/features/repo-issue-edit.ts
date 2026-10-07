@@ -7,6 +7,7 @@ import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure} from '../modules/are-you-sure.ts';
+import {registerShortcutHandler} from '../modules/shortcut.ts';
 
 async function tryOnEditContent(e: Event) {
   const clickTarget = (e.target as HTMLElement).closest('.edit-content');
@@ -150,9 +151,32 @@ async function tryOnQuoteReply(e: Event) {
   editor.moveCursorToEnd();
 }
 
+export function tryShortcutQuoteReply(): boolean {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount || selection.isCollapsed) return false;
+  const node = selection.getRangeAt(0).commonAncestorContainer;
+  const el = node instanceof HTMLElement ? node : node.parentElement;
+
+  const commentContainer = el?.closest<HTMLElement>('.render-content.markup')?.closest('.comment-container');
+  if (!commentContainer) return false;
+
+  const quoteReplyBtn = commentContainer.querySelector<HTMLElement>('.quote-reply')!;
+  if (!quoteReplyBtn) return false;
+
+  quoteReplyBtn.click();
+  return true;
+}
+
 export function initRepoIssueCommentEdit() {
   document.addEventListener('click', (e) => {
     tryOnEditContent(e); // Edit issue or comment content
     tryOnQuoteReply(e); // Quote reply to the comment editor
   });
+  // TODO: it is not list in the shortcut help modal at the moment, there are many details:
+  // 1. not every page supports such "r"
+  // 2. "r" only works when there is a ".quote-reply" menu item, but it is not for a single one
+  // To make the framework fully support such mechanism correctly, we might also need to consider about dynamically added elements.
+  // The shortcut "r" was chosen by https://github.com/go-gitea/gitea/issues/5796#issuecomment-5528657082
+  // and GitLab: https://gitlab.com/gitlab-org/gitlab-foss/-/commit/ca5d0c82509cedb94f9bfa4a40e77706a58faafe
+  registerShortcutHandler('r', tryShortcutQuoteReply);
 }
