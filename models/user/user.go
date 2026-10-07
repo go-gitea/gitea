@@ -1148,21 +1148,6 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 		Find(&ous)
 }
 
-// GetMailableUsersByIDsForNotifications gets active individual users eligible for issue notification filtering.
-func GetMailableUsersByIDsForNotifications(ctx context.Context, ids []int64) ([]*User, error) {
-	if len(ids) == 0 {
-		return nil, nil
-	}
-	ous := make([]*User, 0, len(ids))
-	return ous, db.GetEngine(ctx).
-		In("id", ids).
-		Where("`type` = ?", UserTypeIndividual).
-		And("`prohibit_login` = ?", false).
-		And("`is_active` = ?", true).
-		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsOnMention, EmailNotificationsAndYourOwn).
-		Find(&ous)
-}
-
 // GetUserIDsByNames returns a slice of ids corresponds to names.
 func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))

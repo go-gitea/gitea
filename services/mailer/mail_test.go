@@ -174,7 +174,7 @@ func TestMailIssueCommentBatchOnMentionRepositoryWatch(t *testing.T) {
 	require.NoError(t, issue.LoadRepo(t.Context()))
 	require.NoError(t, issue.LoadPullRequest(t.Context()))
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	users, err := user_model.GetMailableUsersByIDsForNotifications(t.Context(), []int64{user.ID})
+	users, err := user_model.GetMailableUsersByIDs(t.Context(), []int64{user.ID}, true)
 	require.NoError(t, err)
 	require.Len(t, users, 1)
 

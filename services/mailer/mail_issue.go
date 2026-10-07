@@ -109,7 +109,7 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	}
 	visited.AddMultiple(ids...)
 
-	unfilteredUsers, err := user_model.GetMailableUsersByIDsForNotifications(ctx, unfiltered)
+	unfilteredUsers, err := user_model.GetMailableUsersByIDs(ctx, unfiltered, true)
 	if err != nil {
 		return err
 	}
