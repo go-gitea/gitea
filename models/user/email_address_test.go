@@ -160,7 +160,7 @@ func TestEmailAddressValidate(t *testing.T) {
 		"root@LOCALHOST":  true,
 
 		"user@[192.168.1.2]":  true,
-		"user@[IPV6:FFff::1]": true,
+		"user@[IPv6:FFff::1]": true,
 
 		"abc@gmail.com":   true,
 		"abc@gmail.com.":  false,

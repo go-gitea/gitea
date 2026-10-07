@@ -34,7 +34,7 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		validBadgeSlugPattern:   regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`),
 		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
 		validEmailHostName:      regexp.MustCompile(`^[a-zA-Z0-9][-.\w]*$`),
-		validEmailHostIP:        regexp.MustCompile(`(?i)^\[([0-9.]+)|(ipv6:[0-9a-f:.]+)\]$`),
+		validEmailHostIP:        regexp.MustCompile(`(?i)^\[([0-9.]+|ipv6:[0-9a-f:.]+)\]$`),
 	}
 })
 
