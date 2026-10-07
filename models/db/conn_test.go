@@ -107,3 +107,56 @@ func TestMakePgSQLConnStr(t *testing.T) {
 		assert.Equal(t, test.Output, connStr)
 	}
 }
+
+func TestMakeFirebirdConnStr(t *testing.T) {
+	tests := []struct {
+		Host   string
+		User   string
+		Passwd string
+		Name   string
+		Output string
+		HasErr bool
+	}{
+		{
+			Host:   "", // empty means default
+			Name:   "gitea",
+			Output: "firebird://127.0.0.1:3050/gitea?default_query_exec_mode=exec&encoding=UTF8&default_transaction_iso_level=read_committed",
+		},
+		{
+			Host:   "localhost",
+			User:   "SYSDBA",
+			Passwd: "masterkey",
+			Name:   "gitea",
+			Output: "firebird://SYSDBA:masterkey@localhost:3050/gitea?default_query_exec_mode=exec&encoding=UTF8&default_transaction_iso_level=read_committed",
+		},
+		{
+			Host:   "fb.example.com:3051",
+			User:   "gitea",
+			Passwd: "space space !#$%^^%^```-=?=",
+			Name:   "gitea",
+			Output: "firebird://gitea:space%20space%20%21%23$%25%5E%5E%25%5E%60%60%60-=%3F=@fb.example.com:3051/gitea?default_query_exec_mode=exec&encoding=UTF8&default_transaction_iso_level=read_committed",
+		},
+		{
+			// an absolute path must keep its leading slash, which fbx would otherwise strip
+			Host:   "localhost:3050",
+			Name:   "/var/lib/firebird/gitea.fdb",
+			Output: "firebird://localhost:3050//var/lib/firebird/gitea.fdb?default_query_exec_mode=exec&encoding=UTF8&default_transaction_iso_level=read_committed",
+		},
+		{
+			Name:   "",
+			HasErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		connStr, err := makeFirebirdConnStr(ConnOptions{
+			Host: test.Host, User: test.User, Passwd: test.Passwd, Database: test.Name, Type: "firebird",
+		})
+		if test.HasErr {
+			assert.Error(t, err)
+			continue
+		}
+		assert.NoError(t, err)
+		assert.Equal(t, test.Output, connStr)
+	}
+}

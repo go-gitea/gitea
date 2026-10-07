@@ -46,8 +46,8 @@ func findPropertyValues(ctx context.Context, propertyName string, ownerID int64,
 	propsCondBlock := builder.NewCond()
 	for name, value := range propertyFilter {
 		propsCondBlock = propsCondBlock.Or(builder.Eq{
-			"package_property.name":  name,
-			"package_property.value": value,
+			"package_property.name":      name,
+			"`package_property`.`value`": value,
 		})
 	}
 	propsCond = propsCond.And(propsCondBlock)
@@ -69,11 +69,11 @@ func findPropertyValues(ctx context.Context, propertyName string, ownerID int64,
 		Where(cond)
 
 	query := builder.
-		Select("package_property.value, MAX(package_file.created_unix) AS created_unix").
+		Select("`package_property`.`value`, MAX(`package_file`.`created_unix`) AS created_unix").
 		From("package_property").
 		InnerJoin("package_file", "package_file.id = package_property.ref_id").
 		Where(builder.Eq{"package_property.name": propertyName}.And(builder.In("package_property.ref_id", in2))).
-		GroupBy("package_property.value").
+		GroupBy("`package_property`.`value`").
 		OrderBy("created_unix DESC")
 
 	var values []*PropertyValue

@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/setting"
 )
 
 func AddIssueResourceIndexTable(_ context.Context, x base.EngineMigration) error {
@@ -24,6 +25,17 @@ func AddIssueResourceIndexTable(_ context.Context, x base.EngineMigration) error
 
 	if err := sess.Table("issue_index").Sync(new(ResourceIndex)); err != nil {
 		return err
+	}
+
+	if setting.Database.Type.IsFirebird() {
+		// Firebird rejects DML on a table created in the same transaction ("Table
+		// unknown"), so the freshly synced table commits before it is used
+		if err := sess.Commit(); err != nil {
+			return err
+		}
+		if err := sess.Begin(); err != nil {
+			return err
+		}
 	}
 
 	// Remove data we're goint to rebuild

@@ -12,9 +12,9 @@ const DefaultSQLiteBusyTimeout = 20 * 1000
 
 var (
 	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by the tag-controlled drivers
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "firebird"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", DatabaseTypeSQLite3: "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", DatabaseTypeSQLite3: "SQLite3", "firebird": "Firebird"}
 
 	// Database holds the database settings
 	Database = struct {
@@ -109,4 +109,8 @@ func (t DatabaseType) IsMSSQL() bool {
 
 func (t DatabaseType) IsPostgreSQL() bool {
 	return t == "postgres"
+}
+
+func (t DatabaseType) IsFirebird() bool {
+	return t == "firebird"
 }

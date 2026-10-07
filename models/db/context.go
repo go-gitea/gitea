@@ -44,7 +44,14 @@ func contextSafetyCheck(e Engine) {
 	contextSafetyOnce.Do(func() {
 		// try to figure out the bad functions to deny
 		type m struct{}
-		_ = e.SQL("SELECT 1").Iterate(&m{}, func(int, any) error {
+		// Firebird rejects a SELECT without a FROM clause, so the probe has to read
+		// from a real one-row table there. It must reach the callback below, otherwise
+		// no frame is recorded and the check panics on its own.
+		probeSQL := "SELECT 1"
+		if setting.Database.Type.IsFirebird() {
+			probeSQL = "SELECT 1 FROM rdb$database"
+		}
+		_ = e.SQL(probeSQL).Iterate(&m{}, func(int, any) error {
 			callers := make([]uintptr, 32)
 			callerNum := runtime.Callers(1, callers)
 			for i := range callerNum {

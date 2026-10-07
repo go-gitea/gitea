@@ -70,12 +70,12 @@ func SetLock(ctx context.Context, packageID int64, lock *LockInfo) error {
 		return err
 	}
 
-	return updateLock(ctx, packageID, string(jsonBytes), builder.Eq{"value": ""})
+	return updateLock(ctx, packageID, string(jsonBytes), builder.Eq{"`value`": ""})
 }
 
 // RemoveLock removes the terraform lock for the given package.
 func RemoveLock(ctx context.Context, packageID int64) error {
-	return updateLock(ctx, packageID, "", builder.Neq{"value": ""})
+	return updateLock(ctx, packageID, "", builder.Neq{"`value`": ""})
 }
 
 func updateLock(ctx context.Context, refID int64, value string, cond builder.Cond) error {
@@ -84,7 +84,7 @@ func updateLock(ctx context.Context, refID int64, value string, cond builder.Con
 		return err
 	}
 	if ok {
-		n, err := db.GetEngine(ctx).ID(pp.ID).And(cond).Cols("value").Update(&packages_model.PackageProperty{Value: value})
+		n, err := db.GetEngine(ctx).ID(pp.ID).And(cond).Cols("`value`").Update(&packages_model.PackageProperty{Value: value})
 		if err != nil {
 			return err
 		}

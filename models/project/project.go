@@ -445,6 +445,19 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 
 func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 	switch {
+	case setting.Database.Type.IsFirebird():
+		// Firebird rejects a join predicate in WHERE for an INNER JOIN, so the ON clause
+		// carries it and the repo filter stays in WHERE. Aliased sources keep the
+		// correlated id unambiguous, which the bare table names would not.
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT pi.id FROM project_issue pi INNER JOIN project p ON p.id = pi.project_id WHERE p.repo_id = ?)", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board WHERE project_board.id IN (SELECT pb.id FROM project_board pb INNER JOIN project p ON p.id = pb.project_id WHERE p.repo_id = ?)", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
+			return err
+		}
 	case setting.Database.Type.IsSQLite3():
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
 			return err

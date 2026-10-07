@@ -6,6 +6,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
@@ -258,7 +259,9 @@ func (cfg *ProjectsConfig) IsProjectsAllowed(m ProjectsMode) bool {
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
-	switch colName {
+	// Firebird reports the stored identifier, so an unquoted "type" comes back folded
+	// to upper case. The switch below has to match either spelling.
+	switch strings.ToLower(colName) {
 	case "type":
 		var err error
 		r.Type, _, err = db.CellToInt(val, unit.TypeInvalid)

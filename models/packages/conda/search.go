@@ -36,17 +36,17 @@ func SearchFiles(ctx context.Context, opts *FileSearchOptions) ([]*packages.Pack
 	}
 
 	var versionPropsCond builder.Cond = builder.Eq{
-		"package_property.ref_type": packages.PropertyTypePackage,
-		"package_property.name":     conda_module.PropertyChannel,
-		"package_property.value":    opts.Channel,
+		"package_property.ref_type":  packages.PropertyTypePackage,
+		"package_property.name":      conda_module.PropertyChannel,
+		"`package_property`.`value`": opts.Channel,
 	}
 
 	cond = cond.And(builder.In("package.id", builder.Select("package_property.ref_id").Where(versionPropsCond).From("package_property")))
 
 	var filePropsCond builder.Cond = builder.Eq{
-		"package_property.ref_type": packages.PropertyTypeFile,
-		"package_property.name":     conda_module.PropertySubdir,
-		"package_property.value":    opts.Subdir,
+		"package_property.ref_type":  packages.PropertyTypeFile,
+		"package_property.name":      conda_module.PropertySubdir,
+		"`package_property`.`value`": opts.Subdir,
 	}
 
 	cond = cond.And(builder.In("package_file.id", builder.Select("package_property.ref_id").Where(filePropsCond).From("package_property")))

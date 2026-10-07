@@ -31,7 +31,12 @@ func AddCombinedIndexToIssueUser(_ context.Context, x base.EngineMigration) erro
 			}
 		} else {
 			var ids []int64
-			if err := x.SQL("SELECT id FROM issue_user WHERE issue_id = ? and uid = ? limit ?", issueUser.IssueID, issueUser.UID, issueUser.Cnt-1).Find(&ids); err != nil {
+			query := "SELECT id FROM issue_user WHERE issue_id = ? and uid = ? limit ?"
+			if x.Dialect().URI().DBType == schemas.FIREBIRD {
+				// Firebird has no LIMIT, its ROWS clause takes the same bind
+				query = "SELECT id FROM issue_user WHERE issue_id = ? and uid = ? ROWS ?"
+			}
+			if err := x.SQL(query, issueUser.IssueID, issueUser.UID, issueUser.Cnt-1).Find(&ids); err != nil {
 				return err
 			}
 			if _, err := x.Table("issue_user").In("id", ids).Delete(); err != nil {

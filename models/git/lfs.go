@@ -290,7 +290,7 @@ func IterateRepositoryIDsWithLFSMetaObjects(ctx context.Context, f func(ctx cont
 	}
 	for {
 		counts := make([]*RepositoryCount, 0, batchSize)
-		sess.Select("repository_id, COUNT(id) AS count").
+		sess.Select("repository_id, COUNT(id) AS `count`").
 			Table("lfs_meta_object").
 			Where("repository_id > ?", id).
 			GroupBy("repository_id").

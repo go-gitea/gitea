@@ -407,6 +407,12 @@ func claimJobForRunner(ctx context.Context, runner *ActionRunner, job *ActionRun
 	if errors.Is(err, errJobAlreadyClaimed) {
 		return nil, false, nil
 	}
+	if db.IsConflictError(err) {
+		// Another runner claimed this job concurrently. Firebird reports the lost race as a
+		// conflict error instead of re-evaluating the condition, which is what
+		// errJobAlreadyClaimed signals, so move on to the next candidate.
+		return nil, false, nil
+	}
 	if err != nil {
 		return nil, false, err
 	}

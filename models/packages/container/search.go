@@ -51,18 +51,18 @@ func (opts *BlobSearchOptions) toConds() builder.Cond {
 	}
 	if opts.Digest != "" {
 		var propsCond builder.Cond = builder.Eq{
-			"package_property.ref_type": packages.PropertyTypeFile,
-			"package_property.name":     container_module.PropertyDigest,
-			"package_property.value":    opts.Digest,
+			"package_property.ref_type":  packages.PropertyTypeFile,
+			"package_property.name":      container_module.PropertyDigest,
+			"`package_property`.`value`": opts.Digest,
 		}
 
 		cond = cond.And(builder.In("package_file.id", builder.Select("package_property.ref_id").Where(propsCond).From("package_property")))
 	}
 	if opts.Repository != "" {
 		var propsCond builder.Cond = builder.Eq{
-			"package_property.ref_type": packages.PropertyTypePackage,
-			"package_property.name":     container_module.PropertyRepository,
-			"package_property.value":    opts.Repository,
+			"package_property.ref_type":  packages.PropertyTypePackage,
+			"package_property.name":      container_module.PropertyRepository,
+			"`package_property`.`value`": opts.Repository,
 		}
 
 		cond = cond.And(builder.In("package.id", builder.Select("package_property.ref_id").Where(propsCond).From("package_property")))
@@ -264,7 +264,7 @@ func GetRepositories(ctx context.Context, actor *user_model.User, n int, last st
 	))
 
 	if last != "" {
-		cond = cond.And(builder.Gt{"package_property.value": strings.ToLower(last)})
+		cond = cond.And(builder.Gt{"`package_property`.`value`": strings.ToLower(last)})
 	}
 
 	if actor.IsGhost() {
@@ -275,11 +275,11 @@ func GetRepositories(ctx context.Context, actor *user_model.User, n int, last st
 
 	sess := db.GetEngine(ctx).
 		Table("package").
-		Select("package_property.value").
+		Select("`package_property`.`value`").
 		Join("INNER", "user", "`user`.id = package.owner_id").
 		Join("INNER", "package_property", "package_property.ref_id = package.id").
 		Where(cond).
-		Asc("package_property.value").
+		Asc("`package_property`.`value`").
 		Limit(n)
 
 	repositories := make([]string, 0, n)
