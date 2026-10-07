@@ -11,8 +11,10 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/imagecaptcha"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/metrics"
 	"gitea.dev/modules/public"
@@ -48,9 +50,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
-	_ "gitea.dev/modules/session" // to register all internal adapters
-
-	"gitea.com/go-chi/captcha"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/klauspost/compress/gzhttp"
@@ -120,7 +119,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
 	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
-	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
+	enableSSPI := consts.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
@@ -174,38 +173,33 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	return webAuth
 }
 
-func doerMustChangePassword(ctx *context.Context) bool {
-	// an impersonating admin must not be forced to set the impersonated user's password
-	return ctx.Doer != nil && ctx.Doer.MustChangePassword && !ctx.DoerIsImpersonated()
-}
-
-// verifyAuthWithOptions checks authentication according to options
-func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
+// verifyAuthWithOptionsWeb checks authentication according to options
+func verifyAuthWithOptionsWeb(options *common.VerifyOptions) func(ctx *context.Context) {
 	crossOriginProtection := http.NewCrossOriginProtection()
 
 	return func(ctx *context.Context) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
-			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
+			check := common.CheckSignedInUser(ctx.Doer, ctx.Session)
+			if check.NeedActivateAccount {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
-			}
-			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
-				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
+			} else if check.LoginIsProhibited {
+				// FIXME: there are a lot of "Failed authentication attempt" log messages, and there are many problems:
+				// * Inconsistent log levels: sometimes "info" sometimes "warning"
+				// * Unclear criteria, no context: invalid password, prohibited user, etc.
+				// It was designed for "fail2ban". If it is still really useful, need to improve or clean up.
+				log.Info("Failed authentication attempt for %s from %s (prohibited)", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
-			}
-
-			if doerMustChangePassword(ctx) {
+			} else if check.NeedChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
 						return
 					}
-					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
-					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
@@ -230,15 +224,9 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			}
 		}
 
-		if options.SignInRequired {
-			if !ctx.IsSigned {
-				ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
-				return
-			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
-				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(http.StatusOK, "user/auth/activate")
-				return
-			}
+		if options.SignInRequired && !ctx.IsSigned {
+			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
+			return
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
@@ -293,9 +281,8 @@ func Routes() *web.Router {
 		mid = append(mid, wrapper)
 	}
 
-	if setting.Service.EnableCaptcha {
-		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
-		routes.Methods("GET,HEAD", "/captcha/*", append(mid, captcha.Captchaer(context.GetImageCaptcha()))...)
+	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha {
+		routes.Methods("GET,HEAD", `/captcha`, append(mid, imagecaptcha.ServeImage)...)
 	}
 
 	if setting.Metrics.Enabled {
@@ -304,6 +291,7 @@ func Routes() *web.Router {
 	}
 
 	routes.Methods("GET,HEAD", "/robots.txt", append(mid, misc.RobotsTxt)...)
+	routes.Get("/-/actions/artifacts/{artifact_id}/{expires}/{signature}/*", append(mid, actions.ArtifactsPreviewRawView)...) // no session, the sandboxed frame sends no cookie
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
@@ -335,7 +323,7 @@ func Routes() *web.Router {
 //     The CORS mechanism already protects cross-origin requests, and the CrossOriginProtection has no "allowed origin" list, so disable CrossOriginProtection.
 //   - For non-browser client requests: git clone via http, no Sec-Fetch-Site header.
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
-var optSignInFromAnyOrigin = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
+var optSignInFromAnyOrigin = verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
@@ -354,13 +342,14 @@ func addProjectBoardRoutes(m *web.Router) {
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// middleware: required to be signed in or signed out
-	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
-	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
+	reqSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: true})
+	reqSignOut := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignOutRequired: true})
 	// middleware: optional sign in (if signed in, use the user as doer, if not, no doer)
-	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
-	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
+	optSignInHome := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: false}) // site home doesn't need "require sign-in" protection
+	optSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
+	optExploreSignIn := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 	// middleware: only apply CrossOriginProtection
-	crossOriginProtect := verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: false})
+	crossOriginProtect := verifyAuthWithOptionsWeb(&common.VerifyOptions{DisableCrossOriginProtection: false})
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
@@ -532,7 +521,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
-	m.Get("/", Home)
+	m.Get("/", optSignInHome, Home)
 	m.Get("/sitemap.xml", sitemapEnabled, optExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
@@ -672,6 +661,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/webauthn", func() {
 				m.Post("/request_register", web.Bind[*forms.WebauthnRegistrationForm](), security.WebAuthnRegister)
 				m.Post("/register", security.WebauthnRegisterPost)
+				m.Post("/rename", security.WebauthnRename)
 				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
@@ -780,7 +770,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Get("/avatar/{hash}", user.AvatarByEmailHash)
 
-	adminReq := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
+	adminReq := verifyAuthWithOptionsWeb(&common.VerifyOptions{SignInRequired: true, AdminRequired: true})
 
 	// ***** START: Admin *****
 	m.Group("/-/admin", func() {
@@ -907,6 +897,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
 			addSettingsScopedWorkflowsRoutes()
+			m.Get("/job_queue", shared_actions.JobQueue)
 		})
 	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
 	// ***** END: Admin *****
@@ -1568,6 +1559,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	m.Group("/{username}/{reponame}/actions", func() {
 		m.Get("", actions.List)
+		m.Get("/job_queue", actions.JobQueue)
 		m.Post("/disable", reqRepoAdmin, actions.DisableWorkflowFile)
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)
@@ -1599,6 +1591,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)
 			m.Post("/rerun-failed", reqRepoActionsWriter, actions.RerunFailed)
 		})
+		// signed-in only: previews render user-generated HTML under the instance domain, keep it from anonymous visitors and crawlers
+		m.Group("/artifacts/{artifact_id}/preview", func() {
+			m.Get("", actions.ArtifactsPreviewView)
+			m.Get("/*", actions.ArtifactsPreviewView)
+		}, reqSignIn)
 		m.Group("/workflows/{workflow_name}", func() {
 			m.Get("/badge.svg", webAuth.AllowBasic, webAuth.AllowOAuth2, actions.GetWorkflowBadge)
 		})
@@ -1802,6 +1799,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Any("/mail-preview-embed/*", devtest.MailPreviewEmbed)
 			m.Any("/{sub}", devtest.TmplCommon)
 			m.Get("/repo-action-view/runs/{run}", devtest.MockActionsView)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/preview", devtest.MockActionsArtifactPreview)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/preview/*", devtest.MockActionsArtifactPreview)
+			m.Get("/repo-action-view/artifacts/{artifact_name}/raw/*", devtest.MockActionsArtifactPreviewRaw)
 			m.Get("/repo-action-view/runs/{run}/attempts/{attempt}", devtest.MockActionsView)
 			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/repo-action-view/runs/{run}", web.Bind[*actions.ViewRequest](), devtest.MockActionsRunsJobs)

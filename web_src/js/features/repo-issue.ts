@@ -397,12 +397,13 @@ export function initRepoIssueTitleEdit() {
   });
 
   const pullDescEditor = document.querySelector('#pull-desc-editor'); // it may not exist for a merged PR
+  const pullTargetBranch = document.querySelector('#pull-target-branch');
   const prTargetUpdateUrl = pullDescEditor?.getAttribute('data-target-update-url');
 
   pullDescEditor?.querySelector('#branch-select')?.addEventListener('click', (e: Event) => {
     const el = (e.target as HTMLElement).closest('.item[data-branch]');
     if (!el) return;
-    const pullTargetBranch = pullDescEditor.querySelector('#pull-target-branch')!;
+    if (!pullTargetBranch) throw new Error('pullTargetBranch not found');
     const textCompareBase = pullTargetBranch.getAttribute('data-text-compare-base')!;
     const baseUserName = pullTargetBranch.getAttribute('data-base-user-name')!;
     const branchNameNew = el.getAttribute('data-branch')!;
@@ -422,8 +423,9 @@ export function initRepoIssueTitleEdit() {
         }
       }
       if (prTargetUpdateUrl) {
-        const newTargetBranch = document.querySelector('#pull-target-branch')!.getAttribute('data-branch');
-        const oldTargetBranch = document.querySelector('#branch_target')!.textContent;
+        if (!pullTargetBranch) throw new Error('pullTargetBranch not found');
+        const newTargetBranch = pullTargetBranch.getAttribute('data-branch');
+        const oldTargetBranch = pullTargetBranch.getAttribute('data-old-target-branch');
         if (newTargetBranch !== oldTargetBranch) {
           const resp = await POST(prTargetUpdateUrl, {data: new URLSearchParams({target_branch: String(newTargetBranch)})});
           if (!resp.ok) {

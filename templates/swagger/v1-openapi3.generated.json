@@ -11134,7 +11134,7 @@
         "operationId": "listAdminWorkflowJobs",
         "parameters": [
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -11361,7 +11361,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -11843,9 +11843,9 @@
             }
           },
           {
-            "description": "pattern of repositories to search for",
+            "description": "glob pattern of repositories to search for, in the form owner or owner/repo",
             "in": "query",
-            "name": "pattern",
+            "name": "query",
             "schema": {
               "type": "string"
             }
@@ -11945,7 +11945,7 @@
         "operationId": "adminSearchUsers",
         "parameters": [
           {
-            "description": "ID of the user's login source to search for",
+            "description": "ID of the user's login source to search for, 0 means the local users",
             "in": "query",
             "name": "source_id",
             "schema": {
@@ -13147,7 +13147,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -13411,7 +13411,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -17278,7 +17278,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -17713,7 +17713,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -18085,7 +18085,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -18269,7 +18269,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -19416,7 +19416,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -21030,6 +21030,22 @@
                 "patch"
               ],
               "type": "string"
+            }
+          },
+          {
+            "description": "include verification for every commit (disable for speedup, default 'true')",
+            "in": "query",
+            "name": "verification",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "include a list of affected files for every commit (disable for speedup, default 'true')",
+            "in": "query",
+            "name": "files",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
@@ -29291,6 +29307,9 @@
           "201": {
             "$ref": "#/components/responses/PullRequest"
           },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
@@ -34217,7 +34236,7 @@
         "operationId": "getUserWorkflowJobs",
         "parameters": [
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {
@@ -34444,7 +34463,7 @@
             }
           },
           {
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
+            "description": "workflow status (requested, pending, queued, in_progress, failure, success, skipped)",
             "in": "query",
             "name": "status",
             "schema": {

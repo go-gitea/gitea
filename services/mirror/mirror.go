@@ -6,12 +6,23 @@ package mirror
 import (
 	"context"
 	"errors"
+	"os"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 )
+
+// gitEnvsWithSSH builds the environment for a mirror git command that may need
+// the managed SSH key. Returning nil keeps gitcmd's default of inheriting the
+// process environment.
+func gitEnvsWithSSH(sshEnvs []string) []string {
+	if len(sshEnvs) == 0 {
+		return nil
+	}
+	return append(os.Environ(), sshEnvs...)
+}
 
 // doMirrorSync causes this request to mirror itself
 func doMirrorSync(ctx context.Context, req *SyncRequest) {

@@ -112,3 +112,8 @@ func TestParseRemoteAddr(t *testing.T) {
 		})
 	}
 }
+
+func TestIsRemoteNotExistError(t *testing.T) {
+	_, err := GetRemoteAddress(t.Context(), mockRepository("repo1_bare"), "no-such-remote")
+	assert.True(t, IsRemoteNotExistError(err))
+}

@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
-	"gitea.dev/modules/proxy"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	ssh_module "gitea.dev/modules/ssh"
@@ -70,9 +69,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration, envs []string) error {
-	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
-	git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
-	stdout, _, pruneErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
+	stdout, _, pruneErr := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs).WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
 		stderrMessage := util.SanitizeCredentialURLs(pruneErr.Stderr())
@@ -123,7 +120,6 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			return nil, false
 		}
 	}
-	envs := proxy.EnvWithProxy(remoteURL.URL)
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	sshEnvs, cleanup, sshErr := ssh_module.SetupManagedSSHAgent(ctx, m.Repo, remoteURL.String(), 0)
@@ -132,12 +128,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return nil, false
 	}
 	defer cleanup()
-	envs = append(envs, sshEnvs...)
+	envs := gitEnvsWithSSH(sshEnvs)
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("fetch", "--tags")
-		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
@@ -218,9 +213,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
-		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
-		return cmd
+		return gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {

@@ -85,6 +85,7 @@ type IssueReference struct {
 	Index   int64
 	Owner   string
 	Name    string
+	IsPull  bool
 	Action  XRefAction
 	TimeLog string
 }
@@ -123,6 +124,7 @@ func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 			Index:   r.index,
 			Owner:   r.owner,
 			Name:    r.name,
+			IsPull:  r.isPull,
 			Action:  r.action,
 			TimeLog: r.timeLog,
 		}
@@ -238,7 +240,7 @@ func FindAllMentionsBytes(content []byte) []RefSpan {
 }
 
 // FindFirstMentionBytes matches the first mention in then given content
-// and returns the location of the unvalidated user name, including the @ prefix.
+// and returns the location of the unvalidated username, including the @ prefix.
 func FindFirstMentionBytes(content []byte) (bool, RefSpan) {
 	mention := mentionPattern.FindSubmatchIndex(content)
 	if mention == nil {
