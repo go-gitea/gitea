@@ -1,5 +1,5 @@
-/* These are the remnants of the fomantic modal module */
-
+/* to keep the changes minimal and easy to revert or fine tune, the legacy classes
+like "small" and "mini" are still kept for the HTML elements, these can be cleaned up in the future */
 .ui.modal {
   position: absolute;
   display: none;
@@ -9,13 +9,20 @@
   border: none;
   box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow);
   transform-origin: 50% 25%;
-  flex: 0 0 auto;
   border-radius: var(--border-radius);
   user-select: text;
   will-change: top, left, margin, transform, opacity;
+
+  width: fit-content;
+  /* on small screens, the modal should not exceed 90% of the viewport width;
+    on large screens, the modal should not exceed 800px in width (ref: ".ui.container" width is 1280px) */
+  max-width: min(800px, 90vw);
+  /* on small screens, the modal should not be smaller than 300px or 90vw in width;
+    on large screens, the minimum width is 30% of the viewport width, capped at 800px */
+  min-width: min(800px, max(min(300px, 90vw), 30vw));
 }
 
-.ui.modal > :first-child:not(.icon) {
+.ui.modal > :first-child {
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
 }
@@ -25,9 +32,6 @@
   border-bottom-right-radius: var(--border-radius);
 }
 
-/* TODO: this "close" button was inherited and modified from Fomantic UI, actually it is not good enough:
-*  * the layout depends on absolute position, which is not good for responsive design
-*  * it is not good for accessibility, ideally it should use a "button" element */
 .ui.modal .close-modal {
   cursor: pointer;
   position: absolute;
@@ -35,11 +39,22 @@
   transform: translateY(-50%);
   right: 1rem;
   z-index: 1;
-  opacity: 0.8;
-  font-size: 1.25em;
-  color: var(--color-text);
+  opacity: 0.5;
+  padding: 0;
+  border: none;
+  background: none;
   width: 1.5rem;
   height: 1.5rem;
+}
+
+.ui.modal .close-modal::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: currentcolor;
+  mask-image: var(--octicon-x);
+  mask-size: cover;
 }
 
 .ui.modal .close-modal:hover {
@@ -49,21 +64,16 @@
 .ui.modal > .header {
   display: block;
   position: relative;
-  font-family: var(--fonts-regular);
+  font-size: 18px;
+  font-weight: var(--font-weight-medium);
   background: var(--color-body);
   margin: 0;
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem 3rem 1.25rem 1.5rem; /* leave more right space for the "close" button */
   box-shadow: none;
   color: var(--color-text-dark);
   border-bottom: 1px solid var(--color-secondary);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
-}
-
-.ui.modal > .header:not(.ui) {
-  font-size: 1.42857143rem;
-  line-height: 1.28571429em;
-  font-weight: var(--font-weight-medium);
 }
 
 .ui.modal > .content,
@@ -87,172 +97,8 @@
   border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
-.ui.modal .actions > .button {
-  margin-left: 0.75em;
-}
-
-@media only screen and (max-width: 767.98px) {
-  .ui.modal {
-    width: 95%;
-  }
-}
-
-@media only screen and (min-width: 768px) {
-  .ui.modal {
-    width: 88%;
-  }
-}
-
-@media only screen and (min-width: 992px) {
-  .ui.modal {
-    width: 850px;
-  }
-}
-
-@media only screen and (min-width: 1200px) {
-  .ui.modal {
-    width: 900px;
-  }
-}
-
-@media only screen and (min-width: 1920px) {
-  .ui.modal {
-    width: 950px;
-  }
-}
-
-@media only screen and (max-width: 991.98px) {
-  .ui.modal > .header {
-    padding-right: 2.25rem;
-  }
-}
-
-@media only screen and (max-width: 767.98px) {
-  .ui.modal > .header {
-    padding: 0.75rem 1rem !important;
-    padding-right: 2.25rem !important;
-  }
-  .ui.modal > .content {
-    display: block;
-    padding: 1rem !important;
-  }
-  .ui.modal > .actions {
-    padding: 1rem 1rem 0 !important;
-  }
-  .ui.modal .actions > .button {
-    margin-bottom: 1rem;
-  }
-}
-
 .ui.active.modal {
   display: block;
-}
-
-.ui.mini.modal > .header:not(.ui) {
-  font-size: 1.3em;
-}
-
-@media only screen and (max-width: 767.98px) {
-  .ui.mini.modal {
-    width: 95%;
-  }
-}
-
-@media only screen and (min-width: 768px) {
-  .ui.mini.modal {
-    width: 35.2%;
-  }
-}
-
-@media only screen and (min-width: 992px) {
-  .ui.mini.modal {
-    width: 340px;
-  }
-}
-
-@media only screen and (min-width: 1200px) {
-  .ui.mini.modal {
-    width: 360px;
-  }
-}
-
-@media only screen and (min-width: 1920px) {
-  .ui.mini.modal {
-    width: 380px;
-  }
-}
-
-.ui.tiny.modal > .header:not(.ui) {
-  font-size: 1.3em;
-}
-
-@media only screen and (max-width: 767.98px) {
-  .ui.tiny.modal {
-    width: 95%;
-  }
-}
-
-@media only screen and (min-width: 768px) {
-  .ui.tiny.modal {
-    width: 52.8%;
-  }
-}
-
-@media only screen and (min-width: 992px) {
-  .ui.tiny.modal {
-    width: 510px;
-  }
-}
-
-@media only screen and (min-width: 1200px) {
-  .ui.tiny.modal {
-    width: 540px;
-  }
-}
-
-@media only screen and (min-width: 1920px) {
-  .ui.tiny.modal {
-    width: 570px;
-  }
-}
-
-.ui.small.modal > .header:not(.ui) {
-  font-size: 1.3em;
-}
-
-@media only screen and (max-width: 767.98px) {
-  .ui.small.modal {
-    width: 95%;
-  }
-}
-
-@media only screen and (min-width: 768px) {
-  .ui.small.modal {
-    width: 70.4%;
-  }
-}
-
-@media only screen and (min-width: 992px) {
-  .ui.small.modal {
-    width: 680px;
-  }
-}
-
-@media only screen and (min-width: 1200px) {
-  .ui.small.modal {
-    width: 720px;
-  }
-}
-
-@media only screen and (min-width: 1920px) {
-  .ui.small.modal {
-    width: 760px;
-  }
-}
-
-.ui.modal.g-modal-confirm {
-  max-width: min(800px, 90vw);
-  width: fit-content;
 }
 
 .ui.modal .content > form > .actions,
@@ -263,8 +109,10 @@
 
 .ui.modal .actions > .ui.button {
   display: inline-flex;
+  gap: var(--gap-inline);
   align-items: center;
   padding: 10px 12px 10px 10px;
+  margin-left: 0.75em;
   margin-right: 0;
 }
 
@@ -273,8 +121,4 @@
   width: 100%;
   margin: 0 auto;
   text-align: center;
-}
-
-.ui.modal .actions > .ui.button .svg {
-  margin-right: 5px;
 }
