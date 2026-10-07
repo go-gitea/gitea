@@ -14,10 +14,10 @@ like "small" and "mini" are still kept for the HTML elements, these can be clean
   will-change: top, left, margin, transform, opacity;
 
   width: fit-content;
-  /* on small screens, the modal should not exceed 90% of the viewport width
-    on large screens, the modal should not exceed 600px in width (ref: ".ui.container" width is 1280px */
+  /* on small screens, the modal should not exceed 90% of the viewport width;
+    on large screens, the modal should not exceed 800px in width (ref: ".ui.container" width is 1280px) */
   max-width: min(800px, 90vw);
-  /* on small screens, the modal should not be smaller than 300px or 90vw in width
+  /* on small screens, the modal should not be smaller than 300px or 90vw in width;
     on large screens, the minimum width is 30% of the viewport width, capped at 800px */
   min-width: min(800px, max(min(300px, 90vw), 30vw));
 }
