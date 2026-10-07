@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	mirror_service "gitea.dev/services/mirror"
@@ -32,6 +34,82 @@ func TestMirrorPush(t *testing.T) {
 
 func TestMirrorPushWikiDefaultBranchMismatch(t *testing.T) {
 	onGiteaRun(t, testMirrorPushWikiDefaultBranchMismatch)
+}
+
+func TestMirrorPushOptions(t *testing.T) {
+	onGiteaRun(t, testMirrorPushOptions)
+}
+
+func testMirrorPushOptions(t *testing.T, u *url.URL) {
+	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{}, &repo_model.PushMirrorHistory{})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name: "test-push-mirror-options",
+	}, true)
+	assert.NoError(t, err)
+
+	// feature-b is rejected by the remote, it must not stop the other refs
+	assert.NoError(t, git_model.UpdateProtectBranch(t.Context(), mirrorRepo, &git_model.ProtectedBranch{RepoID: mirrorRepo.ID, RuleName: "feature-b"}, git_model.WhitelistOptions{}))
+	for _, b := range []string{"feature-a", "feature-b"} {
+		assert.NoError(t, git.CreateBranch(t.Context(), srcRepo, b, "master"))
+	}
+	_, _, err = gitcmd.NewCommand("tag").AddDynamicArguments("mirror-tag", "master").WithRepo(srcRepo).RunStdString(t.Context())
+	assert.NoError(t, err)
+
+	session := loginUser(t, user.Name)
+	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
+	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
+	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
+	assert.NoError(t, err)
+	if !assert.Len(t, mirrors, 1) {
+		return
+	}
+	mirrorID := mirrors[0].ID
+
+	remoteRefs := func() []string {
+		refs, err := git.ListRefNames(t.Context(), mirrorRepo, git.BranchPrefix, git.TagPrefix)
+		assert.NoError(t, err)
+		return refs
+	}
+	setConfig := func(cfg repo_model.PushMirrorConfig) {
+		_, err := db.GetEngine(t.Context()).ID(mirrorID).Cols("config").Update(&repo_model.PushMirror{Config: cfg})
+		assert.NoError(t, err)
+	}
+
+	// default config: one rejected branch fails the sync but the other refs are pushed
+	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrorID))
+	assert.Contains(t, remoteRefs(), "refs/heads/master")
+	assert.Contains(t, remoteRefs(), "refs/heads/feature-a")
+	assert.Contains(t, remoteRefs(), "refs/tags/mirror-tag")
+	assert.NotContains(t, remoteRefs(), "refs/heads/feature-b")
+	history, err := repo_model.GetPushMirrorHistory(t.Context(), mirrorID)
+	assert.NoError(t, err)
+	if assert.Len(t, history, 1) {
+		assert.Equal(t, repo_model.PushMirrorStatusPartial, history[0].Status)
+		assert.Equal(t, 1, history[0].Result.FailedTotal)
+		assert.Equal(t, "refs/heads/feature-b", history[0].Result.Failed[0].Ref)
+	}
+
+	// keep the remote branch which no longer exists locally, and ignore the rejected branch via the filter
+	_, _, err = gitcmd.NewCommand("branch", "-D").AddDynamicArguments("feature-a").WithRepo(srcRepo).RunStdString(t.Context())
+	assert.NoError(t, err)
+	setConfig(repo_model.PushMirrorConfig{KeepRemoteBranches: true, NoPushTags: true, BranchFilters: []string{"master", "feature-*"}})
+	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrorID)) // feature-b still matches the glob
+	assert.Contains(t, remoteRefs(), "refs/heads/feature-a")
+
+	setConfig(repo_model.PushMirrorConfig{KeepRemoteBranches: true, KeepRemoteTags: true, BranchFilters: []string{"master", "feature-a"}})
+	assert.True(t, mirror_service.SyncPushMirror(t.Context(), mirrorID))
+	assert.Contains(t, remoteRefs(), "refs/heads/feature-a")
+
+	// delete the remote branch and tag which do not exist locally
+	_, _, err = gitcmd.NewCommand("tag", "-d").AddDynamicArguments("mirror-tag").WithRepo(srcRepo).RunStdString(t.Context())
+	assert.NoError(t, err)
+	setConfig(repo_model.PushMirrorConfig{BranchFilters: []string{"master", "feature-a"}})
+	assert.True(t, mirror_service.SyncPushMirror(t.Context(), mirrorID))
+	assert.NotContains(t, remoteRefs(), "refs/heads/feature-a")
+	assert.NotContains(t, remoteRefs(), "refs/tags/mirror-tag")
+	assert.Contains(t, remoteRefs(), "refs/heads/master")
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {

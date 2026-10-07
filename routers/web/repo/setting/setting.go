@@ -108,6 +108,12 @@ func SettingsCtxData(ctx *context.Context) {
 		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return
 	}
+	for _, m := range pushMirrors {
+		if m.History, err = repo_model.GetPushMirrorHistory(ctx, m.ID); err != nil {
+			ctx.ServerError("GetPushMirrorHistory", err)
+			return
+		}
+	}
 	ctx.Data["PushMirrors"] = pushMirrors
 
 	repo_router.PrepareBranchList(ctx)
@@ -526,7 +532,20 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		return
 	}
 
+	branchFilters, err := repo_model.ParsePushMirrorBranchFilters(form.PushMirrorBranchFilters)
+	if err != nil {
+		ctx.Data["Err_PushMirrorBranchFilters"] = true
+		ctx.RenderWithErrDeprecated(err.Error(), tplSettingsOptions, &form)
+		return
+	}
+
 	m := &repo_model.PushMirror{
+		Config: repo_model.PushMirrorConfig{
+			KeepRemoteBranches: form.PushMirrorKeepRemoteBranches,
+			NoPushTags:         form.PushMirrorNoPushTags,
+			KeepRemoteTags:     form.PushMirrorKeepRemoteTags,
+			BranchFilters:      branchFilters,
+		},
 		RepoID:        repo.ID,
 		Repo:          repo,
 		RemoteName:    "remote_mirror_" + remoteSuffix,

@@ -1118,6 +1118,19 @@
         },
         "description": "PushMirror"
       },
+      "PushMirrorHistoryList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/PushMirrorHistory"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "PushMirrorHistoryList"
+      },
       "PushMirrorList": {
         "content": {
           "application/json": {
@@ -4637,6 +4650,9 @@
       },
       "CreatePushMirrorOption": {
         "properties": {
+          "config": {
+            "$ref": "#/components/schemas/PushMirrorConfig"
+          },
           "interval": {
             "description": "The sync interval for automatic updates",
             "type": "string",
@@ -9219,6 +9235,9 @@
       "PushMirror": {
         "description": "PushMirror represents information of a push mirror",
         "properties": {
+          "config": {
+            "$ref": "#/components/schemas/PushMirrorConfig"
+          },
           "created": {
             "format": "date-time",
             "type": "string",
@@ -9258,6 +9277,111 @@
             "description": "Whether to sync on every commit",
             "type": "boolean",
             "x-go-name": "SyncOnCommit"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PushMirrorConfig": {
+        "description": "PushMirrorConfig represents the optional settings of a push mirror",
+        "properties": {
+          "branch_filters": {
+            "description": "Only push the branches matching these names or glob patterns, empty means all branches",
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "x-go-name": "BranchFilters"
+          },
+          "keep_remote_branches": {
+            "description": "Do not delete remote branches which do not exist in the local repository",
+            "type": "boolean",
+            "x-go-name": "KeepRemoteBranches"
+          },
+          "keep_remote_tags": {
+            "description": "Do not delete remote tags which do not exist in the local repository",
+            "type": "boolean",
+            "x-go-name": "KeepRemoteTags"
+          },
+          "no_push_tags": {
+            "description": "Do not push or delete remote tags",
+            "type": "boolean",
+            "x-go-name": "NoPushTags"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PushMirrorHistory": {
+        "description": "PushMirrorHistory represents one run of a push mirror",
+        "properties": {
+          "created": {
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "Created"
+          },
+          "deleted": {
+            "description": "The number of remote refs which were deleted",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Deleted"
+          },
+          "duration_ms": {
+            "description": "The duration of the run in milliseconds",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "DurationMs"
+          },
+          "error": {
+            "description": "The error message if the whole run failed",
+            "type": "string",
+            "x-go-name": "Error"
+          },
+          "failed": {
+            "description": "The failed refs, the list may be truncated",
+            "items": {
+              "$ref": "#/components/schemas/PushMirrorRefError"
+            },
+            "type": "array",
+            "x-go-name": "Failed"
+          },
+          "failed_total": {
+            "description": "The total number of refs which failed to be pushed",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "FailedTotal"
+          },
+          "pushed": {
+            "description": "The number of refs which were pushed",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Pushed"
+          },
+          "status": {
+            "description": "The result of the run: success, partial or failed",
+            "type": "string",
+            "x-go-name": "Status"
+          },
+          "up_to_date": {
+            "description": "The number of refs which were already up to date",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "UpToDate"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "PushMirrorRefError": {
+        "description": "PushMirrorRefError represents a ref which failed to be pushed",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "x-go-name": "Reason"
+          },
+          "ref": {
+            "type": "string",
+            "x-go-name": "Ref"
           }
         },
         "type": "object",
@@ -30649,6 +30773,58 @@
           }
         },
         "summary": "Get push mirror of the repository by remoteName",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/push_mirrors/{name}/history": {
+      "get": {
+        "operationId": "repoListPushMirrorHistory",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "remote name of push mirror",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PushMirrorHistoryList"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get the recent sync history of a push mirror",
         "tags": [
           "repository"
         ]

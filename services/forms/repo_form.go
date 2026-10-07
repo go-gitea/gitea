@@ -79,23 +79,27 @@ type MigrateRepoForm struct {
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	middleware.FormDefaultValidator
-	RepoName               string `binding:"TrimSpace;Required;AlphaDashDot;MaxSize(100)"`
-	Description            string `binding:"MaxSize(2048)"`
-	Website                string `binding:"ValidUrl;MaxSize(1024)"`
-	Interval               string
-	MirrorAddress          string
-	MirrorUsername         string
-	MirrorPassword         string
-	LFS                    bool   `form:"mirror_lfs"`
-	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
-	PushMirrorID           int64
-	PushMirrorAddress      string
-	PushMirrorUsername     string
-	PushMirrorPassword     string
-	PushMirrorSyncOnCommit bool
-	PushMirrorInterval     string
-	Template               bool
-	EnablePrune            bool
+	RepoName                     string `binding:"TrimSpace;Required;AlphaDashDot;MaxSize(100)"`
+	Description                  string `binding:"MaxSize(2048)"`
+	Website                      string `binding:"ValidUrl;MaxSize(1024)"`
+	Interval                     string
+	MirrorAddress                string
+	MirrorUsername               string
+	MirrorPassword               string
+	LFS                          bool   `form:"mirror_lfs"`
+	LFSEndpoint                  string `form:"mirror_lfs_endpoint"`
+	PushMirrorID                 int64
+	PushMirrorAddress            string
+	PushMirrorUsername           string
+	PushMirrorPassword           string
+	PushMirrorSyncOnCommit       bool
+	PushMirrorInterval           string
+	PushMirrorKeepRemoteBranches bool
+	PushMirrorNoPushTags         bool
+	PushMirrorKeepRemoteTags     bool
+	PushMirrorBranchFilters      string
+	Template                     bool
+	EnablePrune                  bool
 
 	// Advanced settings
 	EnableCode bool
