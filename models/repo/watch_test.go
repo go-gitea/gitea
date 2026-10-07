@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -168,6 +169,26 @@ func TestWatchOptions(t *testing.T) {
 	watch, err := repo_model.GetWatch(t.Context(), user.ID, repo.ID)
 	assert.NoError(t, err)
 	assert.True(t, watch.IsWatchingAll())
+}
+
+func TestGetRepoWatchersIDsByMode(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	autoUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchPullRequests: true}))
+	defer test.MockVariableValue(&setting.Service.AutoWatchOnChanges, true)()
+	assert.NoError(t, repo_model.WatchIfAuto(t.Context(), autoUser.ID, repo.ID, true))
+
+	normal, err := repo_model.GetRepoWatchersIDsByMode(t.Context(), repo.ID, repo_model.WatchPullRequests, repo_model.WatchModeNormal)
+	assert.NoError(t, err)
+	assert.Contains(t, normal, user.ID)
+	assert.NotContains(t, normal, autoUser.ID)
+
+	auto, err := repo_model.GetRepoWatchersIDsByMode(t.Context(), repo.ID, repo_model.WatchPullRequests, repo_model.WatchModeAuto)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []int64{11, autoUser.ID}, auto)
 }
 
 func TestWatchSelectedMode(t *testing.T) {

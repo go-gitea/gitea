@@ -247,6 +247,15 @@ func GetRepoIgnorersIDs(ctx context.Context, repoID int64) ([]int64, error) {
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) ([]int64, error) {
+	return getRepoWatchersIDs(ctx, repoID, watchType, nil)
+}
+
+// GetRepoWatchersIDsByMode returns IDs of watchers with the given mode for a repo and watch type.
+func GetRepoWatchersIDsByMode(ctx context.Context, repoID int64, watchType WatchType, mode WatchMode) ([]int64, error) {
+	return getRepoWatchersIDs(ctx, repoID, watchType, &mode)
+}
+
+func getRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType, mode *WatchMode) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	var watchColName string
 	switch watchType {
@@ -259,12 +268,14 @@ func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) 
 	default:
 		panic("invalid WatchType")
 	}
-	return ids, db.GetEngine(ctx).Table("watch").
+	sess := db.GetEngine(ctx).Table("watch").
 		Where("watch.repo_id=?", repoID).
 		And("watch.mode<>?", WatchModeDont).
-		And(builder.Eq{watchColName: true}).
-		Select("user_id").
-		Find(&ids)
+		And(builder.Eq{watchColName: true})
+	if mode != nil {
+		sess = sess.And("watch.mode=?", *mode)
+	}
+	return ids, sess.Select("user_id").Find(&ids)
 }
 
 // GetRepoWatchers returns range of users watching given repository.

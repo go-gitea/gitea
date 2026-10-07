@@ -54,7 +54,7 @@ func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *i
 			ActionType: activities_model.ActionCommentPull,
 			Content:    c.Content,
 			Comment:    c,
-		}, mentions, visited, true); err != nil {
+		}, mentions, visited, true, nil); err != nil {
 		log.Error("mailIssueCommentBatch: %v", err)
 	}
 	return nil
