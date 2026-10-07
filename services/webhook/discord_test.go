@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	"strings"
 	"testing"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -178,6 +179,22 @@ func TestDiscordPayload(t *testing.T) {
 
 		assert.Len(t, pl.Embeds, 1)
 		assert.Equal(t, "[test/repo] Pull request review requested: #12 Fix bug (Requested Reviewer: reviewer1 (Reviewer One))", pl.Embeds[0].Title)
+	})
+
+	t.Run("PullRequestReviewRequestTruncatesLongTitle", func(t *testing.T) {
+		p := pullRequestTestPayload()
+		p.Action = api.HookIssueReviewRequested
+		p.PullRequest.Title = strings.Repeat("a", 300)
+		p.RequestedReviewer = &api.User{
+			UserName: "reviewer1",
+			FullName: strings.Repeat("b", 100),
+		}
+
+		pl, err := dc.PullRequest(p)
+		require.NoError(t, err)
+
+		assert.Len(t, pl.Embeds, 1)
+		assert.LessOrEqual(t, len([]rune(pl.Embeds[0].Title)), discordTitleCharactersLimit)
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {

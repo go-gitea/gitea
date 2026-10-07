@@ -234,7 +234,7 @@ func (s slackConvertor) PullRequest(p *api.PullRequestPayload) (SlackPayload, er
 		if p.RequestedReviewer.FullName != "" {
 			reviewerName += " (" + p.RequestedReviewer.FullName + ")"
 		}
-		text += " (Requested Reviewer: " + reviewerName + ")"
+		text += " (Requested Reviewer: " + SlackTextFormatter(reviewerName) + ")"
 	}
 
 	var attachments []SlackAttachment
