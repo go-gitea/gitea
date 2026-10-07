@@ -60,6 +60,9 @@ func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
+	if b.batchContent != nil && b.batchContent.content != nil {
+		b.batchContent.content.R = nil
+	}
 	return b.getBatchCheck().query(obj + "\n")
 }
 
