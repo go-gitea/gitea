@@ -147,21 +147,17 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		return []es.BulkOp{es.DeleteOp(id)}, nil
 	}
 
-	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
+	_, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
 	if err != nil {
 		return nil, err
 	}
 
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
+	fileContents, err := io.ReadAll(batchReader)
 	if err != nil {
 		return nil, err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil, nil
-	}
-
-	if _, err = batchReader.Discard(1); err != nil {
-		return nil, err
 	}
 
 	return []es.BulkOp{es.IndexOp(id, map[string]any{

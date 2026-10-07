@@ -12,16 +12,6 @@ import (
 	"gitea.dev/modules/util"
 )
 
-type BufferedReader interface {
-	io.Reader
-	Buffered() int
-	Peek(n int) ([]byte, error)
-	Discard(n int) (int, error)
-	ReadString(sep byte) (string, error)
-	ReadSlice(sep byte) ([]byte, error)
-	ReadBytes(sep byte) ([]byte, error)
-}
-
 type CatFileObject struct {
 	ID   string
 	Type string
@@ -35,9 +25,8 @@ type CatFileBatch interface {
 	QueryInfo(obj string) (*CatFileObject, error)
 
 	// QueryContent is similar to QueryInfo, it queries the object info and additionally returns a reader for its content.
-	// The returned BufferedReader is only valid until the next query, which discards any content left unread.
-	// TODO: It needs to be refactored to a fully managed Reader stream in the future, don't let callers read past the object
-	QueryContent(obj string) (*CatFileObject, BufferedReader, error)
+	// The reader ends with the object's content and is valid until the next query on this batch, which discards any unread content.
+	QueryContent(obj string) (*CatFileObject, io.Reader, error)
 }
 
 type CatFileBatchCloser interface {

@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"io"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -39,30 +40,18 @@ func (b *catFileBatchCommand) Context() context.Context {
 	return b.ctx
 }
 
-func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
+func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, io.Reader, error) {
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
-	batch := b.getBatch(util.CallerFuncName(1))
-	if err := batch.writeRequest("contents " + obj + "\n"); err != nil {
-		return nil, nil, err
-	}
-	info, err := batch.readContentHeader()
-	if err != nil {
-		return nil, nil, err
-	}
-	return info, batch.respReader, nil
+	return b.getBatch(util.CallerFuncName(1)).queryContent("contents " + obj + "\n")
 }
 
 func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)
 	}
-	batch := b.getBatch(util.CallerFuncName(1))
-	if err := batch.writeRequest("info " + obj + "\n"); err != nil {
-		return nil, err
-	}
-	return catFileBatchParseInfoLine(batch.respReader)
+	return b.getBatch(util.CallerFuncName(1)).query("info " + obj + "\n")
 }
 
 func (b *catFileBatchCommand) Close() {
