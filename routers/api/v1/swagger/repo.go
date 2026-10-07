@@ -317,6 +317,13 @@ type swaggerFilesResponse struct {
 	Body api.FilesResponse `json:"body"`
 }
 
+// PromoteToLFSResponse
+// swagger:response PromoteToLFSResponse
+type swaggerPromoteToLFSResponse struct {
+	// in: body
+	Body api.PromoteToLFSResponse `json:"body"`
+}
+
 // ContentsResponse
 // swagger:response ContentsResponse
 type swaggerContentsResponse struct {

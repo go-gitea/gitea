@@ -13752,6 +13752,59 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/lfs/promote": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Move files already committed as git blobs into Git LFS",
+        "operationId": "repoPromoteToLFS",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PromoteToLFSOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PromoteToLFSResponse"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/licenses": {
       "get": {
         "produces": [
@@ -23254,6 +23307,11 @@
           "type": "string",
           "x-go-name": "FromPath"
         },
+        "is_lfs_pointer": {
+          "description": "is_lfs_pointer says the content is already a valid Git-LFS pointer and\nmust be committed to git exactly as given. Without it, a path that\n.gitattributes routes through LFS has its content hashed into a new LFS\nobject -- so sending a pointer stores the pointer text as an object and\ncommits a pointer to that. The named object must already be in the\nrepository's LFS store; one that is not is refused rather than committed\nas a pointer to nothing.",
+          "type": "boolean",
+          "x-go-name": "IsLFSPointer"
+        },
         "operation": {
           "description": "indicates what to do with the file: \"create\" for creating a new file, \"update\" for updating an existing file,\n\"upload\" for creating or updating a file, \"rename\" for renaming a file, and \"delete\" for deleting an existing file.",
           "type": "string",
@@ -24171,6 +24229,11 @@
           "description": "force_push (optional) will do a force-push if the new branch already exists",
           "type": "boolean",
           "x-go-name": "ForcePush"
+        },
+        "is_lfs_pointer": {
+          "description": "is_lfs_pointer says the content is already a valid Git-LFS pointer and\nmust be committed to git exactly as given. Without it, a path that\n.gitattributes routes through LFS has its content hashed into a new LFS\nobject -- so sending a pointer stores the pointer text as an object and\ncommits a pointer to that. The named object must already be in the\nrepository's LFS store; one that is not is refused rather than committed\nas a pointer to nothing.",
+          "type": "boolean",
+          "x-go-name": "IsLFSPointer"
         },
         "message": {
           "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
@@ -28691,6 +28754,48 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "PromoteToLFSOptions": {
+      "type": "object",
+      "title": "PromoteToLFSOptions names the files to move into Git LFS.",
+      "required": [
+        "files"
+      ],
+      "properties": {
+        "branch": {
+          "description": "The branch to read the blobs from and commit the pointers to. Defaults\nto the repository's default branch. One branch, because promoting is a\ncommit and a commit is on a branch.",
+          "type": "string",
+          "x-go-name": "Branch"
+        },
+        "files": {
+          "description": "Repository paths, on the branch below. A path already stored as a\npointer is skipped rather than refused.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Files"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "PromoteToLFSResponse": {
+      "type": "object",
+      "title": "PromoteToLFSResponse says which paths were moved.",
+      "properties": {
+        "moved": {
+          "description": "Empty when every path named was already stored as a pointer, which is a\nsuccess with nothing to do rather than a failure.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Moved"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "PublicKey": {
       "description": "PublicKey publickey is a user key to push code to repository",
       "type": "object",
@@ -30514,6 +30619,11 @@
           "type": "string",
           "x-go-name": "FromPath"
         },
+        "is_lfs_pointer": {
+          "description": "is_lfs_pointer says the content is already a valid Git-LFS pointer and\nmust be committed to git exactly as given. Without it, a path that\n.gitattributes routes through LFS has its content hashed into a new LFS\nobject -- so sending a pointer stores the pointer text as an object and\ncommits a pointer to that. The named object must already be in the\nrepository's LFS store; one that is not is refused rather than committed\nas a pointer to nothing.",
+          "type": "boolean",
+          "x-go-name": "IsLFSPointer"
+        },
         "message": {
           "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
@@ -31644,6 +31754,12 @@
         "items": {
           "$ref": "#/definitions/Package"
         }
+      }
+    },
+    "PromoteToLFSResponse": {
+      "description": "PromoteToLFSResponse",
+      "schema": {
+        "$ref": "#/definitions/PromoteToLFSResponse"
       }
     },
     "PublicKey": {

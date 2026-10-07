@@ -133,6 +133,9 @@ type swaggerParameterBodies struct {
 	CreateFileOptions api.CreateFileOptions
 
 	// in:body
+	PromoteToLFSOptions api.PromoteToLFSOptions
+
+	// in:body
 	UpdateFileOptions api.UpdateFileOptions
 
 	// in:body
