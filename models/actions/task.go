@@ -262,7 +262,18 @@ var pickTaskBatchSize = 100
 // atomically claims it. It iterates through all matching jobs so that a
 // concurrent claim by another runner (which would lose the optimistic lock on
 // job #1) does not leave the remaining jobs permanently unassigned.
-func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *ActionTask, cancelledJobs []*ActionRunJob, err error) {
+func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, []*ActionRunJob, error) {
+	return createTaskForRunner(ctx, runner, nil)
+}
+
+// CreateTaskForRunnerWithDeferral is CreateTaskForRunner that also reports whether it skipped a matching
+// job because a higher-priority runner gets the first go at it (see ActionRunner.Priority).
+func CreateTaskForRunnerWithDeferral(ctx context.Context, runner *ActionRunner) (task *ActionTask, cancelledJobs []*ActionRunJob, deferred bool, err error) {
+	task, cancelledJobs, err = createTaskForRunner(ctx, runner, &deferred)
+	return task, cancelledJobs, deferred, err
+}
+
+func createTaskForRunner(ctx context.Context, runner *ActionRunner, deferred *bool) (task *ActionTask, cancelledJobs []*ActionRunJob, err error) {
 	if db.InTransaction(ctx) {
 		return nil, nil, errors.New("CreateTaskForRunner must not be called within a database transaction")
 	}
@@ -275,6 +286,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 	// updated only moves forward, so the advancing cursor never skips a still-waiting job even as claimed jobs drop out.
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
+	deferral := newRunnerDeferral(runner)
 	for {
 		sess := JobQueueOptions{RepoID: runner.RepoID, OwnerID: runner.OwnerID, Status: StatusWaiting}.session(ctx)
 		if cursorID > 0 {
@@ -297,6 +309,12 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (task *Actio
 
 		for _, v := range jobs {
 			if !runner.CanMatchLabels(v.RunsOn) {
+				continue
+			}
+			if deferral.deferred(ctx, v) {
+				if deferred != nil {
+					*deferred = true
+				}
 				continue
 			}
 			task, cancelled, err := claimJobForRunner(ctx, runner, v)
