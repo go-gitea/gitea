@@ -22,6 +22,8 @@ type globalVarsStruct struct {
 	invalidUsernamePattern  *regexp.Regexp
 	validBadgeSlugPattern   *regexp.Regexp
 	invalidBadgeSlugPattern *regexp.Regexp
+	validEmailHostName      *regexp.Regexp
+	validEmailHostIP        *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
@@ -31,6 +33,8 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		invalidUsernamePattern:  regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
 		validBadgeSlugPattern:   regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`),
 		invalidBadgeSlugPattern: regexp.MustCompile(`[-._]{2,}|[-._]$`),
+		validEmailHostName:      regexp.MustCompile(`^[a-zA-Z0-9][-.\w]*$`),
+		validEmailHostIP:        regexp.MustCompile(`(?i)^\[([0-9.]+)|(ipv6:[0-9a-f:.]+)\]$`),
 	}
 })
 
@@ -117,6 +121,17 @@ func IsEmailAddressValid(email string) bool {
 		return false
 	}
 	addr, err := mail.ParseAddress(email)
-	// email must be parseable, and the "email" string must be the address, no other parts
-	return err == nil && addr.Address == email
+	if err != nil || addr.Address != email {
+		// email must be parseable, and the "email" string must be the address, no other parts
+		return false
+	}
+	_, domain, _ := strings.Cut(email, "@")
+	if !globalVars().validEmailHostName.MatchString(domain) && !globalVars().validEmailHostIP.MatchString(domain) {
+		return false
+	}
+	if strings.HasPrefix(domain, "-") || strings.HasSuffix(domain, "-") ||
+		strings.HasPrefix(domain, ".") || strings.HasSuffix(domain, ".") {
+		return false
+	}
+	return true
 }
