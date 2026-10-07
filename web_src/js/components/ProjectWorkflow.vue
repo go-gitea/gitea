@@ -6,6 +6,7 @@ import {isPlainClick} from '../utils/dom.ts';
 import {createProjectWorkflowStore, type ProjectWorkflowLocale, type WorkflowRow} from './ProjectWorkflowStore.ts';
 
 const props = defineProps<{
+  el: HTMLElement;
   projectLink: string;
   workflowKey: string;
   canWrite: boolean;

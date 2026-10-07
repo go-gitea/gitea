@@ -1,10 +1,10 @@
-import {GET, POST} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {GET} from '../modules/fetch.ts';
+import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {createProjectWorkflowStore, toWorkflowForm, toWorkflowRules} from './ProjectWorkflowStore.ts';
 import type {ProjectWorkflow, ProjectWorkflowLocale} from './ProjectWorkflowStore.ts';
 
-vi.mock('../modules/fetch.ts', () => ({GET: vi.fn(), POST: vi.fn()}));
-vi.mock('../modules/toast.ts', () => ({showErrorToast: vi.fn()}));
+vi.mock('../modules/fetch.ts', () => ({GET: vi.fn()}));
+vi.mock('../modules/fetch-action.ts', () => ({performFetchActionRequest: vi.fn()}));
 
 const locale = {
   issuesOnly: 'Issues only',
@@ -30,7 +30,7 @@ async function setup(workflows: ProjectWorkflow[]) {
     columns: [{id: 1, title: 'Backlog'}, {id: 2, title: 'Done'}],
     labels: [{id: 7, name: 'bug', color: 'ee0701'}, {id: 8, name: 'docs', color: '0075ca'}],
   }));
-  const store = createProjectWorkflowStore({projectLink: '/o/r/projects/1', canWrite: true, locale});
+  const store = createProjectWorkflowStore({el: document.createElement('div'), projectLink: '/o/r/projects/1', canWrite: true, locale});
   await store.load();
   return store;
 }
@@ -102,14 +102,14 @@ test('saving a placeholder creates the workflow and blocks selection meanwhile',
   store.select(store.resolve('item_closed')!);
   store.form.column_id = 2;
   let resolvePost!: (resp: Response) => void;
-  vi.mocked(POST).mockReturnValueOnce(new Promise((resolve) => resolvePost = resolve));
+  vi.mocked(performFetchActionRequest).mockReturnValueOnce(new Promise((resolve) => resolvePost = resolve));
   const saving = store.save();
   store.select(store.resolve('item_opened')!);
   expect(store.selectedKey).toBe('item_closed');
   resolvePost(jsonResponse(workflow(9, 'item_closed', {actions: {column_id: 2}})));
   await saving;
 
-  expect(POST).toHaveBeenCalledWith('/o/r/projects/1/workflows', {data: {
+  expect(performFetchActionRequest).toHaveBeenCalledWith(expect.any(HTMLElement), {url: '/o/r/projects/1/workflows', method: 'POST', data: {
     event: 'item_closed',
     filters: {label_ids: []},
     actions: {column_id: 2, add_label_ids: [], remove_label_ids: []},
@@ -119,12 +119,11 @@ test('saving a placeholder creates the workflow and blocks selection meanwhile',
   expect(store.unsaved.find((u) => u.key === 'item_closed')!.draft.column_id).toBe(0);
 });
 
-test('a failed save shows the server error and keeps the draft', async () => {
+test('a failed save keeps the draft', async () => {
   const store = await setup([]);
   store.select(store.resolve('item_opened')!);
-  vi.mocked(POST).mockResolvedValueOnce(jsonResponse({errorMessage: 'At least one action must be configured'}, 400));
+  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(null);
   await store.save();
-  expect(showErrorToast).toHaveBeenCalledWith('At least one action must be configured');
   expect(store.selectedKey).toBe('item_opened');
   expect(store.editing).toBe(true);
 });
@@ -132,12 +131,12 @@ test('a failed save shows the server error and keeps the draft', async () => {
 test('delete selects the next row of the same event only on success', async () => {
   const store = await setup([workflow(3, 'item_opened'), workflow(5, 'item_opened')]);
   store.select(store.resolve('3')!);
-  vi.mocked(POST).mockResolvedValueOnce(new Response('oops', {status: 500}));
+  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(null);
   await store.remove();
   expect(store.rows).toHaveLength(3);
   expect(store.selectedKey).toBe('3');
 
-  vi.mocked(POST).mockResolvedValueOnce(jsonResponse({}));
+  vi.mocked(performFetchActionRequest).mockResolvedValueOnce(jsonResponse({}));
   await store.remove();
   expect(store.rows.map((r) => r.key)).toEqual(['5', 'item_closed']);
   expect(store.selectedKey).toBe('5');

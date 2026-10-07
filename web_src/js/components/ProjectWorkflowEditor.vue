@@ -64,70 +64,74 @@ const onDelete = async () => {
     <div class="ui attached segment">
       <template v-if="row.event.filters.length">
         <h5 class="ui dividing header">{{ locale.filters }}</h5>
-        <div v-if="hasFilter('issue_type')" class="field">
-          <label id="workflow-issue-type-label" for="workflow-issue-type">{{ locale.applyTo }}</label>
-          <select v-if="store.editing" id="workflow-issue-type" v-model="store.form.issue_type">
-            <option v-for="o in issueTypes" :key="o.value" :value="o.value">{{ o.text }}</option>
-          </select>
-          <div v-else aria-labelledby="workflow-issue-type-label">{{ optionText(issueTypes, store.form.issue_type) }}</div>
-        </div>
-        <div v-if="hasFilter('source_column')" class="field">
-          <label id="workflow-source-column-label" for="workflow-source-column">{{ locale.whenMovedFromColumn }}</label>
-          <select v-if="store.editing" id="workflow-source-column" v-model="store.form.source_column_id">
-            <option :value="0">{{ locale.anyColumn }}</option>
-            <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
-          </select>
-          <div v-else aria-labelledby="workflow-source-column-label">{{ store.columnTitle(store.form.source_column_id) ?? locale.anyColumn }}</div>
-        </div>
-        <div v-if="hasFilter('target_column')" class="field">
-          <label id="workflow-target-column-label" for="workflow-target-column">{{ locale.whenMovedToColumn }}</label>
-          <select v-if="store.editing" id="workflow-target-column" v-model="store.form.target_column_id">
-            <option :value="0">{{ locale.anyColumn }}</option>
-            <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
-          </select>
-          <div v-else aria-labelledby="workflow-target-column-label">{{ store.columnTitle(store.form.target_column_id) ?? locale.anyColumn }}</div>
-        </div>
-        <div v-if="hasFilter('labels')" class="field">
-          <label>{{ locale.onlyIfHasLabels }}</label>
-          <ProjectWorkflowLabelPicker
-            :labels="store.labels" :selected-ids="store.form.label_ids" :readonly="!store.editing"
-            :placeholder="locale.anyLabel" :field-label="locale.onlyIfHasLabels"
-            @toggle="toggleLabel(store.form.label_ids, $event)"
-          />
+        <div class="tw-pl-4">
+          <div v-if="hasFilter('issue_type')" class="field">
+            <label id="workflow-issue-type-label" for="workflow-issue-type">{{ locale.applyTo }}</label>
+            <select v-if="store.editing" class="ui dropdown custom" id="workflow-issue-type" v-model="store.form.issue_type">
+              <option v-for="o in issueTypes" :key="o.value" :value="o.value">{{ o.text }}</option>
+            </select>
+            <div v-else aria-labelledby="workflow-issue-type-label">{{ optionText(issueTypes, store.form.issue_type) }}</div>
+          </div>
+          <div v-if="hasFilter('source_column')" class="field">
+            <label id="workflow-source-column-label" for="workflow-source-column">{{ locale.whenMovedFromColumn }}</label>
+            <select v-if="store.editing" class="ui dropdown custom" id="workflow-source-column" v-model="store.form.source_column_id">
+              <option :value="0">{{ locale.anyColumn }}</option>
+              <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
+            </select>
+            <div v-else aria-labelledby="workflow-source-column-label">{{ store.columnTitle(store.form.source_column_id) ?? locale.anyColumn }}</div>
+          </div>
+          <div v-if="hasFilter('target_column')" class="field">
+            <label id="workflow-target-column-label" for="workflow-target-column">{{ locale.whenMovedToColumn }}</label>
+            <select v-if="store.editing" class="ui dropdown custom" id="workflow-target-column" v-model="store.form.target_column_id">
+              <option :value="0">{{ locale.anyColumn }}</option>
+              <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
+            </select>
+            <div v-else aria-labelledby="workflow-target-column-label">{{ store.columnTitle(store.form.target_column_id) ?? locale.anyColumn }}</div>
+          </div>
+          <div v-if="hasFilter('labels')" class="field">
+            <label>{{ locale.onlyIfHasLabels }}</label>
+            <ProjectWorkflowLabelPicker
+              :labels="store.labels" :selected-ids="store.form.label_ids" :readonly="!store.editing"
+              :placeholder="locale.anyLabel" :field-label="locale.onlyIfHasLabels"
+              @toggle="toggleLabel(store.form.label_ids, $event)"
+            />
+          </div>
         </div>
       </template>
 
       <h5 class="ui dividing header">{{ locale.actions }}</h5>
-      <div v-if="hasAction('column')" class="field">
-        <label id="workflow-column-label" for="workflow-column">{{ locale.moveToColumn }}</label>
-        <select v-if="store.editing" id="workflow-column" v-model="store.form.column_id">
-          <option :value="0">{{ locale.selectColumn }}</option>
-          <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
-        </select>
-        <div v-else aria-labelledby="workflow-column-label">{{ store.columnTitle(store.form.column_id) ?? locale.none }}</div>
-      </div>
-      <div v-if="hasAction('add_labels')" class="field">
-        <label>{{ locale.addLabels }}</label>
-        <ProjectWorkflowLabelPicker
-          :labels="store.labels" :selected-ids="store.form.add_label_ids" :readonly="!store.editing"
-          :placeholder="locale.none" :field-label="locale.addLabels"
-          @toggle="toggleLabel(store.form.add_label_ids, $event)"
-        />
-      </div>
-      <div v-if="hasAction('remove_labels')" class="field">
-        <label>{{ locale.removeLabels }}</label>
-        <ProjectWorkflowLabelPicker
-          :labels="store.labels" :selected-ids="store.form.remove_label_ids" :readonly="!store.editing"
-          :placeholder="locale.none" :field-label="locale.removeLabels"
-          @toggle="toggleLabel(store.form.remove_label_ids, $event)"
-        />
-      </div>
-      <div v-if="hasAction('issue_state')" class="field">
-        <label id="workflow-issue-state-label" for="workflow-issue-state">{{ locale.issueState }}</label>
-        <select v-if="store.editing" id="workflow-issue-state" v-model="store.form.issue_state">
-          <option v-for="o in issueStates" :key="o.value" :value="o.value">{{ o.text }}</option>
-        </select>
-        <div v-else aria-labelledby="workflow-issue-state-label">{{ optionText(issueStates, store.form.issue_state) }}</div>
+      <div class="tw-pl-4">
+        <div v-if="hasAction('column')" class="field">
+          <label id="workflow-column-label" for="workflow-column">{{ locale.moveToColumn }}</label>
+          <select v-if="store.editing" class="ui dropdown custom" id="workflow-column" v-model="store.form.column_id">
+            <option :value="0">{{ locale.selectColumn }}</option>
+            <option v-for="c in store.columns" :key="c.id" :value="c.id">{{ c.title }}</option>
+          </select>
+          <div v-else aria-labelledby="workflow-column-label">{{ store.columnTitle(store.form.column_id) ?? locale.none }}</div>
+        </div>
+        <div v-if="hasAction('add_labels')" class="field">
+          <label>{{ locale.addLabels }}</label>
+          <ProjectWorkflowLabelPicker
+            :labels="store.labels" :selected-ids="store.form.add_label_ids" :readonly="!store.editing"
+            :placeholder="locale.none" :field-label="locale.addLabels"
+            @toggle="toggleLabel(store.form.add_label_ids, $event)"
+          />
+        </div>
+        <div v-if="hasAction('remove_labels')" class="field">
+          <label>{{ locale.removeLabels }}</label>
+          <ProjectWorkflowLabelPicker
+            :labels="store.labels" :selected-ids="store.form.remove_label_ids" :readonly="!store.editing"
+            :placeholder="locale.none" :field-label="locale.removeLabels"
+            @toggle="toggleLabel(store.form.remove_label_ids, $event)"
+          />
+        </div>
+        <div v-if="hasAction('issue_state')" class="field">
+          <label id="workflow-issue-state-label" for="workflow-issue-state">{{ locale.issueState }}</label>
+          <select v-if="store.editing" class="ui dropdown custom" id="workflow-issue-state" v-model="store.form.issue_state">
+            <option v-for="o in issueStates" :key="o.value" :value="o.value">{{ o.text }}</option>
+          </select>
+          <div v-else aria-labelledby="workflow-issue-state-label">{{ optionText(issueStates, store.form.issue_state) }}</div>
+        </div>
       </div>
     </div>
   </form>

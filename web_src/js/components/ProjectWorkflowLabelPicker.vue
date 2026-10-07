@@ -31,12 +31,12 @@ const labelStyle = (label: Label) => ({backgroundColor: `#${label.color}`, color
     <span v-if="!selectedIds.length" class="tw-text-text-light-2">{{ placeholder }}</span>
     <span v-for="label in selectedLabels" :key="label.id" class="ui label" :style="labelStyle(label)">{{ label.name }}</span>
   </div>
-  <div v-else ref="elDropdown" class="ui fluid multiple search selection dropdown" role="listbox" aria-multiselectable="true" :aria-label="fieldLabel" tabindex="0">
+  <div v-else ref="elDropdown" class="ui fluid multiple search selection dropdown custom" role="listbox" aria-multiselectable="true" :aria-label="fieldLabel" tabindex="0">
     <input type="hidden" :value="selectedIds.join(',')">
     <SvgIcon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
+    <span v-for="label in selectedLabels" :key="label.id" class="ui label" :style="labelStyle(label)">{{ label.name }}</span>
     <div class="text" :class="{default: !selectedIds.length}">
       <template v-if="!selectedIds.length">{{ placeholder }}</template>
-      <span v-for="label in selectedLabels" :key="label.id" class="ui label" :style="labelStyle(label)">{{ label.name }}</span>
     </div>
     <div class="menu">
       <div
@@ -50,3 +50,11 @@ const labelStyle = (label: Label) => ({backgroundColor: `#${label.color}`, color
     </div>
   </div>
 </template>
+
+<style scoped>
+/* keep the selected labels the same size as the labels in the menu */
+.ui.multiple.dropdown > .label {
+  padding: 2px 6px;
+  font-size: var(--font-size-label);
+}
+</style>

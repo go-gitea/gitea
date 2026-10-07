@@ -1,6 +1,6 @@
 <div class="ui container">
 	<a class="flex-text-inline" href="{{.ProjectLink}}">{{svg "octicon-arrow-left"}} {{.Project.Title}}</a>
-	<div id="project-workflows"
+	<div id="project-workflows" data-global-init="initProjectWorkflow"
 		data-project-link="{{.ProjectLink}}"
 		data-workflow-key="{{.WorkflowKey}}"
 		data-can-write="{{.CanWrite}}"

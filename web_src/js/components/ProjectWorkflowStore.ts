@@ -1,6 +1,7 @@
 import {computed, reactive} from 'vue';
-import {GET, POST} from '../modules/fetch.ts';
+import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
+import {performFetchActionRequest} from '../modules/fetch-action.ts';
 import {trString} from '../modules/i18n.ts';
 import type {Label} from '../types.ts';
 
@@ -149,7 +150,7 @@ function buildWorkflowRows(events: ProjectWorkflowEvent[], workflows: ProjectWor
 
 let cloneSeq = 0;
 
-export function createProjectWorkflowStore(props: {projectLink: string, canWrite: boolean, locale: ProjectWorkflowLocale}) {
+export function createProjectWorkflowStore(props: {el: HTMLElement, projectLink: string, canWrite: boolean, locale: ProjectWorkflowLocale}) {
   const baseUrl = `${props.projectLink}/workflows`;
 
   const store = reactive({
@@ -295,14 +296,8 @@ export function createProjectWorkflowStore(props: {projectLink: string, canWrite
   async function post<T>(url: string, data: Record<string, unknown>): Promise<T | null> {
     store.saving = true;
     try {
-      const resp = await POST(url, {data});
-      if (resp.ok) return await resp.json();
-      let message = window.config.i18n.error_occurred;
-      try {
-        message = (await resp.json()).errorMessage || message;
-      } catch {}
-      showErrorToast(message);
-      return null;
+      const resp = await performFetchActionRequest(props.el, {url, method: 'POST', data});
+      return resp ? await resp.json() : null;
     } finally {
       store.saving = false;
     }
