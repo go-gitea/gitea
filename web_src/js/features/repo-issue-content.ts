@@ -18,14 +18,14 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
     <div class="ui modal content-history-detail-dialog">
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
-        <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
+        <div class="ui dropdown dialog-header-options tw-mx-4 tw-hidden">
           ${i18nTextOptions}
           ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
           <div class="menu">
             <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
           </div>
         </div>
-        ${svgRaw('octicon-x', 16, 'close-modal')}
+        <button type="button" class="close-modal"></button>
       </div>
       <div class="comment-diff-data is-loading"></div>
     </div>
