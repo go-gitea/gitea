@@ -147,47 +147,20 @@ func TestBitbucketRateLimitRetry(t *testing.T) {
 	assert.Equal(t, int32(failuresBeforeSuccess+1), attempts.Load())
 }
 
-func writeBitbucketIssuesPage(w http.ResponseWriter, r *http.Request, serverURL string) {
-	if r.URL.Query().Get("pagelen") == "1" && r.URL.Query().Get("page") == "1" {
-		_, _ = fmt.Fprintf(w, `{"next":"%s/2.0/repositories/gitea/test-repo/issues?page=2","values":[%s]}`, serverURL, bitbucketIssueJSON(1))
-		return
-	}
-	if r.URL.Query().Get("pagelen") == "1" && r.URL.Query().Get("page") == "2" {
-		_, _ = fmt.Fprintf(w, `{"values":[%s]}`, bitbucketIssueJSON(2))
-		return
-	}
-	_, _ = fmt.Fprintf(w, `{"values":[%s,%s]}`, bitbucketIssueJSON(1), bitbucketIssueJSON(2))
-}
+func TestBitbucketIssueLabels(t *testing.T) {
+	assert.Empty(t, bitbucketIssueLabels(bitbucketIssue{}))
 
-func bitbucketIssueJSON(id int) string {
-	if id == 1 {
-		return `{
-			"id":1,
-			"title":"Open issue",
-			"content":{"raw":"Issue body"},
-			"state":"open",
-			"kind":"bug",
-			"priority":"major",
-			"reporter":{"account_id":"user-1","nickname":"alice"},
-			"assignee":{"account_id":"user-2","nickname":"bob"},
-			"component":{"name":"migrations"},
-			"version":{"name":"1.0"},
-			"milestone":{"name":"v1"},
-			"created_on":"2020-01-01T12:00:00Z",
-			"updated_on":"2020-01-02T12:00:00Z"
-		}`
+	labels := bitbucketIssueLabels(bitbucketIssue{
+		Kind:      "bug",
+		Priority:  "major",
+		Component: &bitbucketNamedValue{Name: "migrations"},
+		Version:   &bitbucketNamedValue{Name: "1.0"},
+	})
+	names := make([]string, 0, len(labels))
+	for _, l := range labels {
+		names = append(names, l.Name)
 	}
-	return `{
-		"id":2,
-		"title":"Closed issue",
-		"content":{"raw":"Closed body"},
-		"state":"resolved",
-		"kind":"enhancement",
-		"priority":"minor",
-		"reporter":{"account_id":"user-2","nickname":"bob"},
-		"created_on":"2020-01-02T12:00:00Z",
-		"updated_on":"2020-01-03T12:00:00Z"
-	}`
+	assert.Equal(t, []string{"kind/bug", "priority/major", "component/migrations", "version/1.0"}, names)
 }
 
 func TestBitbucketRetryWait(t *testing.T) {
